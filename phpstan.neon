@@ -1,0 +1,16 @@
+parameters:
+    level: 6
+    paths:
+        - packages/phpdftk/src
+        - packages/geometry/src
+        - packages/encoding/src
+        - packages/font-metrics/src
+        - packages/image-metadata/src
+        - packages/filters/src
+        - packages/color/src
+        - packages/xmp/src
+        - packages/crypt/src
+    excludePaths:
+        - packages/*/tests
+        - packages/*/vendor
+    treatPhpDocTypesAsCertain: false

@@ -1,0 +1,9 @@
+{
+    "name": "phpdftk/geometry",
+    "description": "Geometric primitives: Rectangle, Matrix, PageSize, BezierCurve — no PDF dependency",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4" },
+    "autoload": { "psr-4": { "Phpdftk\\Geometry\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Phpdftk\\Geometry\\Tests\\": "tests/" } }
+}

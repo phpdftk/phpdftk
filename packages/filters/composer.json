@@ -1,0 +1,9 @@
+{
+    "name": "phpdftk/filters",
+    "description": "FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode — no PDF dependency",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4", "ext-zlib": "*" },
+    "autoload": { "psr-4": { "Phpdftk\\Filters\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Phpdftk\\Filters\\Tests\\": "tests/" } }
+}

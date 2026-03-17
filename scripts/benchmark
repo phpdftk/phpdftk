@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "Running benchmarks..."
+vendor/bin/phpbench run benchmarks/ --report=aggregate 2>&1 | tee /tmp/phpdftk_bench_output.txt
+
+echo ""
+echo "Generating docs/benchmarks.md..."
+php scripts/parse-benchmarks.php < /tmp/phpdftk_bench_output.txt
+
+echo "Done. See docs/benchmarks.md"

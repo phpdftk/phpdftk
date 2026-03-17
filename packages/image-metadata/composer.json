@@ -1,0 +1,9 @@
+{
+    "name": "phpdftk/image-metadata",
+    "description": "Parse JPEG/PNG/GIF/TIFF/WebP headers to extract dimensions and color space — no PDF dependency",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4" },
+    "autoload": { "psr-4": { "Phpdftk\\ImageMetadata\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Phpdftk\\ImageMetadata\\Tests\\": "tests/" } }
+}

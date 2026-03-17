@@ -1,0 +1,9 @@
+{
+    "name": "phpdftk/encoding",
+    "description": "WinAnsi and MacRoman encoding tables, Adobe Glyph List, CMap parser — no PDF dependency",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4" },
+    "autoload": { "psr-4": { "Phpdftk\\Encoding\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Phpdftk\\Encoding\\Tests\\": "tests/" } }
+}

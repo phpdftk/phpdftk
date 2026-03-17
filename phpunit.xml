@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="geometry">
+            <directory>packages/geometry/tests</directory>
+        </testsuite>
+        <testsuite name="color">
+            <directory>packages/color/tests</directory>
+        </testsuite>
+        <testsuite name="filters">
+            <directory>packages/filters/tests</directory>
+        </testsuite>
+        <testsuite name="encoding">
+            <directory>packages/encoding/tests</directory>
+        </testsuite>
+        <testsuite name="font-metrics">
+            <directory>packages/font-metrics/tests</directory>
+        </testsuite>
+        <testsuite name="image-metadata">
+            <directory>packages/image-metadata/tests</directory>
+        </testsuite>
+        <testsuite name="xmp">
+            <directory>packages/xmp/tests</directory>
+        </testsuite>
+        <testsuite name="crypt">
+            <directory>packages/crypt/tests</directory>
+        </testsuite>
+        <testsuite name="phpdftk">
+            <directory>packages/phpdftk/tests</directory>
+        </testsuite>
+    </testsuites>
+    <coverage>
+        <report>
+            <clover outputFile="build/coverage/clover.xml"/>
+            <html outputDirectory="build/coverage/html"/>
+            <text outputFile="php://stdout" showUncoveredFiles="false"/>
+        </report>
+    </coverage>
+    <source>
+        <include>
+            <directory>packages/phpdftk/src</directory>
+            <directory>packages/geometry/src</directory>
+            <directory>packages/encoding/src</directory>
+            <directory>packages/font-metrics/src</directory>
+            <directory>packages/image-metadata/src</directory>
+            <directory>packages/filters/src</directory>
+            <directory>packages/color/src</directory>
+            <directory>packages/xmp/src</directory>
+            <directory>packages/crypt/src</directory>
+        </include>
+    </source>
+</phpunit>

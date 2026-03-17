@@ -1,0 +1,9 @@
+{
+    "name": "phpdftk/font-metrics",
+    "description": "AFM metrics for the 14 standard PDF fonts — no PDF dependency",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4" },
+    "autoload": { "psr-4": { "Phpdftk\\FontMetrics\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Phpdftk\\FontMetrics\\Tests\\": "tests/" } }
+}

@@ -1,0 +1,27 @@
+# Dependencies
+/vendor/
+
+# Composer
+composer.phar
+
+# PHPUnit
+.phpunit.result.cache
+/build/coverage/
+
+# Test output
+/tests/output/
+/packages/*/tests/output/
+
+# PHPBench
+.phpbench/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Claude
+.claude/
+
