@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Xmp;
+namespace ApprLabs\Xmp;
 
 final class XmpPacket {
     /** @param array<string, string> $properties */

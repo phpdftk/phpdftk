@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\ImageMetadata;
+namespace ApprLabs\ImageMetadata;
 
 final class ImageParser {
     public static function parse(string $path): ImageInfo {

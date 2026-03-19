@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Phpdftk\Xmp\Tests;
+namespace ApprLabs\Xmp\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Phpdftk\Xmp\XmpPacket;
-use Phpdftk\Xmp\XmpWriter;
-use Phpdftk\Xmp\XmpReader;
+use ApprLabs\Xmp\XmpPacket;
+use ApprLabs\Xmp\XmpWriter;
+use ApprLabs\Xmp\XmpReader;
 
 class XmpTest extends TestCase
 {

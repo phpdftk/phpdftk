@@ -1,9 +1,9 @@
 {
-    "name": "phpdftk/xmp",
+    "name": "apprlabs/xmp",
     "description": "XMP metadata packet read/write — no PDF dependency",
     "type": "library",
     "license": "MIT",
     "require": { "php": "^8.4", "ext-simplexml": "*" },
-    "autoload": { "psr-4": { "Phpdftk\\Xmp\\": "src/" } },
-    "autoload-dev": { "psr-4": { "Phpdftk\\Xmp\\Tests\\": "tests/" } }
+    "autoload": { "psr-4": { "ApprLabs\\Xmp\\": "src/" } },
+    "autoload-dev": { "psr-4": { "ApprLabs\\Xmp\\Tests\\": "tests/" } }
 }

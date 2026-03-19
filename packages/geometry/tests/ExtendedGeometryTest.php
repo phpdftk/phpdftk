@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Phpdftk\Geometry\Tests;
+namespace ApprLabs\Geometry\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Phpdftk\Geometry\BezierCurve;
-use Phpdftk\Geometry\PageSize;
-use Phpdftk\Geometry\Point;
-use Phpdftk\Geometry\Rectangle;
+use ApprLabs\Geometry\BezierCurve;
+use ApprLabs\Geometry\PageSize;
+use ApprLabs\Geometry\Point;
+use ApprLabs\Geometry\Rectangle;
 
 class ExtendedGeometryTest extends TestCase
 {

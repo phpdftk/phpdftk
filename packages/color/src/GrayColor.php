@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Color;
+namespace ApprLabs\Color;
 
 final class GrayColor implements ColorInterface {
     public function __construct(

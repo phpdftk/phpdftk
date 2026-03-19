@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Crypt;
+namespace ApprLabs\Crypt;
 
 interface CryptInterface {
     public function encrypt(string $data, string $key): string;

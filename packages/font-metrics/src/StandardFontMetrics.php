@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\FontMetrics;
+namespace ApprLabs\FontMetrics;
 
 final class StandardFontMetrics {
     /** @var array<string, AfmData>|null */

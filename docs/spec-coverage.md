@@ -14,7 +14,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 |----------------------|--------|------------------------------------------------|
 | `/Pages`             | ✓      |                                                |
 | `/Version`           | ✓      |                                                |
-| `/Outlines`          | ✓      | Reference stored; `Outline` class missing      |
+| `/Outlines`          | ✓      | `Outline` + `OutlineItem` classes implemented  |
 | `/Names`             | ✓      | Reference stored; `NameTree` class missing     |
 | `/Dests`             | ✓      | Reference stored; destination arrays missing   |
 | `/ViewerPreferences` | ✓      |                                                |
@@ -91,12 +91,12 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Thumb`                | ✓      | Reference stored                                 |
 | `/UserUnit`             | ✓      |                                                  |
 | `/StructParents`        | ✓      |                                                  |
-| `/Trans`                | ✓      | Reference stored; `TransitionDict` class missing |
+| `/Trans`                | ✓      | `TransitionDict` class; S, D, Dm, M, Di, SS, B  |
 | `/Dur`                  | ✓      |                                                  |
 | `/BoxColorInfo`         | ✗      |                                                  |
 | `/B`                    | ✗      | Article beads                                    |
 | `/AA`                   | ✗      | Additional-actions dict                          |
-| `/Metadata`             | ✗      | XMP stream on page                               |
+| `/Metadata`             | ✓      | XMP stream reference on page                     |
 | `/PieceInfo`            | ✗      |                                                  |
 | `/ID`                   | ✗      |                                                  |
 | `/PZ`                   | ✗      |                                                  |
@@ -146,16 +146,16 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 | Object                                         | Status | Notes                                                                  |
 |------------------------------------------------|--------|------------------------------------------------------------------------|
-| `Outline` (`/Type /Outlines`)                  | ✗      | Bookmarks root: First, Last, Count                                     |
-| `OutlineItem`                                  | ✗      | Title, Parent, Prev, Next, First, Last, Count, Dest, A, SE, C, F       |
-| `PageLabel` (`/Type /PageLabel`)               | ✗      | S, P, St — page numbering schemes                                      |
+| `Outline` (`/Type /Outlines`)                  | ✓      | First, Last, Count; `PdfWriter::setOutline()` wires to Catalog         |
+| `OutlineItem`                                  | ✓      | Title, Parent, Prev, Next, First, Last, Count, Dest, A, C, F           |
+| `PageLabel` (`/Type /PageLabel`)               | ✓      | S, P, St; `PdfWriter::setPageLabels()` builds inline number tree       |
 | Named destinations                             | ✗      | Name → destination array mapping                                       |
 | Explicit destinations                          | ✗      | `/XYZ`, `/Fit`, `/FitH`, `/FitV`, `/FitR`, `/FitB`, `/FitBH`, `/FitBV` |
 | `OutputIntent` (`/Type /OutputIntent`)         | ✗      | Required for PDF/X; S, OutputConditionIdentifier, DestOutputProfile    |
 | `OCG` (`/Type /OCG`)                           | ✗      | Optional content group (layer); Name, Intent, Usage                    |
 | `OCMD` (`/Type /OCMD`)                         | ✗      | Optional content membership dict; OCGs, P, VE                          |
 | `OCProperties`                                 | ✗      | In Catalog: OCGs, D, Configs                                           |
-| `TransitionDict` (`/Type /Trans`)              | ✗      | S, D, Dm, M, Di, SS, B                                                 |
+| `TransitionDict` (`/Type /Trans`)              | ✓      | S, D, Dm, M, Di, SS, B; assigned to `Page::$transition`               |
 | `GroupAttributes`                              | ✗      | Transparency group: S, CS, I, K                                        |
 | `NameTree`                                     | ✗      | General-purpose name-keyed tree                                        |
 | `NumberTree`                                   | ✗      | General-purpose integer-keyed tree                                     |
@@ -310,7 +310,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 |----------------------------------|--------|----------------------------------------------------|
 | `AppearanceDict` (AP)            | ~      | Referenced; not generated                          |
 | `AppearanceCharacteristics` (MK) | ✗      | R, BC, BG, CA, RC, AC, I, RI, IX, IF, TP           |
-| `BorderStyle` (BS)               | ✗      | W, S, D — referenced in several annotation classes |
+| `BorderStyle` (BS)               | ✓      | W, S, D; `Annotation::$bs` accepts it directly    |
 | `BorderEffect` (BE)              | ✗      | S, I                                               |
 
 ---
@@ -323,7 +323,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/URI`              | `URIAction`        | ✓      | URI, IsMap                                   |
 | `/Named`            | `NamedAction`      | ✓      | N                                            |
 | `/JavaScript`       | `JavaScriptAction` | ✓      | JS                                           |
-| `/GoToR`            | —                  | ✗      | F, D, NewWindow — remote file navigation     |
+| `/GoToR`            | `GoToRAction`      | ✓      | F, D, NewWindow                              |
 | `/GoToE`            | —                  | ✗      | F, D, NewWindow, T — embedded PDF navigation |
 | `/GoToDP`           | —                  | ✗      | D, DP                                        |
 | `/Launch`           | —                  | ✗      | F, Win, Mac, Unix, NewWindow                 |
@@ -566,18 +566,18 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `TJ`           | Text          | ✓      |                                           |
 | `Do`           | XObject       | ✓      |                                           |
 | `BI`/`ID`/`EI` | Image         | ✓      |                                           |
-| `'`            | Text          | ✗      | Move to next line and show text           |
-| `"`            | Text          | ✗      | Set spacing, move to next line, show text |
-| `sh`           | Shading       | ✗      | Paint shading pattern                     |
-| `d0`           | Type3         | ✗      | Set glyph width (colorless)               |
-| `d1`           | Type3         | ✗      | Set glyph width and bounding box          |
-| `MP`           | MarkedContent | ✗      | Marked content point                      |
-| `DP`           | MarkedContent | ✗      | Marked content point with property list   |
-| `BMC`          | MarkedContent | ✗      | Begin marked content                      |
-| `BDC`          | MarkedContent | ✗      | Begin marked content with property list   |
-| `EMC`          | MarkedContent | ✗      | End marked content                        |
-| `BX`           | Compat        | ✗      | Begin compatibility section               |
-| `EX`           | Compat        | ✗      | End compatibility section                 |
+| `'`            | Text          | ✓      | `moveToNextLineAndShowText()`             |
+| `"`            | Text          | ✓      | `setSpacingMoveAndShowText()`             |
+| `sh`           | Shading       | ✓      | `paintShading()`                          |
+| `d0`           | Type3         | ✓      | `setGlyphWidth()`                         |
+| `d1`           | Type3         | ✓      | `setGlyphWidthAndBoundingBox()`           |
+| `MP`           | MarkedContent | ✓      | `markedContentPoint()`                    |
+| `DP`           | MarkedContent | ✓      | `markedContentPointWithProperties()`      |
+| `BMC`          | MarkedContent | ✓      | `beginMarkedContent()`                    |
+| `BDC`          | MarkedContent | ✓      | `beginMarkedContentWithProperties()`      |
+| `EMC`          | MarkedContent | ✓      | `endMarkedContent()`                      |
+| `BX`           | Compat        | ✓      | `beginCompatibility()`                    |
+| `EX`           | Compat        | ✓      | `endCompatibility()`                      |
 
 ---
 
@@ -656,7 +656,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `StructTreeRoot` (`/Type /StructTreeRoot`) | ✗      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap |
 | `StructElem` (`/Type /StructElem`)         | ✗      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText       |
 | `ObjectRef` (`/Type /OBJR`)                | ✗      | Pg, Obj                                                     |
-| Marked content operators                   | ✗      | `BMC`, `BDC`, `EMC`, `MP`, `DP` in `ContentStream`          |
+| Marked content operators                   | ✓      | `BMC`, `BDC`, `EMC`, `MP`, `DP` implemented in `ContentStream` |
 | `RoleMap` dict                             | ✗      |                                                             |
 | `ClassMap` dict                            | ✗      |                                                             |
 | Attribute objects                          | ✗      |                                                             |
@@ -667,16 +667,18 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 | Area                       | Implemented | Total | %    |
 |----------------------------|-------------|-------|------|
-| Catalog fields             | 13          | 24    | 54%  |
+| Catalog fields             | 14          | 24    | 58%  |
 | PageTree fields            | 7           | 30    | 23%  |
-| Page fields                | 17          | 30    | 57%  |
+| Page fields                | 19          | 30    | 63%  |
 | Info fields                | 9           | 9     | 100% |
 | ViewerPreferences fields   | 17          | 17    | 100% |
+| Document structure objects | 3           | 20    | 15%  |
 | Font subtypes              | 4           | 7     | 57%  |
 | FontDescriptor fields      | 19          | 19    | 100% |
 | Annotation base fields     | 14          | 18    | 78%  |
 | Annotation subtypes        | 8           | 26    | 31%  |
-| Actions                    | 4           | 20    | 20%  |
+| Supporting annot dicts     | 1           | 4     | 25%  |
+| Actions                    | 5           | 20    | 25%  |
 | AcroForm fields            | 8           | 8     | 100% |
 | Field types                | 4           | 4     | 100% |
 | ExtGState fields           | 19          | 28    | 68%  |
@@ -685,12 +687,12 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | Function types             | 0           | 4     | 0%   |
 | Pattern types              | 0           | 2     | 0%   |
 | Shading types              | 0           | 7     | 0%   |
-| Content stream operators   | 57          | 64    | 89%  |
+| Content stream operators   | 69          | 69    | 100% |
 | Encryption                 | 0           | 8     | 0%*  |
 | Digital signatures         | 0           | 7     | 0%   |
 | Multimedia                 | 0           | 7     | 0%   |
 | File specifications        | 0           | 3     | 0%   |
-| Accessibility / Tagged PDF | 0           | 7     | 0%   |
+| Accessibility / Tagged PDF | 1           | 7     | 14%  |
 | 3D                         | 0           | 6     | 0%   |
 
 > \* Cipher primitives exist in `phpdftk/crypt`; PDF-layer wiring is incomplete.

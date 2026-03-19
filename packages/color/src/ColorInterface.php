@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Color;
+namespace ApprLabs\Color;
 
 interface ColorInterface {
     /** @return array<int, float> */

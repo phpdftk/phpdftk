@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Crypt;
+namespace ApprLabs\Crypt;
 
 final class Rc4Cipher implements CryptInterface {
     public function encrypt(string $data, string $key): string {

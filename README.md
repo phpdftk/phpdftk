@@ -19,13 +19,13 @@ See [docs/benchmarks.md](docs/benchmarks.md) for full results.
 ## Quick Start
 
 ```bash
-composer require phpdftk/phpdftk
+composer require apprlabs/pdf-writer
 ```
 
 ```php
-use Phpdftk\Writer\PdfWriter;
-use Phpdftk\Font\Type1Font;
-use Phpdftk\Font\StandardFont;
+use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Pdf\Core\Font\StandardFont;
 
 $writer = new PdfWriter();
 
@@ -55,15 +55,17 @@ This monorepo contains independently usable packages under `packages/`:
 
 | Package | Description |
 |---|---|
-| [`phpdftk/phpdftk`](packages/phpdftk) | Core PDF library — document structure, content streams, fonts, annotations, forms, writer |
-| [`phpdftk/geometry`](packages/geometry) | Point, Rectangle, Matrix, PageSize constants, BezierCurve |
-| [`phpdftk/color`](packages/color) | RGB, CMYK, and Gray color models with conversion utilities |
-| [`phpdftk/encoding`](packages/encoding) | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
-| [`phpdftk/font-metrics`](packages/font-metrics) | AFM data for the 14 standard PDF fonts |
-| [`phpdftk/filters`](packages/filters) | FlateDecode, ASCII85, ASCIIHex, and RunLength stream filters |
-| [`phpdftk/image-metadata`](packages/image-metadata) | Header-only image parsing for JPEG, PNG, GIF, TIFF, WebP |
-| [`phpdftk/xmp`](packages/xmp) | Read and write XMP metadata packets |
-| [`phpdftk/crypt`](packages/crypt) | AES-128/256-CBC and RC4 with PDF key derivation (ISO 32000-2) |
+| [`apprlabs/pdf-core`](packages/pdf/core) | PDF object model — document structure, content streams, fonts, annotations, forms |
+| [`apprlabs/pdf-writer`](packages/pdf/writer) | Serializes the object model to spec-compliant PDF bytes |
+| [`apprlabs/pdf-reader`](packages/pdf/reader) | Parses existing PDFs into the object model (not yet implemented) |
+| [`apprlabs/geometry`](packages/geometry) | Point, Rectangle, Matrix, PageSize constants, BezierCurve |
+| [`apprlabs/color`](packages/color) | RGB, CMYK, and Gray color models with conversion utilities |
+| [`apprlabs/encoding`](packages/encoding) | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
+| [`apprlabs/font-metrics`](packages/font-metrics) | AFM data for the 14 standard PDF fonts |
+| [`apprlabs/filters`](packages/filters) | FlateDecode, ASCII85, ASCIIHex, and RunLength stream filters |
+| [`apprlabs/image-metadata`](packages/image-metadata) | Header-only image parsing for JPEG, PNG, GIF, TIFF, WebP |
+| [`apprlabs/xmp`](packages/xmp) | Read and write XMP metadata packets |
+| [`apprlabs/crypt`](packages/crypt) | AES-128/256-CBC and RC4 with PDF key derivation (ISO 32000-2) |
 
 All sub-packages have zero PDF dependencies and can be used standalone.
 
@@ -73,15 +75,15 @@ All sub-packages have zero PDF dependencies and can be used standalone.
 
 | Namespace | Purpose |
 |---|---|
-| `Core\` | Primitive types: `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference` |
-| `Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences` |
-| `Font\` | `Type1Font`, `TrueTypeFont`, `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` enum |
-| `Annotation\` | `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation` |
-| `Graphics\` | `ExtGState`, `DeviceRGB`, `DeviceCMYK`, `DeviceGray`, `ImageXObject`, `FormXObject` |
-| `Interactive\Form\` | `AcroForm`, `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
-| `Action\` | `GoToAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
-| `Content\` | `ContentStream` (fluent operator API), `Resources` |
-| `Writer\` | `PdfWriter`, `ObjectRegistry`, `CrossReferenceTable` |
+| `ApprLabs\Pdf\Core\` | Primitive types: `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference` |
+| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict` |
+| `ApprLabs\Pdf\Core\Font\` | `Type1Font`, `TrueTypeFont`, `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` enum |
+| `ApprLabs\Pdf\Core\Annotation\` | `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation` |
+| `ApprLabs\Pdf\Core\Graphics\` | `ExtGState`, `DeviceRGB`, `DeviceCMYK`, `DeviceGray`, `ImageXObject`, `FormXObject` |
+| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
+| `ApprLabs\Pdf\Core\Action\` | `GoToAction`, `GoToRAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
+| `ApprLabs\Pdf\Core\Content\` | `ContentStream` (fluent operator API), `Resources` |
+| `ApprLabs\Pdf\Writer\` | `PdfWriter`, `ObjectRegistry`, `CrossReferenceTable` |
 
 ### Content Streams
 
@@ -130,7 +132,7 @@ composer install
 vendor/bin/phpunit
 
 # Run a single test
-vendor/bin/phpunit tests/Document/SimpleTextTest.php
+vendor/bin/phpunit packages/pdf/core/tests/Document/SimpleTextTest.php
 
 # Code coverage
 ./scripts/coverage

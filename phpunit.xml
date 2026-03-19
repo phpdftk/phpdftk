@@ -28,8 +28,11 @@
         <testsuite name="crypt">
             <directory>packages/crypt/tests</directory>
         </testsuite>
-        <testsuite name="phpdftk">
-            <directory>packages/phpdftk/tests</directory>
+        <testsuite name="core">
+            <directory>packages/pdf/core/tests</directory>
+        </testsuite>
+        <testsuite name="writer">
+            <directory>packages/pdf/writer/tests</directory>
         </testsuite>
     </testsuites>
     <coverage>
@@ -41,7 +44,8 @@
     </coverage>
     <source>
         <include>
-            <directory>packages/phpdftk/src</directory>
+            <directory>packages/pdf/core/src</directory>
+            <directory>packages/pdf/writer/src</directory>
             <directory>packages/geometry/src</directory>
             <directory>packages/encoding/src</directory>
             <directory>packages/font-metrics/src</directory>

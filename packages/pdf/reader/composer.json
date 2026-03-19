@@ -1,0 +1,22 @@
+{
+    "name": "apprlabs/pdf-reader",
+    "description": "PDF reader — parses existing PDF files into the phpdftk object model",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "apprlabs/pdf-core": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Reader\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Reader\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Filters;
+namespace ApprLabs\Filters;
 
 final class AsciiHexFilter implements FilterInterface {
     public function encode(string $data): string {

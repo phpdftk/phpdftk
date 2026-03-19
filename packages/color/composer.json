@@ -1,9 +1,9 @@
 {
-    "name": "phpdftk/color",
+    "name": "apprlabs/color",
     "description": "Color space data models (RGB, CMYK, Gray) and conversion — no PDF dependency",
     "type": "library",
     "license": "MIT",
     "require": { "php": "^8.4" },
-    "autoload": { "psr-4": { "Phpdftk\\Color\\": "src/" } },
-    "autoload-dev": { "psr-4": { "Phpdftk\\Color\\Tests\\": "tests/" } }
+    "autoload": { "psr-4": { "ApprLabs\\Color\\": "src/" } },
+    "autoload-dev": { "psr-4": { "ApprLabs\\Color\\Tests\\": "tests/" } }
 }

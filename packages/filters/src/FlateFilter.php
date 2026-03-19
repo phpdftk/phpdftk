@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Filters;
+namespace ApprLabs\Filters;
 
 final class FlateFilter implements FilterInterface {
     public function __construct(private int $level = 6) {}

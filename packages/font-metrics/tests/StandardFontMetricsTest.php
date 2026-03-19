@@ -1,10 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace Phpdftk\FontMetrics\Tests;
+namespace ApprLabs\FontMetrics\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Phpdftk\FontMetrics\StandardFontMetrics;
-use Phpdftk\FontMetrics\AfmData;
+use ApprLabs\FontMetrics\StandardFontMetrics;
+use ApprLabs\FontMetrics\AfmData;
 
 class StandardFontMetricsTest extends TestCase
 {

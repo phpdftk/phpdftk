@@ -1,0 +1,22 @@
+{
+    "name": "apprlabs/pdf-writer",
+    "description": "PDF writer — serializes the phpdftk object model to spec-compliant PDF bytes",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "apprlabs/pdf-core": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Writer\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Writer\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phpdftk\Benchmarks;
+namespace ApprLabs\Benchmarks;
 
 use PhpBench\Attributes as Bench;
-use Phpdftk\Font\StandardFont;
-use Phpdftk\Font\Type1Font;
-use Phpdftk\Writer\PdfWriter;
+use ApprLabs\Pdf\Core\Font\StandardFont;
+use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Pdf\Writer\PdfWriter;
 
 /**
  * Memory-focused benchmarks.

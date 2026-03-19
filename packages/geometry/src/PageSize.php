@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Geometry;
+namespace ApprLabs\Geometry;
 
 final class PageSize {
     // All sizes in PDF points (1/72 inch), portrait orientation

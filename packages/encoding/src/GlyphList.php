@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Encoding;
+namespace ApprLabs\Encoding;
 
 final class GlyphList {
     /** @return array<string, int> glyph name => Unicode codepoint */

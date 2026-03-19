@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Phpdftk\Crypt;
+namespace ApprLabs\Crypt;
 
 final class AesCipher implements CryptInterface {
     public function __construct(private int $keyBits = 128) {

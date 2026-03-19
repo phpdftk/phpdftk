@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Phpdftk\Encoding\Tests;
+namespace ApprLabs\Encoding\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Phpdftk\Encoding\WinAnsiTable;
-use Phpdftk\Encoding\MacRomanTable;
-use Phpdftk\Encoding\GlyphList;
-use Phpdftk\Encoding\CMapParser;
+use ApprLabs\Encoding\WinAnsiTable;
+use ApprLabs\Encoding\MacRomanTable;
+use ApprLabs\Encoding\GlyphList;
+use ApprLabs\Encoding\CMapParser;
 
 class EncodingTest extends TestCase
 {
