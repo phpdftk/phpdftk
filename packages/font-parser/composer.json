@@ -1,0 +1,9 @@
+{
+    "name": "apprlabs/font-parser",
+    "description": "TrueType font parser for metric extraction and PDF embedding — no external dependencies",
+    "type": "library",
+    "license": "MIT",
+    "require": { "php": "^8.4" },
+    "autoload": { "psr-4": { "ApprLabs\\FontParser\\": "src/" } },
+    "autoload-dev": { "psr-4": { "ApprLabs\\FontParser\\Tests\\": "tests/" } }
+}

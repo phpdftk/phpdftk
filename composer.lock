@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d05a1d5fccd7161590e9fdbd4550c376",
+    "content-hash": "3ef128519f6ac6c8299c03701c619134",
     "packages": [],
     "packages-dev": [
         {
@@ -160,6 +160,36 @@
             }
         },
         {
+            "name": "apprlabs/font-parser",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/font-parser",
+                "reference": "5ce94c193685382988ea1f50fca48634e40020d3"
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ApprLabs\\FontParser\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "ApprLabs\\FontParser\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "TrueType font parser for metric extraction and PDF embedding — no external dependencies",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "apprlabs/geometry",
             "version": "dev-main",
             "dist": {
@@ -225,7 +255,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/core",
-                "reference": "629325afc0c86d502765a6313a977fa5dbfbba22"
+                "reference": "dac1e96f7480445c282ddb29da7dad2dd43aa83f"
             },
             "require": {
                 "apprlabs/color": "@dev",
@@ -233,6 +263,7 @@
                 "apprlabs/encoding": "@dev",
                 "apprlabs/filters": "@dev",
                 "apprlabs/font-metrics": "@dev",
+                "apprlabs/font-parser": "@dev",
                 "apprlabs/geometry": "@dev",
                 "apprlabs/image-metadata": "@dev",
                 "apprlabs/xmp": "@dev",
@@ -1239,16 +1270,16 @@
         },
         {
             "name": "phpbench/phpbench",
-            "version": "1.5.1",
+            "version": "1.6.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpbench/phpbench.git",
-                "reference": "9a28fd0833f11171b949843c6fd663eb69b6d14c"
+                "reference": "661c8c6abbc7734986cf7bc6062c237fbb450461"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpbench/phpbench/zipball/9a28fd0833f11171b949843c6fd663eb69b6d14c",
-                "reference": "9a28fd0833f11171b949843c6fd663eb69b6d14c",
+                "url": "https://api.github.com/repos/phpbench/phpbench/zipball/661c8c6abbc7734986cf7bc6062c237fbb450461",
+                "reference": "661c8c6abbc7734986cf7bc6062c237fbb450461",
                 "shasum": ""
             },
             "require": {
@@ -1326,7 +1357,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpbench/phpbench/issues",
-                "source": "https://github.com/phpbench/phpbench/tree/1.5.1"
+                "source": "https://github.com/phpbench/phpbench/tree/1.6.1"
             },
             "funding": [
                 {
@@ -1334,15 +1365,15 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-05T08:18:58+00:00"
+            "time": "2026-03-22T10:27:20+00:00"
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.1.42",
+            "version": "2.1.43",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/1279e1ce86ba768f0780c9d889852b4e02ff40d0",
-                "reference": "1279e1ce86ba768f0780c9d889852b4e02ff40d0",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/d01bebe3edfd4d49b9666ee5b8271ddca561042f",
+                "reference": "d01bebe3edfd4d49b9666ee5b8271ddca561042f",
                 "shasum": ""
             },
             "require": {
@@ -1387,7 +1418,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-17T14:58:32+00:00"
+            "time": "2026-03-24T20:40:50+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -4616,6 +4647,7 @@
         "apprlabs/encoding": 20,
         "apprlabs/filters": 20,
         "apprlabs/font-metrics": 20,
+        "apprlabs/font-parser": 20,
         "apprlabs/geometry": 20,
         "apprlabs/image-metadata": 20,
         "apprlabs/pdf-core": 20,
@@ -4629,5 +4661,5 @@
         "php": "^8.4"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

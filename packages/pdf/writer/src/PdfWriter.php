@@ -14,13 +14,17 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Document\Catalog;
+use ApprLabs\Pdf\Core\Document\Destination;
 use ApprLabs\Pdf\Core\Document\Info;
+use ApprLabs\Pdf\Core\Document\NameTree;
 use ApprLabs\Pdf\Core\Document\Outline;
 use ApprLabs\Pdf\Core\Document\OutlineItem;
 use ApprLabs\Pdf\Core\Document\Page;
 use ApprLabs\Pdf\Core\Document\PageLabel;
 use ApprLabs\Pdf\Core\Document\PageTree;
 use ApprLabs\Pdf\Core\Font\Font;
+use ApprLabs\Pdf\Core\Font\FontDescriptor;
+use ApprLabs\Pdf\Core\Font\TrueTypeFont;
 use ApprLabs\Geometry\Rectangle;
 use ApprLabs\ImageMetadata\ImageParser;
 
@@ -156,6 +160,10 @@ class PdfWriter
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
 
+        if ($font instanceof TrueTypeFont && $font->parsedFontData !== null) {
+            $this->embedTrueTypeFont($font);
+        }
+
         $this->registry->register($font);
         $this->fonts[$name] = $font;
         $ref = new PdfReference($font->objectNumber);
@@ -270,12 +278,111 @@ class PdfWriter
     }
 
     /**
+     * Set named destinations on the document.
+     * Pass an associative array of name => Destination.
+     *
+     * @param array<string, Destination> $destinations
+     */
+    public function setNamedDestinations(array $destinations): void
+    {
+        ksort($destinations);
+        $namesArray = [];
+        foreach ($destinations as $name => $dest) {
+            $namesArray[] = new PdfString($name);
+            $namesArray[] = $dest;
+        }
+
+        $nameTree = new NameTree();
+        $nameTree->names = new PdfArray($namesArray);
+        $this->registry->register($nameTree);
+
+        // Build a names dictionary with /Dests pointing to the name tree
+        $namesDict = new PdfDictionary(['Dests' => new PdfReference($nameTree->objectNumber)]);
+        $namesDictObj = new PdfStream($namesDict, '');
+        $this->registry->register($namesDictObj);
+        $this->catalog->names = new PdfReference($namesDictObj->objectNumber);
+    }
+
+    /**
      * Register any arbitrary PdfObject (annotations, form fields, etc.).
      */
     public function register(\ApprLabs\Pdf\Core\PdfObject $object): PdfReference
     {
         $this->registry->register($object);
         return new PdfReference($object->objectNumber);
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    private function embedTrueTypeFont(TrueTypeFont $font): void
+    {
+        $data = $font->parsedFontData;
+
+        // 1. Font program stream
+        $streamDict = new PdfDictionary(['Length1' => new PdfNumber(strlen($data->fontBytes))]);
+        $fontStream = new PdfStream($streamDict, $data->fontBytes);
+        $this->registry->register($fontStream);
+
+        // 2. FontDescriptor
+        $descriptor = new FontDescriptor(new PdfName($data->postScriptName));
+        $descriptor->flags = $data->flags;
+        $descriptor->fontBBox = new PdfArray([
+            new PdfNumber($data->fontBBox[0]),
+            new PdfNumber($data->fontBBox[1]),
+            new PdfNumber($data->fontBBox[2]),
+            new PdfNumber($data->fontBBox[3]),
+        ]);
+        $descriptor->italicAngle = $data->italicAngle;
+        $descriptor->ascent      = $data->ascent;
+        $descriptor->descent     = $data->descent;
+        $descriptor->capHeight   = $data->capHeight;
+        $descriptor->xHeight     = $data->xHeight;
+        $descriptor->stemV       = $data->stemV;
+        $descriptor->fontFile2   = new PdfReference($fontStream->objectNumber);
+        $this->registry->register($descriptor);
+
+        // 3. ToUnicode CMap stream
+        $cmapStream = new PdfStream(new PdfDictionary(), $this->buildToUnicodeCMap($data->unicodeMap));
+        $this->registry->register($cmapStream);
+
+        // 4. Wire back to font
+        $font->fontDescriptor = new PdfReference($descriptor->objectNumber);
+        $font->toUnicode      = new PdfReference($cmapStream->objectNumber);
+    }
+
+    /** @param array<int, int> $unicodeMap */
+    private function buildToUnicodeCMap(array $unicodeMap): string
+    {
+        ksort($unicodeMap);
+        $entries = [];
+        foreach ($unicodeMap as $byte => $unicode) {
+            $entries[] = sprintf('<%02X> <%04X>', $byte, $unicode);
+        }
+
+        // PDF spec: max 100 entries per beginbfchar block
+        $chunks = array_chunk($entries, 100);
+        $blocks = '';
+        foreach ($chunks as $chunk) {
+            $blocks .= count($chunk) . " beginbfchar\n"
+                     . implode("\n", $chunk) . "\n"
+                     . "endbfchar\n";
+        }
+
+        return "/CIDInit /ProcSet findresource begin\n"
+             . "12 dict begin\n"
+             . "begincmap\n"
+             . "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+             . "/CMapName /Adobe-Identity-UCS def\n"
+             . "/CMapType 2 def\n"
+             . "1 begincodespacerange\n"
+             . "<20> <FF>\n"
+             . "endcodespacerange\n"
+             . $blocks
+             . "endcmap\n"
+             . "CMap end\n"
+             . "end";
     }
 
     /**

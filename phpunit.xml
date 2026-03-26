@@ -28,6 +28,9 @@
         <testsuite name="crypt">
             <directory>packages/crypt/tests</directory>
         </testsuite>
+        <testsuite name="font-parser">
+            <directory>packages/font-parser/tests</directory>
+        </testsuite>
         <testsuite name="core">
             <directory>packages/pdf/core/tests</directory>
         </testsuite>
@@ -54,6 +57,7 @@
             <directory>packages/color/src</directory>
             <directory>packages/xmp/src</directory>
             <directory>packages/crypt/src</directory>
+            <directory>packages/font-parser/src</directory>
         </include>
     </source>
 </phpunit>

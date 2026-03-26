@@ -10,6 +10,7 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Serializable;
 use ApprLabs\Pdf\Core\Content\Resources;
 
@@ -40,6 +41,17 @@ class Page extends PdfObject
     public Serializable|null $transition = null; // /Trans - TransitionDict or PdfDictionary
     public ?PdfNumber $dur = null;          // /Dur
     public ?PdfReference $metadata = null;  // /Metadata - XMP stream reference
+    public ?PdfName $tabs = null;            // /Tabs - tab order
+    public ?PdfString $id = null;            // /ID - page identifier
+    public ?PdfNumber $pz = null;            // /PZ - preferred zoom
+    public ?PdfReference $aa = null;         // /AA - additional actions dict
+    public ?PdfReference $pieceInfo = null;  // /PieceInfo - application data
+    public ?PdfDictionary $boxColorInfo = null; // /BoxColorInfo
+    public ?PdfArray $b = null;             // /B - article beads
+    public ?PdfDictionary $separationInfo = null; // /SeparationInfo
+    public ?PdfName $templateInstantiated = null; // /TemplateInstantiated
+    public ?PdfReference $presSteps = null; // /PresSteps - presentation steps
+    public ?PdfArray $vp = null;            // /VP - viewport array
 
     public function toPdf(): string
     {
@@ -101,6 +113,39 @@ class Page extends PdfObject
         }
         if ($this->metadata !== null) {
             $dict->set('Metadata', $this->metadata);
+        }
+        if ($this->tabs !== null) {
+            $dict->set('Tabs', $this->tabs);
+        }
+        if ($this->id !== null) {
+            $dict->set('ID', $this->id);
+        }
+        if ($this->pz !== null) {
+            $dict->set('PZ', $this->pz);
+        }
+        if ($this->aa !== null) {
+            $dict->set('AA', $this->aa);
+        }
+        if ($this->pieceInfo !== null) {
+            $dict->set('PieceInfo', $this->pieceInfo);
+        }
+        if ($this->boxColorInfo !== null) {
+            $dict->set('BoxColorInfo', $this->boxColorInfo);
+        }
+        if ($this->b !== null) {
+            $dict->set('B', $this->b);
+        }
+        if ($this->separationInfo !== null) {
+            $dict->set('SeparationInfo', $this->separationInfo);
+        }
+        if ($this->templateInstantiated !== null) {
+            $dict->set('TemplateInstantiated', $this->templateInstantiated);
+        }
+        if ($this->presSteps !== null) {
+            $dict->set('PresSteps', $this->presSteps);
+        }
+        if ($this->vp !== null) {
+            $dict->set('VP', $this->vp);
         }
 
         return $dict->toPdf();

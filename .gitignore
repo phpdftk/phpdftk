@@ -11,6 +11,7 @@ composer.phar
 # Test output
 /tests/output/
 /packages/*/tests/output/
+/packages/*/*/tests/output/
 
 # PHPBench
 .phpbench/

@@ -38,6 +38,10 @@ abstract class Annotation extends PdfObject
     public ?int $structParent = null;          // /StructParent
     public ?PdfReference $oc = null;           // /OC
     public ?Serializable $bs = null;           // /BS - BorderStyle dict
+    public ?PdfArray $af = null;               // /AF - associated files
+    public ?PdfNumber $ca = null;              // /ca - constant opacity
+    public ?PdfName $bm = null;                // /BM - blend mode
+    public ?PdfString $lang = null;            // /Lang - language
 
     public function __construct(PdfArray $rect)
     {
@@ -90,6 +94,18 @@ abstract class Annotation extends PdfObject
         }
         if ($this->bs !== null) {
             $dict->set('BS', $this->bs);
+        }
+        if ($this->af !== null) {
+            $dict->set('AF', $this->af);
+        }
+        if ($this->ca !== null) {
+            $dict->set('ca', $this->ca);
+        }
+        if ($this->bm !== null) {
+            $dict->set('BM', $this->bm);
+        }
+        if ($this->lang !== null) {
+            $dict->set('Lang', $this->lang);
         }
 
         return $dict;

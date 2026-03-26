@@ -23,7 +23,7 @@ use ApprLabs\Pdf\Writer\PdfWriter;
  */
 class AnnotationsTest extends TestCase
 {
-    private const OUTPUT_FILE = __DIR__ . '/../output/annotations.pdf';
+    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/annotations.pdf';
 
     public function testGeneratesAnnotationsPdf(): void
     {

@@ -6,6 +6,7 @@ namespace ApprLabs\Pdf\Core\Tests\Font;
 
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Font\CIDFont;
+use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
 use ApprLabs\Pdf\Core\Font\Encoding;
 use ApprLabs\Pdf\Core\Font\Font;
 use ApprLabs\Pdf\Core\Font\FontDescriptor;
@@ -14,7 +15,6 @@ use ApprLabs\Pdf\Core\Font\TrueTypeFont;
 use ApprLabs\Pdf\Core\Font\Type0Font;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
@@ -211,7 +211,7 @@ class FontTest extends TestCase
         $cidFont = new CIDFont(
             'CIDFontType2',
             'Arial',
-            new PdfDictionary(['Registry' => new PdfString('Adobe'), 'Ordering' => new PdfString('Identity'), 'Supplement' => new PdfNumber(0)])
+            new CIDSystemInfo('Adobe', 'Identity', 0)
         );
         $cidFont->objectNumber = 5;
         $descendant = new PdfArray([new PdfReference($cidFont->objectNumber)]);
@@ -237,11 +237,7 @@ class FontTest extends TestCase
 
     public function testCIDFontSubtype(): void
     {
-        $cidInfo = new PdfDictionary([
-            'Registry' => new PdfString('Adobe'),
-            'Ordering' => new PdfString('Identity'),
-            'Supplement' => new PdfNumber(0),
-        ]);
+        $cidInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
         $font = new CIDFont('CIDFontType2', 'Arial', $cidInfo);
         $font->objectNumber = 1;
         $pdf = $font->toPdf();
@@ -250,7 +246,7 @@ class FontTest extends TestCase
 
     public function testCIDFontType(): void
     {
-        $cidInfo = new PdfDictionary();
+        $cidInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
         $font = new CIDFont('CIDFontType0', 'Kozuka', $cidInfo);
         $font->objectNumber = 1;
         $pdf = $font->toPdf();
@@ -259,7 +255,7 @@ class FontTest extends TestCase
 
     public function testCIDFontBaseFont(): void
     {
-        $cidInfo = new PdfDictionary();
+        $cidInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
         $font = new CIDFont('CIDFontType2', 'MyriadPro', $cidInfo);
         $font->objectNumber = 1;
         $pdf = $font->toPdf();
@@ -268,7 +264,7 @@ class FontTest extends TestCase
 
     public function testCIDFontWithDefaultWidth(): void
     {
-        $cidInfo = new PdfDictionary();
+        $cidInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
         $font = new CIDFont('CIDFontType2', 'TestFont', $cidInfo);
         $font->objectNumber = 1;
         $font->dw = 1000;
@@ -278,7 +274,7 @@ class FontTest extends TestCase
 
     public function testCIDFontWithFontDescriptor(): void
     {
-        $cidInfo = new PdfDictionary();
+        $cidInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
         $font = new CIDFont('CIDFontType2', 'TestFont', $cidInfo);
         $font->objectNumber = 1;
         $font->fontDescriptor = new PdfReference(5);
@@ -455,5 +451,43 @@ class FontTest extends TestCase
         $pdf = $font->toPdf();
         self::assertStringContainsString('/FirstChar 32', $pdf);
         self::assertStringContainsString('/LastChar 255', $pdf);
+    }
+
+    // -----------------------------------------------------------------------
+    // TrueTypeFont::fromFile
+    // -----------------------------------------------------------------------
+
+    private function findFont(): string
+    {
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/System/Library/Fonts/Supplemental/Verdana.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        $this->markTestSkipped('No TTF font found on this system');
+    }
+
+    public function testTrueTypeFontFromFile(): void
+    {
+        $font = TrueTypeFont::fromFile($this->findFont());
+        self::assertInstanceOf(TrueTypeFont::class, $font);
+    }
+
+    public function testTrueTypeFontFromFileHasParsedData(): void
+    {
+        $font = TrueTypeFont::fromFile($this->findFont());
+        self::assertNotNull($font->parsedFontData);
+    }
+
+    public function testTrueTypeFontFromFileHasWidths(): void
+    {
+        $font = TrueTypeFont::fromFile($this->findFont());
+        self::assertNotNull($font->widths);
     }
 }

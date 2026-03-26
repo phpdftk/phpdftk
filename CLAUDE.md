@@ -36,7 +36,7 @@ scripts/coverage
 
 ## Repository Structure
 
-This is a **monorepo with 11 packages** under `packages/`. All packages use the `apprlabs` Composer vendor prefix and `ApprLabs\` PHP namespace root.
+This is a **monorepo with 12 packages** under `packages/`. All packages use the `apprlabs` Composer vendor prefix and `ApprLabs\` PHP namespace root.
 
 | Package dir | Composer name | PHP namespace | Purpose |
 |---|---|---|---|
@@ -48,13 +48,14 @@ This is a **monorepo with 11 packages** under `packages/`. All packages use the 
 | `filters/` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength codecs |
 | `encoding/` | `apprlabs/encoding` | `ApprLabs\Encoding\` | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
 | `font-metrics/` | `apprlabs/font-metrics` | `ApprLabs\FontMetrics\` | AFM metrics for the 14 standard PDF fonts |
+| `font-parser/` | `apprlabs/font-parser` | `ApprLabs\FontParser\` | Parses TrueType fonts: metrics, glyph widths, character maps for PDF embedding |
 | `image-metadata/` | `apprlabs/image-metadata` | `ApprLabs\ImageMetadata\` | Parse JPEG/PNG/GIF/TIFF/WebP headers |
 | `xmp/` | `apprlabs/xmp` | `ApprLabs\Xmp\` | XMP metadata packet read/write |
 | `crypt/` | `apprlabs/crypt` | `ApprLabs\Crypt\` | AES-128/256 and RC4 with PDF key derivation |
 
 **Dependency graph:**
 ```
-geometry, color, filters, encoding, font-metrics, image-metadata, xmp, crypt
+geometry, color, filters, encoding, font-metrics, font-parser, image-metadata, xmp, crypt
     ↓ (all depended on by)
   pdf-core  (ApprLabs\Pdf\Core\)
     ↓ (depended on by both)
@@ -102,15 +103,21 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 | Namespace | Classes |
 |---|---|
 | `ApprLabs\Pdf\Core\` | `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference`, `Serializable` |
-| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict` |
-| `ApprLabs\Pdf\Core\Font\` | `Font` (abstract), `Type1Font`, `TrueTypeFont`, `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` (enum for 14 standard fonts) |
-| `ApprLabs\Pdf\Core\Annotation\` | `Annotation` (abstract), `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation`, `BorderStyle` |
+| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict`, `MarkInfo`, `Destination`, `GroupAttributes`, `NameTree`, `NumberTree`, `OutputIntent`, `Thread`, `Bead`, `OCG`, `OCMD`, `OCPropertiesDict`, `Collection`, `CollectionItem`, `CollectionSchema`, `StructTreeRoot`, `StructElem`, `ObjectRef` |
+| `ApprLabs\Pdf\Core\Font\` | `Font` (abstract), `Type1Font`, `TrueTypeFont` (has `fromFile(string $path): self`), `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` (enum for 14 standard fonts), `CIDSystemInfo` |
+| `ApprLabs\Pdf\Core\Annotation\` | `Annotation` (abstract), `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation`, `UnderlineAnnotation`, `SquigglyAnnotation`, `StrikeOutAnnotation`, `LineAnnotation`, `SquareAnnotation`, `CircleAnnotation`, `PolygonAnnotation`, `PolyLineAnnotation`, `CaretAnnotation`, `FileAttachmentAnnotation`, `SoundAnnotation`, `WatermarkAnnotation`, `PrinterMarkAnnotation`, `ScreenAnnotation`, `MovieAnnotation`, `RedactAnnotation`, `ThreeDAnnotation`, `ProjectionAnnotation`, `RichMediaAnnotation`, `TrapNetAnnotation`, `BorderStyle`, `BorderEffect`, `AppearanceDict`, `AppearanceCharacteristics` |
 | `ApprLabs\Pdf\Core\Action\` | `Action` (abstract), `GoToAction`, `GoToRAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
 | `ApprLabs\Pdf\Core\Graphics\ColorSpace\` | `ColorSpace` (abstract), `DeviceRGB`, `DeviceCMYK`, `DeviceGray` |
 | `ApprLabs\Pdf\Core\Graphics\XObject\` | `ImageXObject`, `FormXObject` |
 | `ApprLabs\Pdf\Core\Graphics\` | `ExtGState` |
 | `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `Field` (abstract), `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
 | `ApprLabs\Pdf\Core\Content\` | `ContentStream`, `Resources` |
+
+**`packages/font-parser/src/`** — PSR-4 root `ApprLabs\FontParser\`:
+
+| Namespace | Classes |
+|---|---|
+| `ApprLabs\FontParser\` | `TrueTypeParser`, `TrueTypeData` |
 
 **`packages/pdf/writer/src/`** — PSR-4 root `ApprLabs\Pdf\Writer\`:
 
@@ -253,13 +260,20 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Document/OutlineTest.php` | Unit: Outline root, OutlineItem tree linking |
 | `Document/PageLabelTest.php` | Unit: PageLabel styles, prefix, starting value |
 | `Document/TransitionDictTest.php` | Unit: TransitionDict styles, duration, assigned to Page |
-| `Annotation/AnnotationTest.php` | Unit: all annotation subtypes |
+| `Document/MarkInfoTest.php` | Unit: MarkInfo fields, assigned to Catalog |
+| `Document/DocumentStructureTest.php` | Unit: Destination, GroupAttributes, NameTree, NumberTree, OutputIntent, Thread, Bead, OCG, OCMD, OCPropertiesDict, Collection, CollectionItem, CollectionSchema, StructTreeRoot, StructElem, ObjectRef, AppearanceDict, AppearanceCharacteristics, and Catalog/PageTree/Page fields |
+| `Annotation/AnnotationTest.php` | Unit: all annotation subtypes (Text, Link, FreeText, Highlight, Stamp, Ink, Popup, Widget, Underline, Squiggly, StrikeOut, Line, Square, Circle, Polygon, PolyLine, Caret, FileAttachment, Sound, Watermark, PrinterMark, Screen, Movie, Redact, 3D, Projection, RichMedia, TrapNet) and base fields |
 | `Annotation/BorderStyleTest.php` | Unit: BorderStyle styles, dash pattern, attached to annotation |
+| `Annotation/BorderEffectTest.php` | Unit: BorderEffect styles, intensity, attached to FreeTextAnnotation |
 | `Content/ContentStreamTest.php` | Unit: all ~70 ContentStream operators |
 | `Action/ActionTest.php` | Unit: GoToAction, URIAction, JavaScriptAction, NamedAction |
 | `Action/GoToRActionTest.php` | Unit: GoToRAction required fields, destinations, newWindow |
 | `Interactive/FormTest.php` | Unit: AcroForm, Field subclasses |
-| `Font/FontTest.php` | Unit: all font types |
+| `Font/FontTest.php` | Unit: all font types; includes TrueTypeFont::fromFile() tests |
+| `Font/CIDSystemInfoTest.php` | Unit: CIDSystemInfo fields, used in CIDFont |
+| `Document/EmbeddedFontsTest.php` | End-to-end: TrueType font embedding with FontDescriptor, ToUnicode, Widths |
+| `Document/AnnotationSubtypesTest.php` | End-to-end: all 20 new annotation subtypes across 3 pages |
+| `Document/DocumentFeaturesTest.php` | End-to-end: OutputIntent, page boxes, named destinations, OCG, tagged PDF, embedded TrueType |
 
 ### `writer` package tests (`packages/pdf/writer/tests/`)
 
@@ -276,13 +290,14 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `encoding` | `EncodingTest.php` | WinAnsi/MacRoman tables, Glyph List |
 | `filters` | `FilterTest.php` | FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode |
 | `font-metrics` | `StandardFontMetricsTest.php` | Width lookups for all 14 standard fonts |
+| `font-parser` | `TrueTypeParserTest.php` | TrueType binary parsing: metrics, widths, cmap, name tables |
 | `geometry` | `RectangleTest.php`, `MatrixTest.php`, `ExtendedGeometryTest.php` | Rectangle, Matrix transforms, BezierCurve, PageSize |
 | `image-metadata` | `ImageParserTest.php` | JPEG/PNG/GIF/TIFF/WebP header parsing |
 | `xmp` | `XmpTest.php` | XMP metadata packet read/write |
 
 ## Benchmarks
 
-`benchmarks/GeneratePdfBench.php` — wall-clock time via phpbench; compares phpdftk against TCPDF, FPDF, mPDF, Dompdf at 1, 5, 10, 50, and 100 pages. Includes `benchPhpdftk10PagesWithBookmarksAndTransitions()` exercising Outline + OutlineItem + TransitionDict.
+`benchmarks/GeneratePdfBench.php` — wall-clock time via phpbench; compares phpdftk against TCPDF, FPDF, mPDF, Dompdf at 1, 5, 10, 50, and 100 pages. Includes `benchPhpdftk10PagesWithBookmarksAndTransitions()` exercising Outline + OutlineItem + TransitionDict, `benchPhpdftk10PagesWithAnnotations()` exercising annotation subtypes, `benchPhpdftk10PagesWithEmbeddedFont()` exercising TrueType font embedding, and `benchPhpdftk10PagesWithDocumentStructure()` exercising OutputIntent, named destinations, page labels, tagged PDF structure.
 
 `benchmarks/MemoryBench.php` — peak memory (`memory_get_peak_usage(true)`); compares phpdftk against FPDF and TCPDF at the same page counts.
 

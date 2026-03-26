@@ -14,7 +14,7 @@ use ApprLabs\Pdf\Writer\PdfWriter;
  */
 class GraphicsTest extends TestCase
 {
-    private const OUTPUT_FILE = __DIR__ . '/../output/graphics.pdf';
+    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/graphics.pdf';
 
     public function testGeneratesGraphicsPdf(): void
     {

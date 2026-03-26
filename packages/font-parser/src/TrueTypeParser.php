@@ -1,0 +1,386 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApprLabs\FontParser;
+
+class TrueTypeParser
+{
+    private string $data;
+
+    /** @var array<string, array{offset:int, length:int}> */
+    private array $tables = [];
+
+    // Windows-1252 byte => Unicode codepoint for bytes 128-159
+    private const WIN1252_MAP = [
+        128 => 0x20AC,
+        130 => 0x201A,
+        131 => 0x0192,
+        132 => 0x201E,
+        133 => 0x2026,
+        134 => 0x2020,
+        135 => 0x2021,
+        136 => 0x02C6,
+        137 => 0x2030,
+        138 => 0x0160,
+        139 => 0x2039,
+        140 => 0x0152,
+        142 => 0x017D,
+        145 => 0x2018,
+        146 => 0x2019,
+        147 => 0x201C,
+        148 => 0x201D,
+        149 => 0x2022,
+        150 => 0x2013,
+        151 => 0x2014,
+        152 => 0x02DC,
+        153 => 0x2122,
+        154 => 0x0161,
+        155 => 0x203A,
+        156 => 0x0153,
+        158 => 0x017E,
+        159 => 0x0178,
+    ];
+
+    public function __construct(private readonly string $path) {}
+
+    public function parse(): TrueTypeData
+    {
+        $data = file_get_contents($this->path);
+        if ($data === false) {
+            throw new \RuntimeException("Cannot read font file: {$this->path}");
+        }
+        $this->data = $data;
+
+        // Parse offset table
+        $sfVersion = $this->readUint32(0);
+        if ($sfVersion !== 0x00010000) {
+            throw new \RuntimeException(sprintf(
+                'Not a TrueType font (sfVersion=0x%08X); expected 0x00010000',
+                $sfVersion
+            ));
+        }
+
+        $numTables = $this->readUint16(4);
+
+        // Parse table directory
+        $dirOffset = 12;
+        for ($i = 0; $i < $numTables; $i++) {
+            $base = $dirOffset + $i * 16;
+            $tag = rtrim(substr($this->data, $base, 4));
+            $tableOffset = $this->readUint32($base + 8);
+            $tableLength = $this->readUint32($base + 12);
+            $this->tables[$tag] = ['offset' => $tableOffset, 'length' => $tableLength];
+        }
+
+        // Parse head table
+        $headBase = $this->tableOffset('head');
+        $unitsPerEm = $this->readUint16($headBase + 18);
+        $xMin = $this->readInt16($headBase + 36);
+        $yMin = $this->readInt16($headBase + 38);
+        $xMax = $this->readInt16($headBase + 40);
+        $yMax = $this->readInt16($headBase + 42);
+
+        // Parse hhea table
+        $hheaBase = $this->tableOffset('hhea');
+        $hheaAscender = $this->readInt16($hheaBase + 4);
+        $hheaDescender = $this->readInt16($hheaBase + 6);
+        $numberOfHMetrics = $this->readUint16($hheaBase + 34);
+
+        // Parse OS/2 table
+        $os2Base = $this->tableOffset('OS/2');
+        $os2Version = $this->readUint16($os2Base + 0);
+        $usWeightClass = $this->readUint16($os2Base + 4);
+        $fsType = $this->readUint16($os2Base + 8);
+        $fsSelection = $this->readUint16($os2Base + 62);
+        $sTypoAscender = $this->readInt16($os2Base + 68);
+        $sTypoDescender = $this->readInt16($os2Base + 70);
+
+        $sxHeight = 0;
+        $sCapHeight = 0;
+        if ($os2Version >= 2) {
+            $sxHeight = $this->readInt16($os2Base + 86);
+            $sCapHeight = $this->readInt16($os2Base + 88);
+        }
+
+        // Parse post table
+        $postBase = $this->tableOffset('post');
+        // italicAngle is a Fixed (int32 / 65536.0) at offset 4
+        $italicAngleFixed = $this->readInt32($postBase + 4);
+        $italicAngle = $italicAngleFixed / 65536.0;
+        $isFixedPitch = $this->readUint32($postBase + 12);
+
+        // Parse name table
+        $nameBase = $this->tableOffset('name');
+        $nameCount = $this->readUint16($nameBase + 2);
+        $nameStringOffset = $this->readUint16($nameBase + 4);
+        $nameStorageBase = $nameBase + $nameStringOffset;
+
+        $familyName = '';
+        $postScriptName = '';
+
+        // Collect all name records, prefer platformID=3,encodingID=1, fallback to platformID=1
+        $nameRecords = [
+            1 => ['win' => null, 'mac' => null],
+            6 => ['win' => null, 'mac' => null],
+        ];
+
+        for ($i = 0; $i < $nameCount; $i++) {
+            $recBase = $nameBase + 6 + $i * 12;
+            $platformID = $this->readUint16($recBase + 0);
+            $encodingID = $this->readUint16($recBase + 2);
+            $nameID = $this->readUint16($recBase + 6);
+            $nameLen = $this->readUint16($recBase + 8);
+            $nameOff = $this->readUint16($recBase + 10);
+
+            if (!isset($nameRecords[$nameID])) {
+                continue;
+            }
+
+            $raw = substr($this->data, $nameStorageBase + $nameOff, $nameLen);
+
+            if ($platformID === 3 && $encodingID === 1) {
+                $nameRecords[$nameID]['win'] = mb_convert_encoding($raw, 'UTF-8', 'UTF-16BE');
+            } elseif ($platformID === 1 && $nameRecords[$nameID]['mac'] === null) {
+                $nameRecords[$nameID]['mac'] = $raw;
+            }
+        }
+
+        $familyName = $nameRecords[1]['win'] ?? $nameRecords[1]['mac'] ?? '';
+        $postScriptName = $nameRecords[6]['win'] ?? $nameRecords[6]['mac'] ?? '';
+
+        // Parse maxp table
+        $maxpBase = $this->tableOffset('maxp');
+        $numGlyphs = $this->readUint16($maxpBase + 4);
+
+        // Parse hmtx table — build GID => advanceWidth map
+        $hmtxBase = $this->tableOffset('hmtx');
+        $hmtxWidths = [];
+        $lastAdvanceWidth = 0;
+        for ($gid = 0; $gid < $numberOfHMetrics; $gid++) {
+            $lastAdvanceWidth = $this->readUint16($hmtxBase + $gid * 4);
+            $hmtxWidths[$gid] = $lastAdvanceWidth;
+        }
+        // Glyphs >= numberOfHMetrics reuse last advance width
+        for ($gid = $numberOfHMetrics; $gid < $numGlyphs; $gid++) {
+            $hmtxWidths[$gid] = $lastAdvanceWidth;
+        }
+
+        // Parse cmap table — find best Unicode subtable
+        $cmapBase = $this->tableOffset('cmap');
+        $cmapNumTables = $this->readUint16($cmapBase + 2);
+
+        $bestOffset = null;
+        $bestPriority = -1;
+
+        for ($i = 0; $i < $cmapNumTables; $i++) {
+            $recBase = $cmapBase + 4 + $i * 8;
+            $platID = $this->readUint16($recBase + 0);
+            $encID = $this->readUint16($recBase + 2);
+            $subtableOffset = $this->readUint32($recBase + 4);
+
+            $priority = -1;
+            if ($platID === 3 && $encID === 1) {
+                $priority = 2; // Best: Windows Unicode BMP
+            } elseif ($platID === 0 && $encID === 3) {
+                $priority = 1; // Unicode BMP
+            } elseif ($platID === 0 && $encID === 0) {
+                $priority = 0; // Unicode fallback
+            }
+
+            if ($priority > $bestPriority) {
+                $bestPriority = $priority;
+                $bestOffset = $cmapBase + $subtableOffset;
+            }
+        }
+
+        if ($bestOffset === null) {
+            throw new \RuntimeException('No suitable cmap subtable found in font');
+        }
+
+        $cmapFormat = $this->readUint16($bestOffset);
+        if ($cmapFormat !== 4) {
+            throw new \RuntimeException("Unsupported cmap format {$cmapFormat}; only format 4 is supported");
+        }
+
+        // Parse cmap format 4
+        $segCountX2 = $this->readUint16($bestOffset + 6);
+        $segCount = $segCountX2 / 2;
+
+        $endCodesBase = $bestOffset + 14;
+        $startCodesBase = $bestOffset + 16 + $segCountX2;
+        $idDeltaBase = $bestOffset + 16 + 2 * $segCountX2;
+        $idRangeOffsetBase = $bestOffset + 16 + 3 * $segCountX2;
+        $glyphIdArrayBase = $bestOffset + 16 + 4 * $segCountX2;
+
+        // Read arrays
+        $endCodes = [];
+        $startCodes = [];
+        $idDelta = [];
+        $idRangeOffset = [];
+
+        for ($i = 0; $i < $segCount; $i++) {
+            $endCodes[$i] = $this->readUint16($endCodesBase + $i * 2);
+            $startCodes[$i] = $this->readUint16($startCodesBase + $i * 2);
+            $idDelta[$i] = $this->readInt16($idDeltaBase + $i * 2);
+            $idRangeOffset[$i] = $this->readUint16($idRangeOffsetBase + $i * 2);
+        }
+
+        // Calculate glyphIdArray length from subtable length
+        $subtableLength = $this->readUint16($bestOffset + 2);
+        $glyphIdArrayLen = ($subtableLength - (16 + 4 * $segCountX2)) / 2;
+
+        $glyphIdArray = [];
+        for ($j = 0; $j < $glyphIdArrayLen; $j++) {
+            $glyphIdArray[$j] = $this->readUint16($glyphIdArrayBase + $j * 2);
+        }
+
+        // Build Unicode codepoint => GID map
+        $unicodeToGid = [];
+        for ($i = 0; $i < $segCount; $i++) {
+            if ($startCodes[$i] === 0xFFFF) {
+                continue;
+            }
+            for ($cp = $startCodes[$i]; $cp <= $endCodes[$i]; $cp++) {
+                if ($idRangeOffset[$i] === 0) {
+                    $gid = ($cp + $idDelta[$i]) & 0xFFFF;
+                } else {
+                    $idx = $idRangeOffset[$i] / 2 + ($cp - $startCodes[$i]) + $i - $segCount;
+                    if ($idx < 0 || $idx >= count($glyphIdArray)) {
+                        $gid = 0;
+                    } else {
+                        $gid = $glyphIdArray[$idx];
+                        if ($gid !== 0) {
+                            $gid = ($gid + $idDelta[$i]) & 0xFFFF;
+                        }
+                    }
+                }
+                if ($gid !== 0) {
+                    $unicodeToGid[$cp] = $gid;
+                }
+            }
+        }
+
+        // Scale helper
+        $scale = fn(int $v): int => (int) round($v * 1000 / $unitsPerEm);
+
+        // Build metrics
+        $ascent = $scale($sTypoAscender !== 0 ? $sTypoAscender : $hheaAscender);
+        $descent = $scale($sTypoDescender !== 0 ? $sTypoDescender : $hheaDescender);
+        $capHeight = $os2Version >= 2 ? $scale($sCapHeight) : (int) round($ascent * 0.7);
+        $xHeight = $os2Version >= 2 ? $scale($sxHeight) : (int) round($ascent * 0.5);
+
+        $stemV = max(50, min(220, 50 + (int) ($usWeightClass / 65.0)));
+
+        // PDF flags bitmask
+        $flags = 0;
+        if ($isFixedPitch !== 0) {
+            $flags |= 1; // bit 0: FixedPitch
+        }
+        $flags |= 32; // bit 5: Nonsymbolic (always set for Latin fonts)
+        if ($italicAngle !== 0.0 || ($fsSelection & 0x01)) {
+            $flags |= 64; // bit 6: Italic
+        }
+        if ($fsSelection & 0x20) {
+            $flags |= 262144; // bit 18: ForceBold
+        }
+
+        $fontBBox = [
+            $scale($xMin),
+            $scale($yMin),
+            $scale($xMax),
+            $scale($yMax),
+        ];
+
+        // Build charWidths and unicodeMap from WinAnsi bytes 32-255
+        $charWidths = [];
+        $unicodeMap = [];
+
+        for ($byte = 32; $byte <= 255; $byte++) {
+            $codepoint = $this->win1252ToUnicode($byte);
+            if ($codepoint === null) {
+                $charWidths[$byte] = 0;
+                continue;
+            }
+
+            if (isset($unicodeToGid[$codepoint])) {
+                $gid = $unicodeToGid[$codepoint];
+                $advance = $hmtxWidths[$gid] ?? 0;
+                $charWidths[$byte] = $scale($advance);
+                $unicodeMap[$byte] = $codepoint;
+            } else {
+                $charWidths[$byte] = 0;
+            }
+        }
+
+        $embeddingAllowed = ($fsType & 0x000E) !== 2;
+
+        return new TrueTypeData(
+            postScriptName: $postScriptName,
+            familyName: $familyName,
+            ascent: $ascent,
+            descent: $descent,
+            capHeight: $capHeight,
+            xHeight: $xHeight,
+            italicAngle: $italicAngle,
+            stemV: $stemV,
+            flags: $flags,
+            fontBBox: $fontBBox,
+            charWidths: $charWidths,
+            unicodeMap: $unicodeMap,
+            fontBytes: $this->data,
+            embeddingAllowed: $embeddingAllowed,
+        );
+    }
+
+    private function win1252ToUnicode(int $byte): ?int
+    {
+        if ($byte >= 32 && $byte <= 127) {
+            return $byte;
+        }
+        if ($byte >= 160 && $byte <= 255) {
+            return $byte;
+        }
+        // bytes 128-159 special mapping
+        return self::WIN1252_MAP[$byte] ?? null;
+    }
+
+    private function readUint16(int $offset): int
+    {
+        return (ord($this->data[$offset]) << 8) | ord($this->data[$offset + 1]);
+    }
+
+    private function readInt16(int $offset): int
+    {
+        $v = $this->readUint16($offset);
+        if ($v >= 0x8000) {
+            $v -= 0x10000;
+        }
+        return $v;
+    }
+
+    private function readUint32(int $offset): int
+    {
+        return ((ord($this->data[$offset]) << 24)
+            | (ord($this->data[$offset + 1]) << 16)
+            | (ord($this->data[$offset + 2]) << 8)
+            | ord($this->data[$offset + 3])) & 0xFFFFFFFF;
+    }
+
+    private function readInt32(int $offset): int
+    {
+        $v = $this->readUint32($offset);
+        if ($v >= 0x80000000) {
+            $v -= 0x100000000;
+        }
+        return (int) $v;
+    }
+
+    private function tableOffset(string $tag): int
+    {
+        if (!isset($this->tables[$tag])) {
+            throw new \RuntimeException("Required table '{$tag}' not found in font");
+        }
+        return $this->tables[$tag]['offset'];
+    }
+}

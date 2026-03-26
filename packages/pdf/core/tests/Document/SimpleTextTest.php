@@ -15,7 +15,7 @@ use ApprLabs\Pdf\Writer\PdfWriter;
  */
 class SimpleTextTest extends TestCase
 {
-    private const OUTPUT_FILE = __DIR__ . '/../output/simple_text.pdf';
+    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/simple_text.pdf';
 
     public function testGeneratesSimpleTextPdf(): void
     {

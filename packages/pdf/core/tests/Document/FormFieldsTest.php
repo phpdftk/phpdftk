@@ -25,7 +25,7 @@ use ApprLabs\Pdf\Writer\PdfWriter;
  */
 class FormFieldsTest extends TestCase
 {
-    private const OUTPUT_FILE = __DIR__ . '/../output/form_fields.pdf';
+    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/form_fields.pdf';
 
     public function testGeneratesFormPdf(): void
     {

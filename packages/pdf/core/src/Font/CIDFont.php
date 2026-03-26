@@ -21,7 +21,7 @@ class CIDFont extends PdfObject
 
     public PdfName $subtype;                      // /Subtype /CIDFontType0 or /CIDFontType2
     public PdfName $baseFont;                     // /BaseFont
-    public PdfDictionary $cidSystemInfo;          // /CIDSystemInfo
+    public CIDSystemInfo $cidSystemInfo;          // /CIDSystemInfo
     public ?PdfReference $fontDescriptor = null;  // /FontDescriptor
     public ?int $dw = null;                       // /DW default width
     public ?PdfArray $w = null;                   // /W widths
@@ -31,7 +31,7 @@ class CIDFont extends PdfObject
     public function __construct(
         string $subtype,
         string $baseFontName,
-        PdfDictionary $cidSystemInfo
+        CIDSystemInfo $cidSystemInfo
     ) {
         $this->subtype = new PdfName($subtype);
         $this->baseFont = new PdfName($baseFontName);

@@ -1,10 +1,12 @@
 parameters:
     level: 6
     paths:
-        - packages/phpdftk/src
+        - packages/pdf/core/src
+        - packages/pdf/writer/src
         - packages/geometry/src
         - packages/encoding/src
         - packages/font-metrics/src
+        - packages/font-parser/src
         - packages/image-metadata/src
         - packages/filters/src
         - packages/color/src

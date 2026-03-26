@@ -12,7 +12,8 @@
         "apprlabs/filters": "@dev",
         "apprlabs/color": "@dev",
         "apprlabs/xmp": "@dev",
-        "apprlabs/crypt": "@dev"
+        "apprlabs/crypt": "@dev",
+        "apprlabs/font-parser": "@dev"
     },
     "autoload": {
         "psr-4": {

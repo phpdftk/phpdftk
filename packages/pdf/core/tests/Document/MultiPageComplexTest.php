@@ -19,7 +19,7 @@ use ApprLabs\Pdf\Writer\PdfWriter;
  */
 class MultiPageComplexTest extends TestCase
 {
-    private const OUTPUT_FILE = __DIR__ . '/../output/multi_page_complex.pdf';
+    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/multi_page_complex.pdf';
     private const PAGE_COUNT  = 10;
 
     public function testGeneratesMultiPageComplexPdf(): void

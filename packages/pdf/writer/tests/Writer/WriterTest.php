@@ -317,4 +317,17 @@ class WriterTest extends TestCase
         $pdf = $writer->generate();
         self::assertStringContainsString('/Font', $pdf);
     }
+
+    public function testSetNamedDestinations(): void
+    {
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $pageRef = new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber);
+        $dest = \ApprLabs\Pdf\Core\Document\Destination::fit($pageRef);
+        $writer->setNamedDestinations(['chapter1' => $dest]);
+        $pdf = $writer->generate();
+        self::assertStringContainsString('chapter1', $pdf);
+        self::assertStringContainsString('/Names', $pdf);
+        self::assertStringContainsString('/Dests', $pdf);
+    }
 }

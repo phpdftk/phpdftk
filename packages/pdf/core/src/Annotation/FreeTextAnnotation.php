@@ -22,7 +22,7 @@ class FreeTextAnnotation extends Annotation
     public ?PdfString $ds = null;       // /DS - default style
     public ?PdfReference $cl = null;    // /CL - callout line
     public ?PdfName $it = null;         // /IT - intent
-    public ?PdfDictionary $be = null;   // /BE - border effect
+    public ?BorderEffect $be = null;    // /BE - border effect
     public ?PdfArray $rd = null;        // /RD - rectangle differences
     public ?PdfName $le = null;         // /LE - line ending
 

@@ -15,27 +15,27 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Pages`             | ✓      |                                                |
 | `/Version`           | ✓      |                                                |
 | `/Outlines`          | ✓      | `Outline` + `OutlineItem` classes implemented  |
-| `/Names`             | ✓      | Reference stored; `NameTree` class missing     |
-| `/Dests`             | ✓      | Reference stored; destination arrays missing   |
+| `/Names`             | ✓      | Reference stored; `NameTree` class available   |
+| `/Dests`             | ✓      | Ref stored; `Destination` class available      |
 | `/ViewerPreferences` | ✓      |                                                |
 | `/PageLayout`        | ✓      |                                                |
 | `/PageMode`          | ✓      |                                                |
 | `/OpenAction`        | ✓      |                                                |
 | `/AcroForm`          | ✓      |                                                |
 | `/Metadata`          | ✓      | Reference stored; XMP stream via `phpdftk/xmp` |
-| `/MarkInfo`          | ✓      | Dict stored; `MarkInfo` class missing          |
+| `/MarkInfo`          | ✓      | `MarkInfo` class on `Catalog::$markInfo`       |
 | `/Lang`              | ✓      |                                                |
-| `/AA`                | ✗      | Additional-actions dict                        |
-| `/URI`               | ✗      | Base URI dict                                  |
-| `/SpiderInfo`        | ✗      | Web capture info                               |
-| `/OutputIntents`     | ✗      | Required for PDF/X                             |
-| `/PieceInfo`         | ✗      | Application data dict                          |
-| `/OCProperties`      | ✗      | Optional content (layers)                      |
-| `/Perms`             | ✗      | Permissions dict (DocMDP, UR3)                 |
-| `/Legal`             | ✗      | Legal attestation dict                         |
-| `/Requirements`      | ✗      | Requirements array                             |
-| `/Collection`        | ✗      | PDF portfolio                                  |
-| `/NeedsRendering`    | ✗      | XFA forms flag                                 |
+| `/AA`                | ✓      | Reference stored                               |
+| `/URI`               | ✓      | Inline dict                                    |
+| `/SpiderInfo`        | ✓      | Reference stored                               |
+| `/OutputIntents`     | ✓      | Array of OutputIntent refs                     |
+| `/PieceInfo`         | ✓      | Inline dict                                    |
+| `/OCProperties`      | ✓      | Reference stored                               |
+| `/Perms`             | ✓      | Inline dict                                    |
+| `/Legal`             | ✓      | Inline dict                                    |
+| `/Requirements`      | ✓      | Array stored                                   |
+| `/Collection`        | ✓      | Reference stored                               |
+| `/NeedsRendering`    | ✓      |                                                |
 
 ### Page Tree (`/Type /Pages`)
 
@@ -48,29 +48,29 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/MediaBox`             | ✓      |                         |
 | `/Resources`            | ✓      |                         |
 | `/Rotate`               | ✓      |                         |
-| `/CropBox`              | ✗      | Inheritable box         |
-| `/BleedBox`             | ✗      | Inheritable box         |
-| `/TrimBox`              | ✗      | Inheritable box         |
-| `/ArtBox`               | ✗      | Inheritable box         |
-| `/BoxColorInfo`         | ✗      | Box color information   |
-| `/Group`                | ✗      | Transparency group      |
-| `/Thumb`                | ✗      | Thumbnail image         |
-| `/B`                    | ✗      | Article beads           |
-| `/Dur`                  | ✗      | Page display duration   |
-| `/Trans`                | ✗      | Transition dict         |
-| `/Annots`               | ✗      | Inheritable annotations |
-| `/AA`                   | ✗      | Additional-actions dict |
-| `/Metadata`             | ✗      | XMP stream              |
-| `/PieceInfo`            | ✗      | Application data        |
-| `/StructParents`        | ✗      |                         |
-| `/ID`                   | ✗      |                         |
-| `/PZ`                   | ✗      | Preferred zoom          |
-| `/SeparationInfo`       | ✗      |                         |
-| `/Tabs`                 | ✗      | Tab order               |
-| `/TemplateInstantiated` | ✗      |                         |
-| `/PresSteps`            | ✗      | Presentation steps      |
-| `/UserUnit`             | ✗      |                         |
-| `/VP`                   | ✗      | Viewport array          |
+| `/CropBox`              | ✓      | Inheritable box         |
+| `/BleedBox`             | ✓      | Inheritable box         |
+| `/TrimBox`              | ✓      | Inheritable box         |
+| `/ArtBox`               | ✓      | Inheritable box         |
+| `/BoxColorInfo`         | ✓      | Inline dict             |
+| `/Group`                | ✓      | Reference stored        |
+| `/Thumb`                | ✓      | Reference stored        |
+| `/B`                    | ✓      | Article bead refs       |
+| `/Dur`                  | ✓      |                         |
+| `/Trans`                | ✓      | TransitionDict or Serializable |
+| `/Annots`               | ✓      | Inheritable annotations |
+| `/AA`                   | ✓      | Reference stored        |
+| `/Metadata`             | ✓      | XMP stream reference    |
+| `/PieceInfo`            | ✓      | Inline dict             |
+| `/StructParents`        | ✓      |                         |
+| `/ID`                   | ✓      |                         |
+| `/PZ`                   | ✓      |                         |
+| `/SeparationInfo`       | ✓      | Inline dict             |
+| `/Tabs`                 | ✓      |                         |
+| `/TemplateInstantiated` | ✓      |                         |
+| `/PresSteps`            | ✓      | Reference stored        |
+| `/UserUnit`             | ✓      |                         |
+| `/VP`                   | ✓      | Viewport array          |
 
 ### Page (`/Type /Page`)
 
@@ -95,16 +95,16 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Dur`                  | ✓      |                                                  |
 | `/BoxColorInfo`         | ✗      |                                                  |
 | `/B`                    | ✗      | Article beads                                    |
-| `/AA`                   | ✗      | Additional-actions dict                          |
+| `/AA`                   | ✓      | Reference stored                                 |
 | `/Metadata`             | ✓      | XMP stream reference on page                     |
-| `/PieceInfo`            | ✗      |                                                  |
-| `/ID`                   | ✗      |                                                  |
-| `/PZ`                   | ✗      |                                                  |
-| `/SeparationInfo`       | ✗      |                                                  |
-| `/Tabs`                 | ✗      |                                                  |
-| `/TemplateInstantiated` | ✗      |                                                  |
-| `/PresSteps`            | ✗      |                                                  |
-| `/VP`                   | ✗      |                                                  |
+| `/PieceInfo`            | ✓      | Reference stored                                 |
+| `/ID`                   | ✓      |                                                  |
+| `/PZ`                   | ✓      |                                                  |
+| `/SeparationInfo`       | ✓      | Inline dict                                      |
+| `/Tabs`                 | ✓      |                                                  |
+| `/TemplateInstantiated` | ✓      |                                                  |
+| `/PresSteps`            | ✓      | Reference stored                                 |
+| `/VP`                   | ✓      | Viewport array                                   |
 
 ### Info Dictionary
 
@@ -149,25 +149,25 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `Outline` (`/Type /Outlines`)                  | ✓      | First, Last, Count; `PdfWriter::setOutline()` wires to Catalog         |
 | `OutlineItem`                                  | ✓      | Title, Parent, Prev, Next, First, Last, Count, Dest, A, C, F           |
 | `PageLabel` (`/Type /PageLabel`)               | ✓      | S, P, St; `PdfWriter::setPageLabels()` builds inline number tree       |
-| Named destinations                             | ✗      | Name → destination array mapping                                       |
-| Explicit destinations                          | ✗      | `/XYZ`, `/Fit`, `/FitH`, `/FitV`, `/FitR`, `/FitB`, `/FitBH`, `/FitBV` |
-| `OutputIntent` (`/Type /OutputIntent`)         | ✗      | Required for PDF/X; S, OutputConditionIdentifier, DestOutputProfile    |
-| `OCG` (`/Type /OCG`)                           | ✗      | Optional content group (layer); Name, Intent, Usage                    |
-| `OCMD` (`/Type /OCMD`)                         | ✗      | Optional content membership dict; OCGs, P, VE                          |
-| `OCProperties`                                 | ✗      | In Catalog: OCGs, D, Configs                                           |
+| Named destinations                             | ✓      | `PdfWriter::setNamedDestinations()` with NameTree                      |
+| Explicit destinations                          | ✓      | `Destination` class with static factory methods for all 8 types        |
+| `OutputIntent` (`/Type /OutputIntent`)         | ✓      | S, OutputConditionIdentifier, RegistryName, Info, DestOutputProfile    |
+| `OCG` (`/Type /OCG`)                           | ✓      | Name, Intent, Usage; extends PdfObject                                 |
+| `OCMD` (`/Type /OCMD`)                         | ✓      | OCGs, P, VE; extends PdfObject                                        |
+| `OCProperties`                                 | ✓      | OCGs, D, Configs; extends PdfObject                                    |
 | `TransitionDict` (`/Type /Trans`)              | ✓      | S, D, Dm, M, Di, SS, B; assigned to `Page::$transition`               |
-| `GroupAttributes`                              | ✗      | Transparency group: S, CS, I, K                                        |
-| `NameTree`                                     | ✗      | General-purpose name-keyed tree                                        |
-| `NumberTree`                                   | ✗      | General-purpose integer-keyed tree                                     |
-| `MarkInfo` dict                                | ✗      | Marked, UserProperties, Suspects                                       |
-| `Collection` (`/Type /Collection`)             | ✗      | PDF portfolio: Schema, D, View, Sort                                   |
-| `CollectionItem` (`/Type /CollectionItem`)     | ✗      |                                                                        |
-| `CollectionSchema` (`/Type /CollectionSchema`) | ✗      |                                                                        |
-| `Thread` (`/Type /Thread`)                     | ✗      | Article thread: I, F                                                   |
-| `Bead` (`/Type /Bead`)                         | ✗      | T, N, V, P, R                                                          |
-| `StructTreeRoot` (`/Type /StructTreeRoot`)     | ✗      | K, IDTree, ParentTree, RoleMap, ClassMap                               |
-| `StructElem` (`/Type /StructElem`)             | ✗      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText                  |
-| `ObjectRef` (`/Type /OBJR`)                    | ✗      | Pg, Obj                                                                |
+| `GroupAttributes`                              | ✓      | S, CS, I, K; implements Serializable                                   |
+| `NameTree`                                     | ✓      | Kids, Names, Limits; extends PdfObject                                 |
+| `NumberTree`                                   | ✓      | Kids, Nums, Limits; extends PdfObject                                  |
+| `MarkInfo` dict                                | ✓      | Marked, UserProperties, Suspects; assigned to `Catalog::$markInfo`     |
+| `Collection` (`/Type /Collection`)             | ✓      | Schema, D, View, Sort; extends PdfObject                               |
+| `CollectionItem` (`/Type /CollectionItem`)     | ✓      | Field values dict; extends PdfObject                                   |
+| `CollectionSchema` (`/Type /CollectionSchema`) | ✓      | Field definitions; extends PdfObject                                   |
+| `Thread` (`/Type /Thread`)                     | ✓      | I, F; extends PdfObject                                                |
+| `Bead` (`/Type /Bead`)                         | ✓      | T, N, V, P, R; extends PdfObject                                       |
+| `StructTreeRoot` (`/Type /StructTreeRoot`)     | ✓      | K, IDTree, ParentTree, RoleMap, ClassMap; extends PdfObject            |
+| `StructElem` (`/Type /StructElem`)             | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText; extends PdfObject |
+| `ObjectRef` (`/Type /OBJR`)                    | ✓      | Pg, Obj; extends PdfObject                                             |
 | Cross-reference stream (`/Type /XRef`)         | ✗      | Size, Index, Prev, W — PDF 1.5+                                        |
 | Object stream (`/Type /ObjStm`)                | ✗      | N, First, Extends — PDF 1.5+ compressed objects                        |
 
@@ -187,14 +187,14 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Widths`         | ✓      | Auto-populated from AFM data                     |
 | `/FontDescriptor` | ✓      |                                                  |
 | `/Encoding`       | ✓      |                                                  |
-| `/ToUnicode`      | ~      | Reference stored; CMap stream generation missing |
+| `/ToUnicode`      | ✓      | CMap stream generated from TrueType cmap table |
 
 ### Font Subtypes
 
 | Subtype         | Class          | Status | Notes                                                             |
 |-----------------|----------------|--------|-------------------------------------------------------------------|
 | `/Type1`        | `Type1Font`    | ✓      | Includes standard 14 with AFM widths                              |
-| `/TrueType`     | `TrueTypeFont` | ✓      | Shell; no embedded font program support                           |
+| `/TrueType`     | `TrueTypeFont` | ✓      | Full font program embedding via `/FontFile2`; metrics from TTF tables |
 | `/Type0`        | `Type0Font`    | ✓      | Composite font                                                    |
 | `/CIDFontType0` | `CIDFont`      | ~      | Generic CIDFont; subtype not enforced                             |
 | `/CIDFontType2` | `CIDFont`      | ~      | Generic CIDFont; subtype not enforced                             |
@@ -223,7 +223,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/MaxWidth`     | ✓      |                                             |
 | `/MissingWidth` | ✓      |                                             |
 | `/FontFile`     | ✓      | Reference stored; embedding not implemented |
-| `/FontFile2`    | ✓      | Reference stored; embedding not implemented |
+| `/FontFile2`    | ✓      | TrueType font program embedding via `TrueTypeFont::fromFile()` |
 | `/FontFile3`    | ✓      | Reference stored; embedding not implemented |
 | `/CharSet`      | ✓      |                                             |
 
@@ -236,13 +236,14 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ### Missing Font Objects
 
-| Object                        | Status | Notes                                                          |
-|-------------------------------|--------|----------------------------------------------------------------|
-| `CIDSystemInfo` dict          | ✗      | Registry, Ordering, Supplement                                 |
-| `CMap` stream (`/Type /CMap`) | ✗      | CMapName, CIDSystemInfo, WMode                                 |
-| ToUnicode CMap stream         | ✗      | Generation from glyph list; `phpdftk/encoding` has parser only |
-| Font subsetting               | ✗      | Glyph subsetting and stream embedding                          |
-| OpenType font support         | ✗      | `/FontFile3` with `/Subtype /OpenType`                         |
+| Object                        | Status | Notes                                                                   |
+|-------------------------------|--------|-------------------------------------------------------------------------|
+| `CIDSystemInfo` dict          | ✓      | Registry, Ordering, Supplement; typed on `CIDFont::$cidSystemInfo`      |
+| `CMap` stream (`/Type /CMap`) | ✗      | CMapName, CIDSystemInfo, WMode                                          |
+| ToUnicode CMap stream         | ✓      | Generated from TrueType cmap table; WinAnsi byte → Unicode mapping      |
+| TrueType font embedding       | ✓      | Full font program embedded via `/FontFile2`; `TrueTypeFont::fromFile()` |
+| Font subsetting               | ✗      | Glyph subsetting and stream embedding                                   |
+| OpenType font support         | ✗      | `/FontFile3` with `/Subtype /OpenType`                                  |
 
 ---
 
@@ -266,10 +267,10 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/C`            | ✓      | Color                     |
 | `/StructParent` | ✓      |                           |
 | `/OC`           | ✓      | Optional content          |
-| `/AF`           | ✗      | Associated files          |
-| `/ca`           | ✗      | Blend mode alpha          |
-| `/BM`           | ✗      | Blend mode                |
-| `/Lang`         | ✗      | Language                  |
+| `/AF`           | ✓      | Associated files          |
+| `/ca`           | ✓      | Constant opacity          |
+| `/BM`           | ✓      | Blend mode                |
+| `/Lang`         | ✓      | Language                  |
 
 ### Annotation Subtypes
 
@@ -283,35 +284,35 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Ink`            | `InkAnnotation`       | ✓      | InkList, BS                                           |
 | `/Popup`          | `PopupAnnotation`     | ✓      | Parent, Open                                          |
 | `/Widget`         | `WidgetAnnotation`    | ✓      | H, MK, A, AA, BS, Parent                              |
-| `/Line`           | —                     | ✗      | L, BS, LE, IC, LL, LLE, Cap, IT, LLO, CP, Measure, CO |
-| `/Square`         | —                     | ✗      | BS, IC, BE, RD, Measure                               |
-| `/Circle`         | —                     | ✗      | BS, IC, BE, RD, Measure                               |
-| `/Polygon`        | —                     | ✗      | Vertices, LE, BS, IC, BE, IT, Measure                 |
-| `/PolyLine`       | —                     | ✗      | Vertices, LE, BS, IC, BE, IT, Measure                 |
-| `/Underline`      | —                     | ✗      | QuadPoints                                            |
-| `/Squiggly`       | —                     | ✗      | QuadPoints                                            |
-| `/StrikeOut`      | —                     | ✗      | QuadPoints                                            |
-| `/Caret`          | —                     | ✗      | RD, Sy                                                |
-| `/FileAttachment` | —                     | ✗      | FS, Name                                              |
-| `/Sound`          | —                     | ✗      | Sound, Name                                           |
-| `/Movie`          | —                     | ✗      | T, Movie, A                                           |
-| `/Screen`         | —                     | ✗      | T, MK, A, AA                                          |
-| `/PrinterMark`    | —                     | ✗      | MN                                                    |
-| `/TrapNet`        | —                     | ✗      | LastModified, Version, AnnotStates, FontFauxing       |
-| `/Watermark`      | —                     | ✗      | FixedPrint                                            |
-| `/3D`             | —                     | ✗      | 3DD, 3DV, 3DA, 3DI, 3DB                               |
-| `/Redact`         | —                     | ✗      | QuadPoints, IC, RO, OverlayText, Repeat, DA, Q        |
-| `/Projection`     | —                     | ✗      |                                                       |
-| `/RichMedia`      | —                     | ✗      |                                                       |
+| `/Line`           | `LineAnnotation`           | ✓      | L, LE, IC, LL, LLE, Cap, IT, LLO, CP, Measure, CO    |
+| `/Square`         | `SquareAnnotation`         | ✓      | IC, BE, RD, Measure                                   |
+| `/Circle`         | `CircleAnnotation`         | ✓      | IC, BE, RD, Measure                                   |
+| `/Polygon`        | `PolygonAnnotation`        | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/PolyLine`       | `PolyLineAnnotation`       | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/Underline`      | `UnderlineAnnotation`      | ✓      | QuadPoints                                            |
+| `/Squiggly`       | `SquigglyAnnotation`       | ✓      | QuadPoints                                            |
+| `/StrikeOut`      | `StrikeOutAnnotation`      | ✓      | QuadPoints                                            |
+| `/Caret`          | `CaretAnnotation`          | ✓      | RD, Sy                                                |
+| `/FileAttachment` | `FileAttachmentAnnotation` | ✓      | FS, Name                                              |
+| `/Sound`          | `SoundAnnotation`          | ✓      | Sound, Name                                           |
+| `/Movie`          | `MovieAnnotation`          | ✓      | T, Movie, A                                           |
+| `/Screen`         | `ScreenAnnotation`         | ✓      | T, MK, A, AA                                          |
+| `/PrinterMark`    | `PrinterMarkAnnotation`    | ✓      | MN                                                    |
+| `/TrapNet`        | `TrapNetAnnotation`        | ✓      | LastModified, Version, AnnotStates, FontFauxing       |
+| `/Watermark`      | `WatermarkAnnotation`      | ✓      | FixedPrint                                            |
+| `/3D`             | `ThreeDAnnotation`         | ✓      | 3DD, 3DV, 3DA, 3DI, 3DB                               |
+| `/Redact`         | `RedactAnnotation`         | ✓      | QuadPoints, IC, RO, OverlayText, Repeat, DA, Q        |
+| `/Projection`     | `ProjectionAnnotation`     | ✓      |                                                       |
+| `/RichMedia`      | `RichMediaAnnotation`      | ✓      | RichMediaSettings, RichMediaContent                   |
 
 ### Supporting Annotation Dictionaries
 
-| Object                           | Status | Notes                                              |
-|----------------------------------|--------|----------------------------------------------------|
-| `AppearanceDict` (AP)            | ~      | Referenced; not generated                          |
-| `AppearanceCharacteristics` (MK) | ✗      | R, BC, BG, CA, RC, AC, I, RI, IX, IF, TP           |
-| `BorderStyle` (BS)               | ✓      | W, S, D; `Annotation::$bs` accepts it directly    |
-| `BorderEffect` (BE)              | ✗      | S, I                                               |
+| Object                           | Status | Notes                                                |
+|----------------------------------|--------|------------------------------------------------------|
+| `AppearanceDict` (AP)            | ✓      | N, R, D; implements Serializable                     |
+| `AppearanceCharacteristics` (MK) | ✓      | R, BC, BG, CA, RC, AC, I, RI, IX, IF, TP; implements Serializable |
+| `BorderStyle` (BS)               | ✓      | W, S, D; `Annotation::$bs` accepts it directly       |
+| `BorderEffect` (BE)              | ✓      | S, I; `FreeTextAnnotation::$be` accepts it directly  |
 
 ---
 
@@ -651,15 +652,15 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ## Accessibility / Tagged PDF
 
-| Object / Feature                           | Status | Notes                                                       |
-|--------------------------------------------|--------|-------------------------------------------------------------|
-| `StructTreeRoot` (`/Type /StructTreeRoot`) | ✗      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap |
-| `StructElem` (`/Type /StructElem`)         | ✗      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText       |
-| `ObjectRef` (`/Type /OBJR`)                | ✗      | Pg, Obj                                                     |
+| Object / Feature                           | Status | Notes                                                          |
+|--------------------------------------------|--------|----------------------------------------------------------------|
+| `StructTreeRoot` (`/Type /StructTreeRoot`) | ✓      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap    |
+| `StructElem` (`/Type /StructElem`)         | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText          |
+| `ObjectRef` (`/Type /OBJR`)                | ✓      | Pg, Obj                                                        |
 | Marked content operators                   | ✓      | `BMC`, `BDC`, `EMC`, `MP`, `DP` implemented in `ContentStream` |
-| `RoleMap` dict                             | ✗      |                                                             |
-| `ClassMap` dict                            | ✗      |                                                             |
-| Attribute objects                          | ✗      |                                                             |
+| `RoleMap` dict                             | ✗      |                                                                |
+| `ClassMap` dict                            | ✗      |                                                                |
+| Attribute objects                          | ✗      |                                                                |
 
 ---
 
@@ -667,17 +668,17 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 | Area                       | Implemented | Total | %    |
 |----------------------------|-------------|-------|------|
-| Catalog fields             | 14          | 24    | 58%  |
-| PageTree fields            | 7           | 30    | 23%  |
-| Page fields                | 19          | 30    | 63%  |
+| Catalog fields             | 24          | 24    | 100% |
+| PageTree fields            | 30          | 30    | 100% |
+| Page fields                | 29          | 29    | 100% |
 | Info fields                | 9           | 9     | 100% |
 | ViewerPreferences fields   | 17          | 17    | 100% |
-| Document structure objects | 3           | 20    | 15%  |
+| Document structure objects | 22          | 24    | 92%  |
 | Font subtypes              | 4           | 7     | 57%  |
 | FontDescriptor fields      | 19          | 19    | 100% |
-| Annotation base fields     | 14          | 18    | 78%  |
-| Annotation subtypes        | 8           | 26    | 31%  |
-| Supporting annot dicts     | 1           | 4     | 25%  |
+| Annotation base fields     | 18          | 18    | 100% |
+| Annotation subtypes        | 26          | 26    | 100% |
+| Supporting annot dicts     | 4           | 4     | 100% |
 | Actions                    | 5           | 20    | 25%  |
 | AcroForm fields            | 8           | 8     | 100% |
 | Field types                | 4           | 4     | 100% |
@@ -692,7 +693,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | Digital signatures         | 0           | 7     | 0%   |
 | Multimedia                 | 0           | 7     | 0%   |
 | File specifications        | 0           | 3     | 0%   |
-| Accessibility / Tagged PDF | 1           | 7     | 14%  |
+| Accessibility / Tagged PDF | 4           | 7     | 57%  |
 | 3D                         | 0           | 6     | 0%   |
 
 > \* Cipher primitives exist in `phpdftk/crypt`; PDF-layer wiring is incomplete.

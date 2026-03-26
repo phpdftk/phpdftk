@@ -5,13 +5,28 @@ declare(strict_types=1);
 namespace ApprLabs\Benchmarks;
 
 use PhpBench\Attributes as Bench;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\Annotation\HighlightAnnotation;
+use ApprLabs\Pdf\Core\Annotation\LineAnnotation;
+use ApprLabs\Pdf\Core\Annotation\SquareAnnotation;
+use ApprLabs\Pdf\Core\Annotation\TextAnnotation;
+use ApprLabs\Pdf\Core\Document\Destination;
+use ApprLabs\Pdf\Core\Document\MarkInfo;
 use ApprLabs\Pdf\Core\Document\Outline;
 use ApprLabs\Pdf\Core\Document\OutlineItem;
+use ApprLabs\Pdf\Core\Document\OutputIntent;
+use ApprLabs\Pdf\Core\Document\PageLabel;
+use ApprLabs\Pdf\Core\Document\StructElem;
+use ApprLabs\Pdf\Core\Document\StructTreeRoot;
 use ApprLabs\Pdf\Core\Document\TransitionDict;
 use ApprLabs\Pdf\Core\Font\StandardFont;
+use ApprLabs\Pdf\Core\Font\TrueTypeFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
 
 #[Bench\Iterations(5)]
@@ -190,6 +205,194 @@ class GeneratePdfBench
         }
 
         $writer->save($this->tempDir . '/phpdftk_10pages_bookmarks.pdf');
+    }
+
+    /**
+     * 10-page PDF with various annotation types on each page.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithAnnotations(): void
+    {
+        $writer   = new PdfWriter();
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs   = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Page %d — Annotations benchmark', $i))
+               ->endText();
+
+            // TextAnnotation (sticky note)
+            $textAnnot = new TextAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(120), new PdfNumber(710)])
+            );
+            $textAnnot->contents = new PdfString(sprintf('Note on page %d', $i));
+            $textAnnot->name = new PdfName('Note');
+            $writer->register($textAnnot);
+            $page->annots[] = new PdfReference($textAnnot->objectNumber);
+
+            // HighlightAnnotation
+            $highlight = new HighlightAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(620), new PdfNumber(300), new PdfNumber(640)]),
+                new PdfArray([
+                    new PdfNumber(72), new PdfNumber(640),
+                    new PdfNumber(300), new PdfNumber(640),
+                    new PdfNumber(72), new PdfNumber(620),
+                    new PdfNumber(300), new PdfNumber(620),
+                ])
+            );
+            $highlight->c = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]);
+            $writer->register($highlight);
+            $page->annots[] = new PdfReference($highlight->objectNumber);
+
+            // LineAnnotation
+            $line = new LineAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(560), new PdfNumber(300), new PdfNumber(590)])
+            );
+            $line->l = new PdfArray([
+                new PdfNumber(72), new PdfNumber(575),
+                new PdfNumber(300), new PdfNumber(575),
+            ]);
+            $line->le = new PdfArray([new PdfName('None'), new PdfName('OpenArrow')]);
+            $writer->register($line);
+            $page->annots[] = new PdfReference($line->objectNumber);
+
+            // SquareAnnotation
+            $square = new SquareAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(200), new PdfNumber(540)])
+            );
+            $square->ic = new PdfArray([new PdfNumber(0.8), new PdfNumber(0.9), new PdfNumber(1.0)]);
+            $writer->register($square);
+            $page->annots[] = new PdfReference($square->objectNumber);
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_annotations.pdf');
+    }
+
+    /**
+     * 10-page PDF with an embedded TrueType font.
+     * Skips silently if no TTF found on system.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithEmbeddedFont(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/System/Library/Fonts/Supplemental/Verdana.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+
+        if ($fontPath === null) {
+            return;
+        }
+
+        $writer   = new PdfWriter();
+        $font     = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs   = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 14)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Embedded font page %d of 10', $i))
+               ->moveTextPosition(0, -24)
+               ->showText('The quick brown fox jumps over the lazy dog.')
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_embedded_font.pdf');
+    }
+
+    /**
+     * 10-page PDF with OutputIntent, named destinations, page labels,
+     * and StructTreeRoot for tagged PDF.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithDocumentStructure(): void
+    {
+        $writer   = new PdfWriter();
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+
+        // OutputIntent
+        $outputIntent = new OutputIntent('GTS_PDFX', 'CGATS TR 001');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([
+            new PdfReference($outputIntent->objectNumber),
+        ]);
+
+        // Create pages
+        $pages = [];
+        $namedDests = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $pages[] = $page;
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Structured document — page %d', $i))
+               ->endText();
+
+            $namedDests['page' . $i] = Destination::xyz(
+                new PdfReference($page->objectNumber), 72, 720, 1.0
+            );
+        }
+
+        // Named destinations
+        $writer->setNamedDestinations($namedDests);
+
+        // Page labels: roman for first 3, arabic for the rest
+        $romanLabel = new PageLabel();
+        $romanLabel->s = new PdfName('r');
+        $arabicLabel = new PageLabel();
+        $arabicLabel->s = new PdfName('D');
+        $writer->setPageLabels([
+            0 => $romanLabel,
+            3 => $arabicLabel,
+        ]);
+
+        // StructTreeRoot with a StructElem per page
+        $structRoot = new StructTreeRoot();
+        $structRoot->roleMap = new PdfDictionary();
+        $writer->register($structRoot);
+
+        $childRefs = [];
+        foreach ($pages as $idx => $page) {
+            $elem = new StructElem('P');
+            $elem->p = new PdfReference($structRoot->objectNumber);
+            $elem->pg = new PdfReference($page->objectNumber);
+            $writer->register($elem);
+            $childRefs[] = new PdfReference($elem->objectNumber);
+        }
+
+        $structRoot->k = new PdfArray($childRefs);
+
+        $writer->getCatalog()->structTreeRoot = new PdfReference($structRoot->objectNumber);
+
+        // MarkInfo
+        $markInfo = new MarkInfo();
+        $markInfo->marked = true;
+        $writer->getCatalog()->markInfo = $markInfo;
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_structure.pdf');
     }
 
     // -----------------------------------------------------------------------

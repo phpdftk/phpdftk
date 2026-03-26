@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Document;
 
+use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
@@ -29,9 +31,21 @@ class Catalog extends PdfObject
     public ?PdfReference $openAction = null;         // /OpenAction
     public ?PdfReference $acroForm = null;           // /AcroForm
     public ?PdfReference $metadata = null;           // /Metadata
-    public ?PdfDictionary $markInfo = null;          // /MarkInfo
+    public ?MarkInfo $markInfo = null;               // /MarkInfo
     public ?PdfString $lang = null;                  // /Lang
     public ?PdfReference $pageLabels = null;         // /PageLabels - number tree of PageLabel dicts
+    public ?PdfReference $aa = null;                 // /AA - additional actions dict
+    public ?PdfDictionary $uri = null;               // /URI - base URI dict
+    public ?PdfArray $outputIntents = null;           // /OutputIntents - array of OutputIntent refs
+    public ?PdfBoolean $needsRendering = null;       // /NeedsRendering - XFA flag
+    public ?PdfDictionary $legal = null;             // /Legal - legal attestation dict
+    public ?PdfReference $ocProperties = null;       // /OCProperties - optional content
+    public ?PdfDictionary $perms = null;             // /Perms - permissions dict
+    public ?PdfArray $requirements = null;           // /Requirements - requirements array
+    public ?PdfReference $collection = null;         // /Collection - PDF portfolio
+    public ?PdfReference $spiderInfo = null;         // /SpiderInfo - web capture info
+    public ?PdfDictionary $pieceInfo = null;         // /PieceInfo - application data
+    public ?PdfReference $structTreeRoot = null;     // /StructTreeRoot - structure tree root
 
     public function toPdf(): string
     {
@@ -79,6 +93,42 @@ class Catalog extends PdfObject
         }
         if ($this->pageLabels !== null) {
             $dict->set('PageLabels', $this->pageLabels);
+        }
+        if ($this->aa !== null) {
+            $dict->set('AA', $this->aa);
+        }
+        if ($this->uri !== null) {
+            $dict->set('URI', $this->uri);
+        }
+        if ($this->outputIntents !== null) {
+            $dict->set('OutputIntents', $this->outputIntents);
+        }
+        if ($this->needsRendering !== null) {
+            $dict->set('NeedsRendering', $this->needsRendering);
+        }
+        if ($this->legal !== null) {
+            $dict->set('Legal', $this->legal);
+        }
+        if ($this->ocProperties !== null) {
+            $dict->set('OCProperties', $this->ocProperties);
+        }
+        if ($this->perms !== null) {
+            $dict->set('Perms', $this->perms);
+        }
+        if ($this->requirements !== null) {
+            $dict->set('Requirements', $this->requirements);
+        }
+        if ($this->collection !== null) {
+            $dict->set('Collection', $this->collection);
+        }
+        if ($this->spiderInfo !== null) {
+            $dict->set('SpiderInfo', $this->spiderInfo);
+        }
+        if ($this->pieceInfo !== null) {
+            $dict->set('PieceInfo', $this->pieceInfo);
+        }
+        if ($this->structTreeRoot !== null) {
+            $dict->set('StructTreeRoot', $this->structTreeRoot);
         }
 
         return $dict->toPdf();
