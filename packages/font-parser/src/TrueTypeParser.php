@@ -172,16 +172,22 @@ class TrueTypeParser
 
         $bestOffset = null;
         $bestPriority = -1;
+        $bestFormat = 0;
 
         for ($i = 0; $i < $cmapNumTables; $i++) {
             $recBase = $cmapBase + 4 + $i * 8;
             $platID = $this->readUint16($recBase + 0);
             $encID = $this->readUint16($recBase + 2);
             $subtableOffset = $this->readUint32($recBase + 4);
+            $subtableFormat = $this->readUint16($cmapBase + $subtableOffset);
 
             $priority = -1;
-            if ($platID === 3 && $encID === 1) {
-                $priority = 2; // Best: Windows Unicode BMP
+            if ($platID === 3 && $encID === 10 && $subtableFormat === 12) {
+                $priority = 4; // Best: Windows UCS-4 format 12 (full Unicode)
+            } elseif ($platID === 0 && $encID === 4 && $subtableFormat === 12) {
+                $priority = 3; // Unicode full repertoire format 12
+            } elseif ($platID === 3 && $encID === 1) {
+                $priority = 2; // Windows Unicode BMP
             } elseif ($platID === 0 && $encID === 3) {
                 $priority = 1; // Unicode BMP
             } elseif ($platID === 0 && $encID === 0) {
@@ -191,6 +197,7 @@ class TrueTypeParser
             if ($priority > $bestPriority) {
                 $bestPriority = $priority;
                 $bestOffset = $cmapBase + $subtableOffset;
+                $bestFormat = $subtableFormat;
             }
         }
 
@@ -198,67 +205,12 @@ class TrueTypeParser
             throw new \RuntimeException('No suitable cmap subtable found in font');
         }
 
-        $cmapFormat = $this->readUint16($bestOffset);
-        if ($cmapFormat !== 4) {
-            throw new \RuntimeException("Unsupported cmap format {$cmapFormat}; only format 4 is supported");
-        }
-
-        // Parse cmap format 4
-        $segCountX2 = $this->readUint16($bestOffset + 6);
-        $segCount = $segCountX2 / 2;
-
-        $endCodesBase = $bestOffset + 14;
-        $startCodesBase = $bestOffset + 16 + $segCountX2;
-        $idDeltaBase = $bestOffset + 16 + 2 * $segCountX2;
-        $idRangeOffsetBase = $bestOffset + 16 + 3 * $segCountX2;
-        $glyphIdArrayBase = $bestOffset + 16 + 4 * $segCountX2;
-
-        // Read arrays
-        $endCodes = [];
-        $startCodes = [];
-        $idDelta = [];
-        $idRangeOffset = [];
-
-        for ($i = 0; $i < $segCount; $i++) {
-            $endCodes[$i] = $this->readUint16($endCodesBase + $i * 2);
-            $startCodes[$i] = $this->readUint16($startCodesBase + $i * 2);
-            $idDelta[$i] = $this->readInt16($idDeltaBase + $i * 2);
-            $idRangeOffset[$i] = $this->readUint16($idRangeOffsetBase + $i * 2);
-        }
-
-        // Calculate glyphIdArray length from subtable length
-        $subtableLength = $this->readUint16($bestOffset + 2);
-        $glyphIdArrayLen = ($subtableLength - (16 + 4 * $segCountX2)) / 2;
-
-        $glyphIdArray = [];
-        for ($j = 0; $j < $glyphIdArrayLen; $j++) {
-            $glyphIdArray[$j] = $this->readUint16($glyphIdArrayBase + $j * 2);
-        }
-
-        // Build Unicode codepoint => GID map
-        $unicodeToGid = [];
-        for ($i = 0; $i < $segCount; $i++) {
-            if ($startCodes[$i] === 0xFFFF) {
-                continue;
-            }
-            for ($cp = $startCodes[$i]; $cp <= $endCodes[$i]; $cp++) {
-                if ($idRangeOffset[$i] === 0) {
-                    $gid = ($cp + $idDelta[$i]) & 0xFFFF;
-                } else {
-                    $idx = $idRangeOffset[$i] / 2 + ($cp - $startCodes[$i]) + $i - $segCount;
-                    if ($idx < 0 || $idx >= count($glyphIdArray)) {
-                        $gid = 0;
-                    } else {
-                        $gid = $glyphIdArray[$idx];
-                        if ($gid !== 0) {
-                            $gid = ($gid + $idDelta[$i]) & 0xFFFF;
-                        }
-                    }
-                }
-                if ($gid !== 0) {
-                    $unicodeToGid[$cp] = $gid;
-                }
-            }
+        if ($bestFormat === 4) {
+            $unicodeToGid = $this->parseCmapFormat4($bestOffset);
+        } elseif ($bestFormat === 12) {
+            $unicodeToGid = $this->parseCmapFormat12($bestOffset);
+        } else {
+            throw new \RuntimeException("Unsupported cmap format {$bestFormat}; only formats 4 and 12 are supported");
         }
 
         // Scale helper
@@ -330,7 +282,91 @@ class TrueTypeParser
             unicodeMap: $unicodeMap,
             fontBytes: $this->data,
             embeddingAllowed: $embeddingAllowed,
+            unitsPerEm: $unitsPerEm,
+            fullUnicodeToGid: $unicodeToGid,
+            glyphWidths: $hmtxWidths,
         );
+    }
+
+    /**
+     * @return array<int, int> Unicode codepoint => GID
+     */
+    private function parseCmapFormat4(int $offset): array
+    {
+        $segCountX2 = $this->readUint16($offset + 6);
+        $segCount = $segCountX2 / 2;
+
+        $endCodesBase = $offset + 14;
+        $startCodesBase = $offset + 16 + $segCountX2;
+        $idDeltaBase = $offset + 16 + 2 * $segCountX2;
+        $idRangeOffsetBase = $offset + 16 + 3 * $segCountX2;
+        $glyphIdArrayBase = $offset + 16 + 4 * $segCountX2;
+
+        $endCodes = [];
+        $startCodes = [];
+        $idDelta = [];
+        $idRangeOffset = [];
+
+        for ($i = 0; $i < $segCount; $i++) {
+            $endCodes[$i] = $this->readUint16($endCodesBase + $i * 2);
+            $startCodes[$i] = $this->readUint16($startCodesBase + $i * 2);
+            $idDelta[$i] = $this->readInt16($idDeltaBase + $i * 2);
+            $idRangeOffset[$i] = $this->readUint16($idRangeOffsetBase + $i * 2);
+        }
+
+        $subtableLength = $this->readUint16($offset + 2);
+        $glyphIdArrayLen = ($subtableLength - (16 + 4 * $segCountX2)) / 2;
+
+        $glyphIdArray = [];
+        for ($j = 0; $j < $glyphIdArrayLen; $j++) {
+            $glyphIdArray[$j] = $this->readUint16($glyphIdArrayBase + $j * 2);
+        }
+
+        $unicodeToGid = [];
+        for ($i = 0; $i < $segCount; $i++) {
+            if ($startCodes[$i] === 0xFFFF) {
+                continue;
+            }
+            for ($cp = $startCodes[$i]; $cp <= $endCodes[$i]; $cp++) {
+                if ($idRangeOffset[$i] === 0) {
+                    $gid = ($cp + $idDelta[$i]) & 0xFFFF;
+                } else {
+                    $idx = $idRangeOffset[$i] / 2 + ($cp - $startCodes[$i]) + $i - $segCount;
+                    if ($idx < 0 || $idx >= count($glyphIdArray)) {
+                        $gid = 0;
+                    } else {
+                        $gid = $glyphIdArray[$idx];
+                        if ($gid !== 0) {
+                            $gid = ($gid + $idDelta[$i]) & 0xFFFF;
+                        }
+                    }
+                }
+                if ($gid !== 0) {
+                    $unicodeToGid[$cp] = $gid;
+                }
+            }
+        }
+
+        return $unicodeToGid;
+    }
+
+    /**
+     * @return array<int, int> Unicode codepoint => GID
+     */
+    private function parseCmapFormat12(int $offset): array
+    {
+        $nGroups = $this->readUint32($offset + 12);
+        $map = [];
+        for ($i = 0; $i < $nGroups; $i++) {
+            $base = $offset + 16 + $i * 12;
+            $startCharCode = $this->readUint32($base);
+            $endCharCode = $this->readUint32($base + 4);
+            $startGlyphID = $this->readUint32($base + 8);
+            for ($cp = $startCharCode; $cp <= $endCharCode; $cp++) {
+                $map[$cp] = $startGlyphID + ($cp - $startCharCode);
+            }
+        }
+        return $map;
     }
 
     private function win1252ToUnicode(int $byte): ?int

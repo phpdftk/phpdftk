@@ -13,7 +13,7 @@ use ApprLabs\Pdf\Core\PdfReference;
 /**
  * Line annotation (/Subtype /Line).
  */
-class LineAnnotation extends Annotation
+class LineAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $l = null;        // /L - two points [x1 y1 x2 y2]
     public ?PdfArray $le = null;       // /LE - line ending styles

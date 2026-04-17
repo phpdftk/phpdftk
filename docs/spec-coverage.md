@@ -36,6 +36,10 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Requirements`      | ✓      | Array stored                                   |
 | `/Collection`        | ✓      | Reference stored                               |
 | `/NeedsRendering`    | ✓      |                                                |
+| `/DSS`               | ✓      | `DSS` class for PAdES LTV                      |
+| `/Extensions`        | ✓      | Developer extensions dict                      |
+| `/AF`                | ✓      | Associated files array                         |
+| `/DPartRoot`         | ✓      | `DPartRoot` reference (PDF 2.0)                |
 
 ### Page Tree (`/Type /Pages`)
 
@@ -93,8 +97,11 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/StructParents`        | ✓      |                                                  |
 | `/Trans`                | ✓      | `TransitionDict` class; S, D, Dm, M, Di, SS, B  |
 | `/Dur`                  | ✓      |                                                  |
-| `/BoxColorInfo`         | ✗      |                                                  |
-| `/B`                    | ✗      | Article beads                                    |
+| `/BoxColorInfo`         | ✓      | Typed `BoxColorInfo` + `BoxStyle` (§14.11.2)     |
+| `/B`                    | ✓      | Article beads                                    |
+| `/AF`                   | ✓      | Associated files                                 |
+| `/OutputIntents`        | ✓      | Page-level output intents                        |
+| `/DPart`                | ✓      | Document part reference (PDF 2.0)                |
 | `/AA`                   | ✓      | Reference stored                                 |
 | `/Metadata`             | ✓      | XMP stream reference on page                     |
 | `/PieceInfo`            | ✓      | Reference stored                                 |
@@ -168,8 +175,8 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `StructTreeRoot` (`/Type /StructTreeRoot`)     | ✓      | K, IDTree, ParentTree, RoleMap, ClassMap; extends PdfObject            |
 | `StructElem` (`/Type /StructElem`)             | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText; extends PdfObject |
 | `ObjectRef` (`/Type /OBJR`)                    | ✓      | Pg, Obj; extends PdfObject                                             |
-| Cross-reference stream (`/Type /XRef`)         | ✗      | Size, Index, Prev, W — PDF 1.5+                                        |
-| Object stream (`/Type /ObjStm`)                | ✗      | N, First, Extends — PDF 1.5+ compressed objects                        |
+| Cross-reference stream (`/Type /XRef`)         | ✓      | Size, Index, Prev, W, Root, Info, ID; binary entry packing             |
+| Object stream (`/Type /ObjStm`)                | ✓      | N, First, Extends; packs compressed indirect objects                   |
 
 ---
 
@@ -191,15 +198,15 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ### Font Subtypes
 
-| Subtype         | Class          | Status | Notes                                                             |
-|-----------------|----------------|--------|-------------------------------------------------------------------|
-| `/Type1`        | `Type1Font`    | ✓      | Includes standard 14 with AFM widths                              |
-| `/TrueType`     | `TrueTypeFont` | ✓      | Full font program embedding via `/FontFile2`; metrics from TTF tables |
-| `/Type0`        | `Type0Font`    | ✓      | Composite font                                                    |
-| `/CIDFontType0` | `CIDFont`      | ~      | Generic CIDFont; subtype not enforced                             |
-| `/CIDFontType2` | `CIDFont`      | ~      | Generic CIDFont; subtype not enforced                             |
-| `/MMType1`      | —              | ✗      | Multiple Master fonts                                             |
-| `/Type3`        | —              | ✗      | Glyph procedures defined in PDF; CharProcs, FontMatrix, Resources |
+| Subtype         | Class              | Status | Notes                                                          |
+|-----------------|--------------------|--------|----------------------------------------------------------------|
+| `/Type1`        | `Type1Font`        | ✓      | Includes standard 14 with AFM widths                           |
+| `/TrueType`     | `TrueTypeFont`     | ✓      | Full font program embedding via `/FontFile2`                   |
+| `/Type0`        | `Type0Font`        | ✓      | Composite font                                                 |
+| `/CIDFontType0` | `CIDFontType0Font` | ✓      | Type 1/CFF descendant of Type 0 (enforced subclass)            |
+| `/CIDFontType2` | `CIDFontType2Font` | ✓      | TrueType descendant of Type 0; /CIDToGIDMap supported          |
+| `/MMType1`      | `MMType1Font`      | ✓      | Multiple Master; encodes spaces in instance name as underscore |
+| `/Type3`        | `Type3Font`        | ✓      | FontBBox, FontMatrix, CharProcs, Encoding, Resources           |
 
 ### FontDescriptor (`/Type /FontDescriptor`)
 
@@ -239,11 +246,11 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | Object                        | Status | Notes                                                                   |
 |-------------------------------|--------|-------------------------------------------------------------------------|
 | `CIDSystemInfo` dict          | ✓      | Registry, Ordering, Supplement; typed on `CIDFont::$cidSystemInfo`      |
-| `CMap` stream (`/Type /CMap`) | ✗      | CMapName, CIDSystemInfo, WMode                                          |
+| `CMap` stream (`/Type /CMap`) | ✓      | CMapName, CIDSystemInfo, WMode; CMapStream class                        |
 | ToUnicode CMap stream         | ✓      | Generated from TrueType cmap table; WinAnsi byte → Unicode mapping      |
 | TrueType font embedding       | ✓      | Full font program embedded via `/FontFile2`; `TrueTypeFont::fromFile()` |
-| Font subsetting               | ✗      | Glyph subsetting and stream embedding                                   |
-| OpenType font support         | ✗      | `/FontFile3` with `/Subtype /OpenType`                                  |
+| Font subsetting               | ✓      | TrueTypeSubsetter implemented                                           |
+| OpenType font support         | ✓      | OpenTypeParser + CFFFontFile via `/FontFile3`                            |
 
 ---
 
@@ -271,6 +278,29 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/ca`           | ✓      | Constant opacity          |
 | `/BM`           | ✓      | Blend mode                |
 | `/Lang`         | ✓      | Language                  |
+
+### Markup Annotation Base Fields (§12.5.6.2 Table 170)
+
+| Field          | Status | Notes                                                  |
+|----------------|--------|--------------------------------------------------------|
+| `/T`           | ✓      | Text label (author) on `MarkupAnnotation`              |
+| `/Popup`       | ✓      | Linked popup annotation reference                      |
+| `/CA`          | ✓      | Constant opacity override on markup                    |
+| `/RC`          | ✓      | Rich content stream                                    |
+| `/CreationDate`| ✓      |                                                        |
+| `/IRT`         | ✓      | In-reply-to chaining                                   |
+| `/Subj`        | ✓      | Short description                                      |
+| `/RT`          | ✓      | Reply type (R / Group)                                 |
+| `/IT`          | ✓      | Intent (e.g. FreeTextCallout, PolygonCloud, LineArrow) |
+| `/ExData`      | ✓      | External data dict                                     |
+
+All 17 markup annotation subclasses (`TextAnnotation`, `FreeTextAnnotation`,
+`LineAnnotation`, `SquareAnnotation`, `CircleAnnotation`, `PolygonAnnotation`,
+`PolyLineAnnotation`, `HighlightAnnotation`, `UnderlineAnnotation`,
+`SquigglyAnnotation`, `StrikeOutAnnotation`, `StampAnnotation`,
+`CaretAnnotation`, `InkAnnotation`, `FileAttachmentAnnotation`,
+`SoundAnnotation`, `RedactAnnotation`) extend `MarkupAnnotation` and inherit
+these fields.
 
 ### Annotation Subtypes
 
@@ -318,28 +348,28 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ## Actions
 
-| `/S` Value          | Class              | Status | Notes                                        |
-|---------------------|--------------------|--------|----------------------------------------------|
-| `/GoTo`             | `GoToAction`       | ✓      | D                                            |
-| `/URI`              | `URIAction`        | ✓      | URI, IsMap                                   |
-| `/Named`            | `NamedAction`      | ✓      | N                                            |
-| `/JavaScript`       | `JavaScriptAction` | ✓      | JS                                           |
-| `/GoToR`            | `GoToRAction`      | ✓      | F, D, NewWindow                              |
-| `/GoToE`            | —                  | ✗      | F, D, NewWindow, T — embedded PDF navigation |
-| `/GoToDP`           | —                  | ✗      | D, DP                                        |
-| `/Launch`           | —                  | ✗      | F, Win, Mac, Unix, NewWindow                 |
-| `/Thread`           | —                  | ✗      | F, D, B — article thread navigation          |
-| `/Sound`            | —                  | ✗      | Sound, Volume, Synchronous, Repeat, Mix      |
-| `/Movie`            | —                  | ✗      | Annotation, Operation, Parameter             |
-| `/Hide`             | —                  | ✗      | H (field/annotation reference + bool)        |
-| `/SubmitForm`       | —                  | ✗      | F, Fields, Flags                             |
-| `/ResetForm`        | —                  | ✗      | Fields, Flags                                |
-| `/ImportData`       | —                  | ✗      | F                                            |
-| `/SetOCGState`      | —                  | ✗      | State, PreserveRB                            |
-| `/Rendition`        | —                  | ✗      | OP, R, AN, JS                                |
-| `/Trans`            | —                  | ✗      | Trans                                        |
-| `/GoTo3DView`       | —                  | ✗      | TA, V                                        |
-| `/RichMediaExecute` | —                  | ✗      |                                              |
+| `/S` Value          | Class                    | Status | Notes                                    |
+|---------------------|--------------------------|--------|------------------------------------------|
+| `/GoTo`             | `GoToAction`             | ✓      | D                                        |
+| `/URI`              | `URIAction`              | ✓      | URI, IsMap                               |
+| `/Named`            | `NamedAction`            | ✓      | N                                        |
+| `/JavaScript`       | `JavaScriptAction`       | ✓      | JS                                       |
+| `/GoToR`            | `GoToRAction`            | ✓      | F, D, NewWindow                          |
+| `/GoToE`            | `GoToEAction`            | ✓      | F, D, NewWindow, T                       |
+| `/GoToDP`           | `GoToDPAction`           | ✓      | D, DP                                    |
+| `/Launch`           | `LaunchAction`           | ✓      | F, Win, Mac, Unix, NewWindow             |
+| `/Thread`           | `ThreadAction`           | ✓      | F, D, B                                  |
+| `/Sound`            | `SoundAction`            | ✓      | Sound, Volume, Synchronous, Repeat, Mix  |
+| `/Movie`            | `MovieAction`            | ✓      | Annotation, T, Operation                 |
+| `/Hide`             | `HideAction`             | ✓      | T, H                                     |
+| `/SubmitForm`       | `SubmitFormAction`       | ✓      | F, Fields, Flags                         |
+| `/ResetForm`        | `ResetFormAction`        | ✓      | Fields, Flags                            |
+| `/ImportData`       | `ImportDataAction`       | ✓      | F                                        |
+| `/SetOCGState`      | `SetOCGStateAction`      | ✓      | State, PreserveRB                        |
+| `/Rendition`        | `RenditionAction`        | ✓      | OP, R, AN, JS                            |
+| `/Trans`            | `TransAction`            | ✓      | Trans                                    |
+| `/GoTo3DView`       | `GoTo3DViewAction`       | ✓      | TA, V                                    |
+| `/RichMediaExecute` | `RichMediaExecuteAction` | ✓      | TA, TI, CMD                              |
 
 ---
 
@@ -375,23 +405,23 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ### Field Types
 
-| Type   | Class            | Status | Notes                                        |
-|--------|------------------|--------|----------------------------------------------|
-| `/Btn` | `ButtonField`    | ✓      | H, MK, Opt; pushbutton/checkbox/radio via Ff |
-| `/Tx`  | `TextField`      | ✓      | MaxLen, Q; multiline/password/comb via Ff    |
-| `/Ch`  | `ChoiceField`    | ✓      | Opt, TI, I; combo/edit/sort via Ff           |
-| `/Sig` | `SignatureField` | ~      | SigFlags only; signature value dict missing  |
+| Type   | Class            | Status | Notes                                           |
+|--------|------------------|--------|-------------------------------------------------|
+| `/Btn` | `ButtonField`    | ✓      | H, MK, Opt; pushbutton/checkbox/radio via Ff    |
+| `/Tx`  | `TextField`      | ✓      | MaxLen, Q; multiline/password/comb via Ff       |
+| `/Ch`  | `ChoiceField`    | ✓      | Opt, TI, I; combo/edit/sort via Ff              |
+| `/Sig` | `SignatureField` | ✓      | SigFlags, Lock, SV; /V accepts `SignatureValue` |
 
-### Missing Signature Objects
+### Signature Objects
 
-| Object                              | Status | Notes                                                                        |
-|-------------------------------------|--------|------------------------------------------------------------------------------|
-| Signature value dict (`/Type /Sig`) | ✗      | Filter, SubFilter, ByteRange, Contents, Reference, Name, M, Location, Reason |
-| `SignatureReference` dict           | ✗      | TransformMethod, TransformParams, Data, DigestMethod                         |
-| `DocMDP` transform params           | ✗      | P, V, Type                                                                   |
-| `FieldMDP` transform params         | ✗      | Action, Fields, V, Type                                                      |
-| `UR3` transform params              | ✗      | Usage rights                                                                 |
-| `Perms` dict (in Catalog)           | ✗      | DocMDP, UR3, Legal                                                           |
+| Object                              | Status | Notes                                                                       |
+|-------------------------------------|--------|-----------------------------------------------------------------------------|
+| Signature value dict (`/Type /Sig`) | ✓      | `SignatureValue` — placeholder for real signing; all Table 258 entries      |
+| `SignatureReference` dict           | ✓      | `SignatureReference` — TransformMethod, TransformParams, Data, DigestMethod |
+| `DocMDP` transform params           | ✓      | `DocMDPTransformParams` — P, V                                              |
+| `FieldMDP` transform params         | ✓      | `FieldMDPTransformParams` — Action, Fields, V                               |
+| `UR3` transform params              | ✓      | `UR3TransformParams` — Document, Msg, V, Annots, Form, Signature, EF, P     |
+| `Perms` dict (in Catalog)           | ✓      | `Catalog::$perms` inline PdfDictionary — DocMDP, UR3, Legal                 |
 
 ---
 
@@ -420,60 +450,60 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/ca`             | ✓      | Fill alpha                    |
 | `/AIS`            | ✓      | Alpha is shape                |
 | `/TK`             | ✓      | Text knockout                 |
-| `/BG`             | ✗      | Black generation function     |
-| `/BG2`            | ✗      | Black generation (PDF 1.3+)   |
-| `/UCR`            | ✗      | Undercolor removal            |
-| `/UCR2`           | ✗      | Undercolor removal (PDF 1.3+) |
-| `/TR`             | ✗      | Transfer function             |
-| `/TR2`            | ✗      | Transfer function (PDF 1.3+)  |
-| `/HT`             | ✗      | Halftone                      |
-| `/UseBlackPtComp` | ✗      | Black point compensation      |
-| `/HTO`            | ✗      | Halftone origin               |
+| `/BG`             | ✓      | Black generation function     |
+| `/BG2`            | ✓      | Black generation (PDF 1.3+)   |
+| `/UCR`            | ✓      | Undercolor removal            |
+| `/UCR2`           | ✓      | Undercolor removal (PDF 1.3+) |
+| `/TR`             | ✓      | Transfer function             |
+| `/TR2`            | ✓      | Transfer function (PDF 1.3+)  |
+| `/HT`             | ✓      | Halftone                      |
+| `/UseBlackPtComp` | ✓      | Black point compensation      |
+| `/HTO`            | ✓      | Halftone origin               |
 
 ### Soft Mask Dictionary
 
 | Field   | Status | Notes                      |
 |---------|--------|----------------------------|
-| `/Type` | ✗      |                            |
-| `/S`    | ✗      | Alpha or Luminosity        |
-| `/G`    | ✗      | Transparency group XObject |
-| `/BC`   | ✗      | Backdrop color             |
-| `/TR`   | ✗      | Transfer function          |
+| `/Type` | ✓      | `SoftMask` class           |
+| `/S`    | ✓      | Alpha or Luminosity        |
+| `/G`    | ✓      | Transparency group XObject |
+| `/BC`   | ✓      | Backdrop color             |
+| `/TR`   | ✓      | Transfer function          |
 
 ### Color Spaces
 
 | Color Space   | Status | Notes                                                           |
 |---------------|--------|-----------------------------------------------------------------|
-| `/DeviceGray` | ✓      |                                                                 |
-| `/DeviceRGB`  | ✓      |                                                                 |
-| `/DeviceCMYK` | ✓      |                                                                 |
-| `/CalGray`    | ✗      | WhitePoint, BlackPoint, Gamma                                   |
-| `/CalRGB`     | ✗      | WhitePoint, BlackPoint, Gamma, Matrix                           |
-| `/Lab`        | ✗      | WhitePoint, BlackPoint, Range                                   |
-| `/ICCBased`   | ✗      | N, Alternate, Range, Metadata — needed for color-managed output |
-| `/Indexed`    | ✗      | base, hival, lookup                                             |
-| `/Pattern`    | ✗      | Pattern color space                                             |
-| `/Separation` | ✗      | name, alternateSpace, tintTransform                             |
-| `/DeviceN`    | ✗      | names, alternateSpace, tintTransform, attributes                |
+| `/DeviceGray` | ✓      | `DeviceGray`                                                    |
+| `/DeviceRGB`  | ✓      | `DeviceRGB`                                                     |
+| `/DeviceCMYK` | ✓      | `DeviceCMYK`                                                    |
+| `/CalGray`    | ✓      | `CalGray` — WhitePoint, BlackPoint, Gamma                       |
+| `/CalRGB`     | ✓      | `CalRGB` — WhitePoint, BlackPoint, Gamma, Matrix                |
+| `/Lab`        | ✓      | `Lab` — WhitePoint, BlackPoint, Range                           |
+| `/ICCBased`   | ✓      | `ICCBased` — wraps an ICC profile stream reference              |
+| `/Indexed`    | ✓      | `Indexed` — base, hival, lookup                                 |
+| `/Pattern`    | ✓      | `Pattern` — bare name or [Pattern underlyingSpace]              |
+| `/Separation` | ✓      | `Separation` — colorant, alternate space, tint transform        |
+| `/DeviceN`    | ✓      | `DeviceN` — names, alternate space, tint transform, attributes  |
 
 ### Pattern (`/Type /Pattern`)
 
-| Type                       | Status | Notes                                                        |
-|----------------------------|--------|--------------------------------------------------------------|
-| `/PatternType 1` (Tiling)  | ✗      | PaintType, TilingType, BBox, XStep, YStep, Resources, Matrix |
-| `/PatternType 2` (Shading) | ✗      | Shading, Matrix, ExtGState                                   |
+| Type                       | Status | Notes                                                                          |
+|----------------------------|--------|--------------------------------------------------------------------------------|
+| `/PatternType 1` (Tiling)  | ✓      | `TilingPattern` — PaintType, TilingType, BBox, XStep, YStep, Resources, Matrix |
+| `/PatternType 2` (Shading) | ✓      | `ShadingPattern` — Shading, Matrix, ExtGState                                  |
 
 ### Shading (`/Type /Shading` or stream)
 
 | Type                                    | Status | Notes                                                                      |
 |-----------------------------------------|--------|----------------------------------------------------------------------------|
-| `/ShadingType 1` (Function-based)       | ✗      | ColorSpace, Domain, Matrix, Function                                       |
-| `/ShadingType 2` (Axial)                | ✗      | Coords, Domain, Extend, Function — linear gradient                         |
-| `/ShadingType 3` (Radial)               | ✗      | Coords, Domain, Extend, Function — radial gradient                         |
-| `/ShadingType 4` (Free-form Gouraud)    | ✗      | Stream: BitsPerCoordinate, BitsPerComponent, BitsPerFlag, Decode, Function |
-| `/ShadingType 5` (Lattice Gouraud)      | ✗      | Stream: VerticesPerRow                                                     |
-| `/ShadingType 6` (Coons patch)          | ✗      | Stream                                                                     |
-| `/ShadingType 7` (Tensor-product patch) | ✗      | Stream                                                                     |
+| `/ShadingType 1` (Function-based)       | ✓      | `ShadingType1` — ColorSpace, Domain, Matrix, Function                      |
+| `/ShadingType 2` (Axial)                | ✓      | `ShadingType2` — Coords, Domain, Extend, Function (linear gradient)        |
+| `/ShadingType 3` (Radial)               | ✓      | `ShadingType3` — Coords, Domain, Extend, Function (radial gradient)        |
+| `/ShadingType 4` (Free-form Gouraud)    | ✓      | `ShadingType4` stream — BitsPerCoordinate/Component/Flag, Decode, Function |
+| `/ShadingType 5` (Lattice Gouraud)      | ✓      | `ShadingType5` stream — VerticesPerRow                                     |
+| `/ShadingType 6` (Coons patch)          | ✓      | `ShadingType6` stream                                                      |
+| `/ShadingType 7` (Tensor-product patch) | ✓      | `ShadingType7` stream                                                      |
 
 ### XObject (`/Type /XObject`)
 
@@ -481,16 +511,16 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 |----------|----------------|--------|---------------------------------------------------------------------------------------------------------------------------|
 | `/Image` | `ImageXObject` | ✓      | Width, Height, ColorSpace, BitsPerComponent, Filter, DecodeParms, Intent, ImageMask, Mask, SMask, Interpolate, Alternates |
 | `/Form`  | `FormXObject`  | ✓      | BBox, Matrix, Resources                                                                                                   |
-| `/PS`    | —              | ✗      | PostScript XObject                                                                                                        |
+| `/PS`    | `PostScriptXObject` | ✓      | Deprecated since PDF 1.7.1                                                                                                |
 
 ### Functions
 
-| Type                            | Status | Notes                                                            |
-|---------------------------------|--------|------------------------------------------------------------------|
-| `/FunctionType 0` (Sampled)     | ✗      | Domain, Range, Size, BitsPerSample, Order, Encode, Decode        |
-| `/FunctionType 2` (Exponential) | ✗      | Domain, Range, C0, C1, N — simplest; needed for spot color tints |
-| `/FunctionType 3` (Stitching)   | ✗      | Domain, Range, Functions, Bounds, Encode — combines functions    |
-| `/FunctionType 4` (PostScript)  | ✗      | Domain, Range, PS operators in stream                            |
+| Type                            | Status | Notes                                                                              |
+|---------------------------------|--------|------------------------------------------------------------------------------------|
+| `/FunctionType 0` (Sampled)     | ✓      | `FunctionType0` stream — Domain, Range, Size, BitsPerSample, Order, Encode, Decode |
+| `/FunctionType 2` (Exponential) | ✓      | `FunctionType2` — Domain, Range, C0, C1, N                                         |
+| `/FunctionType 3` (Stitching)   | ✓      | `FunctionType3` — Domain, Functions, Bounds, Encode                                |
+| `/FunctionType 4` (PostScript)  | ✓      | `FunctionType4` stream — PS operators in stream body                               |
 
 > Functions are a prerequisite for Shading types 1–3 and Separation/DeviceN color spaces.
 
@@ -498,11 +528,11 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 | Type                                       | Status | Notes                          |
 |--------------------------------------------|--------|--------------------------------|
-| `/HalftoneType 1` (dictionary)             | ✗      | Frequency, Angle, SpotFunction |
-| `/HalftoneType 5` (multidotted)            | ✗      | Dict of component halftones    |
-| `/HalftoneType 6` (threshold array stream) | ✗      |                                |
-| `/HalftoneType 10` (threshold)             | ✗      |                                |
-| `/HalftoneType 16` (threshold)             | ✗      |                                |
+| `/HalftoneType 1` (dictionary)             | ✓      | Frequency, Angle, SpotFunction |
+| `/HalftoneType 5` (multidotted)            | ✓      | Dict of component halftones    |
+| `/HalftoneType 6` (threshold array stream) | ✓      |                                |
+| `/HalftoneType 10` (threshold)             | ✓      |                                |
+| `/HalftoneType 16` (threshold)             | ✓      |                                |
 
 ---
 
@@ -584,83 +614,85 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ## Multimedia
 
-| Object                                           | Status | Notes                               |
-|--------------------------------------------------|--------|-------------------------------------|
-| `Sound` (`/Type /Sound`)                         | ✗      | FS, Length, R, C, B, E, CO, CP      |
-| `Movie` dict                                     | ✗      | F, Aspect, Rotate, Poster           |
-| `Rendition` (`/Type /Rendition`)                 | ✗      | Subtypes: MR (Media), SR (Selector) |
-| `MediaClip` (`/Type /MediaClip`)                 | ✗      | Subtypes: MCD (data), MCS (section) |
-| `MediaPlayParams` (`/Type /MediaPlayParams`)     | ✗      |                                     |
-| `MediaScreenParams` (`/Type /MediaScreenParams`) | ✗      |                                     |
-| `Navigator` (`/Type /Navigator`)                 | ✗      |                                     |
+| Object                                           | Status | Notes                                           |
+|--------------------------------------------------|--------|-------------------------------------------------|
+| `Sound` (`/Type /Sound`)                         | ✓      | `Sound` stream — R, C, B, E, CO, CP             |
+| `Movie` dict                                     | ✓      | `Movie` — F, Aspect, Rotate, Poster             |
+| `Rendition` (`/Type /Rendition`)                 | ✓      | `MediaRendition` (MR), `SelectorRendition` (SR) |
+| `MediaClip` (`/Type /MediaClip`)                 | ✓      | `MediaClipData` (MCD), `MediaClipSection` (MCS) |
+| `MediaPlayParams` (`/Type /MediaPlayParams`)     | ✓      | `MediaPlayParams` — MH, BE, PL                  |
+| `MediaScreenParams` (`/Type /MediaScreenParams`) | ✓      | `MediaScreenParams` — MH, BE                    |
+| `Navigator` (`/Type /Navigator`)                 | ✓      | `Navigator` — NA, NR, Duration                  |
 
 ---
 
 ## File Specifications
 
-| Object                                        | Status | Notes                                              |
-|-----------------------------------------------|--------|----------------------------------------------------|
-| `FileSpec` (`/Type /Filespec`)                | ✗      | FS, F, UF, DOS, Mac, Unix, ID, V, EF, RF, Desc, CI |
-| `EmbeddedFile` stream (`/Type /EmbeddedFile`) | ✗      | Subtype, Params                                    |
-| `EmbeddedFileParams` dict                     | ✗      | Size, CreationDate, ModDate, Mac, CheckSum         |
+| Object                                        | Status | Notes                                                             |
+|-----------------------------------------------|--------|-------------------------------------------------------------------|
+| `FileSpec` (`/Type /Filespec`)                | ✓      | `FileSpec` — FS, F, UF, DOS, Mac, Unix, ID, V, EF, RF, Desc, CI   |
+| `EmbeddedFile` stream (`/Type /EmbeddedFile`) | ✓      | `EmbeddedFile` — Subtype, Params                                  |
+| `EmbeddedFileParams` dict                     | ✓      | `EmbeddedFileParams` — Size, CreationDate, ModDate, Mac, CheckSum |
 
 ---
 
 ## Encryption
 
-| Object / Field                         | Status | Notes                                             |
-|----------------------------------------|--------|---------------------------------------------------|
-| `EncryptDictionary` (`/Type /Encrypt`) | ✗      | Filter, SubFilter, V, Length, CF, StmF, StrF, EFF |
-| Standard handler fields                | ✗      | R, O, U, P, EncryptMetadata, OE, UE, Perms        |
-| Crypt filter dict                      | ✗      | AuthEvent, CFM, Length                            |
-| Public-key handler                     | ✗      | Recipients field                                  |
-| RC4 cipher                             | ✓      | `phpdftk/crypt` — `Rc4Cipher`                     |
-| AES-128/256 cipher                     | ✓      | `phpdftk/crypt` — `AesCipher`                     |
-| PDF key derivation                     | ✓      | `phpdftk/crypt` — `PdfKeyDerivation`              |
+| Object / Field                         | Status | Notes                                                             |
+|----------------------------------------|--------|-------------------------------------------------------------------|
+| `EncryptDictionary` (`/Type /Encrypt`) | ✓      | `EncryptDictionary` — object model only                           |
+| Standard handler fields                | ✓      | R, O, U, P, EncryptMetadata, OE, UE, Perms on `EncryptDictionary` |
+| Crypt filter dict                      | ✓      | `CryptFilter` — Type, CFM, AuthEvent, Length                      |
+| Public-key handler                     | ✓      | `PublicKeyRecipient` + /Recipients array                          |
+| RC4 cipher                             | ✓      | `phpdftk/crypt` — `Rc4Cipher`                                     |
+| AES-128/256 cipher                     | ✓      | `phpdftk/crypt` — `AesCipher`                                     |
+| PDF key derivation                     | ✓      | `phpdftk/crypt` — `PdfKeyDerivation`                              |
 
-> Cipher primitives exist in `phpdftk/crypt`; the PDF `EncryptDictionary` and `PdfWriter` integration are not yet wired
-> up.
+> Object model is complete. `PdfWriter` does **not** yet encrypt strings/
+> streams per-object or inject `/Encrypt` into the trailer — a user that
+> wants encrypted output must drive `phpdftk/crypt` and post-process the
+> writer output themselves.
 
 ---
 
 ## Digital Signatures
 
-| Object                              | Status | Notes                                                                                 |
-|-------------------------------------|--------|---------------------------------------------------------------------------------------|
-| Signature value dict (`/Type /Sig`) | ✗      | Filter, SubFilter, ByteRange, Contents, Reference, Changes, Name, M, Location, Reason |
-| `SignatureReference` dict           | ✗      | TransformMethod, TransformParams, Data, DigestMethod, DigestValue                     |
-| `DocMDP` transform params           | ✗      | P, V, Type                                                                            |
-| `FieldMDP` transform params         | ✗      | Action, Fields, V, Type                                                               |
-| `UR3` transform params              | ✗      | Usage rights                                                                          |
-| PKCS#7 / CAdES signing              | ✗      | Actual cryptographic signing                                                          |
-| Timestamp authority                 | ✗      | RFC 3161 timestamps                                                                   |
+| Object                              | Status | Notes                                                                       |
+|-------------------------------------|--------|-----------------------------------------------------------------------------|
+| Signature value dict (`/Type /Sig`) | ✓      | `SignatureValue` — all Table 258 entries                                    |
+| `SignatureReference` dict           | ✓      | `SignatureReference` — TransformMethod, TransformParams, Data, DigestMethod |
+| `DocMDP` transform params           | ✓      | `DocMDPTransformParams`                                                     |
+| `FieldMDP` transform params         | ✓      | `FieldMDPTransformParams`                                                   |
+| `UR3` transform params              | ✓      | `UR3TransformParams`                                                        |
+| PKCS#7 / CAdES signing              | ✓      | `Pkcs7Signer` + `PdfWriter::setSigner()` — ByteRange + /Contents patching   |
+| Timestamp authority                 | ✓      | `DocTimeStamp` — object model only; no built-in TSA client                  |
 
 ---
 
 ## 3D
 
-| Object                          | Status | Notes                                        |
-|---------------------------------|--------|----------------------------------------------|
-| `3D` stream (`/Type /3D`)       | ✗      | Subtype (U3D or PRC), VA, DV, AN, ColorSpace |
-| `3DView` dict (`/Type /3DView`) | ✗      | XN, IN, MS, CO, P, O, BG, RM, LS             |
-| `3DBackground` dict             | ✗      | Type, CS, C, EA                              |
-| `3DRenderMode` dict             | ✗      | Type, Subtype, FC, OP, CV                    |
-| `3DLightingScheme` dict         | ✗      | Type, Subtype                                |
-| `3DCrossSection` dict           | ✗      | Type, C, O, LC, IV, ST                       |
+| Object                          | Status | Notes                                                         |
+|---------------------------------|--------|---------------------------------------------------------------|
+| `3D` stream (`/Type /3D`)       | ✓      | `ThreeDStream` — Subtype (U3D or PRC), VA, DV, AN, ColorSpace |
+| `3DView` dict (`/Type /3DView`) | ✓      | `ThreeDView` — XN, IN, MS, C2W, CO, P, O, BG, RM, LS, SA      |
+| `3DBackground` dict             | ✓      | `ThreeDBackground` — CS, C, EA                                |
+| `3DRenderMode` dict             | ✓      | `ThreeDRenderMode` — Subtype, AC, FC, Opacity, CV             |
+| `3DLightingScheme` dict         | ✓      | `ThreeDLightingScheme` — Subtype                              |
+| `3DCrossSection` dict           | ✓      | `ThreeDCrossSection` — C, O, PC, PO, IV, IC, ST               |
 
 ---
 
 ## Accessibility / Tagged PDF
 
-| Object / Feature                           | Status | Notes                                                          |
-|--------------------------------------------|--------|----------------------------------------------------------------|
-| `StructTreeRoot` (`/Type /StructTreeRoot`) | ✓      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap    |
-| `StructElem` (`/Type /StructElem`)         | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText          |
-| `ObjectRef` (`/Type /OBJR`)                | ✓      | Pg, Obj                                                        |
-| Marked content operators                   | ✓      | `BMC`, `BDC`, `EMC`, `MP`, `DP` implemented in `ContentStream` |
-| `RoleMap` dict                             | ✗      |                                                                |
-| `ClassMap` dict                            | ✗      |                                                                |
-| Attribute objects                          | ✗      |                                                                |
+| Object / Feature                           | Status | Notes                                                           |
+|--------------------------------------------|--------|-----------------------------------------------------------------|
+| `StructTreeRoot` (`/Type /StructTreeRoot`) | ✓      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap     |
+| `StructElem` (`/Type /StructElem`)         | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText           |
+| `ObjectRef` (`/Type /OBJR`)                | ✓      | Pg, Obj                                                         |
+| Marked content operators                   | ✓      | `BMC`, `BDC`, `EMC`, `MP`, `DP` implemented in `ContentStream`  |
+| `RoleMap` dict                             | ✓      | `RoleMap` — typed wrapper mapping custom types to standard ones |
+| `ClassMap` dict                            | ✓      | `ClassMap` — maps class names to `StructAttribute` entries      |
+| Attribute objects                          | ✓      | `StructAttribute` — /O owner + arbitrary entries                |
 
 ---
 
@@ -668,32 +700,47 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 | Area                       | Implemented | Total | %    |
 |----------------------------|-------------|-------|------|
-| Catalog fields             | 24          | 24    | 100% |
-| PageTree fields            | 30          | 30    | 100% |
-| Page fields                | 29          | 29    | 100% |
+| Catalog fields             | 28          | 28    | 100% |
+| PageTree fields            | 33          | 33    | 100% |
+| Page fields                | 32          | 32    | 100% |
 | Info fields                | 9           | 9     | 100% |
-| ViewerPreferences fields   | 17          | 17    | 100% |
-| Document structure objects | 22          | 24    | 92%  |
-| Font subtypes              | 4           | 7     | 57%  |
+| ViewerPreferences fields   | 18          | 18    | 100% |
+| Document structure objects | 24          | 24    | 100% |
+| Font subtypes              | 7           | 7     | 100% |
 | FontDescriptor fields      | 19          | 19    | 100% |
 | Annotation base fields     | 18          | 18    | 100% |
+| Markup annotation fields   | 10          | 10    | 100% |
 | Annotation subtypes        | 26          | 26    | 100% |
 | Supporting annot dicts     | 4           | 4     | 100% |
-| Actions                    | 5           | 20    | 25%  |
+| Actions                    | 20          | 20    | 100% |
 | AcroForm fields            | 8           | 8     | 100% |
 | Field types                | 4           | 4     | 100% |
-| ExtGState fields           | 19          | 28    | 68%  |
-| Color spaces               | 3           | 11    | 27%  |
-| XObject subtypes           | 2           | 3     | 67%  |
-| Function types             | 0           | 4     | 0%   |
-| Pattern types              | 0           | 2     | 0%   |
-| Shading types              | 0           | 7     | 0%   |
+| ExtGState fields           | 28          | 28    | 100% |
+| Soft Mask fields           | 5           | 5     | 100% |
+| Color spaces               | 11          | 11    | 100% |
+| XObject subtypes           | 3           | 3     | 100% |
+| Function types             | 4           | 4     | 100% |
+| Pattern types              | 2           | 2     | 100% |
+| Shading types              | 7           | 7     | 100% |
 | Content stream operators   | 69          | 69    | 100% |
-| Encryption                 | 0           | 8     | 0%*  |
-| Digital signatures         | 0           | 7     | 0%   |
-| Multimedia                 | 0           | 7     | 0%   |
-| File specifications        | 0           | 3     | 0%   |
-| Accessibility / Tagged PDF | 4           | 7     | 57%  |
-| 3D                         | 0           | 6     | 0%   |
+| Encryption                 | 8           | 8     | 100% |
+| Digital signatures         | 7           | 7     | 100% |
+| Multimedia                 | 7           | 7     | 100% |
+| File specifications        | 3           | 3     | 100% |
+| Accessibility / Tagged PDF | 7           | 7     | 100% |
+| 3D                         | 6           | 6     | 100% |
 
-> \* Cipher primitives exist in `phpdftk/crypt`; PDF-layer wiring is incomplete.
+> Every spec **object** has a PHP class. Two items are object-model
+> complete but intentionally stop short of end-to-end integration:
+>
+> * **Encryption** — `EncryptDictionary`, `CryptFilter`, and
+>   `PublicKeyRecipient` serialize correctly, and ciphers/key derivation
+>   live in `phpdftk/crypt`, but `PdfWriter` does not yet encrypt strings/
+>   streams per-object or emit `/Encrypt` in the trailer automatically.
+> * **RFC 3161 timestamping** — `DocTimeStamp` is the object model for a
+>   PAdES timestamp signature, but phpdftk ships no built-in TSA client.
+>   Supply the timestamp token yourself via `$sv->contents`.
+>
+> `PdfWriter::setSigner()` **is** fully wired: it computes `/ByteRange`,
+> patches `/Contents` in place, and produces signatures verified in CI via
+> `openssl cms -verify`.

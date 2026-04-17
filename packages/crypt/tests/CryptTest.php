@@ -204,13 +204,13 @@ class CryptTest extends TestCase
     public function testComputeOwnerKey(): void
     {
         $ownerKey = PdfKeyDerivation::computeOwnerKey('owner', 'user', 40);
-        $this->assertSame(5, strlen($ownerKey)); // 40/8 = 5 bytes
+        $this->assertSame(32, strlen($ownerKey)); // /O is always 32 bytes per spec
     }
 
     public function testComputeOwnerKey128(): void
     {
         $ownerKey = PdfKeyDerivation::computeOwnerKey('owner', 'user', 128);
-        $this->assertSame(16, strlen($ownerKey)); // 128/8 = 16 bytes
+        $this->assertSame(32, strlen($ownerKey)); // /O is always 32 bytes per spec
     }
 
     public function testComputeOwnerKeyDifferentPasswords(): void
@@ -218,5 +218,133 @@ class CryptTest extends TestCase
         $key1 = PdfKeyDerivation::computeOwnerKey('owner1', 'user', 128);
         $key2 = PdfKeyDerivation::computeOwnerKey('owner2', 'user', 128);
         $this->assertNotSame($key1, $key2);
+    }
+
+    // -----------------------------------------------------------------------
+    // R=6 (AES-256) key derivation
+    // -----------------------------------------------------------------------
+
+    public function testComputeHashR6(): void
+    {
+        $password = 'testpassword';
+        $salt = random_bytes(8);
+        $hash = PdfKeyDerivation::computeHashR6($password, $salt);
+
+        // Must produce exactly 32 bytes
+        $this->assertSame(32, strlen($hash));
+
+        // Same inputs must produce same output (deterministic)
+        $hash2 = PdfKeyDerivation::computeHashR6($password, $salt);
+        $this->assertSame($hash, $hash2);
+
+        // Different salt must produce different output
+        $hash3 = PdfKeyDerivation::computeHashR6($password, random_bytes(8));
+        $this->assertNotSame($hash, $hash3);
+    }
+
+    public function testComputeHashR6WithUserKey(): void
+    {
+        $password = 'test';
+        $salt = random_bytes(8);
+        $userKey = random_bytes(48);
+
+        $hashWithout = PdfKeyDerivation::computeHashR6($password, $salt);
+        $hashWith = PdfKeyDerivation::computeHashR6($password, $salt, $userKey);
+
+        // With and without userKey should produce different results
+        $this->assertNotSame($hashWithout, $hashWith);
+        $this->assertSame(32, strlen($hashWith));
+    }
+
+    public function testAuthenticateUserPasswordR6RoundTrip(): void
+    {
+        $password = 'mysecretpassword';
+        $fileEncryptionKey = random_bytes(32);
+
+        // Compute U/UE
+        $result = PdfKeyDerivation::computeUValueR6($password, $fileEncryptionKey);
+        $this->assertSame(48, strlen($result['u']));
+        $this->assertSame(32, strlen($result['ue']));
+
+        // Authenticate with correct password
+        $recoveredKey = PdfKeyDerivation::authenticateUserPasswordR6(
+            $password, $result['u'], $result['ue']
+        );
+        $this->assertNotNull($recoveredKey);
+        $this->assertSame($fileEncryptionKey, $recoveredKey);
+
+        // Fail with wrong password
+        $wrongKey = PdfKeyDerivation::authenticateUserPasswordR6(
+            'wrongpassword', $result['u'], $result['ue']
+        );
+        $this->assertNull($wrongKey);
+    }
+
+    public function testAuthenticateOwnerPasswordR6RoundTrip(): void
+    {
+        $password = 'ownerpass';
+        $fileEncryptionKey = random_bytes(32);
+
+        // First compute U value (needed for O computation)
+        $uResult = PdfKeyDerivation::computeUValueR6('userpass', $fileEncryptionKey);
+
+        // Compute O/OE
+        $oResult = PdfKeyDerivation::computeOValueR6($password, $fileEncryptionKey, $uResult['u']);
+        $this->assertSame(48, strlen($oResult['o']));
+        $this->assertSame(32, strlen($oResult['oe']));
+
+        // Authenticate with correct password
+        $recoveredKey = PdfKeyDerivation::authenticateOwnerPasswordR6(
+            $password, $oResult['o'], $oResult['oe'], $uResult['u']
+        );
+        $this->assertNotNull($recoveredKey);
+        $this->assertSame($fileEncryptionKey, $recoveredKey);
+
+        // Fail with wrong password
+        $wrongKey = PdfKeyDerivation::authenticateOwnerPasswordR6(
+            'wrongpassword', $oResult['o'], $oResult['oe'], $uResult['u']
+        );
+        $this->assertNull($wrongKey);
+    }
+
+    public function testComputePermsR6(): void
+    {
+        $fileEncryptionKey = random_bytes(32);
+        $permissions = 0xFFFFF0C4; // typical permissions value
+        $perms = PdfKeyDerivation::computePermsR6($permissions, $fileEncryptionKey);
+
+        // Must produce exactly 16 bytes
+        $this->assertSame(16, strlen($perms));
+
+        // Verify by decrypting: should recover the permission bits
+        $decrypted = openssl_decrypt($perms, 'AES-256-ECB', $fileEncryptionKey, OPENSSL_RAW_DATA | OPENSSL_NO_PADDING);
+        $this->assertNotFalse($decrypted);
+
+        // First 4 bytes should be permissions as LE int
+        $recoveredP = unpack('V', substr($decrypted, 0, 4))[1];
+        // Handle signed 32-bit
+        if ($recoveredP > 0x7FFFFFFF) {
+            $recoveredP = $recoveredP - 0x100000000;
+        }
+        if ($permissions > 0x7FFFFFFF) {
+            $permissions = $permissions - 0x100000000;
+        }
+        $this->assertSame($permissions, $recoveredP);
+
+        // Byte 8 should be 'T' for encryptMetadata=true (default)
+        $this->assertSame('T', $decrypted[8]);
+    }
+
+    public function testPreparePasswordR6(): void
+    {
+        // Normal ASCII password stays as-is
+        $this->assertSame('hello', PdfKeyDerivation::preparePasswordR6('hello'));
+
+        // Long password is truncated to 127 bytes
+        $long = str_repeat('a', 200);
+        $this->assertSame(127, strlen(PdfKeyDerivation::preparePasswordR6($long)));
+
+        // Empty password
+        $this->assertSame('', PdfKeyDerivation::preparePasswordR6(''));
     }
 }

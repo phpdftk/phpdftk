@@ -11,7 +11,7 @@ use ApprLabs\Pdf\Core\Serializable;
 /**
  * Square annotation (/Subtype /Square).
  */
-class SquareAnnotation extends Annotation
+class SquareAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $ic = null;       // /IC - interior color
     public ?Serializable $be = null;   // /BE - border effect

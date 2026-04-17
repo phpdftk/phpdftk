@@ -11,7 +11,7 @@ use ApprLabs\Pdf\Core\PdfString;
 /**
  * Text annotation (/Subtype /Text) - a "sticky note" annotation.
  */
-class TextAnnotation extends Annotation
+class TextAnnotation extends MarkupAnnotation
 {
     public ?bool $open = null;              // /Open
     public ?PdfName $name = null;           // /Name (icon: Note, Comment, Key, etc.)

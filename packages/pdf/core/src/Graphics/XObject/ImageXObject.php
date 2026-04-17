@@ -11,10 +11,10 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfString;
 
 /**
- * Image XObject (/Subtype /Image).
- * Encapsulates a raster image embedded in a PDF stream.
+ * Image XObject (/Subtype /Image) — ISO 32000-2 §8.9.5, Table 89.
  */
 class ImageXObject extends PdfStream
 {
@@ -23,16 +23,32 @@ class ImageXObject extends PdfStream
 
     public int $width;                       // /Width - required
     public int $height;                      // /Height - required
-    public mixed $colorSpace;                // /ColorSpace - required
+    public mixed $colorSpace;                // /ColorSpace
     public int $bitsPerComponent;            // /BitsPerComponent
-    public ?PdfName $filter = null;          // /Filter
-    public ?PdfArray $decodeParams = null;   // /DecodeParms
-    public ?PdfReference $intent = null;     // /Intent
+
+    /** /Filter may be a single name or an array of names for filter chains. */
+    public PdfName|PdfArray|null $filter = null;
+    /** /DecodeParms may be a single dict or an array of dicts (one per filter). */
+    public PdfDictionary|PdfArray|null $decodeParams = null;
+
+    public ?PdfName $intent = null;          // /Intent
     public ?bool $imageMask = null;          // /ImageMask
     public ?PdfReference $mask = null;       // /Mask
     public ?PdfReference $sMask = null;      // /SMask
+    public ?int $sMaskInData = null;         // /SMaskInData
+    public ?PdfArray $decode = null;         // /Decode
     public ?bool $interpolate = null;        // /Interpolate
     public ?PdfArray $alternates = null;     // /Alternates
+    public ?PdfName $nameField = null;       // /Name (deprecated)
+    public ?int $structParent = null;        // /StructParent
+    public ?PdfString $id = null;            // /ID
+    public ?PdfDictionary $opi = null;       // /OPI
+    public ?PdfReference $metadata = null;   // /Metadata - XMP
+    public ?PdfReference $oc = null;         // /OC
+    public ?PdfArray $af = null;             // /AF
+    public ?PdfReference $measure = null;    // /Measure
+    public ?PdfReference $ptData = null;     // /PtData
+    public ?PdfArray $matte = null;          // /Matte - pre-blended SMask matte
 
     public function __construct(
         int $width,
@@ -81,11 +97,47 @@ class ImageXObject extends PdfStream
         if ($this->sMask !== null) {
             $this->dictionary->set('SMask', $this->sMask);
         }
+        if ($this->sMaskInData !== null) {
+            $this->dictionary->set('SMaskInData', new PdfNumber($this->sMaskInData));
+        }
+        if ($this->decode !== null) {
+            $this->dictionary->set('Decode', $this->decode);
+        }
         if ($this->interpolate !== null) {
             $this->dictionary->set('Interpolate', new PdfBoolean($this->interpolate));
         }
         if ($this->alternates !== null) {
             $this->dictionary->set('Alternates', $this->alternates);
+        }
+        if ($this->nameField !== null) {
+            $this->dictionary->set('Name', $this->nameField);
+        }
+        if ($this->structParent !== null) {
+            $this->dictionary->set('StructParent', new PdfNumber($this->structParent));
+        }
+        if ($this->id !== null) {
+            $this->dictionary->set('ID', $this->id);
+        }
+        if ($this->opi !== null) {
+            $this->dictionary->set('OPI', $this->opi);
+        }
+        if ($this->metadata !== null) {
+            $this->dictionary->set('Metadata', $this->metadata);
+        }
+        if ($this->oc !== null) {
+            $this->dictionary->set('OC', $this->oc);
+        }
+        if ($this->af !== null) {
+            $this->dictionary->set('AF', $this->af);
+        }
+        if ($this->measure !== null) {
+            $this->dictionary->set('Measure', $this->measure);
+        }
+        if ($this->ptData !== null) {
+            $this->dictionary->set('PtData', $this->ptData);
+        }
+        if ($this->matte !== null) {
+            $this->dictionary->set('Matte', $this->matte);
         }
 
         return parent::toPdf();

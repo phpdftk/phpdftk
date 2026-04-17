@@ -46,8 +46,11 @@ class Page extends PdfObject
     public ?PdfNumber $pz = null;            // /PZ - preferred zoom
     public ?PdfReference $aa = null;         // /AA - additional actions dict
     public ?PdfReference $pieceInfo = null;  // /PieceInfo - application data
-    public ?PdfDictionary $boxColorInfo = null; // /BoxColorInfo
+    public BoxColorInfo|PdfDictionary|null $boxColorInfo = null; // /BoxColorInfo
     public ?PdfArray $b = null;             // /B - article beads
+    public ?PdfArray $af = null;            // /AF - associated files
+    public ?PdfArray $outputIntents = null; // /OutputIntents - page-level output intents
+    public ?PdfReference $dPart = null;     // /DPart - document part reference (PDF 2.0)
     public ?PdfDictionary $separationInfo = null; // /SeparationInfo
     public ?PdfName $templateInstantiated = null; // /TemplateInstantiated
     public ?PdfReference $presSteps = null; // /PresSteps - presentation steps
@@ -134,6 +137,15 @@ class Page extends PdfObject
         }
         if ($this->b !== null) {
             $dict->set('B', $this->b);
+        }
+        if ($this->af !== null) {
+            $dict->set('AF', $this->af);
+        }
+        if ($this->outputIntents !== null) {
+            $dict->set('OutputIntents', $this->outputIntents);
+        }
+        if ($this->dPart !== null) {
+            $dict->set('DPart', $this->dPart);
         }
         if ($this->separationInfo !== null) {
             $dict->set('SeparationInfo', $this->separationInfo);

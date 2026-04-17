@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace ApprLabs\Pdf\Core\File;
 
 /**
  * Builds the PDF cross-reference table.
@@ -24,6 +24,16 @@ class CrossReferenceTable
     public function add(int $objNum, int $offset): void
     {
         $this->entries[$objNum] = $offset;
+    }
+
+    /**
+     * Return recorded entries (objectNumber => byte offset).
+     *
+     * @return array<int, int>
+     */
+    public function getEntries(): array
+    {
+        return $this->entries;
     }
 
     /**

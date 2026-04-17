@@ -11,5 +11,6 @@ final class ImageInfo {
         public readonly bool   $hasAlpha = false,
         public readonly ?int   $xDpi = null,
         public readonly ?int   $yDpi = null,
+        public readonly ?string $iccProfile = null,
     ) {}
 }

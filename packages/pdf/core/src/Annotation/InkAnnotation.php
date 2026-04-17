@@ -10,7 +10,7 @@ use ApprLabs\Pdf\Core\PdfArray;
  * Ink annotation (/Subtype /Ink).
  * Represents a freehand "scribble" on the page.
  */
-class InkAnnotation extends Annotation
+class InkAnnotation extends MarkupAnnotation
 {
     public PdfArray $inkList;            // /InkList - required
 

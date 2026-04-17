@@ -11,7 +11,7 @@ use ApprLabs\Pdf\Core\Serializable;
 /**
  * Circle annotation (/Subtype /Circle).
  */
-class CircleAnnotation extends Annotation
+class CircleAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $ic = null;       // /IC - interior color
     public ?Serializable $be = null;   // /BE - border effect

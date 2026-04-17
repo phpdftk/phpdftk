@@ -46,6 +46,10 @@ class Catalog extends PdfObject
     public ?PdfReference $spiderInfo = null;         // /SpiderInfo - web capture info
     public ?PdfDictionary $pieceInfo = null;         // /PieceInfo - application data
     public ?PdfReference $structTreeRoot = null;     // /StructTreeRoot - structure tree root
+    public DSS|PdfReference|null $dss = null;        // /DSS - document security store (PAdES LTV)
+    public ?PdfDictionary $extensions = null;        // /Extensions - developer extensions
+    public ?PdfArray $af = null;                     // /AF - associated files
+    public ?PdfReference $dPartRoot = null;          // /DPartRoot - document parts root (PDF 2.0)
 
     public function toPdf(): string
     {
@@ -129,6 +133,18 @@ class Catalog extends PdfObject
         }
         if ($this->structTreeRoot !== null) {
             $dict->set('StructTreeRoot', $this->structTreeRoot);
+        }
+        if ($this->dss !== null) {
+            $dict->set('DSS', $this->dss);
+        }
+        if ($this->extensions !== null) {
+            $dict->set('Extensions', $this->extensions);
+        }
+        if ($this->af !== null) {
+            $dict->set('AF', $this->af);
+        }
+        if ($this->dPartRoot !== null) {
+            $dict->set('DPartRoot', $this->dPartRoot);
         }
 
         return $dict->toPdf();

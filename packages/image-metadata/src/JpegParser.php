@@ -29,6 +29,8 @@ final class JpegParser {
         $bitsPerComponent = 8;
         $xDpi = null;
         $yDpi = null;
+        /** @var array<int, string> ICC profile chunks keyed by 1-based sequence number */
+        $iccChunks = [];
 
         while ($pos + 4 <= $len) {
             // Find next marker
@@ -74,6 +76,16 @@ final class JpegParser {
                 }
             }
 
+            // APP2 (ICC_PROFILE) for embedded ICC profile
+            if ($marker === 0xE2 && $segLen >= 16) {
+                $iccId = "ICC_PROFILE\x00";
+                if (substr($data, $pos, 12) === $iccId) {
+                    $seqNum = ord($data[$pos + 12]);
+                    // byte 13 is total chunks count (not needed for keying)
+                    $iccChunks[$seqNum] = substr($data, $pos + 14, $segLen - 16);
+                }
+            }
+
             // SOF markers: 0xC0=SOF0, 0xC1=SOF1, 0xC2=SOF2
             if (in_array($marker, [0xC0, 0xC1, 0xC2], true)) {
                 if ($pos + 6 <= $len) {
@@ -93,6 +105,13 @@ final class JpegParser {
             default => 'DeviceRGB',
         };
 
+        // Assemble ICC profile from collected chunks (sorted by sequence number)
+        $iccProfile = null;
+        if (!empty($iccChunks)) {
+            ksort($iccChunks);
+            $iccProfile = implode('', $iccChunks);
+        }
+
         return new ImageInfo(
             width: $width,
             height: $height,
@@ -102,6 +121,7 @@ final class JpegParser {
             hasAlpha: false,
             xDpi: $xDpi,
             yDpi: $yDpi,
+            iccProfile: $iccProfile,
         );
     }
 }

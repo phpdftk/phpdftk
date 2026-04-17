@@ -31,7 +31,7 @@ abstract class Annotation extends PdfObject
     public ?PdfString $nm = null;              // /NM - annotation name
     public ?PdfString $m = null;               // /M - modification date
     public int $f = 0;                         // /F - flags
-    public ?PdfDictionary $ap = null;          // /AP - appearance streams
+    public PdfDictionary|AppearanceDict|null $ap = null; // /AP - appearance streams
     public ?PdfName $as = null;                // /AS - appearance state
     public ?PdfArray $border = null;           // /Border
     public ?PdfArray $c = null;                // /C - color

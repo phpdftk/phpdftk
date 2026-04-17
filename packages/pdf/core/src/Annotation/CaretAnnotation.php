@@ -10,7 +10,7 @@ use ApprLabs\Pdf\Core\PdfName;
 /**
  * Caret annotation (/Subtype /Caret).
  */
-class CaretAnnotation extends Annotation
+class CaretAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $rd = null;  // /RD - rectangle differences
     public ?PdfName $sy = null;   // /Sy - symbol (None or P)

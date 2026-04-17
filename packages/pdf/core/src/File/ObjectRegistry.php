@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace ApprLabs\Pdf\Core\File;
 
 use ApprLabs\Pdf\Core\PdfObject;
 

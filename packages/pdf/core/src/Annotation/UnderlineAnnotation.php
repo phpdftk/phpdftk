@@ -9,7 +9,7 @@ use ApprLabs\Pdf\Core\PdfArray;
 /**
  * Underline annotation (/Subtype /Underline).
  */
-class UnderlineAnnotation extends Annotation
+class UnderlineAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null; // /QuadPoints
 

@@ -41,6 +41,10 @@ class FontDescriptor extends PdfObject
     public ?PdfReference $fontFile2 = null;      // /FontFile2 (TrueType)
     public ?PdfReference $fontFile3 = null;      // /FontFile3 (other)
     public ?PdfString $charSet = null;           // /CharSet
+    public ?PdfDictionary $style = null;         // /Style
+    public ?PdfString $lang = null;              // /Lang
+    public ?PdfDictionary $fd = null;            // /FD - glyph metric overrides
+    public ?PdfReference $cidSet = null;         // /CIDSet - subset CIDFont stream
 
     public function __construct(PdfName $fontName)
     {
@@ -108,6 +112,18 @@ class FontDescriptor extends PdfObject
         }
         if ($this->charSet !== null) {
             $dict->set('CharSet', $this->charSet);
+        }
+        if ($this->style !== null) {
+            $dict->set('Style', $this->style);
+        }
+        if ($this->lang !== null) {
+            $dict->set('Lang', $this->lang);
+        }
+        if ($this->fd !== null) {
+            $dict->set('FD', $this->fd);
+        }
+        if ($this->cidSet !== null) {
+            $dict->set('CIDSet', $this->cidSet);
         }
 
         return $dict->toPdf();

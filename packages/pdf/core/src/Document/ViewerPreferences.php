@@ -34,6 +34,7 @@ class ViewerPreferences extends PdfObject
     public ?bool $pickTrayByPDFSize = null;                // /PickTrayByPDFSize
     public ?PdfArray $printPageRange = null;               // /PrintPageRange
     public ?int $numCopies = null;                         // /NumCopies
+    public ?PdfArray $enforce = null;                      // /Enforce - PDF 2.0 array of names
 
     public function toPdf(): string
     {
@@ -89,6 +90,9 @@ class ViewerPreferences extends PdfObject
         }
         if ($this->numCopies !== null) {
             $dict->set('NumCopies', new PdfNumber($this->numCopies));
+        }
+        if ($this->enforce !== null) {
+            $dict->set('Enforce', $this->enforce);
         }
 
         return $dict->toPdf();

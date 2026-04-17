@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApprLabs\Pdf\Core\Multimedia;
+
+use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfObject;
+
+/**
+ * Media screen parameters (/Type /MediaScreenParams) — ISO 32000-2 §13.2.5.
+ *
+ * Describes where the media plays (window geometry, monitor, background).
+ */
+class MediaScreenParams extends PdfObject
+{
+    public const PDF_TYPE = 'MediaScreenParams';
+
+    public ?PdfDictionary $mh = null;   // /MH
+    public ?PdfDictionary $be = null;   // /BE
+
+    public function toPdf(): string
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName(self::PDF_TYPE));
+        if ($this->mh !== null) {
+            $dict->set('MH', $this->mh);
+        }
+        if ($this->be !== null) {
+            $dict->set('BE', $this->be);
+        }
+        return $dict->toPdf();
+    }
+}

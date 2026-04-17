@@ -28,6 +28,21 @@ class ContentStream extends PdfStream
         parent::__construct(new PdfDictionary(), '');
     }
 
+    /** @return array<int, string> */
+    public function getOperators(): array
+    {
+        return $this->operators;
+    }
+
+    /**
+     * Clear the operators array. After this, toPdf() will use
+     * $this->data directly instead of regenerating from operators.
+     */
+    public function clearOperators(): void
+    {
+        $this->operators = [];
+    }
+
     // -----------------------------------------------------------------------
     // Text state operators
     // -----------------------------------------------------------------------
@@ -88,6 +103,35 @@ class ContentStream extends PdfStream
             }
         }
         $this->operators[] = '[ ' . implode(' ', $parts) . ' ] TJ';
+        return $this;
+    }
+
+    /** Tj with hex-encoded string - Show text using hex-encoded glyph IDs (for CID fonts) */
+    public function showTextHex(string $hexEncodedGids): self
+    {
+        $this->operators[] = '<' . $hexEncodedGids . '> Tj';
+        return $this;
+    }
+
+    /**
+     * Show Unicode text using a CID font's GID mapping.
+     *
+     * Converts UTF-8 text to hex-encoded 2-byte GID sequences and
+     * emits a Tj operator. Requires a unicode-to-GID map (typically
+     * from TrueTypeData::$fullUnicodeToGid or OpenTypeData::$fullUnicodeToGid).
+     *
+     * @param string $text UTF-8 text
+     * @param array<int, int> $unicodeToGid Unicode codepoint → GID mapping
+     */
+    public function showUnicodeText(string $text, array $unicodeToGid): self
+    {
+        $hex = '';
+        foreach (mb_str_split($text) as $char) {
+            $cp = mb_ord($char);
+            $gid = $unicodeToGid[$cp] ?? 0;
+            $hex .= sprintf('%04X', $gid);
+        }
+        $this->operators[] = '<' . $hex . '> Tj';
         return $this;
     }
 

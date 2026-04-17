@@ -9,7 +9,7 @@ use ApprLabs\Pdf\Core\PdfArray;
 /**
  * Highlight annotation (/Subtype /Highlight).
  */
-class HighlightAnnotation extends Annotation
+class HighlightAnnotation extends MarkupAnnotation
 {
     public PdfArray $quadPoints; // /QuadPoints - required
 

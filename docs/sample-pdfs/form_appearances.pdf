@@ -1,0 +1,254 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/AcroForm 16 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [ 3 0 R ]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/Resources <<
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0 0 612 792 ]
+/Contents 5 0 R
+/Annots [ 8 0 R 12 0 R 15 0 R ]
+>>
+endobj
+4 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+/FirstChar 32
+/LastChar 255
+/Widths [ 278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 333 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 278 ]
+>>
+endobj
+5 0 obj
+<<
+/Length 143
+>>
+stream
+BT
+/F1 16 Tf
+72 720 Td
+(Form with Generated Appearances) Tj
+/F1 12 Tf
+0 -30 Td
+(Name:) Tj
+0 -40 Td
+(Accept Terms:) Tj
+0 -40 Td
+(Country:) Tj
+ET
+endstream
+endobj
+6 0 obj
+<<
+/FT /Tx
+/T (name)
+/V (John Doe)
+/DA (/F1 12 Tf 0 g)
+>>
+endobj
+7 0 obj
+<<
+/Type /XObject
+/Subtype /Form
+/BBox [ 0 0 250 20 ]
+/Resources <<
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Length 127
+>>
+stream
+1.00 w
+0.75 0.75 0.75 rg
+0 0 250.00 20.00 re
+f
+0 0 0 RG
+0 0 250.00 20.00 re
+S
+BT
+/F1 12.00 Tf
+0 g
+3.00 5.80 Td
+(John Doe) Tj
+ET
+endstream
+endobj
+8 0 obj
+<<
+/Type /Annot
+/Subtype /Widget
+/Rect [ 150 685 400 705 ]
+/AP <<
+/N 7 0 R
+>>
+/Parent 6 0 R
+>>
+endobj
+9 0 obj
+<<
+/FT /Btn
+/T (accept)
+/V /Yes
+>>
+endobj
+10 0 obj
+<<
+/Type /XObject
+/Subtype /Form
+/BBox [ 0 0 18 18 ]
+/Resources <<
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Length 131
+>>
+stream
+1.00 w
+0.95 0.95 0.95 rg
+0 0 18.00 18.00 re
+f
+0 0 0 RG
+0 0 18.00 18.00 re
+S
+1.50 w
+0 0 0 RG
+3.60 8.10 m
+8.10 3.60 l
+15.30 14.40 l
+S
+endstream
+endobj
+11 0 obj
+<<
+/Type /XObject
+/Subtype /Form
+/BBox [ 0 0 18 18 ]
+/Resources <<
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Length 75
+>>
+stream
+1.00 w
+0.95 0.95 0.95 rg
+0 0 18.00 18.00 re
+f
+0 0 0 RG
+0 0 18.00 18.00 re
+S
+endstream
+endobj
+12 0 obj
+<<
+/Type /Annot
+/Subtype /Widget
+/Rect [ 150 645 168 663 ]
+/AP <<
+/N <<
+/Yes 10 0 R
+/Off 11 0 R
+>>
+>>
+/AS /Yes
+/Parent 9 0 R
+>>
+endobj
+13 0 obj
+<<
+/FT /Ch
+/T (country)
+/Ff 131072
+/V (United States)
+/Opt [ (United States) (Canada) (United Kingdom) ]
+>>
+endobj
+14 0 obj
+<<
+/Type /XObject
+/Subtype /Form
+/BBox [ 0 0 250 20 ]
+/Resources <<
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Length 132
+>>
+stream
+1.00 w
+0.75 0.75 0.75 rg
+0 0 250.00 20.00 re
+f
+0 0 0 RG
+0 0 250.00 20.00 re
+S
+BT
+/F1 12.00 Tf
+0 g
+3.00 5.80 Td
+(United States) Tj
+ET
+endstream
+endobj
+15 0 obj
+<<
+/Type /Annot
+/Subtype /Widget
+/Rect [ 150 605 400 625 ]
+/AP <<
+/N 14 0 R
+>>
+/Parent 13 0 R
+>>
+endobj
+16 0 obj
+<<
+/Fields [ 6 0 R 9 0 R 13 0 R ]
+/NeedAppearances false
+/DA (/F1 12 Tf 0 g)
+>>
+endobj
+xref
+0 17
+0000000000 65535 f 
+0000000015 00000 n 
+0000000081 00000 n 
+0000000140 00000 n 
+0000000348 00000 n 
+0000001355 00000 n 
+0000001549 00000 n 
+0000001622 00000 n 
+0000001916 00000 n 
+0000002026 00000 n 
+0000002076 00000 n 
+0000002374 00000 n 
+0000002615 00000 n 
+0000002759 00000 n 
+0000002883 00000 n 
+0000003183 00000 n 
+0000003296 00000 n 
+trailer
+<<
+/Size 17
+/Root 1 0 R
+/ID [ <b6a47d8a94b24e854c210be33f3570e9> <b6a47d8a94b24e854c210be33f3570e9> ]
+>>
+startxref
+3392
+%%EOF

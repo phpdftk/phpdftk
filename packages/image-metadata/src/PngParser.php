@@ -28,6 +28,7 @@ final class PngParser {
         $colorType = 2;
         $xDpi = null;
         $yDpi = null;
+        $iccProfile = null;
 
         while ($pos + 12 <= $len) {
             $chunkLen  = unpack('N', substr($data, $pos, 4))[1];
@@ -48,6 +49,19 @@ final class PngParser {
                     // Unit is meters; convert to DPI
                     $xDpi = (int)round($xPixelsPerUnit / 39.3701);
                     $yDpi = (int)round($yPixelsPerUnit / 39.3701);
+                }
+            } elseif ($chunkType === 'iCCP' && strlen($chunkData) > 2) {
+                // iCCP chunk: null-terminated profile name, 1-byte compression method, compressed data
+                $nullPos = strpos($chunkData, "\x00");
+                if ($nullPos !== false && $nullPos + 2 <= strlen($chunkData)) {
+                    // Skip profile name + null byte + compression method byte (always 0 = deflate)
+                    $compressedData = substr($chunkData, $nullPos + 2);
+                    if ($compressedData !== '') {
+                        $decompressed = @gzuncompress($compressedData);
+                        if ($decompressed !== false) {
+                            $iccProfile = $decompressed;
+                        }
+                    }
                 }
             } elseif ($chunkType === 'IEND') {
                 break;
@@ -72,6 +86,7 @@ final class PngParser {
             hasAlpha: $hasAlpha,
             xDpi: $xDpi,
             yDpi: $yDpi,
+            iccProfile: $iccProfile,
         );
     }
 }

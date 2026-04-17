@@ -14,7 +14,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Free text annotation (/Subtype /FreeText).
  * Renders text directly on the page surface.
  */
-class FreeTextAnnotation extends Annotation
+class FreeTextAnnotation extends MarkupAnnotation
 {
     public PdfString $da;               // /DA - default appearance - required
     public ?int $q = null;              // /Q - justification

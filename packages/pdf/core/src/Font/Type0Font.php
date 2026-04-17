@@ -21,16 +21,18 @@ class Type0Font extends PdfObject
     public PdfName $subtype;             // /Subtype = /Type0
     public PdfName $baseFont;            // /BaseFont
     public PdfArray $descendantFonts;    // /DescendantFonts
-    public ?PdfReference $encoding = null;   // /Encoding
+    public PdfName|PdfReference|null $encoding = null;   // /Encoding
     public ?PdfReference $toUnicode = null;  // /ToUnicode
 
-    public function __construct(string $baseFontName, PdfArray $descendantFonts, PdfReference|string|null $encoding = null)
+    public function __construct(string $baseFontName, PdfArray $descendantFonts, PdfReference|PdfName|string|null $encoding = null)
     {
         $this->subtype = new PdfName('Type0');
         $this->baseFont = new PdfName($baseFontName);
         $this->descendantFonts = $descendantFonts;
-        if ($encoding instanceof PdfReference) {
+        if ($encoding instanceof PdfReference || $encoding instanceof PdfName) {
             $this->encoding = $encoding;
+        } elseif (is_string($encoding)) {
+            $this->encoding = new PdfName($encoding);
         }
     }
 

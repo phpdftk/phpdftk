@@ -9,7 +9,7 @@ use ApprLabs\Pdf\Core\PdfArray;
 /**
  * StrikeOut annotation (/Subtype /StrikeOut).
  */
-class StrikeOutAnnotation extends Annotation
+class StrikeOutAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null; // /QuadPoints
 

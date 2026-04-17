@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3ef128519f6ac6c8299c03701c619134",
+    "content-hash": "1759a0f4204a1598f09d5fac96cae93e",
     "packages": [],
     "packages-dev": [
         {
@@ -250,6 +250,28 @@
             }
         },
         {
+            "name": "apprlabs/pdf",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/pdf/all",
+                "reference": "ddf8e196b27e4d0e6619fef023cda21a375f5fe9"
+            },
+            "require": {
+                "apprlabs/pdf-core": "@dev",
+                "apprlabs/pdf-writer": "@dev",
+                "php": "^8.4"
+            },
+            "type": "metapackage",
+            "license": [
+                "MIT"
+            ],
+            "description": "phpdftk — PHP 8.4+ toolkit for building (and soon reading) ISO 32000-2 PDF files. Metapackage pulling in the full family.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "apprlabs/pdf-core",
             "version": "dev-main",
             "dist": {
@@ -294,9 +316,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/reader",
-                "reference": "96cf92337293fda4aa65f21b7d4a9a562682a07a"
+                "reference": "1677d64624f420615fa08c3b49c601ddab857000"
             },
             "require": {
+                "apprlabs/filters": "@dev",
                 "apprlabs/pdf-core": "@dev",
                 "php": "^8.4"
             },
@@ -3331,6 +3354,57 @@
             "time": "2026-03-13T08:38:20+00:00"
         },
         {
+            "name": "smalot/pdfparser",
+            "version": "v2.12.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/smalot/pdfparser.git",
+                "reference": "028d7cc0ceff323bc001d763caa2bbdf611866c4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/smalot/pdfparser/zipball/028d7cc0ceff323bc001d763caa2bbdf611866c4",
+                "reference": "028d7cc0ceff323bc001d763caa2bbdf611866c4",
+                "shasum": ""
+            },
+            "require": {
+                "ext-iconv": "*",
+                "ext-zlib": "*",
+                "php": ">=7.1",
+                "symfony/polyfill-mbstring": "^1.18"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Smalot\\PdfParser\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Sebastien MALOT",
+                    "email": "sebastien@malot.fr"
+                }
+            ],
+            "description": "Pdf parser library. Can read and extract information from pdf file.",
+            "homepage": "https://www.pdfparser.org",
+            "keywords": [
+                "extract",
+                "parse",
+                "parser",
+                "pdf",
+                "text"
+            ],
+            "support": {
+                "issues": "https://github.com/smalot/pdfparser/issues",
+                "source": "https://github.com/smalot/pdfparser/tree/v2.12.4"
+            },
+            "time": "2026-03-10T15:39:47+00:00"
+        },
+        {
             "name": "staabm/side-effects-detector",
             "version": "1.0.5",
             "source": {
@@ -4650,6 +4724,7 @@
         "apprlabs/font-parser": 20,
         "apprlabs/geometry": 20,
         "apprlabs/image-metadata": 20,
+        "apprlabs/pdf": 20,
         "apprlabs/pdf-core": 20,
         "apprlabs/pdf-reader": 20,
         "apprlabs/pdf-writer": 20,

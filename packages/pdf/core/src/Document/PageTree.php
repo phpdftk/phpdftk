@@ -46,7 +46,10 @@ class PageTree extends PdfObject
     public ?int $structParents = null;     // /StructParents
     public ?PdfString $id = null;          // /ID - page identifier
     public ?PdfNumber $pz = null;          // /PZ - preferred zoom
-    public ?PdfDictionary $boxColorInfo = null; // /BoxColorInfo
+    public BoxColorInfo|PdfDictionary|null $boxColorInfo = null; // /BoxColorInfo
+    public ?PdfArray $af = null;            // /AF - associated files
+    public ?PdfArray $outputIntents = null; // /OutputIntents
+    public ?PdfReference $dPart = null;     // /DPart
     public ?PdfDictionary $separationInfo = null; // /SeparationInfo
     public ?PdfName $templateInstantiated = null; // /TemplateInstantiated
     public ?PdfReference $presSteps = null; // /PresSteps - presentation steps
@@ -134,6 +137,15 @@ class PageTree extends PdfObject
         }
         if ($this->boxColorInfo !== null) {
             $dict->set('BoxColorInfo', $this->boxColorInfo);
+        }
+        if ($this->af !== null) {
+            $dict->set('AF', $this->af);
+        }
+        if ($this->outputIntents !== null) {
+            $dict->set('OutputIntents', $this->outputIntents);
+        }
+        if ($this->dPart !== null) {
+            $dict->set('DPart', $this->dPart);
         }
         if ($this->separationInfo !== null) {
             $dict->set('SeparationInfo', $this->separationInfo);

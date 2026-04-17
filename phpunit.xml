@@ -37,6 +37,9 @@
         <testsuite name="writer">
             <directory>packages/pdf/writer/tests</directory>
         </testsuite>
+        <testsuite name="reader">
+            <directory>packages/pdf/reader/tests</directory>
+        </testsuite>
     </testsuites>
     <coverage>
         <report>
@@ -49,6 +52,7 @@
         <include>
             <directory>packages/pdf/core/src</directory>
             <directory>packages/pdf/writer/src</directory>
+            <directory>packages/pdf/reader/src</directory>
             <directory>packages/geometry/src</directory>
             <directory>packages/encoding/src</directory>
             <directory>packages/font-metrics/src</directory>

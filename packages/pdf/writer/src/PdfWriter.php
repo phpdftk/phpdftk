@@ -6,30 +6,50 @@ namespace ApprLabs\Pdf\Writer;
 
 use ApprLabs\Pdf\Core\Content\ContentStream;
 use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Document\Catalog;
 use ApprLabs\Pdf\Core\Document\Destination;
 use ApprLabs\Pdf\Core\Document\Info;
+use ApprLabs\Pdf\Core\Document\MetadataStream;
 use ApprLabs\Pdf\Core\Document\NameTree;
 use ApprLabs\Pdf\Core\Document\Outline;
 use ApprLabs\Pdf\Core\Document\OutlineItem;
 use ApprLabs\Pdf\Core\Document\Page;
 use ApprLabs\Pdf\Core\Document\PageLabel;
 use ApprLabs\Pdf\Core\Document\PageTree;
+use ApprLabs\Pdf\Core\File\PdfFileWriter;
+use ApprLabs\Pdf\Core\Font\CIDFontType0Font;
+use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
 use ApprLabs\Pdf\Core\Font\Font;
 use ApprLabs\Pdf\Core\Font\FontDescriptor;
+use ApprLabs\Pdf\Core\Font\FontFile\CFFFontFile;
 use ApprLabs\Pdf\Core\Font\TrueTypeFont;
+use ApprLabs\FontParser\TrueTypeSubsetter;
+use ApprLabs\Pdf\Core\Font\Type0Font;
+use ApprLabs\Pdf\Core\Font\Type0FontFactory;
+use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
+use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
+use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Geometry\Rectangle;
 use ApprLabs\ImageMetadata\ImageParser;
+use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
 
 /**
- * Assembles a complete, spec-compliant PDF file.
+ * Ergonomic PDF document builder.
+ *
+ * `PdfWriter` is the friendly facade: it owns a {@see PdfFileWriter}
+ * under the hood and provides one method per "thing a user wants to
+ * put in a document" — pages, fonts, content streams, images,
+ * bookmarks, page labels, named destinations, signatures.
+ *
+ * The byte-level file-assembly logic (header, xref, trailer,
+ * signature patching) lives in `PdfFileWriter` in the core package.
  *
  * Usage:
  *   $writer = new PdfWriter();
@@ -41,17 +61,14 @@ use ApprLabs\ImageMetadata\ImageParser;
  */
 class PdfWriter
 {
-    public const VERSION = '1.7';
-
-    private ObjectRegistry $registry;
+    private PdfFileWriter $file;
     private Catalog $catalog;
     private PageTree $pageTree;
-    private ?Info $info = null;
 
     /** @var Page[] */
     private array $pages = [];
 
-    /** @var array<string, Font> keyed by resource name (F1, F2, …) */
+    /** @var array<string, Font|Type0Font> keyed by resource name (F1, F2, …) */
     private array $fonts = [];
 
     /** @var array<int, ContentStream> */
@@ -63,15 +80,14 @@ class PdfWriter
     /** Running counter for image resource names */
     private int $imageCounter = 0;
 
-    public function __construct()
+    public function __construct(bool $compressStreams = true)
     {
-        $this->registry = new ObjectRegistry();
-        $this->catalog  = new Catalog();
-        $this->pageTree = new PageTree();
+        $this->file = new PdfFileWriter($compressStreams);
+        $this->catalog = new Catalog();
+        $this->file->setCatalog($this->catalog);
 
-        // Register catalog and page tree immediately so they get their object numbers
-        $this->registry->register($this->catalog);
-        $this->registry->register($this->pageTree);
+        $this->pageTree = new PageTree();
+        $this->file->register($this->pageTree);
 
         // Wire up catalog -> page tree
         $this->catalog->pages = new PdfReference($this->pageTree->objectNumber);
@@ -94,7 +110,7 @@ class PdfWriter
     /**
      * Return all registered fonts, keyed by resource name.
      *
-     * @return array<string, Font>
+     * @return array<string, Font|Type0Font>
      */
     public function getFonts(): array
     {
@@ -113,8 +129,7 @@ class PdfWriter
 
     public function setInfo(Info $info): void
     {
-        $this->info = $info;
-        $this->registry->register($info);
+        $this->file->setInfo($info);
     }
 
     /**
@@ -140,7 +155,7 @@ class PdfWriter
         ]);
         $page->resources = new Resources();
 
-        $this->registry->register($page);
+        $this->file->register($page);
         $this->pages[] = $page;
 
         // Update page tree
@@ -164,7 +179,7 @@ class PdfWriter
             $this->embedTrueTypeFont($font);
         }
 
-        $this->registry->register($font);
+        $this->file->register($font);
         $this->fonts[$name] = $font;
         $ref = new PdfReference($font->objectNumber);
 
@@ -181,12 +196,200 @@ class PdfWriter
     }
 
     /**
+     * Build and register a Type 0 composite font from TrueType font data.
+     *
+     * Creates the full CID font stack: Type0Font -> CIDFontType2 -> FontDescriptor -> FontFile2,
+     * plus a ToUnicode CMap. The font is subset to include only the glyphs needed for the
+     * given codepoints.
+     *
+     * @param \ApprLabs\FontParser\TrueTypeData $data      Parsed TrueType font data
+     * @param int[]                              $usedCodepoints Unicode codepoints used in the document
+     * @param Page|null                          $page      If set, add font only to this page
+     * @return string The resource name (F1, F2, ...)
+     */
+    public function addCompositeFont(\ApprLabs\FontParser\TrueTypeData $data, array $usedCodepoints, ?Page $page = null): string
+    {
+        $this->fontCounter++;
+        $name = 'F' . $this->fontCounter;
+
+        [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream] =
+            Type0FontFactory::fromTrueTypeData($data, $usedCodepoints);
+
+        // Register all objects
+        $this->file->register($fontStream);
+        $descriptor->fontFile2 = new PdfReference($fontStream->objectNumber);
+
+        $this->file->register($descriptor);
+        $cidFont->fontDescriptor = new PdfReference($descriptor->objectNumber);
+
+        $this->file->register($cidFont);
+        $type0Font->descendantFonts = new PdfArray([new PdfReference($cidFont->objectNumber)]);
+
+        $this->file->register($toUnicodeStream);
+        $type0Font->toUnicode = new PdfReference($toUnicodeStream->objectNumber);
+
+        $this->file->register($type0Font);
+        $this->fonts[$name] = $type0Font;
+        $ref = new PdfReference($type0Font->objectNumber);
+
+        if ($page !== null) {
+            $page->resources?->addFont($name, $ref);
+        } else {
+            foreach ($this->pages as $p) {
+                $p->resources?->addFont($name, $ref);
+            }
+        }
+
+        return $name;
+    }
+
+    /**
+     * Build and register an OpenType CFF composite font.
+     *
+     * Creates the Type 0 → CIDFontType0 → FontDescriptor → CFFFontFile
+     * stack with a ToUnicode CMap for text extraction.
+     *
+     * @param \ApprLabs\FontParser\OpenTypeData $data Parsed OpenType font data
+     * @param int[] $usedCodepoints Unicode codepoints used in the document
+     * @param Page|null $page If set, add font only to this page
+     * @return string The resource name (F1, F2, ...)
+     */
+    public function addOpenTypeFont(
+        \ApprLabs\FontParser\OpenTypeData $data,
+        array $usedCodepoints,
+        ?Page $page = null,
+    ): string {
+        $this->fontCounter++;
+        $name = 'F' . $this->fontCounter;
+
+        // Font descriptor
+        $descriptor = new FontDescriptor(new PdfName($data->postScriptName));
+        $descriptor->flags = $data->flags;
+        $descriptor->fontBBox = new PdfArray([
+            new PdfNumber($data->fontBBox[0]),
+            new PdfNumber($data->fontBBox[1]),
+            new PdfNumber($data->fontBBox[2]),
+            new PdfNumber($data->fontBBox[3]),
+        ]);
+        $descriptor->italicAngle = $data->italicAngle;
+        $descriptor->ascent = $data->ascent;
+        $descriptor->descent = $data->descent;
+        $descriptor->capHeight = $data->capHeight;
+        $descriptor->xHeight = $data->xHeight;
+        $descriptor->stemV = $data->stemV;
+
+        // CFF font program stream (embed CFF table bytes, not full OTF)
+        $cffStream = new CFFFontFile($data->cffBytes, 'CIDFontType0C');
+        $this->file->register($cffStream);
+        $descriptor->fontFile3 = new PdfReference($cffStream->objectNumber);
+        $this->file->register($descriptor);
+
+        // CID font
+        $cidSystemInfo = new CIDSystemInfo('Adobe', 'Identity', 0);
+        $cidFont = new CIDFontType0Font($data->postScriptName, $cidSystemInfo);
+        $cidFont->fontDescriptor = new PdfReference($descriptor->objectNumber);
+
+        // Build /W widths array
+        $scale = fn(int $v): int => (int) round($v * 1000 / $data->unitsPerEm);
+        $wEntries = [];
+        foreach ($usedCodepoints as $cp) {
+            $gid = $data->fullUnicodeToGid[$cp] ?? null;
+            if ($gid !== null && isset($data->glyphWidths[$gid])) {
+                $wEntries[$gid] = new PdfNumber($scale($data->glyphWidths[$gid]));
+            }
+        }
+        if (!empty($wEntries)) {
+            ksort($wEntries);
+            $wArray = [];
+            $currentRun = [];
+            $currentStart = -1;
+            $lastGid = -2;
+            foreach ($wEntries as $gid => $width) {
+                if ($gid !== $lastGid + 1) {
+                    if (!empty($currentRun)) {
+                        $wArray[] = new PdfNumber($currentStart);
+                        $wArray[] = new PdfArray($currentRun);
+                    }
+                    $currentStart = $gid;
+                    $currentRun = [$width];
+                } else {
+                    $currentRun[] = $width;
+                }
+                $lastGid = $gid;
+            }
+            $wArray[] = new PdfNumber($currentStart);
+            $wArray[] = new PdfArray($currentRun);
+            $cidFont->w = new PdfArray($wArray);
+        }
+
+        $this->file->register($cidFont);
+
+        // ToUnicode CMap
+        $gidToUnicode = [];
+        foreach ($usedCodepoints as $cp) {
+            $gid = $data->fullUnicodeToGid[$cp] ?? null;
+            if ($gid !== null) {
+                $gidToUnicode[$gid] = $cp;
+            }
+        }
+        ksort($gidToUnicode);
+        $cmapEntries = [];
+        foreach ($gidToUnicode as $gid => $unicode) {
+            $cmapEntries[] = sprintf('<%04X> <%04X>', $gid, $unicode);
+        }
+        $cmapChunks = array_chunk($cmapEntries, 100);
+        $cmapBlocks = '';
+        foreach ($cmapChunks as $chunk) {
+            $cmapBlocks .= count($chunk) . " beginbfchar\n"
+                . implode("\n", $chunk) . "\n"
+                . "endbfchar\n";
+        }
+        $cmapProgram = "/CIDInit /ProcSet findresource begin\n"
+            . "12 dict begin\n"
+            . "begincmap\n"
+            . "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+            . "/CMapName /Adobe-Identity-UCS def\n"
+            . "/CMapType 2 def\n"
+            . "1 begincodespacerange\n"
+            . "<0000> <FFFF>\n"
+            . "endcodespacerange\n"
+            . $cmapBlocks
+            . "endcmap\n"
+            . "CMap end\n"
+            . "end";
+        $toUnicodeStream = new PdfStream(new PdfDictionary(), $cmapProgram);
+        $this->file->register($toUnicodeStream);
+
+        // Type 0 font
+        $type0Font = new Type0Font(
+            $data->postScriptName,
+            new PdfArray([new PdfReference($cidFont->objectNumber)]),
+            'Identity-H',
+        );
+        $type0Font->toUnicode = new PdfReference($toUnicodeStream->objectNumber);
+        $this->file->register($type0Font);
+
+        $this->fonts[$name] = $type0Font;
+        $ref = new PdfReference($type0Font->objectNumber);
+
+        if ($page !== null) {
+            $page->resources?->addFont($name, $ref);
+        } else {
+            foreach ($this->pages as $p) {
+                $p->resources?->addFont($name, $ref);
+            }
+        }
+
+        return $name;
+    }
+
+    /**
      * Create a content stream, register it, and attach it to a page.
      */
     public function addContentStream(Page $page): ContentStream
     {
         $cs = new ContentStream();
-        $this->registry->register($cs);
+        $this->file->register($cs);
         $page->contents[] = new PdfReference($cs->objectNumber);
         $this->contentStreams[] = $cs;
         return $cs;
@@ -218,8 +421,26 @@ class PdfWriter
             $dict->set('Filter', new PdfName('DCTDecode'));
         }
 
+        // If the image has an embedded ICC profile, replace the color space
+        // with an ICCBased color space reference
+        if ($info->iccProfile !== null) {
+            $nComponents = match ($info->colorSpace) {
+                'DeviceGray' => 1,
+                'DeviceCMYK' => 4,
+                default => 3, // DeviceRGB
+            };
+            $profileDict = new PdfDictionary([
+                'N' => new PdfNumber($nComponents),
+            ]);
+            $profileStream = new PdfStream($profileDict, $info->iccProfile);
+            $this->file->register($profileStream);
+            $profileRef = new PdfReference($profileStream->objectNumber);
+            $iccColorSpace = new ICCBased($profileRef);
+            $dict->set('ColorSpace', $iccColorSpace);
+        }
+
         $xObject = new PdfStream($dict, $data);
-        $this->registry->register($xObject);
+        $this->file->register($xObject);
         $ref = new PdfReference($xObject->objectNumber);
 
         // Add XObject resource to the page
@@ -236,7 +457,7 @@ class PdfWriter
      */
     public function setOutline(Outline $outline): Outline
     {
-        $this->registry->register($outline);
+        $this->file->register($outline);
         $this->catalog->outlines = new PdfReference($outline->objectNumber);
         return $outline;
     }
@@ -247,7 +468,7 @@ class PdfWriter
      */
     public function addOutlineItem(OutlineItem $item): PdfReference
     {
-        $this->registry->register($item);
+        $this->file->register($item);
         return new PdfReference($item->objectNumber);
     }
 
@@ -265,7 +486,7 @@ class PdfWriter
         $nums = [];
         ksort($labels);
         foreach ($labels as $pageIndex => $label) {
-            $this->registry->register($label);
+            $this->file->register($label);
             $nums[] = new PdfNumber($pageIndex);
             $nums[] = new PdfReference($label->objectNumber);
         }
@@ -273,7 +494,7 @@ class PdfWriter
         // Inline number tree (leaf node only — sufficient for most documents)
         $tree = new PdfDictionary(['Nums' => new PdfArray($nums)]);
         $treeStream = new PdfStream($tree, '');
-        $this->registry->register($treeStream);
+        $this->file->register($treeStream);
         $this->catalog->pageLabels = new PdfReference($treeStream->objectNumber);
     }
 
@@ -294,22 +515,117 @@ class PdfWriter
 
         $nameTree = new NameTree();
         $nameTree->names = new PdfArray($namesArray);
-        $this->registry->register($nameTree);
+        $this->file->register($nameTree);
 
         // Build a names dictionary with /Dests pointing to the name tree
         $namesDict = new PdfDictionary(['Dests' => new PdfReference($nameTree->objectNumber)]);
         $namesDictObj = new PdfStream($namesDict, '');
-        $this->registry->register($namesDictObj);
+        $this->file->register($namesDictObj);
         $this->catalog->names = new PdfReference($namesDictObj->objectNumber);
     }
 
     /**
      * Register any arbitrary PdfObject (annotations, form fields, etc.).
      */
-    public function register(\ApprLabs\Pdf\Core\PdfObject $object): PdfReference
+    public function register(PdfObject $object): PdfReference
     {
-        $this->registry->register($object);
-        return new PdfReference($object->objectNumber);
+        return $this->file->register($object);
+    }
+
+    /**
+     * Configure a signer for this document — see
+     * {@see PdfFileWriter::setSigner()} for the full pipeline description.
+     */
+    public function setSigner(
+        SignatureValue $signatureValue,
+        Pkcs7Signer $signer,
+        int $placeholderBytes = 8192
+    ): void {
+        $this->file->setSigner($signatureValue, $signer, $placeholderBytes);
+    }
+
+    /**
+     * Generate the complete PDF as a binary string.
+     */
+    public function generate(): string
+    {
+        return $this->file->generate();
+    }
+
+    /**
+     * Alias for {@see generate()} — returns the raw PDF bytes as a string.
+     */
+    public function toBytes(): string
+    {
+        return $this->file->toBytes();
+    }
+
+    /**
+     * Write the generated PDF to an open stream resource.
+     *
+     * @param resource $stream
+     */
+    public function writeTo($stream): int
+    {
+        return $this->file->writeTo($stream);
+    }
+
+    /**
+     * Write the PDF to a file, creating parent directories as needed.
+     */
+    public function save(string $path): void
+    {
+        $this->file->save($path);
+    }
+
+    /**
+     * Attach an XMP metadata stream to the document catalog.
+     *
+     * @param string $xmpXml The raw XMP XML bytes (typically from XmpWriter::serialize())
+     */
+    public function setMetadata(string $xmpXml): void
+    {
+        $metadataStream = new MetadataStream($xmpXml);
+        $this->file->register($metadataStream);
+        $this->catalog->metadata = new PdfReference($metadataStream->objectNumber);
+    }
+
+    /**
+     * Build and attach XMP metadata from the document's Info dictionary.
+     *
+     * Syncs Title, Author, Subject, Creator, Producer from the Info dict
+     * into XMP properties (dc:title, dc:creator, dc:description,
+     * xmp:CreatorTool, pdf:Producer) and attaches the result as a
+     * MetadataStream on the Catalog.
+     *
+     * Requires the Info dict to be set via {@see setInfo()} first.
+     */
+    public function syncInfoToMetadata(): void
+    {
+        $info = $this->file->getInfo();
+        if ($info === null) {
+            return;
+        }
+
+        $packet = \ApprLabs\Xmp\XmpPacket::create();
+        if ($info->title !== null) {
+            $packet = $packet->set('dc:title', $info->title->value);
+        }
+        if ($info->author !== null) {
+            $packet = $packet->set('dc:creator', $info->author->value);
+        }
+        if ($info->subject !== null) {
+            $packet = $packet->set('dc:description', $info->subject->value);
+        }
+        if ($info->creator !== null) {
+            $packet = $packet->set('xmp:CreatorTool', $info->creator->value);
+        }
+        if ($info->producer !== null) {
+            $packet = $packet->set('pdf:Producer', $info->producer->value);
+        }
+
+        $xmpXml = (new \ApprLabs\Xmp\XmpWriter())->serialize($packet);
+        $this->setMetadata($xmpXml);
     }
 
     // -----------------------------------------------------------------------
@@ -320,10 +636,24 @@ class PdfWriter
     {
         $data = $font->parsedFontData;
 
-        // 1. Font program stream
-        $streamDict = new PdfDictionary(['Length1' => new PdfNumber(strlen($data->fontBytes))]);
-        $fontStream = new PdfStream($streamDict, $data->fontBytes);
-        $this->registry->register($fontStream);
+        // 1. Font program stream — subset if possible
+        $fontBytes = $data->fontBytes;
+        if (!empty($data->fullUnicodeToGid)) {
+            // Subset to only WinAnsi-mapped glyphs
+            $glyphIds = [];
+            foreach ($data->unicodeMap as $unicode) {
+                $gid = $data->fullUnicodeToGid[$unicode] ?? null;
+                if ($gid !== null) {
+                    $glyphIds[] = $gid;
+                }
+            }
+            if (!empty($glyphIds)) {
+                $fontBytes = (new TrueTypeSubsetter())->subset($fontBytes, $glyphIds, $data->fullUnicodeToGid);
+            }
+        }
+        $streamDict = new PdfDictionary(['Length1' => new PdfNumber(strlen($fontBytes))]);
+        $fontStream = new PdfStream($streamDict, $fontBytes);
+        $this->file->register($fontStream);
 
         // 2. FontDescriptor
         $descriptor = new FontDescriptor(new PdfName($data->postScriptName));
@@ -341,11 +671,11 @@ class PdfWriter
         $descriptor->xHeight     = $data->xHeight;
         $descriptor->stemV       = $data->stemV;
         $descriptor->fontFile2   = new PdfReference($fontStream->objectNumber);
-        $this->registry->register($descriptor);
+        $this->file->register($descriptor);
 
         // 3. ToUnicode CMap stream
         $cmapStream = new PdfStream(new PdfDictionary(), $this->buildToUnicodeCMap($data->unicodeMap));
-        $this->registry->register($cmapStream);
+        $this->file->register($cmapStream);
 
         // 4. Wire back to font
         $font->fontDescriptor = new PdfReference($descriptor->objectNumber);
@@ -383,75 +713,5 @@ class PdfWriter
              . "endcmap\n"
              . "CMap end\n"
              . "end";
-    }
-
-    /**
-     * Generate the complete PDF as a binary string.
-     */
-    public function generate(): string
-    {
-        $xref   = new CrossReferenceTable();
-        $chunks = [];
-
-        // PDF header
-        $chunks[] = '%PDF-' . self::VERSION . "\n";
-        // Binary comment — 4 bytes > 127 to signal binary file
-        $chunks[] = "%\xE2\xE3\xCF\xD3\n";
-
-        // Track byte offset without concatenating the full string each iteration
-        $offset = strlen($chunks[0]) + strlen($chunks[1]);
-
-        // Write all objects in registration order
-        foreach ($this->registry->getAll() as $objNum => $object) {
-            $xref->add($objNum, $offset);
-            $chunk = $object->toIndirectObject() . "\n";
-            $chunks[] = $chunk;
-            $offset += strlen($chunk);
-        }
-
-        // Cross-reference table
-        $xrefOffset = $offset;
-        $xrefChunk  = $xref->build($this->registry->getSize());
-        $chunks[]   = $xrefChunk;
-
-        // Trailer
-        $size    = $this->registry->getSize();
-        $rootRef = new PdfReference($this->catalog->objectNumber);
-
-        // Generate file ID from header + xref offset (avoids hashing entire output)
-        $id = md5(microtime() . $xrefOffset, true);
-
-        $trailerDict = new PdfDictionary([
-            'Size' => new PdfNumber($size),
-            'Root' => $rootRef,
-        ]);
-
-        if ($this->info !== null) {
-            $trailerDict->set('Info', new PdfReference($this->info->objectNumber));
-        }
-
-        $trailerDict->set('ID', new PdfArray([
-            new PdfString($id, hex: false),
-            new PdfString($id, hex: false),
-        ]));
-
-        $chunks[] = "trailer\n" . $trailerDict->toPdf() . "\n";
-        $chunks[] = "startxref\n" . $xrefOffset . "\n";
-        $chunks[] = '%%EOF';
-
-        return implode('', $chunks);
-    }
-
-    /**
-     * Write the PDF to a file.
-     */
-    public function save(string $path): void
-    {
-        $pdf = $this->generate();
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $pdf);
     }
 }

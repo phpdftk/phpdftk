@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ApprLabs\Pdf\Reader\Tokenizer;
+
+enum TokenType
+{
+    case Name;              // /SomeName
+    case LiteralString;     // (text)
+    case HexString;         // <48656C6C6F>
+    case Integer;           // 123, +4, -2
+    case Real;              // 34.5, -.002
+    case Boolean;           // true, false
+    case Null;              // null
+    case ArrayStart;        // [
+    case ArrayEnd;          // ]
+    case DictStart;         // <<
+    case DictEnd;           // >>
+    case StreamKeyword;     // stream
+    case EndStreamKeyword;  // endstream
+    case ObjKeyword;        // obj
+    case EndObjKeyword;     // endobj
+    case RKeyword;          // R
+    case XrefKeyword;       // xref
+    case TrailerKeyword;    // trailer
+    case StartXrefKeyword;  // startxref
+    case Eof;               // end of input
+}

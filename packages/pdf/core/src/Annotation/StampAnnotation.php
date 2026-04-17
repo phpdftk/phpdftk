@@ -9,7 +9,7 @@ use ApprLabs\Pdf\Core\PdfName;
 /**
  * Stamp annotation (/Subtype /Stamp).
  */
-class StampAnnotation extends Annotation
+class StampAnnotation extends MarkupAnnotation
 {
     public ?PdfName $name = null; // /Name - stamp type
 

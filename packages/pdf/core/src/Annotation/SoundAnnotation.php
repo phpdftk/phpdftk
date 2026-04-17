@@ -10,7 +10,7 @@ use ApprLabs\Pdf\Core\PdfReference;
 /**
  * Sound annotation (/Subtype /Sound).
  */
-class SoundAnnotation extends Annotation
+class SoundAnnotation extends MarkupAnnotation
 {
     public ?PdfReference $sound = null; // /Sound - sound object
     public ?PdfName $name = null;       // /Name - icon name

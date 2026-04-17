@@ -13,7 +13,7 @@ use ApprLabs\Pdf\Core\PdfString;
 /**
  * Redact annotation (/Subtype /Redact).
  */
-class RedactAnnotation extends Annotation
+class RedactAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null;    // /QuadPoints
     public ?PdfArray $ic = null;            // /IC - interior color

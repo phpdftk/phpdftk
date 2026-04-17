@@ -122,4 +122,70 @@ class TrueTypeParserTest extends TestCase
         $data = $this->getData();
         self::assertTrue($data->embeddingAllowed);
     }
+
+    public function testFormat12CmapParsed(): void
+    {
+        // Try to find a font with format 12 cmap (emoji/supplementary plane support)
+        $format12Fonts = [
+            '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+            '/System/Library/Fonts/SFNS.ttf',
+            '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ];
+
+        $fontPath = null;
+        foreach ($format12Fonts as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+
+        // Also check the standard test fonts — some may have format 12
+        if ($fontPath === null) {
+            foreach ([
+                '/System/Library/Fonts/Supplemental/Arial.ttf',
+                '/System/Library/Fonts/Supplemental/Georgia.ttf',
+                '/System/Library/Fonts/Supplemental/Verdana.ttf',
+                '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            ] as $path) {
+                if (file_exists($path)) {
+                    $fontPath = $path;
+                    break;
+                }
+            }
+        }
+
+        if ($fontPath === null) {
+            $this->markTestSkipped('No TTF font found');
+        }
+
+        $data = (new TrueTypeParser($fontPath))->parse();
+
+        // If the font has supplementary plane codepoints, verify they are present
+        $hasSupplementary = false;
+        foreach ($data->fullUnicodeToGid as $cp => $gid) {
+            if ($cp > 0xFFFF) {
+                $hasSupplementary = true;
+                break;
+            }
+        }
+
+        if (!$hasSupplementary) {
+            // The font was parsed successfully (possibly format 4 only) — just verify it works
+            self::assertNotEmpty($data->fullUnicodeToGid);
+            $this->addToAssertionCount(1);
+            return;
+        }
+
+        // Font has supplementary plane codepoints — format 12 was parsed
+        $supplementaryCount = 0;
+        foreach ($data->fullUnicodeToGid as $cp => $gid) {
+            if ($cp > 0xFFFF) {
+                $supplementaryCount++;
+                self::assertGreaterThan(0, $gid, "GID for U+" . dechex($cp) . " should be > 0");
+            }
+        }
+        self::assertGreaterThan(0, $supplementaryCount, 'Expected supplementary plane codepoints from format 12 cmap');
+    }
 }

@@ -12,7 +12,7 @@ use ApprLabs\Pdf\Core\Serializable;
 /**
  * Polygon annotation (/Subtype /Polygon).
  */
-class PolygonAnnotation extends Annotation
+class PolygonAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $vertices = null;  // /Vertices
     public ?PdfArray $le = null;        // /LE - line ending styles

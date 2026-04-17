@@ -10,7 +10,7 @@ use ApprLabs\Pdf\Core\PdfReference;
 /**
  * FileAttachment annotation (/Subtype /FileAttachment).
  */
-class FileAttachmentAnnotation extends Annotation
+class FileAttachmentAnnotation extends MarkupAnnotation
 {
     public ?PdfReference $fs = null;  // /FS - file specification
     public ?PdfName $name = null;     // /Name - icon name

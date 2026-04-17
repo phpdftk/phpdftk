@@ -40,8 +40,9 @@ This is a **monorepo with 12 packages** under `packages/`. All packages use the 
 
 | Package dir | Composer name | PHP namespace | Purpose |
 |---|---|---|---|
-| `pdf/core/` | `apprlabs/pdf-core` | `ApprLabs\Pdf\Core\` | PDF object model — all spec classes, content streams, document structure |
-| `pdf/writer/` | `apprlabs/pdf-writer` | `ApprLabs\Pdf\Writer\` | Serializes object model to PDF bytes (PdfWriter, ObjectRegistry, CrossReferenceTable) |
+| `pdf/all/` | `apprlabs/pdf` | — (metapackage) | One-install bundle — transitively requires `pdf-core` + `pdf-writer` (+ `pdf-reader` when it lands) |
+| `pdf/core/` | `apprlabs/pdf-core` | `ApprLabs\Pdf\Core\` | PDF object model **and** file serialization — all spec classes plus `File\PdfFileWriter`, `ObjectRegistry`, `CrossReferenceTable`, `TrailerDictionary` |
+| `pdf/writer/` | `apprlabs/pdf-writer` | `ApprLabs\Pdf\Writer\` | Ergonomic builder — `PdfWriter` facade over `ApprLabs\Pdf\Core\File\PdfFileWriter` |
 | `pdf/reader/` | `apprlabs/pdf-reader` | `ApprLabs\Pdf\Reader\` | Parses existing PDFs into object model (skeleton — not yet implemented) |
 | `geometry/` | `apprlabs/geometry` | `ApprLabs\Geometry\` | Rectangle, Matrix, PageSize, BezierCurve |
 | `color/` | `apprlabs/color` | `ApprLabs\Color\` | RGB/CMYK/Gray color models with conversions |
@@ -58,12 +59,22 @@ This is a **monorepo with 12 packages** under `packages/`. All packages use the 
 geometry, color, filters, encoding, font-metrics, font-parser, image-metadata, xmp, crypt
     ↓ (all depended on by)
   pdf-core  (ApprLabs\Pdf\Core\)
+  ├── object model (Document, Font, Annotation, Graphics, …)
+  └── file serialization (File\PdfFileWriter — emits %PDF, xref, trailer)
     ↓ (depended on by both)
 pdf-writer                pdf-reader
 (ApprLabs\Pdf\Writer\)    (ApprLabs\Pdf\Reader\)
+  friendly builder         parser (skeleton)
 ```
 
-`writer` and `reader` never depend on each other. The support packages have no PDF dependency and can be used standalone. Each package has a **distinct PSR-4 namespace root** — no split-package ambiguity.
+`writer` and `reader` never depend on each other. `pdf-writer` is a
+thin ergonomic facade: it composes `ApprLabs\Pdf\Core\File\PdfFileWriter`
+and adds the `addPage` / `addFont` / `setOutline` / etc. builder
+methods. `pdf-reader` (future) can reuse `PdfFileWriter` directly for
+incremental-update emission without depending on `pdf-writer`. The
+support packages have no PDF dependency and can be used standalone.
+Each package has a **distinct PSR-4 namespace root** — no split-package
+ambiguity.
 
 ## Architecture
 
@@ -83,9 +94,9 @@ This is the most important architectural distinction:
 
 **`PdfObject` (abstract class, extends `Serializable`)**:
 - Used for top-level PDF objects that need to be referenced from elsewhere
-- Assigned an object number by `ObjectRegistry` when registered with `PdfWriter`
+- Assigned an object number by `Core\File\ObjectRegistry` when registered with `PdfFileWriter` (or, transitively, via `PdfWriter`)
 - Serialized as indirect objects: `5 0 obj ... endobj`
-- Must be registered via `PdfWriter::register()` or a dedicated `addX()` method
+- Must be registered via `PdfWriter::register()` / `PdfFileWriter::register()` or a dedicated `addX()` method
 - Examples: `Page`, `Font`, `Annotation`, `Outline`, `OutlineItem`, `PageLabel`
 
 **`Serializable` (interface, `toPdf(): string` only)**:
@@ -102,16 +113,28 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 
 | Namespace | Classes |
 |---|---|
-| `ApprLabs\Pdf\Core\` | `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference`, `Serializable` |
-| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict`, `MarkInfo`, `Destination`, `GroupAttributes`, `NameTree`, `NumberTree`, `OutputIntent`, `Thread`, `Bead`, `OCG`, `OCMD`, `OCPropertiesDict`, `Collection`, `CollectionItem`, `CollectionSchema`, `StructTreeRoot`, `StructElem`, `ObjectRef` |
-| `ApprLabs\Pdf\Core\Font\` | `Font` (abstract), `Type1Font`, `TrueTypeFont` (has `fromFile(string $path): self`), `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` (enum for 14 standard fonts), `CIDSystemInfo` |
-| `ApprLabs\Pdf\Core\Annotation\` | `Annotation` (abstract), `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation`, `UnderlineAnnotation`, `SquigglyAnnotation`, `StrikeOutAnnotation`, `LineAnnotation`, `SquareAnnotation`, `CircleAnnotation`, `PolygonAnnotation`, `PolyLineAnnotation`, `CaretAnnotation`, `FileAttachmentAnnotation`, `SoundAnnotation`, `WatermarkAnnotation`, `PrinterMarkAnnotation`, `ScreenAnnotation`, `MovieAnnotation`, `RedactAnnotation`, `ThreeDAnnotation`, `ProjectionAnnotation`, `RichMediaAnnotation`, `TrapNetAnnotation`, `BorderStyle`, `BorderEffect`, `AppearanceDict`, `AppearanceCharacteristics` |
-| `ApprLabs\Pdf\Core\Action\` | `Action` (abstract), `GoToAction`, `GoToRAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
-| `ApprLabs\Pdf\Core\Graphics\ColorSpace\` | `ColorSpace` (abstract), `DeviceRGB`, `DeviceCMYK`, `DeviceGray` |
-| `ApprLabs\Pdf\Core\Graphics\XObject\` | `ImageXObject`, `FormXObject` |
-| `ApprLabs\Pdf\Core\Graphics\` | `ExtGState` |
-| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `Field` (abstract), `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
+| `ApprLabs\Pdf\Core\` | `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference`, `Serializable`, `PdfDate` (DateTimeInterface helper) |
+| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict`, `MarkInfo`, `Destination`, `GroupAttributes`, `NameTree`, `NumberTree`, `NamesDictionary`, `OutputIntent`, `Thread`, `Bead`, `OCG`, `OCMD`, `OCPropertiesDict`, `OCUsage`, `OCConfig`, `Collection`, `CollectionItem`, `CollectionSchema`, `StructTreeRoot`, `StructElem`, `ObjectRef`, `CrossReferenceStream`, `ObjectStream`, `RoleMap`, `ClassMap`, `StructAttribute`, `BoxColorInfo`, `BoxStyle`, `DSS`, `DPartRoot`, `DPart`, `Requirement`, `RequirementHandler`, `MetadataStream`, `LinearizationParameters`, `HintStream`, `StandardStructureType` |
+| `ApprLabs\Pdf\Core\Document\StructAttribute\` | `LayoutAttribute`, `ListAttribute`, `PrintFieldAttribute`, `TableAttribute` |
+| `ApprLabs\Pdf\Core\FileSpec\` | `FileSpec`, `EmbeddedFile`, `EmbeddedFileParams` |
+| `ApprLabs\Pdf\Core\Filter\` | `FlateDecodeParams`, `CCITTFaxDecodeParams`, `JBIG2DecodeParams`, `DCTDecodeParams`, `JPXDecodeParams`, `CryptFilterDecodeParams` |
+| `ApprLabs\Pdf\Core\Multimedia\` | `Sound`, `Movie`, `Rendition` (abstract), `MediaRendition`, `SelectorRendition`, `MediaClip` (abstract), `MediaClipData`, `MediaClipSection`, `MediaPlayParams`, `MediaScreenParams`, `MediaCriteria`, `Navigator` |
+| `ApprLabs\Pdf\Core\ThreeD\` | `ThreeDStream`, `ThreeDView`, `ThreeDBackground`, `ThreeDRenderMode`, `ThreeDLightingScheme`, `ThreeDCrossSection`, `ThreeDNode`, `ThreeDMeasure` |
+| `ApprLabs\Pdf\Core\Font\` | `Font` (abstract), `Type1Font`, `TrueTypeFont` (has `fromFile(string $path): self`), `Type0Font`, `Type3Font`, `MMType1Font`, `CIDFont`, `CIDFontType0Font`, `CIDFontType2Font`, `FontDescriptor`, `Encoding`, `StandardFont` (enum for 14 standard fonts), `CIDSystemInfo`, `CMapStream` |
+| `ApprLabs\Pdf\Core\Font\FontFile\` | `Type1FontFile`, `TrueTypeFontFile`, `CFFFontFile` |
+| `ApprLabs\Pdf\Core\Annotation\` | `Annotation` (abstract), `MarkupAnnotation` (abstract, extends `Annotation`), `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation`, `UnderlineAnnotation`, `SquigglyAnnotation`, `StrikeOutAnnotation`, `LineAnnotation`, `SquareAnnotation`, `CircleAnnotation`, `PolygonAnnotation`, `PolyLineAnnotation`, `CaretAnnotation`, `FileAttachmentAnnotation`, `SoundAnnotation`, `WatermarkAnnotation`, `PrinterMarkAnnotation`, `ScreenAnnotation`, `MovieAnnotation`, `RedactAnnotation`, `ThreeDAnnotation`, `ProjectionAnnotation`, `RichMediaAnnotation`, `TrapNetAnnotation`, `BorderStyle`, `BorderEffect`, `AppearanceDict`, `AppearanceCharacteristics` |
+| `ApprLabs\Pdf\Core\Action\` | `Action` (abstract), `AdditionalActions`, `GoToAction`, `GoToRAction`, `GoToEAction`, `GoToDPAction`, `URIAction`, `JavaScriptAction`, `NamedAction`, `LaunchAction`, `ThreadAction`, `SoundAction`, `MovieAction`, `HideAction`, `SubmitFormAction`, `ResetFormAction`, `ImportDataAction`, `SetOCGStateAction`, `RenditionAction`, `TransAction`, `GoTo3DViewAction`, `RichMediaExecuteAction` |
+| `ApprLabs\Pdf\Core\Graphics\ColorSpace\` | `ColorSpace` (abstract), `DeviceRGB`, `DeviceCMYK`, `DeviceGray`, `CalGray`, `CalRGB`, `Lab`, `ICCBased`, `Indexed`, `Pattern`, `Separation`, `DeviceN` |
+| `ApprLabs\Pdf\Core\Graphics\XObject\` | `ImageXObject`, `FormXObject`, `PostScriptXObject` |
+| `ApprLabs\Pdf\Core\Graphics\Function\` | `Func` (abstract), `FunctionType0`, `FunctionType2`, `FunctionType3`, `FunctionType4` |
+| `ApprLabs\Pdf\Core\Graphics\Shading\` | `Shading` (abstract), `MeshShading` (abstract), `ShadingType1`..`ShadingType7` |
+| `ApprLabs\Pdf\Core\Graphics\Pattern\` | `TilingPattern`, `ShadingPattern` |
+| `ApprLabs\Pdf\Core\Graphics\` | `ExtGState`, `SoftMask` |
+| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `Field` (abstract), `TextField`, `ButtonField`, `ChoiceField`, `SignatureField`, `SigFieldLock`, `SeedValueDictionary` |
+| `ApprLabs\Pdf\Core\Interactive\Signature\` | `SignatureValue`, `DocTimeStamp`, `SignatureReference`, `TransformParams` (abstract), `DocMDPTransformParams`, `FieldMDPTransformParams`, `UR3TransformParams`, `IdentityTransformParams`, `Pkcs7Signer` |
+| `ApprLabs\Pdf\Core\Security\` | `EncryptDictionary`, `CryptFilter`, `PublicKeyRecipient` (object model only — not wired into `PdfFileWriter`) |
 | `ApprLabs\Pdf\Core\Content\` | `ContentStream`, `Resources` |
+| `ApprLabs\Pdf\Core\File\` | `PdfFileWriter` (byte-level PDF emitter: header, xref, trailer, signature patching), `ObjectRegistry`, `CrossReferenceTable`, `TrailerDictionary` |
 
 **`packages/font-parser/src/`** — PSR-4 root `ApprLabs\FontParser\`:
 
@@ -123,7 +146,27 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 
 | Namespace | Classes |
 |---|---|
-| `ApprLabs\Pdf\Writer\` | `PdfWriter`, `ObjectRegistry`, `CrossReferenceTable` |
+| `ApprLabs\Pdf\Writer\` | `Pdf` (high-level cursor-based builder — no PDF knowledge required), `PdfWriter` (ergonomic object-model facade), `Theme`, `TextStyle`, `PageSize` (enum), `Alignment` (enum) |
+
+The writer package has two distinct layers:
+
+1. **`Pdf`** — the top-level API. Stateful cursor, default font, theme.
+   Methods: `setFont`, `setTheme`, `addPage`, `newPage`, `addText`,
+   `addHeading`, `addSpacer`, `addRule`, `addImage`, `save`, `toBytes`,
+   `writeTo`. Handles word wrap via `StandardFontMetrics` + `WinAnsiTable`,
+   auto-pagination when content overflows the margin, automatic standard-
+   font registration, and 14 standard fonts only. Reach for `Pdf::writer()`
+   to drop to the lower layer when you need custom fonts or precise
+   graphics state.
+2. **`PdfWriter`** — ergonomic builder for the underlying object model.
+   Methods: `addPage`, `addFont`, `addContentStream`, `addImage`,
+   `setOutline`, `setPageLabels`, `setNamedDestinations`, `register`,
+   `setSigner`, `setInfo`, `generate`, `toBytes`, `writeTo`, `save`.
+   Requires knowledge of fonts, content-stream operators, and resource
+   names — but gives full object-model access.
+
+Both layers ultimately delegate to `ApprLabs\Pdf\Core\File\PdfFileWriter`
+for byte emission.
 
 ### How a PDF is Assembled (`PdfWriter`)
 
@@ -171,12 +214,15 @@ setPageLabels(array $labels): void  // assoc: pageIndex => PageLabel
 // Generic — use for annotations, AcroForm fields, etc.
 register(PdfObject $object): PdfReference
 
+// Digital signing — patches /ByteRange and /Contents at save time
+setSigner(SignatureValue $sv, Pkcs7Signer $signer, int $placeholderBytes = 8192): void
+
 // Output
 generate(): string
 save(string $path): void
 ```
 
-`generate()` uses an array-of-chunks + `implode()` approach (not string concatenation) for O(N) performance. `CrossReferenceTable` builds 20-byte-per-entry xref entries.
+`PdfWriter::generate()` delegates to `ApprLabs\Pdf\Core\File\PdfFileWriter::generate()`, which uses an array-of-chunks + `implode()` approach (not string concatenation) for O(N) performance. `Core\File\CrossReferenceTable` builds 20-byte-per-entry xref entries, and `Core\File\TrailerDictionary` emits the typed `/Size /Root /Info /ID /Prev /Encrypt` trailer.
 
 ### Bookmarks (`Outline` + `OutlineItem`)
 
@@ -268,18 +314,81 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Content/ContentStreamTest.php` | Unit: all ~70 ContentStream operators |
 | `Action/ActionTest.php` | Unit: GoToAction, URIAction, JavaScriptAction, NamedAction |
 | `Action/GoToRActionTest.php` | Unit: GoToRAction required fields, destinations, newWindow |
+| `Action/ActionSubtypesTest.php` | Unit: Launch, Thread, Sound, Movie, Hide, SubmitForm, ResetForm, ImportData, SetOCGState, Rendition, Trans, GoTo3DView, RichMediaExecute, GoToE, GoToDP |
+| `FileSpec/FileSpecTest.php` | Unit: FileSpec, EmbeddedFile, EmbeddedFileParams |
+| `Graphics/FunctionTest.php` | Unit: FunctionType0/2/3/4 serialization and stream framing |
+| `Graphics/ColorSpaceTest.php` | Unit: CalGray, CalRGB, Lab, ICCBased, Indexed, Pattern, Separation, DeviceN |
+| `Graphics/ShadingTest.php` | Unit: ShadingType1..7 (dict + mesh stream types) |
+| `Graphics/PatternTest.php` | Unit: TilingPattern, ShadingPattern |
+| `Document/AccessibilityHelpersTest.php` | Unit: RoleMap, ClassMap, StructAttribute, StructTreeRoot typed maps |
+| `Multimedia/MultimediaTest.php` | Unit: Sound, Movie, MediaRendition, SelectorRendition, MediaClipData, MediaClipSection, MediaPlayParams, MediaScreenParams, Navigator |
+| `ThreeD/ThreeDTest.php` | Unit: ThreeDStream (U3D/PRC), ThreeDView, ThreeDBackground, ThreeDRenderMode, ThreeDLightingScheme, ThreeDCrossSection |
 | `Interactive/FormTest.php` | Unit: AcroForm, Field subclasses |
+| `Interactive/SignatureTest.php` | Unit: SignatureValue, SignatureReference, DocMDP/FieldMDP/UR3 transform params, SignatureField wiring |
+| `Interactive/DocTimeStampTest.php` | Unit: DocTimeStamp /Type, /SubFilter ETSI.RFC3161, byte-range/contents patching |
+| `Interactive/Pkcs7SignerTest.php` | Unit: Pkcs7Signer signing + DER extraction + `openssl cms -verify` round-trip |
+| `Security/EncryptDictionaryTest.php` | Unit: EncryptDictionary (Standard V2/R3, AES-256 R6, public-key handler), CryptFilter, PublicKeyRecipient |
+| `Annotation/MarkupAnnotationTest.php` | Unit: markup base fields on Text/Highlight; MarkupAnnotation hierarchy |
+| `Document/CatalogPhaseATest.php` | Unit: Catalog /DSS /Extensions /AF /DPartRoot; Page /AF /OutputIntents /DPart; BoxColorInfo + BoxStyle |
+| `Document/NamesRequirementAndOCTest.php` | Unit: NamesDictionary, Requirement(Handler), OCUsage, OCConfig, DPartRoot, DPart, LinearizationParameters, HintStream, MetadataStream, StandardStructureType, StructAttribute helpers |
+| `Document/MarkupAnnotationsIntegrationTest.php` | End-to-end: sticky note + popup + highlight reply + callout FreeText exercising /T /Subj /CreationDate /IRT /RT /IT /Popup |
+| `Graphics/XObjectPhaseATest.php` | Unit: FormXObject /Metadata /StructParent /OC /AF /LastModified /Ref; ImageXObject /Decode /StructParent /Matte + filter chain |
+| `Font/CMapAndFontFileTest.php` | Unit: CMapStream, Type1FontFile, TrueTypeFontFile, CFFFontFile |
+| `Filter/DecodeParamsTest.php` | Unit: FlateDecodeParams, CCITTFaxDecodeParams, JBIG2DecodeParams, DCTDecodeParams, JPXDecodeParams, CryptFilterDecodeParams |
+| `Multimedia/MediaCriteriaTest.php` | Unit: MediaCriteria fields |
+| `ThreeD/ThreeDNodeAndMeasureTest.php` | Unit: ThreeDNode + all six ThreeDMeasure subtypes |
+| `Action/AdditionalActionsTest.php` | Unit: AdditionalActions trigger helpers (catalog/page/field/annotation) |
+| `Interactive/SignatureHelpersTest.php` | Unit: SigFieldLock, SeedValueDictionary, IdentityTransformParams |
+| `PdfDateTest.php` | Unit: PdfDate::fromDateTime / parse round-trip |
+| `File/ObjectRegistryAndXrefTest.php` | Unit: ObjectRegistry numbering + CrossReferenceTable xref format (moved from writer package) |
+| `File/TrailerDictionaryTest.php` | Unit: typed TrailerDictionary (classic + incremental trailer with /Prev + /Encrypt) |
+| `File/PdfFileWriterTest.php` | Unit: PdfFileWriter engine — header emission, `setCatalog`/`register`/`setInfo`, trailer structure, `save()` round-trip |
 | `Font/FontTest.php` | Unit: all font types; includes TrueTypeFont::fromFile() tests |
+| `Font/FontSubtypeTest.php` | Unit: Type3Font, MMType1Font, CIDFontType0Font, CIDFontType2Font |
 | `Font/CIDSystemInfoTest.php` | Unit: CIDSystemInfo fields, used in CIDFont |
+| `Document/CrossReferenceStreamTest.php` | Unit: CrossReferenceStream fields and binary entry packing |
+| `Document/ObjectStreamTest.php` | Unit: ObjectStream packing, N/First computation, /Extends |
+| `Graphics/ExtGStateTest.php` | Unit: ExtGState new fields (BG, BG2, UCR, UCR2, TR, TR2, HT, UseBlackPtComp, HTO), SoftMask, PostScriptXObject |
+| `Document/ExtGStateIntegrationTest.php` | End-to-end: PDF with ExtGState using alpha, blend mode, UseBlackPtComp |
 | `Document/EmbeddedFontsTest.php` | End-to-end: TrueType font embedding with FontDescriptor, ToUnicode, Widths |
 | `Document/AnnotationSubtypesTest.php` | End-to-end: all 20 new annotation subtypes across 3 pages |
 | `Document/DocumentFeaturesTest.php` | End-to-end: OutputIntent, page boxes, named destinations, OCG, tagged PDF, embedded TrueType |
+| `Document/Type3FontIntegrationTest.php` | End-to-end: Type 3 font with inline glyph procs and custom Encoding |
+| `Document/XRefStreamIntegrationTest.php` | End-to-end: hand-rolled PDF 1.5 with CrossReferenceStream + ObjectStream |
+| `Document/GraphicsPipelineIntegrationTest.php` | End-to-end: axial+radial shadings, tiling pattern, FileAttachment, SubmitFormAction |
+| `Document/MultimediaAndThreeDIntegrationTest.php` | End-to-end: ScreenAnnotation + MediaRendition + MediaClipData + RenditionAction, ThreeDAnnotation + ThreeDStream/View/Background/RenderMode/LightingScheme |
+| `Document/SignatureFieldIntegrationTest.php` | End-to-end: SignatureField + SignatureValue placeholder + SignatureReference + DocMDPTransformParams + AcroForm SigFlags + Catalog Perms |
+| `Document/SignedPdfIntegrationTest.php` | End-to-end: actually-signed PDF via `PdfWriter::setSigner()` + self-signed cert; verified with `openssl cms -verify` when the CLI is available |
+| `Document/FormAppearancesIntegrationTest.php` | End-to-end: text field, checkbox, choice field with generated AppearanceGenerator appearances, NeedAppearances=false |
+| `Document/OpenTypeFontIntegrationTest.php` | End-to-end: OpenType CFF font parsed via OpenTypeParser, embedded as Type0/CIDFontType0 with CFFFontFile, hex-encoded GID text |
+| `Interactive/AppearanceGeneratorTest.php` | Unit: textField, checkbox, radioButton, pushButton, choiceField appearance generation, AppearanceDict builders |
+| `Security/PdfEncryptorTest.php` | Unit: RC4-128 and AES-128 encrypt/decrypt round-trip, password auth, permissions |
+| `File/StreamCompressionTest.php` | Unit: FlateDecode auto-compression on write, compressed PDF readability |
+| `File/PdfHydratorTest.php` | Unit: type registry, key mapping, PdfNumber/PdfArray/PdfBoolean coercion |
+| `File/XRefStreamOutputTest.php` | Unit: CrossReferenceStream output, round-trip via PdfReader, compression |
+| `File/IncrementalWriterTest.php` | Unit: incremental update append, /Prev chain, modified objects, stacked updates, compression |
+| `Graphics/HalftoneTest.php` | Unit: HalftoneType 1/5/6/10/16 serialization, field output, stream framing |
 
 ### `writer` package tests (`packages/pdf/writer/tests/`)
 
 | Test file | What it tests |
 |---|---|
-| `Writer/WriterTest.php` | Unit: PdfWriter, ObjectRegistry, CrossReferenceTable |
+| `Writer/WriterTest.php` | Unit: PdfWriter ergonomic API (addPage, addFont, addContentStream, save, namedDestinations, …) |
+| `Writer/PageSizeAndAlignmentTest.php` | Unit: PageSize dimensions (Letter, Legal, A3/A4/A5, Tabloid) + Alignment enum |
+| `Writer/ThemeTest.php` | Unit: Theme defaults + withFont/withColor/withMargin immutability + heading(1..6) lookup |
+| `Writer/PdfTest.php` | Unit: high-level Pdf — auto page creation, addText, addHeading, explicit pagination, long-text auto-pagination, addSpacer, addRule, alignment, bold/italic font resolution, custom theme, save/toBytes/writeTo output modes, escape hatch |
+| `Writer/PdfIntegrationTest.php` | End-to-end: generates `docs/sample-pdfs/high_level_pdf.pdf` — headings, body, rules, alignment overrides, auto-pagination across 3+ pages, exercises all three output modes |
+| `Writer/XmpMetadataTest.php` | Unit: PdfWriter::setMetadata() with XmpPacket, metadata stream in output, round-trip via PdfReader |
+| `Writer/UnicodeFontTest.php` | Unit: Type0FontFactory composite font stack, addCompositeFont, hex-encoded text, per-page fonts |
+
+### `reader` package tests (`packages/pdf/reader/tests/`)
+
+| Test file | What it tests |
+|---|---|
+| `Integration/ReadSamplePdfsTest.php` | End-to-end: reads all sample PDFs, verifies page counts, annotations, bookmarks, form fields, xref streams |
+| `Integration/RoundTripTest.php` | Hydration: typed Catalog/Page/Pages via PdfHydrator, serialization round-trip |
+| `Integration/TextExtractionTest.php` | ContentStreamParser + TextExtractor: text from simple/complex/embedded-font PDFs, Unicode em-dash, extractAllText |
+| `Integration/ErrorToleranceTest.php` | Lenient mode: displaced headers, expanded startxref search, getParseWarnings() |
 
 ### Support package tests
 
@@ -291,15 +400,22 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `filters` | `FilterTest.php` | FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode |
 | `font-metrics` | `StandardFontMetricsTest.php` | Width lookups for all 14 standard fonts |
 | `font-parser` | `TrueTypeParserTest.php` | TrueType binary parsing: metrics, widths, cmap, name tables |
+| `font-parser` | `TrueTypeSubsetterTest.php` | TrueType subsetting: glyph reduction, valid header, re-parsability |
+| `font-parser` | `OpenTypeParserTest.php` | OpenType CFF parsing: metrics, CFF bytes, cmap, glyph widths, sfVersion rejection |
+| `image-metadata` | `IccProfileTest.php` | ICC profile extraction from JPEG APP2 and PNG iCCP chunks |
 | `geometry` | `RectangleTest.php`, `MatrixTest.php`, `ExtendedGeometryTest.php` | Rectangle, Matrix transforms, BezierCurve, PageSize |
 | `image-metadata` | `ImageParserTest.php` | JPEG/PNG/GIF/TIFF/WebP header parsing |
 | `xmp` | `XmpTest.php` | XMP metadata packet read/write |
 
 ## Benchmarks
 
-`benchmarks/GeneratePdfBench.php` — wall-clock time via phpbench; compares phpdftk against TCPDF, FPDF, mPDF, Dompdf at 1, 5, 10, 50, and 100 pages. Includes `benchPhpdftk10PagesWithBookmarksAndTransitions()` exercising Outline + OutlineItem + TransitionDict, `benchPhpdftk10PagesWithAnnotations()` exercising annotation subtypes, `benchPhpdftk10PagesWithEmbeddedFont()` exercising TrueType font embedding, and `benchPhpdftk10PagesWithDocumentStructure()` exercising OutputIntent, named destinations, page labels, tagged PDF structure.
+`benchmarks/GeneratePdfBench.php` — wall-clock time via phpbench; compares phpdftk against TCPDF, FPDF, mPDF, Dompdf at 1, 5, 10, 50, and 100 pages. Includes `benchPhpdftk10PagesWithBookmarksAndTransitions()` exercising Outline + OutlineItem + TransitionDict, `benchPhpdftk10PagesWithAnnotations()` exercising annotation subtypes, `benchPhpdftk10PagesWithEmbeddedFont()` exercising TrueType font embedding, `benchPhpdftk10PagesWithDocumentStructure()` exercising OutputIntent, named destinations, page labels, tagged PDF structure, `benchPhpdftk10PagesWithType3Font()` exercising a custom Type 3 font with inline glyph procs, `benchPhpdftkXRefAndObjectStreams()` exercising CrossReferenceStream + ObjectStream assembly, `benchPhpdftk10PagesWithShadingsAndPatterns()` exercising axial shading + shading pattern + tiling pattern, `benchPhpdftk10PagesWithMultimediaAnd3D()` exercising ScreenAnnotation + MediaRendition per page plus a shared ThreeDStream/ThreeDView driving a 3D annotation, `benchPhpdftk10PagesWithSignatureField()` exercising a SignatureField + SignatureValue placeholder + DocMDP reference + AcroForm wiring, `benchPhpdftk10PagesSigned()` exercising the full `PdfWriter::setSigner()` pipeline (placeholder → byte range → PKCS#7 sign → /Contents patch), and `benchPhpdftk10PagesWithMarkupAnnotations()` exercising the full markup annotation field set (/T, /Subj, /CreationDate, /IRT, /RT, /Popup) via threaded sticky-note / highlight replies per page.
 
 `benchmarks/MemoryBench.php` — peak memory (`memory_get_peak_usage(true)`); compares phpdftk against FPDF and TCPDF at the same page counts.
+
+`benchmarks/GeneratePdfBench.php` also includes `benchPhpdftk10PagesWithFormAppearances()` exercising `AppearanceGenerator` for text fields and checkboxes per page, and `benchPhpdftk10PagesWithOpenTypeCff()` exercising OpenType CFF font embedding via `OpenTypeParser` + `addOpenTypeFont()` (requires macOS OTF font).
+
+`benchmarks/ReadPdfBench.php` — PDF reader/parser performance; compares phpdftk reader against smalot/pdfparser and setasign/fpdi at 1, 10, and 100 pages. Uses FPDF-generated reference PDFs (`docs/sample-pdfs/bench_*.pdf`) with classic xref tables to ensure all three readers can parse them. Each benchmark parses the file, extracts structure (catalog, info, version), and iterates all pages.
 
 Run `scripts/benchmark` to regenerate `docs/benchmarks.md` automatically.
 

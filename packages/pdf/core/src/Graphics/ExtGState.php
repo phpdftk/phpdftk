@@ -37,6 +37,15 @@ class ExtGState extends PdfObject
     public ?float $caLower = null;   // /ca - fill alpha
     public ?bool $ais = null;        // /AIS - alpha is shape
     public ?bool $tk = null;         // /TK - text knockout
+    public mixed $bg = null;         // /BG - black generation function
+    public mixed $bg2 = null;        // /BG2 - black generation (PDF 1.3+)
+    public mixed $ucr = null;        // /UCR - undercolor removal
+    public mixed $ucr2 = null;       // /UCR2 - undercolor removal (PDF 1.3+)
+    public mixed $tr = null;         // /TR - transfer function
+    public mixed $tr2 = null;        // /TR2 - transfer function (PDF 1.3+)
+    public mixed $ht = null;         // /HT - halftone dict/stream or /Default
+    public ?PdfName $useBlackPtComp = null; // /UseBlackPtComp - black point compensation
+    public ?PdfArray $hto = null;    // /HTO - halftone origin [x, y]
 
     public function toPdf(): string
     {
@@ -107,6 +116,61 @@ class ExtGState extends PdfObject
         }
         if ($this->tk !== null) {
             $dict->set('TK', new PdfBoolean($this->tk));
+        }
+        if ($this->bg !== null) {
+            if ($this->bg instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('BG', $this->bg);
+            } else {
+                $dict->set('BG', new PdfName((string) $this->bg));
+            }
+        }
+        if ($this->bg2 !== null) {
+            if ($this->bg2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('BG2', $this->bg2);
+            } else {
+                $dict->set('BG2', new PdfName((string) $this->bg2));
+            }
+        }
+        if ($this->ucr !== null) {
+            if ($this->ucr instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('UCR', $this->ucr);
+            } else {
+                $dict->set('UCR', new PdfName((string) $this->ucr));
+            }
+        }
+        if ($this->ucr2 !== null) {
+            if ($this->ucr2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('UCR2', $this->ucr2);
+            } else {
+                $dict->set('UCR2', new PdfName((string) $this->ucr2));
+            }
+        }
+        if ($this->tr !== null) {
+            if ($this->tr instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('TR', $this->tr);
+            } else {
+                $dict->set('TR', new PdfName((string) $this->tr));
+            }
+        }
+        if ($this->tr2 !== null) {
+            if ($this->tr2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('TR2', $this->tr2);
+            } else {
+                $dict->set('TR2', new PdfName((string) $this->tr2));
+            }
+        }
+        if ($this->ht !== null) {
+            if ($this->ht instanceof \ApprLabs\Pdf\Core\Serializable) {
+                $dict->set('HT', $this->ht);
+            } else {
+                $dict->set('HT', new PdfName((string) $this->ht));
+            }
+        }
+        if ($this->useBlackPtComp !== null) {
+            $dict->set('UseBlackPtComp', $this->useBlackPtComp);
+        }
+        if ($this->hto !== null) {
+            $dict->set('HTO', $this->hto);
         }
 
         return $dict->toPdf();

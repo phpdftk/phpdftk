@@ -9,7 +9,7 @@ use ApprLabs\Pdf\Core\PdfArray;
 /**
  * Squiggly annotation (/Subtype /Squiggly).
  */
-class SquigglyAnnotation extends Annotation
+class SquigglyAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null; // /QuadPoints
 

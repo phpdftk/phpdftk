@@ -18,7 +18,7 @@ class GraphicsTest extends TestCase
 
     public function testGeneratesGraphicsPdf(): void
     {
-        $writer = new PdfWriter();
+        $writer = new PdfWriter(compressStreams: false);
         $page   = $writer->addPage(612, 792);
         $writer->addFont(new Type1Font(StandardFont::Helvetica));
 

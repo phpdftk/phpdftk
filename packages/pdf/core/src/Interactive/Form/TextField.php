@@ -13,7 +13,6 @@ use ApprLabs\Pdf\Core\PdfNumber;
 class TextField extends Field
 {
     public ?int $maxLen = null;  // /MaxLen
-    public ?int $q = null;       // /Q - justification (0=left, 1=center, 2=right)
 
     public function __construct()
     {
@@ -26,9 +25,6 @@ class TextField extends Field
 
         if ($this->maxLen !== null) {
             $dict->set('MaxLen', new PdfNumber($this->maxLen));
-        }
-        if ($this->q !== null) {
-            $dict->set('Q', new PdfNumber($this->q));
         }
 
         return $dict->toPdf();

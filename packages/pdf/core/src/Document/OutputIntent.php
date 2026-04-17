@@ -26,6 +26,9 @@ class OutputIntent extends PdfObject
     public ?PdfString $registryName = null;           // /RegistryName
     public ?PdfString $info = null;                   // /Info
     public ?PdfReference $destOutputProfile = null;   // /DestOutputProfile - ICC profile stream
+    public ?PdfReference $destOutputProfileRef = null; // /DestOutputProfileRef - external ICC ref (PDF/A-3+)
+    public ?PdfDictionary $mixingHints = null;         // /MixingHints
+    public ?PdfDictionary $spectralData = null;        // /SpectralData
 
     public function __construct(string $subtype, string $outputConditionIdentifier)
     {
@@ -51,6 +54,15 @@ class OutputIntent extends PdfObject
         }
         if ($this->destOutputProfile !== null) {
             $dict->set('DestOutputProfile', $this->destOutputProfile);
+        }
+        if ($this->destOutputProfileRef !== null) {
+            $dict->set('DestOutputProfileRef', $this->destOutputProfileRef);
+        }
+        if ($this->mixingHints !== null) {
+            $dict->set('MixingHints', $this->mixingHints);
+        }
+        if ($this->spectralData !== null) {
+            $dict->set('SpectralData', $this->spectralData);
         }
 
         return $dict->toPdf();

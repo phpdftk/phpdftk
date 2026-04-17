@@ -48,6 +48,7 @@ final class TiffParser {
         $bitsPerSample = 8;
         $samplesPerPixel = 3;
         $photometric = 2; // Default: RGB
+        $iccProfile = null;
 
         for ($i = 0; $i < $numEntries; $i++) {
             if ($pos + 12 > $len) break;
@@ -59,12 +60,7 @@ final class TiffParser {
             // Read value (SHORT=3, LONG=4)
             $valueOrOffset = $readUint32($data, $pos + 8);
             if ($type === 3) {
-                // SHORT - value is in first 2 bytes of value/offset field
-                if ($le) {
-                    $value = $readUint16($data, $pos + 8);
-                } else {
-                    $value = $readUint16($data, $pos + 8);
-                }
+                $value = $readUint16($data, $pos + 8);
             } else {
                 $value = $valueOrOffset;
             }
@@ -75,6 +71,11 @@ final class TiffParser {
                 case 258: $bitsPerSample = $value; break;   // BitsPerSample
                 case 277: $samplesPerPixel = $value; break; // SamplesPerPixel
                 case 262: $photometric = $value; break;     // PhotometricInterpretation
+                case 34675:                                  // InterColorProfile (ICC)
+                    if ($count > 0 && $valueOrOffset + $count <= $len) {
+                        $iccProfile = substr($data, $valueOrOffset, $count);
+                    }
+                    break;
             }
 
             $pos += 12;
@@ -93,6 +94,7 @@ final class TiffParser {
             bitsPerComponent: $bitsPerSample,
             format: 'tiff',
             hasAlpha: false,
+            iccProfile: $iccProfile,
         );
     }
 }

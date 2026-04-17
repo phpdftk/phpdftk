@@ -29,6 +29,10 @@ abstract class Field extends PdfObject
     public mixed $v = null;             // /V - value
     public mixed $dv = null;            // /DV - default value
     public ?PdfDictionary $aa = null;   // /AA - additional actions
+    public ?PdfString $da = null;       // /DA - default appearance (variable text, §12.7.4.3)
+    public ?int $q = null;              // /Q  - quadding / justification (variable text)
+    public ?PdfString $ds = null;       // /DS - default style (rich-text variable text)
+    public ?PdfString $rv = null;       // /RV - rich-text value (variable text)
 
     /**
      * Build the common field dictionary entries.
@@ -74,6 +78,18 @@ abstract class Field extends PdfObject
         }
         if ($this->aa !== null) {
             $dict->set('AA', $this->aa);
+        }
+        if ($this->da !== null) {
+            $dict->set('DA', $this->da);
+        }
+        if ($this->q !== null) {
+            $dict->set('Q', new PdfNumber($this->q));
+        }
+        if ($this->ds !== null) {
+            $dict->set('DS', $this->ds);
+        }
+        if ($this->rv !== null) {
+            $dict->set('RV', $this->rv);
         }
 
         return $dict;

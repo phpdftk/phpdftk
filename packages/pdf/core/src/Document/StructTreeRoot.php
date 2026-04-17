@@ -29,8 +29,8 @@ class StructTreeRoot extends PdfObject
     public ?PdfReference $idTree = null;              // /IDTree - name tree of IDs
     public ?PdfReference $parentTree = null;          // /ParentTree - number tree
     public ?int $parentTreeNextKey = null;            // /ParentTreeNextKey
-    public ?PdfDictionary $roleMap = null;            // /RoleMap
-    public ?PdfDictionary $classMap = null;           // /ClassMap
+    public RoleMap|PdfDictionary|null $roleMap = null;    // /RoleMap
+    public ClassMap|PdfDictionary|null $classMap = null;  // /ClassMap
 
     public function toPdf(): string
     {

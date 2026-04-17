@@ -21,6 +21,9 @@ readonly class TrueTypeData
      * @param array<int, int>  $unicodeMap      WinAnsi byte (32-255) => Unicode codepoint (only bytes with valid glyphs)
      * @param string $fontBytes       Raw TTF file bytes
      * @param bool   $embeddingAllowed false when fsType bits 1-2 indicate restricted licence (value 2)
+     * @param int    $unitsPerEm      Font design units per em (from head table)
+     * @param array<int, int>  $fullUnicodeToGid  All Unicode codepoint => GID mappings from cmap
+     * @param array<int, int>  $glyphWidths       GID => advance width in font design units (unscaled)
      */
     public function __construct(
         public string $postScriptName,
@@ -37,5 +40,8 @@ readonly class TrueTypeData
         public array $unicodeMap,
         public string $fontBytes,
         public bool $embeddingAllowed,
+        public int $unitsPerEm = 1000,
+        public array $fullUnicodeToGid = [],
+        public array $glyphWidths = [],
     ) {}
 }
