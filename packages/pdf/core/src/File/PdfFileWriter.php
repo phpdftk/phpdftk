@@ -8,9 +8,11 @@ use ApprLabs\Pdf\Core\Document\Catalog;
 use ApprLabs\Pdf\Core\Document\Info;
 use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
 use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
+use ApprLabs\Pdf\Core\Interactive\Signature\TsaClient;
 use ApprLabs\Pdf\Core\Security\PdfEncryptor;
 use ApprLabs\Pdf\Core\Content\ContentStream;
 use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
+use ApprLabs\Pdf\Core\Document\ObjectStream;
 use ApprLabs\Filters\FlateFilter;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
@@ -36,7 +38,7 @@ use ApprLabs\Pdf\Core\PdfString;
  */
 class PdfFileWriter
 {
-    public const VERSION = '1.7';
+    public const DEFAULT_VERSION = '1.7';
 
     private ObjectRegistry $registry;
     private ?Catalog $catalog = null;
@@ -45,15 +47,25 @@ class PdfFileWriter
     private ?SignatureValue $signatureValue = null;
     private ?Pkcs7Signer $signer = null;
     private int $signaturePlaceholderBytes = 8192;
+    private ?TsaClient $tsaClient = null;
     private bool $compressStreams = true;
     private bool $useXRefStream = false;
+    private bool $useObjectStreams = false;
     private ?PdfEncryptor $encryptor = null;
+    private string $version;
 
-    public function __construct(bool $compressStreams = true, bool $useXRefStream = false)
-    {
+    public function __construct(
+        bool $compressStreams = true,
+        bool $useXRefStream = false,
+        bool $useObjectStreams = false,
+        string $version = self::DEFAULT_VERSION,
+    ) {
         $this->registry = new ObjectRegistry();
         $this->compressStreams = $compressStreams;
-        $this->useXRefStream = $useXRefStream;
+        $this->version = $version;
+        // Object streams require xref streams (type 2 entries)
+        $this->useXRefStream = $useXRefStream || $useObjectStreams;
+        $this->useObjectStreams = $useObjectStreams;
     }
 
     /**
@@ -90,6 +102,16 @@ class PdfFileWriter
     public function getRegistry(): ObjectRegistry
     {
         return $this->registry;
+    }
+
+    public function getVersion(): string
+    {
+        return $this->version;
+    }
+
+    public function setVersion(string $version): void
+    {
+        $this->version = $version;
     }
 
     /**
@@ -171,6 +193,52 @@ class PdfFileWriter
     }
 
     /**
+     * Configure a document-level timestamp using a TSA client.
+     *
+     * This is the timestamp equivalent of {@see setSigner()}: it installs
+     * a DocTimeStamp signature value and TSA client, then patches
+     * /ByteRange and /Contents at generation time with the RFC 3161
+     * timestamp token from the TSA.
+     *
+     * @param SignatureValue $docTimeStamp  A DocTimeStamp instance to hold the token
+     * @param TsaClient      $tsaClient    The TSA client to request the token from
+     * @param int            $placeholderBytes  Size of the /Contents placeholder
+     */
+    public function setTimestamper(
+        SignatureValue $docTimeStamp,
+        TsaClient $tsaClient,
+        int $placeholderBytes = 16384
+    ): void {
+        $this->signatureValue = $docTimeStamp;
+        $this->tsaClient = $tsaClient;
+        $this->signaturePlaceholderBytes = $placeholderBytes;
+
+        // Install fixed-width placeholders (same pattern as setSigner)
+        $docTimeStamp->contents = new PdfString(
+            str_repeat("\x00", $placeholderBytes),
+            hex: true
+        );
+        $docTimeStamp->byteRange = new PdfArray([
+            '0000000000',
+            '0000000000',
+            '0000000000',
+            '0000000000',
+        ]);
+    }
+
+    /**
+     * Configure a TSA client for RFC 3161 timestamping.
+     *
+     * When set alongside a signer, the timestamp token will be embedded
+     * in the PKCS#7 signature. When set without a signer (with a
+     * DocTimeStamp signature value), produces a document-level timestamp.
+     */
+    public function setTsaClient(TsaClient $tsaClient): void
+    {
+        $this->tsaClient = $tsaClient;
+    }
+
+    /**
      * Generate the complete PDF as a binary string.
      */
     public function generate(): string
@@ -185,7 +253,7 @@ class PdfFileWriter
         $chunks = [];
 
         // PDF header
-        $chunks[] = '%PDF-' . self::VERSION . "\n";
+        $chunks[] = '%PDF-' . $this->version . "\n";
         // Binary comment — 4 bytes > 127 to signal binary file
         $chunks[] = "%\xE2\xE3\xCF\xD3\n";
 
@@ -241,6 +309,65 @@ class PdfFileWriter
             $this->applyStreamCompression();
         }
 
+        // Object stream packing: group eligible objects into ObjectStream containers
+        // Per spec §7.5.7, objects with streams and the encrypt dict cannot be packed.
+        /** @var array<int, int> objNum => objStmObjNum for type 2 xref entries */
+        $compressedEntries = [];
+        /** @var array<int, int> objNum => index within the object stream */
+        $compressedIndices = [];
+
+        if ($this->useObjectStreams) {
+            $encryptObjNum = $this->encryptor !== null
+                ? $this->encryptor->getEncryptDictionary()->objectNumber
+                : 0;
+
+            $eligible = [];
+            $ineligible = [];
+            foreach ($serializableObjects as $objNum => $object) {
+                // Cannot pack: streams (have their own data), catalog (must be direct),
+                // encrypt dict (must be accessible before decryption)
+                if (
+                    $object instanceof PdfStream
+                    || $objNum === $this->catalog->objectNumber
+                    || $objNum === $encryptObjNum
+                ) {
+                    $ineligible[$objNum] = $object;
+                } else {
+                    $eligible[$objNum] = $object;
+                }
+            }
+
+            if ($eligible !== []) {
+                // Create ObjectStream(s) — pack up to 200 objects per stream
+                $nextObjNum = $this->registry->getSize();
+                $objStreamBatches = array_chunk($eligible, 200, true);
+                foreach ($objStreamBatches as $batch) {
+                    $objStm = new ObjectStream();
+                    $objStmObjNum = $nextObjNum++;
+                    $objStm->objectNumber = $objStmObjNum;
+                    $objStm->generationNumber = 0;
+
+                    $index = 0;
+                    foreach ($batch as $objNum => $object) {
+                        $objStm->addObject($object);
+                        $compressedEntries[$objNum] = $objStmObjNum;
+                        $compressedIndices[$objNum] = $index;
+                        $index++;
+                    }
+
+                    // Compress the object stream
+                    if ($this->compressStreams) {
+                        $objStm->setFilter(new FlateFilter(), 'FlateDecode');
+                    }
+
+                    // Add to ineligible so it gets written as a normal indirect object
+                    $ineligible[$objStmObjNum] = $objStm;
+                }
+
+                $serializableObjects = $ineligible;
+            }
+        }
+
         // Write all objects in registration order
         foreach ($serializableObjects as $objNum => $object) {
             $xref->add($objNum, $offset);
@@ -263,14 +390,26 @@ class PdfFileWriter
             // PDF 1.5+ cross-reference stream — trailer entries are in the stream dict
             $xrefStream = new CrossReferenceStream();
 
-            // Build entries: object 0 is free, then in-use entries from $xref
+            // Build entries: object 0 is free, then in-use or compressed entries
             $xrefStream->addFreeEntry(0, 65535);
-            foreach ($xref->getEntries() as $objNum => $byteOffset) {
-                $xrefStream->addInUseEntry($byteOffset);
+            $xrefEntries = $xref->getEntries();
+            $maxObjNum = max(
+                $this->registry->getSize() - 1,
+                $compressedEntries !== [] ? max(array_keys($compressedEntries)) : 0,
+                $xrefEntries !== [] ? max(array_keys($xrefEntries)) : 0,
+            );
+            for ($i = 1; $i <= $maxObjNum; $i++) {
+                if (isset($compressedEntries[$i])) {
+                    $xrefStream->addCompressedEntry($compressedEntries[$i], $compressedIndices[$i]);
+                } elseif (isset($xrefEntries[$i])) {
+                    $xrefStream->addInUseEntry($xrefEntries[$i]);
+                } else {
+                    $xrefStream->addFreeEntry(0, 0);
+                }
             }
 
-            // The xref stream itself is the next sequential object number
-            $xrefStreamObjNum = $this->registry->getSize();
+            // The xref stream itself is the next sequential object number.
+            $xrefStreamObjNum = $maxObjNum + 1;
             $xrefStream->objectNumber = $xrefStreamObjNum;
             $xrefStream->size = $xrefStreamObjNum + 1;
             $xrefStream->root = new PdfReference($this->catalog->objectNumber);
@@ -319,7 +458,7 @@ class PdfFileWriter
 
         $pdf = implode('', $chunks);
 
-        if ($this->signer !== null && $this->signatureValue !== null) {
+        if ($this->signatureValue !== null && ($this->signer !== null || $this->tsaClient !== null)) {
             $pdf = $this->applySignature($pdf);
         }
 
@@ -436,11 +575,18 @@ class PdfFileWriter
         }
         $pdf = substr_replace($pdf, $brReplacement, $brPos, strlen($brPlaceholder));
 
-        // Feed the signer the concatenation of the two byte ranges.
+        // Feed the signer/TSA the concatenation of the two byte ranges.
         $signedData = substr($pdf, 0, $valueStart) . substr($pdf, $valueEnd);
-        /** @var Pkcs7Signer $signer */
-        $signer = $this->signer;
-        $der = $signer->sign($signedData);
+
+        if ($this->signer !== null) {
+            $der = $this->signer->sign($signedData);
+        } elseif ($this->tsaClient !== null) {
+            // Document-level timestamp (DocTimeStamp) — no PKCS#7 signature,
+            // just an RFC 3161 timestamp token over the byte ranges.
+            $der = $this->tsaClient->timestamp($signedData);
+        } else {
+            throw new \RuntimeException('No signer or TSA client configured');
+        }
 
         $derHex = bin2hex($der);
         if (strlen($derHex) > $placeholderBytes * 2) {

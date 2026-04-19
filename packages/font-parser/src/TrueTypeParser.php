@@ -44,6 +44,19 @@ class TrueTypeParser
 
     public function __construct(private readonly string $path) {}
 
+    /**
+     * Create a parser from raw font bytes instead of a file path.
+     */
+    public static function fromBytes(string $fontBytes): self
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'phpdftk_ttf_');
+        if ($tmp === false) {
+            throw new \RuntimeException('Cannot create temp file for font data');
+        }
+        file_put_contents($tmp, $fontBytes);
+        return new self($tmp);
+    }
+
     public function parse(): TrueTypeData
     {
         $data = file_get_contents($this->path);
@@ -267,6 +280,18 @@ class TrueTypeParser
 
         $embeddingAllowed = ($fsType & 0x000E) !== 2;
 
+        // Parse kerning data (GPOS or legacy kern table)
+        $kernPairs = null;
+        if (isset($this->tables['GPOS']) || isset($this->tables['kern'])) {
+            $kernPairs = (new KerningParser())->parse($this->data, $this->tables) ?: null;
+        }
+
+        // Parse GSUB ligature data
+        $ligatures = null;
+        if (isset($this->tables['GSUB'])) {
+            $ligatures = (new GsubParser())->parse($this->data, $this->tables) ?: null;
+        }
+
         return new TrueTypeData(
             postScriptName: $postScriptName,
             familyName: $familyName,
@@ -285,6 +310,8 @@ class TrueTypeParser
             unitsPerEm: $unitsPerEm,
             fullUnicodeToGid: $unicodeToGid,
             glyphWidths: $hmtxWidths,
+            kernPairs: $kernPairs,
+            ligatures: $ligatures,
         );
     }
 

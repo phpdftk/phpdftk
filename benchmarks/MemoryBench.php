@@ -160,7 +160,7 @@ class MemoryBench
         $memBefore = memory_get_peak_usage(true);
 
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= $pages; $i++) {
             $page = $writer->addPage(612, 792);

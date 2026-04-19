@@ -123,4 +123,151 @@ class PdfHydratorTest extends TestCase
         $result = PdfHydrator::hydrate($dict);
         $this->assertInstanceOf(Catalog::class, $result);
     }
+
+    public function testHydrateExtGState(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('ExtGState'));
+        $dict->set('CA', new PdfNumber(0.5));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 10);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Graphics\ExtGState::class, $result);
+        $this->assertSame(0.5, $result->ca);
+    }
+
+    public function testHydrateFontDescriptorWithRequiredArg(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('FontDescriptor'));
+        $dict->set('FontName', new PdfName('Helvetica'));
+        $dict->set('Flags', new PdfNumber(32));
+        $dict->set('ItalicAngle', new PdfNumber(0));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 5);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Font\FontDescriptor::class, $result);
+        $this->assertSame('Helvetica', $result->fontName->value);
+        $this->assertSame(32, $result->flags);
+    }
+
+    public function testHydrateAnnotationBySubtype(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Annot'));
+        $dict->set('Subtype', new PdfName('Text'));
+        $dict->set('Rect', new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(100),
+        ]));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 7);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\TextAnnotation::class, $result);
+    }
+
+    public function testHydrateAnnotationLinkBySubtype(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Annot'));
+        $dict->set('Subtype', new PdfName('Link'));
+        $dict->set('Rect', new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(200), new PdfNumber(50),
+        ]));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 8);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\LinkAnnotation::class, $result);
+    }
+
+    public function testHydrateSignatureValue(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Sig'));
+        $dict->set('Filter', new PdfName('Adobe.PPKLite'));
+        $dict->set('SubFilter', new PdfName('adbe.pkcs7.detached'));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 12);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue::class, $result);
+    }
+
+    public function testHydrateOutlineItemWithRequiredArg(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Title', new PdfString('Chapter 1'));
+        $dict->set('Parent', new PdfReference(3));
+        $dict->set('Count', new PdfNumber(2));
+
+        // OutlineItem doesn't have /Type — the hydrator won't match it
+        // by type, but if we register it manually it should work
+        PdfHydrator::registerType('_OutlineItem', \ApprLabs\Pdf\Core\Document\OutlineItem::class);
+        $dict->set('Type', new PdfName('_OutlineItem'));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 4);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\OutlineItem::class, $result);
+        $this->assertSame('Chapter 1', $result->title->value);
+    }
+
+    public function testHydrateEmbeddedFile(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('EmbeddedFile'));
+        $dict->set('Subtype', new PdfName('application/pdf'));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 15);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\FileSpec\EmbeddedFile::class, $result);
+    }
+
+    public function testHydrateMetadataStream(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Metadata'));
+        $dict->set('Subtype', new PdfName('XML'));
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 20);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\MetadataStream::class, $result);
+    }
+
+    public function testSubtypeRegistration(): void
+    {
+        $quad = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(20),
+            new PdfNumber(0), new PdfNumber(20),
+        ]);
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Annot'));
+        $dict->set('Subtype', new PdfName('Highlight'));
+        $dict->set('Rect', new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(20),
+        ]));
+        $dict->set('QuadPoints', $quad);
+
+        $result = PdfHydrator::hydrate($dict, objectNumber: 9);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\HighlightAnnotation::class, $result);
+    }
+
+    public function testUnknownSubtypeReturnsDictionary(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Annot'));
+        $dict->set('Subtype', new PdfName('CustomAnnot'));
+        $dict->set('Rect', new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(100),
+        ]));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        // No base Annot class registered (it's abstract), so falls through
+        $this->assertInstanceOf(PdfDictionary::class, $result);
+    }
 }

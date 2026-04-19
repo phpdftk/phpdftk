@@ -80,7 +80,7 @@ class Type3FontIntegrationTest extends TestCase
             'ProcSet' => new PdfArray([new PdfName('PDF')]),
         ]);
 
-        $fontName = $writer->addFont($font);
+        $fontName = $writer->addFont($font)->getResourceName();
 
         // -----------------------------------------------------------------
         // Page content: paint 'AB' using the Type 3 font at 40pt.

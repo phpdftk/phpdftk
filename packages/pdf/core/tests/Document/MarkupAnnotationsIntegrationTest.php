@@ -30,7 +30,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -48,7 +48,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
             new PdfNumber(540), new PdfNumber(720),
         ]));
         $popupRef = $writer->register($popup);
-        $page->annots[] = $popupRef;
+        $page->corePage()->annots[] = $popupRef;
 
         // --- Root comment (sticky note) -----------------------------
         $note = new TextAnnotation(new PdfArray([
@@ -62,7 +62,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
         $note->m = new PdfString('D:20260411120000Z');
         $note->popup = $popupRef;
         $noteRef = $writer->register($note);
-        $page->annots[] = $noteRef;
+        $page->corePage()->annots[] = $noteRef;
 
         // Wire popup parent back to the note.
         $popup->parent = $noteRef;
@@ -87,7 +87,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
         $highlight->irt = $noteRef;
         $highlight->rt = new PdfName('R');
         $highlight->markupCa = 0.4;
-        $page->annots[] = $writer->register($highlight);
+        $page->corePage()->annots[] = $writer->register($highlight);
 
         // --- Callout FreeText annotation ----------------------------
         $callout = new FreeTextAnnotation(
@@ -101,7 +101,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
         $callout->subj = new PdfString('Callout');
         $callout->it = new PdfName('FreeTextCallout');
         $callout->t = new PdfString('Alice');
-        $page->annots[] = $writer->register($callout);
+        $page->corePage()->annots[] = $writer->register($callout);
 
         $writer->save(self::OUTPUT_FILE);
 

@@ -135,6 +135,147 @@ class ContentStream extends PdfStream
         return $this;
     }
 
+    /**
+     * Show Unicode text with kerning adjustments using TJ operator.
+     *
+     * Converts UTF-8 text to hex-encoded GID sequences with kern pair
+     * adjustments inserted as numeric values between glyph runs.
+     *
+     * @param string $text UTF-8 text
+     * @param array<int, int> $unicodeToGid Unicode codepoint => GID mapping
+     * @param array<int, array<int, int>> $kernPairs leftGid => [rightGid => xAdvanceAdjust (design units)]
+     * @param int $unitsPerEm Font design units per em
+     */
+    public function showUnicodeTextKerned(
+        string $text,
+        array $unicodeToGid,
+        array $kernPairs,
+        int $unitsPerEm,
+    ): self {
+        $chars = mb_str_split($text);
+        if ($chars === []) {
+            return $this;
+        }
+
+        // Build array of GIDs
+        $gids = [];
+        foreach ($chars as $char) {
+            $cp = mb_ord($char);
+            $gids[] = $unicodeToGid[$cp] ?? 0;
+        }
+
+        // Build TJ array: interleave hex strings with kern adjustments
+        // TJ numeric values are in thousandths of a unit of text space.
+        // Positive = move left (loosen), negative = move right (tighten).
+        // Font kern values: negative = tighten. TJ wants the opposite sign
+        // for tightening, BUT in PDF spec the TJ displacement subtracts the
+        // value from the current point. So a positive TJ value moves LEFT
+        // (tightens). Font kern is negative for tightening, so we negate.
+        $tjParts = [];
+        $currentHex = sprintf('%04X', $gids[0]);
+
+        for ($i = 1, $count = count($gids); $i < $count; $i++) {
+            $prevGid = $gids[$i - 1];
+            $curGid = $gids[$i];
+            $kern = $kernPairs[$prevGid][$curGid] ?? 0;
+
+            if ($kern !== 0) {
+                $tjParts[] = '<' . $currentHex . '>';
+                // Scale from design units to 1/1000 em and negate
+                // (font kern negative=tighten, TJ positive=tighten)
+                $tjParts[] = (string) (int) round(-$kern * 1000 / $unitsPerEm);
+                $currentHex = sprintf('%04X', $curGid);
+            } else {
+                $currentHex .= sprintf('%04X', $curGid);
+            }
+        }
+        $tjParts[] = '<' . $currentHex . '>';
+
+        if (count($tjParts) === 1) {
+            $this->operators[] = $tjParts[0] . ' Tj';
+        } else {
+            $this->operators[] = '[ ' . implode(' ', $tjParts) . ' ] TJ';
+        }
+
+        return $this;
+    }
+
+    /**
+     * Show Unicode text with ligature substitution and optional kerning.
+     *
+     * Applies GSUB ligature rules (fi, fl, ffi, etc.) to the text
+     * before rendering. If kern pairs are provided, kerning adjustments
+     * are also applied between the shaped glyphs.
+     *
+     * @param string $text UTF-8 text to render
+     * @param array<int, int> $unicodeToGid Unicode codepoint → GID map
+     * @param array<int, list<array{components: int[], ligature: int}>> $ligatures GSUB ligature rules
+     * @param array<int, array<int, int>> $kernPairs Kern pairs (optional)
+     * @param int $unitsPerEm Font design units per em
+     */
+    public function showUnicodeTextShaped(
+        string $text,
+        array $unicodeToGid,
+        array $ligatures,
+        array $kernPairs = [],
+        int $unitsPerEm = 1000,
+    ): self {
+        $chars = mb_str_split($text);
+        if ($chars === []) {
+            return $this;
+        }
+
+        // Convert Unicode to GIDs
+        $gids = [];
+        foreach ($chars as $char) {
+            $cp = mb_ord($char);
+            $gids[] = $unicodeToGid[$cp] ?? 0;
+        }
+
+        // Apply ligature substitutions
+        $gids = \ApprLabs\FontParser\TextShaper::applyLigatures($gids, $ligatures);
+
+        if ($gids === []) {
+            return $this;
+        }
+
+        // If we have kern pairs, emit TJ with adjustments
+        if ($kernPairs !== []) {
+            $tjParts = [];
+            $currentHex = sprintf('%04X', $gids[0]);
+
+            for ($i = 1, $count = count($gids); $i < $count; $i++) {
+                $prevGid = $gids[$i - 1];
+                $curGid = $gids[$i];
+                $kern = $kernPairs[$prevGid][$curGid] ?? 0;
+
+                if ($kern !== 0) {
+                    $tjParts[] = '<' . $currentHex . '>';
+                    $tjParts[] = (string) (int) round(-$kern * 1000 / $unitsPerEm);
+                    $currentHex = sprintf('%04X', $curGid);
+                } else {
+                    $currentHex .= sprintf('%04X', $curGid);
+                }
+            }
+            $tjParts[] = '<' . $currentHex . '>';
+
+            if (count($tjParts) === 1) {
+                $this->operators[] = $tjParts[0] . ' Tj';
+            } else {
+                $this->operators[] = '[ ' . implode(' ', $tjParts) . ' ] TJ';
+            }
+        } else {
+            // No kerning — simple hex string
+            $hex = '';
+            foreach ($gids as $gid) {
+                $hex .= sprintf('%04X', $gid);
+            }
+            $this->operators[] = '<' . $hex . '> Tj';
+        }
+
+        return $this;
+    }
+
     /** T* - Move to next line */
     public function nextLine(): self
     {

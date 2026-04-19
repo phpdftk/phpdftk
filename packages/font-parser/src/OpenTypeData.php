@@ -31,6 +31,9 @@ readonly class OpenTypeData
      * @param int    $unitsPerEm      Font design units per em
      * @param array<int, int>  $fullUnicodeToGid All Unicode → GID mappings
      * @param array<int, int>  $glyphWidths     GID → advance width (design units)
+     * @param ?array<int, array<int, int>> $kernPairs leftGid => [rightGid => xAdvanceAdjust] (design units)
+     * @param ?array<int, list<array{components: int[], ligature: int}>> $ligatures firstGid => ligature rules
+     * @param ?array<int, int> $verticalWidths GID => vertical advance width (design units)
      */
     public function __construct(
         public string $postScriptName,
@@ -51,5 +54,8 @@ readonly class OpenTypeData
         public int $unitsPerEm = 1000,
         public array $fullUnicodeToGid = [],
         public array $glyphWidths = [],
+        public ?array $kernPairs = null,
+        public ?array $ligatures = null,
+        public ?array $verticalWidths = null,
     ) {}
 }

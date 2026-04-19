@@ -1,0 +1,84 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/site/package-lock.json
+
+      - name: Install dependencies
+        run: cd docs/site && npm ci
+
+      - name: Generate versions.json
+        run: node docs/site/scripts/generate-versions.js > docs/site/public/versions.json
+
+      - name: Build latest
+        run: |
+          cd docs/site
+          DOCS_VERSION=latest DOCS_BASE=/docs/ npx astro build
+          mkdir -p ../../_combined
+          cp -r dist/* ../../_combined/
+
+      - name: Build tagged versions
+        run: |
+          TAGS=$(git tag -l 'v*' --sort=-version:refname)
+          for TAG in $TAGS; do
+            echo "::group::Building $TAG"
+
+            # Save HEAD content, overlay tag's content
+            cp -r docs/site/src/content/docs docs/site/src/content/docs-head
+            git show "$TAG:docs/site/src/content/docs" > /dev/null 2>&1 && \
+              git checkout "$TAG" -- docs/site/src/content/docs || true
+
+            # Build with versioned base path
+            cd docs/site
+            DOCS_VERSION="$TAG" DOCS_BASE="/docs/$TAG/" npx astro build
+            mkdir -p "../../_combined/$TAG"
+            cp -r dist/* "../../_combined/$TAG/"
+            cd ../..
+
+            # Restore HEAD content
+            rm -rf docs/site/src/content/docs
+            mv docs/site/src/content/docs-head docs/site/src/content/docs
+
+            echo "::endgroup::"
+          done
+
+      - name: Copy versions.json to root
+        run: cp docs/site/public/versions.json _combined/versions.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _combined
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

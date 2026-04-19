@@ -1,0 +1,30 @@
+{
+    "name": "apprlabs/pdf-toolkit",
+    "description": "PDF toolkit — reader→modify→writer pipelines for forms, merging, stamping, extraction, and more",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "apprlabs/pdf-core": "@dev",
+        "apprlabs/pdf-reader": "@dev",
+        "apprlabs/xmp": "@dev",
+        "apprlabs/filters": "@dev",
+        "apprlabs/geometry": "@dev",
+        "apprlabs/encoding": "@dev",
+        "apprlabs/image-metadata": "@dev",
+        "apprlabs/font-metrics": "@dev",
+        "apprlabs/crypt": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Toolkit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Toolkit\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

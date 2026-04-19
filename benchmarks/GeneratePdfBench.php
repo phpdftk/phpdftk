@@ -97,7 +97,7 @@ class GeneratePdfBench
     public function benchPhpdftk5Pages(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 5; $i++) {
             $page = $writer->addPage(612, 792);
@@ -119,7 +119,7 @@ class GeneratePdfBench
     public function benchPhpdftk10Pages(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -141,7 +141,7 @@ class GeneratePdfBench
     public function benchPhpdftk50Pages(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 50; $i++) {
             $page = $writer->addPage(612, 792);
@@ -163,7 +163,7 @@ class GeneratePdfBench
     public function benchPhpdftk100Pages(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 100; $i++) {
             $page = $writer->addPage(612, 792);
@@ -189,7 +189,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithBookmarksAndTransitions(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $outline  = $writer->setOutline(new Outline());
         $prevRef  = null;
@@ -200,8 +200,8 @@ class GeneratePdfBench
             $transition->d = new PdfNumber(0.5);
 
             $page = $writer->addPage(612, 792);
-            $page->transition = $transition;
-            $page->dur        = new PdfNumber(5.0);
+            $page->corePage()->transition = $transition;
+            $page->corePage()->dur        = new PdfNumber(5.0);
 
             $cs = $writer->addContentStream($page);
             $cs->beginText()
@@ -240,7 +240,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithAnnotations(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -258,7 +258,7 @@ class GeneratePdfBench
             $textAnnot->contents = new PdfString(sprintf('Note on page %d', $i));
             $textAnnot->name = new PdfName('Note');
             $writer->register($textAnnot);
-            $page->annots[] = new PdfReference($textAnnot->objectNumber);
+            $page->corePage()->annots[] = new PdfReference($textAnnot->objectNumber);
 
             // HighlightAnnotation
             $highlight = new HighlightAnnotation(
@@ -272,7 +272,7 @@ class GeneratePdfBench
             );
             $highlight->c = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]);
             $writer->register($highlight);
-            $page->annots[] = new PdfReference($highlight->objectNumber);
+            $page->corePage()->annots[] = new PdfReference($highlight->objectNumber);
 
             // LineAnnotation
             $line = new LineAnnotation(
@@ -284,7 +284,7 @@ class GeneratePdfBench
             ]);
             $line->le = new PdfArray([new PdfName('None'), new PdfName('OpenArrow')]);
             $writer->register($line);
-            $page->annots[] = new PdfReference($line->objectNumber);
+            $page->corePage()->annots[] = new PdfReference($line->objectNumber);
 
             // SquareAnnotation
             $square = new SquareAnnotation(
@@ -292,7 +292,7 @@ class GeneratePdfBench
             );
             $square->ic = new PdfArray([new PdfNumber(0.8), new PdfNumber(0.9), new PdfNumber(1.0)]);
             $writer->register($square);
-            $page->annots[] = new PdfReference($square->objectNumber);
+            $page->corePage()->annots[] = new PdfReference($square->objectNumber);
         }
 
         $writer->save($this->tempDir . '/phpdftk_10pages_annotations.pdf');
@@ -326,7 +326,7 @@ class GeneratePdfBench
 
         $writer   = new PdfWriter();
         $font     = TrueTypeFont::fromFile($fontPath);
-        $fontName = $writer->addFont($font);
+        $fontName = $writer->addFont($font)->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -352,7 +352,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithDocumentStructure(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // OutputIntent
         $outputIntent = new OutputIntent('GTS_PDFX', 'CGATS TR 001');
@@ -377,7 +377,7 @@ class GeneratePdfBench
                ->endText();
 
             $namedDests['page' . $i] = Destination::xyz(
-                new PdfReference($page->objectNumber), 72, 720, 1.0
+                new PdfReference($page->corePage()->objectNumber), 72, 720, 1.0
             );
         }
 
@@ -403,7 +403,7 @@ class GeneratePdfBench
         foreach ($pages as $idx => $page) {
             $elem = new StructElem('P');
             $elem->p = new PdfReference($structRoot->objectNumber);
-            $elem->pg = new PdfReference($page->objectNumber);
+            $elem->pg = new PdfReference($page->corePage()->objectNumber);
             $writer->register($elem);
             $childRefs[] = new PdfReference($elem->objectNumber);
         }
@@ -469,7 +469,7 @@ class GeneratePdfBench
         $font->resources = new PdfDictionary([
             'ProcSet' => new PdfArray([new PdfName('PDF')]),
         ]);
-        $fontName = $writer->addFont($font);
+        $fontName = $writer->addFont($font)->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -558,7 +558,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithShadingsAndPatterns(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $ramp = new FunctionType2(
             new PdfArray([new PdfNumber(0), new PdfNumber(1)]),
@@ -595,8 +595,8 @@ class GeneratePdfBench
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
-            if ($page->resources !== null) {
-                $page->resources->pattern = [
+            if ($page->corePage()->resources !== null) {
+                $page->corePage()->resources->pattern = [
                     'P1' => $axialPatternRef,
                     'P2' => $tilingRef,
                 ];
@@ -627,7 +627,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithMultimediaAnd3D(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $clipSpec = new FileSpec('clip.mp3');
         $clipSpecRef = $writer->register($clipSpec);
@@ -660,7 +660,7 @@ class GeneratePdfBench
                 new PdfNumber(300), new PdfNumber(660),
             ]));
             $screenRef = $writer->register($screen);
-            $page->annots[] = $screenRef;
+            $page->corePage()->annots[] = $screenRef;
 
             $action = new RenditionAction();
             $action->r = $renditionRef;
@@ -674,7 +674,7 @@ class GeneratePdfBench
             ]));
             $threeD->dd = $u3dRef;
             $threeD->di = false;
-            $page->annots[] = $writer->register($threeD);
+            $page->corePage()->annots[] = $writer->register($threeD);
         }
 
         $writer->save($this->tempDir . '/phpdftk_10pages_multimedia_3d.pdf');
@@ -690,7 +690,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithSignatureField(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $docMdp = new DocMDPTransformParams(p: 2);
         $docMdpRef = $writer->register($docMdp);
@@ -728,7 +728,7 @@ class GeneratePdfBench
                     new PdfNumber(320), new PdfNumber(680),
                 ]));
                 $widget->parent = $fieldRef;
-                $page->annots[] = $writer->register($widget);
+                $page->corePage()->annots[] = $writer->register($widget);
             }
         }
 
@@ -757,7 +757,7 @@ class GeneratePdfBench
         $creds = Pkcs7Signer::createSelfSignedTestCredentials('bench');
 
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $sigValue = new SignatureValue();
         $sigValue->name = new PdfString('Bench signer');
@@ -782,7 +782,7 @@ class GeneratePdfBench
                     new PdfNumber(320), new PdfNumber(680),
                 ]));
                 $widget->parent = $fieldRef;
-                $page->annots[] = $writer->register($widget);
+                $page->corePage()->annots[] = $writer->register($widget);
             }
         }
 
@@ -805,7 +805,7 @@ class GeneratePdfBench
     public function benchPhpdftk10PagesWithMarkupAnnotations(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -821,7 +821,7 @@ class GeneratePdfBench
                 new PdfNumber(540), new PdfNumber(700),
             ]));
             $popupRef = $writer->register($popup);
-            $page->annots[] = $popupRef;
+            $page->corePage()->annots[] = $popupRef;
 
             $note = new \ApprLabs\Pdf\Core\Annotation\TextAnnotation(new PdfArray([
                 new PdfNumber(100), new PdfNumber(690),
@@ -834,7 +834,7 @@ class GeneratePdfBench
             $note->popup = $popupRef;
             $noteRef = $writer->register($note);
             $popup->parent = $noteRef;
-            $page->annots[] = $noteRef;
+            $page->corePage()->annots[] = $noteRef;
 
             $hl = new \ApprLabs\Pdf\Core\Annotation\HighlightAnnotation(
                 new PdfArray([new PdfNumber(72), new PdfNumber(500), new PdfNumber(540), new PdfNumber(520)]),
@@ -849,7 +849,7 @@ class GeneratePdfBench
             $hl->subj = new PdfString('Agreed');
             $hl->irt = $noteRef;
             $hl->rt = new PdfName('R');
-            $page->annots[] = $writer->register($hl);
+            $page->corePage()->annots[] = $writer->register($hl);
         }
 
         $writer->save($this->tempDir . '/phpdftk_10pages_markup.pdf');
@@ -1291,7 +1291,7 @@ class GeneratePdfBench
 
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
-            $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+            $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
             $cs = $writer->addContentStream($page);
             $cs->beginText()->setFont($fontName, 12)->moveTextPosition(72, 720)
@@ -1332,7 +1332,7 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         for ($i = 1; $i <= 10; $i++) {
             $page = $writer->addPage(612, 792);
-            $fontName = $writer->addOpenTypeFont($data, $codepoints, $page);
+            $fontName = $writer->addOpenTypeFont($data, $codepoints, $page)->getResourceName();
 
             $cs = $writer->addContentStream($page);
             $cs->beginText()->setFont($fontName, 14)->moveTextPosition(72, 720);
@@ -1347,5 +1347,156 @@ class GeneratePdfBench
         }
 
         $writer->save($this->tempDir . '/phpdftk_opentype_cff.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithCffSubsetting(): void
+    {
+        $fontPath = '/System/Library/Fonts/Supplemental/STIXGeneral.otf';
+        if (!file_exists($fontPath) || substr(file_get_contents($fontPath), 0, 4) !== 'OTTO') {
+            return;
+        }
+
+        $data = (new \ApprLabs\FontParser\OpenTypeParser($fontPath))->parse();
+        // Use a small character set to demonstrate subsetting benefit
+        $text = 'Hello World';
+        $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
+
+        $writer = new PdfWriter();
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $fontName = $writer->addOpenTypeFont($data, $codepoints, $page)->getResourceName();
+
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()->setFont($fontName, 14)->moveTextPosition(72, 720)
+                ->showUnicodeText($text, $data->fullUnicodeToGid)
+                ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_cff_subsetted.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithKernedText(): void
+    {
+        $fontPath = '/System/Library/Fonts/Supplemental/STIXGeneral.otf';
+        if (!file_exists($fontPath) || substr(file_get_contents($fontPath), 0, 4) !== 'OTTO') {
+            return;
+        }
+
+        $data = (new \ApprLabs\FontParser\OpenTypeParser($fontPath))->parse();
+        $text = 'AV To WA Typography WAVE';
+        $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
+
+        $writer = new PdfWriter();
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $fontName = $writer->addOpenTypeFont($data, $codepoints, $page)->getResourceName();
+
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()->setFont($fontName, 14)->moveTextPosition(72, 720);
+
+            if ($data->kernPairs !== null) {
+                $cs->showUnicodeTextKerned($text, $data->fullUnicodeToGid, $data->kernPairs, $data->unitsPerEm);
+            } else {
+                $cs->showUnicodeText($text, $data->fullUnicodeToGid);
+            }
+
+            $cs->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_kerned_text.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPublicKeyEncryption(): void
+    {
+        // Generate a test certificate
+        $config = [
+            'digest_alg' => 'sha256',
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ];
+        $key = openssl_pkey_new($config);
+        $csr = openssl_csr_new(['commonName' => 'bench-test'], $key, $config);
+        $cert = openssl_csr_sign($csr, null, $key, 365, $config);
+        openssl_x509_export($cert, $certPem);
+
+        $fileWriter = new \ApprLabs\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $catalog = new \ApprLabs\Pdf\Core\Document\Catalog();
+        $fileWriter->setCatalog($catalog);
+        $pageTree = new \ApprLabs\Pdf\Core\Document\PageTree();
+        $fileWriter->register($pageTree);
+        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+
+        $kids = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $page = new \ApprLabs\Pdf\Core\Document\Page();
+            $fileWriter->register($page);
+            $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+            $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
+                new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
+                new \ApprLabs\Pdf\Core\PdfNumber(612), new \ApprLabs\Pdf\Core\PdfNumber(792),
+            ]);
+            $page->resources = new \ApprLabs\Pdf\Core\Content\Resources();
+
+            $cs = new \ApprLabs\Pdf\Core\Content\ContentStream();
+            $fileWriter->register($cs);
+            $cs->beginText()
+                ->setFont('F1', 12)
+                ->moveTextPosition(72, 720)
+                ->showText("Public-key encrypted page $i")
+                ->endText();
+            $page->contents = [new \ApprLabs\Pdf\Core\PdfReference($cs->objectNumber)];
+            $kids[] = new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber);
+        }
+        $pageTree->kids = $kids;
+        $pageTree->count = 10;
+
+        $fileId = md5('bench-pubkey', true);
+        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::publicKeyAes128(
+            [['cert' => $certPem]],
+            $fileId
+        );
+        $fileWriter->setEncryption($encryptor);
+
+        $path = $this->tempDir . '/phpdftk_public_key_encrypted.pdf';
+        file_put_contents($path, $fileWriter->generate());
+    }
+
+    /**
+     * Benchmark TSA request building and response parsing (no network).
+     *
+     * Exercises the full ASN.1 DER encoding of an RFC 3161
+     * TimeStampReq and parsing of a synthetic TimeStampResp.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftkTsaRequestBuildAndParse(): void
+    {
+        $client = new \ApprLabs\Pdf\Core\Interactive\Signature\TsaClient('http://example.com/tsa');
+
+        // Build 100 timestamp requests (exercises DER encoding)
+        for ($i = 0; $i < 100; $i++) {
+            $hash = hash('sha256', "data-$i", binary: true);
+            $req = $client->buildTimeStampReq($hash);
+            assert(ord($req[0]) === 0x30); // valid SEQUENCE
+        }
+
+        // Parse 100 synthetic responses (exercises DER parsing)
+        // Build a fake TimeStampResp with granted status + token
+        $fakeOid = "\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x07\x02"; // id-signedData
+        $fakeContent = "\xA0\x05\x30\x03\x02\x01\x03"; // [0] EXPLICIT SEQUENCE { INTEGER 3 }
+        $fakeToken = "\x30" . chr(strlen($fakeOid . $fakeContent)) . $fakeOid . $fakeContent;
+        $statusInfo = "\x30\x03\x02\x01\x00"; // SEQUENCE { INTEGER 0 }
+        $resp = "\x30" . chr(strlen($statusInfo . $fakeToken)) . $statusInfo . $fakeToken;
+
+        for ($i = 0; $i < 100; $i++) {
+            $token = $client->parseTimeStampResp($resp);
+            assert(strlen($token) > 0);
+        }
     }
 }

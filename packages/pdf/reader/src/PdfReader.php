@@ -77,6 +77,30 @@ final class PdfReader
         return self::build(new StringSource($content), $password, $strict);
     }
 
+    /**
+     * Read a public-key (certificate-based) encrypted PDF from a file.
+     */
+    public static function fromFilePublicKey(
+        string $path,
+        string $certificate,
+        string $privateKey,
+        bool $strict = true,
+    ): self {
+        return self::build(new FileSource($path), '', $strict, $certificate, $privateKey);
+    }
+
+    /**
+     * Read a public-key (certificate-based) encrypted PDF from a string.
+     */
+    public static function fromStringPublicKey(
+        string $content,
+        string $certificate,
+        string $privateKey,
+        bool $strict = true,
+    ): self {
+        return self::build(new StringSource($content), '', $strict, $certificate, $privateKey);
+    }
+
     /** @param resource $stream */
     public static function fromStream($stream, string $password = '', bool $strict = true): self
     {
@@ -98,6 +122,65 @@ final class PdfReader
     public function getVersion(): string
     {
         return $this->version;
+    }
+
+    /**
+     * Check whether this PDF is linearized (web-optimized).
+     *
+     * A linearized PDF has a LinearizationParameters dictionary as the
+     * very first indirect object, containing a /Linearized key. The
+     * reader handles linearized PDFs correctly (via startxref), but
+     * does not use the hint tables for progressive loading.
+     */
+    public function isLinearized(): bool
+    {
+        // Object 1 is typically the linearization dict — check it first
+        foreach ([1, 2] as $objNum) {
+            try {
+                $obj = $this->resolver->resolve($objNum);
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($obj instanceof PdfDictionary && $obj->get('Linearized') !== null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get linearization parameters if the PDF is linearized.
+     *
+     * @return array{linearized: float, fileLength: int, firstPageObj: int, firstPageEnd: int, pageCount: int, xrefOffset: int}|null
+     */
+    public function getLinearizationParameters(): ?array
+    {
+        foreach ([1, 2] as $objNum) {
+            try {
+                $obj = $this->resolver->resolve($objNum);
+            } catch (\Throwable) {
+                continue;
+            }
+            if (!$obj instanceof PdfDictionary || $obj->get('Linearized') === null) {
+                continue;
+            }
+
+            $getInt = static fn(string $key): int =>
+                ($v = $obj->get($key)) instanceof PdfNumber ? (int) $v->toPdf() : 0;
+            $getFloat = static fn(string $key): float =>
+                ($v = $obj->get($key)) instanceof PdfNumber ? (float) $v->toPdf() : 0.0;
+
+            return [
+                'linearized' => $getFloat('Linearized'),
+                'fileLength' => $getInt('L'),
+                'firstPageObj' => $getInt('O'),
+                'firstPageEnd' => $getInt('E'),
+                'pageCount' => $getInt('N'),
+                'xrefOffset' => $getInt('T'),
+            ];
+        }
+
+        return null;
     }
 
     /** The raw trailer dictionary. */
@@ -308,7 +391,13 @@ final class PdfReader
     // Internal
     // -----------------------------------------------------------------------
 
-    private static function build(Source $source, string $password = '', bool $strict = true): self
+    private static function build(
+        Source $source,
+        string $password = '',
+        bool $strict = true,
+        ?string $certificate = null,
+        ?string $privateKey = null,
+    ): self
     {
         $warnings = [];
 
@@ -369,16 +458,29 @@ final class PdfReader
         // 5. Set up decryptor if /Encrypt is present
         $decryptor = null;
         $encrypt = $trailer->get('Encrypt');
-        if ($encrypt instanceof PdfDictionary) {
-            $fileId = self::extractFileId($trailer);
-            $decryptor = PdfDecryptor::fromEncryptDict($encrypt, $password, $fileId);
-        } elseif ($encrypt instanceof PdfReference) {
+        if ($encrypt instanceof PdfReference) {
             // /Encrypt might be an indirect reference — resolve it
             $tempResolver = new ObjectResolver($entries, $tokenizer, $source, $objectParser, $streamParser);
-            $encryptObj = $tempResolver->resolveReference($encrypt);
-            if ($encryptObj instanceof PdfDictionary) {
-                $fileId = self::extractFileId($trailer);
-                $decryptor = PdfDecryptor::fromEncryptDict($encryptObj, $password, $fileId);
+            $resolved = $tempResolver->resolveReference($encrypt);
+            if ($resolved instanceof PdfDictionary) {
+                $encrypt = $resolved;
+            }
+        }
+        if ($encrypt instanceof PdfDictionary) {
+            $fileId = self::extractFileId($trailer);
+            $filter = $encrypt->get('Filter');
+            $isPublicKey = $filter instanceof PdfName && $filter->value === 'Adobe.PubSec';
+
+            if ($isPublicKey && $certificate !== null && $privateKey !== null) {
+                $decryptor = PdfDecryptor::fromEncryptDictPublicKey(
+                    $encrypt, $certificate, $privateKey, $fileId
+                );
+            } elseif (!$isPublicKey) {
+                $decryptor = PdfDecryptor::fromEncryptDict($encrypt, $password, $fileId);
+            } else {
+                throw new InvalidPdfException(
+                    'PDF uses public-key encryption; use fromFilePublicKey() or fromStringPublicKey() with certificate and private key'
+                );
             }
         }
 

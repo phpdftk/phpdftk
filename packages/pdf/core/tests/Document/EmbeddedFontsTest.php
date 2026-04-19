@@ -31,7 +31,7 @@ class EmbeddedFontsTest extends TestCase
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
         $font = TrueTypeFont::fromFile($this->findFont());
-        $name = $writer->addFont($font, $page);
+        $name = $writer->addFont($font, $page)->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()

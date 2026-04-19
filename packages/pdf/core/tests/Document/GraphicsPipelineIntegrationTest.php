@@ -40,7 +40,7 @@ class GraphicsPipelineIntegrationTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // --------------------------------------------------------------
         // Axial + radial gradient ramps built from a Type 2 function.
@@ -100,8 +100,8 @@ class GraphicsPipelineIntegrationTest extends TestCase
         $tilingRef = $writer->register($tiling);
 
         // Expose patterns as page resources.
-        if ($page->resources !== null) {
-            $page->resources->pattern = [
+        if ($page->corePage()->resources !== null) {
+            $page->corePage()->resources->pattern = [
                 'P1' => $axialPatternRef,
                 'P2' => $radialPatternRef,
                 'P3' => $tilingRef,

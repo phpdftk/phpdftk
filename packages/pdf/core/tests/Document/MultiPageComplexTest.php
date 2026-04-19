@@ -55,10 +55,10 @@ class MultiPageComplexTest extends TestCase
         // ----------------------------------------------------------------
         // Fonts
         // ----------------------------------------------------------------
-        $helveticaName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        $boldName      = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
-        $courierName   = $writer->addFont(new Type1Font(StandardFont::Courier));
-        $timesName     = $writer->addFont(new Type1Font(StandardFont::TimesRoman));
+        $helveticaName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        $boldName      = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+        $courierName   = $writer->addFont(new Type1Font(StandardFont::Courier))->getResourceName();
+        $timesName     = $writer->addFont(new Type1Font(StandardFont::TimesRoman))->getResourceName();
 
         // ----------------------------------------------------------------
         // Pages

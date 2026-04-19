@@ -47,7 +47,7 @@ class OpenTypeFontIntegrationTest extends TestCase
 
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addOpenTypeFont($data, $codepoints);
+        $fontName = $writer->addOpenTypeFont($data, $codepoints)->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()

@@ -24,6 +24,8 @@ readonly class TrueTypeData
      * @param int    $unitsPerEm      Font design units per em (from head table)
      * @param array<int, int>  $fullUnicodeToGid  All Unicode codepoint => GID mappings from cmap
      * @param array<int, int>  $glyphWidths       GID => advance width in font design units (unscaled)
+     * @param ?array<int, array<int, int>> $kernPairs leftGid => [rightGid => xAdvanceAdjust] (design units)
+     * @param ?array<int, list<array{components: int[], ligature: int}>> $ligatures firstGid => ligature rules
      */
     public function __construct(
         public string $postScriptName,
@@ -43,5 +45,7 @@ readonly class TrueTypeData
         public int $unitsPerEm = 1000,
         public array $fullUnicodeToGid = [],
         public array $glyphWidths = [],
+        public ?array $kernPairs = null,
+        public ?array $ligatures = null,
     ) {}
 }

@@ -53,6 +53,14 @@ final class TextExtractor
     /** Average character width for space detection (rough estimate) */
     private float $spaceWidth = 0.0;
 
+    /** Current page/XObject resources dictionary for resolving XObjects */
+    private ?PdfDictionary $currentResources = null;
+
+    /** Recursion depth guard for nested Form XObjects */
+    private int $xObjectDepth = 0;
+
+    private const MAX_XOBJECT_DEPTH = 10;
+
     public function __construct(ObjectResolver $resolver)
     {
         $this->parser = new ContentStreamParser();
@@ -68,6 +76,10 @@ final class TextExtractor
     {
         // Pre-load font maps from page resources
         $this->loadFontMaps($page);
+
+        // Track current resources for XObject resolution
+        $resources = $this->resolveValue($page->get('Resources'));
+        $this->currentResources = $resources instanceof PdfDictionary ? $resources : null;
 
         // Get content stream data
         $data = $this->getContentStreamData($page);
@@ -241,10 +253,95 @@ final class TextExtractor
                         $text .= $this->decodeStringOperand($op->operands[2]);
                     }
                     break;
+
+                case 'Do':
+                    // Invoke XObject: /Name Do — recurse into Form XObjects
+                    if (count($op->operands) >= 1) {
+                        $xobjText = $this->extractFromXObject(ltrim($op->operands[0], '/'));
+                        if ($xobjText !== '') {
+                            if ($text !== '' && !str_ends_with($text, "\n") && !str_ends_with($text, ' ')) {
+                                $text .= ' ';
+                            }
+                            $text .= $xobjText;
+                        }
+                    }
+                    break;
             }
         }
 
         return trim($text);
+    }
+
+    /**
+     * Extract text from a Form XObject's content stream.
+     *
+     * Saves/restores font state and resources so the parent context is
+     * unaffected. Recurses up to MAX_XOBJECT_DEPTH levels to handle
+     * nested Form XObjects.
+     */
+    private function extractFromXObject(string $name): string
+    {
+        if ($this->currentResources === null || $this->xObjectDepth >= self::MAX_XOBJECT_DEPTH) {
+            return '';
+        }
+
+        $xobjects = $this->resolveValue($this->currentResources->get('XObject'));
+        if (!$xobjects instanceof PdfDictionary) {
+            return '';
+        }
+
+        $xobjRef = $xobjects->get($name);
+        if ($xobjRef === null) {
+            return '';
+        }
+
+        $xobj = $this->resolveValue($xobjRef);
+        if (!$xobj instanceof PdfStream) {
+            return '';
+        }
+
+        // Check if it's a Form XObject (not Image, PS, etc.)
+        $subtype = $xobj->dictionary->get('Subtype');
+        if (!$subtype instanceof PdfName || $subtype->value !== 'Form') {
+            return '';
+        }
+
+        // Save parent state
+        $savedFontMaps = $this->fontMaps;
+        $savedCidFonts = $this->cidFonts;
+        $savedSpaceWidths = $this->fontSpaceWidths;
+        $savedFont = $this->currentFont;
+        $savedFontSize = $this->fontSize;
+        $savedSpaceWidth = $this->spaceWidth;
+        $savedResources = $this->currentResources;
+
+        // Load Form XObject's own resources (fonts, nested XObjects)
+        $xobjResources = $this->resolveValue($xobj->dictionary->get('Resources'));
+        if ($xobjResources instanceof PdfDictionary) {
+            $this->currentResources = $xobjResources;
+            $this->loadFontMapsFromResources($xobjResources);
+        }
+
+        // Parse and process the Form XObject's content stream
+        $this->xObjectDepth++;
+        $data = $xobj->data;
+        $text = '';
+        if ($data !== '') {
+            $ops = $this->parser->parse($data);
+            $text = $this->processOps($ops);
+        }
+        $this->xObjectDepth--;
+
+        // Restore parent state
+        $this->fontMaps = $savedFontMaps;
+        $this->cidFonts = $savedCidFonts;
+        $this->fontSpaceWidths = $savedSpaceWidths;
+        $this->currentFont = $savedFont;
+        $this->fontSize = $savedFontSize;
+        $this->spaceWidth = $savedSpaceWidth;
+        $this->currentResources = $savedResources;
+
+        return $text;
     }
 
     /**
@@ -549,6 +646,16 @@ final class TextExtractor
             return;
         }
 
+        $this->loadFontMapsFromResources($resources);
+    }
+
+    /**
+     * Load font-to-Unicode mappings from a /Resources dictionary.
+     *
+     * Merges into existing maps so Form XObject fonts supplement page fonts.
+     */
+    private function loadFontMapsFromResources(PdfDictionary $resources): void
+    {
         $fonts = $this->resolveValue($resources->get('Font'));
         if (!$fonts instanceof PdfDictionary) {
             return;

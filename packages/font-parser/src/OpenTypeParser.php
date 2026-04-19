@@ -35,6 +35,19 @@ final class OpenTypeParser
 
     public function __construct(private readonly string $path) {}
 
+    /**
+     * Create a parser from raw font bytes instead of a file path.
+     */
+    public static function fromBytes(string $fontBytes): self
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'phpdftk_otf_');
+        if ($tmp === false) {
+            throw new \RuntimeException('Cannot create temp file for font data');
+        }
+        file_put_contents($tmp, $fontBytes);
+        return new self($tmp);
+    }
+
     public function parse(): OpenTypeData
     {
         $data = file_get_contents($this->path);
@@ -238,6 +251,37 @@ final class OpenTypeParser
 
         $embeddingAllowed = ($fsType & 0x000E) !== 2;
 
+        // Parse vertical metrics (vhea + vmtx tables) if present
+        $verticalWidths = null;
+        if (isset($this->tables['vhea']) && isset($this->tables['vmtx'])) {
+            $vheaBase = $this->tables['vhea']['offset'];
+            $numOfLongVerMetrics = $this->readUint16($vheaBase + 34);
+
+            $vmtxBase = $this->tables['vmtx']['offset'];
+            $verticalWidths = [];
+            $lastAdvanceHeight = 0;
+            for ($gid = 0; $gid < $numOfLongVerMetrics; $gid++) {
+                $lastAdvanceHeight = $this->readUint16($vmtxBase + $gid * 4);
+                $verticalWidths[$gid] = $lastAdvanceHeight;
+            }
+            // Remaining GIDs use the last advance height
+            for ($gid = $numOfLongVerMetrics; $gid < $numGlyphs; $gid++) {
+                $verticalWidths[$gid] = $lastAdvanceHeight;
+            }
+        }
+
+        // Parse kerning data (GPOS or legacy kern table)
+        $kernPairs = null;
+        if (isset($this->tables['GPOS']) || isset($this->tables['kern'])) {
+            $kernPairs = (new KerningParser())->parse($this->data, $this->tables) ?: null;
+        }
+
+        // Parse GSUB ligature data
+        $ligatures = null;
+        if (isset($this->tables['GSUB'])) {
+            $ligatures = (new GsubParser())->parse($this->data, $this->tables) ?: null;
+        }
+
         return new OpenTypeData(
             postScriptName: $postScriptName,
             familyName: $familyName,
@@ -257,6 +301,9 @@ final class OpenTypeParser
             unitsPerEm: $unitsPerEm,
             fullUnicodeToGid: $unicodeToGid,
             glyphWidths: $hmtxWidths,
+            kernPairs: $kernPairs,
+            ligatures: $ligatures,
+            verticalWidths: $verticalWidths,
         );
     }
 

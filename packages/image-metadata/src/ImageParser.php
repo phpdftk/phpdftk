@@ -11,6 +11,8 @@ final class ImageParser {
             str_starts_with($data, 'GIF87a') || str_starts_with($data, 'GIF89a') => GifParser::parseFile($path),
             str_starts_with($data, 'II') || str_starts_with($data, 'MM') => TiffParser::parseFile($path),
             str_starts_with($data, 'RIFF') && substr($data, 8, 4) === 'WEBP' => WebpParser::parseFile($path),
+            str_starts_with($data, "\x00\x00\x00\x0C\x6A\x50\x20\x20") || str_starts_with($data, "\xFF\x4F\xFF\x51") => Jpeg2000Parser::parseFile($path),
+            str_starts_with($data, "\x97\x4A\x42\x32\x0D\x0A\x1A\x0A") => Jbig2Parser::parseFile($path),
             default => throw new \RuntimeException('Unsupported image format'),
         };
     }
@@ -22,6 +24,8 @@ final class ImageParser {
             str_starts_with($data, 'GIF87a') || str_starts_with($data, 'GIF89a') => GifParser::parse($data),
             str_starts_with($data, 'II') || str_starts_with($data, 'MM') => TiffParser::parse($data),
             str_starts_with($data, 'RIFF') && substr($data, 8, 4) === 'WEBP' => WebpParser::parse($data),
+            str_starts_with($data, "\x00\x00\x00\x0C\x6A\x50\x20\x20") || str_starts_with($data, "\xFF\x4F\xFF\x51") => Jpeg2000Parser::parse($data),
+            str_starts_with($data, "\x97\x4A\x42\x32\x0D\x0A\x1A\x0A") => Jbig2Parser::parse($data),
             default => throw new \RuntimeException('Unsupported image format'),
         };
     }

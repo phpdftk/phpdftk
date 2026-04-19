@@ -1,0 +1,56 @@
+---
+import Select from '@astrojs/starlight/components/Select.astro';
+
+const currentVersion = import.meta.env.DOCS_VERSION || 'latest';
+const base = import.meta.env.DOCS_BASE || '/docs/';
+---
+
+<starlight-version-select data-current={currentVersion} data-base={base}>
+	<Select
+		icon="list-format"
+		label="Version"
+		options={[{ label: currentVersion === 'latest' ? 'latest' : currentVersion, value: currentVersion, selected: true }]}
+		width="6.25em"
+	/>
+</starlight-version-select>
+
+<script>
+	class StarlightVersionSelect extends HTMLElement {
+		constructor() {
+			super();
+			const select = this.querySelector('select')!;
+			const current = this.dataset.current!;
+			const base = this.dataset.base!;
+			// Derive the site root: strip the version suffix from base
+			// e.g. /docs/v1.0.0/ -> /docs/, /docs/ -> /docs/
+			const siteRoot = current === 'latest' ? base : base.replace(`${current}/`, '');
+
+			fetch(`${siteRoot}versions.json`)
+				.then((r) => r.json())
+				.then((versions: { label: string; value: string }[]) => {
+					select.innerHTML = '';
+					for (const v of versions) {
+						const opt = document.createElement('option');
+						opt.value = v.value;
+						opt.textContent = v.label;
+						opt.selected = v.value === current;
+						select.appendChild(opt);
+					}
+				})
+				.catch(() => {
+					// No versions.json available (local dev) — keep the single option
+				});
+
+			select.addEventListener('change', (e) => {
+				const target = e.currentTarget as HTMLSelectElement;
+				const val = target.value;
+				if (val === 'latest') {
+					window.location.href = siteRoot;
+				} else {
+					window.location.href = `${siteRoot}${val}/`;
+				}
+			});
+		}
+	}
+	customElements.define('starlight-version-select', StarlightVersionSelect);
+</script>

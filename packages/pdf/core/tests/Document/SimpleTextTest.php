@@ -25,7 +25,7 @@ class SimpleTextTest extends TestCase
         // Page 1: "Hello World" in Helvetica 12pt
         // ----------------------------------------------------------------
         $page1 = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $cs1 = $writer->addContentStream($page1);
         $cs1->beginText()
@@ -58,7 +58,7 @@ class SimpleTextTest extends TestCase
         // Page 3: Text in Courier font
         // ----------------------------------------------------------------
         $page3 = $writer->addPage(612, 792);
-        $courierName = $writer->addFont(new Type1Font(StandardFont::Courier));
+        $courierName = $writer->addFont(new Type1Font(StandardFont::Courier))->getResourceName();
 
         $cs3 = $writer->addContentStream($page3);
         $cs3->beginText()

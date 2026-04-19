@@ -36,6 +36,14 @@ final class PdfHydrator
     private static array $typeMap = [];
 
     /**
+     * Registry mapping /Type+/Subtype to PHP class names for types
+     * that share a /Type value (e.g., Annot, Font, XObject, Pattern).
+     *
+     * @var array<string, array<string, class-string<PdfObject>>>
+     */
+    private static array $subtypeMap = [];
+
+    /**
      * Cache of key→property maps per class.
      *
      * @var array<class-string, array<string, string>>
@@ -50,6 +58,16 @@ final class PdfHydrator
     public static function registerType(string $pdfType, string $className): void
     {
         self::$typeMap[$pdfType] = $className;
+    }
+
+    /**
+     * Register a PdfObject subclass for a /Type + /Subtype combination.
+     *
+     * @param class-string<PdfObject> $className
+     */
+    public static function registerSubtype(string $pdfType, string $subtype, string $className): void
+    {
+        self::$subtypeMap[$pdfType][$subtype] = $className;
     }
 
     /**
@@ -70,17 +88,24 @@ final class PdfHydrator
         $type = $dict->get('Type');
         $typeName = $type instanceof PdfName ? $type->value : null;
 
-        if ($typeName === null || !isset(self::$typeMap[$typeName])) {
+        if ($typeName === null) {
             return $dict;
         }
 
-        $className = self::$typeMap[$typeName];
-        $object = new $className();
-
-        if ($object instanceof PdfObject) {
-            $object->objectNumber = $objectNumber;
-            $object->generationNumber = $generationNumber;
+        // Resolve the target class — check subtype map first for shared /Type values
+        $className = self::resolveClass($typeName, $dict);
+        if ($className === null) {
+            return $dict;
         }
+
+        // Construct the object — some classes require constructor args from the dict
+        $object = self::construct($className, $dict);
+        if ($object === null) {
+            return $dict;
+        }
+
+        $object->objectNumber = $objectNumber;
+        $object->generationNumber = $generationNumber;
 
         $keyMap = self::getKeyMap($className);
 
@@ -101,6 +126,128 @@ final class PdfHydrator
         }
 
         return $object;
+    }
+
+    /**
+     * Resolve the target class for a given /Type, considering /Subtype.
+     *
+     * @return class-string<PdfObject>|null
+     */
+    private static function resolveClass(string $typeName, PdfDictionary $dict): ?string
+    {
+        // Check subtype map first for types with multiple implementations
+        if (isset(self::$subtypeMap[$typeName])) {
+            $subtype = $dict->get('Subtype');
+            if ($subtype instanceof PdfName && isset(self::$subtypeMap[$typeName][$subtype->value])) {
+                return self::$subtypeMap[$typeName][$subtype->value];
+            }
+            // Fall through to base type map if no subtype match
+        }
+
+        return self::$typeMap[$typeName] ?? null;
+    }
+
+    /**
+     * Construct a PdfObject, extracting required constructor args from the dict.
+     */
+    private static function construct(string $className, PdfDictionary $dict): ?PdfObject
+    {
+        $ref = new \ReflectionClass($className);
+        if ($ref->isAbstract()) {
+            return null;
+        }
+
+        $constructor = $ref->getConstructor();
+        if ($constructor === null) {
+            return new $className();
+        }
+
+        // Check if all parameters have defaults
+        $params = $constructor->getParameters();
+        $allOptional = true;
+        foreach ($params as $param) {
+            if (!$param->isOptional()) {
+                $allOptional = false;
+                break;
+            }
+        }
+        if ($allOptional) {
+            return new $className();
+        }
+
+        // Try to extract required args from the dictionary
+        $args = [];
+        foreach ($params as $param) {
+            if ($param->isOptional()) {
+                break; // Once we hit optional params, stop — let defaults apply
+            }
+            $value = self::extractConstructorArg($param, $dict);
+            if ($value === null) {
+                return null; // Can't satisfy required arg — bail
+            }
+            $args[] = $value;
+        }
+
+        try {
+            return new $className(...$args);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Try to extract a constructor argument value from the dictionary.
+     */
+    private static function extractConstructorArg(\ReflectionParameter $param, PdfDictionary $dict): mixed
+    {
+        $name = $param->getName();
+        $type = $param->getType();
+        $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+        // Map common constructor param names to PDF keys
+        $pdfKey = match ($name) {
+            'title' => 'Title',
+            'fontName' => 'FontName',
+            'rect' => 'Rect',
+            'subtype' => 'Subtype',
+            'structureType' => 'S',
+            'name' => 'Name',
+            'externalName' => 'XN',
+            'sampleRate' => 'R',
+            'transformMethod' => 'TransformMethod',
+            'outputConditionIdentifier' => 'OutputConditionIdentifier',
+            'dPartRootNode' => 'DPartRootNode',
+            'parent' => 'Parent',
+            'bBox' => 'BBox',
+            'baseFontName' => 'BaseFont',
+            default => ucfirst($name),
+        };
+
+        $value = $dict->get($pdfKey);
+        if ($value === null) {
+            return null;
+        }
+
+        // Coerce to expected type
+        if ($typeName === 'string') {
+            if ($value instanceof PdfName) {
+                return $value->value;
+            }
+            if ($value instanceof \ApprLabs\Pdf\Core\PdfString) {
+                return $value->value;
+            }
+            return (string) $value;
+        }
+
+        if ($typeName === 'int' && $value instanceof PdfNumber) {
+            return (int) $value->toPdf();
+        }
+
+        if ($typeName === 'float' && $value instanceof PdfNumber) {
+            return (float) $value->toPdf();
+        }
+
+        return $value;
     }
 
     /**
@@ -263,6 +410,17 @@ final class PdfHydrator
             'StructTreeRoot' => [
                 'K' => 'k',
             ],
+            'StructElem' => [
+                'S' => 's',
+                'P' => 'p',
+                'K' => 'k',
+                'A' => 'a',
+                'C' => 'c',
+                'R' => 'r',
+                'T' => 't',
+                'E' => 'e',
+                'ID' => 'id',
+            ],
             'EncryptDictionary' => [
                 'CF' => 'cf',
                 'O' => 'o',
@@ -272,6 +430,72 @@ final class PdfHydrator
                 'P' => 'p',
                 'R' => 'r',
                 'V' => 'v',
+            ],
+            'OCG' => [
+                'Name' => 'name',
+            ],
+            'ExtGState' => [
+                'LW' => 'lw',
+                'LC' => 'lc',
+                'LJ' => 'lj',
+                'ML' => 'ml',
+                'D' => 'd',
+                'RI' => 'ri',
+                'OP' => 'op',
+                'op' => 'opLower',
+                'OPM' => 'opm',
+                'FL' => 'fl',
+                'SM' => 'sm',
+                'SA' => 'sa',
+                'BM' => 'bm',
+                'SMask' => 'sMask',
+                'CA' => 'ca',
+                'ca' => 'caLower',
+                'AIS' => 'ais',
+                'TK' => 'tk',
+                'BG' => 'bg',
+                'BG2' => 'bg2',
+                'UCR' => 'ucr',
+                'UCR2' => 'ucr2',
+                'TR' => 'tr',
+                'TR2' => 'tr2',
+                'HT' => 'ht',
+                'HTO' => 'hto',
+            ],
+            'SignatureValue', 'DocTimeStamp' => [
+                'M' => 'm',
+            ],
+            'ThreeDBackground' => [
+                'CS' => 'cs',
+                'C' => 'c',
+                'EA' => 'ea',
+            ],
+            'ThreeDCrossSection' => [
+                'C' => 'c',
+                'O' => 'o',
+                'PC' => 'pc',
+                'PO' => 'po',
+                'IV' => 'iv',
+                'IC' => 'ic',
+                'ST' => 'st',
+            ],
+            'ThreeDView' => [
+                'XN' => 'xn',
+                'IN' => 'in',
+                'MS' => 'ms',
+                'C2W' => 'c2w',
+                'CO' => 'co',
+                'P' => 'p',
+                'O' => 'o',
+                'BG' => 'bg',
+                'RM' => 'rm',
+                'LS' => 'ls',
+                'SA' => 'sa',
+            ],
+            'ThreeDStream' => [
+                'VA' => 'va',
+                'DV' => 'dv',
+                'AN' => 'an',
             ],
             default => [],
         };
@@ -287,8 +511,11 @@ final class PdfHydrator
             return;
         }
 
-        // Core document types
-        $classes = [
+        // ---------------------------------------------------------------
+        // Unique /Type classes (one class per /Type value)
+        // ---------------------------------------------------------------
+        $uniqueTypes = [
+            // Document structure
             \ApprLabs\Pdf\Core\Document\Catalog::class,
             \ApprLabs\Pdf\Core\Document\Page::class,
             \ApprLabs\Pdf\Core\Document\PageTree::class,
@@ -301,24 +528,117 @@ final class PdfHydrator
             \ApprLabs\Pdf\Core\Document\OCG::class,
             \ApprLabs\Pdf\Core\Document\OCMD::class,
             \ApprLabs\Pdf\Core\Document\Collection::class,
+            \ApprLabs\Pdf\Core\Document\CollectionSchema::class,
             \ApprLabs\Pdf\Core\Document\Thread::class,
             \ApprLabs\Pdf\Core\Document\Bead::class,
             \ApprLabs\Pdf\Core\Document\ObjectRef::class,
             \ApprLabs\Pdf\Core\Document\DPartRoot::class,
             \ApprLabs\Pdf\Core\Document\DPart::class,
+            \ApprLabs\Pdf\Core\Document\Requirement::class,
             \ApprLabs\Pdf\Core\Document\RequirementHandler::class,
-            // Font types
+            \ApprLabs\Pdf\Core\Document\MetadataStream::class,
+            \ApprLabs\Pdf\Core\Document\CrossReferenceStream::class,
+            \ApprLabs\Pdf\Core\Document\ObjectStream::class,
+            // Font
             \ApprLabs\Pdf\Core\Font\FontDescriptor::class,
+            \ApprLabs\Pdf\Core\Font\Encoding::class,
+            \ApprLabs\Pdf\Core\Font\CMapStream::class,
             // FileSpec
             \ApprLabs\Pdf\Core\FileSpec\FileSpec::class,
+            \ApprLabs\Pdf\Core\FileSpec\EmbeddedFile::class,
             // Security
             \ApprLabs\Pdf\Core\Security\EncryptDictionary::class,
+            // Graphics
+            \ApprLabs\Pdf\Core\Graphics\ExtGState::class,
+            // Interactive — forms
+            \ApprLabs\Pdf\Core\Interactive\Form\SigFieldLock::class,
+            \ApprLabs\Pdf\Core\Interactive\Form\SeedValueDictionary::class,
+            // Interactive — signatures
+            \ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue::class,
+            \ApprLabs\Pdf\Core\Interactive\Signature\DocTimeStamp::class,
+            \ApprLabs\Pdf\Core\Interactive\Signature\SignatureReference::class,
+            // Multimedia
+            \ApprLabs\Pdf\Core\Multimedia\Sound::class,
+            \ApprLabs\Pdf\Core\Multimedia\MediaPlayParams::class,
+            \ApprLabs\Pdf\Core\Multimedia\MediaScreenParams::class,
+            \ApprLabs\Pdf\Core\Multimedia\MediaCriteria::class,
+            \ApprLabs\Pdf\Core\Multimedia\Navigator::class,
+            // 3D
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDStream::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDView::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDBackground::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDRenderMode::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDLightingScheme::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDCrossSection::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDNode::class,
+            \ApprLabs\Pdf\Core\ThreeD\ThreeDMeasure::class,
         ];
 
-        foreach ($classes as $class) {
+        foreach ($uniqueTypes as $class) {
             if (defined("$class::PDF_TYPE")) {
                 self::registerType($class::PDF_TYPE, $class);
             }
         }
+
+        // ---------------------------------------------------------------
+        // Shared /Type classes — dispatched by /Subtype
+        // ---------------------------------------------------------------
+
+        // /Type /Annot — concrete annotation subtypes
+        $annotationSubtypes = [
+            'Text' => \ApprLabs\Pdf\Core\Annotation\TextAnnotation::class,
+            'Link' => \ApprLabs\Pdf\Core\Annotation\LinkAnnotation::class,
+            'FreeText' => \ApprLabs\Pdf\Core\Annotation\FreeTextAnnotation::class,
+            'Highlight' => \ApprLabs\Pdf\Core\Annotation\HighlightAnnotation::class,
+            'Underline' => \ApprLabs\Pdf\Core\Annotation\UnderlineAnnotation::class,
+            'Squiggly' => \ApprLabs\Pdf\Core\Annotation\SquigglyAnnotation::class,
+            'StrikeOut' => \ApprLabs\Pdf\Core\Annotation\StrikeOutAnnotation::class,
+            'Stamp' => \ApprLabs\Pdf\Core\Annotation\StampAnnotation::class,
+            'Ink' => \ApprLabs\Pdf\Core\Annotation\InkAnnotation::class,
+            'Popup' => \ApprLabs\Pdf\Core\Annotation\PopupAnnotation::class,
+            'Widget' => \ApprLabs\Pdf\Core\Annotation\WidgetAnnotation::class,
+            'Line' => \ApprLabs\Pdf\Core\Annotation\LineAnnotation::class,
+            'Square' => \ApprLabs\Pdf\Core\Annotation\SquareAnnotation::class,
+            'Circle' => \ApprLabs\Pdf\Core\Annotation\CircleAnnotation::class,
+            'Polygon' => \ApprLabs\Pdf\Core\Annotation\PolygonAnnotation::class,
+            'PolyLine' => \ApprLabs\Pdf\Core\Annotation\PolyLineAnnotation::class,
+            'Caret' => \ApprLabs\Pdf\Core\Annotation\CaretAnnotation::class,
+            'FileAttachment' => \ApprLabs\Pdf\Core\Annotation\FileAttachmentAnnotation::class,
+            'Sound' => \ApprLabs\Pdf\Core\Annotation\SoundAnnotation::class,
+            'Movie' => \ApprLabs\Pdf\Core\Annotation\MovieAnnotation::class,
+            'Screen' => \ApprLabs\Pdf\Core\Annotation\ScreenAnnotation::class,
+            'PrinterMark' => \ApprLabs\Pdf\Core\Annotation\PrinterMarkAnnotation::class,
+            'TrapNet' => \ApprLabs\Pdf\Core\Annotation\TrapNetAnnotation::class,
+            'Watermark' => \ApprLabs\Pdf\Core\Annotation\WatermarkAnnotation::class,
+            '3D' => \ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation::class,
+            'Redact' => \ApprLabs\Pdf\Core\Annotation\RedactAnnotation::class,
+            'Projection' => \ApprLabs\Pdf\Core\Annotation\ProjectionAnnotation::class,
+            'RichMedia' => \ApprLabs\Pdf\Core\Annotation\RichMediaAnnotation::class,
+        ];
+        foreach ($annotationSubtypes as $subtype => $class) {
+            self::registerSubtype('Annot', $subtype, $class);
+        }
+
+        // /Type /Font — font subtypes
+        self::registerSubtype('Font', 'Type1', \ApprLabs\Pdf\Core\Font\Type1Font::class);
+        self::registerSubtype('Font', 'TrueType', \ApprLabs\Pdf\Core\Font\TrueTypeFont::class);
+        self::registerSubtype('Font', 'Type0', \ApprLabs\Pdf\Core\Font\Type0Font::class);
+        self::registerSubtype('Font', 'Type3', \ApprLabs\Pdf\Core\Font\Type3Font::class);
+        self::registerSubtype('Font', 'MMType1', \ApprLabs\Pdf\Core\Font\MMType1Font::class);
+        self::registerSubtype('Font', 'CIDFontType0', \ApprLabs\Pdf\Core\Font\CIDFontType0Font::class);
+        self::registerSubtype('Font', 'CIDFontType2', \ApprLabs\Pdf\Core\Font\CIDFontType2Font::class);
+
+        // /Type /XObject
+        self::registerSubtype('XObject', 'Image', \ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject::class);
+        self::registerSubtype('XObject', 'Form', \ApprLabs\Pdf\Core\Graphics\XObject\FormXObject::class);
+        self::registerSubtype('XObject', 'PS', \ApprLabs\Pdf\Core\Graphics\XObject\PostScriptXObject::class);
+
+        // /Type /Rendition
+        self::registerSubtype('Rendition', 'MR', \ApprLabs\Pdf\Core\Multimedia\MediaRendition::class);
+        self::registerSubtype('Rendition', 'SR', \ApprLabs\Pdf\Core\Multimedia\SelectorRendition::class);
+
+        // /Type /MediaClip
+        self::registerSubtype('MediaClip', 'MCD', \ApprLabs\Pdf\Core\Multimedia\MediaClipData::class);
+        self::registerSubtype('MediaClip', 'MCS', \ApprLabs\Pdf\Core\Multimedia\MediaClipSection::class);
     }
 }

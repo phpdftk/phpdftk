@@ -35,7 +35,7 @@ class FormAppearancesIntegrationTest extends TestCase
     {
         $writer = new PdfWriter(compressStreams: false);
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // Title
         $cs = $writer->addContentStream($page);
@@ -73,7 +73,7 @@ class FormAppearancesIntegrationTest extends TestCase
             new PdfReference($textAppearance->objectNumber)
         );
         $writer->register($textWidget);
-        $page->annots[] = new PdfReference($textWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($textWidget->objectNumber);
 
         // --- Checkbox with appearance ---
         $checkRect = new PdfArray([
@@ -97,7 +97,7 @@ class FormAppearancesIntegrationTest extends TestCase
             new PdfReference($checkStates['off']->objectNumber),
         );
         $writer->register($checkWidget);
-        $page->annots[] = new PdfReference($checkWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($checkWidget->objectNumber);
 
         // --- Choice field with appearance ---
         $choiceRect = new PdfArray([
@@ -125,7 +125,7 @@ class FormAppearancesIntegrationTest extends TestCase
             new PdfReference($choiceAppearance->objectNumber)
         );
         $writer->register($choiceWidget);
-        $page->annots[] = new PdfReference($choiceWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($choiceWidget->objectNumber);
 
         // --- AcroForm ---
         $acroForm = new AcroForm();

@@ -6,6 +6,7 @@ namespace ApprLabs\Pdf\Core\Security;
 
 use ApprLabs\Crypt\AesCipher;
 use ApprLabs\Crypt\PdfKeyDerivation;
+use ApprLabs\Crypt\PublicKeyEncryption;
 use ApprLabs\Crypt\Rc4Cipher;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
@@ -135,6 +136,138 @@ final class PdfEncryptor
         int $permissions = self::PERM_ALL,
     ): self {
         return self::createR6($userPassword, $ownerPassword, $fileId, $permissions);
+    }
+
+    /**
+     * Create an encryptor with public-key (certificate-based) AES-128 encryption.
+     *
+     * Uses the Adobe.PubSec handler with /SubFilter /adbe.pkcs7.s5 (V=4).
+     * Each recipient's certificate receives a PKCS#7 envelope containing the
+     * encryption seed. Different recipients may have different permissions.
+     *
+     * @param array<array{cert: string, permissions?: int}> $recipients
+     *     Each entry: 'cert' = PEM certificate, 'permissions' = PERM_* bitmask (default PERM_ALL)
+     * @param string $fileId File identifier for the /ID trailer entry
+     */
+    public static function publicKeyAes128(
+        array $recipients,
+        string $fileId,
+    ): self {
+        if ($recipients === []) {
+            throw new \InvalidArgumentException('At least one recipient certificate is required');
+        }
+
+        // Generate 20-byte random seed
+        $seed = random_bytes(20);
+        $encryptMetadata = true;
+
+        // Build PKCS#7 envelopes and compute combined permissions
+        $recipientDerStrings = [];
+        $combinedPermissions = self::PERM_ALL | 0xFFFFF000 | 0xC0;
+
+        foreach ($recipients as $r) {
+            $certPem = $r['cert'];
+            $perms = ($r['permissions'] ?? self::PERM_ALL) | 0xFFFFF000 | 0xC0;
+            $combinedPermissions &= $perms;
+
+            $der = PublicKeyEncryption::createEnvelope($seed, $perms, $certPem, $encryptMetadata);
+            $recipientDerStrings[] = $der;
+        }
+
+        // Derive file encryption key: SHA-1(seed || recipients || P || metadata_flag)
+        $encryptionKey = PublicKeyEncryption::deriveFileKey(
+            $seed, $recipientDerStrings, $combinedPermissions, 16, $encryptMetadata
+        );
+
+        // Build /Recipients array of PdfString (binary PKCS#7 DER)
+        $recipientStrings = [];
+        foreach ($recipientDerStrings as $der) {
+            $recipientStrings[] = new PdfString($der, hex: true);
+        }
+
+        // Build EncryptDictionary
+        $dict = new EncryptDictionary('Adobe.PubSec', 4);
+        $dict->subFilter = new PdfName('adbe.pkcs7.s5');
+        $dict->encryptMetadata = $encryptMetadata;
+
+        // Set up crypt filter with Recipients
+        $cfDict = new PdfDictionary();
+        $defaultCf = new PdfDictionary();
+        $defaultCf->set('Type', new PdfName('CryptFilter'));
+        $defaultCf->set('CFM', new PdfName('AESV2'));
+        $defaultCf->set('Length', new PdfNumber(16));
+        $defaultCf->set('AuthEvent', new PdfName('DocOpen'));
+        $defaultCf->set('Recipients', new PdfArray($recipientStrings));
+        $cfDict->set('DefaultCryptFilter', $defaultCf);
+        $dict->cf = $cfDict;
+        $dict->stmF = new PdfName('DefaultCryptFilter');
+        $dict->strF = new PdfName('DefaultCryptFilter');
+
+        return new self($encryptionKey, $dict, true, $fileId);
+    }
+
+    /**
+     * Create an encryptor with public-key (certificate-based) AES-256 encryption.
+     *
+     * Uses the Adobe.PubSec handler with /SubFilter /adbe.pkcs7.s5 (V=4, CFM=AESV3).
+     * File encryption key is 32 bytes, derived via SHA-256.
+     *
+     * @param array<array{cert: string, permissions?: int}> $recipients
+     *     Each entry: 'cert' = PEM certificate, 'permissions' = PERM_* bitmask (default PERM_ALL)
+     * @param string $fileId File identifier for the /ID trailer entry
+     */
+    public static function publicKeyAes256(
+        array $recipients,
+        string $fileId,
+    ): self {
+        if ($recipients === []) {
+            throw new \InvalidArgumentException('At least one recipient certificate is required');
+        }
+
+        $seed = random_bytes(20);
+        $encryptMetadata = true;
+
+        $recipientDerStrings = [];
+        $combinedPermissions = self::PERM_ALL | 0xFFFFF000 | 0xC0;
+
+        foreach ($recipients as $r) {
+            $certPem = $r['cert'];
+            $perms = ($r['permissions'] ?? self::PERM_ALL) | 0xFFFFF000 | 0xC0;
+            $combinedPermissions &= $perms;
+
+            $der = PublicKeyEncryption::createEnvelope($seed, $perms, $certPem, $encryptMetadata);
+            $recipientDerStrings[] = $der;
+        }
+
+        // Derive 32-byte file encryption key via SHA-256
+        $encryptionKey = PublicKeyEncryption::deriveFileKey(
+            $seed, $recipientDerStrings, $combinedPermissions, 32, $encryptMetadata
+        );
+
+        $recipientStrings = [];
+        foreach ($recipientDerStrings as $der) {
+            $recipientStrings[] = new PdfString($der, hex: true);
+        }
+
+        // V=4 with AESV3 for AES-256
+        $dict = new EncryptDictionary('Adobe.PubSec', 4);
+        $dict->subFilter = new PdfName('adbe.pkcs7.s5');
+        $dict->length = 256;
+        $dict->encryptMetadata = $encryptMetadata;
+
+        $cfDict = new PdfDictionary();
+        $defaultCf = new PdfDictionary();
+        $defaultCf->set('Type', new PdfName('CryptFilter'));
+        $defaultCf->set('CFM', new PdfName('AESV3'));
+        $defaultCf->set('Length', new PdfNumber(32));
+        $defaultCf->set('AuthEvent', new PdfName('DocOpen'));
+        $defaultCf->set('Recipients', new PdfArray($recipientStrings));
+        $cfDict->set('DefaultCryptFilter', $defaultCf);
+        $dict->cf = $cfDict;
+        $dict->stmF = new PdfName('DefaultCryptFilter');
+        $dict->strF = new PdfName('DefaultCryptFilter');
+
+        return new self($encryptionKey, $dict, true, $fileId, 256);
     }
 
     /**

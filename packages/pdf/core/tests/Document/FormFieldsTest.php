@@ -71,7 +71,7 @@ class FormFieldsTest extends TestCase
         );
         $nameWidget->parent = new PdfReference($nameField->objectNumber);
         $writer->register($nameWidget);
-        $page->annots[] = new PdfReference($nameWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($nameWidget->objectNumber);
 
         // ----------------------------------------------------------------
         // Button field (checkbox)
@@ -94,7 +94,7 @@ class FormFieldsTest extends TestCase
         );
         $checkWidget->parent = new PdfReference($checkField->objectNumber);
         $writer->register($checkWidget);
-        $page->annots[] = new PdfReference($checkWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($checkWidget->objectNumber);
 
         // ----------------------------------------------------------------
         // Choice field (combo box / dropdown)
@@ -124,7 +124,7 @@ class FormFieldsTest extends TestCase
         );
         $countryWidget->parent = new PdfReference($countryField->objectNumber);
         $writer->register($countryWidget);
-        $page->annots[] = new PdfReference($countryWidget->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($countryWidget->objectNumber);
 
         // ----------------------------------------------------------------
         // AcroForm dictionary

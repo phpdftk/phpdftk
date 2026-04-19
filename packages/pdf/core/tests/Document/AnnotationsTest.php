@@ -48,7 +48,7 @@ class AnnotationsTest extends TestCase
         $textAnnot->c          = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]); // yellow
 
         $writer->register($textAnnot);
-        $page->annots[] = new PdfReference($textAnnot->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($textAnnot->objectNumber);
 
         // ----------------------------------------------------------------
         // Link annotation pointing to page 1 (local destination)
@@ -64,7 +64,7 @@ class AnnotationsTest extends TestCase
         $linkAnnot->h = new PdfName('I'); // Invert highlight mode
 
         $writer->register($linkAnnot);
-        $page->annots[] = new PdfReference($linkAnnot->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($linkAnnot->objectNumber);
 
         // ----------------------------------------------------------------
         // Highlight annotation
@@ -91,7 +91,7 @@ class AnnotationsTest extends TestCase
         $highlightAnnot->c = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]);
 
         $writer->register($highlightAnnot);
-        $page->annots[] = new PdfReference($highlightAnnot->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($highlightAnnot->objectNumber);
 
         // ----------------------------------------------------------------
         // Stamp annotation
@@ -108,7 +108,7 @@ class AnnotationsTest extends TestCase
         $stampAnnot->contents = new PdfString('Document approved');
 
         $writer->register($stampAnnot);
-        $page->annots[] = new PdfReference($stampAnnot->objectNumber);
+        $page->corePage()->annots[] = new PdfReference($stampAnnot->objectNumber);
 
         // Add some text content to the page as well
         $cs = $writer->addContentStream($page);

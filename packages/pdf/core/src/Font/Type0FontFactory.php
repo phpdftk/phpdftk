@@ -35,9 +35,10 @@ class Type0FontFactory
      *
      * @param TrueTypeData $data           Parsed font data
      * @param int[]        $usedCodepoints Unicode codepoints used in the document
-     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream} The Type0Font, additional objects, font stream, descriptor, CID font, and ToUnicode stream
+     * @param bool         $vertical       Use Identity-V encoding for vertical writing mode
+     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream}
      */
-    public static function fromTrueTypeData(TrueTypeData $data, array $usedCodepoints): array
+    public static function fromTrueTypeData(TrueTypeData $data, array $usedCodepoints, bool $vertical = false): array
     {
         $additionalObjects = [];
 
@@ -108,7 +109,7 @@ class Type0FontFactory
         $type0Font = new Type0Font(
             $data->postScriptName,
             new PdfArray([]), // placeholder, will be set after CIDFont is registered
-            'Identity-H'
+            $vertical ? 'Identity-V' : 'Identity-H'
         );
 
         return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream];

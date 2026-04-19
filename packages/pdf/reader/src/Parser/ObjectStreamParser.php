@@ -32,8 +32,18 @@ final class ObjectStreamParser
     {
         $dict = $objStm->dictionary;
 
-        // Decompress
-        $data = $this->streamParser->decode($objStm->data, $dict);
+        // The stream data may already be decompressed by ObjectResolver::resolveInUse().
+        // Try decoding via the filter chain; if it fails, assume data is already raw.
+        $filterVal = $dict->get('Filter');
+        if ($filterVal !== null) {
+            try {
+                $data = $this->streamParser->decode($objStm->data, $dict);
+            } catch (\Throwable) {
+                $data = $objStm->data;
+            }
+        } else {
+            $data = $objStm->data;
+        }
 
         $nVal = $dict->get('N');
         $n = ($nVal instanceof PdfNumber) ? (int) $nVal->toPdf() : 0;

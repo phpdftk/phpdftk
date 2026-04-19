@@ -6,6 +6,7 @@ namespace ApprLabs\Pdf\Reader;
 
 use ApprLabs\Crypt\AesCipher;
 use ApprLabs\Crypt\PdfKeyDerivation;
+use ApprLabs\Crypt\PublicKeyEncryption;
 use ApprLabs\Crypt\Rc4Cipher;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
@@ -220,6 +221,121 @@ final class PdfDecryptor
             }
         }
         return new PdfArray($items);
+    }
+
+    /**
+     * Build a decryptor from a public-key (Adobe.PubSec) encrypt dictionary.
+     *
+     * Extracts the PKCS#7 envelopes from the crypt filter's /Recipients,
+     * decrypts the seed using the provided certificate and private key,
+     * then derives the file encryption key.
+     *
+     * @throws InvalidPdfException If no matching recipient found or encryption unsupported
+     */
+    public static function fromEncryptDictPublicKey(
+        PdfDictionary $encryptDict,
+        string $certPem,
+        string $privateKeyPem,
+        string $fileId,
+    ): self {
+        $v = self::intVal($encryptDict, 'V', 0);
+
+        // Determine cipher and locate Recipients
+        $useAes = false;
+        $recipientStrings = [];
+
+        if ($v === 4) {
+            // V=4: Recipients in crypt filter
+            $stmF = $encryptDict->get('StmF');
+            $cfName = $stmF instanceof PdfName ? $stmF->value : 'DefaultCryptFilter';
+            $cf = $encryptDict->get('CF');
+            if ($cf instanceof PdfDictionary) {
+                $filter = $cf->get($cfName);
+                if ($filter instanceof PdfDictionary) {
+                    $cfm = $filter->get('CFM');
+                    if ($cfm instanceof PdfName && ($cfm->value === 'AESV2' || $cfm->value === 'AESV3')) {
+                        $useAes = true;
+                    }
+                    $recipients = $filter->get('Recipients');
+                    if ($recipients instanceof PdfArray) {
+                        foreach ($recipients->items as $item) {
+                            if ($item instanceof PdfString) {
+                                $recipientStrings[] = $item->value;
+                            }
+                        }
+                    } elseif ($recipients instanceof PdfString) {
+                        $recipientStrings[] = $recipients->value;
+                    }
+                }
+            }
+        } else {
+            // V=1/2/3: Recipients in encrypt dictionary (adbe.pkcs7.s3)
+            $recipients = $encryptDict->get('Recipients');
+            if ($recipients instanceof PdfArray) {
+                foreach ($recipients->items as $item) {
+                    if ($item instanceof PdfString) {
+                        $recipientStrings[] = $item->value;
+                    }
+                }
+            }
+        }
+
+        if ($recipientStrings === []) {
+            throw new InvalidPdfException('No /Recipients found in public-key encrypt dictionary');
+        }
+
+        // Try to decrypt each recipient envelope to find our seed
+        $seed = null;
+        foreach ($recipientStrings as $der) {
+            $seed = PublicKeyEncryption::openEnvelope($der, $certPem, $privateKeyPem);
+            if ($seed !== null) {
+                break;
+            }
+        }
+
+        if ($seed === null) {
+            throw new InvalidPdfException('No matching recipient for the provided certificate');
+        }
+
+        $encryptMetadata = true;
+        $emVal = $encryptDict->get('EncryptMetadata');
+        if ($emVal instanceof \ApprLabs\Pdf\Core\PdfBoolean) {
+            $encryptMetadata = $emVal->toPdf() === 'true';
+        }
+
+        // Compute combined permissions from all recipients (we don't know
+        // individual permissions, so use the /P value if available, or -1)
+        $p = self::intVal($encryptDict, 'P', -1);
+        if ($p > 0x7FFFFFFF) {
+            $p = $p - 0x100000000;
+        }
+
+        // Key length — detect AESV3 (AES-256) vs AESV2 (AES-128)
+        $aesKeyBits = 128;
+        if ($v === 4) {
+            $stmF = $encryptDict->get('StmF');
+            $cfName = $stmF instanceof PdfName ? $stmF->value : 'DefaultCryptFilter';
+            $cf = $encryptDict->get('CF');
+            if ($cf instanceof PdfDictionary) {
+                $filter = $cf->get($cfName);
+                if ($filter instanceof PdfDictionary) {
+                    $cfm = $filter->get('CFM');
+                    if ($cfm instanceof PdfName && $cfm->value === 'AESV3') {
+                        $aesKeyBits = 256;
+                    }
+                }
+            }
+        }
+        $keyLengthBytes = $aesKeyBits / 8;
+
+        // Derive file encryption key
+        $encryptionKey = PublicKeyEncryption::deriveFileKey(
+            $seed, $recipientStrings, $p, (int) $keyLengthBytes, $encryptMetadata
+        );
+
+        $revision = self::intVal($encryptDict, 'R', 4);
+
+        return new self($encryptionKey, $useAes, $revision, $aesKeyBits);
     }
 
     /**

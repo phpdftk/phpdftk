@@ -7,6 +7,7 @@ namespace ApprLabs\Pdf\Core\File;
 use ApprLabs\Filters\FlateFilter;
 use ApprLabs\Pdf\Core\Content\ContentStream;
 use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
+use ApprLabs\Pdf\Core\Security\PdfEncryptor;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
@@ -42,6 +43,7 @@ final class IncrementalWriter
     private int $nextObjectNumber;
     private bool $compressStreams;
     private bool $useXRefStream;
+    private ?PdfEncryptor $encryptor = null;
 
     /**
      * @param string $originalPdf The complete bytes of the original PDF
@@ -66,6 +68,17 @@ final class IncrementalWriter
         $this->nextObjectNumber = $originalSize;
         $this->compressStreams = $compressStreams;
         $this->useXRefStream = $useXRefStream;
+    }
+
+    /**
+     * Configure encryption for new/modified objects in the incremental update.
+     *
+     * The encryptor must use the same key as the original PDF's encryption.
+     * New and modified objects will be encrypted before serialization.
+     */
+    public function setEncryption(PdfEncryptor $encryptor): void
+    {
+        $this->encryptor = $encryptor;
     }
 
     /**
@@ -201,9 +214,44 @@ final class IncrementalWriter
             }
         }
 
-        // Write modified/new objects and build xref entries
+        // Write modified/new objects and build xref entries.
+        // When encryption is active, clone objects and encrypt the clones
+        // so originals stay untouched (same pattern as PdfFileWriter).
+        $objectsToWrite = $this->objects;
+        if ($this->encryptor !== null) {
+            $flate = $this->compressStreams ? new FlateFilter() : null;
+            $clones = [];
+            foreach ($objectsToWrite as $objNum => $object) {
+                $clone = clone $object;
+                if ($clone instanceof PdfStream) {
+                    $clone->dictionary = clone $clone->dictionary;
+                }
+                // Materialize ContentStream operators into data
+                if ($clone instanceof ContentStream) {
+                    $ops = $clone->getOperators();
+                    if (!empty($ops)) {
+                        $clone->data = implode("\n", $ops);
+                        $clone->clearOperators();
+                    }
+                }
+                // Compress before encrypting (spec order: compress → encrypt)
+                if (
+                    $flate !== null
+                    && $clone instanceof PdfStream
+                    && !$clone->dictionary->has('Filter')
+                    && $clone->data !== ''
+                ) {
+                    $clone->data = $flate->encode($clone->data);
+                    $clone->dictionary->set('Filter', new PdfName('FlateDecode'));
+                }
+                $this->encryptor->encryptObject($clone);
+                $clones[$objNum] = $clone;
+            }
+            $objectsToWrite = $clones;
+        }
+
         $xrefEntries = [];
-        foreach ($this->objects as $objNum => $object) {
+        foreach ($objectsToWrite as $objNum => $object) {
             $xrefEntries[$objNum] = $offset;
             $chunk = $object->toIndirectObject() . "\n";
             $chunks[] = $chunk;

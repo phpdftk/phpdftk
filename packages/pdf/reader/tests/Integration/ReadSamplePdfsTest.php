@@ -160,4 +160,54 @@ class ReadSamplePdfsTest extends TestCase
         $pdf = PdfReader::fromFile($path);
         self::assertGreaterThanOrEqual(3, $pdf->getPageCount());
     }
+
+    public function testIsLinearizedReturnsFalseForNormalPdf(): void
+    {
+        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
+        $writer->addPage(612, 792);
+        $bytes = $writer->generate();
+
+        $pdf = PdfReader::fromString($bytes);
+        self::assertFalse($pdf->isLinearized());
+        self::assertNull($pdf->getLinearizationParameters());
+    }
+
+    public function testIsLinearizedReturnsTrueForLinearizedPdf(): void
+    {
+        // Build a minimal PDF with a linearization dict as object 1
+        $writer = new \ApprLabs\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+
+        // Register linearization dict first (object 1)
+        $linDict = new \ApprLabs\Pdf\Core\Document\LinearizationParameters();
+        $linDict->n = 1;
+        $linDict->l = 0; // will be wrong but that's fine for detection
+        $writer->register($linDict);
+
+        $catalog = new \ApprLabs\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+
+        $pageTree = new \ApprLabs\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+
+        $page = new \ApprLabs\Pdf\Core\Document\Page();
+        $writer->register($page);
+        $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
+            new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
+            new \ApprLabs\Pdf\Core\PdfNumber(612), new \ApprLabs\Pdf\Core\PdfNumber(792),
+        ]);
+        $pageTree->kids = [new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->count = 1;
+
+        $bytes = $writer->generate();
+
+        $pdf = PdfReader::fromString($bytes);
+        self::assertTrue($pdf->isLinearized());
+
+        $params = $pdf->getLinearizationParameters();
+        self::assertNotNull($params);
+        self::assertSame(1.0, $params['linearized']);
+        self::assertSame(1, $params['pageCount']);
+    }
 }

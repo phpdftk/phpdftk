@@ -26,8 +26,8 @@ class BookmarksTest extends TestCase
     public function testGeneratesBookmarksPdf(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        $boldName = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        $boldName = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
 
         // Create 6 pages: Cover, Ch1, Ch1.1, Ch1.2, Ch2, Appendix
         $pages = [];
@@ -62,12 +62,12 @@ class BookmarksTest extends TestCase
         $outline = $writer->setOutline(new Outline());
 
         $cover = new OutlineItem('Cover Page');
-        $cover->dest = Destination::fit(new PdfReference($pages[0]->objectNumber));
+        $cover->dest = Destination::fit(new PdfReference($pages[0]->corePage()->objectNumber));
         $coverRef = $writer->addOutlineItem($cover);
         $cover->parent = new PdfReference($outline->objectNumber);
 
         $ch1 = new OutlineItem('Chapter 1: Introduction');
-        $ch1->dest = Destination::xyz(new PdfReference($pages[1]->objectNumber), 72, 720, null);
+        $ch1->dest = Destination::xyz(new PdfReference($pages[1]->corePage()->objectNumber), 72, 720, null);
         $ch1->c = new PdfArray([new PdfNumber(0.0), new PdfNumber(0.0), new PdfNumber(0.8)]); // blue
         $ch1->f = 2; // bold
         $ch1Ref = $writer->addOutlineItem($ch1);
@@ -77,12 +77,12 @@ class BookmarksTest extends TestCase
 
         // Children of Chapter 1
         $s11 = new OutlineItem('1.1 Background');
-        $s11->dest = Destination::fitH(new PdfReference($pages[2]->objectNumber), 720);
+        $s11->dest = Destination::fitH(new PdfReference($pages[2]->corePage()->objectNumber), 720);
         $s11Ref = $writer->addOutlineItem($s11);
         $s11->parent = $ch1Ref;
 
         $s12 = new OutlineItem('1.2 Motivation');
-        $s12->dest = Destination::fitH(new PdfReference($pages[3]->objectNumber), 720);
+        $s12->dest = Destination::fitH(new PdfReference($pages[3]->corePage()->objectNumber), 720);
         $s12Ref = $writer->addOutlineItem($s12);
         $s12->parent = $ch1Ref;
         $s12->prev = $s11Ref;
@@ -93,7 +93,7 @@ class BookmarksTest extends TestCase
         $ch1->count = 2;
 
         $ch2 = new OutlineItem('Chapter 2: Methods');
-        $ch2->dest = Destination::fit(new PdfReference($pages[4]->objectNumber));
+        $ch2->dest = Destination::fit(new PdfReference($pages[4]->corePage()->objectNumber));
         $ch2->c = new PdfArray([new PdfNumber(0.0), new PdfNumber(0.0), new PdfNumber(0.8)]);
         $ch2->f = 2;
         $ch2Ref = $writer->addOutlineItem($ch2);
@@ -102,7 +102,7 @@ class BookmarksTest extends TestCase
         $ch1->next = $ch2Ref;
 
         $appendix = new OutlineItem('Appendix A');
-        $appendix->dest = Destination::fit(new PdfReference($pages[5]->objectNumber));
+        $appendix->dest = Destination::fit(new PdfReference($pages[5]->corePage()->objectNumber));
         $appendix->f = 1; // italic
         $appendixRef = $writer->addOutlineItem($appendix);
         $appendix->parent = new PdfReference($outline->objectNumber);

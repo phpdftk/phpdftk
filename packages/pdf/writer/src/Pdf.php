@@ -9,7 +9,6 @@ use ApprLabs\FontMetrics\AfmData;
 use ApprLabs\FontMetrics\StandardFontMetrics;
 use ApprLabs\ImageMetadata\ImageParser;
 use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Document\Page;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 
@@ -59,6 +58,11 @@ class Pdf
     private PageSize $pageSize;
 
     private ?Page $currentPage = null;
+
+    /**
+     * Direct content-stream handle for cursor-based text rendering.
+     * Retrieved from the Writer\Page escape hatch.
+     */
     private ?ContentStream $currentStream = null;
 
     /** Current font family (resolved to standard-14 PostScript name family) */
@@ -157,7 +161,7 @@ class Pdf
         $size ??= $this->pageSize;
         $this->pageSize = $size;
         $this->currentPage = $this->writer->addPage($size->width(), $size->height());
-        $this->currentStream = $this->writer->addContentStream($this->currentPage);
+        $this->currentStream = $this->currentPage->contentStream();
         $this->cursorY = $size->height() - $this->theme->margin;
         $this->lastFillColor = null;
         return $this;
@@ -346,12 +350,7 @@ class Pdf
         };
         $y = $this->cursorY - $h;
 
-        $resourceName = $this->writer->addImage($path, $this->currentPage);
-        $this->currentStream
-            ->saveGraphicsState()
-            ->concatMatrix($w, 0, 0, $h, $x, $y)
-            ->doXObject($resourceName)
-            ->restoreGraphicsState();
+        $this->currentPage->drawImage($path, $x, $y, $w, $h);
 
         $this->cursorY -= $h + $this->theme->paragraphSpacing;
         return $this;
@@ -452,7 +451,8 @@ class Pdf
             return $this->fontResourceCache[$postScriptName];
         }
         $standardCase = StandardFont::from($postScriptName);
-        $name = $this->writer->addFont(new Type1Font($standardCase));
+        $fontHandle = $this->writer->addFont(new Type1Font($standardCase));
+        $name = $fontHandle->getResourceName();
         $this->fontResourceCache[$postScriptName] = $name;
         return $name;
     }

@@ -21,7 +21,7 @@ class ExtGStateIntegrationTest extends TestCase
         $writer = new PdfWriter();
 
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // Create an ExtGState with several properties including new ones
         $gs = new ExtGState();
@@ -30,7 +30,7 @@ class ExtGStateIntegrationTest extends TestCase
         $gs->bm = 'Multiply';
         $gs->useBlackPtComp = new PdfName('ON');
         $gsRef = $writer->register($gs);
-        $page->resources->addExtGState('GS1', $gsRef);
+        $page->corePage()->resources->addExtGState('GS1', $gsRef);
 
         // Draw content using the graphics state
         $content = $writer->addContentStream($page);

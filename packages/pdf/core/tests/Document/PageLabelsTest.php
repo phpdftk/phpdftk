@@ -22,8 +22,8 @@ class PageLabelsTest extends TestCase
     public function testGeneratesPageLabelsPdf(): void
     {
         $writer   = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        $boldName = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        $boldName = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
 
         // Front matter: 3 pages with lowercase roman numerals
         for ($i = 1; $i <= 3; $i++) {

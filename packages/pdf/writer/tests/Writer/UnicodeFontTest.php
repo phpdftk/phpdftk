@@ -60,7 +60,8 @@ class UnicodeFontTest extends TestCase
             $hexString .= sprintf('%04X', $gid);
         }
 
-        $fontName = $writer->addCompositeFont($data, $codepoints);
+        $fontHandle = $writer->addCompositeFont($data, $codepoints);
+        $fontName = $fontHandle->getResourceName();
 
         self::assertStringStartsWith('F', $fontName);
 
@@ -95,7 +96,8 @@ class UnicodeFontTest extends TestCase
             $hexString .= sprintf('%04X', $gid);
         }
 
-        $fontName = $writer->addCompositeFont($data, $codepoints);
+        $fontHandle = $writer->addCompositeFont($data, $codepoints);
+        $fontName = $fontHandle->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -123,7 +125,8 @@ class UnicodeFontTest extends TestCase
         $writer = new PdfWriter();
         $writer->addPage();
 
-        $fontName = $writer->addCompositeFont($data, [65, 66, 67]);
+        $fontHandle = $writer->addCompositeFont($data, [65, 66, 67]);
+        $fontName = $fontHandle->getResourceName();
         $fonts = $writer->getFonts();
 
         self::assertArrayHasKey($fontName, $fonts);
@@ -154,7 +157,8 @@ class UnicodeFontTest extends TestCase
         $page2 = $writer->addPage();
 
         // Add font to only page1
-        $fontName = $writer->addCompositeFont($data, [65, 66], $page1);
+        $fontHandle = $writer->addCompositeFont($data, [65, 66], $page1);
+        $fontName = $fontHandle->getResourceName();
 
         $cs = $writer->addContentStream($page1);
         $cs->beginText()

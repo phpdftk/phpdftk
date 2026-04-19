@@ -45,7 +45,7 @@ class MultimediaAndThreeDIntegrationTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -93,7 +93,7 @@ class MultimediaAndThreeDIntegrationTest extends TestCase
         ]));
         $screen->t = new PdfString('Demo screen');
         $screenRef = $writer->register($screen);
-        $page->annots[] = $screenRef;
+        $page->corePage()->annots[] = $screenRef;
 
         $action = new RenditionAction();
         $action->op = 0;  // play
@@ -144,7 +144,7 @@ class MultimediaAndThreeDIntegrationTest extends TestCase
             new PdfNumber(1), new PdfNumber(1),
         ]);
         $threeDRef = $writer->register($threeD);
-        $page->annots[] = $threeDRef;
+        $page->corePage()->annots[] = $threeDRef;
 
         $writer->save(self::OUTPUT_FILE);
 

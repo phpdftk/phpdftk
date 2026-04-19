@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1759a0f4204a1598f09d5fac96cae93e",
+    "content-hash": "67e96e4b957075b69b5bf7f21f42f740",
     "packages": [],
     "packages-dev": [
         {
@@ -338,6 +338,42 @@
                 "MIT"
             ],
             "description": "PDF reader — parses existing PDF files into the phpdftk object model",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "apprlabs/pdf-toolkit",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/pdf/toolkit",
+                "reference": "99479be33d06578163cf92f65ce9d569aa8063e4"
+            },
+            "require": {
+                "apprlabs/encoding": "@dev",
+                "apprlabs/filters": "@dev",
+                "apprlabs/geometry": "@dev",
+                "apprlabs/pdf-core": "@dev",
+                "apprlabs/pdf-reader": "@dev",
+                "apprlabs/xmp": "@dev",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ApprLabs\\Pdf\\Toolkit\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "ApprLabs\\Pdf\\Toolkit\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "PDF toolkit — reader→modify→writer pipelines for forms, merging, stamping, extraction, and more",
             "transport-options": {
                 "relative": true
             }
@@ -4727,6 +4763,7 @@
         "apprlabs/pdf": 20,
         "apprlabs/pdf-core": 20,
         "apprlabs/pdf-reader": 20,
+        "apprlabs/pdf-toolkit": 20,
         "apprlabs/pdf-writer": 20,
         "apprlabs/xmp": 20
     },

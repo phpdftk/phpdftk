@@ -40,7 +40,7 @@ class SignatureFieldIntegrationTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -88,7 +88,7 @@ class SignatureFieldIntegrationTest extends TestCase
         ]));
         $widget->parent = $fieldRef;
         $widgetRef = $writer->register($widget);
-        $page->annots[] = $widgetRef;
+        $page->corePage()->annots[] = $widgetRef;
 
         // ----- AcroForm -------------------------------------------------
         $acroForm = new AcroForm();

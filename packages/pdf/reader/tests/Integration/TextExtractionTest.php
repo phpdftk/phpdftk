@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Reader\Tests\Integration;
 
+use ApprLabs\Pdf\Core\Content\ContentStream;
+use ApprLabs\Pdf\Core\Content\Resources;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
+use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Reader\Parser\ContentStreamOp;
 use ApprLabs\Pdf\Reader\Parser\ContentStreamParser;
 use ApprLabs\Pdf\Reader\PdfReader;
@@ -210,11 +216,11 @@ class TextExtractionTest extends TestCase
     {
         $writer = new PdfWriter(compressStreams: false);
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
         $content = $writer->addContentStream($page);
 
         $content->beginText()
-            ->setFont($fontName, 12)
+            ->setFont($font->getResourceName(), 12)
             ->moveTextPosition(72, 720)
             ->beginMarkedContentWithProperties('Span', '<< /ActualText (Hello World) >>')
             ->showText('raw glyphs here')
@@ -230,15 +236,142 @@ class TextExtractionTest extends TestCase
         $this->assertStringNotContainsString('raw glyphs here', $text);
     }
 
+    // -----------------------------------------------------------------------
+    // Form XObject text extraction tests
+    // -----------------------------------------------------------------------
+
+    public function testExtractTextFromFormXObject(): void
+    {
+        // Build a PDF with text inside a Form XObject
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $coreFont = new Type1Font(StandardFont::Helvetica);
+        $font = $writer->addFont($coreFont);
+
+        // Create a Form XObject with text content
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(200), new PdfNumber(50),
+        ]);
+        $xobjContent = sprintf(
+            "BT\n/%s 12 Tf\n10 10 Td\n(Text inside XObject) Tj\nET",
+            $font->getResourceName()
+        );
+        $formXObj = new FormXObject($bbox, $xobjContent);
+        $formXObj->resources = new Resources();
+        // Font is already registered — use its object number for the reference
+        $formXObj->resources->addFont($font->getResourceName(), new PdfReference($coreFont->objectNumber));
+        $writer->register($formXObj);
+
+        // Add the XObject to the page's resources and invoke it with Do
+        $page->corePage()->resources->addXObject('FX1', new PdfReference($formXObj->objectNumber));
+        $content = $writer->addContentStream($page);
+
+        // Page-level text + XObject invocation
+        $content->beginText()
+            ->setFont($font->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('Page level text')
+            ->endText()
+            ->doXObject('FX1');
+
+        $pdfBytes = $writer->toBytes();
+
+        $reader = PdfReader::fromString($pdfBytes);
+        $text = $reader->extractText(0);
+
+        $this->assertStringContainsString('Page level text', $text);
+        $this->assertStringContainsString('Text inside XObject', $text);
+    }
+
+    public function testExtractTextFromNestedFormXObjects(): void
+    {
+        // Build a PDF with a Form XObject that itself invokes another Form XObject
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $coreFont = new Type1Font(StandardFont::Helvetica);
+        $font = $writer->addFont($coreFont);
+
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(200), new PdfNumber(50),
+        ]);
+
+        // Inner Form XObject
+        $innerContent = sprintf(
+            "BT\n/%s 12 Tf\n10 10 Td\n(Nested inner text) Tj\nET",
+            $font->getResourceName()
+        );
+        $innerXObj = new FormXObject($bbox, $innerContent);
+        $innerXObj->resources = new Resources();
+        $innerXObj->resources->addFont($font->getResourceName(), new PdfReference($coreFont->objectNumber));
+        $writer->register($innerXObj);
+
+        // Outer Form XObject that invokes the inner one
+        $outerContent = sprintf(
+            "BT\n/%s 12 Tf\n10 30 Td\n(Outer XObject text) Tj\nET\n/IX1 Do",
+            $font->getResourceName()
+        );
+        $outerXObj = new FormXObject($bbox, $outerContent);
+        $outerXObj->resources = new Resources();
+        $outerXObj->resources->addFont($font->getResourceName(), new PdfReference($coreFont->objectNumber));
+        $outerXObj->resources->addXObject('IX1', new PdfReference($innerXObj->objectNumber));
+        $writer->register($outerXObj);
+
+        // Page invokes the outer XObject
+        $page->corePage()->resources->addXObject('FX1', new PdfReference($outerXObj->objectNumber));
+        $content = $writer->addContentStream($page);
+        $content->doXObject('FX1');
+
+        $pdfBytes = $writer->toBytes();
+
+        $reader = PdfReader::fromString($pdfBytes);
+        $text = $reader->extractText(0);
+
+        $this->assertStringContainsString('Outer XObject text', $text);
+        $this->assertStringContainsString('Nested inner text', $text);
+    }
+
+    public function testFormXObjectWithNoTextReturnsPageText(): void
+    {
+        // Form XObject with only graphics (no text ops)
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(100), new PdfNumber(100),
+        ]);
+        $formXObj = new FormXObject($bbox, "1 0 0 RG 0 0 100 100 re S");
+        $writer->register($formXObj);
+
+        $page->corePage()->resources->addXObject('FX1', new PdfReference($formXObj->objectNumber));
+        $content = $writer->addContentStream($page);
+        $content->beginText()
+            ->setFont($font->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('Only page text')
+            ->endText()
+            ->doXObject('FX1');
+
+        $pdfBytes = $writer->toBytes();
+
+        $reader = PdfReader::fromString($pdfBytes);
+        $text = $reader->extractText(0);
+
+        $this->assertStringContainsString('Only page text', $text);
+    }
+
     public function testNestedMarkedContentPreservesText(): void
     {
         $writer = new PdfWriter(compressStreams: false);
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
         $content = $writer->addContentStream($page);
 
         $content->beginText()
-            ->setFont($fontName, 12)
+            ->setFont($font->getResourceName(), 12)
             ->moveTextPosition(72, 720)
             ->beginMarkedContent('P')
             ->showText('Normal text')

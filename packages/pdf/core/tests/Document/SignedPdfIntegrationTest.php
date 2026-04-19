@@ -43,7 +43,7 @@ class SignedPdfIntegrationTest extends TestCase
 
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -74,7 +74,7 @@ class SignedPdfIntegrationTest extends TestCase
             new PdfNumber(320), new PdfNumber(680),
         ]));
         $widget->parent = $fieldRef;
-        $page->annots[] = $writer->register($widget);
+        $page->corePage()->annots[] = $writer->register($widget);
 
         $acroForm = new AcroForm();
         $acroForm->fields = [$fieldRef];

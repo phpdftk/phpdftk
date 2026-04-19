@@ -44,7 +44,7 @@ class AnnotationSubtypesTest extends TestCase
     public function testGeneratesAnnotationSubtypesPdf(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // ====================================================================
         // Page 1 — Text markup and shape annotations
@@ -69,7 +69,7 @@ class AnnotationSubtypesTest extends TestCase
         ]);
         $underline->contents = new PdfString('Underlined text');
         $writer->register($underline);
-        $page1->annots[] = new PdfReference($underline->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($underline->objectNumber);
 
         // SquigglyAnnotation with QuadPoints
         $squiggly = new SquigglyAnnotation(
@@ -83,7 +83,7 @@ class AnnotationSubtypesTest extends TestCase
         ]);
         $squiggly->contents = new PdfString('Squiggly text');
         $writer->register($squiggly);
-        $page1->annots[] = new PdfReference($squiggly->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($squiggly->objectNumber);
 
         // StrikeOutAnnotation with QuadPoints
         $strikeOut = new StrikeOutAnnotation(
@@ -97,7 +97,7 @@ class AnnotationSubtypesTest extends TestCase
         ]);
         $strikeOut->contents = new PdfString('Struck-out text');
         $writer->register($strikeOut);
-        $page1->annots[] = new PdfReference($strikeOut->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($strikeOut->objectNumber);
 
         // LineAnnotation with $l and $le
         $line = new LineAnnotation(
@@ -110,7 +110,7 @@ class AnnotationSubtypesTest extends TestCase
         $line->le = new PdfArray([new PdfName('OpenArrow'), new PdfName('ClosedArrow')]);
         $line->contents = new PdfString('Line annotation');
         $writer->register($line);
-        $page1->annots[] = new PdfReference($line->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($line->objectNumber);
 
         // SquareAnnotation with $ic
         $square = new SquareAnnotation(
@@ -119,7 +119,7 @@ class AnnotationSubtypesTest extends TestCase
         $square->ic = new PdfArray([new PdfNumber(0.9), new PdfNumber(0.9), new PdfNumber(0.5)]);
         $square->contents = new PdfString('Square annotation');
         $writer->register($square);
-        $page1->annots[] = new PdfReference($square->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($square->objectNumber);
 
         // CircleAnnotation with $ic
         $circle = new CircleAnnotation(
@@ -128,7 +128,7 @@ class AnnotationSubtypesTest extends TestCase
         $circle->ic = new PdfArray([new PdfNumber(0.5), new PdfNumber(0.8), new PdfNumber(1.0)]);
         $circle->contents = new PdfString('Circle annotation');
         $writer->register($circle);
-        $page1->annots[] = new PdfReference($circle->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($circle->objectNumber);
 
         // PolygonAnnotation with $vertices (triangle)
         $polygon = new PolygonAnnotation(
@@ -141,7 +141,7 @@ class AnnotationSubtypesTest extends TestCase
         ]);
         $polygon->contents = new PdfString('Polygon annotation');
         $writer->register($polygon);
-        $page1->annots[] = new PdfReference($polygon->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($polygon->objectNumber);
 
         // PolyLineAnnotation with $vertices (zigzag)
         $polyLine = new PolyLineAnnotation(
@@ -156,7 +156,7 @@ class AnnotationSubtypesTest extends TestCase
         ]);
         $polyLine->contents = new PdfString('PolyLine annotation');
         $writer->register($polyLine);
-        $page1->annots[] = new PdfReference($polyLine->objectNumber);
+        $page1->corePage()->annots[] = new PdfReference($polyLine->objectNumber);
 
         // ====================================================================
         // Page 2 — Specialized annotations
@@ -176,7 +176,7 @@ class AnnotationSubtypesTest extends TestCase
         $caret->sy = new PdfName('P');
         $caret->contents = new PdfString('Caret annotation');
         $writer->register($caret);
-        $page2->annots[] = new PdfReference($caret->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($caret->objectNumber);
 
         // FileAttachmentAnnotation
         $fileAttach = new FileAttachmentAnnotation(
@@ -185,7 +185,7 @@ class AnnotationSubtypesTest extends TestCase
         $fileAttach->name = new PdfName('Paperclip');
         $fileAttach->contents = new PdfString('File attachment');
         $writer->register($fileAttach);
-        $page2->annots[] = new PdfReference($fileAttach->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($fileAttach->objectNumber);
 
         // SoundAnnotation
         $sound = new SoundAnnotation(
@@ -194,7 +194,7 @@ class AnnotationSubtypesTest extends TestCase
         $sound->name = new PdfName('Speaker');
         $sound->contents = new PdfString('Sound annotation');
         $writer->register($sound);
-        $page2->annots[] = new PdfReference($sound->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($sound->objectNumber);
 
         // WatermarkAnnotation
         $watermark = new WatermarkAnnotation(
@@ -202,7 +202,7 @@ class AnnotationSubtypesTest extends TestCase
         );
         $watermark->contents = new PdfString('Watermark annotation');
         $writer->register($watermark);
-        $page2->annots[] = new PdfReference($watermark->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($watermark->objectNumber);
 
         // PrinterMarkAnnotation
         $printerMark = new PrinterMarkAnnotation(
@@ -211,7 +211,7 @@ class AnnotationSubtypesTest extends TestCase
         $printerMark->mn = new PdfName('ColorBar');
         $printerMark->contents = new PdfString('Printer mark');
         $writer->register($printerMark);
-        $page2->annots[] = new PdfReference($printerMark->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($printerMark->objectNumber);
 
         // ScreenAnnotation
         $screen = new ScreenAnnotation(
@@ -220,7 +220,7 @@ class AnnotationSubtypesTest extends TestCase
         $screen->t = new PdfString('Video');
         $screen->contents = new PdfString('Screen annotation');
         $writer->register($screen);
-        $page2->annots[] = new PdfReference($screen->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($screen->objectNumber);
 
         // MovieAnnotation
         $movie = new MovieAnnotation(
@@ -229,7 +229,7 @@ class AnnotationSubtypesTest extends TestCase
         $movie->t = new PdfString('Clip');
         $movie->contents = new PdfString('Movie annotation');
         $writer->register($movie);
-        $page2->annots[] = new PdfReference($movie->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($movie->objectNumber);
 
         // RedactAnnotation
         $redact = new RedactAnnotation(
@@ -244,7 +244,7 @@ class AnnotationSubtypesTest extends TestCase
         $redact->overlayText = new PdfString('REDACTED');
         $redact->contents = new PdfString('Redact annotation');
         $writer->register($redact);
-        $page2->annots[] = new PdfReference($redact->objectNumber);
+        $page2->corePage()->annots[] = new PdfReference($redact->objectNumber);
 
         // ====================================================================
         // Page 3 — Exotic annotations
@@ -263,7 +263,7 @@ class AnnotationSubtypesTest extends TestCase
         );
         $threeD->contents = new PdfString('3D annotation');
         $writer->register($threeD);
-        $page3->annots[] = new PdfReference($threeD->objectNumber);
+        $page3->corePage()->annots[] = new PdfReference($threeD->objectNumber);
 
         // ProjectionAnnotation
         $projection = new ProjectionAnnotation(
@@ -271,7 +271,7 @@ class AnnotationSubtypesTest extends TestCase
         );
         $projection->contents = new PdfString('Projection annotation');
         $writer->register($projection);
-        $page3->annots[] = new PdfReference($projection->objectNumber);
+        $page3->corePage()->annots[] = new PdfReference($projection->objectNumber);
 
         // RichMediaAnnotation
         $richMedia = new RichMediaAnnotation(
@@ -279,7 +279,7 @@ class AnnotationSubtypesTest extends TestCase
         );
         $richMedia->contents = new PdfString('RichMedia annotation');
         $writer->register($richMedia);
-        $page3->annots[] = new PdfReference($richMedia->objectNumber);
+        $page3->corePage()->annots[] = new PdfReference($richMedia->objectNumber);
 
         // TrapNetAnnotation
         $trapNet = new TrapNetAnnotation(
@@ -287,7 +287,7 @@ class AnnotationSubtypesTest extends TestCase
         );
         $trapNet->contents = new PdfString('TrapNet annotation');
         $writer->register($trapNet);
-        $page3->annots[] = new PdfReference($trapNet->objectNumber);
+        $page3->corePage()->annots[] = new PdfReference($trapNet->objectNumber);
 
         // ====================================================================
         // Save and validate

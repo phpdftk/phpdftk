@@ -56,18 +56,20 @@ class WriterTest extends TestCase
     {
         $writer = new PdfWriter();
         $writer->addPage(612, 792);
-        $name = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        self::assertSame('F1', $name);
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        self::assertInstanceOf(\ApprLabs\Pdf\Writer\Font::class, $font);
+        self::assertSame('F1', $font->getResourceName());
+        self::assertSame('Helvetica', $font->getFamily());
     }
 
     public function testPdfWriterMultipleFontsIncrement(): void
     {
         $writer = new PdfWriter();
         $writer->addPage(612, 792);
-        $name1 = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        $name2 = $writer->addFont(new Type1Font(StandardFont::Courier));
-        self::assertSame('F1', $name1);
-        self::assertSame('F2', $name2);
+        $font1 = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $font2 = $writer->addFont(new Type1Font(StandardFont::Courier));
+        self::assertSame('F1', $font1->getResourceName());
+        self::assertSame('F2', $font2->getResourceName());
     }
 
     public function testPdfWriterGetFonts(): void
@@ -97,9 +99,10 @@ class WriterTest extends TestCase
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
         $cs = $writer->addContentStream($page);
-        $streams = $writer->getContentStreams();
-        self::assertCount(1, $streams);
-        self::assertSame($cs, $streams[0]);
+        // addContentStream creates a stream via the writer; the page's own
+        // internal stream (from Page::contentStream()) is separate.
+        self::assertGreaterThanOrEqual(1, count($writer->getContentStreams()));
+        self::assertSame($cs, $writer->getContentStreams()[0]);
     }
 
     public function testPdfWriterWithInfo(): void
@@ -192,12 +195,66 @@ class WriterTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $pageRef = new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber);
+        $pageRef = new \ApprLabs\Pdf\Core\PdfReference($page->corePage()->objectNumber);
         $dest = \ApprLabs\Pdf\Core\Document\Destination::fit($pageRef);
         $writer->setNamedDestinations(['chapter1' => $dest]);
         $pdf = $writer->generate();
         self::assertStringContainsString('chapter1', $pdf);
         self::assertStringContainsString('/Names', $pdf);
         self::assertStringContainsString('/Dests', $pdf);
+    }
+
+    public function testSetEncryptionProducesEncryptedPdf(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($font->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('Encrypted via PdfWriter')
+            ->endText();
+
+        $fileId = md5('encryption-test', true);
+        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::aes128('user', 'owner', $fileId);
+        $writer->setEncryption($encryptor);
+
+        $pdf = $writer->generate();
+
+        self::assertStringStartsWith('%PDF-', $pdf);
+        self::assertStringContainsString('/Encrypt', $pdf);
+        self::assertStringContainsString('/Filter /Standard', $pdf);
+
+        // Round-trip: decrypt with user password and verify
+        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'user');
+        self::assertSame(1, $reader->getPageCount());
+    }
+
+    public function testSetEncryptionAes256RoundTrip(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($font->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('AES-256 encrypted')
+            ->endText();
+
+        $fileId = md5('aes256-test', true);
+        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::aes256('pass', 'owner', $fileId);
+        $writer->setEncryption($encryptor);
+
+        $pdf = $writer->generate();
+
+        self::assertStringContainsString('/Encrypt', $pdf);
+        self::assertStringContainsString('AESV3', $pdf);
+
+        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'pass');
+        self::assertSame(1, $reader->getPageCount());
     }
 }

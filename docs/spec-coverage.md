@@ -665,7 +665,7 @@ these fields.
 | `FieldMDP` transform params         | ✓      | `FieldMDPTransformParams`                                                   |
 | `UR3` transform params              | ✓      | `UR3TransformParams`                                                        |
 | PKCS#7 / CAdES signing              | ✓      | `Pkcs7Signer` + `PdfWriter::setSigner()` — ByteRange + /Contents patching   |
-| Timestamp authority                 | ✓      | `DocTimeStamp` — object model only; no built-in TSA client                  |
+| Timestamp authority                 | ✓      | `DocTimeStamp` + `TsaClient` — full RFC 3161 TSA HTTP client with SHA-256/384/512, wired into signing pipeline via `setTimestamper()` |
 
 ---
 
@@ -730,16 +730,20 @@ these fields.
 | Accessibility / Tagged PDF | 7           | 7     | 100% |
 | 3D                         | 6           | 6     | 100% |
 
-> Every spec **object** has a PHP class. Two items are object-model
-> complete but intentionally stop short of end-to-end integration:
+> Every spec **object** has a PHP class and full end-to-end integration.
 >
-> * **Encryption** — `EncryptDictionary`, `CryptFilter`, and
->   `PublicKeyRecipient` serialize correctly, and ciphers/key derivation
->   live in `phpdftk/crypt`, but `PdfWriter` does not yet encrypt strings/
->   streams per-object or emit `/Encrypt` in the trailer automatically.
-> * **RFC 3161 timestamping** — `DocTimeStamp` is the object model for a
->   PAdES timestamp signature, but phpdftk ships no built-in TSA client.
->   Supply the timestamp token yourself via `$sv->contents`.
+> **RFC 3161 timestamping** is fully wired: `TsaClient` sends
+> `TimeStampReq` messages to any TSA server, and `PdfWriter::setTimestamper()`
+> / `PdfFileWriter::setTimestamper()` produce PAdES-compatible document-level
+> timestamps via `DocTimeStamp`. TSA clients can also be attached alongside
+> regular signers via `setTsaClient()`.
+>
+> **Encryption** is fully wired: `PdfWriter::setEncryption()` (and
+> `PdfFileWriter::setEncryption()`) register the `/Encrypt` dictionary,
+> encrypt all strings and streams per-object during `generate()`, and
+> emit `/Encrypt` in the trailer automatically. Supports RC4-40,
+> RC4-128, AES-128, AES-256, and public-key (certificate-based)
+> encryption.
 >
 > `PdfWriter::setSigner()` **is** fully wired: it computes `/ByteRange`,
 > patches `/Contents` in place, and produces signatures verified in CI via

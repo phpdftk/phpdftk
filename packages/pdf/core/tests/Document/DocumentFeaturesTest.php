@@ -32,7 +32,7 @@ class DocumentFeaturesTest extends TestCase
     public function testGeneratesDocumentFeaturesPdf(): void
     {
         $writer = new PdfWriter();
-        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
 
         // ----------------------------------------------------------------
         // OutputIntent for PDF/X
@@ -49,13 +49,13 @@ class DocumentFeaturesTest extends TestCase
         // Page 1 — with extra page boxes
         // ----------------------------------------------------------------
         $page1 = $writer->addPage(612, 792);
-        $page1->cropBox = new PdfArray([
+        $page1->corePage()->cropBox = new PdfArray([
             new PdfNumber(18), new PdfNumber(18), new PdfNumber(594), new PdfNumber(774),
         ]);
-        $page1->bleedBox = new PdfArray([
+        $page1->corePage()->bleedBox = new PdfArray([
             new PdfNumber(9), new PdfNumber(9), new PdfNumber(603), new PdfNumber(783),
         ]);
-        $page1->trimBox = new PdfArray([
+        $page1->corePage()->trimBox = new PdfArray([
             new PdfNumber(24), new PdfNumber(24), new PdfNumber(588), new PdfNumber(768),
         ]);
 
@@ -89,9 +89,9 @@ class DocumentFeaturesTest extends TestCase
         // Named destinations
         // ----------------------------------------------------------------
         $writer->setNamedDestinations([
-            'intro' => Destination::fit(new PdfReference($page1->objectNumber)),
-            'chapter1' => Destination::xyz(new PdfReference($page2->objectNumber), 72, 720, 1.0),
-            'chapter2' => Destination::fitH(new PdfReference($page3->objectNumber), 500),
+            'intro' => Destination::fit(new PdfReference($page1->corePage()->objectNumber)),
+            'chapter1' => Destination::xyz(new PdfReference($page2->corePage()->objectNumber), 72, 720, 1.0),
+            'chapter2' => Destination::fitH(new PdfReference($page3->corePage()->objectNumber), 500),
         ]);
 
         // ----------------------------------------------------------------
@@ -160,7 +160,7 @@ class DocumentFeaturesTest extends TestCase
             $pages[$i] = $writer->addPage(612, 792);
         }
 
-        $fontResourceName = $writer->addFont($font);
+        $fontResourceName = $writer->addFont($font)->getResourceName();
 
         for ($i = 0; $i < 3; $i++) {
             $cs = $writer->addContentStream($pages[$i]);

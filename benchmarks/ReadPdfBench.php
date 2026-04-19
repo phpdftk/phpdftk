@@ -169,6 +169,68 @@ class ReadPdfBench
     }
 
     // -----------------------------------------------------------------------
+    // Form XObject text extraction
+    // -----------------------------------------------------------------------
+
+    private ?string $formXObjectPdf = null;
+
+    private function ensureFormXObjectPdf(): void
+    {
+        if ($this->formXObjectPdf !== null) {
+            return;
+        }
+        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
+        $coreFont = new \ApprLabs\Pdf\Core\Font\Type1Font(
+            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        );
+        $font = $writer->addFont($coreFont);
+
+        for ($p = 0; $p < 10; $p++) {
+            $page = $writer->addPage(612, 792);
+
+            // Create a Form XObject with text
+            $bbox = new \ApprLabs\Pdf\Core\PdfArray([
+                new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
+                new \ApprLabs\Pdf\Core\PdfNumber(500), new \ApprLabs\Pdf\Core\PdfNumber(100),
+            ]);
+            $xobjContent = sprintf(
+                "BT\n/%s 12 Tf\n10 10 Td\n(Stamped text in Form XObject on page %d) Tj\nET",
+                $font->getResourceName(), $p + 1
+            );
+            $formXObj = new \ApprLabs\Pdf\Core\Graphics\XObject\FormXObject($bbox, $xobjContent);
+            $formXObj->resources = new \ApprLabs\Pdf\Core\Content\Resources();
+            $formXObj->resources->addFont(
+                $font->getResourceName(),
+                new \ApprLabs\Pdf\Core\PdfReference($coreFont->objectNumber)
+            );
+            $writer->register($formXObj);
+
+            $page->corePage()->resources->addXObject(
+                'FX1',
+                new \ApprLabs\Pdf\Core\PdfReference($formXObj->objectNumber)
+            );
+            $content = $writer->addContentStream($page->corePage());
+            $content->beginText()
+                ->setFont($font->getResourceName(), 12)
+                ->moveTextPosition(72, 720)
+                ->showText("Page $p direct text")
+                ->endText()
+                ->doXObject('FX1');
+        }
+        $this->formXObjectPdf = $writer->toBytes();
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftkTextExtractionWithFormXObjects(): void
+    {
+        $this->ensureFormXObjectPdf();
+        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($this->formXObjectPdf);
+        $text = $reader->extractAllText();
+        assert(str_contains($text, 'Form XObject'));
+    }
+
+    // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
 

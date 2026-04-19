@@ -201,6 +201,277 @@ final class AppearanceGenerator
     }
 
     /**
+     * Generate a multi-line text field appearance.
+     *
+     * Word-wraps text to fit the field width, rendering multiple lines
+     * with the given leading (line height).
+     *
+     * @param PdfArray $rect       Widget rectangle [x1, y1, x2, y2]
+     * @param string   $fontName   Font resource name (e.g., "F1")
+     * @param float    $fontSize   Font size in points
+     * @param string   $value      Multi-line field value text
+     * @param float    $leading    Line height in points (default: fontSize × 1.2)
+     * @param float    $borderWidth Border line width
+     * @param float    $charWidth  Approximate average character width as fraction of fontSize (default 0.5)
+     */
+    public static function textFieldMultiLine(
+        PdfArray $rect,
+        string $fontName,
+        float $fontSize,
+        string $value = '',
+        float $leading = 0,
+        float $borderWidth = 1.0,
+        float $charWidth = 0.5,
+    ): FormXObject {
+        $dims = self::rectDimensions($rect);
+        $w = $dims['width'];
+        $h = $dims['height'];
+        if ($leading <= 0) {
+            $leading = $fontSize * 1.2;
+        }
+
+        $ops = [];
+
+        // Border
+        if ($borderWidth > 0) {
+            $ops[] = sprintf('%.2f w', $borderWidth);
+            $ops[] = '0.75 0.75 0.75 rg';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'f';
+            $ops[] = '0 0 0 RG';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'S';
+        }
+
+        if ($value !== '') {
+            $margin = $borderWidth + 2;
+            $usableWidth = $w - 2 * $margin;
+            $avgCharW = $fontSize * $charWidth;
+            $charsPerLine = max(1, (int) floor($usableWidth / $avgCharW));
+
+            // Split into lines (respecting explicit newlines, then word-wrap)
+            $lines = [];
+            foreach (explode("\n", $value) as $paragraph) {
+                if ($paragraph === '') {
+                    $lines[] = '';
+                    continue;
+                }
+                $words = explode(' ', $paragraph);
+                $current = '';
+                foreach ($words as $word) {
+                    $test = $current === '' ? $word : $current . ' ' . $word;
+                    if (strlen($test) > $charsPerLine && $current !== '') {
+                        $lines[] = $current;
+                        $current = $word;
+                    } else {
+                        $current = $test;
+                    }
+                }
+                if ($current !== '') {
+                    $lines[] = $current;
+                }
+            }
+
+            // Render lines from top
+            $startY = $h - $margin - $fontSize;
+            $ops[] = 'BT';
+            $ops[] = sprintf('/%s %.2f Tf', $fontName, $fontSize);
+            $ops[] = sprintf('%.2f TL', $leading);
+            $ops[] = '0 g';
+            $ops[] = sprintf('%.2f %.2f Td', $margin, $startY);
+
+            foreach ($lines as $i => $line) {
+                if ($i > 0) {
+                    $ops[] = "T*";
+                }
+                $ops[] = '(' . self::escapeString($line) . ') Tj';
+            }
+            $ops[] = 'ET';
+        }
+
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber($w), new PdfNumber($h),
+        ]);
+
+        $xObj = new FormXObject($bbox, implode("\n", $ops));
+        $xObj->resources = new Resources();
+
+        return $xObj;
+    }
+
+    /**
+     * Generate a password field appearance (renders dots instead of text).
+     */
+    public static function passwordField(
+        PdfArray $rect,
+        string $fontName,
+        float $fontSize,
+        int $characterCount = 0,
+        float $borderWidth = 1.0,
+    ): FormXObject {
+        // Render bullet characters (•) for each character
+        $masked = str_repeat("\xE2\x80\xA2", $characterCount); // U+2022 BULLET
+        // Fall back to asterisks for standard fonts without bullet glyph
+        $maskedSimple = str_repeat('*', $characterCount);
+
+        return self::textField($rect, $fontName, $fontSize, $maskedSimple, borderWidth: $borderWidth);
+    }
+
+    /**
+     * Generate a comb text field appearance (equally-spaced character cells).
+     *
+     * Each character is centered in its own cell, with vertical dividers.
+     *
+     * @param int $maxLen Maximum number of characters (/MaxLen)
+     */
+    public static function combTextField(
+        PdfArray $rect,
+        string $fontName,
+        float $fontSize,
+        string $value = '',
+        int $maxLen = 10,
+        float $borderWidth = 1.0,
+    ): FormXObject {
+        $dims = self::rectDimensions($rect);
+        $w = $dims['width'];
+        $h = $dims['height'];
+        $cellWidth = $w / max(1, $maxLen);
+
+        $ops = [];
+
+        // Border
+        if ($borderWidth > 0) {
+            $ops[] = sprintf('%.2f w', $borderWidth);
+            $ops[] = '0.75 0.75 0.75 rg';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'f';
+            $ops[] = '0 0 0 RG';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'S';
+        }
+
+        // Cell dividers
+        $ops[] = '0.7 0.7 0.7 RG';
+        $ops[] = '0.5 w';
+        for ($i = 1; $i < $maxLen; $i++) {
+            $x = $i * $cellWidth;
+            $ops[] = sprintf('%.2f 0 m %.2f %.2f l S', $x, $x, $h);
+        }
+
+        // Render each character centered in its cell
+        if ($value !== '') {
+            $textY = ($h - $fontSize) / 2 + $fontSize * 0.15;
+            $chars = mb_str_split($value);
+
+            $ops[] = 'BT';
+            $ops[] = sprintf('/%s %.2f Tf', $fontName, $fontSize);
+            $ops[] = '0 g';
+
+            // Position first character, then advance by cellWidth for each subsequent
+            $firstX = $cellWidth * 0.35;
+            $ops[] = sprintf('%.2f %.2f Td', $firstX, $textY);
+
+            foreach ($chars as $idx => $char) {
+                if ($idx >= $maxLen) {
+                    break;
+                }
+                if ($idx > 0) {
+                    $ops[] = sprintf('%.2f 0 Td', $cellWidth);
+                }
+                $ops[] = '(' . self::escapeString($char) . ') Tj';
+            }
+
+            $ops[] = 'ET';
+        }
+
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber($w), new PdfNumber($h),
+        ]);
+
+        $xObj = new FormXObject($bbox, implode("\n", $ops));
+        $xObj->resources = new Resources();
+
+        return $xObj;
+    }
+
+    /**
+     * Generate a signature field appearance.
+     *
+     * Renders a bordered box with signature information text.
+     */
+    public static function signatureField(
+        PdfArray $rect,
+        string $fontName,
+        float $fontSize,
+        string $signer = '',
+        string $reason = '',
+        string $date = '',
+        float $borderWidth = 1.0,
+    ): FormXObject {
+        $dims = self::rectDimensions($rect);
+        $w = $dims['width'];
+        $h = $dims['height'];
+
+        $ops = [];
+
+        // Border with light blue background
+        if ($borderWidth > 0) {
+            $ops[] = sprintf('%.2f w', $borderWidth);
+            $ops[] = '0.93 0.95 1.0 rg';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'f';
+            $ops[] = '0.3 0.3 0.7 RG';
+            $ops[] = sprintf('0 0 %.2f %.2f re', $w, $h);
+            $ops[] = 'S';
+        }
+
+        // Build text lines
+        $lines = [];
+        if ($signer !== '') {
+            $lines[] = 'Digitally signed by ' . $signer;
+        }
+        if ($reason !== '') {
+            $lines[] = 'Reason: ' . $reason;
+        }
+        if ($date !== '') {
+            $lines[] = 'Date: ' . $date;
+        }
+        if ($lines === []) {
+            $lines[] = 'Digital Signature';
+        }
+
+        $leading = $fontSize * 1.3;
+        $margin = $borderWidth + 4;
+        $startY = $h - $margin - $fontSize;
+
+        $ops[] = 'BT';
+        $ops[] = sprintf('/%s %.2f Tf', $fontName, $fontSize * 0.8);
+        $ops[] = sprintf('%.2f TL', $leading);
+        $ops[] = '0.1 0.1 0.4 rg';
+        $ops[] = sprintf('%.2f %.2f Td', $margin, $startY);
+
+        foreach ($lines as $i => $line) {
+            if ($i > 0) {
+                $ops[] = "T*";
+            }
+            $ops[] = '(' . self::escapeString($line) . ') Tj';
+        }
+        $ops[] = 'ET';
+
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber($w), new PdfNumber($h),
+        ]);
+
+        $xObj = new FormXObject($bbox, implode("\n", $ops));
+        $xObj->resources = new Resources();
+
+        return $xObj;
+    }
+
+    /**
      * Generate a normal appearance for a choice field (combo/list box).
      *
      * Renders the currently selected value text in a bordered box.

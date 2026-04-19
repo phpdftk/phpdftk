@@ -21,7 +21,7 @@ class TrailerReconstructionTest extends TestCase
             $font = $writer->addFont(new Type1Font(StandardFont::Helvetica), $page);
             $cs = $writer->addContentStream($page);
             $cs->beginText()
-                ->setFont($font, 12)
+                ->setFont($font->getResourceName(), 12)
                 ->moveTextPosition(72, 720)
                 ->showText('Page ' . ($i + 1))
                 ->endText();

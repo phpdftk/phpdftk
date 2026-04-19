@@ -13,13 +13,13 @@ use ApprLabs\Pdf\Core\Document\MetadataStream;
 use ApprLabs\Pdf\Core\Document\NameTree;
 use ApprLabs\Pdf\Core\Document\Outline;
 use ApprLabs\Pdf\Core\Document\OutlineItem;
-use ApprLabs\Pdf\Core\Document\Page;
+use ApprLabs\Pdf\Core\Document\Page as CorePage;
 use ApprLabs\Pdf\Core\Document\PageLabel;
 use ApprLabs\Pdf\Core\Document\PageTree;
 use ApprLabs\Pdf\Core\File\PdfFileWriter;
 use ApprLabs\Pdf\Core\Font\CIDFontType0Font;
 use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
-use ApprLabs\Pdf\Core\Font\Font;
+use ApprLabs\Pdf\Core\Font\Font as CoreFont;
 use ApprLabs\Pdf\Core\Font\FontDescriptor;
 use ApprLabs\Pdf\Core\Font\FontFile\CFFFontFile;
 use ApprLabs\Pdf\Core\Font\TrueTypeFont;
@@ -28,6 +28,8 @@ use ApprLabs\Pdf\Core\Font\Type0Font;
 use ApprLabs\Pdf\Core\Font\Type0FontFactory;
 use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
 use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
+use ApprLabs\Pdf\Core\Interactive\Signature\TsaClient;
+use ApprLabs\Pdf\Core\Security\PdfEncryptor;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
@@ -65,10 +67,10 @@ class PdfWriter
     private Catalog $catalog;
     private PageTree $pageTree;
 
-    /** @var Page[] */
+    /** @var CorePage[] */
     private array $pages = [];
 
-    /** @var array<string, Font|Type0Font> keyed by resource name (F1, F2, …) */
+    /** @var array<string, CoreFont|Type0Font> keyed by resource name (F1, F2, …) */
     private array $fonts = [];
 
     /** @var array<int, ContentStream> */
@@ -80,9 +82,9 @@ class PdfWriter
     /** Running counter for image resource names */
     private int $imageCounter = 0;
 
-    public function __construct(bool $compressStreams = true)
+    public function __construct(bool $compressStreams = true, string $version = PdfFileWriter::DEFAULT_VERSION)
     {
-        $this->file = new PdfFileWriter($compressStreams);
+        $this->file = new PdfFileWriter($compressStreams, version: $version);
         $this->catalog = new Catalog();
         $this->file->setCatalog($this->catalog);
 
@@ -110,7 +112,7 @@ class PdfWriter
     /**
      * Return all registered fonts, keyed by resource name.
      *
-     * @return array<string, Font|Type0Font>
+     * @return array<string, CoreFont|Type0Font>
      */
     public function getFonts(): array
     {
@@ -145,24 +147,24 @@ class PdfWriter
             $width = $widthOrRect;
         }
 
-        $page = new Page();
-        $page->parent = new PdfReference($this->pageTree->objectNumber);
-        $page->mediaBox = new PdfArray([
+        $corePage = new CorePage();
+        $corePage->parent = new PdfReference($this->pageTree->objectNumber);
+        $corePage->mediaBox = new PdfArray([
             new PdfNumber(0),
             new PdfNumber(0),
             new PdfNumber($width),
             new PdfNumber($height),
         ]);
-        $page->resources = new Resources();
+        $corePage->resources = new Resources();
 
-        $this->file->register($page);
-        $this->pages[] = $page;
+        $this->file->register($corePage);
+        $this->pages[] = $corePage;
 
         // Update page tree
-        $this->pageTree->kids[] = new PdfReference($page->objectNumber);
+        $this->pageTree->kids[] = new PdfReference($corePage->objectNumber);
         $this->pageTree->count  = count($this->pages);
 
-        return $page;
+        return new Page($corePage, $this);
     }
 
     /**
@@ -170,21 +172,24 @@ class PdfWriter
      * The font is added to ALL existing pages' resources. For per-page fonts, add
      * directly to page->resources.
      */
-    public function addFont(Font $font, ?Page $page = null): string
+    public function addFont(CoreFont $font, CorePage|Page|null $page = null): Font
     {
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
 
+        $parsedData = null;
         if ($font instanceof TrueTypeFont && $font->parsedFontData !== null) {
             $this->embedTrueTypeFont($font);
+            $parsedData = $font->parsedFontData;
         }
 
         $this->file->register($font);
         $this->fonts[$name] = $font;
         $ref = new PdfReference($font->objectNumber);
 
-        if ($page !== null) {
-            $page->resources?->addFont($name, $ref);
+        $corePage = $page instanceof Page ? $page->corePage() : $page;
+        if ($corePage !== null) {
+            $corePage->resources?->addFont($name, $ref);
         } else {
             // Add to all existing pages
             foreach ($this->pages as $p) {
@@ -192,7 +197,9 @@ class PdfWriter
             }
         }
 
-        return $name;
+        $family = $font->baseFont !== null ? $font->baseFont->value : 'Unknown';
+
+        return new Font($name, $family, $parsedData);
     }
 
     /**
@@ -204,10 +211,10 @@ class PdfWriter
      *
      * @param \ApprLabs\FontParser\TrueTypeData $data      Parsed TrueType font data
      * @param int[]                              $usedCodepoints Unicode codepoints used in the document
-     * @param Page|null                          $page      If set, add font only to this page
-     * @return string The resource name (F1, F2, ...)
+     * @param CorePage|Page|null                 $page      If set, add font only to this page
+     * @return Font Opaque font handle
      */
-    public function addCompositeFont(\ApprLabs\FontParser\TrueTypeData $data, array $usedCodepoints, ?Page $page = null): string
+    public function addCompositeFont(\ApprLabs\FontParser\TrueTypeData $data, array $usedCodepoints, CorePage|Page|null $page = null): Font
     {
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
@@ -232,15 +239,16 @@ class PdfWriter
         $this->fonts[$name] = $type0Font;
         $ref = new PdfReference($type0Font->objectNumber);
 
-        if ($page !== null) {
-            $page->resources?->addFont($name, $ref);
+        $corePage = $page instanceof Page ? $page->corePage() : $page;
+        if ($corePage !== null) {
+            $corePage->resources?->addFont($name, $ref);
         } else {
             foreach ($this->pages as $p) {
                 $p->resources?->addFont($name, $ref);
             }
         }
 
-        return $name;
+        return new Font($name, $data->postScriptName, $data);
     }
 
     /**
@@ -251,14 +259,14 @@ class PdfWriter
      *
      * @param \ApprLabs\FontParser\OpenTypeData $data Parsed OpenType font data
      * @param int[] $usedCodepoints Unicode codepoints used in the document
-     * @param Page|null $page If set, add font only to this page
-     * @return string The resource name (F1, F2, ...)
+     * @param CorePage|Page|null $page If set, add font only to this page
+     * @return Font Opaque font handle
      */
     public function addOpenTypeFont(
         \ApprLabs\FontParser\OpenTypeData $data,
         array $usedCodepoints,
-        ?Page $page = null,
-    ): string {
+        CorePage|Page|null $page = null,
+    ): Font {
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
 
@@ -278,8 +286,18 @@ class PdfWriter
         $descriptor->xHeight = $data->xHeight;
         $descriptor->stemV = $data->stemV;
 
-        // CFF font program stream (embed CFF table bytes, not full OTF)
-        $cffStream = new CFFFontFile($data->cffBytes, 'CIDFontType0C');
+        // Subset CFF table to only include used glyphs
+        $usedGids = [];
+        foreach ($usedCodepoints as $cp) {
+            $gid = $data->fullUnicodeToGid[$cp] ?? null;
+            if ($gid !== null) {
+                $usedGids[] = $gid;
+            }
+        }
+        $cffBytes = (new \ApprLabs\FontParser\CffSubsetter())->subset($data->cffBytes, $usedGids);
+
+        // CFF font program stream (embed subsetted CFF table bytes)
+        $cffStream = new CFFFontFile($cffBytes, 'CIDFontType0C');
         $this->file->register($cffStream);
         $descriptor->fontFile3 = new PdfReference($cffStream->objectNumber);
         $this->file->register($descriptor);
@@ -372,25 +390,27 @@ class PdfWriter
         $this->fonts[$name] = $type0Font;
         $ref = new PdfReference($type0Font->objectNumber);
 
-        if ($page !== null) {
-            $page->resources?->addFont($name, $ref);
+        $corePage = $page instanceof Page ? $page->corePage() : $page;
+        if ($corePage !== null) {
+            $corePage->resources?->addFont($name, $ref);
         } else {
             foreach ($this->pages as $p) {
                 $p->resources?->addFont($name, $ref);
             }
         }
 
-        return $name;
+        return new Font($name, $data->postScriptName, $data);
     }
 
     /**
      * Create a content stream, register it, and attach it to a page.
      */
-    public function addContentStream(Page $page): ContentStream
+    public function addContentStream(CorePage|Page $page): ContentStream
     {
+        $corePage = $page instanceof Page ? $page->corePage() : $page;
         $cs = new ContentStream();
         $this->file->register($cs);
-        $page->contents[] = new PdfReference($cs->objectNumber);
+        $corePage->contents[] = new PdfReference($cs->objectNumber);
         $this->contentStreams[] = $cs;
         return $cs;
     }
@@ -399,8 +419,9 @@ class PdfWriter
      * Add an image to a page as an XObject, using ImageParser to detect format.
      * Returns the resource name (e.g. 'Im1') for use in content streams.
      */
-    public function addImage(string $path, Page $page): string
+    public function addImage(string $path, CorePage|Page $page): string
     {
+        $corePage = $page instanceof Page ? $page->corePage() : $page;
         $info = ImageParser::parse($path);
         $data = file_get_contents($path);
 
@@ -416,10 +437,13 @@ class PdfWriter
             'BitsPerComponent' => new PdfNumber($info->bitsPerComponent),
         ]);
 
-        // For JPEG images, add the DCTDecode filter
-        if ($info->format === 'jpeg') {
-            $dict->set('Filter', new PdfName('DCTDecode'));
-        }
+        // Set the appropriate decode filter for pass-through image formats
+        match ($info->format) {
+            'jpeg' => $dict->set('Filter', new PdfName('DCTDecode')),
+            'jpeg2000' => $dict->set('Filter', new PdfName('JPXDecode')),
+            'jbig2' => $dict->set('Filter', new PdfName('JBIG2Decode')),
+            default => null,
+        };
 
         // If the image has an embedded ICC profile, replace the color space
         // with an ICCBased color space reference
@@ -444,8 +468,8 @@ class PdfWriter
         $ref = new PdfReference($xObject->objectNumber);
 
         // Add XObject resource to the page
-        if ($page->resources !== null) {
-            $page->resources->addXObject($name, $ref);
+        if ($corePage->resources !== null) {
+            $corePage->resources->addXObject($name, $ref);
         }
 
         return $name;
@@ -525,11 +549,31 @@ class PdfWriter
     }
 
     /**
+     * Escape hatch to Level 0 — returns the underlying PdfFileWriter
+     * for direct object-model control.
+     */
+    public function fileWriter(): PdfFileWriter
+    {
+        return $this->file;
+    }
+
+    /**
      * Register any arbitrary PdfObject (annotations, form fields, etc.).
      */
     public function register(PdfObject $object): PdfReference
     {
         return $this->file->register($object);
+    }
+
+    /**
+     * Add an image to a page as an XObject (internal — used by Writer\Page).
+     *
+     * @internal
+     * @return string Resource name (e.g. 'Im1')
+     */
+    public function addImageInternal(string $path, CorePage $page): string
+    {
+        return $this->addImage($path, $page);
     }
 
     /**
@@ -542,6 +586,46 @@ class PdfWriter
         int $placeholderBytes = 8192
     ): void {
         $this->file->setSigner($signatureValue, $signer, $placeholderBytes);
+    }
+
+    /**
+     * Configure a TSA client for RFC 3161 timestamping.
+     *
+     * @see PdfFileWriter::setTsaClient()
+     */
+    public function setTsaClient(TsaClient $tsaClient): void
+    {
+        $this->file->setTsaClient($tsaClient);
+    }
+
+    /**
+     * Configure a document-level timestamp using a TSA client.
+     *
+     * @see PdfFileWriter::setTimestamper()
+     */
+    public function setTimestamper(
+        SignatureValue $docTimeStamp,
+        TsaClient $tsaClient,
+        int $placeholderBytes = 16384
+    ): void {
+        $this->file->setTimestamper($docTimeStamp, $tsaClient, $placeholderBytes);
+    }
+
+    /**
+     * Configure encryption for the generated PDF.
+     *
+     * Registers the encrypt dictionary, and during generation all
+     * strings and streams are encrypted per-object with the correct
+     * key derivation. The /Encrypt reference is added to the trailer
+     * automatically.
+     *
+     * @see PdfEncryptor::aes128()
+     * @see PdfEncryptor::aes256()
+     * @see PdfEncryptor::rc4128()
+     */
+    public function setEncryption(PdfEncryptor $encryptor): void
+    {
+        $this->file->setEncryption($encryptor);
     }
 
     /**

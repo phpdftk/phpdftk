@@ -1,0 +1,67 @@
+---
+title: phpdftk
+description: A PHP 8.4 library for generating, reading, and manipulating PDF files.
+template: splash
+hero:
+  tagline: Every PDF spec object is a PHP class. Zero dependencies. Spec-compliant output.
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/apprlabs/phpdftk
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why phpdftk?
+
+<CardGrid>
+  <Card title="Three API levels" icon="setting">
+    Pick the abstraction that fits. **Level 2** auto-wraps text and paginates. **Level 1** gives spatial drawing with explicit coordinates. **Level 0** is the raw PDF object model. Drop down a level any time via escape hatches.
+  </Card>
+  <Card title="Read + Write" icon="open-book">
+    Full reader and writer in one library. Parse existing PDFs into typed objects, extract text, search content, inspect structure — then generate new PDFs with the same object model.
+  </Card>
+  <Card title="Toolkit" icon="puzzle">
+    High-level pipelines for common tasks: text extraction with search, page selection, metadata editing, form filling, page merging, stamping, and more.
+  </Card>
+  <Card title="Fast" icon="rocket">
+    100 pages in 1.8ms using 5.4 MB of memory. 3-30x faster than TCPDF, mPDF, and Dompdf. Competitive with FPDF while offering vastly more features.
+  </Card>
+</CardGrid>
+
+## The right level for every job
+
+```php
+// Level 2 — no PDF knowledge required
+$pdf = new Pdf();
+$pdf->addHeading('Quarterly Report', 1);
+$pdf->addText('Revenue increased 23% year-over-year...');
+$pdf->save('report.pdf');
+
+// Level 1 — spatial drawing, explicit coordinates
+$writer = new PdfWriter();
+$page = $writer->addPage(612, 792);
+$page->drawText('Hello', 72, 720, $font, 24);
+$page->drawRectangle(72, 600, 200, 100, fill: $blue);
+$writer->save('drawing.pdf');
+
+// Level 0 — raw PDF objects
+$fw = new PdfFileWriter();
+$catalog = new Catalog();
+$fw->setCatalog($catalog);
+// ... full object-model control
+```
+
+## Spec compliance
+
+Every object in ISO 32000-2:2020 (PDF 2.0) maps 1:1 to a PHP class. Every `/Field` from the spec maps to a camelCase property. The object model covers:
+
+- 28 Catalog fields, 32 Page fields, 26 annotation subtypes
+- All 69 content stream operators
+- 7 font types with TrueType/OpenType embedding and subsetting
+- AES-128/256 and RC4 encryption with PKCS#7 digital signatures
+- Tagged PDF, optional content groups, 3D annotations, multimedia
