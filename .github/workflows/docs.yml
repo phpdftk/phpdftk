@@ -37,7 +37,7 @@ jobs:
       - name: Build latest
         run: |
           cd docs/site
-          DOCS_VERSION=latest DOCS_BASE=/docs/ npx astro build
+          DOCS_VERSION=latest DOCS_BASE=/phpdftk/ npx astro build
           mkdir -p ../../_combined
           cp -r dist/* ../../_combined/
 

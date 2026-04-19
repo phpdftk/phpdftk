@@ -2,7 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
-const base = process.env.DOCS_BASE || '/docs/';
+const base = process.env.DOCS_BASE || '/phpdftk/';
 
 // https://astro.build/config
 export default defineConfig({
