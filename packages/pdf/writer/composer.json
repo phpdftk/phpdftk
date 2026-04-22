@@ -3,9 +3,17 @@
     "description": "PDF writer — serializes the phpdftk object model to spec-compliant PDF bytes",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["pdf", "writer", "generator", "builder"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": {
         "php": "^8.4",
-        "apprlabs/pdf-core": "@dev"
+        "apprlabs/pdf-core": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -16,7 +24,5 @@
         "psr-4": {
             "ApprLabs\\Pdf\\Writer\\Tests\\": "tests/"
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }

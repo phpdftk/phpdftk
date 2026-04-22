@@ -3,6 +3,14 @@
     "description": "XMP metadata packet read/write — no PDF dependency",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["xmp", "metadata", "xml", "dublin-core"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4", "ext-simplexml": "*" },
     "autoload": { "psr-4": { "ApprLabs\\Xmp\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\Xmp\\Tests\\": "tests/" } }

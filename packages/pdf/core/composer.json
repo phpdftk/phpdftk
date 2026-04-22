@@ -3,17 +3,25 @@
     "description": "PHP-native OOP mapping of the PDF specification — object model, content streams, document structure",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["pdf", "object-model", "content-stream", "iso-32000", "document"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": {
         "php": "^8.4",
-        "apprlabs/geometry": "@dev",
-        "apprlabs/encoding": "@dev",
-        "apprlabs/font-metrics": "@dev",
-        "apprlabs/image-metadata": "@dev",
-        "apprlabs/filters": "@dev",
-        "apprlabs/color": "@dev",
-        "apprlabs/xmp": "@dev",
-        "apprlabs/crypt": "@dev",
-        "apprlabs/font-parser": "@dev"
+        "apprlabs/geometry": "^1.0",
+        "apprlabs/encoding": "^1.0",
+        "apprlabs/font-metrics": "^1.0",
+        "apprlabs/image-metadata": "^1.0",
+        "apprlabs/filters": "^1.0",
+        "apprlabs/color": "^1.0",
+        "apprlabs/xmp": "^1.0",
+        "apprlabs/crypt": "^1.0",
+        "apprlabs/font-parser": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -24,7 +32,5 @@
         "psr-4": {
             "ApprLabs\\Pdf\\Core\\Tests\\": "tests/"
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }

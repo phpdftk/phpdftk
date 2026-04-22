@@ -3,6 +3,14 @@
     "description": "Parse JPEG/PNG/GIF/TIFF/WebP headers to extract dimensions and color space — no PDF dependency",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["image", "metadata", "jpeg", "png", "dimensions"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4" },
     "autoload": { "psr-4": { "ApprLabs\\ImageMetadata\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\ImageMetadata\\Tests\\": "tests/" } }

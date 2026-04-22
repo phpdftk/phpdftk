@@ -1,0 +1,11 @@
+# Exclude from dist archives (composer --prefer-dist)
+/benchmarks        export-ignore
+/docs              export-ignore
+/scripts           export-ignore
+/.github           export-ignore
+/phpunit.xml       export-ignore
+/phpstan.neon      export-ignore
+/CLAUDE.md         export-ignore
+.gitattributes     export-ignore
+.gitignore         export-ignore
+.mise.toml         export-ignore

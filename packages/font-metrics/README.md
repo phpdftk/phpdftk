@@ -1,17 +1,17 @@
-# phpdftk/font-metrics
+# apprlabs/font-metrics
 
 AFM (Adobe Font Metrics) data for the 14 standard PDF fonts. No PDF dependency — useful anywhere you need glyph widths, bounding boxes, or typographic metrics without loading font files.
 
 ## Installation
 
 ```bash
-composer require phpdftk/font-metrics
+composer require apprlabs/font-metrics
 ```
 
 ## Usage
 
 ```php
-use Phpdftk\FontMetrics\StandardFontMetrics;
+use ApprLabs\FontMetrics\StandardFontMetrics;
 
 // Get metrics for a standard font by PostScript name
 $metrics = StandardFontMetrics::get('Helvetica');

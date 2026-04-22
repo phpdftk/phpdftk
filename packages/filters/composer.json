@@ -3,6 +3,14 @@
     "description": "FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode — no PDF dependency",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["filter", "flate", "ascii85", "compression", "decode"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4", "ext-zlib": "*" },
     "autoload": { "psr-4": { "ApprLabs\\Filters\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\Filters\\Tests\\": "tests/" } }

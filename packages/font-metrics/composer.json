@@ -3,6 +3,14 @@
     "description": "AFM metrics for the 14 standard PDF fonts — no PDF dependency",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["font", "metrics", "afm", "pdf", "typography"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4" },
     "autoload": { "psr-4": { "ApprLabs\\FontMetrics\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\FontMetrics\\Tests\\": "tests/" } }

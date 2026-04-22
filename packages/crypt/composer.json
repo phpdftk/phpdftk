@@ -3,6 +3,14 @@
     "description": "AES-128/256 and RC4 with PDF key derivation — no PDF object dependency",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["encryption", "aes", "rc4", "pdf", "cryptography"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4", "ext-openssl": "*" },
     "autoload": { "psr-4": { "ApprLabs\\Crypt\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\Crypt\\Tests\\": "tests/" } }

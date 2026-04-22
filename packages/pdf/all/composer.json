@@ -1,13 +1,19 @@
 {
     "name": "apprlabs/pdf",
-    "description": "phpdftk — PHP 8.4+ toolkit for building (and soon reading) ISO 32000-2 PDF files. Metapackage pulling in the full family.",
+    "description": "phpdftk — PHP 8.4+ toolkit for building and reading ISO 32000-2 PDF files. Metapackage pulling in the full family.",
     "type": "metapackage",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["pdf", "php", "iso-32000", "generator", "reader"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": {
         "php": "^8.4",
-        "apprlabs/pdf-core": "@dev",
-        "apprlabs/pdf-writer": "@dev"
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+        "apprlabs/pdf-core": "^1.0",
+        "apprlabs/pdf-writer": "^1.0"
+    }
 }

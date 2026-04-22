@@ -1,18 +1,18 @@
-# phpdftk/image-metadata
+# apprlabs/image-metadata
 
 Parse image file headers to extract dimensions, color space, and bit depth — without loading the full image into memory. Supports JPEG, PNG, GIF, TIFF, and WebP. No PDF dependency.
 
 ## Installation
 
 ```bash
-composer require phpdftk/image-metadata
+composer require apprlabs/image-metadata
 ```
 
 ## Usage
 
 ```php
-use Phpdftk\ImageMetadata\ImageParser;
-use Phpdftk\ImageMetadata\ImageInfo;
+use ApprLabs\ImageMetadata\ImageParser;
+use ApprLabs\ImageMetadata\ImageInfo;
 
 // Auto-detect format from file signature and parse metadata
 $info = ImageParser::parseFile('/path/to/image.jpg');

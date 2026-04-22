@@ -1,8 +1,16 @@
 {
     "name": "apprlabs/font-parser",
-    "description": "TrueType font parser for metric extraction and PDF embedding — no external dependencies",
+    "description": "TrueType, OpenType, and CFF font parser for metric extraction and PDF embedding — no external dependencies",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["font", "truetype", "opentype", "cff", "parser", "subsetting"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
     "require": { "php": "^8.4" },
     "autoload": { "psr-4": { "ApprLabs\\FontParser\\": "src/" } },
     "autoload-dev": { "psr-4": { "ApprLabs\\FontParser\\Tests\\": "tests/" } }
