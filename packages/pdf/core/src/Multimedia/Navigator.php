@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Navigator (/Type /Navigator) — ISO 32000-2 §13.2.7.
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Scripted presentation sequence that drives transitions between pages
  * or slides during multimedia playback.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class Navigator extends PdfObject
 {
     public const PDF_TYPE = 'Navigator';

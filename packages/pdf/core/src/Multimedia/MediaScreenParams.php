@@ -7,12 +7,15 @@ namespace ApprLabs\Pdf\Core\Multimedia;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media screen parameters (/Type /MediaScreenParams) — ISO 32000-2 §13.2.5.
  *
  * Describes where the media plays (window geometry, monitor, background).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class MediaScreenParams extends PdfObject
 {
     public const PDF_TYPE = 'MediaScreenParams';

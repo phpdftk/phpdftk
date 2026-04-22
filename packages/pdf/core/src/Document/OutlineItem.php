@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Outline Item (bookmark entry).
@@ -20,6 +22,7 @@ use ApprLabs\Pdf\Core\PdfString;
  *
  * /Dest or /A must be set for the bookmark to navigate somewhere.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class OutlineItem extends PdfObject
 {
     public PdfString $title;              // /Title - required; displayed label

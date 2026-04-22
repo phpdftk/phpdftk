@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Abstract base for PDF shading dictionaries — ISO 32000-2 §8.7.4.
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * Shading types 1–3 are dictionaries and extend this class directly.
  * Types 4–7 must be streams (see ShadingType4..7).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 abstract class Shading extends PdfObject
 {
     public ColorSpace|PdfName|PdfArray $colorSpace;

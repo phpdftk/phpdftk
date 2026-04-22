@@ -25,6 +25,9 @@ final class PdfMerger
     /** @var list<array{reader: PdfReader, pages: ?PageSelector}> */
     private array $sources = [];
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     private function __construct() {}
 
     public static function create(): self
@@ -131,6 +134,14 @@ final class PdfMerger
         $pageTree->kids = $allPageRefs;
         $pageTree->count = count($allPageRefs);
 
-        return $fw->generate();
+        $result = $fw->generate();
+        $this->lastVersionWarnings = $fw->getVersionWarnings();
+        return $result;
+    }
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
     }
 }

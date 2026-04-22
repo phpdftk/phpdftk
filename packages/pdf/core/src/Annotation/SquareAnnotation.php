@@ -7,10 +7,13 @@ namespace ApprLabs\Pdf\Core\Annotation;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Square annotation (/Subtype /Square).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class SquareAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $ic = null;       // /IC - interior color

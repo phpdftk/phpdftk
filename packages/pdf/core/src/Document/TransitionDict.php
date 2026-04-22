@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Page Transition dictionary (/Type /Trans).
@@ -27,6 +29,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $t->d  = new PdfNumber(1.5);
  *   $page->transition = $t;
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class TransitionDict implements Serializable
 {
     public ?PdfName $s    = null;  // /S  - transition style

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Font;
 
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Multiple Master Type 1 font (/Subtype /MMType1).
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfName;
  * axis values and spaces replaced with underscores
  * (ISO 32000-2 §9.6.2.3).
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class MMType1Font extends Font
 {
     public function __construct(string $baseFontName)

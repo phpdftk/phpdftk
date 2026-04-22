@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D node dictionary (/Type /3DNode) — ISO 32000-2 §13.6.4.5.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Overrides the transform / visibility / rendering of a named node
  * inside a 3D stream. Referenced from `ThreeDView::$na`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDNode extends PdfObject
 {
     public const PDF_TYPE = '3DNode';

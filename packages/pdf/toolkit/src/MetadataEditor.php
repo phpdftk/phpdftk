@@ -31,6 +31,9 @@ final class MetadataEditor
 {
     private string $originalBytes;
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     /** @var array<string, PdfString|PdfName|null> Pending field changes */
     private array $changes = [];
 
@@ -258,12 +261,20 @@ final class MetadataEditor
             $writer->addModifiedObject($info);
         }
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

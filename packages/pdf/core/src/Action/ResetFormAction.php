@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Reset-form action (/S /ResetForm) — ISO 32000-2 §12.7.5.3.
  * Resets form field values to their defaults.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class ResetFormAction extends Action
 {
     public ?PdfArray $fields = null;   // /Fields  (default: all fields)

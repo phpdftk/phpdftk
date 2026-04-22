@@ -6,10 +6,15 @@ namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
 
 /**
  * Sound annotation (/Subtype /Sound).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation')]
 class SoundAnnotation extends MarkupAnnotation
 {
     public ?PdfReference $sound = null; // /Sound - sound object

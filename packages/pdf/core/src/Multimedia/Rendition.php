@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Rendition (/Type /Rendition) — ISO 32000-2 §13.2.3.
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Abstract base for Media renditions (MR) and Selector renditions (SR).
  * Common entries: Type, S (subtype), N (name), MH (media-handler), BE.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 abstract class Rendition extends PdfObject
 {
     public const PDF_TYPE = 'Rendition';

@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Shared base for markup annotations — ISO 32000-2 §12.5.6.2, Table 170.
@@ -23,6 +25,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * TrapNet, Watermark, 3D, Projection, RichMedia, Movie) keep extending
  * {@see Annotation} directly.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 abstract class MarkupAnnotation extends Annotation
 {
     public ?PdfString $t = null;              // /T            text label (author)

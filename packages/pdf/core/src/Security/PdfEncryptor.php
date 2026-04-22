@@ -279,6 +279,18 @@ final class PdfEncryptor
     }
 
     /**
+     * Get the minimum PDF version required by this encryption configuration.
+     */
+    public function getMinimumPdfVersion(): \ApprLabs\Pdf\Core\PdfVersion
+    {
+        return match (true) {
+            $this->aesKeyBits === 256 => \ApprLabs\Pdf\Core\PdfVersion::V2_0,
+            $this->useAes             => \ApprLabs\Pdf\Core\PdfVersion::V1_6,
+            default                   => \ApprLabs\Pdf\Core\PdfVersion::V1_4,
+        };
+    }
+
+    /**
      * Set the object number of the encrypt dictionary so it's excluded
      * from encryption.
      */

@@ -8,12 +8,15 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media clip object (/Type /MediaClip) — ISO 32000-2 §13.2.4.
  *
  * Abstract base for MediaClipData (MCD) and MediaClipSection (MCS).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 abstract class MediaClip extends PdfObject
 {
     public const PDF_TYPE = 'MediaClip';

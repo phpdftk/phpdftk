@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Annotation;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Appearance dictionary (ISO 32000-2 Table 170).
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $ap->n = new PdfReference($normalAppearance->objectNumber);
  *   $annotation->ap = $ap;
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class AppearanceDict implements Serializable
 {
     public PdfReference|PdfDictionary|null $n = null;  // /N - normal appearance

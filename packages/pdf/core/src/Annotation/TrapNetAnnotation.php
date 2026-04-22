@@ -7,10 +7,13 @@ namespace ApprLabs\Pdf\Core\Annotation;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * TrapNet annotation (/Subtype /TrapNet).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class TrapNetAnnotation extends Annotation
 {
     public ?PdfString $lastModified = null;  // /LastModified

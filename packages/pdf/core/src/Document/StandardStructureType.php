@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Document;
 
+use ApprLabs\Pdf\Core\PdfVersion;
+
 /**
  * Standard structure types — ISO 32000-2 §14.8.4.
  *
@@ -74,4 +76,30 @@ final class StandardStructureType
     public const FORMULA = 'Formula';
     public const FORM = 'Form';
     public const ARTIFACT = 'Artifact';                    // PDF 2.0
+
+    /** Structure types introduced in PDF 2.0. */
+    private const PDF_2_0_TYPES = [
+        self::DOCUMENT_FRAGMENT,
+        self::ASIDE,
+        self::TITLE,
+        self::THEAD,
+        self::TBODY,
+        self::TFOOT,
+        self::F_E_NOTE,
+        self::ARTIFACT,
+    ];
+
+    /**
+     * Return the minimum PDF version required by the given structure type,
+     * or null if the type is not a recognized standard type or has no
+     * version constraint beyond PDF 1.0.
+     */
+    public static function minimumVersion(string $type): ?PdfVersion
+    {
+        if (in_array($type, self::PDF_2_0_TYPES, true)) {
+            return PdfVersion::V2_0;
+        }
+
+        return null;
+    }
 }

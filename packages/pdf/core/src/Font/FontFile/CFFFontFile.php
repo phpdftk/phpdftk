@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CFF / Type 1C / CIDFontType0C font program stream — ISO 32000-2 §9.9,
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  *   /CIDFontType0C  — CFF font program for CID-keyed fonts
  *   /OpenType       — OpenType font file (CFF or TTF outlines)
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class CFFFontFile extends PdfStream
 {
     public PdfName $subtype;

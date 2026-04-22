@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Seed value dictionary — ISO 32000-2 §12.7.5.5, Table 234.
@@ -37,7 +39,9 @@ class SeedValueDictionary extends PdfObject
     public ?PdfDictionary $timeStamp = null;     // /TimeStamp  time-stamp server dict
     public ?PdfArray $legalAttestation = null;   // /LegalAttestation array of strings
     public ?bool $addRevInfo = null;             // /AddRevInfo
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?bool $lockDocument = null;           // /LockDocument (PDF 2.0)
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfString $appearanceFilter = null;  // /AppearanceFilter (PDF 2.0)
 
     public function toPdf(): string

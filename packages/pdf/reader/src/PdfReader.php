@@ -14,6 +14,7 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
 use ApprLabs\Pdf\Reader\Parser\ObjectParser;
@@ -122,6 +123,106 @@ final class PdfReader
     public function getVersion(): string
     {
         return $this->version;
+    }
+
+    /** Typed PDF version from the file header. */
+    public function getPdfVersion(): PdfVersion
+    {
+        return PdfVersion::tryFrom($this->version) ?? PdfVersion::V1_7;
+    }
+
+    /**
+     * Effective PDF version — max(header, catalog /Version).
+     *
+     * Per ISO 32000 §7.2.2, the catalog /Version entry (PDF 1.4+)
+     * overrides the header version if it is higher.
+     */
+    public function getEffectiveVersion(): PdfVersion
+    {
+        $headerVersion = $this->getPdfVersion();
+        $catalog = $this->getCatalog();
+
+        if ($catalog instanceof PdfDictionary && $catalog->has('Version')) {
+            $catVersion = $catalog->get('Version');
+            if ($catVersion instanceof PdfName) {
+                $catPdfVersion = PdfVersion::tryFrom($catVersion->value);
+                if ($catPdfVersion !== null) {
+                    return $headerVersion->max($catPdfVersion);
+                }
+            }
+        }
+
+        return $headerVersion;
+    }
+
+    /**
+     * Scan the document for structural features inconsistent with the
+     * declared version. Returns a list of warning strings.
+     *
+     * Checks top-level indicators that can be detected from raw
+     * dictionaries without full object hydration.
+     *
+     * @return list<string>
+     */
+    public function validateVersion(): array
+    {
+        $warnings = [];
+        $version = $this->getEffectiveVersion();
+
+        // Xref stream → requires 1.5
+        $trailerType = $this->trailer->get('Type');
+        if ($trailerType instanceof PdfName && $trailerType->value === 'XRef') {
+            if (!$version->isAtLeast(PdfVersion::V1_5)) {
+                $warnings[] = "Cross-reference stream requires PDF 1.5, but document declares {$version->value}";
+            }
+        }
+
+        // Encryption version
+        $encrypt = $this->trailer->get('Encrypt');
+        if ($encrypt instanceof PdfReference) {
+            $encDict = $this->resolver->resolveReference($encrypt);
+            if ($encDict instanceof PdfDictionary) {
+                $v = $encDict->get('V');
+                $vVal = $v instanceof PdfNumber ? (int) $v->toPdf() : 0;
+                $required = match (true) {
+                    $vVal >= 5 => PdfVersion::V2_0,
+                    $vVal >= 4 => PdfVersion::V1_6,
+                    $vVal >= 2 => PdfVersion::V1_4,
+                    default => PdfVersion::V1_0,
+                };
+                if ($required->isGreaterThan($version)) {
+                    $warnings[] = "Encryption V={$vVal} requires PDF {$required->value}, but document declares {$version->value}";
+                }
+            }
+        }
+
+        // Catalog-level structural checks
+        try {
+            $catalog = $this->getCatalog();
+
+            if ($catalog->has('OCProperties') && !$version->isAtLeast(PdfVersion::V1_5)) {
+                $warnings[] = "Optional content (/OCProperties) requires PDF 1.5, but document declares {$version->value}";
+            }
+            if ($catalog->has('Collection') && !$version->isAtLeast(PdfVersion::V1_7)) {
+                $warnings[] = "PDF Portfolio (/Collection) requires PDF 1.7, but document declares {$version->value}";
+            }
+            if ($catalog->has('DPartRoot') && !$version->isAtLeast(PdfVersion::V2_0)) {
+                $warnings[] = "Document parts (/DPartRoot) requires PDF 2.0, but document declares {$version->value}";
+            }
+            if ($catalog->has('DSS') && !$version->isAtLeast(PdfVersion::V2_0)) {
+                $warnings[] = "Document security store (/DSS) requires PDF 2.0, but document declares {$version->value}";
+            }
+            if ($catalog->has('AF') && !$version->isAtLeast(PdfVersion::V2_0)) {
+                $warnings[] = "Associated files (/AF) requires PDF 2.0, but document declares {$version->value}";
+            }
+            if ($catalog->has('Requirements') && !$version->isAtLeast(PdfVersion::V1_7)) {
+                $warnings[] = "Requirements (/Requirements) requires PDF 1.7, but document declares {$version->value}";
+            }
+        } catch (InvalidPdfException) {
+            // Can't resolve catalog — skip structural checks
+        }
+
+        return $warnings;
     }
 
     /**

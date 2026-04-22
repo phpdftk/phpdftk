@@ -9,10 +9,13 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D render mode dictionary (/Type /3DRenderMode) — ISO 32000-2 §13.6.6.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDRenderMode extends PdfObject
 {
     public const PDF_TYPE = '3DRenderMode';

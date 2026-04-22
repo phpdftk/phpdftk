@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Document part node (/Type /DPart) — ISO 32000-2 §14.12.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * array of child node references; leaves carry a /Start page reference
  * (and optionally /End) plus their record metadata.
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class DPart extends PdfObject
 {
     public const PDF_TYPE = 'DPart';

@@ -31,6 +31,9 @@ final class AnnotationFlattener
     /** @var list<array{type: string, args: array}> */
     private array $operations = [];
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     private function __construct(
         private readonly PdfReader $reader,
         string $originalBytes,
@@ -302,12 +305,20 @@ final class AnnotationFlattener
             $writer->addModifiedObject($pageObj);
         }
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

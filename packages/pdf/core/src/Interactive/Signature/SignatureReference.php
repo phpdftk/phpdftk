@@ -10,12 +10,15 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Signature reference dictionary (/Type /SigRef) — ISO 32000-2 §12.8.1,
  * Table 253. Referenced by /Reference on a SignatureValue; each entry
  * names a transform method plus its params.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class SignatureReference extends PdfObject
 {
     public const PDF_TYPE = 'SigRef';

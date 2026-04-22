@@ -13,6 +13,8 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Serializable;
 use ApprLabs\Pdf\Core\Content\Resources;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Page object (/Type /Page).
@@ -48,8 +50,11 @@ class Page extends PdfObject
     public ?PdfReference $pieceInfo = null;  // /PieceInfo - application data
     public BoxColorInfo|PdfDictionary|null $boxColorInfo = null; // /BoxColorInfo
     public ?PdfArray $b = null;             // /B - article beads
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfArray $af = null;            // /AF - associated files
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public ?PdfArray $outputIntents = null; // /OutputIntents - page-level output intents
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfReference $dPart = null;     // /DPart - document part reference (PDF 2.0)
     public ?PdfDictionary $separationInfo = null; // /SeparationInfo
     public ?PdfName $templateInstantiated = null; // /TemplateInstantiated

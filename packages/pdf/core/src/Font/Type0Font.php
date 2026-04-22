@@ -9,11 +9,14 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Type 0 (composite) font (/Type /Font /Subtype /Type0).
  * Used for multi-byte character sets such as CJK.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class Type0Font extends PdfObject
 {
     public const PDF_TYPE = 'Font';

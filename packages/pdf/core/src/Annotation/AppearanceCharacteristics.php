@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Widget annotation appearance characteristics (ISO 32000-2 Table 192).
@@ -24,6 +26,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $mk->ca = new PdfString('Submit');
  *   $widget->mk = $mk;
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class AppearanceCharacteristics implements Serializable
 {
     public ?int $r = null;              // /R - rotation (0, 90, 180, 270)

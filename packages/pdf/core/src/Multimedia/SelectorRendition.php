@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Multimedia;
 
 use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Selector rendition (/Type /Rendition /S /SR) — ISO 32000-2 §13.2.3.4.
@@ -12,6 +14,7 @@ use ApprLabs\Pdf\Core\PdfArray;
  * Wraps an ordered array of candidate renditions; the viewer picks the
  * first playable one.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class SelectorRendition extends Rendition
 {
     public ?PdfArray $r = null;   // /R  array of Rendition references

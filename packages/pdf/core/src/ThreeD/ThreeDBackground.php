@@ -10,10 +10,13 @@ use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D background dictionary (/Type /3DBG) — ISO 32000-2 §13.6.5.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDBackground extends PdfObject
 {
     public const PDF_TYPE = '3DBG';

@@ -10,11 +10,14 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CIDFont dictionary (/Type /Font /Subtype /CIDFontType0 or /CIDFontType2).
  * Used as the descendant of a Type0 composite font.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class CIDFont extends PdfObject
 {
     public const PDF_TYPE = 'Font';

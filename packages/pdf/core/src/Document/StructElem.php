@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\PdfVersionAware;
 
 /**
  * PDF Structure Element (ISO 32000-2 Table 324).
@@ -22,7 +24,7 @@ use ApprLabs\Pdf\Core\PdfString;
  *   $elem->p = new PdfReference($parent->objectNumber);
  *   $elem->t = new PdfString('Paragraph Title');
  */
-class StructElem extends PdfObject
+class StructElem extends PdfObject implements PdfVersionAware
 {
     public const PDF_TYPE = 'StructElem';
 
@@ -43,6 +45,11 @@ class StructElem extends PdfObject
     public function __construct(string $structureType)
     {
         $this->s = new PdfName($structureType);
+    }
+
+    public function getMinimumPdfVersion(): ?PdfVersion
+    {
+        return StandardStructureType::minimumVersion($this->s->value);
     }
 
     public function toPdf(): string

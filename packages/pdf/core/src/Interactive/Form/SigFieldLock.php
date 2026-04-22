@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Signature field lock dictionary — ISO 32000-2 §12.7.5.5, Table 233.
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * optionally applies `/P` (MDP permission level: 1=no changes,
  * 2=form fill+sign, 3=everything above plus annotation edits).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class SigFieldLock extends PdfObject
 {
     public const PDF_TYPE = 'SigFieldLock';

@@ -7,10 +7,13 @@ namespace ApprLabs\Pdf\Core\Annotation;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Screen annotation (/Subtype /Screen).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class ScreenAnnotation extends Annotation
 {
     public ?PdfString $t = null;       // /T - title

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Highlight annotation (/Subtype /Highlight).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class HighlightAnnotation extends MarkupAnnotation
 {
     public PdfArray $quadPoints; // /QuadPoints - required

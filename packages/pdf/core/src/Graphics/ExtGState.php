@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * External Graphics State parameter dictionary (/Type /ExtGState).
@@ -31,11 +33,17 @@ class ExtGState extends PdfObject
     public ?float $fl = null;        // /FL - flatness
     public ?float $sm = null;        // /SM - smoothness
     public ?bool $sa = null;         // /SA - stroke adjustment
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public mixed $bm = null;         // /BM - blend mode
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public mixed $sMask = null;      // /SMask - soft mask
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public ?float $ca = null;        // /CA - stroke alpha
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public ?float $caLower = null;   // /ca - fill alpha
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public ?bool $ais = null;        // /AIS - alpha is shape
+    #[RequiresPdfVersion(PdfVersion::V1_4)]
     public ?bool $tk = null;         // /TK - text knockout
     public mixed $bg = null;         // /BG - black generation function
     public mixed $bg2 = null;        // /BG2 - black generation (PDF 1.3+)

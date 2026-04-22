@@ -7,11 +7,14 @@ namespace ApprLabs\Pdf\Core\Action;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * JavaScript action (/S /JavaScript).
  * Executes a JavaScript script.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class JavaScriptAction extends Action
 {
     public PdfString $js; // /JS - required

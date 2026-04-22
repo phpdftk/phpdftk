@@ -14,6 +14,8 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Form XObject (/Subtype /Form) — ISO 32000-2 §8.10, Table 95.
@@ -39,6 +41,7 @@ class FormXObject extends PdfStream
     public ?int $structParent = null;                          // /StructParent
     public ?int $structParents = null;                         // /StructParents
     public ?PdfReference $oc = null;                           // /OC - optional content
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfArray $af = null;                               // /AF - associated files
     public ?PdfDictionary $opi = null;                         // /OPI
     public ?PdfReference $measure = null;                      // /Measure

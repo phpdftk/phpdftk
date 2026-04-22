@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\FileSpec\FileSpec;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Launch action (/S /Launch) — ISO 32000-2 §12.6.4.5.
  * Launches an application or opens/prints a document.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class LaunchAction extends Action
 {
     public FileSpec|PdfReference|null $f = null;   // /F

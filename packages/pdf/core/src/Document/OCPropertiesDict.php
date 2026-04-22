@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Optional Content Properties Dictionary (ISO 32000-2 Table 100).
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *   $writer->register($ocProps);
  *   $catalog->ocProperties = new PdfReference($ocProps->objectNumber);
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class OCPropertiesDict extends PdfObject
 {
     public PdfArray $ocgs;             // /OCGs - required, all OCG refs

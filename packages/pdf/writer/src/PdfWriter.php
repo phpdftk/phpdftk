@@ -38,6 +38,7 @@ use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
 use ApprLabs\Geometry\Rectangle;
 use ApprLabs\ImageMetadata\ImageParser;
 use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
@@ -82,7 +83,7 @@ class PdfWriter
     /** Running counter for image resource names */
     private int $imageCounter = 0;
 
-    public function __construct(bool $compressStreams = true, string $version = PdfFileWriter::DEFAULT_VERSION)
+    public function __construct(bool $compressStreams = true, PdfVersion|string $version = PdfFileWriter::DEFAULT_PDF_VERSION)
     {
         $this->file = new PdfFileWriter($compressStreams, version: $version);
         $this->catalog = new Catalog();
@@ -626,6 +627,27 @@ class PdfWriter
     public function setEncryption(PdfEncryptor $encryptor): void
     {
         $this->file->setEncryption($encryptor);
+    }
+
+    public function getPdfVersion(): PdfVersion
+    {
+        return $this->file->getPdfVersion();
+    }
+
+    public function setStrictVersionMode(bool $strict = true): void
+    {
+        $this->file->setStrictVersionMode($strict);
+    }
+
+    public function setDeprecationHandler(\Closure $handler): void
+    {
+        $this->file->setDeprecationHandler($handler);
+    }
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->file->getVersionWarnings();
     }
 
     /**

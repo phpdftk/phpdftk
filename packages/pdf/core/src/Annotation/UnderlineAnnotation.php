@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Underline annotation (/Subtype /Underline).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class UnderlineAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null; // /QuadPoints

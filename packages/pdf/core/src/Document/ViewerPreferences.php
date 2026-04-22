@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Viewer Preferences dictionary.
@@ -34,6 +36,7 @@ class ViewerPreferences extends PdfObject
     public ?bool $pickTrayByPDFSize = null;                // /PickTrayByPDFSize
     public ?PdfArray $printPageRange = null;               // /PrintPageRange
     public ?int $numCopies = null;                         // /NumCopies
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfArray $enforce = null;                      // /Enforce - PDF 2.0 array of names
 
     public function toPdf(): string

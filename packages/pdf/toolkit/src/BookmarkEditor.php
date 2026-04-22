@@ -36,6 +36,9 @@ final class BookmarkEditor
 {
     private string $originalBytes;
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     /** @var list<BookmarkEntry>|null Pending bookmark set (null = no change) */
     private ?array $pendingBookmarks = null;
 
@@ -182,12 +185,20 @@ final class BookmarkEditor
         }
         $writer->addModifiedObject($catalogObj);
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

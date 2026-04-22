@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Document Catalog (/Type /Catalog).
@@ -46,9 +48,13 @@ class Catalog extends PdfObject
     public ?PdfReference $spiderInfo = null;         // /SpiderInfo - web capture info
     public ?PdfDictionary $pieceInfo = null;         // /PieceInfo - application data
     public ?PdfReference $structTreeRoot = null;     // /StructTreeRoot - structure tree root
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public DSS|PdfReference|null $dss = null;        // /DSS - document security store (PAdES LTV)
+    #[RequiresPdfVersion(PdfVersion::V1_7)]
     public ?PdfDictionary $extensions = null;        // /Extensions - developer extensions
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfArray $af = null;                     // /AF - associated files
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfReference $dPartRoot = null;          // /DPartRoot - document parts root (PDF 2.0)
 
     public function toPdf(): string

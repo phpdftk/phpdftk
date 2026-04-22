@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Document security store — ISO 32000-2 §12.8.4.3.
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  *
  * Referenced from `Catalog::$dss`.
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class DSS extends PdfObject
 {
     public ?PdfArray $certs = null;       // /Certs  - array of cert streams

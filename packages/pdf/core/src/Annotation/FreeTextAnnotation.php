@@ -9,11 +9,14 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Free text annotation (/Subtype /FreeText).
  * Renders text directly on the page surface.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class FreeTextAnnotation extends MarkupAnnotation
 {
     public PdfString $da;               // /DA - default appearance - required

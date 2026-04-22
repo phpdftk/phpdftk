@@ -10,6 +10,7 @@ use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
 use ApprLabs\Pdf\Core\PdfReference;
 
 /**
@@ -17,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * of RichMedia, but still part of the spec and referenced by
  * MovieAnnotation).
  */
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation')]
 class Movie extends PdfObject
 {
     public FileSpec|PdfReference $f;         // /F  file spec (required)

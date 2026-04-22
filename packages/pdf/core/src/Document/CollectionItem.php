@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Collection Item dictionary.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *   $item = new CollectionItem();
  *   $item->fields->set('FileName', new PdfString('report.pdf'));
  */
+#[RequiresPdfVersion(PdfVersion::V1_7)]
 class CollectionItem extends PdfObject
 {
     public PdfDictionary $fields;

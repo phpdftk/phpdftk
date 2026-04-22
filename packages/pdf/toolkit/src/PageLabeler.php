@@ -30,6 +30,9 @@ final class PageLabeler
 {
     private string $originalBytes;
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     /**
      * Pending label ranges: 0-based page index => [style, prefix, startNumber]
      *
@@ -224,12 +227,20 @@ final class PageLabeler
         }
         $writer->addModifiedObject($catalogObj);
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

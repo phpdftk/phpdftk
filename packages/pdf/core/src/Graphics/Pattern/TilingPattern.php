@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Tiling pattern (/Type /Pattern /PatternType 1) — ISO 32000-2 §8.7.3.
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  *
  * Required entries: PaintType, TilingType, BBox, XStep, YStep, Resources.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class TilingPattern extends PdfStream
 {
     public const PDF_TYPE = 'Pattern';

@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Requirement dictionary — ISO 32000-2 §12.10, Table 253.
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * Declares processor capabilities that a conforming reader must support
  * to fully render the document. Referenced from `Catalog::$requirements`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_7)]
 class Requirement extends PdfObject
 {
     public const PDF_TYPE = 'Requirement';

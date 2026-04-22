@@ -7,12 +7,15 @@ namespace ApprLabs\Pdf\Core\Multimedia;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media clip section (/Type /MediaClip /S /MCS) — ISO 32000-2 §13.2.4.3.
  *
  * Defines a temporal slice of another MediaClip.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class MediaClipSection extends MediaClip
 {
     public MediaClip|PdfReference $d;              // /D  parent clip

@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Signature field (/FT /Sig) — ISO 32000-2 §12.7.5.5.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * PdfDictionary, or a reference to a SignatureValue indirect object.
  * /Lock and /SV provide an optional lock dict and seed-value dict.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class SignatureField extends Field
 {
     public ?int $sigFlags = null;                                          // /SigFlags  (carried on AcroForm)

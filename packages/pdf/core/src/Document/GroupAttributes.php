@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *
  * Implements Serializable for inline use within Page or FormXObject.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class GroupAttributes implements Serializable
 {
     public PdfName $s;                   // /S - subtype (always /Transparency for transparency groups)

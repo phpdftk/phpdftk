@@ -6,10 +6,13 @@ namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * FileAttachment annotation (/Subtype /FileAttachment).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class FileAttachmentAnnotation extends MarkupAnnotation
 {
     public ?PdfReference $fs = null;  // /FS - file specification

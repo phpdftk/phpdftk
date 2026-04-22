@@ -9,10 +9,13 @@ use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Line annotation (/Subtype /Line).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class LineAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $l = null;        // /L - two points [x1 y1 x2 y2]

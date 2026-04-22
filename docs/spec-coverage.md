@@ -748,3 +748,40 @@ these fields.
 > `PdfWriter::setSigner()` **is** fully wired: it computes `/ByteRange`,
 > patches `/Contents` in place, and produces signatures verified in CI via
 > `openssl cms -verify`.
+
+---
+
+## Version Gating
+
+Every version-sensitive PDF feature is annotated with its minimum required PDF version. The writer auto-bumps the document version when features are used, or throws in strict mode.
+
+### Annotation Coverage
+
+| Version | Annotated Classes/Properties | Key Features |
+|---------|------------------------------|-------------|
+| **1.1** | 9 | CalGray, CalRGB, Lab, LaunchAction, Outline, OutlineItem, TransitionDict, MMType1Font, ThreadAction |
+| **1.2** | 13 | Pattern, TilingPattern, WidgetAnnotation, Type0Font, CIDFont, AcroForm, HideAction, SubmitFormAction, ResetFormAction, ImportDataAction, AppearanceDict, AppearanceCharacteristics, AdditionalActions |
+| **1.3** | 25 | ICCBased, Separation, ShadingPattern, Shading (all subtypes via inheritance), Func (all subtypes), StructTreeRoot, 14 annotation types, JavaScriptAction, PageLabel, SignatureField/Value/Reference |
+| **1.4** | 13 | SoftMask, GroupAttributes, MetadataStream, MarkupAnnotation (all subtypes), OutputIntent, MovieAnnotation, ExtGState transparency properties (bm, sMask, ca, caLower, ais, tk), Page.$outputIntents |
+| **1.5** | 30 | OCG, OCMD, OCPropertiesDict, CrossReferenceStream, ObjectStream, CryptFilter, Rendition/MediaRendition/SelectorRendition, MediaClip/Criteria/PlayParams/ScreenParams, Navigator, ScreenAnnotation, CaretAnnotation, PolygonAnnotation, PolyLineAnnotation, RedactAnnotation, BorderEffect, RenditionAction, SetOCGStateAction, TransAction, SoundAnnotation, SigFieldLock |
+| **1.6** | 17 | DeviceN, ThreeDStream + 7 sub-objects, ThreeDAnnotation, DocTimeStamp, WatermarkAnnotation, CFFFontFile, GoToEAction, GoTo3DViewAction, HalftoneType16, MarkInfo.$userProperties/.$suspects |
+| **1.7** | 6 | Collection, CollectionSchema, CollectionItem, Requirement, RequirementHandler, Catalog.$extensions |
+| **2.0** | 17 | DPartRoot, DPart, GoToDPAction, RichMediaExecuteAction, DSS, ProjectionAnnotation, RichMediaAnnotation, Catalog.$dss/.$af/.$dPartRoot, Page.$af/.$dPart, FormXObject.$af, ViewerPreferences.$enforce, FileSpec.$afRelationship, SeedValueDictionary.$lockDocument/.$appearanceFilter |
+
+### Deprecated Features
+
+| Class | Deprecated Since | Replacement |
+|-------|-----------------|-------------|
+| Movie | 2.0 | RichMediaAnnotation |
+| MovieAction | 2.0 | RichMediaExecuteAction |
+| MovieAnnotation | 2.0 | ScreenAnnotation |
+| Sound | 2.0 | MediaRendition |
+| SoundAction | 2.0 | RenditionAction |
+| SoundAnnotation | 2.0 | RichMediaAnnotation |
+| PostScriptXObject | 1.7.1 | — |
+
+### Runtime Checks
+
+- `StructElem` implements `PdfVersionAware` — checks `StandardStructureType` for PDF 2.0 types (DocumentFragment, Aside, Title, THead, TBody, TFoot, FENote, Artifact)
+- `PdfEncryptor::getMinimumPdfVersion()` — RC4→1.4, AES-128→1.6, AES-256→2.0
+- `PdfFileWriter::generate()` auto-bumps for xref streams (→1.5) and syncs Catalog `/Version` for versions > 1.4

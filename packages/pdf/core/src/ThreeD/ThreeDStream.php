@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D stream (/Type /3D) — ISO 32000-2 §13.6.3.
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Required: Subtype (U3D or PRC). Optional: VA (views), DV (default view),
  * AN (animation style), ColorSpace, Resources.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDStream extends PdfStream
 {
     public const PDF_TYPE = '3D';

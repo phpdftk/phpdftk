@@ -36,6 +36,10 @@ use ApprLabs\Pdf\Toolkit\Encryption\Permission;
 final class PdfEncrypt
 {
     private string $originalBytes;
+
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     private ?EncryptionMethod $newMethod = null;
     private string $newUserPassword = '';
     private string $newOwnerPassword = '';
@@ -193,12 +197,20 @@ final class PdfEncrypt
         $pageTree->kids = $pageRefs;
         $pageTree->count = count($pageRefs);
 
-        return $fw->generate();
+        $result = $fw->generate();
+        $this->lastVersionWarnings = $fw->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

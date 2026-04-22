@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media criteria dictionary (/Type /MediaCriteria) —
@@ -20,6 +22,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * to restrict when a rendition is allowed to play: audio support,
  * closed caption presence, locale, bit depth, screen size, etc.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class MediaCriteria extends PdfObject
 {
     public const PDF_TYPE = 'MediaCriteria';

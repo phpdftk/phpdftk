@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Multimedia;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media play parameters (/Type /MediaPlayParams) — ISO 32000-2 §13.2.5.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * dicts (MH and BE) that may carry entries like V (volume), F (fit),
  * PL (playback list), D (duration), A (auto-play), C (controller).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class MediaPlayParams extends PdfObject
 {
     public const PDF_TYPE = 'MediaPlayParams';

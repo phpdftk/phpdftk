@@ -7,10 +7,15 @@ namespace ApprLabs\Pdf\Core\Annotation;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
 
 /**
  * Movie annotation (/Subtype /Movie).
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'ScreenAnnotation')]
 class MovieAnnotation extends Annotation
 {
     public ?PdfString $t = null;          // /T - title

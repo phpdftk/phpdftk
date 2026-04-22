@@ -34,6 +34,9 @@ final class FormFiller
 {
     private string $originalBytes;
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     /**
      * Resolved field data: fully-qualified name => [objNum, dict].
      * @var array<string, array{int, PdfDictionary}>
@@ -227,12 +230,20 @@ final class FormFiller
             $writer->addModifiedObject($wrapper);
         }
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

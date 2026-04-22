@@ -154,7 +154,8 @@ class PdfEncryptorTest extends TestCase
 
         $reader = PdfReader::fromString($pdf, 'secret256');
         $this->assertSame(1, $reader->getPageCount());
-        $this->assertSame('1.7', $reader->getVersion());
+        // AES-256 requires PDF 2.0 — version is auto-bumped
+        $this->assertSame('2.0', $reader->getVersion());
     }
 
     public function testAes256RoundTripWithOwnerPassword(): void

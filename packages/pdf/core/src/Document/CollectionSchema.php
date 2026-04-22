@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Collection Schema dictionary.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *   $schema = new CollectionSchema();
  *   $schema->fields->set('FileName', $fieldDefDict);
  */
+#[RequiresPdfVersion(PdfVersion::V1_7)]
 class CollectionSchema extends PdfObject
 {
     public const PDF_TYPE = 'CollectionSchema';

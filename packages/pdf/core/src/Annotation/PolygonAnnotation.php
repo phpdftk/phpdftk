@@ -8,10 +8,13 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Polygon annotation (/Subtype /Polygon).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class PolygonAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $vertices = null;  // /Vertices

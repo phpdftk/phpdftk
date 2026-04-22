@@ -20,6 +20,8 @@ use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\Serializable;
 
 /**
  * Byte-level PDF file emitter — ISO 32000-2 §7.5.
@@ -39,6 +41,7 @@ use ApprLabs\Pdf\Core\PdfString;
 class PdfFileWriter
 {
     public const DEFAULT_VERSION = '1.7';
+    public const DEFAULT_PDF_VERSION = PdfVersion::V1_7;
 
     private ObjectRegistry $registry;
     private ?Catalog $catalog = null;
@@ -52,17 +55,26 @@ class PdfFileWriter
     private bool $useXRefStream = false;
     private bool $useObjectStreams = false;
     private ?PdfEncryptor $encryptor = null;
-    private string $version;
+    private PdfVersion $version;
+    private bool $strictVersionMode = false;
+
+    /** @var list<string> */
+    private array $versionWarnings = [];
+
+    /** @var (\Closure(string): void)|null */
+    private ?\Closure $deprecationHandler = null;
 
     public function __construct(
         bool $compressStreams = true,
         bool $useXRefStream = false,
         bool $useObjectStreams = false,
-        string $version = self::DEFAULT_VERSION,
+        PdfVersion|string $version = self::DEFAULT_PDF_VERSION,
     ) {
         $this->registry = new ObjectRegistry();
         $this->compressStreams = $compressStreams;
-        $this->version = $version;
+        $this->version = $version instanceof PdfVersion
+            ? $version
+            : (PdfVersion::tryFrom($version) ?? self::DEFAULT_PDF_VERSION);
         // Object streams require xref streams (type 2 entries)
         $this->useXRefStream = $useXRefStream || $useObjectStreams;
         $this->useObjectStreams = $useObjectStreams;
@@ -92,6 +104,9 @@ class PdfFileWriter
         $encryptDict = $encryptor->getEncryptDictionary();
         $this->register($encryptDict);
         $encryptor->setEncryptDictObjNum($encryptDict->objectNumber);
+
+        $required = $encryptor->getMinimumPdfVersion();
+        $this->applyVersionRequirement($required, PdfEncryptor::class);
     }
 
     /**
@@ -106,12 +121,35 @@ class PdfFileWriter
 
     public function getVersion(): string
     {
+        return $this->version->value;
+    }
+
+    public function getPdfVersion(): PdfVersion
+    {
         return $this->version;
     }
 
-    public function setVersion(string $version): void
+    public function setVersion(PdfVersion|string $version): void
     {
-        $this->version = $version;
+        $this->version = $version instanceof PdfVersion
+            ? $version
+            : (PdfVersion::tryFrom($version) ?? self::DEFAULT_PDF_VERSION);
+    }
+
+    public function setStrictVersionMode(bool $strict = true): void
+    {
+        $this->strictVersionMode = $strict;
+    }
+
+    public function setDeprecationHandler(\Closure $handler): void
+    {
+        $this->deprecationHandler = $handler;
+    }
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->versionWarnings;
     }
 
     /**
@@ -121,6 +159,7 @@ class PdfFileWriter
     public function setCatalog(Catalog $catalog): PdfReference
     {
         $this->catalog = $catalog;
+        $this->checkVersionRequirements($catalog);
         $this->registry->register($catalog);
         return new PdfReference($catalog->objectNumber);
     }
@@ -133,6 +172,7 @@ class PdfFileWriter
     {
         $this->info = $info;
         if ($info !== null) {
+            $this->checkVersionRequirements($info);
             $this->registry->register($info);
         }
     }
@@ -148,6 +188,7 @@ class PdfFileWriter
      */
     public function register(PdfObject $object): PdfReference
     {
+        $this->checkVersionRequirements($object);
         $this->registry->register($object);
         return new PdfReference($object->objectNumber);
     }
@@ -249,11 +290,21 @@ class PdfFileWriter
             );
         }
 
+        // Auto-bump version for xref/object streams before emission
+        if ($this->useXRefStream) {
+            $this->applyVersionRequirement(PdfVersion::V1_5, 'XRefStream');
+        }
+
+        // Sync catalog /Version for PDF > 1.4 (ISO 32000 §7.2.2)
+        if ($this->version->isGreaterThan(PdfVersion::V1_4)) {
+            $this->catalog->version = new PdfName($this->version->value);
+        }
+
         $xref   = new CrossReferenceTable();
         $chunks = [];
 
         // PDF header
-        $chunks[] = '%PDF-' . $this->version . "\n";
+        $chunks[] = '%PDF-' . $this->version->value . "\n";
         // Binary comment — 4 bytes > 127 to signal binary file
         $chunks[] = "%\xE2\xE3\xCF\xD3\n";
 
@@ -604,5 +655,76 @@ class PdfFileWriter
         $pdf = substr_replace($pdf, $derHexPadded, $valueStart + 1, $placeholderBytes * 2);
 
         return $pdf;
+    }
+
+    /**
+     * Check version requirements and deprecation status for an object
+     * and its inline Serializable children.
+     */
+    private function checkVersionRequirements(PdfObject $object): void
+    {
+        // Check deprecation
+        $deprecation = VersionRequirementResolver::getDeprecation($object);
+        if ($deprecation !== null) {
+            $msg = sprintf(
+                '%s is deprecated since PDF %s%s',
+                $object::class,
+                $deprecation->since,
+                $deprecation->replacement ? "; use {$deprecation->replacement} instead" : '',
+            );
+            $this->versionWarnings[] = $msg;
+            if ($this->deprecationHandler !== null) {
+                ($this->deprecationHandler)($msg);
+            }
+        }
+
+        // Check version requirement (class + non-null properties)
+        $required = VersionRequirementResolver::getEffectiveRequirement($object);
+        $this->applyVersionRequirement($required, $object::class);
+
+        // Walk public Serializable properties for inline children
+        $ref = new \ReflectionClass($object);
+        foreach ($ref->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+            if (!$prop->isInitialized($object)) {
+                continue;
+            }
+            $value = $prop->getValue($object);
+            if ($value instanceof Serializable && !$value instanceof PdfObject) {
+                $childRequired = VersionRequirementResolver::getEffectiveRequirement($value);
+                $this->applyVersionRequirement($childRequired, $value::class);
+
+                $childDeprecation = VersionRequirementResolver::getDeprecation($value);
+                if ($childDeprecation !== null) {
+                    $msg = sprintf(
+                        '%s is deprecated since PDF %s%s',
+                        $value::class,
+                        $childDeprecation->since,
+                        $childDeprecation->replacement ? "; use {$childDeprecation->replacement} instead" : '',
+                    );
+                    $this->versionWarnings[] = $msg;
+                    if ($this->deprecationHandler !== null) {
+                        ($this->deprecationHandler)($msg);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply a version requirement: auto-bump or throw in strict mode.
+     */
+    private function applyVersionRequirement(PdfVersion $required, string $source): void
+    {
+        if ($required->isGreaterThan($this->version)) {
+            if ($this->strictVersionMode) {
+                throw new VersionRequirementException($source, $required, $this->version);
+            }
+            $this->version = $required;
+            $this->versionWarnings[] = sprintf(
+                'Auto-bumped PDF version to %s for %s',
+                $required->value,
+                $source,
+            );
+        }
     }
 }

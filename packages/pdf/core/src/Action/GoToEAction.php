@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\FileSpec\FileSpec;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Go-to-embedded action (/S /GoToE) — ISO 32000-2 §12.6.4.4.
  * Navigates to a destination inside an embedded PDF.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class GoToEAction extends Action
 {
     public FileSpec|PdfReference|null $f = null;   // /F  containing file

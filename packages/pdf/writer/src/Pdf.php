@@ -11,6 +11,7 @@ use ApprLabs\ImageMetadata\ImageParser;
 use ApprLabs\Pdf\Core\Content\ContentStream;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Pdf\Core\PdfVersion;
 
 /**
  * High-level PDF document builder — **zero PDF object-model knowledge
@@ -132,6 +133,11 @@ class Pdf
     public function getTheme(): Theme
     {
         return $this->theme;
+    }
+
+    public function getPdfVersion(): PdfVersion
+    {
+        return $this->writer->getPdfVersion();
     }
 
     /**

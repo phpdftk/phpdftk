@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Output Intent dictionary (ISO 32000-2 Table 365).
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Describes the intended output conditions for a document, required
  * for PDF/X compliance.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class OutputIntent extends PdfObject
 {
     public const PDF_TYPE = 'OutputIntent';

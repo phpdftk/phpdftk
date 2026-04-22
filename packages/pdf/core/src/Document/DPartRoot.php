@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Document parts root (/Type /DPartRoot) — ISO 32000-2 §14.12.
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * hierarchy and the names used for DPart metadata (e.g., for PDF/VT
  * variable-data printing).
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class DPartRoot extends PdfObject
 {
     public const PDF_TYPE = 'DPartRoot';

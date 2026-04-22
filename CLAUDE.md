@@ -287,7 +287,38 @@ Implements `Serializable`. Assign to any annotation's `$bs` property (defined on
 - `PdfName` escapes special characters with `#XX` hex notation
 - `PdfString` escapes `(`, `)`, `\`, `\n`, `\r`, `\t`
 - Binary comment `%âãÏÓ` follows the header line
-- PDF version is `1.7`
+- Default PDF version is `1.7` (configurable via `PdfVersion` enum)
+
+### Version Gating
+
+The library tracks which PDF version each feature requires and auto-bumps the document version when needed.
+
+**Core types** (`packages/pdf/core/src/`):
+- `PdfVersion` — backed string enum (`V1_0`..`V2_0`) with `isAtLeast()`, `max()`, `fromString()`
+- `#[RequiresPdfVersion(PdfVersion::VX_Y)]` — PHP attribute on classes (feature introduced in version X.Y) or properties (field added in later version)
+- `#[DeprecatedPdfFeature(since: 'X.Y', replacement: '...')]` — marks deprecated features
+- `PdfVersionAware` interface — for objects whose version depends on runtime state (e.g., `StructElem` checks `StandardStructureType` for 2.0 types)
+- `VersionRequirementResolver` — reads attributes via reflection (cached), walks class hierarchy
+- `VersionRequirementException` — thrown in strict mode when version is too low
+
+**Writer behavior** (`PdfFileWriter`, `IncrementalWriter`):
+- **Auto-bump (default):** Registering a feature that requires version X automatically bumps the document version to X. Warnings are collected in `getVersionWarnings()`.
+- **Strict mode:** `setStrictVersionMode(true)` throws `VersionRequirementException` instead of bumping.
+- **Deprecation handler:** `setDeprecationHandler(Closure)` gets called when deprecated features are registered.
+- **Catalog sync:** `PdfFileWriter::generate()` sets `Catalog::$version` for versions > 1.4 per ISO 32000 §7.2.2.
+- **Encryption:** `PdfEncryptor::getMinimumPdfVersion()` returns `V1_4` (RC4), `V1_6` (AES-128), or `V2_0` (AES-256).
+- **IncrementalWriter:** `wasVersionBumped()` indicates callers should update the Catalog `/Version`.
+
+**Reader** (`PdfReader`):
+- `getPdfVersion()` — typed version from `%PDF-X.Y` header
+- `getEffectiveVersion()` — `max(header, catalog /Version)`
+- `validateVersion()` — returns warnings for structural features (xref streams, encryption, OCProperties, Collection, DPartRoot, DSS, AF) that don't match the declared version
+
+**Toolkit passthrough:** All 11 toolkit classes expose `getVersionWarnings()` after `toBytes()`/`save()`.
+
+**Coverage:** 130 class/property-level annotations spanning PDF 1.1–2.0, 7 deprecated features, plus `StructElem` runtime checks for PDF 2.0 structure types.
+
+When adding new PDF spec features, add `#[RequiresPdfVersion]` to the class or property with the correct minimum version.
 
 ## Tests
 
@@ -378,6 +409,11 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `File/PdfHydratorTest.php` | Unit: type registry, key mapping, PdfNumber/PdfArray/PdfBoolean coercion |
 | `File/XRefStreamOutputTest.php` | Unit: CrossReferenceStream output, round-trip via PdfReader, compression |
 | `File/IncrementalWriterTest.php` | Unit: incremental update append, /Prev chain, modified objects, stacked updates, compression |
+| `File/IncrementalWriterVersionTest.php` | Unit: IncrementalWriter version from reader, auto-bump sets wasVersionBumped, strict mode throws |
+| `File/VersionRequirementResolverTest.php` | Unit: class-level, property-level, inheritance, effective requirement, StructElem 2.0 types, deprecation, caching |
+| `File/VersionGatingTest.php` | Integration: auto-bump on register, strict mode, deprecation warnings, Catalog /Version sync, xref stream bump |
+| `File/EncryptionVersionGatingTest.php` | Unit: PdfEncryptor version requirements (RC4→1.4, AES-128→1.6, AES-256→2.0), auto-bump |
+| `PdfVersionTest.php` | Unit: PdfVersion enum comparisons, max(), fromString(), all cases |
 | `Graphics/HalftoneTest.php` | Unit: HalftoneType 1/5/6/10/16 serialization, field output, stream framing |
 
 ### `writer` package tests (`packages/pdf/writer/tests/`)
@@ -401,6 +437,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Integration/RoundTripTest.php` | Hydration: typed Catalog/Page/Pages via PdfHydrator, serialization round-trip |
 | `Integration/TextExtractionTest.php` | ContentStreamParser + TextExtractor: text from simple/complex/embedded-font PDFs, Unicode em-dash, extractAllText, Form XObject text extraction (Do operator), nested XObjects |
 | `Integration/ErrorToleranceTest.php` | Lenient mode: displaced headers, expanded startxref search, getParseWarnings() |
+| `Integration/VersionValidationTest.php` | Unit: getPdfVersion, getEffectiveVersion, validateVersion, catalog version sync |
 
 ### `toolkit` package tests (`packages/pdf/toolkit/tests/`)
 

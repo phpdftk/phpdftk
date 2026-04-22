@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D measurement dictionary (/Type /3DMeasure) —
@@ -23,6 +25,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Represented here as a single class with `$subtype`; callers choose
  * the subtype and populate the fields appropriate to it.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDMeasure extends PdfObject
 {
     public const PDF_TYPE = '3DMeasure';

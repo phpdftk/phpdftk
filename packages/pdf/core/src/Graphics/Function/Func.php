@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Abstract base for PDF function objects (ISO 32000-2 §7.10).
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *
  * Common entries across all function types: FunctionType, Domain, Range.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 abstract class Func extends PdfObject
 {
     public PdfArray $domain;        // /Domain - required

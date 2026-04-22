@@ -33,6 +33,9 @@ final class PageSlicer
     /** @var ?list<int> 0-based page indices to output (null = not set yet) */
     private ?array $selectedIndices = null;
 
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     private function __construct(
         private readonly PdfReader $reader,
         string $originalBytes,
@@ -164,12 +167,20 @@ final class PageSlicer
         $pageTree->kids = $pageRefs;
         $pageTree->count = count($pageRefs);
 
-        return $fw->generate();
+        $result = $fw->generate();
+        $this->lastVersionWarnings = $fw->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Info
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getPageCount(): int
     {

@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Graphics\ColorSpace;
 
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Pattern color space — ISO 32000-2 §8.6.6.2.
@@ -13,6 +15,7 @@ use ApprLabs\Pdf\Core\PdfName;
  * Uncolored tiling patterns use [/Pattern <underlyingColorSpace>]; colored
  * tiling patterns and shading patterns use the bare name /Pattern.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class Pattern extends ColorSpace
 {
     public ?ColorSpace $underlying;

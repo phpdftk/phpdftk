@@ -7,11 +7,14 @@ namespace ApprLabs\Pdf\Core\Action;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Rendition action (/S /Rendition) — ISO 32000-2 §13.2.2.
  * Controls playback of media renditions.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class RenditionAction extends Action
 {
     public ?int $op = null;                  // /OP  operation (0..4)

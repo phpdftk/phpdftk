@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Object stream (/Type /ObjStm) — ISO 32000-2 §7.5.7.
@@ -26,6 +28,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  *
  * Only objects without streams and not themselves compressed may be packed.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class ObjectStream extends PdfStream
 {
     public const PDF_TYPE = 'ObjStm';

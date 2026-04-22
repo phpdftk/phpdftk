@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Crypt filter dictionary — ISO 32000-2 §7.6.5, Table 25.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Describes a single named crypt filter referenced from the /CF entry of
  * {@see EncryptDictionary}. Inline-serialized; not an indirect object.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class CryptFilter implements Serializable
 {
     public ?PdfName $type = null;         // /Type        /CryptFilter

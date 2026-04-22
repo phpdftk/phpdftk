@@ -7,12 +7,15 @@ namespace ApprLabs\Pdf\Core\Graphics\ColorSpace;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CalRGB color space — ISO 32000-2 §8.6.5.3.
  *
  * Serialized as [/CalRGB << /WhitePoint ... /BlackPoint ... /Gamma ... /Matrix ... >>].
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class CalRGB extends ColorSpace
 {
     public PdfArray $whitePoint;          // /WhitePoint - required

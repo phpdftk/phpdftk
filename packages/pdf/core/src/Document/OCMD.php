@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Optional Content Membership Dictionary (ISO 32000-2 Table 97).
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *   $ocmd->ocgs = new PdfArray([new PdfReference($ocg->objectNumber)]);
  *   $ocmd->p = new PdfName('AnyOn');
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class OCMD extends PdfObject
 {
     public const PDF_TYPE = 'OCMD';

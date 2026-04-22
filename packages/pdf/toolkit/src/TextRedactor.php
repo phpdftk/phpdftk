@@ -30,6 +30,10 @@ use ApprLabs\Pdf\Toolkit\Redaction\RedactionArea;
 final class TextRedactor
 {
     private string $originalBytes;
+
+    /** @var list<string> */
+    private array $lastVersionWarnings = [];
+
     private float $redactR = 0.0;
     private float $redactG = 0.0;
     private float $redactB = 0.0;
@@ -245,12 +249,20 @@ final class TextRedactor
             $writer->addModifiedObject($pageObj);
         }
 
-        return $writer->generate();
+        $result = $writer->generate();
+        $this->lastVersionWarnings = $writer->getVersionWarnings();
+        return $result;
     }
 
     // -----------------------------------------------------------------------
     // Escape hatches
     // -----------------------------------------------------------------------
+
+    /** @return list<string> */
+    public function getVersionWarnings(): array
+    {
+        return $this->lastVersionWarnings;
+    }
 
     public function getReader(): PdfReader
     {

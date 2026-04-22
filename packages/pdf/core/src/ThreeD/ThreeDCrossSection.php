@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D cross-section dictionary (/Type /3DCrossSection) —
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *
  * Describes a clipping plane used to slice the 3D model.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDCrossSection extends PdfObject
 {
     public const PDF_TYPE = '3DCrossSection';

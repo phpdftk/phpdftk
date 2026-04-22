@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\FileSpec\FileSpec;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Import-data action (/S /ImportData) — ISO 32000-2 §12.7.5.4.
  * Imports FDF data from a file into form fields.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class ImportDataAction extends Action
 {
     public FileSpec|PdfReference $f;   // /F  required

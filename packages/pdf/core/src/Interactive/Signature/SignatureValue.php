@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Signature value dictionary (/Type /Sig) — ISO 32000-2 §12.8.1, Table 258.
@@ -24,6 +26,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * implement signing compute /ByteRange and overwrite /Contents in the
  * serialized PDF.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class SignatureValue extends PdfObject
 {
     public const PDF_TYPE = 'Sig';

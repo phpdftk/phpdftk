@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Collection dictionary (ISO 32000-2 Table 152).
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  *   $collection->view = new PdfName('D');
  *   $writer->register($collection);
  */
+#[RequiresPdfVersion(PdfVersion::V1_7)]
 class Collection extends PdfObject
 {
     public const PDF_TYPE = 'Collection';

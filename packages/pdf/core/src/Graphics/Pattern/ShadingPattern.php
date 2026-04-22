@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Shading pattern (/Type /Pattern /PatternType 2) — ISO 32000-2 §8.7.3.4.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * Paints a shading (axial, radial, mesh, etc.) as if it were a color.
  * Required entries: Shading. Optional: Matrix, ExtGState.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class ShadingPattern extends PdfObject
 {
     public const PDF_TYPE = 'Pattern';

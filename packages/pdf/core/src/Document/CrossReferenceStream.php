@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Cross-reference stream (/Type /XRef) — ISO 32000-2 §7.5.8.
@@ -25,6 +27,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  *   1 = in use (byte offset, generation)
  *   2 = compressed (obj num of containing ObjStm, index within stream)
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class CrossReferenceStream extends PdfStream
 {
     public const PDF_TYPE = 'XRef';

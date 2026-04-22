@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\FileSpec\FileSpec;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Submit-form action (/S /SubmitForm) — ISO 32000-2 §12.7.5.2.
  * POSTs form field values to a URL or file.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class SubmitFormAction extends Action
 {
     public FileSpec|PdfReference $f;   // /F  URL / file spec

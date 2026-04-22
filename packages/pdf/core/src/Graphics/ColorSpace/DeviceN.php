@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * DeviceN color space — ISO 32000-2 §8.6.6.5.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * `attributes` is an optional dictionary carrying /Subtype, /Colorants,
  * /Process, /MixingHints.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class DeviceN extends ColorSpace
 {
     public PdfArray $names;                               // colorant names array

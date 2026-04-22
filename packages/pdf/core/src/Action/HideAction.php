@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Hide action (/S /Hide) — ISO 32000-2 §12.6.4.10.
  * Sets the Hidden flag on one or more annotations or form fields.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class HideAction extends Action
 {
     /** /T — a single target or an array of targets. */

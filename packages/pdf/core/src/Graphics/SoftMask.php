@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
  * Soft Mask dictionary (ISO 32000-2 Table 131).
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class SoftMask implements Serializable
 {
     public PdfName $s;              // /S - required (Alpha or Luminosity)

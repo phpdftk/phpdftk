@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Go-to-document-part action (/S /GoToDP) — ISO 32000-2 §12.6.4.16.
  * Jumps to a document part (PDF 2.0).
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class GoToDPAction extends Action
 {
     public mixed $d = null;                       // /D  destination

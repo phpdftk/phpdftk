@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Optional content configuration dictionary — ISO 32000-2 §8.11.4.3,
@@ -20,6 +22,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * of each OCG, the display tree order (/Order), radio-button groups
  * (/RBGroups), and permanently locked groups (/Locked).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class OCConfig extends PdfObject
 {
     public ?PdfString $name = null;        // /Name

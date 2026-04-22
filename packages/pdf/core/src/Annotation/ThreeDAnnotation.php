@@ -8,10 +8,13 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D annotation (/Subtype /3D).
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDAnnotation extends Annotation
 {
     public ?PdfReference $dd = null;    // /3DD - 3D stream

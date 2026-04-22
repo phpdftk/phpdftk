@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Page Label dictionary (/Type /PageLabel).
@@ -25,6 +27,7 @@ use ApprLabs\Pdf\Core\PdfString;
  *   A  - Uppercase letters (A, B, …, Z, AA, …)
  *   (omit /S to use prefix only, with no numeric part)
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class PageLabel extends PdfObject
 {
     public const PDF_TYPE = 'PageLabel';

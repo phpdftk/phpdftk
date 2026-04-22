@@ -8,12 +8,15 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CalGray color space — ISO 32000-2 §8.6.5.2.
  *
  * Serialized as [/CalGray << /WhitePoint ... /BlackPoint ... /Gamma ... >>].
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class CalGray extends ColorSpace
 {
     public PdfArray $whitePoint;         // /WhitePoint — required, 3 numbers

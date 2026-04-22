@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * XMP metadata stream (/Type /Metadata /Subtype /XML) —
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  * pass them here; assign the resulting indirect reference to
  * `Catalog::$metadata`, `Page::$metadata`, etc.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class MetadataStream extends PdfStream
 {
     public const PDF_TYPE = 'Metadata';

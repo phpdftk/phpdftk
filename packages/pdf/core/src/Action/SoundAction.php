@@ -7,11 +7,16 @@ namespace ApprLabs\Pdf\Core\Action;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
 
 /**
  * Sound action (/S /Sound) — ISO 32000-2 §12.6.4.8.
  * Plays a sound stream.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RenditionAction')]
 class SoundAction extends Action
 {
     public PdfReference $sound;           // /Sound - required, stream

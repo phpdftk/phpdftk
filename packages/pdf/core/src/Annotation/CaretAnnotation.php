@@ -6,10 +6,13 @@ namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Caret annotation (/Subtype /Caret).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class CaretAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $rd = null;  // /RD - rectangle differences

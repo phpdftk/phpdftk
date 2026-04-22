@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Popup annotation (/Subtype /Popup).
  * Displays the pop-up window for a parent annotation's text.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class PopupAnnotation extends Annotation
 {
     public ?PdfReference $parent = null; // /Parent

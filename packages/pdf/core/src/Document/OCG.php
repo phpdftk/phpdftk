@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Optional Content Group (ISO 32000-2 Table 96).
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  *   $ocg = new OCG('Watermark');
  *   $writer->register($ocg);
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class OCG extends PdfObject
 {
     public const PDF_TYPE = 'OCG';

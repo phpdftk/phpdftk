@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\Document\TransitionDict;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Transition action (/S /Trans) — ISO 32000-2 §12.6.4.14.
  * Controls the visual transition when jumping to a destination.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class TransAction extends Action
 {
     public TransitionDict|PdfReference $trans;   // /Trans

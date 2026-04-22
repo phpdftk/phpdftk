@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Rich-media execute action (/S /RichMediaExecute) — ISO 32000-2 §13.6.9.
  * Invokes a command on a rich-media annotation's embedded content.
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class RichMediaExecuteAction extends Action
 {
     public ?PdfReference $ta = null;           // /TA target annotation

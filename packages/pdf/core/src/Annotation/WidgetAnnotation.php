@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Widget annotation (/Subtype /Widget).
  * Used to represent interactive form fields on a page.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class WidgetAnnotation extends Annotation
 {
     public ?PdfName $h = null;           // /H - highlight mode

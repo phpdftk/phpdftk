@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Document-level timestamp signature (/Type /DocTimeStamp) —
@@ -21,6 +23,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Structurally identical to {@see SignatureValue}, so all byte-range and
  * /Contents placeholder handling in `PdfWriter` works unchanged.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class DocTimeStamp extends SignatureValue
 {
     public const PDF_TYPE = 'DocTimeStamp';

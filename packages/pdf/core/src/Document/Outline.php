@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Outlines dictionary (/Type /Outlines).
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * The root of the document outline (bookmarks) tree.
  * Referenced from the Catalog /Outlines field.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class Outline extends PdfObject
 {
     public const PDF_TYPE = 'Outlines';

@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\ThreeD;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D lighting scheme dictionary (/Type /3DLightingScheme) —
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * Subtype is one of the preset schemes: Artwork, None, White, Day, Night,
  * Hard, Primary, Blue, Red, Cube, CAD, Headlamp.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDLightingScheme extends PdfObject
 {
     public const PDF_TYPE = '3DLightingScheme';

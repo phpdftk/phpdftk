@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Annotation;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * RichMedia annotation (/Subtype /RichMedia).
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class RichMediaAnnotation extends Annotation
 {
     public ?PdfDictionary $richMediaSettings = null; // /RichMediaSettings

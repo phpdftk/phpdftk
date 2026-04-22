@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * File specification dictionary (/Type /Filespec) — ISO 32000-2 §7.11.3.
@@ -35,6 +37,7 @@ class FileSpec extends PdfObject
     public ?PdfDictionary $rf = null;        // /RF  related files dict
     public ?PdfString $desc = null;          // /Desc description
     public ?PdfReference $ci = null;         // /CI  collection item dict
+    #[RequiresPdfVersion(PdfVersion::V2_0)]
     public ?PdfName $afRelationship = null;  // /AFRelationship PDF 2.0
 
     public function __construct(?string $fileName = null)

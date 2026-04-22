@@ -10,6 +10,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Structure Tree Root (ISO 32000-2 Table 323).
@@ -21,6 +23,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  *   $root->k = new PdfReference($rootElem->objectNumber);
  *   $root->roleMap = new PdfDictionary(['Figure' => new PdfName('Span')]);
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class StructTreeRoot extends PdfObject
 {
     public const PDF_TYPE = 'StructTreeRoot';

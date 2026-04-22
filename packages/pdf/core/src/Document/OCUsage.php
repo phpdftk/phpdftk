@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Optional content usage dictionary — ISO 32000-2 §8.11.4.4, Table 104.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *
  * Attached to `OCG::$usage` (now `OCUsage|PdfDictionary|null`).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class OCUsage implements Serializable
 {
     public ?PdfDictionary $creatorInfo = null;  // /CreatorInfo

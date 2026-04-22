@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Action;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Additional-actions dictionary — ISO 32000-2 §12.6.3, Tables 194–197.
@@ -24,6 +26,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * helper methods cover the common triggers; uncommon ones can be set
  * via `$this->set($trigger, $action)`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class AdditionalActions extends PdfObject
 {
     /** @var array<string, Action|PdfReference> trigger key => action */

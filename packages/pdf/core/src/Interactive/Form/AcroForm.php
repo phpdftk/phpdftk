@@ -11,11 +11,14 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Interactive form (AcroForm) dictionary.
  * Referenced from the document Catalog's /AcroForm entry.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class AcroForm extends PdfObject
 {
     /** @var array<int, PdfReference> */

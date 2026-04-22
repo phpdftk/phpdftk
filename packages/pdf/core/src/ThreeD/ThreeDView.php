@@ -12,12 +12,15 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D view dictionary (/Type /3DView) — ISO 32000-2 §13.6.4.
  *
  * Describes a named camera view of a 3D model.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class ThreeDView extends PdfObject
 {
     public const PDF_TYPE = '3DView';

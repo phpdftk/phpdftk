@@ -9,10 +9,13 @@ use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Redact annotation (/Subtype /Redact).
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class RedactAnnotation extends MarkupAnnotation
 {
     public ?PdfArray $quadPoints = null;    // /QuadPoints

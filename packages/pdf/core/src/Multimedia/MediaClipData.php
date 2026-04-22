@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Media clip data (/Type /MediaClip /S /MCD) — ISO 32000-2 §13.2.4.2.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Points to the actual media bytes via a FileSpec (external or embedded)
  * plus a MIME type.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class MediaClipData extends MediaClip
 {
     public FileSpec|PdfReference $d;               // /D  data (required)

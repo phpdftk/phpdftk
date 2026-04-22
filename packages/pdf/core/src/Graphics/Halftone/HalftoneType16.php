@@ -9,12 +9,15 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\Serializable;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Threshold array halftone stream (HalftoneType 16) — ISO 32000-2 §10.6.5.
  *
  * Uses 16-bit threshold values (2 bytes per cell).
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class HalftoneType16 extends PdfStream
 {
     public const PDF_TYPE = 'Halftone';

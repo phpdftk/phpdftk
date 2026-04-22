@@ -1499,4 +1499,43 @@ class GeneratePdfBench
             assert(strlen($token) > 0);
         }
     }
+
+    /**
+     * Measure version-gating overhead: 10 pages with annotations that
+     * trigger version checks on every register() call.
+     */
+    #[Bench\Revs(5)]
+    #[Bench\Iterations(3)]
+    public function benchPhpdftk10PagesWithVersionGating(): void
+    {
+        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(version: \ApprLabs\Pdf\Core\PdfVersion::V1_4);
+
+        for ($i = 0; $i < 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+            $cs = $writer->addContentStream($page->corePage());
+            $cs->beginText()
+                ->setFont($font->getResourceName(), 12)
+                ->moveTextPosition(72, 720)
+                ->showText("Page " . ($i + 1))
+                ->endText();
+
+            // Register version-sensitive objects that trigger checks
+            $highlight = new HighlightAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(700), new PdfNumber(200), new PdfNumber(720)]),
+                new PdfArray([new PdfNumber(72), new PdfNumber(720), new PdfNumber(200), new PdfNumber(720),
+                              new PdfNumber(200), new PdfNumber(700), new PdfNumber(72), new PdfNumber(700)]),
+            );
+            $writer->register($highlight);
+
+            $line = new LineAnnotation(
+                new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(200), new PdfNumber(700)]),
+                new PdfArray([new PdfNumber(72), new PdfNumber(690), new PdfNumber(200), new PdfNumber(690)]),
+            );
+            $writer->register($line);
+        }
+
+        $bytes = $writer->generate();
+        assert(str_starts_with($bytes, '%PDF-'));
+    }
 }

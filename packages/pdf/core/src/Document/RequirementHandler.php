@@ -8,11 +8,14 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Requirement handler dictionary (/Type /ReqHandler) —
  * ISO 32000-2 §12.10, Table 254.
  */
+#[RequiresPdfVersion(PdfVersion::V1_7)]
 class RequirementHandler extends PdfObject
 {
     public const PDF_TYPE = 'ReqHandler';

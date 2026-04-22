@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -22,7 +24,9 @@ use ApprLabs\Pdf\Core\Serializable;
 class MarkInfo implements Serializable
 {
     public ?bool $marked = null;          // /Marked - document contains marked content
+    #[RequiresPdfVersion(PdfVersion::V1_6)]
     public ?bool $userProperties = null;  // /UserProperties - user properties attached to marked content (PDF 1.6+)
+    #[RequiresPdfVersion(PdfVersion::V1_6)]
     public ?bool $suspects = null;        // /Suspects - structure may contain suspects (PDF 1.6+)
 
     public function toPdf(): string
