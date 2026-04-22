@@ -270,4 +270,108 @@ class PdfHydratorTest extends TestCase
         // No base Annot class registered (it's abstract), so falls through
         $this->assertInstanceOf(PdfDictionary::class, $result);
     }
+
+    // -----------------------------------------------------------------------
+    // Action hydration (dispatch by /S)
+    // -----------------------------------------------------------------------
+
+    public function testHydrateGoToActionWithType(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('Action'));
+        $dict->set('S', new PdfName('GoTo'));
+        $dict->set('D', new PdfArray([new PdfReference(1), new PdfName('Fit')]));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\GoToAction::class, $result);
+    }
+
+    public function testHydrateURIActionWithoutType(): void
+    {
+        // Real-world PDFs often omit /Type /Action — only /S is present
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('URI'));
+        $dict->set('URI', new PdfString('https://example.com'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\URIAction::class, $result);
+        $this->assertSame('https://example.com', $result->uri->value);
+    }
+
+    public function testHydrateJavaScriptAction(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('JavaScript'));
+        $dict->set('JS', new PdfString('app.alert("Hi")'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\JavaScriptAction::class, $result);
+    }
+
+    public function testHydrateNamedAction(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('Named'));
+        $dict->set('N', new PdfName('NextPage'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\NamedAction::class, $result);
+    }
+
+    public function testHydrateGoToDPAction(): void
+    {
+        // PDF 2.0 action
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('GoToDP'));
+        $dict->set('DP', new PdfReference(5));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\GoToDPAction::class, $result);
+    }
+
+    public function testHydrateRichMediaExecuteAction(): void
+    {
+        // PDF 2.0 action
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('RichMediaExecute'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\RichMediaExecuteAction::class, $result);
+    }
+
+    public function testHydrateNoConstructorAction(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('Launch'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\LaunchAction::class, $result);
+    }
+
+    public function testHydrateUnknownActionReturnsDictionary(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('S', new PdfName('UnknownAction'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(PdfDictionary::class, $result);
+    }
+
+    public function testHydrateDSS(): void
+    {
+        $dict = new PdfDictionary();
+        $dict->set('Type', new PdfName('DSS'));
+
+        $result = PdfHydrator::hydrate($dict);
+
+        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\DSS::class, $result);
+    }
 }

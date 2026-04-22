@@ -114,6 +114,38 @@ final class VersionRequirementResolver
     }
 
     /**
+     * Nullify properties on an object whose version requirement exceeds
+     * the given ceiling. Returns a list of stripped property names.
+     *
+     * Only strips property-level requirements — class-level incompatibility
+     * must be handled by the caller (the object itself cannot be stripped).
+     *
+     * @return list<string>
+     */
+    public static function stripIncompatibleProperties(object $object, PdfVersion $ceiling): array
+    {
+        $stripped = [];
+        $className = $object::class;
+
+        // Ensure property cache is populated
+        if (!isset(self::$propertyCache[$className])) {
+            self::getEffectiveRequirement($object);
+        }
+
+        foreach (self::$propertyCache[$className] as $propName => $propVersion) {
+            if ($propVersion->isGreaterThan($ceiling)) {
+                $value = $object->$propName ?? null;
+                if ($value !== null) {
+                    $object->$propName = null;
+                    $stripped[] = $propName;
+                }
+            }
+        }
+
+        return $stripped;
+    }
+
+    /**
      * Clear all caches (useful for testing).
      */
     public static function clearCache(): void

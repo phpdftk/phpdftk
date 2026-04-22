@@ -23,6 +23,8 @@ use ApprLabs\Pdf\Core\RequiresPdfVersion;
 #[RequiresPdfVersion(PdfVersion::V2_0)]
 class DSS extends PdfObject
 {
+    public const PDF_TYPE = 'DSS';
+
     public ?PdfArray $certs = null;       // /Certs  - array of cert streams
     public ?PdfArray $ocsps = null;       // /OCSPs  - array of OCSP responses
     public ?PdfArray $crls = null;        // /CRLs   - array of CRL streams

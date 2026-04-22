@@ -44,6 +44,13 @@ final class PdfHydrator
     private static array $subtypeMap = [];
 
     /**
+     * Registry mapping action /S values to PHP class names.
+     *
+     * @var array<string, class-string<PdfObject>>
+     */
+    private static array $actionTypeMap = [];
+
+    /**
      * Cache of key→property maps per class.
      *
      * @var array<class-string, array<string, string>>
@@ -71,6 +78,16 @@ final class PdfHydrator
     }
 
     /**
+     * Register a PdfObject subclass for an action /S value.
+     *
+     * @param class-string<PdfObject> $className
+     */
+    public static function registerActionType(string $actionType, string $className): void
+    {
+        self::$actionTypeMap[$actionType] = $className;
+    }
+
+    /**
      * Hydrate a raw PdfDictionary into a typed PdfObject.
      *
      * If the dictionary has a /Type entry that maps to a registered class,
@@ -89,11 +106,20 @@ final class PdfHydrator
         $typeName = $type instanceof PdfName ? $type->value : null;
 
         if ($typeName === null) {
-            return $dict;
+            // Check if this is an action dict (has /S but no /Type — common in real PDFs)
+            $className = self::resolveActionClass($dict);
+            if ($className === null) {
+                return $dict;
+            }
+        } else {
+            // Resolve the target class — check subtype map first for shared /Type values
+            $className = self::resolveClass($typeName, $dict);
         }
 
-        // Resolve the target class — check subtype map first for shared /Type values
-        $className = self::resolveClass($typeName, $dict);
+        // For /Type /Action, also try action dispatch if subtype/type lookup failed
+        if ($className === null && $typeName === 'Action') {
+            $className = self::resolveActionClass($dict);
+        }
         if ($className === null) {
             return $dict;
         }
@@ -145,6 +171,20 @@ final class PdfHydrator
         }
 
         return self::$typeMap[$typeName] ?? null;
+    }
+
+    /**
+     * Resolve an action class from the /S key in the dictionary.
+     *
+     * @return class-string<PdfObject>|null
+     */
+    private static function resolveActionClass(PdfDictionary $dict): ?string
+    {
+        $s = $dict->get('S');
+        if ($s instanceof PdfName && isset(self::$actionTypeMap[$s->value])) {
+            return self::$actionTypeMap[$s->value];
+        }
+        return null;
     }
 
     /**
@@ -218,6 +258,18 @@ final class PdfHydrator
             'outputConditionIdentifier' => 'OutputConditionIdentifier',
             'dPartRootNode' => 'DPartRootNode',
             'parent' => 'Parent',
+            // Action constructor params
+            'dest' => 'D',
+            'uri' => 'URI',
+            'js' => 'JS',
+            'n' => 'N',
+            'f' => 'F',
+            't' => 'T',
+            'hide' => 'H',
+            'sound' => 'Sound',
+            'ta' => 'TA',
+            'state' => 'State',
+            'trans' => 'Trans',
             'bBox' => 'BBox',
             'baseFontName' => 'BaseFont',
             default => ucfirst($name),
@@ -497,6 +549,22 @@ final class PdfHydrator
                 'DV' => 'dv',
                 'AN' => 'an',
             ],
+            // Actions — map /S and single-letter PDF keys to property names
+            'GoToAction' => ['D' => 'dest'],
+            'GoToRAction' => ['D' => 'dest', 'F' => 'f'],
+            'GoToEAction' => ['D' => 'd', 'F' => 'f', 'T' => 't'],
+            'URIAction' => ['URI' => 'uri'],
+            'JavaScriptAction' => ['JS' => 'js'],
+            'NamedAction' => ['N' => 'n'],
+            'HideAction' => ['T' => 't', 'H' => 'h'],
+            'SoundAction' => ['Sound' => 'sound'],
+            'SubmitFormAction' => ['F' => 'f'],
+            'ImportDataAction' => ['F' => 'f'],
+            'SetOCGStateAction' => ['State' => 'state'],
+            'GoTo3DViewAction' => ['TA' => 'ta', 'V' => 'v'],
+            'TransAction' => ['Trans' => 'trans'],
+            'RenditionAction' => ['R' => 'r', 'AN' => 'an', 'OP' => 'op'],
+            'MovieAction' => ['T' => 't'],
             default => [],
         };
     }
@@ -640,5 +708,37 @@ final class PdfHydrator
         // /Type /MediaClip
         self::registerSubtype('MediaClip', 'MCD', \ApprLabs\Pdf\Core\Multimedia\MediaClipData::class);
         self::registerSubtype('MediaClip', 'MCS', \ApprLabs\Pdf\Core\Multimedia\MediaClipSection::class);
+
+        // ---------------------------------------------------------------
+        // Actions — dispatched by /S (not /Type + /Subtype)
+        // ---------------------------------------------------------------
+        $actionTypes = [
+            'GoTo'              => \ApprLabs\Pdf\Core\Action\GoToAction::class,
+            'GoToR'             => \ApprLabs\Pdf\Core\Action\GoToRAction::class,
+            'GoToE'             => \ApprLabs\Pdf\Core\Action\GoToEAction::class,
+            'GoToDP'            => \ApprLabs\Pdf\Core\Action\GoToDPAction::class,
+            'GoTo3DView'        => \ApprLabs\Pdf\Core\Action\GoTo3DViewAction::class,
+            'Launch'            => \ApprLabs\Pdf\Core\Action\LaunchAction::class,
+            'Thread'            => \ApprLabs\Pdf\Core\Action\ThreadAction::class,
+            'URI'               => \ApprLabs\Pdf\Core\Action\URIAction::class,
+            'Sound'             => \ApprLabs\Pdf\Core\Action\SoundAction::class,
+            'Movie'             => \ApprLabs\Pdf\Core\Action\MovieAction::class,
+            'Hide'              => \ApprLabs\Pdf\Core\Action\HideAction::class,
+            'Named'             => \ApprLabs\Pdf\Core\Action\NamedAction::class,
+            'SubmitForm'        => \ApprLabs\Pdf\Core\Action\SubmitFormAction::class,
+            'ResetForm'         => \ApprLabs\Pdf\Core\Action\ResetFormAction::class,
+            'ImportData'        => \ApprLabs\Pdf\Core\Action\ImportDataAction::class,
+            'SetOCGState'       => \ApprLabs\Pdf\Core\Action\SetOCGStateAction::class,
+            'Rendition'         => \ApprLabs\Pdf\Core\Action\RenditionAction::class,
+            'Trans'             => \ApprLabs\Pdf\Core\Action\TransAction::class,
+            'JavaScript'        => \ApprLabs\Pdf\Core\Action\JavaScriptAction::class,
+            'RichMediaExecute'  => \ApprLabs\Pdf\Core\Action\RichMediaExecuteAction::class,
+        ];
+        foreach ($actionTypes as $sValue => $class) {
+            self::registerActionType($sValue, $class);
+        }
+
+        // DSS (Document Security Store — PDF 2.0)
+        self::registerType('DSS', \ApprLabs\Pdf\Core\Document\DSS::class);
     }
 }

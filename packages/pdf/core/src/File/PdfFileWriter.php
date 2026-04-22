@@ -57,6 +57,7 @@ class PdfFileWriter
     private ?PdfEncryptor $encryptor = null;
     private PdfVersion $version;
     private bool $strictVersionMode = false;
+    private ?PdfVersion $ceilingVersion = null;
 
     /** @var list<string> */
     private array $versionWarnings = [];
@@ -106,6 +107,9 @@ class PdfFileWriter
         $encryptor->setEncryptDictObjNum($encryptDict->objectNumber);
 
         $required = $encryptor->getMinimumPdfVersion();
+        if ($this->ceilingVersion !== null && $required->isGreaterThan($this->ceilingVersion)) {
+            throw new CeilingVersionException(PdfEncryptor::class, $required, $this->ceilingVersion);
+        }
         $this->applyVersionRequirement($required, PdfEncryptor::class);
     }
 
@@ -150,6 +154,22 @@ class PdfFileWriter
     public function getVersionWarnings(): array
     {
         return $this->versionWarnings;
+    }
+
+    /**
+     * Set a ceiling version — properties requiring a higher version are
+     * silently stripped (set to null) during registration. Objects whose
+     * class-level requirement exceeds the ceiling throw CeilingVersionException.
+     *
+     * Mutually exclusive with strict mode — setting a ceiling disables strict.
+     */
+    public function setCeilingVersion(?PdfVersion $ceiling): void
+    {
+        $this->ceilingVersion = $ceiling;
+        if ($ceiling !== null) {
+            $this->strictVersionMode = false;
+            $this->version = $ceiling;
+        }
     }
 
     /**
@@ -292,7 +312,14 @@ class PdfFileWriter
 
         // Auto-bump version for xref/object streams before emission
         if ($this->useXRefStream) {
-            $this->applyVersionRequirement(PdfVersion::V1_5, 'XRefStream');
+            if ($this->ceilingVersion !== null && !$this->ceilingVersion->isAtLeast(PdfVersion::V1_5)) {
+                // Ceiling is below 1.5 — downgrade to classic xref
+                $this->useXRefStream = false;
+                $this->useObjectStreams = false;
+                $this->versionWarnings[] = 'Downgraded from xref stream to classic xref (ceiling < 1.5)';
+            } else {
+                $this->applyVersionRequirement(PdfVersion::V1_5, 'XRefStream');
+            }
         }
 
         // Sync catalog /Version for PDF > 1.4 (ISO 32000 §7.2.2)
@@ -678,6 +705,12 @@ class PdfFileWriter
             }
         }
 
+        // Ceiling mode: strip incompatible properties instead of bumping
+        if ($this->ceilingVersion !== null) {
+            $this->applyCeilingStripping($object);
+            return;
+        }
+
         // Check version requirement (class + non-null properties)
         $required = VersionRequirementResolver::getEffectiveRequirement($object);
         $this->applyVersionRequirement($required, $object::class);
@@ -704,6 +737,72 @@ class PdfFileWriter
                     $this->versionWarnings[] = $msg;
                     if ($this->deprecationHandler !== null) {
                         ($this->deprecationHandler)($msg);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply ceiling-mode stripping: check class-level compatibility and
+     * strip incompatible properties.
+     */
+    private function applyCeilingStripping(PdfObject $object): void
+    {
+        $ceiling = $this->ceilingVersion;
+
+        // Class-level check — if the entire object is above ceiling, refuse
+        $classReq = VersionRequirementResolver::getClassRequirement($object);
+        if ($classReq !== null && $classReq->isGreaterThan($ceiling)) {
+            throw new CeilingVersionException($object::class, $classReq, $ceiling);
+        }
+
+        // PdfVersionAware runtime check
+        if ($object instanceof \ApprLabs\Pdf\Core\PdfVersionAware) {
+            $runtimeReq = $object->getMinimumPdfVersion();
+            if ($runtimeReq !== null && $runtimeReq->isGreaterThan($ceiling)) {
+                throw new CeilingVersionException($object::class, $runtimeReq, $ceiling);
+            }
+        }
+
+        // Strip incompatible properties
+        $stripped = VersionRequirementResolver::stripIncompatibleProperties($object, $ceiling);
+        foreach ($stripped as $propName) {
+            $this->versionWarnings[] = sprintf(
+                'Stripped property %s::$%s (requires PDF > %s)',
+                $object::class,
+                $propName,
+                $ceiling->value,
+            );
+        }
+
+        // Walk inline Serializable children — strip their properties too
+        $ref = new \ReflectionClass($object);
+        foreach ($ref->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+            if (!$prop->isInitialized($object)) {
+                continue;
+            }
+            $value = $prop->getValue($object);
+            if ($value instanceof Serializable && !$value instanceof PdfObject) {
+                $childClassReq = VersionRequirementResolver::getClassRequirement($value);
+                if ($childClassReq !== null && $childClassReq->isGreaterThan($ceiling)) {
+                    // Nullify the parent property that holds this incompatible child
+                    $object->{$prop->getName()} = null;
+                    $this->versionWarnings[] = sprintf(
+                        'Stripped inline %s from %s (requires PDF > %s)',
+                        $value::class,
+                        $object::class,
+                        $ceiling->value,
+                    );
+                } else {
+                    $childStripped = VersionRequirementResolver::stripIncompatibleProperties($value, $ceiling);
+                    foreach ($childStripped as $childPropName) {
+                        $this->versionWarnings[] = sprintf(
+                            'Stripped property %s::$%s (requires PDF > %s)',
+                            $value::class,
+                            $childPropName,
+                            $ceiling->value,
+                        );
                     }
                 }
             }

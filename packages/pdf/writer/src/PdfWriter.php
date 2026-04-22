@@ -639,6 +639,11 @@ class PdfWriter
         $this->file->setStrictVersionMode($strict);
     }
 
+    public function setCeilingVersion(?PdfVersion $ceiling): void
+    {
+        $this->file->setCeilingVersion($ceiling);
+    }
+
     public function setDeprecationHandler(\Closure $handler): void
     {
         $this->file->setDeprecationHandler($handler);
