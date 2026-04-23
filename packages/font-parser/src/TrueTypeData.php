@@ -26,6 +26,9 @@ readonly class TrueTypeData
      * @param array<int, int>  $glyphWidths       GID => advance width in font design units (unscaled)
      * @param ?array<int, array<int, int>> $kernPairs leftGid => [rightGid => xAdvanceAdjust] (design units)
      * @param ?array<int, list<array{components: int[], ligature: int}>> $ligatures firstGid => ligature rules
+     * @param bool $isVariableFont Whether this is an OpenType variable font (has fvar table)
+     * @param ?list<array{tag: string, minValue: float, defaultValue: float, maxValue: float, nameId: int}> $variationAxes Variation axis definitions from fvar
+     * @param ?list<array{subfamilyNameId: int, coordinates: array<string, float>}> $namedInstances Named instances from fvar
      */
     public function __construct(
         public string $postScriptName,
@@ -47,5 +50,8 @@ readonly class TrueTypeData
         public array $glyphWidths = [],
         public ?array $kernPairs = null,
         public ?array $ligatures = null,
+        public bool $isVariableFont = false,
+        public ?array $variationAxes = null,
+        public ?array $namedInstances = null,
     ) {}
 }

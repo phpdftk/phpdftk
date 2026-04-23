@@ -292,6 +292,14 @@ class TrueTypeParser
             $ligatures = (new GsubParser())->parse($this->data, $this->tables) ?: null;
         }
 
+        // Parse fvar table for variable font axes and named instances
+        $isVariableFont = isset($this->tables['fvar']);
+        $variationAxes = null;
+        $namedInstances = null;
+        if ($isVariableFont) {
+            [$variationAxes, $namedInstances] = $this->parseFvar();
+        }
+
         return new TrueTypeData(
             postScriptName: $postScriptName,
             familyName: $familyName,
@@ -312,6 +320,9 @@ class TrueTypeParser
             glyphWidths: $hmtxWidths,
             kernPairs: $kernPairs,
             ligatures: $ligatures,
+            isVariableFont: $isVariableFont,
+            variationAxes: $variationAxes,
+            namedInstances: $namedInstances,
         );
     }
 
@@ -437,6 +448,95 @@ class TrueTypeParser
             $v -= 0x100000000;
         }
         return (int) $v;
+    }
+
+    /**
+     * Parse the fvar table for variable font axes and named instances.
+     *
+     * fvar table structure (OpenType spec §7.3.3):
+     *   - majorVersion (uint16), minorVersion (uint16)
+     *   - axesArrayOffset (uint16) — offset to the axis array
+     *   - reserved (uint16)
+     *   - axisCount (uint16)
+     *   - axisSize (uint16) — bytes per axis record (20)
+     *   - instanceCount (uint16)
+     *   - instanceSize (uint16) — bytes per instance record
+     *
+     * Each axis record (20 bytes):
+     *   - tag (4 bytes), minValue (Fixed), defaultValue (Fixed),
+     *     maxValue (Fixed), flags (uint16), nameId (uint16)
+     *
+     * Each instance record (variable):
+     *   - subfamilyNameId (uint16), flags (uint16),
+     *     coordinates (Fixed × axisCount), [postScriptNameId (uint16)]
+     *
+     * @return array{list<array{tag: string, minValue: float, defaultValue: float, maxValue: float, nameId: int}>, list<array{subfamilyNameId: int, coordinates: array<string, float>}>}
+     */
+    private function parseFvar(): array
+    {
+        $base = $this->tableOffset('fvar');
+
+        // $majorVersion = $this->readUint16($base);
+        // $minorVersion = $this->readUint16($base + 2);
+        $axesArrayOffset = $this->readUint16($base + 4);
+        // $reserved = $this->readUint16($base + 6);
+        $axisCount = $this->readUint16($base + 8);
+        $axisSize = $this->readUint16($base + 10);
+        $instanceCount = $this->readUint16($base + 12);
+        $instanceSize = $this->readUint16($base + 14);
+
+        // Parse axes
+        $axes = [];
+        $axisTags = [];
+        $axisBase = $base + $axesArrayOffset;
+        for ($i = 0; $i < $axisCount; $i++) {
+            $axisOffset = $axisBase + $i * $axisSize;
+            $tag = substr($this->data, $axisOffset, 4);
+            $minValue = $this->readFixed($axisOffset + 4);
+            $defaultValue = $this->readFixed($axisOffset + 8);
+            $maxValue = $this->readFixed($axisOffset + 12);
+            // $flags = $this->readUint16($axisOffset + 16);
+            $nameId = $this->readUint16($axisOffset + 18);
+
+            $axisTags[] = $tag;
+            $axes[] = [
+                'tag' => $tag,
+                'minValue' => $minValue,
+                'defaultValue' => $defaultValue,
+                'maxValue' => $maxValue,
+                'nameId' => $nameId,
+            ];
+        }
+
+        // Parse named instances
+        $instances = [];
+        $instanceBase = $axisBase + $axisCount * $axisSize;
+        for ($i = 0; $i < $instanceCount; $i++) {
+            $instOffset = $instanceBase + $i * $instanceSize;
+            $subfamilyNameId = $this->readUint16($instOffset);
+            // $flags = $this->readUint16($instOffset + 2);
+
+            $coordinates = [];
+            for ($a = 0; $a < $axisCount; $a++) {
+                $coordinates[$axisTags[$a]] = $this->readFixed($instOffset + 4 + $a * 4);
+            }
+
+            $instances[] = [
+                'subfamilyNameId' => $subfamilyNameId,
+                'coordinates' => $coordinates,
+            ];
+        }
+
+        return [$axes, $instances];
+    }
+
+    /**
+     * Read a Fixed (16.16) value as a float.
+     */
+    private function readFixed(int $offset): float
+    {
+        $raw = $this->readInt32($offset);
+        return $raw / 65536.0;
     }
 
     private function tableOffset(string $tag): int

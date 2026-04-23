@@ -249,8 +249,11 @@ final class PdfReader
      */
     public function isLinearized(): bool
     {
-        // Object 1 is typically the linearization dict — check it first
-        foreach ([1, 2] as $objNum) {
+        // Per ISO 32000-2 §F.2, the linearization dict is the first indirect
+        // object in the file. Most generators assign it object number 1 or 2,
+        // but the spec doesn't require a specific number. Check the first
+        // few objects by number, then fall back to scanning the raw bytes.
+        foreach ([1, 2, 3] as $objNum) {
             try {
                 $obj = $this->resolver->resolve($objNum);
             } catch (\Throwable) {
@@ -260,6 +263,23 @@ final class PdfReader
                 return true;
             }
         }
+
+        // Fallback: check all resolved objects for /Linearized key.
+        // The linearization dict can have any object number.
+        $trailerSize = $this->trailer->get('Size');
+        $maxCheck = min(50, (int) ($trailerSize instanceof PdfNumber
+            ? $trailerSize->toPdf() : 50));
+        for ($i = 4; $i <= $maxCheck; $i++) {
+            try {
+                $obj = $this->resolver->resolve($i);
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($obj instanceof PdfDictionary && $obj->get('Linearized') !== null) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -270,7 +290,10 @@ final class PdfReader
      */
     public function getLinearizationParameters(): ?array
     {
-        foreach ([1, 2] as $objNum) {
+        $maxCheck = min(10, (int) ($this->trailer->get('Size') instanceof PdfNumber
+            ? $this->trailer->get('Size')->toPdf() : 10));
+
+        for ($objNum = 1; $objNum <= $maxCheck; $objNum++) {
             try {
                 $obj = $this->resolver->resolve($objNum);
             } catch (\Throwable) {
@@ -661,16 +684,19 @@ final class PdfReader
         $reconstructed = false;
 
         try {
-            $startxrefOffset = self::findStartxref($source);
+            $startxrefOffset = self::findStartxref($source, $strict);
 
-            // 4. Parse xref + trailer — auto-detect classic vs stream
-            [$entries, $trailer] = self::parseXrefAt(
-                $source, $startxrefOffset, $xrefParser, $xrefStreamParser, $strict, $warnings
-            );
-        } catch (InvalidPdfException $e) {
-            if ($strict) {
-                throw $e;
+            if ($startxrefOffset !== null) {
+                // 4. Parse xref + trailer — auto-detect classic vs stream
+                [$entries, $trailer] = self::parseXrefAt(
+                    $source, $startxrefOffset, $xrefParser, $xrefStreamParser, $strict, $warnings
+                );
             }
+        } catch (\Throwable $e) {
+            if ($strict) {
+                throw $e instanceof InvalidPdfException ? $e : new InvalidPdfException($e->getMessage(), 0, $e);
+            }
+            $warnings[] = 'xref parsing failed: ' . $e->getMessage();
             // Fall through to reconstruction
         }
 
@@ -723,13 +749,30 @@ final class PdfReader
         // 7. Follow /Prev chain for incremental updates (skip if reconstructed)
         if (!$reconstructed) {
             $prev = $trailer->get('Prev');
+            $seenPrevOffsets = [];
             while ($prev instanceof PdfNumber) {
                 $prevOffset = (int) $prev->toPdf();
-                [$olderEntries, $olderTrailer] = self::parseXrefAt(
-                    $source, $prevOffset, $xrefParser, $xrefStreamParser
-                );
-                $resolver->mergeOlderEntries($olderEntries);
-                $prev = $olderTrailer->get('Prev');
+
+                // Detect circular /Prev chains
+                if (isset($seenPrevOffsets[$prevOffset])) {
+                    $warnings[] = "Circular /Prev chain detected at offset $prevOffset";
+                    break;
+                }
+                $seenPrevOffsets[$prevOffset] = true;
+
+                try {
+                    [$olderEntries, $olderTrailer] = self::parseXrefAt(
+                        $source, $prevOffset, $xrefParser, $xrefStreamParser, $strict, $warnings
+                    );
+                    $resolver->mergeOlderEntries($olderEntries);
+                    $prev = $olderTrailer->get('Prev');
+                } catch (\Throwable $e) {
+                    if ($strict) {
+                        throw $e instanceof InvalidPdfException ? $e : new InvalidPdfException($e->getMessage(), 0, $e);
+                    }
+                    $warnings[] = "/Prev chain parsing failed at offset $prevOffset: " . $e->getMessage();
+                    break;
+                }
             }
         }
 
@@ -783,8 +826,11 @@ final class PdfReader
 
     /**
      * Scan backward from EOF to find the `startxref` byte offset.
+     *
+     * Returns null if startxref is missing or corrupted (allows lenient
+     * fallback to xref reconstruction).
      */
-    private static function findStartxref(Source $source): int
+    private static function findStartxref(Source $source, bool $strict = true): ?int
     {
         $size = $source->size();
 
@@ -803,7 +849,10 @@ final class PdfReader
             }
         }
 
-        throw new InvalidPdfException('Cannot find startxref');
+        if ($strict) {
+            throw new InvalidPdfException('Cannot find startxref');
+        }
+        return null;
     }
 
     /**

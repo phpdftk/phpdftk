@@ -261,7 +261,8 @@ final class Tokenizer
             $this->source->readByte();
             return new Token(TokenType::DictEnd, '>>', $offset);
         }
-        throw new InvalidPdfException("Unexpected '>' at offset $offset without matching '>>'");
+        // Tolerate lone '>' — treat as dict end (some malformed PDFs)
+        return new Token(TokenType::DictEnd, '>>', $offset);
     }
 
     private function readNumber(string $first, int $offset): Token
@@ -307,7 +308,7 @@ final class Tokenizer
             'xref'          => TokenType::XrefKeyword,
             'trailer'       => TokenType::TrailerKeyword,
             'startxref'     => TokenType::StartXrefKeyword,
-            default         => throw new InvalidPdfException("Unknown keyword '$word' at offset $offset"),
+            default         => TokenType::Unknown,
         };
         return new Token($type, $word, $offset);
     }

@@ -47,8 +47,8 @@ This is a **monorepo with 12 packages** under `packages/`. All packages use the 
 | `pdf/toolkit/` | `apprlabs/pdf-toolkit` | `ApprLabs\Pdf\Toolkit\` | High-level pipelines: FormFiller, PdfStamper, PageSlicer, PdfMerger, PageTransformer, AnnotationFlattener, TextRedactor, MetadataEditor, PdfEncrypt, BookmarkEditor, PageLabeler, TextExtractor |
 | `geometry/` | `apprlabs/geometry` | `ApprLabs\Geometry\` | Rectangle, Matrix, PageSize, BezierCurve |
 | `color/` | `apprlabs/color` | `ApprLabs\Color\` | RGB/CMYK/Gray color models with conversions |
-| `filters/` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength codecs |
-| `encoding/` | `apprlabs/encoding` | `ApprLabs\Encoding\` | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
+| `filters/` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFaxDecode, JBIG2Decode codecs |
+| `encoding/` | `apprlabs/encoding` | `ApprLabs\Encoding\` | WinAnsi/MacRoman/StandardEncoding/MacExpert/PDFDocEncoding tables, Adobe Glyph List, CMap parser |
 | `font-metrics/` | `apprlabs/font-metrics` | `ApprLabs\FontMetrics\` | AFM metrics for the 14 standard PDF fonts |
 | `font-parser/` | `apprlabs/font-parser` | `ApprLabs\FontParser\` | Parses TrueType fonts: metrics, glyph widths, character maps for PDF embedding |
 | `image-metadata/` | `apprlabs/image-metadata` | `ApprLabs\ImageMetadata\` | Parse JPEG/PNG/GIF/TIFF/WebP headers |
@@ -141,7 +141,7 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 
 | Namespace | Classes |
 |---|---|
-| `ApprLabs\FontParser\` | `TrueTypeParser`, `TrueTypeData`, `OpenTypeParser`, `OpenTypeData`, `TrueTypeSubsetter`, `CffParser`, `CffData`, `CffSubsetter`, `KerningParser`, `GsubParser`, `TextShaper`, `WoffParser` |
+| `ApprLabs\FontParser\` | `TrueTypeParser`, `TrueTypeData`, `OpenTypeParser`, `OpenTypeData`, `TrueTypeSubsetter`, `CffParser`, `CffData`, `CffSubsetter`, `KerningParser`, `GsubParser`, `TextShaper`, `WoffParser`, `Woff2Parser`, `Type1Parser`, `Type1Data` |
 
 **`packages/pdf/writer/src/`** — PSR-4 root `ApprLabs\Pdf\Writer\`:
 
@@ -219,6 +219,9 @@ register(PdfObject $object): PdfReference
 setSigner(SignatureValue $sv, Pkcs7Signer $signer, int $placeholderBytes = 8192): void
 setTsaClient(TsaClient $tsaClient): void
 setTimestamper(SignatureValue $docTimeStamp, TsaClient $tsaClient, int $placeholderBytes = 16384): void
+
+// Linearized (web-optimized) output — first page loads before full download
+setLinearized(bool $linearized = true): void
 
 // Output
 generate(): string
@@ -381,6 +384,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `File/ObjectRegistryAndXrefTest.php` | Unit: ObjectRegistry numbering + CrossReferenceTable xref format (moved from writer package) |
 | `File/TrailerDictionaryTest.php` | Unit: typed TrailerDictionary (classic + incremental trailer with /Prev + /Encrypt) |
 | `File/PdfFileWriterTest.php` | Unit: PdfFileWriter engine — header emission, `setCatalog`/`register`/`setInfo`, trailer structure, `save()` round-trip |
+| `File/LinearizedWriterTest.php` | Unit: BitWriter bit-packing, linearized PDF generation structure, /L file length, round-trip via PdfReader, multi-page linearization |
 | `Font/FontTest.php` | Unit: all font types; includes TrueTypeFont::fromFile() tests |
 | `Font/FontSubtypeTest.php` | Unit: Type3Font, MMType1Font, CIDFontType0Font, CIDFontType2Font |
 | `Font/CIDSystemInfoTest.php` | Unit: CIDSystemInfo fields, used in CIDFont |
@@ -393,6 +397,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Graphics/ExtGStateTest.php` | Unit: ExtGState new fields (BG, BG2, UCR, UCR2, TR, TR2, HT, UseBlackPtComp, HTO), SoftMask, PostScriptXObject |
 | `Document/ExtGStateIntegrationTest.php` | End-to-end: PDF with ExtGState using alpha, blend mode, UseBlackPtComp |
 | `Document/EmbeddedFontsTest.php` | End-to-end: TrueType font embedding with FontDescriptor, ToUnicode, Widths |
+| `Document/EmbeddedType1FontTest.php` | End-to-end: Type 1 (PFB) font embedding with Type1FontFile, FontDescriptor /FontFile, ToUnicode |
 | `Document/AnnotationSubtypesTest.php` | End-to-end: all 20 new annotation subtypes across 3 pages |
 | `Document/DocumentFeaturesTest.php` | End-to-end: OutputIntent, page boxes, named destinations, OCG, tagged PDF, embedded TrueType |
 | `Document/Type3FontIntegrationTest.php` | End-to-end: Type 3 font with inline glyph procs and custom Encoding |
@@ -436,7 +441,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Integration/ReadSamplePdfsTest.php` | End-to-end: reads all sample PDFs, verifies page counts, annotations, bookmarks, form fields, xref streams |
 | `Integration/RoundTripTest.php` | Hydration: typed Catalog/Page/Pages via PdfHydrator, serialization round-trip |
 | `Integration/TextExtractionTest.php` | ContentStreamParser + TextExtractor: text from simple/complex/embedded-font PDFs, Unicode em-dash, extractAllText, Form XObject text extraction (Do operator), nested XObjects |
-| `Integration/ErrorToleranceTest.php` | Lenient mode: displaced headers, expanded startxref search, getParseWarnings() |
+| `Integration/ErrorToleranceTest.php` | Lenient mode: displaced headers, expanded startxref search, getParseWarnings(), missing startxref reconstruction, corrupted xref fallback, truncated PDF recovery, trailing garbage, missing %%EOF |
 | `Integration/VersionValidationTest.php` | Unit: getPdfVersion, getEffectiveVersion, validateVersion, catalog version sync |
 
 ### `toolkit` package tests (`packages/pdf/toolkit/tests/`)
@@ -464,8 +469,10 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `color` | `ColorTest.php` | RGB/CMYK/Gray constructors and conversions |
 | `crypt` | `CryptTest.php` | AES-128/256 and RC4 encryption/decryption |
 | `crypt` | `PublicKeyEncryptionTest.php` | PKCS#7 envelope create/open, file key derivation, wrong-key rejection |
-| `encoding` | `EncodingTest.php` | WinAnsi/MacRoman tables, Glyph List |
+| `encoding` | `EncodingTest.php` | WinAnsi/MacRoman/StandardEncoding/MacExpert/PDFDocEncoding tables, Glyph List |
 | `filters` | `FilterTest.php` | FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode |
+| `filters` | `CCITTFaxFilterTest.php` | Group 3 (1D) decoding: all-white, all-black, mixed, blackIs1, multi-row |
+| `filters` | `Jbig2FilterTest.php` | JBIG2 segment parsing, page info, globals, fallback handling |
 | `font-metrics` | `StandardFontMetricsTest.php` | Width lookups for all 14 standard fonts |
 | `font-parser` | `TrueTypeParserTest.php` | TrueType binary parsing: metrics, widths, cmap, name tables |
 | `font-parser` | `TrueTypeSubsetterTest.php` | TrueType subsetting: glyph reduction, valid header, re-parsability |
@@ -474,7 +481,10 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `font-parser` | `CffSubsetterTest.php` | CFF subsetting: glyph reduction, valid header, re-parsability, subroutine preservation |
 | `font-parser` | `KerningParserTest.php` | GPOS PairPos + legacy kern table parsing: kern pairs, negative values, empty fonts |
 | `font-parser` | `GsubParserTest.php` | GSUB ligature parsing, TextShaper ligature application, longest-match-first |
-| `font-parser` | `WoffParserTest.php` | WOFF decompression, round-trip TTF→WOFF→TTF, signature detection |
+| `font-parser` | `WoffParserTest.php` | WOFF 1.0 decompression, round-trip TTF→WOFF→TTF, signature detection |
+| `font-parser` | `Woff2ParserTest.php` | WOFF 2.0 signature detection, flavor detection, Brotli decompression (ext-brotli or CLI fallback) |
+| `font-parser` | `VariableFontTest.php` | Variable font detection, fvar axis parsing (wght), named instances, static font non-detection |
+| `font-parser` | `Type1ParserTest.php` | PFB/PFA parsing: metrics, encoding, segment lengths, font flags, Unicode map |
 | `font-parser` | `VerticalWritingTest.php` | Identity-V encoding, vhea/vmtx vertical metrics parsing |
 | `encoding` | `PredefinedCMapTest.php` | CJK predefined CMap names, CIDSystemInfo lookup, isPredefined |
 | `image-metadata` | `IccProfileTest.php` | ICC profile extraction from JPEG APP2 and PNG iCCP chunks |
@@ -488,9 +498,9 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 
 `benchmarks/MemoryBench.php` — peak memory (`memory_get_peak_usage(true)`); compares phpdftk against FPDF and TCPDF at the same page counts.
 
-`benchmarks/GeneratePdfBench.php` also includes `benchPhpdftk10PagesWithFormAppearances()` exercising `AppearanceGenerator` for text fields and checkboxes per page, `benchPhpdftk10PagesWithOpenTypeCff()` exercising OpenType CFF font embedding via `OpenTypeParser` + `addOpenTypeFont()` (requires macOS OTF font), `benchPhpdftk10PagesWithPublicKeyEncryption()` exercising public-key (certificate-based) AES-128 encryption via `PdfEncryptor::publicKeyAes128()` with PKCS#7 envelope generation, and `benchPhpdftkTsaRequestBuildAndParse()` exercising RFC 3161 `TsaClient` ASN.1 DER request building and response parsing (100 iterations, no network).
+`benchmarks/GeneratePdfBench.php` also includes `benchPhpdftk10PagesWithFormAppearances()` exercising `AppearanceGenerator` for text fields and checkboxes per page, `benchPhpdftk10PagesWithOpenTypeCff()` exercising OpenType CFF font embedding via `OpenTypeParser` + `addOpenTypeFont()` (requires macOS OTF font), `benchPhpdftk10PagesWithPublicKeyEncryption()` exercising public-key (certificate-based) AES-128 encryption via `PdfEncryptor::publicKeyAes128()` with PKCS#7 envelope generation, `benchPhpdftkTsaRequestBuildAndParse()` exercising RFC 3161 `TsaClient` ASN.1 DER request building and response parsing (100 iterations, no network), `benchPhpdftk10PagesLinearized()` exercising linearized (web-optimized) PDF writing with two-pass layout and hint stream, `benchPhpdftkType1FontParsing()` exercising PFB segment parsing and ASCII header extraction (100 iterations), and `benchPhpdftkCCITTFaxDecode()` exercising Group 3 Huffman fax decoding of 100 rows (100 iterations).
 
-`benchmarks/ReadPdfBench.php` also includes `benchPhpdftkTextExtractionWithFormXObjects()` exercising text extraction from a 10-page PDF where each page invokes a Form XObject containing text via the `Do` operator.
+`benchmarks/ReadPdfBench.php` also includes `benchPhpdftkTextExtractionWithFormXObjects()` exercising text extraction from a 10-page PDF where each page invokes a Form XObject containing text via the `Do` operator, `benchPhpdftkLinearizedPdf()` exercising linearized PDF generation and round-trip reading with `isLinearized()` verification, and `benchPhpdftkWoff2Parsing()` exercising TrueType font parsing with variable font detection (10 iterations).
 
 `benchmarks/ReadPdfBench.php` — PDF reader/parser performance; compares phpdftk reader against smalot/pdfparser and setasign/fpdi at 1, 10, and 100 pages. Uses FPDF-generated reference PDFs (`docs/sample-pdfs/bench_*.pdf`) with classic xref tables to ensure all three readers can parse them. Each benchmark parses the file, extracts structure (catalog, info, version), and iterates all pages.
 

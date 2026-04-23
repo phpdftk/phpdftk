@@ -6,7 +6,9 @@ namespace ApprLabs\Pdf\Reader\Parser;
 
 use ApprLabs\Filters\Ascii85Filter;
 use ApprLabs\Filters\AsciiHexFilter;
+use ApprLabs\Filters\CCITTFaxFilter;
 use ApprLabs\Filters\FlateFilter;
+use ApprLabs\Filters\Jbig2Filter;
 use ApprLabs\Filters\LzwFilter;
 use ApprLabs\Filters\PredictorFilter;
 use ApprLabs\Filters\RunLengthFilter;
@@ -56,11 +58,11 @@ final class StreamParser
                 'ASCII85Decode', 'A85'   => (new Ascii85Filter())->decode($data),
                 'ASCIIHexDecode', 'AHx'  => (new AsciiHexFilter())->decode($data),
                 'RunLengthDecode', 'RL'  => (new RunLengthFilter())->decode($data),
+                'CCITTFaxDecode', 'CCF'  => $this->decodeCCITTFax($data, $params),
+                'JBIG2Decode'            => $this->decodeJbig2($data, $params),
                 // Image-specific filters: return data as-is (the raw bytes ARE the image)
                 'DCTDecode', 'DCT',
-                'JPXDecode',
-                'CCITTFaxDecode', 'CCF',
-                'JBIG2Decode'            => $data,
+                'JPXDecode'              => $data,
                 default                  => throw new UnsupportedFilterException(
                     "Unsupported stream filter: $name"
                 ),
@@ -87,6 +89,72 @@ final class StreamParser
         $earlyChange = $params !== null ? $this->intParam($params, 'EarlyChange', 1) : 1;
         $data = (new LzwFilter($earlyChange))->decode($data);
         return $this->applyPredictor($data, $params);
+    }
+
+    /**
+     * Decode CCITTFaxDecode with parameters from DecodeParms.
+     */
+    private function decodeCCITTFax(string $data, ?PdfDictionary $params): string
+    {
+        $k = $params !== null ? $this->intParam($params, 'K', 0) : 0;
+        $columns = $params !== null ? $this->intParam($params, 'Columns', 1728) : 1728;
+        $rows = $params !== null ? $this->intParam($params, 'Rows', 0) : 0;
+        $endOfLine = $params !== null && $this->boolParam($params, 'EndOfLine', false);
+        $encodedByteAlign = $params !== null && $this->boolParam($params, 'EncodedByteAlign', false);
+        $endOfBlock = $params === null || $this->boolParam($params, 'EndOfBlock', true);
+        $blackIs1 = $params !== null && $this->boolParam($params, 'BlackIs1', false);
+
+        $filter = new CCITTFaxFilter($k, $columns, $rows, $endOfLine, $encodedByteAlign, $endOfBlock, $blackIs1);
+
+        try {
+            return $filter->decode($data);
+        } catch (\Throwable) {
+            // If decoding fails, return raw data (image streams are often usable as-is)
+            return $data;
+        }
+    }
+
+    /**
+     * Decode JBIG2Decode with optional globals from DecodeParms.
+     */
+    private function decodeJbig2(string $data, ?PdfDictionary $params): string
+    {
+        $globals = '';
+        if ($params !== null) {
+            $globalsRef = $params->get('JBIG2Globals');
+            if ($globalsRef instanceof PdfReference && $this->resolver !== null) {
+                $globalsObj = $this->resolver->resolveReference($globalsRef);
+                if ($globalsObj instanceof \ApprLabs\Pdf\Core\PdfStream) {
+                    $globals = $globalsObj->data;
+                }
+            }
+        }
+
+        $filter = new Jbig2Filter($globals);
+
+        try {
+            return $filter->decode($data);
+        } catch (\Throwable) {
+            return $data;
+        }
+    }
+
+    /**
+     * Extract a boolean parameter from a DecodeParms dictionary.
+     */
+    private function boolParam(PdfDictionary $dict, string $key, bool $default): bool
+    {
+        $val = $dict->get($key);
+        if ($val instanceof \ApprLabs\Pdf\Core\PdfBoolean) {
+            return $val->value;
+        }
+        if ($val instanceof PdfName) {
+            return $val->value === 'true';
+        }
+        if (is_bool($val)) {
+            return $val;
+        }
+        return $default;
     }
 
     /**

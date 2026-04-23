@@ -231,6 +231,63 @@ class ReadPdfBench
     }
 
     // -----------------------------------------------------------------------
+    // phpdftk — linearized PDF reading
+    // -----------------------------------------------------------------------
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftkLinearizedPdf(): void
+    {
+        // Generate a linearized PDF, then read it
+        $writer = new \ApprLabs\Pdf\Writer\PdfWriter();
+        $writer->setLinearized();
+        $fontName = $writer->addFont(new \ApprLabs\Pdf\Core\Font\Type1Font(
+            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        ))->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText("Linearized page $i")
+               ->endText();
+        }
+
+        $bytes = $writer->toBytes();
+        $reader = PdfReader::fromString($bytes);
+        assert($reader->isLinearized());
+        assert($reader->getPageCount() === 10);
+    }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — WOFF2 font parsing
+    // -----------------------------------------------------------------------
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    #[Bench\Revs(5)]
+    #[Bench\Iterations(3)]
+    public function benchPhpdftkWoff2Parsing(): void
+    {
+        // Find a WOFF2 font or skip
+        $woff2Paths = glob('/System/Library/Fonts/*.ttc') ?: [];
+        // WOFF2 files are rare on macOS; use TrueType parser with variable font as fallback
+        $ttfPath = '/System/Library/Fonts/Supplemental/Arial.ttf';
+        if (!file_exists($ttfPath)) {
+            return;
+        }
+
+        // Benchmark TrueType parsing including variable font detection
+        for ($i = 0; $i < 10; $i++) {
+            $parser = new \ApprLabs\FontParser\TrueTypeParser($ttfPath);
+            $data = $parser->parse();
+            assert($data->familyName !== '');
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
 

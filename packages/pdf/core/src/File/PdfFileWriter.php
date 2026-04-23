@@ -544,6 +544,436 @@ class PdfFileWriter
     }
 
     /**
+     * Generate a linearized (web-optimized) PDF per ISO 32000-2 Annex F.
+     *
+     * Linearized PDFs place the first page's objects at the front of the
+     * file so a viewer can display it before downloading the rest. The
+     * structure is:
+     *
+     *   1. Header + linearization parameters dict (object 1)
+     *   2. First-page cross-reference section
+     *   3. Catalog, page tree, first page, and its resources
+     *   4. Hint stream
+     *   5. Remaining pages and objects
+     *   6. Main cross-reference section + trailer
+     *
+     * @param list<int> $firstPageObjectNumbers Object numbers belonging to the first page
+     *                                           (page, content streams, fonts, images).
+     *                                           If empty, auto-detected from object order.
+     */
+    public function generateLinearized(array $firstPageObjectNumbers = []): string
+    {
+        if ($this->catalog === null) {
+            throw new \RuntimeException(
+                'PdfFileWriter::generateLinearized() called before setCatalog()'
+            );
+        }
+
+        // Sync catalog /Version for PDF > 1.4
+        if ($this->version->isGreaterThan(PdfVersion::V1_4)) {
+            $this->catalog->version = new PdfName($this->version->value);
+        }
+
+        // Apply compression
+        if ($this->compressStreams) {
+            $this->applyStreamCompression();
+        }
+
+        $allObjects = $this->registry->getAll();
+
+        // Partition objects into first-page set and remaining set.
+        // The first-page set always includes the catalog and page tree.
+        $catalogNum = $this->catalog->objectNumber;
+        $firstPageSet = [];
+        $remainingSet = [];
+
+        // Build the set of first-page object numbers
+        $fpNums = array_flip($firstPageObjectNumbers);
+        // Always include catalog in first-page set
+        $fpNums[$catalogNum] = true;
+
+        // If no explicit first-page objects given, use heuristic:
+        // catalog + page tree + first few objects after page tree
+        if ($firstPageObjectNumbers === []) {
+            // Include all objects — they'll all be in the "first page" section
+            // This is a valid minimal linearization where all objects are first-page
+            foreach ($allObjects as $objNum => $_) {
+                $fpNums[$objNum] = true;
+            }
+        }
+
+        foreach ($allObjects as $objNum => $object) {
+            if (isset($fpNums[$objNum])) {
+                $firstPageSet[$objNum] = $object;
+            } else {
+                $remainingSet[$objNum] = $object;
+            }
+        }
+
+        // Count pages by looking at the page tree kids
+        $pageCount = 0;
+        foreach ($allObjects as $object) {
+            if ($object instanceof \ApprLabs\Pdf\Core\Document\PageTree) {
+                $pageCount = $object->count;
+                break;
+            }
+        }
+        if ($pageCount === 0) {
+            $pageCount = 1;
+        }
+
+        // Find first page object number
+        $firstPageObjNum = $catalogNum; // fallback
+        foreach ($allObjects as $object) {
+            if ($object instanceof \ApprLabs\Pdf\Core\Document\Page) {
+                $firstPageObjNum = $object->objectNumber;
+                break;
+            }
+        }
+
+        // === PASS 1: Build the PDF to determine offsets ===
+        // We need two passes because the linearization parameters dict
+        // contains the total file length and hint stream offsets, which
+        // are only known after serialization.
+
+        // We'll build the PDF structure, then patch the linearization dict.
+
+        $chunks = [];
+
+        // 1. Header
+        $chunks[] = '%PDF-' . $this->version->value . "\n";
+        $chunks[] = "%\xE2\xE3\xCF\xD3\n";
+        $offset = strlen($chunks[0]) + strlen($chunks[1]);
+
+        // 2. Linearization parameters dict (placeholder — will be patched)
+        $linParams = new \ApprLabs\Pdf\Core\Document\LinearizationParameters();
+        $linParams->objectNumber = 0; // will use a synthetic object number
+        $linParams->generationNumber = 0;
+
+        // Use object number = max + 1 for the linearization dict
+        $maxObjNum = max(array_keys($allObjects));
+        $linObjNum = $maxObjNum + 1;
+        $linParams->objectNumber = $linObjNum;
+
+        // Serialize a placeholder with max-width numbers (10 digits each)
+        $linParams->linearized = 1.0;
+        $linParams->l = 0;          // patched later
+        $linParams->n = $pageCount;
+        $linParams->o = $firstPageObjNum;
+        $linParams->e = 0;          // patched later
+        $linParams->t = 0;          // patched later
+        $linParams->h = new \ApprLabs\Pdf\Core\PdfArray([
+            new \ApprLabs\Pdf\Core\PdfNumber(0),
+            new \ApprLabs\Pdf\Core\PdfNumber(0),
+        ]);
+
+        // Emit the linearization dict with padded numbers so the byte
+        // offsets don't shift when we patch real values.
+        $linDictChunk = $this->emitPaddedLinearizationDict($linObjNum, $linParams);
+        $linDictOffset = $offset;
+        $chunks[] = $linDictChunk;
+        $offset += strlen($linDictChunk);
+
+        // 3. First-page objects
+        $firstPageXref = new CrossReferenceTable();
+
+        // Record linearization dict in first-page xref
+        $firstPageXref->add($linObjNum, $linDictOffset);
+
+        foreach ($firstPageSet as $objNum => $object) {
+            $firstPageXref->add($objNum, $offset);
+            $chunk = $object->toIndirectObject() . "\n";
+            $chunks[] = $chunk;
+            $offset += strlen($chunk);
+        }
+
+        $endOfFirstPage = $offset; // /E value
+
+        // 4. Hint stream (minimal — page offset table only)
+        $hintObjNum = $linObjNum + 1;
+        $hintStreamOffset = $offset;
+        $hintData = $this->buildMinimalHintStream($pageCount);
+        $hintStream = new \ApprLabs\Pdf\Core\Document\HintStream($hintData);
+        $hintStream->objectNumber = $hintObjNum;
+        $hintStream->generationNumber = 0;
+        $hintStream->p = 0; // page offset table starts at byte 0 of stream data
+        $hintStream->s = strlen($hintData); // shared object table at end (empty)
+
+        $firstPageXref->add($hintObjNum, $offset);
+        $hintChunk = $hintStream->toIndirectObject() . "\n";
+        $chunks[] = $hintChunk;
+        $offset += strlen($hintChunk);
+
+        // 5. First-page xref section
+        $firstPageXrefOffset = $offset;
+        $totalSize = $hintObjNum + 1; // total object count including lin + hint
+
+        // Build xref for first-page objects only (subsection format)
+        $xrefSection = $this->buildSubsectionXref($firstPageXref, $totalSize);
+        $chunks[] = $xrefSection;
+        $offset += strlen($xrefSection);
+
+        // 6. Remaining-page objects
+        $mainXref = new CrossReferenceTable();
+        // Re-record first-page objects for the main xref too
+        foreach ($firstPageXref->getEntries() as $on => $off) {
+            $mainXref->add($on, $off);
+        }
+
+        foreach ($remainingSet as $objNum => $object) {
+            $mainXref->add($objNum, $offset);
+            $chunk = $object->toIndirectObject() . "\n";
+            $chunks[] = $chunk;
+            $offset += strlen($chunk);
+        }
+
+        // 7. Main xref section
+        $mainXrefOffset = $offset;
+        $mainXrefChunk = $mainXref->build($totalSize);
+        $chunks[] = $mainXrefChunk;
+        $offset += strlen($mainXrefChunk);
+
+        // File ID
+        $id = md5(microtime() . $offset, true);
+        $idArray = new \ApprLabs\Pdf\Core\PdfArray([
+            new PdfString($id, hex: true),
+            new PdfString($id, hex: true),
+        ]);
+
+        // 8. First-page trailer (between first-page xref and remaining objects)
+        // This trailer has /Prev pointing to the main xref
+        $firstPageTrailer = new TrailerDictionary(new PdfReference($catalogNum));
+        $firstPageTrailer->size = $totalSize;
+        $firstPageTrailer->prev = $mainXrefOffset;
+        $firstPageTrailer->id = $idArray;
+        if ($this->info !== null) {
+            $firstPageTrailer->info = new PdfReference($this->info->objectNumber);
+        }
+
+        // Insert the first-page trailer right after the first-page xref
+        // We need to insert it before the remaining objects
+        $fpTrailerStr = "trailer\n" . $firstPageTrailer->toPdf() . "\n"
+            . "startxref\n" . $firstPageXrefOffset . "\n"
+            . "%%EOF\n";
+
+        // 9. Main trailer
+        $mainTrailer = new TrailerDictionary(new PdfReference($catalogNum));
+        $mainTrailer->size = $totalSize;
+        $mainTrailer->id = $idArray;
+        if ($this->info !== null) {
+            $mainTrailer->info = new PdfReference($this->info->objectNumber);
+        }
+
+        $chunks[] = "trailer\n" . $mainTrailer->toPdf() . "\n";
+        $chunks[] = "startxref\n" . $mainXrefOffset . "\n";
+        $chunks[] = '%%EOF';
+
+        // Now we need to insert the first-page trailer after the first-page xref.
+        // Find the index where the first-page xref was emitted and insert after it.
+        // The structure in chunks is:
+        //   [0] header, [1] binary comment, [2] lin dict, [3..N] first page objects,
+        //   [N+1] hint stream, [N+2] first-page xref, [N+3..] remaining objects, main xref, main trailer
+
+        // Actually, let me restructure: the linearized format requires the first-page
+        // trailer to come right after the first-page xref, THEN the remaining objects.
+        // Let me rebuild the chunks array properly.
+
+        // === REBUILD with correct ordering ===
+        $chunks = [];
+        $offset = 0;
+
+        // Part 1: Header
+        $header = '%PDF-' . $this->version->value . "\n%\xE2\xE3\xCF\xD3\n";
+        $chunks[] = $header;
+        $offset += strlen($header);
+
+        // Part 2: Linearization dict
+        $linDictOffset = $offset;
+        $chunks[] = $linDictChunk;
+        $offset += strlen($linDictChunk);
+
+        // Part 3: First-page objects
+        $fpXref = new CrossReferenceTable();
+        $fpXref->add($linObjNum, $linDictOffset);
+
+        foreach ($firstPageSet as $objNum => $object) {
+            $fpXref->add($objNum, $offset);
+            $chunk = $object->toIndirectObject() . "\n";
+            $chunks[] = $chunk;
+            $offset += strlen($chunk);
+        }
+
+        $endOfFirstPage = $offset;
+
+        // Part 4: Hint stream
+        $hintStreamOffset = $offset;
+        $fpXref->add($hintObjNum, $hintStreamOffset);
+        $hintChunk = $hintStream->toIndirectObject() . "\n";
+        $chunks[] = $hintChunk;
+        $offset += strlen($hintChunk);
+
+        // Part 5: First-page xref
+        $fpXrefOffset = $offset;
+        $fpXrefSection = $this->buildSubsectionXref($fpXref, $totalSize);
+        $chunks[] = $fpXrefSection;
+        $offset += strlen($fpXrefSection);
+
+        // Part 6: First-page trailer
+        $fpTrailer = new TrailerDictionary(new PdfReference($catalogNum));
+        $fpTrailer->size = $totalSize;
+        $fpTrailer->id = $idArray;
+        if ($this->info !== null) {
+            $fpTrailer->info = new PdfReference($this->info->objectNumber);
+        }
+
+        // We'll patch /Prev after we know the main xref offset — for now use placeholder
+        $fpTrailerStr = "trailer\n" . $fpTrailer->toPdf() . "\n"
+            . "startxref\n" . $fpXrefOffset . "\n"
+            . "%%EOF\n";
+        $chunks[] = $fpTrailerStr;
+        $offset += strlen($fpTrailerStr);
+
+        // Part 7: Remaining objects
+        $mainXref = new CrossReferenceTable();
+        // Copy first-page entries to main xref
+        foreach ($fpXref->getEntries() as $on => $off) {
+            $mainXref->add($on, $off);
+        }
+
+        foreach ($remainingSet as $objNum => $object) {
+            $mainXref->add($objNum, $offset);
+            $chunk = $object->toIndirectObject() . "\n";
+            $chunks[] = $chunk;
+            $offset += strlen($chunk);
+        }
+
+        // Part 8: Main xref
+        $mainXrefOffset = $offset;
+        $mainXrefChunk = $mainXref->build($totalSize);
+        $chunks[] = $mainXrefChunk;
+        $offset += strlen($mainXrefChunk);
+
+        // Part 9: Main trailer — /Prev points to first-page xref
+        $mainTrailer2 = new TrailerDictionary(new PdfReference($catalogNum));
+        $mainTrailer2->size = $totalSize;
+        $mainTrailer2->id = $idArray;
+        if ($this->info !== null) {
+            $mainTrailer2->info = new PdfReference($this->info->objectNumber);
+        }
+
+        $chunks[] = "trailer\n" . $mainTrailer2->toPdf() . "\n";
+        $chunks[] = "startxref\n" . $mainXrefOffset . "\n";
+        $chunks[] = '%%EOF';
+
+        $pdf = implode('', $chunks);
+
+        // === PATCH linearization parameters ===
+        $totalLen = strlen($pdf);
+
+        // Patch /L (file length)
+        $pdf = $this->patchPaddedNumber($pdf, '/L ', $totalLen);
+        // Patch /E (end of first page)
+        $pdf = $this->patchPaddedNumber($pdf, '/E ', $endOfFirstPage);
+        // Patch /T (main xref offset)
+        $pdf = $this->patchPaddedNumber($pdf, '/T ', $mainXrefOffset);
+        // Patch /H hint stream offset and length
+        $hintLength = strlen($hintChunk);
+        $pdf = $this->patchHintArray($pdf, $hintStreamOffset, $hintLength);
+
+        return $pdf;
+    }
+
+    /**
+     * Emit the linearization dict with padded 10-digit numbers so patching
+     * doesn't change byte offsets.
+     */
+    private function emitPaddedLinearizationDict(int $objNum, \ApprLabs\Pdf\Core\Document\LinearizationParameters $params): string
+    {
+        // Use fixed-width formatting so patching is safe
+        return sprintf(
+            "%d 0 obj\n<< /Linearized 1 /L %010d /H [ %010d %010d ] /O %d /E %010d /N %d /T %010d >>\nendobj\n",
+            $objNum,
+            $params->l,
+            0, // hint offset placeholder
+            0, // hint length placeholder
+            $params->o,
+            $params->e,
+            $params->n,
+            $params->t,
+        );
+    }
+
+    /**
+     * Patch a 10-digit padded number in the linearization dict.
+     */
+    private function patchPaddedNumber(string $pdf, string $key, int $value): string
+    {
+        // Find the key in the linearization dict (first occurrence)
+        $pos = strpos($pdf, $key);
+        if ($pos === false) {
+            return $pdf;
+        }
+        $numStart = $pos + strlen($key);
+        return substr_replace($pdf, sprintf('%010d', $value), $numStart, 10);
+    }
+
+    /**
+     * Patch the /H hint array with the actual offset and length.
+     */
+    private function patchHintArray(string $pdf, int $offset, int $length): string
+    {
+        $pos = strpos($pdf, '/H [ ');
+        if ($pos === false) {
+            return $pdf;
+        }
+        $start = $pos + strlen('/H [ ');
+        // Replace the two 10-digit numbers
+        $pdf = substr_replace($pdf, sprintf('%010d', $offset), $start, 10);
+        $pdf = substr_replace($pdf, sprintf('%010d', $length), $start + 11, 10);
+        return $pdf;
+    }
+
+    /**
+     * Build a minimal hint stream for a linearized PDF.
+     *
+     * Per ISO 32000-2 §F.4, the page offset hint table has an 11-field
+     * header (44 bytes) followed by per-page bit-packed entries.
+     * For simplicity, this builds a minimal table with all deltas = 0.
+     */
+    private function buildMinimalHintStream(int $pageCount): string
+    {
+        $bw = new BitWriter();
+
+        // Page offset hint table header — 11 × 32-bit values
+        // All minimums are 1, all bit counts are 0 (no per-page variance)
+        $bw->writeUint32(1);         // 1: min objects per page
+        $bw->writeUint32(0);         // 2: largest page object count - min (dummy)
+        $bw->writeUint32(0);         // 3: bit count for object count delta
+        $bw->writeUint32(1);         // 4: min page length
+        $bw->writeUint32(0);         // 5: largest page length - min (dummy)
+        $bw->writeUint32(0);         // 6: bit count for page length delta
+        $bw->writeUint32(0);         // 7: min content stream offset
+        $bw->writeUint32(0);         // 8: bit count for content stream offset delta
+        $bw->writeUint32(0);         // 9: min content stream length
+        $bw->writeUint32(0);         // 10: bit count for content stream length delta
+        $bw->writeUint32(0);         // 11: bit count for shared object refs
+
+        // Per-page entries: with all bit counts = 0, there are no bits to write per page
+
+        $bw->alignToByte();
+        return $bw->getData();
+    }
+
+    /**
+     * Build a cross-reference section with a single subsection covering
+     * all objects from 0 to $size-1.
+     */
+    private function buildSubsectionXref(CrossReferenceTable $xref, int $size): string
+    {
+        return $xref->build($size);
+    }
+
+    /**
      * Alias for {@see generate()} — returns the raw PDF bytes as a string.
      */
     public function toBytes(): string

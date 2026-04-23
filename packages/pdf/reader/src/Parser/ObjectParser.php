@@ -67,13 +67,20 @@ final class ObjectParser
         // should now see `endobj`.
         $end = $this->tokenizer->nextToken();
         if ($end->type !== TokenType::EndObjKeyword) {
-            // Tolerant: some generators put extra whitespace or a
-            // stray newline — just check it is endobj eventually.
-            // If not endobj, throw for now.
+            // Tolerant: some generators put extra data between the value
+            // and endobj. Try skipping up to 5 tokens to find endobj.
             if ($end->type !== TokenType::Eof) {
-                throw new InvalidPdfException(
-                    "Expected endobj at offset {$end->offset}, got {$end->type->name}"
-                );
+                $found = false;
+                for ($skip = 0; $skip < 5; $skip++) {
+                    $retry = $this->tokenizer->nextToken();
+                    if ($retry->type === TokenType::EndObjKeyword || $retry->type === TokenType::Eof) {
+                        $found = true;
+                        break;
+                    }
+                }
+                // If we still can't find endobj, just continue — the object
+                // value is already parsed. The tokenizer position may be
+                // slightly off but the xref table will resync for the next object.
             }
         }
 
@@ -96,6 +103,8 @@ final class ObjectParser
             TokenType::Real           => new PdfNumber((float) $token->value),
             TokenType::Boolean        => new PdfBoolean($token->value === 'true'),
             TokenType::Null           => new PdfNull(),
+            // Unknown keywords: skip and try the next token
+            TokenType::Unknown        => $this->parseValue(),
             default                   => throw new InvalidPdfException(
                 "Unexpected token {$token->type->name} ('{$token->value}') at offset {$token->offset}"
             ),
@@ -149,13 +158,16 @@ final class ObjectParser
                 break;
             }
             if ($token->type === TokenType::Eof) {
-                throw new InvalidPdfException('Unexpected EOF inside dictionary');
+                // Tolerate unclosed dictionaries at EOF
+                break;
+            }
+            // Skip unknown tokens between dictionary entries
+            if ($token->type === TokenType::Unknown) {
+                continue;
             }
             if ($token->type !== TokenType::Name) {
-                throw new InvalidPdfException(
-                    "Expected name key in dictionary at offset {$token->offset}, "
-                    . "got {$token->type->name}"
-                );
+                // Skip unexpected tokens and try to continue
+                continue;
             }
 
             $key = $token->value;
@@ -175,7 +187,8 @@ final class ObjectParser
                 break;
             }
             if ($token->type === TokenType::Eof) {
-                throw new InvalidPdfException('Unexpected EOF inside array');
+                // Tolerate unclosed arrays at EOF
+                break;
             }
             $items[] = $this->parseTokenValue($token);
         }
@@ -228,26 +241,39 @@ final class ObjectParser
 
     /**
      * Fallback: scan forward for `endstream` to determine stream length.
+     *
+     * Limits scan to 64 MB to prevent OOM on corrupted/truncated streams.
      */
     private function scanForEndstream(): int
     {
         $start = $this->source->tell();
         $marker = 'endstream';
         $markerLen = strlen($marker);
-        $buf = '';
 
-        while (!$this->source->isEof()) {
+        // Use a sliding window instead of accumulating a full buffer to limit memory
+        $maxScan = 64 * 1024 * 1024; // 64 MB safety limit
+        $scanned = 0;
+        $window = '';
+
+        while (!$this->source->isEof() && $scanned < $maxScan) {
             $byte = $this->source->readByte();
             if ($byte === null) {
                 break;
             }
-            $buf .= $byte;
-            if (str_ends_with($buf, $marker)) {
+            $scanned++;
+            $window .= $byte;
+
+            // Keep window just large enough to detect the marker with preceding char
+            if (strlen($window) > $markerLen + 1) {
+                $window = substr($window, -($markerLen + 1));
+            }
+
+            if (str_ends_with($window, $marker)) {
                 // Validate boundary: "endstream" must be preceded by
                 // whitespace (CR, LF, or space) or be at the start of data.
-                $markerStart = strlen($buf) - $markerLen;
+                $markerStart = strlen($window) - $markerLen;
                 if ($markerStart > 0) {
-                    $preceding = $buf[$markerStart - 1];
+                    $preceding = $window[$markerStart - 1];
                     if ($preceding !== "\n" && $preceding !== "\r" && $preceding !== ' ') {
                         // False match inside binary data — keep scanning
                         continue;

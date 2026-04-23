@@ -6,6 +6,9 @@ namespace ApprLabs\Pdf\Reader;
 
 use ApprLabs\Encoding\CMapParser;
 use ApprLabs\Encoding\GlyphList;
+use ApprLabs\Encoding\MacExpertEncodingTable;
+use ApprLabs\Encoding\MacRomanTable;
+use ApprLabs\Encoding\StandardEncodingTable;
 use ApprLabs\Encoding\WinAnsiTable;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
@@ -700,6 +703,24 @@ final class TextExtractor
                     continue;
                 }
             }
+
+            // Fallback: for Type1/TrueType fonts without ToUnicode or Encoding,
+            // use StandardEncoding (Type1 default) or WinAnsiEncoding (TrueType default)
+            if ($subtype instanceof PdfName && in_array($subtype->value, ['Type1', 'MMType1', 'TrueType'], true)) {
+                $fallbackTable = ($subtype->value === 'TrueType')
+                    ? WinAnsiTable::getTable()
+                    : StandardEncodingTable::getTable();
+                $glyphList = GlyphList::getList();
+                $map = [];
+                foreach ($fallbackTable as $code => $glyphName) {
+                    if (isset($glyphList[$glyphName])) {
+                        $map[$code] = $glyphList[$glyphName];
+                    }
+                }
+                if (!empty($map)) {
+                    $this->fontMaps[$fontName] = $map;
+                }
+            }
         }
     }
 
@@ -741,10 +762,9 @@ final class TextExtractor
         $map = [];
 
         if ($encoding instanceof PdfName) {
-            // Named encoding (e.g., /WinAnsiEncoding)
-            if ($encoding->value === 'WinAnsiEncoding') {
-                $winAnsi = WinAnsiTable::getTable();
-                foreach ($winAnsi as $code => $glyphName) {
+            $table = $this->getNamedEncodingTable($encoding->value);
+            if ($table !== null) {
+                foreach ($table as $code => $glyphName) {
                     if (isset($glyphList[$glyphName])) {
                         $map[$code] = $glyphList[$glyphName];
                     }
@@ -760,11 +780,13 @@ final class TextExtractor
 
         // Start with base encoding
         $baseEnc = $encodingDict->get('BaseEncoding');
-        if ($baseEnc instanceof PdfName && $baseEnc->value === 'WinAnsiEncoding') {
-            $winAnsi = WinAnsiTable::getTable();
-            foreach ($winAnsi as $code => $glyphName) {
-                if (isset($glyphList[$glyphName])) {
-                    $map[$code] = $glyphList[$glyphName];
+        if ($baseEnc instanceof PdfName) {
+            $table = $this->getNamedEncodingTable($baseEnc->value);
+            if ($table !== null) {
+                foreach ($table as $code => $glyphName) {
+                    if (isset($glyphList[$glyphName])) {
+                        $map[$code] = $glyphList[$glyphName];
+                    }
                 }
             }
         }
@@ -786,6 +808,22 @@ final class TextExtractor
         }
 
         return $map;
+    }
+
+    /**
+     * Get the glyph name table for a named encoding.
+     *
+     * @return array<int, string>|null byte → glyph name table, or null if unknown
+     */
+    private function getNamedEncodingTable(string $name): ?array
+    {
+        return match ($name) {
+            'WinAnsiEncoding' => WinAnsiTable::getTable(),
+            'MacRomanEncoding' => MacRomanTable::getTable(),
+            'StandardEncoding' => StandardEncodingTable::getTable(),
+            'MacExpertEncoding' => MacExpertEncodingTable::getTable(),
+            default => null,
+        };
     }
 
     /**

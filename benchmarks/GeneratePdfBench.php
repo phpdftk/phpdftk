@@ -1538,4 +1538,114 @@ class GeneratePdfBench
         $bytes = $writer->generate();
         assert(str_starts_with($bytes, '%PDF-'));
     }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — linearized PDF writing
+    // -----------------------------------------------------------------------
+
+    /**
+     * 10-page linearized PDF (web-optimized, two-pass write with hint stream).
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesLinearized(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setLinearized();
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Linearized page %d of 10', $i))
+               ->moveTextPosition(0, -20)
+               ->showText('The quick brown fox jumps over the lazy dog.')
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_linearized.pdf');
+    }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — Type 1 font parsing
+    // -----------------------------------------------------------------------
+
+    /**
+     * Parse a synthetic Type 1 PFB font (exercises PFB segment parsing,
+     * ASCII header extraction, and encoding vector parsing).
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    #[Bench\Revs(10)]
+    #[Bench\Iterations(5)]
+    public function benchPhpdftkType1FontParsing(): void
+    {
+        // Build a minimal synthetic PFB in memory
+        $ascii = implode("\n", [
+            '%!PS-AdobeFont-1.0: BenchFont 001.000',
+            '/FontName /BenchFont def',
+            '/FullName (Bench Font) def',
+            '/FamilyName (Bench) def',
+            '/Weight (Medium) def',
+            '/ItalicAngle 0 def',
+            '/isFixedPitch false def',
+            '/FontBBox {-100 -200 1000 800} def',
+            '/UnderlinePosition -100 def',
+            '/UnderlineThickness 50 def',
+            '/Encoding StandardEncoding def',
+            'currentdict end',
+            'currentfile eexec',
+        ]);
+        $binary = str_repeat("\x00", 100);
+        $trailer = "0000000000000000000000000000000000000000000000000000000000000000\n0000000000000000000000000000000000000000000000000000000000000000\ncleartomark\n";
+
+        // PFB segments: type 1 (ASCII), type 2 (binary), type 1 (trailer)
+        $pfb = "\x80\x01" . pack('V', strlen($ascii)) . $ascii;
+        $pfb .= "\x80\x02" . pack('V', strlen($binary)) . $binary;
+        $pfb .= "\x80\x01" . pack('V', strlen($trailer)) . $trailer;
+        $pfb .= "\x80\x03";
+
+        for ($i = 0; $i < 100; $i++) {
+            $parser = \ApprLabs\FontParser\Type1Parser::fromBytes($pfb);
+            $data = $parser->parse();
+            assert($data->familyName === 'Bench Font');
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — CCITTFax decoding
+    // -----------------------------------------------------------------------
+
+    /**
+     * Decode CCITTFax Group 3 encoded rows (exercises Huffman table lookup
+     * and run-length decoding).
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    #[Bench\Revs(10)]
+    #[Bench\Iterations(5)]
+    public function benchPhpdftkCCITTFaxDecode(): void
+    {
+        // Build 100 rows of alternating white/black runs (8 pixels wide)
+        // White run of 4: '1011', Black run of 4: '011'
+        $rowBits = '1011011';
+        $allBits = str_repeat($rowBits, 100);
+        $padded = str_pad($allBits, (int) (ceil(strlen($allBits) / 8) * 8), '0');
+        $data = '';
+        for ($i = 0; $i < strlen($padded); $i += 8) {
+            $data .= chr((int) bindec(substr($padded, $i, 8)));
+        }
+
+        $filter = new \ApprLabs\Filters\CCITTFaxFilter(
+            k: 0, columns: 8, rows: 100, endOfBlock: false
+        );
+
+        for ($i = 0; $i < 100; $i++) {
+            $result = $filter->decode($data);
+            assert(strlen($result) === 100); // 100 rows × 1 byte each
+        }
+    }
 }

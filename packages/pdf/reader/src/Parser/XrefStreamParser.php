@@ -46,7 +46,13 @@ final class XrefStreamParser
         $dict = $value->dictionary;
 
         // Decompress the stream data
-        $data = $this->streamParser->decode($value->data, $dict);
+        try {
+            $data = $this->streamParser->decode($value->data, $dict);
+        } catch (\Throwable $e) {
+            throw new InvalidPdfException(
+                "Failed to decompress xref stream at offset $offset: " . $e->getMessage(), 0, $e
+            );
+        }
 
         // Read /W (field widths)
         $wArr = $dict->get('W');
@@ -55,7 +61,9 @@ final class XrefStreamParser
         }
         $w = [];
         foreach ($wArr->items as $item) {
-            $w[] = ($item instanceof PdfNumber) ? (int) $item->toPdf() : 0;
+            $fieldWidth = ($item instanceof PdfNumber) ? (int) $item->toPdf() : 0;
+            // Clamp field widths to sane values (max 8 bytes = 64-bit integer)
+            $w[] = max(0, min($fieldWidth, 8));
         }
 
         // Read /Size
@@ -80,8 +88,15 @@ final class XrefStreamParser
         $entries = [];
         $dataPos = 0;
         $dataLen = strlen($data);
+        $entryWidth = $w[0] + $w[1] + $w[2];
 
         foreach ($indexPairs as [$firstObj, $count]) {
+            // Clamp count to what the data can actually hold
+            if ($entryWidth > 0) {
+                $maxEntries = (int) (($dataLen - $dataPos) / $entryWidth);
+                $count = min($count, $maxEntries + 1);
+            }
+
             for ($i = 0; $i < $count; $i++) {
                 $fields = [];
                 for ($f = 0; $f < 3; $f++) {

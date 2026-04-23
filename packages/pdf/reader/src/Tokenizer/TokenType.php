@@ -25,5 +25,6 @@ enum TokenType
     case XrefKeyword;       // xref
     case TrailerKeyword;    // trailer
     case StartXrefKeyword;  // startxref
+    case Unknown;            // unrecognized keyword (skipped in lenient mode)
     case Eof;               // end of input
 }

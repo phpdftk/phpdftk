@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Encoding\WinAnsiTable;
 use ApprLabs\FontMetrics\StandardFontMetrics;
+use ApprLabs\FontParser\Type1Data;
+use ApprLabs\FontParser\Type1Parser;
 
 /**
  * Type 1 font (/Subtype /Type1).
@@ -16,6 +18,8 @@ use ApprLabs\FontMetrics\StandardFontMetrics;
  */
 class Type1Font extends Font
 {
+    public ?Type1Data $parsedFontData = null;
+
     public function __construct(StandardFont|string $font, bool $embedWidths = true)
     {
         $this->subtype = new PdfName('Type1');
@@ -26,6 +30,30 @@ class Type1Font extends Font
         if ($embedWidths && $font instanceof StandardFont) {
             $this->populateWidths($font->value);
         }
+    }
+
+    /**
+     * Create a Type1Font from a PFB or PFA font file.
+     *
+     * Parses the font program, extracts metrics and encoding, and prepares
+     * the font for embedding via PdfWriter.
+     */
+    public static function fromFile(string $path): self
+    {
+        $data = (new Type1Parser($path))->parse();
+
+        $font = new self($data->postScriptName, embedWidths: false);
+        $font->parsedFontData = $data;
+        $font->firstChar = 32;
+        $font->lastChar = 255;
+
+        $widthNumbers = [];
+        for ($byte = 32; $byte <= 255; $byte++) {
+            $widthNumbers[] = new PdfNumber($data->charWidths[$byte] ?? 0);
+        }
+        $font->widths = new PdfArray($widthNumbers);
+
+        return $font;
     }
 
     private function populateWidths(string $postScriptName): void

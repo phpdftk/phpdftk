@@ -22,7 +22,9 @@ use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
 use ApprLabs\Pdf\Core\Font\Font as CoreFont;
 use ApprLabs\Pdf\Core\Font\FontDescriptor;
 use ApprLabs\Pdf\Core\Font\FontFile\CFFFontFile;
+use ApprLabs\Pdf\Core\Font\FontFile\Type1FontFile;
 use ApprLabs\Pdf\Core\Font\TrueTypeFont;
+use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\FontParser\TrueTypeSubsetter;
 use ApprLabs\Pdf\Core\Font\Type0Font;
 use ApprLabs\Pdf\Core\Font\Type0FontFactory;
@@ -82,6 +84,9 @@ class PdfWriter
 
     /** Running counter for image resource names */
     private int $imageCounter = 0;
+
+    /** Whether to produce linearized (web-optimized) output */
+    private bool $linearized = false;
 
     public function __construct(bool $compressStreams = true, PdfVersion|string $version = PdfFileWriter::DEFAULT_PDF_VERSION)
     {
@@ -182,6 +187,8 @@ class PdfWriter
         if ($font instanceof TrueTypeFont && $font->parsedFontData !== null) {
             $this->embedTrueTypeFont($font);
             $parsedData = $font->parsedFontData;
+        } elseif ($font instanceof Type1Font && $font->parsedFontData !== null) {
+            $this->embedType1Font($font);
         }
 
         $this->file->register($font);
@@ -656,10 +663,25 @@ class PdfWriter
     }
 
     /**
+     * Enable or disable linearized (web-optimized) PDF output.
+     *
+     * When enabled, the generated PDF places the first page's objects at
+     * the front of the file, allowing a viewer to display it before
+     * downloading the rest (ISO 32000-2 Annex F).
+     */
+    public function setLinearized(bool $linearized = true): void
+    {
+        $this->linearized = $linearized;
+    }
+
+    /**
      * Generate the complete PDF as a binary string.
      */
     public function generate(): string
     {
+        if ($this->linearized) {
+            return $this->file->generateLinearized($this->collectFirstPageObjectNumbers());
+        }
         return $this->file->generate();
     }
 
@@ -668,7 +690,7 @@ class PdfWriter
      */
     public function toBytes(): string
     {
-        return $this->file->toBytes();
+        return $this->generate();
     }
 
     /**
@@ -678,7 +700,17 @@ class PdfWriter
      */
     public function writeTo($stream): int
     {
-        return $this->file->writeTo($stream);
+        if (!is_resource($stream)) {
+            throw new \InvalidArgumentException(
+                'PdfWriter::writeTo() expects an open stream resource'
+            );
+        }
+        $pdf = $this->generate();
+        $written = fwrite($stream, $pdf);
+        if ($written === false) {
+            throw new \RuntimeException('Failed to write PDF bytes to stream');
+        }
+        return $written;
     }
 
     /**
@@ -686,7 +718,56 @@ class PdfWriter
      */
     public function save(string $path): void
     {
-        $this->file->save($path);
+        $pdf = $this->generate();
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        file_put_contents($path, $pdf);
+    }
+
+    /**
+     * Collect object numbers belonging to the first page for linearization.
+     *
+     * Includes the catalog, page tree, first page, its content streams,
+     * and all fonts/images referenced by the first page's resources.
+     *
+     * @return list<int>
+     */
+    private function collectFirstPageObjectNumbers(): array
+    {
+        $nums = [];
+
+        // Catalog and page tree are always first-page objects
+        $nums[] = $this->catalog->objectNumber;
+        $nums[] = $this->pageTree->objectNumber;
+
+        // First page and its content streams
+        if (!empty($this->pages)) {
+            $firstPage = $this->pages[0];
+            $nums[] = $firstPage->objectNumber;
+
+            foreach ($firstPage->contents as $ref) {
+                $nums[] = $ref->objectNumber;
+            }
+
+            // Fonts and images registered on the first page's resources
+            if ($firstPage->resources !== null) {
+                foreach ($firstPage->resources->font as $ref) {
+                    $nums[] = $ref->objectNumber;
+                }
+                foreach ($firstPage->resources->xObject as $ref) {
+                    $nums[] = $ref->objectNumber;
+                }
+            }
+        }
+
+        // Info dict if present
+        if ($this->file->getInfo() !== null) {
+            $nums[] = $this->file->getInfo()->objectNumber;
+        }
+
+        return $nums;
     }
 
     /**
@@ -791,6 +872,51 @@ class PdfWriter
         // 4. Wire back to font
         $font->fontDescriptor = new PdfReference($descriptor->objectNumber);
         $font->toUnicode      = new PdfReference($cmapStream->objectNumber);
+    }
+
+    /**
+     * Embed a custom Type 1 font with its font program, descriptor, and ToUnicode CMap.
+     */
+    private function embedType1Font(Type1Font $font): void
+    {
+        $data = $font->parsedFontData;
+
+        // 1. Font program stream (Type1FontFile with /Length1, /Length2, /Length3)
+        $fontStream = new Type1FontFile(
+            $data->fontBytes,
+            $data->length1,
+            $data->length2,
+            $data->length3,
+        );
+        $this->file->register($fontStream);
+
+        // 2. FontDescriptor
+        $descriptor = new FontDescriptor(new PdfName($data->postScriptName));
+        $descriptor->flags      = $data->flags;
+        $descriptor->fontBBox   = new PdfArray([
+            new PdfNumber($data->fontBBox[0]),
+            new PdfNumber($data->fontBBox[1]),
+            new PdfNumber($data->fontBBox[2]),
+            new PdfNumber($data->fontBBox[3]),
+        ]);
+        $descriptor->italicAngle = $data->italicAngle;
+        $descriptor->ascent      = $data->ascent;
+        $descriptor->descent     = $data->descent;
+        $descriptor->capHeight   = $data->capHeight;
+        $descriptor->xHeight     = $data->xHeight;
+        $descriptor->stemV       = $data->stemV;
+        $descriptor->fontFile    = new PdfReference($fontStream->objectNumber);
+        $this->file->register($descriptor);
+
+        // 3. ToUnicode CMap stream
+        if (!empty($data->unicodeMap)) {
+            $cmapStream = new PdfStream(new PdfDictionary(), $this->buildToUnicodeCMap($data->unicodeMap));
+            $this->file->register($cmapStream);
+            $font->toUnicode = new PdfReference($cmapStream->objectNumber);
+        }
+
+        // 4. Wire back to font
+        $font->fontDescriptor = new PdfReference($descriptor->objectNumber);
     }
 
     /** @param array<int, int> $unicodeMap */

@@ -122,4 +122,108 @@ class ErrorToleranceTest extends TestCase
         $this->expectException(InvalidPdfException::class);
         PdfReader::fromString($corruptPdf);
     }
+
+    // --- Phase C: New robustness tests ---
+
+    public function testMissingStartxrefFallsBackToReconstruction(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        // Remove startxref and everything after it
+        $startxrefPos = strrpos($pdf, 'startxref');
+        $this->assertNotFalse($startxrefPos);
+        $corruptPdf = substr($pdf, 0, $startxrefPos) . "\n%%EOF";
+
+        $reader = PdfReader::fromString($corruptPdf, '', false);
+        $this->assertGreaterThan(0, $reader->getPageCount());
+
+        $warnings = $reader->getParseWarnings();
+        $hasReconstructionWarning = false;
+        foreach ($warnings as $w) {
+            if (str_contains($w, 'reconstruct')) {
+                $hasReconstructionWarning = true;
+                break;
+            }
+        }
+        $this->assertTrue($hasReconstructionWarning, 'Expected reconstruction warning');
+    }
+
+    public function testMissingStartxrefThrowsInStrictMode(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        $startxrefPos = strrpos($pdf, 'startxref');
+        $corruptPdf = substr($pdf, 0, $startxrefPos) . "\n%%EOF";
+
+        $this->expectException(InvalidPdfException::class);
+        PdfReader::fromString($corruptPdf, '', true);
+    }
+
+    public function testCorruptedXrefFallsBackToReconstruction(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        // Corrupt the xref table by replacing it with garbage,
+        // but keep startxref pointing to the right place
+        $xrefPos = strpos($pdf, "xref\n");
+        $this->assertNotFalse($xrefPos);
+
+        // Replace "xref\n" with "XXXX\n" so it's not recognized
+        $corruptPdf = substr_replace($pdf, "XXXX\n", $xrefPos, 5);
+
+        $reader = PdfReader::fromString($corruptPdf, '', false);
+        $this->assertGreaterThan(0, $reader->getPageCount());
+
+        $warnings = $reader->getParseWarnings();
+        $hasWarning = false;
+        foreach ($warnings as $w) {
+            if (str_contains($w, 'reconstruct') || str_contains($w, 'failed')) {
+                $hasWarning = true;
+                break;
+            }
+        }
+        $this->assertTrue($hasWarning, 'Expected warning about xref failure or reconstruction');
+    }
+
+    public function testTruncatedPdfFallsBackToReconstruction(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        // Truncate the PDF at ~80% — removes xref/trailer/startxref
+        $truncateAt = (int) (strlen($pdf) * 0.6);
+        $corruptPdf = substr($pdf, 0, $truncateAt);
+
+        $reader = PdfReader::fromString($corruptPdf, '', false);
+        // Should still find at least some structure
+        $this->assertNotEmpty($reader->getParseWarnings());
+    }
+
+    public function testPdfWithTrailingGarbageParses(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        // Add garbage after %%EOF — common with email attachments
+        $pdfWithGarbage = $pdf . str_repeat("\x00", 1024) . "GARBAGE DATA HERE";
+
+        $reader = PdfReader::fromString($pdfWithGarbage);
+        $this->assertSame('1.7', $reader->getVersion());
+        $this->assertGreaterThan(0, $reader->getPageCount());
+    }
+
+    public function testPdfWithMissingEofMarkerParses(): void
+    {
+        $pdf = $this->generateSimplePdf();
+
+        // Remove %%EOF marker
+        $eofPos = strrpos($pdf, '%%EOF');
+        if ($eofPos !== false) {
+            $pdfNoEof = substr($pdf, 0, $eofPos);
+        } else {
+            $pdfNoEof = $pdf;
+        }
+
+        // Should still parse because startxref is present
+        $reader = PdfReader::fromString($pdfNoEof);
+        $this->assertGreaterThan(0, $reader->getPageCount());
+    }
 }

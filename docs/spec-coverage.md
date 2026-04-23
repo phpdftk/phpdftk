@@ -229,9 +229,9 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/AvgWidth`     | ✓      |                                             |
 | `/MaxWidth`     | ✓      |                                             |
 | `/MissingWidth` | ✓      |                                             |
-| `/FontFile`     | ✓      | Reference stored; embedding not implemented |
+| `/FontFile`     | ✓      | Type 1 font program embedding via `Type1Font::fromFile()` + `Type1FontFile` |
 | `/FontFile2`    | ✓      | TrueType font program embedding via `TrueTypeFont::fromFile()` |
-| `/FontFile3`    | ✓      | Reference stored; embedding not implemented |
+| `/FontFile3`    | ✓      | CFF font program embedding via `CFFFontFile`                    |
 | `/CharSet`      | ✓      |                                             |
 
 ### Encoding (`/Type /Encoding`)
@@ -251,6 +251,10 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | TrueType font embedding       | ✓      | Full font program embedded via `/FontFile2`; `TrueTypeFont::fromFile()` |
 | Font subsetting               | ✓      | TrueTypeSubsetter implemented                                           |
 | OpenType font support         | ✓      | OpenTypeParser + CFFFontFile via `/FontFile3`                            |
+| Type 1 font parsing           | ✓      | `Type1Parser` — PFB/PFA formats, `Type1Font::fromFile()` factory        |
+| WOFF 1.0 decompression        | ✓      | `WoffParser` — WOFF→sfnt conversion                                     |
+| WOFF 2.0 decompression        | ✓      | `Woff2Parser` — Brotli decompression, table transforms, sfnt reconstruction |
+| Variable font detection       | ✓      | `TrueTypeParser::parseFvar()` — axes, named instances, `isVariableFont` |
 
 ---
 
@@ -648,10 +652,10 @@ these fields.
 | AES-128/256 cipher                     | ✓      | `phpdftk/crypt` — `AesCipher`                                     |
 | PDF key derivation                     | ✓      | `phpdftk/crypt` — `PdfKeyDerivation`                              |
 
-> Object model is complete. `PdfWriter` does **not** yet encrypt strings/
-> streams per-object or inject `/Encrypt` into the trailer — a user that
-> wants encrypted output must drive `phpdftk/crypt` and post-process the
-> writer output themselves.
+> Fully wired: `PdfWriter::setEncryption()` registers the `/Encrypt`
+> dictionary, encrypts all strings/streams per-object during `generate()`,
+> and emits `/Encrypt` in the trailer automatically. Supports RC4-40,
+> RC4-128, AES-128, AES-256, and public-key (certificate-based) encryption.
 
 ---
 
@@ -696,6 +700,69 @@ these fields.
 
 ---
 
+## Character Encodings
+
+| Encoding              | Status | Notes                                                                              |
+|-----------------------|--------|------------------------------------------------------------------------------------|
+| WinAnsiEncoding       | ✓      | `WinAnsiTable` — standard Windows encoding for most modern PDFs                   |
+| MacRomanEncoding      | ✓      | `MacRomanTable` — Mac OS encoding for older PDFs                                   |
+| StandardEncoding      | ✓      | `StandardEncodingTable` — default Type 1 font encoding per Table D.1               |
+| MacExpertEncoding     | ✓      | `MacExpertEncodingTable` — expert/small-caps Type 1 fonts per Table D.4            |
+| PDFDocEncoding        | ✓      | `PdfDocEncodingTable` — text strings in Info, bookmarks, annotations; auto-detects UTF-16BE/UTF-8/fallback |
+| Adobe Glyph List      | ✓      | `GlyphList` — glyph name ↔ Unicode mapping                                        |
+| CJK predefined CMaps  | ✓      | 16 CJK CMaps (UniGB-UCS2-H, UniJIS-UCS2-H, etc.)                                  |
+
+---
+
+## Stream Filters (Codecs)
+
+| Filter             | Encode | Decode | Notes                                                                    |
+|--------------------|--------|--------|--------------------------------------------------------------------------|
+| `FlateDecode`      | ✓      | ✓      | `FlateFilter` — zlib inflate/deflate                                     |
+| `ASCII85Decode`    | ✓      | ✓      | `Ascii85Filter` — base-85 encoding                                      |
+| `ASCIIHexDecode`   | ✓      | ✓      | `AsciiHexFilter` — hex encoding                                         |
+| `RunLengthDecode`  | ✓      | ✓      | `RunLengthFilter` — PackBits-style RLE                                   |
+| `LZWDecode`        | ✗      | ✓      | `LzwFilter` — LZW decompression with EarlyChange support                |
+| `CCITTFaxDecode`   | ✗      | ✓      | `CCITTFaxFilter` — Group 3 (1D) and Group 4 (2D) Huffman fax decoding   |
+| `JBIG2Decode`      | ✗      | ✓      | `Jbig2Filter` — segment parsing, MMR generic regions, `jbig2dec` fallback |
+| `DCTDecode`        | —      | —      | Pass-through (JPEG data usable as-is)                                    |
+| `JPXDecode`        | —      | —      | Pass-through (JPEG 2000 data usable as-is)                               |
+| Predictor          | ✗      | ✓      | `PredictorFilter` — PNG/TIFF predictors for Flate/LZW post-processing   |
+
+---
+
+## Reader Capabilities
+
+| Feature                          | Status | Notes                                                         |
+|----------------------------------|--------|---------------------------------------------------------------|
+| Classic xref table parsing       | ✓      | Standard and lenient modes                                    |
+| Xref stream parsing (PDF 1.5+)  | ✓      | Binary entry unpacking with width clamping                    |
+| Object stream unpacking          | ✓      | Decompresses and parses packed objects                        |
+| Incremental update chains        | ✓      | `/Prev` chain with loop detection                             |
+| Hybrid xref support              | ✓      | Scans both classic xref and xref streams                      |
+| Linearized PDF detection         | ✓      | Scans up to 50 objects for linearization dict                 |
+| Encryption (read)                | ✓      | RC4-40/128, AES-128/256, public-key                           |
+| Text extraction                  | ✓      | All encoding fallbacks (Standard/MacRoman/MacExpert/WinAnsi)  |
+| Error tolerance                  | ✓      | Missing startxref, corrupted xref, truncated PDF, trailing garbage, missing %%EOF |
+| Object recovery                  | ✓      | Scans for endobj, tolerates missing endobj, partial dicts     |
+| Stream recovery                  | ✓      | Sliding-window endstream scan with 64MB safety limit          |
+
+---
+
+## Writer Capabilities
+
+| Feature                    | Status | Notes                                                                   |
+|----------------------------|--------|-------------------------------------------------------------------------|
+| Classic xref output        | ✓      | 20-byte-per-entry xref tables                                          |
+| Xref stream output         | ✓      | `CrossReferenceStream` binary packing                                   |
+| Object stream output       | ✓      | `ObjectStream` compressed indirect objects                              |
+| Incremental updates        | ✓      | `IncrementalWriter` with `/Prev` chain                                  |
+| Linearized output          | ✓      | Two-pass write with padded linearization dict, hint stream, first-page partitioning |
+| Stream compression         | ✓      | Auto FlateDecode compression                                            |
+| Version auto-bump          | ✓      | 130+ `#[RequiresPdfVersion]` annotations, strict mode option            |
+
+---
+
 ## Coverage Summary
 
 | Area                       | Implemented | Total | %    |
@@ -729,6 +796,10 @@ these fields.
 | File specifications        | 3           | 3     | 100% |
 | Accessibility / Tagged PDF | 7           | 7     | 100% |
 | 3D                         | 6           | 6     | 100% |
+| Character encodings        | 7           | 7     | 100% |
+| Stream filters (codecs)    | 10          | 10    | 100% |
+| Reader capabilities        | 11          | 11    | 100% |
+| Writer capabilities        | 7           | 7     | 100% |
 
 > Every spec **object** has a PHP class and full end-to-end integration.
 >
