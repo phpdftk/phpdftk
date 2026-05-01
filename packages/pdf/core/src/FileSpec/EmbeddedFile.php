@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\FileSpec;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Embedded file stream (/Type /EmbeddedFile) — ISO 32000-2 §7.11.4.
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  * MIME type (e.g. `application/xml`) with solidus characters escaped as
  * `#2F` per the /Name escaping rules.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class EmbeddedFile extends PdfStream
 {
     public const PDF_TYPE = 'EmbeddedFile';

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Tests\Document;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
@@ -11,9 +12,12 @@ use ApprLabs\Pdf\Core\Graphics\ExtGState;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 
+#[Group("qpdf")]
 class ExtGStateIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/extgstate.pdf';
 
     public function testGeneratesExtGStatePdf(): void
@@ -49,6 +53,7 @@ class ExtGStateIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $pdfContent = file_get_contents(self::OUTPUT_FILE);
         self::assertStringStartsWith('%PDF', $pdfContent);
         self::assertStringContainsString('/ExtGState', $pdfContent);

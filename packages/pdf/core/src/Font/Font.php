@@ -23,7 +23,7 @@ class Font extends PdfObject
     public ?int $lastChar = null;                // /LastChar
     public ?PdfArray $widths = null;             // /Widths
     public ?PdfReference $fontDescriptor = null; // /FontDescriptor
-    public ?PdfReference $encoding = null;       // /Encoding
+    public PdfReference|PdfName|null $encoding = null; // /Encoding
     public ?PdfReference $toUnicode = null;      // /ToUnicode
 
     public function toPdf(): string

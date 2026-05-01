@@ -15,10 +15,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\Label\LabelStyle;
 use ApprLabs\Pdf\Toolkit\PageLabeler;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PageLabelerTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generateMultiPagePdf(int $pages = 10): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -46,6 +50,7 @@ class PageLabelerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         // Verify the PageLabels number tree was added to the catalog
         $reader = PdfReader::fromString($result);
@@ -71,6 +76,7 @@ class PageLabelerTest extends TestCase
             ->setRomanNumerals(1, 4)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $catalog = $reader->getCatalog();
         $labelsRef = $catalog->get('PageLabels');
@@ -102,6 +108,7 @@ class PageLabelerTest extends TestCase
             ->setRomanNumerals(1, 3, uppercase: true)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $labelsDict = $reader->resolveReference($reader->getCatalog()->get('PageLabels'));
         $nums = $labelsDict->get('Nums');
@@ -121,6 +128,7 @@ class PageLabelerTest extends TestCase
             ->setAlphabetic(1, 5, uppercase: true)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $labelsDict = $reader->resolveReference($reader->getCatalog()->get('PageLabels'));
         $nums = $labelsDict->get('Nums');
@@ -140,6 +148,7 @@ class PageLabelerTest extends TestCase
             ->setArabic(1, null, startNumber: 42)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $labelsDict = $reader->resolveReference($reader->getCatalog()->get('PageLabels'));
         $nums = $labelsDict->get('Nums');
@@ -161,6 +170,7 @@ class PageLabelerTest extends TestCase
             ->setLabels(1, LabelStyle::Arabic, prefix: 'A-')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $labelsDict = $reader->resolveReference($reader->getCatalog()->get('PageLabels'));
         $nums = $labelsDict->get('Nums');
@@ -189,6 +199,7 @@ class PageLabelerTest extends TestCase
             ->removeLabels()
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader2 = PdfReader::fromString($result);
         $catalog = $reader2->getCatalog();
         // /PageLabels should not be present
@@ -204,6 +215,7 @@ class PageLabelerTest extends TestCase
             ->setLabels(5, LabelStyle::Arabic, startNumber: 1)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $labelsDict = $reader->resolveReference($reader->getCatalog()->get('PageLabels'));
         $nums = $labelsDict->get('Nums');
@@ -240,6 +252,7 @@ class PageLabelerTest extends TestCase
 
             $this->assertFileExists($outputPath);
             $this->assertStringStartsWith('%PDF', file_get_contents($outputPath));
+            $this->assertQpdfValid($outputPath);
         } finally {
             if (file_exists($outputPath)) {
                 unlink($outputPath);

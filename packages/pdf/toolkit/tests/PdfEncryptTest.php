@@ -11,10 +11,14 @@ use ApprLabs\Pdf\Toolkit\Encryption\EncryptionMethod;
 use ApprLabs\Pdf\Toolkit\Encryption\Permission;
 use ApprLabs\Pdf\Toolkit\PdfEncrypt;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PdfEncryptTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdf(): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -39,6 +43,7 @@ class PdfEncryptTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         // Should be readable with password
         $reader = PdfReader::fromString($result, 'user');
@@ -53,6 +58,7 @@ class PdfEncryptTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         $reader = PdfReader::fromString($result, 'pass');
         $this->assertSame(1, $reader->getPageCount());
@@ -72,6 +78,7 @@ class PdfEncryptTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $decrypted);
+        $this->assertQpdfValidBytes($decrypted);
 
         // Should be readable without password
         $reader = PdfReader::fromString($decrypted);

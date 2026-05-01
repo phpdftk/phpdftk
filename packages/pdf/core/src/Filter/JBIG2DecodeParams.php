@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Filter;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
  * JBIG2Decode parameters — ISO 32000-2 §7.4.7, Table 12.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class JBIG2DecodeParams implements Serializable
 {
     public ?PdfReference $jbig2Globals = null;  // /JBIG2Globals

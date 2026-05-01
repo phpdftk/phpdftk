@@ -8,6 +8,7 @@
         {"type": "path", "url": "packages/pdf/writer"},
         {"type": "path", "url": "packages/pdf/reader"},
         {"type": "path", "url": "packages/pdf/toolkit"},
+        {"type": "path", "url": "packages/pdf/conformance"},
         {"type": "path", "url": "packages/pdf/all"},
         {"type": "path", "url": "packages/geometry"},
         {"type": "path", "url": "packages/encoding"},
@@ -32,6 +33,7 @@
         "apprlabs/geometry": "@dev",
         "apprlabs/image-metadata": "@dev",
         "apprlabs/pdf": "@dev",
+        "apprlabs/pdf-conformance": "@dev",
         "apprlabs/pdf-core": "@dev",
         "apprlabs/pdf-reader": "@dev",
         "apprlabs/pdf-toolkit": "@dev",
@@ -48,7 +50,10 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "ApprLabs\\Benchmarks\\": "benchmarks/"
+            "ApprLabs\\Benchmarks\\": "benchmarks/",
+            "ApprLabs\\Pdf\\Conformance\\": "packages/pdf/conformance/src/",
+            "ApprLabs\\Pdf\\Conformance\\Tests\\": "packages/pdf/conformance/tests/",
+            "ApprLabs\\Tests\\Support\\": "tests/Support/"
         }
     },
     "config": {

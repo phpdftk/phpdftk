@@ -232,4 +232,61 @@ class VersionGatingTest extends TestCase
         );
         $this->assertEmpty($autoBumpWarnings);
     }
+
+    // --- Strict deprecation enforcement tests ---
+
+    public function testStrictDeprecationThrowsForRemovedFeature(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V2_0);
+        $writer->setStrictDeprecation(true);
+
+        $this->expectException(\ApprLabs\Pdf\Core\File\DeprecatedFeatureException::class);
+        $this->expectExceptionMessageMatches('/Movie.*removed in PDF 2\.0/');
+
+        $movie = new Movie(new FileSpec('test.pdf'));
+        $writer->register($movie);
+    }
+
+    public function testStrictDeprecationAllowsBelowRemovalVersion(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V1_7);
+        $writer->setStrictDeprecation(true);
+
+        // Movie removed in 2.0, but we're targeting 1.7 — should be fine
+        $movie = new Movie(new FileSpec('test.pdf'));
+        $writer->register($movie);
+
+        // Should still get a deprecation warning
+        $warnings = $writer->getVersionWarnings();
+        $this->assertNotEmpty($warnings);
+        $this->assertStringContainsString('deprecated', $warnings[0]);
+    }
+
+    public function testNonStrictDeprecationStillWarns(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V2_0);
+        // strictDeprecation is false by default
+
+        $movie = new Movie(new FileSpec('test.pdf'));
+        $writer->register($movie);
+
+        // Should warn but not throw
+        $warnings = $writer->getVersionWarnings();
+        $this->assertNotEmpty($warnings);
+        $this->assertStringContainsString('deprecated since PDF 2.0', $warnings[0]);
+    }
+
+    public function testDeprecationWithoutRemovedInNeverThrows(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V2_0);
+        $writer->setStrictDeprecation(true);
+
+        // PostScriptXObject has no removedIn — should warn but not throw
+        $ps = new \ApprLabs\Pdf\Core\Graphics\XObject\PostScriptXObject('');
+        $writer->register($ps);
+
+        $warnings = $writer->getVersionWarnings();
+        $depWarnings = array_filter($warnings, fn($w) => str_contains($w, 'deprecated'));
+        $this->assertNotEmpty($depWarnings);
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Tests\Document;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Annotation\CaretAnnotation;
 use ApprLabs\Pdf\Core\Annotation\CircleAnnotation;
@@ -33,12 +34,15 @@ use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a multi-page PDF exercising all new annotation subtypes and verifies validity.
  */
+#[Group("qpdf")]
 class AnnotationSubtypesTest extends TestCase
 {
+    use QpdfValidationTrait;
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/annotation_subtypes.pdf';
 
     public function testGeneratesAnnotationSubtypesPdf(): void
@@ -295,6 +299,7 @@ class AnnotationSubtypesTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
 
         $content = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($content);

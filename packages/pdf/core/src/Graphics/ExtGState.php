@@ -16,6 +16,7 @@ use ApprLabs\Pdf\Core\RequiresPdfVersion;
 /**
  * External Graphics State parameter dictionary (/Type /ExtGState).
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class ExtGState extends PdfObject
 {
     public const PDF_TYPE = 'ExtGState';

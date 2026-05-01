@@ -7,11 +7,14 @@ namespace ApprLabs\Pdf\Core\Filter;
 use ApprLabs\Pdf\Core\PdfBoolean;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
  * CCITTFaxDecode parameters — ISO 32000-2 §7.4.6, Table 11.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class CCITTFaxDecodeParams implements Serializable
 {
     public ?int $k = null;                      // /K

@@ -13,6 +13,7 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Core\PdfVersion;
 use ApprLabs\Pdf\Core\PdfVersionAware;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Structure Element (ISO 32000-2 Table 324).
@@ -24,6 +25,7 @@ use ApprLabs\Pdf\Core\PdfVersionAware;
  *   $elem->p = new PdfReference($parent->objectNumber);
  *   $elem->t = new PdfString('Paragraph Title');
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class StructElem extends PdfObject implements PdfVersionAware
 {
     public const PDF_TYPE = 'StructElem';

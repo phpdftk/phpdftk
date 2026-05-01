@@ -36,7 +36,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Requirements`      | ✓      | Array stored                                   |
 | `/Collection`        | ✓      | Reference stored                               |
 | `/NeedsRendering`    | ✓      |                                                |
-| `/DSS`               | ✓      | `DSS` class for PAdES LTV                      |
+| `/DSS`               | ✓      | `DSS` class + `DssBuilder` + `LtvSigner` for PAdES LTV — certs, OCSPs, CRLs, VRI entries |
 | `/Extensions`        | ✓      | Developer extensions dict                      |
 | `/AF`                | ✓      | Associated files array                         |
 | `/DPartRoot`         | ✓      | `DPartRoot` reference (PDF 2.0)                |
@@ -722,12 +722,12 @@ these fields.
 | `ASCII85Decode`    | ✓      | ✓      | `Ascii85Filter` — base-85 encoding                                      |
 | `ASCIIHexDecode`   | ✓      | ✓      | `AsciiHexFilter` — hex encoding                                         |
 | `RunLengthDecode`  | ✓      | ✓      | `RunLengthFilter` — PackBits-style RLE                                   |
-| `LZWDecode`        | ✗      | ✓      | `LzwFilter` — LZW decompression with EarlyChange support                |
-| `CCITTFaxDecode`   | ✗      | ✓      | `CCITTFaxFilter` — Group 3 (1D) and Group 4 (2D) Huffman fax decoding   |
-| `JBIG2Decode`      | ✗      | ✓      | `Jbig2Filter` — segment parsing, MMR generic regions, `jbig2dec` fallback |
+| `LZWDecode`        | ✓      | ✓      | `LzwFilter` — LZW compression and decompression with EarlyChange support |
+| `CCITTFaxDecode`   | ✓      | ✓      | `CCITTFaxFilter` — Group 3 (1D) and Group 4 (2D) Huffman fax encoding and decoding |
+| `JBIG2Decode`      | ✓      | ✓      | `Jbig2Filter` — MMR generic region encoding, segment parsing, `jbig2dec` fallback  |
 | `DCTDecode`        | —      | —      | Pass-through (JPEG data usable as-is)                                    |
 | `JPXDecode`        | —      | —      | Pass-through (JPEG 2000 data usable as-is)                               |
-| Predictor          | ✗      | ✓      | `PredictorFilter` — PNG/TIFF predictors for Flate/LZW post-processing   |
+| Predictor          | ✓      | ✓      | `PredictorFilter` — PNG/TIFF predictor encoding and decoding for Flate/LZW |
 
 ---
 
@@ -743,6 +743,7 @@ these fields.
 | Linearized PDF detection         | ✓      | Scans up to 50 objects for linearization dict                 |
 | Encryption (read)                | ✓      | RC4-40/128, AES-128/256, public-key                           |
 | Text extraction                  | ✓      | All encoding fallbacks (Standard/MacRoman/MacExpert/WinAnsi)  |
+| Positioned text extraction       | ✓      | Per-span x/y/width/height via full text state machine (CTM, Tm, Tc, Tw, Tz, Ts, font widths) |
 | Error tolerance                  | ✓      | Missing startxref, corrupted xref, truncated PDF, trailing garbage, missing %%EOF |
 | Object recovery                  | ✓      | Scans for endobj, tolerates missing endobj, partial dicts     |
 | Stream recovery                  | ✓      | Sliding-window endstream scan with 64MB safety limit          |
@@ -759,7 +760,57 @@ these fields.
 | Incremental updates        | ✓      | `IncrementalWriter` with `/Prev` chain                                  |
 | Linearized output          | ✓      | Two-pass write with padded linearization dict, hint stream, first-page partitioning |
 | Stream compression         | ✓      | Auto FlateDecode compression                                            |
-| Version auto-bump          | ✓      | 130+ `#[RequiresPdfVersion]` annotations, strict mode option            |
+| Version auto-bump          | ✓      | 172 `#[RequiresPdfVersion]` annotations, strict mode, ceiling mode      |
+| Deprecation enforcement    | ✓      | `removedIn` on `#[DeprecatedPdfFeature]`, strict deprecation mode       |
+
+---
+
+## Conformance Profiles
+
+### Supported Standards
+
+| Standard | Profile Enum | Levels | ISO Spec | PDF Version | Constraints |
+|----------|-------------|--------|----------|-------------|-------------|
+| PDF/A | `PdfAProfile` | A1a, A1b, A2a, A2b, A2u, A3a, A3b, A3u, A4, A4e, A4f | ISO 19005 | 1.4–2.0 | 7–10 per level |
+| PDF/UA | `PdfUaProfile` | UA1, UA2 | ISO 14289 | 1.7–2.0 | 6 |
+| PDF/X | `PdfXProfile` | X-1a:2003, X-3:2003, X-4, X-5g, X-5pg, X-5n | ISO 15930 | 1.3–1.6 | 6–8 per level |
+| PDF/VT | `PdfVtProfile` | VT1, VT2, VT2s | ISO 16612 | 2.0 | 7 |
+| PDF/E | `PdfEProfile` | E1 | ISO 24517-1 | 1.6 | 6 |
+| PDF/R | `PdfRProfile` | R1 | ISO 23504-1 | 2.0 | 5 |
+| Factur-X | `ZugferdProfile` | MINIMUM, BASIC_WL, BASIC, EN16931, EXTENDED, XRECHNUNG | ZUGFeRD/Factur-X | 1.7 | 9 (PDF/A-3b + 2) |
+| PDF/mail | `PdfMailProfile` | mail-1 | ISO 23053-2 | 2.0 | 6 |
+
+### Conformance Constraint Matrix
+
+| Constraint | A | UA | X | X-5 | VT | E | R | ZUGFeRD | mail |
+|---|---|---|---|---|---|---|---|---|---|
+| FontEmbedding | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ |
+| Encryption | ✓ | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Metadata | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| OutputIntent | ✓ | | ✓ | ✓ | ✓ | | | ✓ | |
+| ColorSpace | ✓ | | | | | | | ✓ | |
+| Action | ✓ | | | | | | | ✓ | ✓ |
+| EmbeddedFile | ✓ | | | | | | | ✓ | |
+| Transparency | A-1 | | X-1a/X-3 | | | | | A-1 | |
+| Filter | A-1 | | | | | | | | |
+| TaggedStructure | Level A | ✓ | | | | | | Level A | |
+| DisplayDocTitle | | ✓ | | | | | | | |
+| TabOrder | | ✓ | | | | | | | |
+| Annotation | | ✓ | | | | | | | |
+| TrimBox | | | ✓ | ✓ | ✓ | | | | |
+| Trapped | | | ✓ | ✓ | ✓ | | | | |
+| DPartRoot | | | | | ✓ | | | | |
+| ThreeDContent | | | | | | ✓ | | | |
+| PdfEAction | | | | | | ✓ | | | |
+| PdfEColorSpace | | | | | | ✓ | | | |
+| RasterContent | | | | | | | ✓ | | |
+| PdfRAction | | | | | | | ✓ | | |
+| PdfRFont | | | | | | | ✓ | | |
+| ReferenceXObject | | | | ✓ | | | | | |
+| ZugferdXmp | | | | | | | | ✓ | |
+| ZugferdInvoice | | | | | | | | ✓ | |
+| Form | | | | | | | | | ✓ |
+| Multimedia | | | | | | | | | ✓ |
 
 ---
 

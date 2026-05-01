@@ -24,6 +24,7 @@ use ApprLabs\Pdf\Core\RequiresPdfVersion;
  *
  * Referenced from `SignatureField::$sv`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class SeedValueDictionary extends PdfObject
 {
     public const PDF_TYPE = 'SV';

@@ -10,10 +10,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\PageSelector;
 use ApprLabs\Pdf\Toolkit\PageSlicer;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PageSlicerTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdf(int $pages = 5): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -40,6 +44,7 @@ class PageSlicerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
     }
@@ -51,6 +56,7 @@ class PageSlicerTest extends TestCase
             ->keepRange(2, 4)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
     }
@@ -62,6 +68,7 @@ class PageSlicerTest extends TestCase
             ->removePages(2, 4)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
     }
@@ -73,6 +80,7 @@ class PageSlicerTest extends TestCase
             ->reorder(3, 1, 2)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
         // Page 3's content should now be first
@@ -87,6 +95,7 @@ class PageSlicerTest extends TestCase
             ->reverse()
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $text = $reader->extractText(0);
         $this->assertStringContainsString('Page 3', $text);
@@ -97,6 +106,8 @@ class PageSlicerTest extends TestCase
         $pdf = $this->generatePdf(4);
         [$first, $second] = PageSlicer::openString($pdf)->split(3);
 
+        $this->assertQpdfValidBytes($first);
+        $this->assertQpdfValidBytes($second);
         $reader1 = PdfReader::fromString($first);
         $reader2 = PdfReader::fromString($second);
 
@@ -111,6 +122,7 @@ class PageSlicerTest extends TestCase
             ->keep(PageSelector::even())
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
     }
@@ -120,6 +132,7 @@ class PageSlicerTest extends TestCase
         $pdf = $this->generatePdf(3);
         $result = PageSlicer::openString($pdf)->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
     }

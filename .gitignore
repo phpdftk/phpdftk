@@ -10,6 +10,7 @@ composer.phar
 
 # Test output
 /tests/output/
+/tests/.tmp/
 /packages/*/tests/output/
 /packages/*/*/tests/output/
 

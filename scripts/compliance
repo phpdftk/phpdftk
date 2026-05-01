@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+mkdir -p build/compliance
+
+# Ensure validation tools are available
+echo "Preparing validation tools..."
+
+# Build QPDF Docker image if not present
+if ! docker image inspect phpdftk/qpdf &>/dev/null 2>&1; then
+    echo "Building QPDF Docker image..."
+    (cd docker && docker compose build qpdf)
+fi
+
+# Pull veraPDF Docker image if not present
+if ! docker image inspect verapdf/cli &>/dev/null 2>&1; then
+    echo "Pulling veraPDF Docker image..."
+    docker pull verapdf/cli
+fi
+
+# Pull JHOVE Docker image if not present
+if ! docker image inspect openpreserve/jhove &>/dev/null 2>&1; then
+    echo "Pulling JHOVE Docker image..."
+    docker pull openpreserve/jhove
+fi
+
+# Build pdfid Docker image if not present
+if ! docker image inspect phpdftk/pdfid &>/dev/null 2>&1; then
+    echo "Building pdfid Docker image..."
+    (cd docker && docker compose build pdfid)
+fi
+
+# Build PDFBox Preflight Docker image if not present
+if ! docker image inspect phpdftk/pdfbox-preflight &>/dev/null 2>&1; then
+    echo "Building PDFBox Preflight Docker image..."
+    (cd docker && docker compose build pdfbox-preflight)
+fi
+
+# Initialize Arlington submodule if not present
+if [ ! -d "vendor-data/arlington-pdf-model/tsv/latest" ]; then
+    echo "Initializing Arlington PDF Model submodule..."
+    git submodule update --init vendor-data/arlington-pdf-model
+fi
+
+# Initialize tier 2 corpus submodules if not present
+if [ ! -d "vendor-data/poppler-test/tests" ] || [ ! -d "vendor-data/qpdf/qpdf/qtest/qpdf" ]; then
+    echo "Initializing tier 2 corpus submodules..."
+    git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf
+fi
+
+# Initialize veraPDF corpus submodule if not present
+if [ ! -d "vendor-data/verapdf-corpus/PDF_A-1b" ]; then
+    echo "Initializing veraPDF corpus submodule..."
+    git submodule update --init --depth 1 vendor-data/verapdf-corpus
+fi
+
+# Initialize PDF 2.0 examples submodule if not present
+if [ ! -d "vendor-data/pdf20examples" ] || [ -z "$(ls vendor-data/pdf20examples/*.pdf 2>/dev/null)" ]; then
+    echo "Initializing PDF 2.0 examples submodule..."
+    git submodule update --init --depth 1 vendor-data/pdf20examples
+fi
+
+# Initialize PDFium submodule if not present
+if [ ! -d "vendor-data/pdfium/testing/resources" ]; then
+    echo "Initializing PDFium submodule..."
+    git submodule update --init --depth 1 vendor-data/pdfium
+fi
+
+# Initialize PDFBox submodule if not present
+if [ ! -d "vendor-data/pdfbox/pdfbox" ]; then
+    echo "Initializing PDFBox submodule..."
+    git submodule update --init --depth 1 vendor-data/pdfbox
+fi
+
+# Probe tool availability
+TOOLS=""
+if docker image inspect phpdftk/qpdf &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},qpdf-docker"
+elif command -v qpdf &>/dev/null; then
+    TOOLS="${TOOLS},qpdf-local"
+fi
+if docker image inspect verapdf/cli &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},verapdf-docker"
+elif command -v verapdf &>/dev/null; then
+    TOOLS="${TOOLS},verapdf-local"
+fi
+if [ -d "vendor-data/arlington-pdf-model/tsv/latest" ]; then
+    TOOLS="${TOOLS},arlington"
+fi
+if [ -d "vendor-data/poppler-test/tests" ]; then
+    TOOLS="${TOOLS},poppler-corpus"
+fi
+if [ -d "vendor-data/qpdf/qpdf/qtest/qpdf" ]; then
+    TOOLS="${TOOLS},qpdf-corpus"
+fi
+if docker image inspect openpreserve/jhove &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},jhove-docker"
+elif command -v jhove &>/dev/null; then
+    TOOLS="${TOOLS},jhove-local"
+fi
+if [ -d "vendor-data/verapdf-corpus/PDF_A-1b" ]; then
+    TOOLS="${TOOLS},verapdf-corpus"
+fi
+if [ -d "vendor-data/pdf20examples" ] && ls vendor-data/pdf20examples/*.pdf &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},pdf20examples"
+fi
+if docker image inspect phpdftk/pdfid &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},pdfid-docker"
+elif command -v pdfid.py &>/dev/null; then
+    TOOLS="${TOOLS},pdfid-local"
+fi
+if docker image inspect phpdftk/pdfbox-preflight &>/dev/null 2>&1; then
+    TOOLS="${TOOLS},pdfbox-preflight-docker"
+fi
+if [ -d "vendor-data/pdfium/testing/resources" ]; then
+    TOOLS="${TOOLS},pdfium-corpus"
+fi
+if [ -d "vendor-data/pdfbox/pdfbox" ]; then
+    TOOLS="${TOOLS},pdfbox-corpus"
+fi
+
+# Strip leading comma
+TOOLS="${TOOLS#,}"
+
+echo "Available tools: ${TOOLS:-none}"
+echo ""
+
+echo "Running QPDF validation tests..."
+vendor/bin/phpunit --group qpdf --log-junit build/compliance/qpdf.xml || true
+echo ""
+
+echo "Running Arlington validation tests..."
+vendor/bin/phpunit --group arlington --log-junit build/compliance/arlington.xml || true
+echo ""
+
+echo "Running veraPDF validation tests..."
+vendor/bin/phpunit --group verapdf --exclude-group tier3 --log-junit build/compliance/verapdf.xml || true
+echo ""
+
+echo "Running Tier 2 corpus tests..."
+vendor/bin/phpunit --group tier2 --log-junit build/compliance/tier2.xml || true
+echo ""
+
+echo "Running Tier 3 Matterhorn tests..."
+vendor/bin/phpunit --group tier3 --log-junit build/compliance/tier3.xml || true
+echo ""
+
+echo "Running Tier 4 tests..."
+vendor/bin/phpunit --group tier4 --log-junit build/compliance/tier4.xml || true
+echo ""
+
+echo "Generating docs/compliance.md..."
+php scripts/parse-compliance.php --tools="$TOOLS"
+
+echo "Done. See docs/compliance.md"

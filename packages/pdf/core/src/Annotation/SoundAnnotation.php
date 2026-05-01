@@ -14,7 +14,7 @@ use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
  * Sound annotation (/Subtype /Sound).
  */
 #[RequiresPdfVersion(PdfVersion::V1_5)]
-#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation')]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation', removedIn: '2.0')]
 class SoundAnnotation extends MarkupAnnotation
 {
     public ?PdfReference $sound = null; // /Sound - sound object

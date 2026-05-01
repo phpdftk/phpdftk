@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Tests\Document;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Document\Destination;
 use ApprLabs\Pdf\Core\Document\Outline;
@@ -15,12 +16,18 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a PDF with a nested bookmark tree (outlines) and verifies validity.
  */
+#[Group("qpdf")]
+#[Group("arlington")]
 class BookmarksTest extends TestCase
 {
+    use ArlingtonValidationTrait;
+    use QpdfValidationTrait;
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/bookmarks.pdf';
 
     public function testGeneratesBookmarksPdf(): void
@@ -116,6 +123,8 @@ class BookmarksTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
+        $this->assertArlingtonValid(self::OUTPUT_FILE);
 
         $content = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($content);

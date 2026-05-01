@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ApprLabs\Filters;
 
 /**
- * JBIG2Decode filter — ISO 14492 / ITU-T T.88 decoder.
+ * JBIG2Decode filter — ISO 14492 / ITU-T T.88 codec.
  *
- * Decodes JBIG2-compressed bitonal image data. JBIG2 is a complex
+ * Encodes/decodes JBIG2-compressed bitonal image data. JBIG2 is a complex
  * multi-segment format supporting symbol dictionaries, text regions,
  * halftone regions, and generic regions with arithmetic or MMR coding.
  *
@@ -16,8 +16,11 @@ namespace ApprLabs\Filters;
  *   2. Immediate lossless generic regions
  *   3. Page information segments for dimensions
  *
+ * Encoding produces MMR-coded immediate lossless generic regions,
+ * wrapping CCITTFax Group 4 data in JBIG2 segment structure.
+ *
  * For complex JBIG2 streams (symbol dictionaries, arithmetic coding),
- * falls back to the `jbig2dec` CLI tool if available, otherwise
+ * decoding falls back to the `jbig2dec` CLI tool if available, otherwise
  * returns the raw data unchanged.
  *
  * PDF-embedded JBIG2 streams do NOT include the file header — they
@@ -39,14 +42,62 @@ final class Jbig2Filter implements FilterInterface
 
     /**
      * @param string $globals Optional JBIG2 global segments data (from /JBIG2Globals)
+     * @param int    $width   Image width in pixels (required for encoding)
+     * @param int    $height  Image height in pixels (required for encoding)
      */
     public function __construct(
         private string $globals = '',
+        private int $width = 0,
+        private int $height = 0,
     ) {}
 
     public function encode(string $data): string
     {
-        throw new \RuntimeException('JBIG2Filter encoding is not supported');
+        if ($data === '') {
+            return '';
+        }
+
+        if ($this->width <= 0 || $this->height <= 0) {
+            throw new \RuntimeException('JBIG2 encoding requires width and height');
+        }
+
+        // Encode pixel data using CCITTFax Group 4 (MMR)
+        $ccitt = new CCITTFaxFilter(
+            k: -1,
+            columns: $this->width,
+            rows: $this->height,
+            endOfBlock: true,
+            blackIs1: true, // JBIG2 convention: 1 = black
+        );
+        $mmrData = $ccitt->encode($data);
+
+        $output = '';
+
+        // Segment 0: Page Information (type 48, 19 bytes data)
+        $pageInfo = pack('N', $this->width);    // width
+        $pageInfo .= pack('N', $this->height);  // height
+        $pageInfo .= pack('N', 0);              // x resolution
+        $pageInfo .= pack('N', 0);              // y resolution
+        $pageInfo .= chr(0);                    // flags
+        $pageInfo .= pack('n', 0);              // striping
+        $output .= $this->buildSegmentHeader(0, self::SEG_PAGE_INFO, 1, strlen($pageInfo));
+        $output .= $pageInfo;
+
+        // Segment 1: Immediate Lossless Generic Region (type 39)
+        $regionData = pack('N', $this->width);   // region width
+        $regionData .= pack('N', $this->height); // region height
+        $regionData .= pack('N', 0);             // x offset
+        $regionData .= pack('N', 0);             // y offset
+        $regionData .= chr(0);                   // combination operator
+        $regionData .= pack('n', 1);             // flags: MMR=1
+        $regionData .= $mmrData;
+        $output .= $this->buildSegmentHeader(1, self::SEG_IMMEDIATE_GENERIC_LOSSLESS, 1, strlen($regionData));
+        $output .= $regionData;
+
+        // Segment 2: End of Page (type 49)
+        $output .= $this->buildSegmentHeader(2, self::SEG_END_OF_PAGE, 1, 0);
+
+        return $output;
     }
 
     public function decode(string $data): string
@@ -196,15 +247,15 @@ final class Jbig2Filter implements FilterInterface
      */
     private function decodeGenericRegion(string $data, int $pageWidth, int $pageHeight): ?string
     {
-        if (strlen($data) < 18) {
+        if (strlen($data) < 19) {
             return null;
         }
 
-        // Region segment information field (13 bytes)
+        // Region segment information field (17 bytes per ISO 14492 §7.4.1):
+        //   width (4) + height (4) + x offset (4) + y offset (4) + flags (1)
         $regionWidth = unpack('N', $data, 0)[1];
         $regionHeight = unpack('N', $data, 4)[1];
-        // x, y offsets (4+4 bytes), combination operator (1 byte) = skip 9 bytes
-        $offset = 13;
+        $offset = 17;
 
         // Generic region segment flags (2 bytes)
         $flags = unpack('n', $data, $offset)[1];
@@ -327,5 +378,19 @@ final class Jbig2Filter implements FilterInterface
         }
 
         return null;
+    }
+
+    /**
+     * Build a JBIG2 segment header.
+     */
+    private function buildSegmentHeader(int $segNum, int $type, int $pageAssoc, int $dataLength): string
+    {
+        $header = pack('N', $segNum);       // segment number (4 bytes)
+        $header .= chr($type);             // flags: type in low 6 bits (1 byte)
+        $header .= chr(0);                 // referred-to count = 0 (1 byte)
+        $header .= chr($pageAssoc);        // page association (1 byte)
+        $header .= pack('N', $dataLength); // data length (4 bytes)
+
+        return $header;
     }
 }

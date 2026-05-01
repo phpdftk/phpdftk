@@ -7,10 +7,15 @@ namespace ApprLabs\Pdf\Core\Tests\Document;
 use ApprLabs\FontParser\OpenTypeParser;
 use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class OpenTypeFontIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/opentype_cff.pdf';
 
     private static ?string $fontPath = null;
@@ -71,6 +76,7 @@ class OpenTypeFontIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertStringStartsWith('%PDF-', $contents);
         self::assertStringContainsString('/Subtype /Type0', $contents);

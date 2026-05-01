@@ -8,12 +8,17 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Writer\PdfWriter;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 use ApprLabs\Xmp\XmpPacket;
 use ApprLabs\Xmp\XmpWriter;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class XmpMetadataTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     public function testSetMetadataAddsStreamToPdf(): void
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -31,6 +36,7 @@ class XmpMetadataTest extends TestCase
         $this->assertStringContainsString('/Type /Metadata', $pdf);
         $this->assertStringContainsString('/Subtype /XML', $pdf);
         $this->assertStringContainsString('/Metadata', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testMetadataStreamContainsXmp(): void
@@ -48,6 +54,7 @@ class XmpMetadataTest extends TestCase
 
         $this->assertStringContainsString('My Title', $pdf);
         $this->assertStringContainsString('phpdftk', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testMetadataRoundTrip(): void
@@ -65,6 +72,7 @@ class XmpMetadataTest extends TestCase
         $reader = PdfReader::fromString($pdf);
         $catalog = $reader->getCatalog();
         $this->assertTrue($catalog->has('Metadata'), 'Catalog should reference /Metadata');
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testSyncInfoToMetadata(): void
@@ -88,6 +96,7 @@ class XmpMetadataTest extends TestCase
         $this->assertStringContainsString('Jane Doe', $pdf);
         $this->assertStringContainsString('phpdftk', $pdf);
         $this->assertStringContainsString('/Type /Metadata', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testSyncInfoToMetadataNoInfoIsNoOp(): void
@@ -99,5 +108,6 @@ class XmpMetadataTest extends TestCase
         $pdf = $writer->generate();
         // No metadata should be added
         $this->assertStringNotContainsString('/Type /Metadata', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 }

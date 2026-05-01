@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Action;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Named action (/S /Named).
  * Executes a pre-defined viewer action (e.g., NextPage, PrevPage, FirstPage, LastPage).
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class NamedAction extends Action
 {
     public PdfName $n; // /N - named action

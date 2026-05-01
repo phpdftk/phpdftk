@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *
  * Defines a single halftone screen with frequency, angle, and spot function.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class HalftoneType1 extends PdfObject
 {
     public const PDF_TYPE = 'Halftone';

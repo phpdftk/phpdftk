@@ -13,14 +13,19 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Generates a real PDF that paints glyphs from a custom Type 3 font whose
  * glyph procedures are inline content streams.
  */
+#[Group("qpdf")]
 class Type3FontIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/type3_font.pdf';
 
     public function testGeneratesPdfWithType3Font(): void
@@ -95,6 +100,7 @@ class Type3FontIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $content = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($content);
         self::assertStringStartsWith('%PDF-', $content);

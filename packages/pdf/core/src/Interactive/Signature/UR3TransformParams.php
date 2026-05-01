@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Interactive\Signature;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * UR3 (usage rights) transform parameters — ISO 32000-2 §12.8.2.3, Table 256.
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Enables specific reader features (form filling, commenting, etc.) via
  * per-right name arrays.
  */
+#[RequiresPdfVersion(PdfVersion::V2_0)]
 class UR3TransformParams extends TransformParams
 {
     public ?PdfArray $document = null;    // /Document  rights: FullSave

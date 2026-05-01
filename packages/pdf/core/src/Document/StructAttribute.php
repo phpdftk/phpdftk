@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $attr = new StructAttribute('Layout');
  *   $attr->entries['Placement'] = new PdfName('Block');
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class StructAttribute implements Serializable
 {
     public PdfName $o;                // /O - owner (required)

@@ -25,10 +25,15 @@ use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class FormAppearancesIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/form_appearances.pdf';
 
     public function testGeneratesFormWithAppearances(): void
@@ -148,6 +153,7 @@ class FormAppearancesIntegrationTest extends TestCase
 
         // Assertions
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertStringStartsWith('%PDF-', $contents);
         self::assertStringContainsString('/NeedAppearances false', $contents);

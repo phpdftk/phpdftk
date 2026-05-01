@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Document Names dictionary — ISO 32000-2 §7.7.4, Table 33.
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * Referenced from `Catalog::$names`. Each entry is a reference to a
  * name tree mapping a string key to the relevant object type.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class NamesDictionary extends PdfObject
 {
     public ?PdfReference $dests = null;                  // /Dests

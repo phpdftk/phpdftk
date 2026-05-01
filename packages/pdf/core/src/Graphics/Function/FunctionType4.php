@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PostScript calculator function (FunctionType 4) — ISO 32000-2 §7.10.5.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  * Required entries: Domain, Range. The stream body must begin with `{`
  * and end with `}`, e.g. `{ 1 exch sub }`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class FunctionType4 extends PdfStream
 {
     public PdfArray $domain;    // /Domain

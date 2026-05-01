@@ -155,4 +155,43 @@ class CeilingVersionTest extends TestCase
 
         $this->assertSame(PdfVersion::V1_7, $writer->getPdfVersion());
     }
+
+    public function testCeilingRejectsRemovedFeature(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V2_0);
+
+        $this->expectException(\ApprLabs\Pdf\Core\File\DeprecatedFeatureException::class);
+        $this->expectExceptionMessageMatches('/Movie.*removed in PDF 2\.0/');
+
+        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
+            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        );
+        $writer->register($movie);
+    }
+
+    public function testCeilingAllowsDeprecatedBelowRemoval(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V1_7);
+
+        // Movie removed in 2.0, ceiling is 1.7 — should be allowed
+        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
+            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        );
+        $writer->register($movie);
+
+        $this->assertSame(PdfVersion::V1_7, $writer->getPdfVersion());
+    }
+
+    public function testCeilingRefusesNewlyAnnotatedClass(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V1_1);
+
+        $this->expectException(CeilingVersionException::class);
+        $this->expectExceptionMessageMatches('/Movie.*requires PDF 1\.2.*ceiling.*1\.1/');
+
+        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
+            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        );
+        $writer->register($movie);
+    }
 }

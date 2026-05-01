@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Describes how a page crop/bleed/trim/art box guide is drawn in print
  * preview. Carried inline inside a {@see BoxColorInfo} entry.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class BoxStyle implements Serializable
 {
     public ?PdfArray $c = null;   // /C  - 3-element RGB color

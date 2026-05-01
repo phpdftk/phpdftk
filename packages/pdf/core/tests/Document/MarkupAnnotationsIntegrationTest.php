@@ -15,6 +15,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,8 +24,11 @@ use PHPUnit\Framework\TestCase;
  * Popup) and a Highlight-in-reply-to, exercising the full markup
  * annotation field set (/T, /Subj, /CreationDate, /IRT, /RT, /Popup).
  */
+#[Group("qpdf")]
 class MarkupAnnotationsIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/markup_annotations.pdf';
 
     public function testGeneratesPdfWithMarkupFields(): void
@@ -108,6 +113,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
         $pdf = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($pdf);
         self::assertStringStartsWith('%PDF-', $pdf);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         self::assertStringContainsString('/Subtype /Text', $pdf);
         self::assertStringContainsString('/Subtype /Highlight', $pdf);
         self::assertStringContainsString('/Subtype /FreeText', $pdf);

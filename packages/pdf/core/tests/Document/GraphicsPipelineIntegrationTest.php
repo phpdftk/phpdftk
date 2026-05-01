@@ -22,6 +22,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,8 +34,11 @@ use PHPUnit\Framework\TestCase;
  *   - File attachment via FileSpec + EmbeddedFile stream
  *   - SubmitFormAction on the catalog open action
  */
+#[Group("qpdf")]
 class GraphicsPipelineIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/graphics_pipeline.pdf';
 
     public function testGeneratesGraphicsPipelinePdf(): void
@@ -159,6 +164,7 @@ class GraphicsPipelineIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($contents);
         self::assertStringStartsWith('%PDF-', $contents);

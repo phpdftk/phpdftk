@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\FileSpec;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Appears inline inside an EmbeddedFile stream's dictionary; not a
  * standalone indirect object.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class EmbeddedFileParams implements Serializable
 {
     public ?int $size = null;                 // /Size      - file size

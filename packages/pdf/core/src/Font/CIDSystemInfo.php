@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Font;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $info = new CIDSystemInfo('Adobe', 'Identity', 0);
  *   $cidFont->cidSystemInfo = $info;
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class CIDSystemInfo implements Serializable
 {
     public PdfString $registry;    // /Registry - issuer of the character collection

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ApprLabs\Benchmarks;
 
 use PhpBench\Attributes as Bench;
+use ApprLabs\Pdf\Conformance\ConformanceChecker;
+use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
 use ApprLabs\Pdf\Reader\PdfReader;
 
 /**
@@ -231,6 +233,41 @@ class ReadPdfBench
     }
 
     // -----------------------------------------------------------------------
+    // phpdftk — positioned text extraction
+    // -----------------------------------------------------------------------
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftkPositionedTextExtraction(): void
+    {
+        // Generate a 10-page PDF with multiple text blocks per page
+        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
+        $font = $writer->addFont(new \ApprLabs\Pdf\Core\Font\Type1Font(
+            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        ));
+
+        for ($p = 1; $p <= 10; $p++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+                ->setFont($font->getResourceName(), 12)
+                ->moveTextPosition(72, 720)
+                ->showText("Page $p heading")
+                ->moveTextPosition(0, -20)
+                ->showText("Body text on page $p with more content here")
+                ->moveTextPosition(0, -20)
+                ->showText("Footer line for page $p")
+                ->endText();
+        }
+
+        $bytes = $writer->toBytes();
+        $reader = PdfReader::fromString($bytes);
+        $allSpans = $reader->extractAllTextWithPositions();
+        assert(count($allSpans) === 10);
+        assert(count($allSpans[0]) === 3); // 3 text spans per page
+    }
+
+    // -----------------------------------------------------------------------
     // phpdftk — linearized PDF reading
     // -----------------------------------------------------------------------
 
@@ -285,6 +322,31 @@ class ReadPdfBench
             $data = $parser->parse();
             assert($data->familyName !== '');
         }
+    }
+
+    /**
+     * Reader-side conformance checking: parse a 10-page PDF and validate
+     * against PDF/A-1b via ConformanceChecker.
+     *
+     * Exercises ReaderDocumentInspector: catalog hydration, metadata
+     * detection, OutputIntent resolution, font enumeration, and all
+     * PDF/A-1b constraint checks on the parsed document.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftkConformanceChecker(): void
+    {
+        // Use a sample PDF that exists — the simple_text.pdf is always available
+        $path = $this->sampleDir . '/simple_text.pdf';
+        if (!file_exists($path)) {
+            return;
+        }
+
+        $checker = ConformanceChecker::open($path);
+        $result = $checker->checkProfile(PdfAProfile::A1b);
+
+        // The sample PDF is not PDF/A-1b compliant, but the check should complete
+        assert($result->profile === PdfAProfile::A1b);
     }
 
     // -----------------------------------------------------------------------

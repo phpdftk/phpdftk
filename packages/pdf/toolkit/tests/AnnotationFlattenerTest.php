@@ -23,10 +23,14 @@ use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\AnnotationFlattener;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class AnnotationFlattenerTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdfWithAnnotations(): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -84,6 +88,7 @@ class AnnotationFlattenerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
         $reader2 = PdfReader::fromString($result);
         $this->assertSame(1, $reader2->getPageCount());
     }
@@ -121,6 +126,7 @@ class AnnotationFlattenerTest extends TestCase
 
             $this->assertFileExists($path);
             $this->assertStringStartsWith('%PDF', file_get_contents($path));
+            $this->assertQpdfValid($path);
         } finally {
             @unlink($path);
         }

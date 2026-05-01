@@ -7,10 +7,13 @@ namespace ApprLabs\Pdf\Core\Interactive\Form;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Choice field (/FT /Ch) - covers list boxes and combo boxes.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class ChoiceField extends Field
 {
     public ?PdfArray $opt = null;  // /Opt - options

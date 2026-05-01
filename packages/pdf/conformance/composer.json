@@ -1,0 +1,29 @@
+{
+    "name": "apprlabs/pdf-conformance",
+    "description": "PDF subset conformance validation — PDF/A, PDF/X, PDF/UA, PDF/E, PDF/VT, PDF/R",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/apprlabs/phpdftk",
+    "keywords": ["pdf", "conformance", "pdf-a", "pdf-x", "pdf-ua", "iso-19005", "iso-15930", "iso-14289"],
+    "authors": [
+        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+    ],
+    "support": {
+        "issues": "https://github.com/apprlabs/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "apprlabs/pdf-core": "^1.0 || @dev",
+        "apprlabs/xmp": "^1.0 || @dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Conformance\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ApprLabs\\Pdf\\Conformance\\Tests\\": "tests/"
+        }
+    }
+}

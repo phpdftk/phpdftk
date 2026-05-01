@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Tests\Document;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Annotation\WidgetAnnotation;
 use ApprLabs\Pdf\Core\PdfArray;
@@ -18,13 +19,19 @@ use ApprLabs\Pdf\Core\Interactive\Form\ButtonField;
 use ApprLabs\Pdf\Core\Interactive\Form\ChoiceField;
 use ApprLabs\Pdf\Core\Interactive\Form\TextField;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a PDF with an interactive AcroForm containing
  * text, checkbox, and choice fields.
  */
+#[Group("qpdf")]
+#[Group("arlington")]
 class FormFieldsTest extends TestCase
 {
+    use ArlingtonValidationTrait;
+    use QpdfValidationTrait;
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/form_fields.pdf';
 
     public function testGeneratesFormPdf(): void
@@ -147,6 +154,8 @@ class FormFieldsTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
+        $this->assertArlingtonValid(self::OUTPUT_FILE);
 
         $content = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($content);

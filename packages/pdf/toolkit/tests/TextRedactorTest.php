@@ -9,10 +9,14 @@ use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\TextRedactor;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class TextRedactorTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdf(): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -38,6 +42,7 @@ class TextRedactorTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(1, $reader->getPageCount());
     }
@@ -53,6 +58,7 @@ class TextRedactorTest extends TestCase
         $this->assertSame(2, $redactor->getRedactionCount());
         $result = $redactor->toBytes();
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
     }
 
     public function testRedactByText(): void
@@ -65,6 +71,7 @@ class TextRedactorTest extends TestCase
         $this->assertGreaterThan(0, $redactor->getRedactionCount());
         $result = $redactor->toBytes();
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
     }
 
     public function testRedactByPattern(): void
@@ -87,6 +94,7 @@ class TextRedactorTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
     }
 
     public function testApplyRequiredBeforeToBytes(): void
@@ -133,6 +141,7 @@ class TextRedactorTest extends TestCase
 
             $this->assertFileExists($path);
             $this->assertStringStartsWith('%PDF', file_get_contents($path));
+            $this->assertQpdfValid($path);
         } finally {
             @unlink($path);
         }

@@ -15,6 +15,8 @@ use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -26,8 +28,11 @@ use PHPUnit\Framework\TestCase;
  * /ByteRange was computed correctly AND that /Contents is a valid
  * PKCS#7 signature over those exact bytes.
  */
+#[Group("qpdf")]
 class SignedPdfIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/signed_pdf.pdf';
 
     protected function setUp(): void
@@ -93,6 +98,7 @@ class SignedPdfIntegrationTest extends TestCase
         $pdf = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($pdf);
         self::assertStringStartsWith('%PDF-', $pdf);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         self::assertStringContainsString('%%EOF', $pdf);
         self::assertStringContainsString('/Type /Sig', $pdf);
         self::assertStringContainsString('/Filter /Adobe.PPKLite', $pdf);

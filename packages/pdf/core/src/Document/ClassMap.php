@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Maps class names to structure-attribute objects (or arrays of them).
  * Lives inline on `StructTreeRoot::$classMap`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class ClassMap implements Serializable
 {
     /** @var array<string, StructAttribute|PdfReference|PdfArray> */

@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Interactive\Signature;
 
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * DocMDP transform parameters — ISO 32000-2 §12.8.2.2, Table 254.
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfNumber;
  *   2 = form filling, signing, comments allowed
  *   3 = same as 2 plus form field creation/deletion
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class DocMDPTransformParams extends TransformParams
 {
     public int $p = 2;             // /P  permissions (1, 2, 3)

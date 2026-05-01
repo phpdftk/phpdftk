@@ -7,10 +7,13 @@ namespace ApprLabs\Pdf\Core\Interactive\Form;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Button field (/FT /Btn) - covers push buttons, check boxes, and radio buttons.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class ButtonField extends Field
 {
     public ?PdfName $h = null;           // /H - highlight mode

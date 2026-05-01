@@ -6,10 +6,13 @@ namespace ApprLabs\Pdf\Core\Interactive\Form;
 
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Text field (/FT /Tx).
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class TextField extends Field
 {
     public ?int $maxLen = null;  // /MaxLen

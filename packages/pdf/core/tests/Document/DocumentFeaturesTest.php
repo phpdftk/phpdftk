@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Core\Tests\Document;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Core\Document\Destination;
 use ApprLabs\Pdf\Core\Document\MarkInfo;
@@ -20,13 +21,19 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a PDF exercising document-level features: OutputIntent, page boxes,
  * named destinations, OCG, tagged PDF structure, and MarkInfo.
  */
+#[Group("qpdf")]
+#[Group("arlington")]
 class DocumentFeaturesTest extends TestCase
 {
+    use ArlingtonValidationTrait;
+    use QpdfValidationTrait;
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/document_features.pdf';
 
     public function testGeneratesDocumentFeaturesPdf(): void
@@ -128,6 +135,8 @@ class DocumentFeaturesTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
+        $this->assertArlingtonValid(self::OUTPUT_FILE);
 
         $content = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($content);
@@ -179,6 +188,8 @@ class DocumentFeaturesTest extends TestCase
         $writer->save($outPath);
 
         self::assertFileExists($outPath);
+        $this->assertQpdfValid($outPath);
+        $this->assertArlingtonValid($outPath);
 
         $content = file_get_contents($outPath);
         self::assertNotFalse($content);

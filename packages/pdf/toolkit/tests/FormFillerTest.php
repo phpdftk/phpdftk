@@ -22,10 +22,14 @@ use ApprLabs\Pdf\Toolkit\Form\FieldInfo;
 use ApprLabs\Pdf\Toolkit\Form\FieldType;
 use ApprLabs\Pdf\Toolkit\FormFiller;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class FormFillerTest extends TestCase
 {
+    use QpdfValidationTrait;
     /**
      * Generate a test PDF with text, checkbox, and choice fields.
      *
@@ -232,6 +236,7 @@ class FormFillerTest extends TestCase
 
         $bytes = $filler->toBytes();
         $this->assertStringStartsWith('%PDF-', $bytes);
+        $this->assertQpdfValidBytes($bytes);
 
         // Re-read and verify the value was set
         $reader = PdfReader::fromString($bytes);
@@ -248,6 +253,7 @@ class FormFillerTest extends TestCase
             ])
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $reader = PdfReader::fromString($filled);
         $this->assertFormFieldValue($reader, 'name', 'John Smith');
         $this->assertFormFieldValue($reader, 'email', 'john@example.com');
@@ -260,6 +266,7 @@ class FormFillerTest extends TestCase
             ->check('subscribe')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $reader = PdfReader::fromString($filled);
         $this->assertFormFieldValue($reader, 'subscribe', 'Yes');
     }
@@ -271,6 +278,7 @@ class FormFillerTest extends TestCase
             ->check('subscribe', false)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $reader = PdfReader::fromString($filled);
         $this->assertFormFieldValue($reader, 'subscribe', 'Off');
     }
@@ -282,6 +290,7 @@ class FormFillerTest extends TestCase
             ->select('country', 'Canada')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $reader = PdfReader::fromString($filled);
         $this->assertFormFieldValue($reader, 'country', 'Canada');
     }
@@ -295,6 +304,7 @@ class FormFillerTest extends TestCase
             ->select('country', 'United Kingdom')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $reader = PdfReader::fromString($filled);
         $this->assertFormFieldValue($reader, 'name', 'Jane Doe');
         $this->assertFormFieldValue($reader, 'subscribe', 'Yes');
@@ -351,6 +361,7 @@ class FormFillerTest extends TestCase
             $this->assertFileExists($outPath);
             $content = file_get_contents($outPath);
             $this->assertStringStartsWith('%PDF-', $content);
+            $this->assertQpdfValid($outPath);
         } finally {
             if (file_exists($outPath)) {
                 unlink($outPath);
@@ -377,6 +388,7 @@ class FormFillerTest extends TestCase
             ->fill('name', 'Alice')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($filled);
         $filler2 = FormFiller::openString($filled);
         $names = $filler2->getFieldNames();
         $this->assertContains('name', $names);

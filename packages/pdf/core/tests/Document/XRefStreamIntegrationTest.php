@@ -15,6 +15,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,8 +27,11 @@ use PHPUnit\Framework\TestCase;
  * This intentionally bypasses PdfWriter (which currently emits a classic
  * xref table + trailer) to validate the new spec objects end-to-end.
  */
+#[Group("qpdf")]
 class XRefStreamIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/xref_stream.pdf';
 
     public function testGeneratesPdfWithXrefAndObjectStreams(): void
@@ -109,6 +114,7 @@ class XRefStreamIntegrationTest extends TestCase
 
         // ----- Assertions -----------------------------------------------
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($contents);
         self::assertStringStartsWith('%PDF-1.5', $contents);

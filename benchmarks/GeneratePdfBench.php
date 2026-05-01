@@ -52,6 +52,14 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\Interactive\Signature\CertificateUtils;
+use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
+use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
+use ApprLabs\Pdf\Conformance\Profile\PdfRProfile;
+use ApprLabs\Pdf\Conformance\Profile\PdfUaProfile;
+use ApprLabs\Pdf\Conformance\Profile\PdfVtProfile;
+use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
+use ApprLabs\Pdf\Toolkit\LtvSigner;
 use ApprLabs\Pdf\Writer\PdfWriter;
 
 #[Bench\Iterations(5)]
@@ -856,6 +864,92 @@ class GeneratePdfBench
     }
 
     // -----------------------------------------------------------------------
+    // phpdftk — Image and PDF stamping
+    // -----------------------------------------------------------------------
+
+    /**
+     * 10-page PDF with a JPEG image stamped at center on all pages.
+     * Exercises PdfStamper::stampImage() with ImageXObject creation,
+     * resource injection, and Do operator rendering.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithImageStamp(): void
+    {
+        // Generate source PDF
+        $writer = new PdfWriter(compressStreams: false);
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Image stamp page %d of 10', $i))
+               ->endText();
+        }
+        $pdfBytes = $writer->generate();
+        $pdfPath = $this->tempDir . '/bench_source_10pages.pdf';
+        file_put_contents($pdfPath, $pdfBytes);
+
+        // Create a test JPEG
+        $img = imagecreatetruecolor(100, 100);
+        $red = imagecolorallocate($img, 255, 0, 0);
+        imagefill($img, 0, 0, $red);
+        $imgPath = $this->tempDir . '/bench_stamp.jpg';
+        imagejpeg($img, $imgPath, 90);
+        imagedestroy($img);
+
+        $style = new \ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle(width: 80.0, opacity: 0.6);
+        \ApprLabs\Pdf\Toolkit\PdfStamper::open($pdfPath)
+            ->stampImage($imgPath, \ApprLabs\Pdf\Toolkit\Stamper\StampPosition::BottomRight, style: $style)
+            ->save($this->tempDir . '/phpdftk_10pages_image_stamp.pdf');
+    }
+
+    /**
+     * 10-page PDF with a single-page PDF stamped as a Form XObject overlay.
+     * Exercises PdfStamper::stampPdf() with FormXObject import from source PDF,
+     * resource embedding, and Do operator.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfStamp(): void
+    {
+        // Generate source PDF (target)
+        $writer = new PdfWriter(compressStreams: false);
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF stamp target page %d of 10', $i))
+               ->endText();
+        }
+        $targetPath = $this->tempDir . '/bench_target_10pages.pdf';
+        $writer->save($targetPath);
+
+        // Generate stamp PDF (source overlay)
+        $stampWriter = new PdfWriter(compressStreams: false);
+        $stampFont = $stampWriter->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+        $stampPage = $stampWriter->addPage(200, 100);
+        $stampCs = $stampWriter->addContentStream($stampPage);
+        $stampCs->beginText()
+            ->setFont($stampFont, 14)
+            ->moveTextPosition(10, 40)
+            ->showText('STAMP OVERLAY')
+            ->endText();
+        $stampPath = $this->tempDir . '/bench_stamp_overlay.pdf';
+        $stampWriter->save($stampPath);
+
+        $style = new \ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle(width: 200.0, height: 100.0, opacity: 0.5);
+        \ApprLabs\Pdf\Toolkit\PdfStamper::open($targetPath)
+            ->stampPdf($stampPath, position: \ApprLabs\Pdf\Toolkit\Stamper\StampPosition::TopRight, style: $style)
+            ->save($this->tempDir . '/phpdftk_10pages_pdf_stamp.pdf');
+    }
+
+    // -----------------------------------------------------------------------
     // TCPDF benchmarks (if available)
     // -----------------------------------------------------------------------
 
@@ -1313,6 +1407,66 @@ class GeneratePdfBench
     }
 
     // -----------------------------------------------------------------------
+    // phpdftk — Form appearances with custom (embedded TrueType) font
+    // -----------------------------------------------------------------------
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithCustomFontFormAppearances(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/System/Library/Fonts/Supplemental/Verdana.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $ttData = (new \ApprLabs\FontParser\TrueTypeParser($fontPath))->parse();
+        $text = 'Form value on page 0123456789';
+        $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
+
+        $writer = new PdfWriter();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $compositeFont = $writer->addCompositeFont($ttData, $codepoints, $page);
+            $fontName = $compositeFont->getResourceName();
+            $fontRef = $page->corePage()->resources->font[$fontName];
+
+            $fontCtx = new \ApprLabs\Pdf\Core\Interactive\Form\FontContext(
+                fontRef: $fontRef,
+                unicodeToGid: $ttData->fullUnicodeToGid,
+            );
+
+            // Text field with custom font appearance
+            $rect = new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(700)]);
+            $xObj = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::textField(
+                $rect, $fontName, 12, "Value $i", fontContext: $fontCtx
+            );
+            $writer->register($xObj);
+
+            // Choice field with custom font appearance
+            $choiceRect = new PdfArray([new PdfNumber(72), new PdfNumber(640), new PdfNumber(300), new PdfNumber(660)]);
+            $choiceXObj = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::choiceField(
+                $choiceRect, $fontName, 12, "Option $i", fontContext: $fontCtx
+            );
+            $writer->register($choiceXObj);
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_custom_font_form_appearances.pdf');
+    }
+
+    // -----------------------------------------------------------------------
     // phpdftk — OpenType CFF font
     // -----------------------------------------------------------------------
 
@@ -1647,5 +1801,767 @@ class GeneratePdfBench
             $result = $filter->decode($data);
             assert(strlen($result) === 100); // 100 rows × 1 byte each
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — CCITTFax encoding
+    // -----------------------------------------------------------------------
+
+    /**
+     * Encode raw pixel rows to CCITTFax Group 3 (exercises reverse Huffman
+     * lookup and run-length encoding).
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    #[Bench\Revs(10)]
+    #[Bench\Iterations(5)]
+    public function benchPhpdftkCCITTFaxEncode(): void
+    {
+        // 100 rows of 8-pixel alternating data (same pattern as decode bench)
+        $rawRow = chr(0xF0); // 4 white + 4 black
+        $rawData = str_repeat($rawRow, 100);
+
+        $filter = new \ApprLabs\Filters\CCITTFaxFilter(
+            k: 0, columns: 8, rows: 100, endOfBlock: false
+        );
+
+        for ($i = 0; $i < 100; $i++) {
+            $result = $filter->encode($rawData);
+            assert(strlen($result) > 0);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // phpdftk — JBIG2 encoding
+    // -----------------------------------------------------------------------
+
+    /**
+     * Encode raw pixel bitmap to JBIG2 MMR generic region (exercises segment
+     * building and Group 4 encoding).
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    #[Bench\Revs(10)]
+    #[Bench\Iterations(5)]
+    public function benchPhpdftkJbig2Encode(): void
+    {
+        $rawRow = chr(0xF0);
+        $rawData = str_repeat($rawRow, 100);
+
+        $filter = new \ApprLabs\Filters\Jbig2Filter(width: 8, height: 100);
+
+        for ($i = 0; $i < 100; $i++) {
+            $result = $filter->encode($rawData);
+            assert(strlen($result) > 0);
+        }
+    }
+
+    /**
+     * 10-page signed PDF + LTV data (DSS with certificates, dummy OCSP/CRL,
+     * VRI entry) via LtvSigner incremental update.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithLtvSignature(): void
+    {
+        if (!extension_loaded('openssl')) {
+            return;
+        }
+        $creds = Pkcs7Signer::createSelfSignedTestCredentials('bench-ltv');
+
+        $writer = new PdfWriter();
+        $fontName = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
+
+        $sigValue = new SignatureValue();
+        $sigValue->name = new PdfString('Bench LTV signer');
+        $sigValueRef = $writer->register($sigValue);
+
+        $field = new SignatureField();
+        $field->t = new PdfString('Signature1');
+        $field->setSignatureValue($sigValueRef);
+        $fieldRef = $writer->register($field);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 740)
+               ->showText(sprintf('LTV bench page %d of 10', $i))
+               ->endText();
+            if ($i === 1) {
+                $widget = new WidgetAnnotation(new PdfArray([
+                    new PdfNumber(72), new PdfNumber(600),
+                    new PdfNumber(320), new PdfNumber(680),
+                ]));
+                $widget->parent = $fieldRef;
+                $page->corePage()->annots[] = $writer->register($widget);
+            }
+        }
+
+        $acroForm = new AcroForm();
+        $acroForm->fields = [$fieldRef];
+        $acroForm->sigFlags = 3;
+        $writer->getCatalog()->acroForm = $writer->register($acroForm);
+
+        $writer->setSigner($sigValue, new Pkcs7Signer($creds['cert'], $creds['key']));
+        $signedPdf = $writer->generate();
+
+        // Add LTV data: certificate chain + dummy OCSP/CRL
+        $certDer = CertificateUtils::pemToDer($creds['cert']);
+        LtvSigner::openString($signedPdf)
+            ->addCertificate($certDer)
+            ->addOcspResponse(random_bytes(256))
+            ->addCrl(random_bytes(512))
+            ->save($this->tempDir . '/phpdftk_10pages_ltv.pdf');
+    }
+
+    /**
+     * 10-page PDF with PDF/A-1b conformance validation.
+     *
+     * Exercises the full conformance pipeline: setConformance(), auto XMP
+     * injection, OutputIntent with ICC profile, embedded TrueType font,
+     * and generate-time constraint validation.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfAConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A1b);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/A Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        // OutputIntent with ICC profile
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFA1', 'sRGB IEC61966-2.1');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        // Embedded TrueType font
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/A-1b conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfa.pdf');
+    }
+
+    /**
+     * 10-page PDF with PDF/UA-1 conformance validation.
+     *
+     * Exercises the full PDF/UA pipeline: tagged structure (MarkInfo,
+     * StructTreeRoot, Lang), ViewerPreferences DisplayDocTitle, /Tabs /S
+     * on pages, embedded TrueType font, and generate-time constraint
+     * validation including annotation accessibility checks.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfUaConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfUaProfile::UA1);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/UA Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        // Tagged structure
+        $catalog = $writer->getCatalog();
+        $markInfo = new \ApprLabs\Pdf\Core\Document\MarkInfo();
+        $markInfo->marked = true;
+        $catalog->markInfo = $markInfo;
+        $catalog->lang = new PdfString('en-US');
+
+        $structRoot = new \ApprLabs\Pdf\Core\Document\StructTreeRoot();
+        $writer->register($structRoot);
+        $catalog->structTreeRoot = new PdfReference($structRoot->objectNumber);
+
+        // ViewerPreferences
+        $vp = new \ApprLabs\Pdf\Core\Document\ViewerPreferences();
+        $vp->displayDocTitle = true;
+        $writer->register($vp);
+        $catalog->viewerPreferences = new PdfDictionary([
+            'DisplayDocTitle' => new \ApprLabs\Pdf\Core\PdfBoolean(true),
+        ]);
+
+        // Embedded font
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $page->corePage()->tabs = new PdfName('S');
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/UA-1 conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfua.pdf');
+    }
+
+    /**
+     * 10-page PDF with PDF/X-4 conformance validation.
+     *
+     * Exercises the full PDF/X pipeline: OutputIntent with ICC profile,
+     * /TrimBox on every page, /Trapped in Info dict, embedded TrueType
+     * font, pdfxid XMP identification, and generate-time constraint
+     * validation.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfXConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfXProfile::X4);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/X Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        // OutputIntent
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFX', 'CGATS TR 001');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('CGATS TR 001');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        $trimBox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(612), new PdfNumber(792),
+        ]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $page->corePage()->trimBox = $trimBox;
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/X-4 conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfx.pdf');
+    }
+
+    /**
+     * 10-page PDF with PDF/VT-1 conformance validation.
+     *
+     * Exercises the full PDF/VT pipeline: builds on PDF/X-4 constraints
+     * plus DPartRoot for variable-data printing, embedded TrueType font,
+     * pdfvtid XMP identification, and generate-time constraint validation.
+     */
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfVtConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfVtProfile::VT1);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/VT Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        // OutputIntent
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFX', 'sRGB IEC61966-2.1');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        // DPartRoot
+        $dpart = new \ApprLabs\Pdf\Core\Document\DPart(new PdfReference(0));
+        $dpartRef = $writer->register($dpart);
+        $dpartRoot = new \ApprLabs\Pdf\Core\Document\DPartRoot($dpartRef);
+        $writer->register($dpartRoot);
+        $writer->getCatalog()->dPartRoot = new PdfReference($dpartRoot->objectNumber);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        $trimBox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(612), new PdfNumber(792),
+        ]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $page->corePage()->trimBox = $trimBox;
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/VT-1 conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfvt.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfEConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfEProfile::E1);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/E Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        // OutputIntent
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFE', 'sRGB IEC61966-2.1');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+
+            // Add a 3D stream + annotation per page
+            $stream3d = new ThreeDStream('U3D', 'dummy-u3d-artwork-page-' . $i);
+            $streamRef = $writer->register($stream3d);
+            $view3d = new ThreeDView('Default View');
+            $viewRef = $writer->register($view3d);
+            $stream3d->va = new PdfArray([$viewRef]);
+
+            $rect = new PdfArray([
+                new PdfNumber(100), new PdfNumber(100),
+                new PdfNumber(300), new PdfNumber(300),
+            ]);
+            $annot3d = new ThreeDAnnotation($rect);
+            $annot3d->dd = $streamRef;
+            $annotRef = $writer->register($annot3d);
+            $page->annots = new PdfArray([$annotRef]);
+
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/E-1 conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfe.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfRConformance(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfRProfile::R1, strict: false);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/R Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            // Raster-only: add an inline image placeholder per page
+            $cs = $writer->addContentStream($page);
+            $cs->saveGraphicsState()
+               ->rectangle(72, 72, 468, 648)
+               ->setFillColorGray(0.9)
+               ->fill()
+               ->restoreGraphicsState();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfr.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfX5Conformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfXProfile::X5g);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/X-5g Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        // OutputIntent
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFX', 'sRGB IEC61966-2.1');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        $trimBox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(612), new PdfNumber(792),
+        ]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $page->corePage()->trimBox = $trimBox;
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/X-5g conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfx5.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithZugferdConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $iccPath = null;
+        foreach ([
+            '/System/Library/ColorSync/Profiles/sRGB Profile.icc',
+            '/usr/share/color/icc/colord/sRGB.icc',
+            '/usr/share/color/icc/sRGB.icc',
+        ] as $path) {
+            if (file_exists($path)) {
+                $iccPath = $path;
+                break;
+            }
+        }
+        if ($iccPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(\ApprLabs\Pdf\Conformance\Profile\ZugferdProfile::BASIC, strict: false);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('Factur-X Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        // OutputIntent
+        $iccData = file_get_contents($iccPath);
+        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream->dictionary->set('N', new PdfNumber(3));
+        $iccRef = $writer->register($iccStream);
+
+        $outputIntent = new OutputIntent('GTS_PDFA1', 'sRGB IEC61966-2.1');
+        $outputIntent->registryName = new PdfString('http://www.color.org');
+        $outputIntent->info = new PdfString('sRGB IEC61966-2.1');
+        $outputIntent->destOutputProfile = $iccRef;
+        $oiRef = $writer->register($outputIntent);
+        $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
+
+        // Embed a dummy XML invoice
+        $invoiceXml = '<?xml version="1.0"?><Invoice>dummy</Invoice>';
+        $fileSpec = new FileSpec('factur-x.xml');
+        $fileSpec->afRelationship = new PdfName('Data');
+        $fsRef = $writer->register($fileSpec);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('Factur-X conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_zugferd.pdf');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchPhpdftk10PagesWithPdfMailConformance(): void
+    {
+        $fontPath = null;
+        foreach ([
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/System/Library/Fonts/Supplemental/Georgia.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ] as $path) {
+            if (file_exists($path)) {
+                $fontPath = $path;
+                break;
+            }
+        }
+        if ($fontPath === null) {
+            return;
+        }
+
+        $writer = new PdfWriter();
+        $writer->setConformance(\ApprLabs\Pdf\Conformance\Profile\PdfMailProfile::Mail1);
+
+        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info->title = new PdfString('PDF/mail Benchmark');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+
+        $font = TrueTypeFont::fromFile($fontPath);
+        $fontName = $writer->addFont($font)->getResourceName();
+
+        for ($i = 1; $i <= 10; $i++) {
+            $page = $writer->addPage(612, 792);
+            $cs = $writer->addContentStream($page);
+            $cs->beginText()
+               ->setFont($fontName, 12)
+               ->moveTextPosition(72, 720)
+               ->showText(sprintf('PDF/mail-1 conformance bench page %d of 10', $i))
+               ->endText();
+        }
+
+        $writer->save($this->tempDir . '/phpdftk_10pages_pdfmail.pdf');
     }
 }

@@ -36,7 +36,7 @@ scripts/coverage
 
 ## Repository Structure
 
-This is a **monorepo with 12 packages** under `packages/`. All packages use the `apprlabs` Composer vendor prefix and `ApprLabs\` PHP namespace root.
+This is a **monorepo with 13 packages** under `packages/`. All packages use the `apprlabs` Composer vendor prefix and `ApprLabs\` PHP namespace root.
 
 | Package dir | Composer name | PHP namespace | Purpose |
 |---|---|---|---|
@@ -44,10 +44,11 @@ This is a **monorepo with 12 packages** under `packages/`. All packages use the 
 | `pdf/core/` | `apprlabs/pdf-core` | `ApprLabs\Pdf\Core\` | PDF object model **and** file serialization — all spec classes plus `File\PdfFileWriter`, `ObjectRegistry`, `CrossReferenceTable`, `TrailerDictionary` |
 | `pdf/writer/` | `apprlabs/pdf-writer` | `ApprLabs\Pdf\Writer\` | Ergonomic builder — `PdfWriter` facade over `ApprLabs\Pdf\Core\File\PdfFileWriter` |
 | `pdf/reader/` | `apprlabs/pdf-reader` | `ApprLabs\Pdf\Reader\` | Parses existing PDFs into object model |
-| `pdf/toolkit/` | `apprlabs/pdf-toolkit` | `ApprLabs\Pdf\Toolkit\` | High-level pipelines: FormFiller, PdfStamper, PageSlicer, PdfMerger, PageTransformer, AnnotationFlattener, TextRedactor, MetadataEditor, PdfEncrypt, BookmarkEditor, PageLabeler, TextExtractor |
+| `pdf/toolkit/` | `apprlabs/pdf-toolkit` | `ApprLabs\Pdf\Toolkit\` | High-level pipelines: FormFiller, PdfStamper, PageSlicer, PdfMerger, PageTransformer, AnnotationFlattener, TextRedactor, MetadataEditor, PdfEncrypt, BookmarkEditor, PageLabeler, TextExtractor, LtvSigner |
+| `pdf/conformance/` | `apprlabs/pdf-conformance` | `ApprLabs\Pdf\Conformance\` | PDF subset conformance validation — PDF/A, PDF/UA, PDF/X, PDF/VT, PDF/E, PDF/R (all 6 ISO subset standards) |
 | `geometry/` | `apprlabs/geometry` | `ApprLabs\Geometry\` | Rectangle, Matrix, PageSize, BezierCurve |
 | `color/` | `apprlabs/color` | `ApprLabs\Color\` | RGB/CMYK/Gray color models with conversions |
-| `filters/` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFaxDecode, JBIG2Decode codecs |
+| `filters/` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFax, JBIG2 codecs |
 | `encoding/` | `apprlabs/encoding` | `ApprLabs\Encoding\` | WinAnsi/MacRoman/StandardEncoding/MacExpert/PDFDocEncoding tables, Adobe Glyph List, CMap parser |
 | `font-metrics/` | `apprlabs/font-metrics` | `ApprLabs\FontMetrics\` | AFM metrics for the 14 standard PDF fonts |
 | `font-parser/` | `apprlabs/font-parser` | `ApprLabs\FontParser\` | Parses TrueType fonts: metrics, glyph widths, character maps for PDF embedding |
@@ -63,9 +64,9 @@ geometry, color, filters, encoding, font-metrics, font-parser, image-metadata, x
   ├── object model (Document, Font, Annotation, Graphics, …)
   └── file serialization (File\PdfFileWriter — emits %PDF, xref, trailer)
     ↓ (depended on by both)
-pdf-writer                pdf-reader
-(ApprLabs\Pdf\Writer\)    (ApprLabs\Pdf\Reader\)
-  friendly builder         parser (skeleton)
+pdf-writer                pdf-reader        pdf-conformance
+(ApprLabs\Pdf\Writer\)    (ApprLabs\Pdf\Reader\)  (ApprLabs\Pdf\Conformance\)
+  friendly builder         parser (skeleton)   conformance validator
 ```
 
 `writer` and `reader` never depend on each other. `pdf-writer` is a
@@ -115,7 +116,7 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 | Namespace | Classes |
 |---|---|
 | `ApprLabs\Pdf\Core\` | `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference`, `Serializable`, `PdfDate` (DateTimeInterface helper) |
-| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict`, `MarkInfo`, `Destination`, `GroupAttributes`, `NameTree`, `NumberTree`, `NamesDictionary`, `OutputIntent`, `Thread`, `Bead`, `OCG`, `OCMD`, `OCPropertiesDict`, `OCUsage`, `OCConfig`, `Collection`, `CollectionItem`, `CollectionSchema`, `StructTreeRoot`, `StructElem`, `ObjectRef`, `CrossReferenceStream`, `ObjectStream`, `RoleMap`, `ClassMap`, `StructAttribute`, `BoxColorInfo`, `BoxStyle`, `DSS`, `DPartRoot`, `DPart`, `Requirement`, `RequirementHandler`, `MetadataStream`, `LinearizationParameters`, `HintStream`, `StandardStructureType` |
+| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict`, `MarkInfo`, `Destination`, `GroupAttributes`, `NameTree`, `NumberTree`, `NamesDictionary`, `OutputIntent`, `Thread`, `Bead`, `OCG`, `OCMD`, `OCPropertiesDict`, `OCUsage`, `OCConfig`, `Collection`, `CollectionItem`, `CollectionSchema`, `StructTreeRoot`, `StructElem`, `ObjectRef`, `CrossReferenceStream`, `ObjectStream`, `RoleMap`, `ClassMap`, `StructAttribute`, `BoxColorInfo`, `BoxStyle`, `DSS`, `DssBuilder`, `DPartRoot`, `DPart`, `Requirement`, `RequirementHandler`, `MetadataStream`, `LinearizationParameters`, `HintStream`, `StandardStructureType` |
 | `ApprLabs\Pdf\Core\Document\StructAttribute\` | `LayoutAttribute`, `ListAttribute`, `PrintFieldAttribute`, `TableAttribute` |
 | `ApprLabs\Pdf\Core\FileSpec\` | `FileSpec`, `EmbeddedFile`, `EmbeddedFileParams` |
 | `ApprLabs\Pdf\Core\Filter\` | `FlateDecodeParams`, `CCITTFaxDecodeParams`, `JBIG2DecodeParams`, `DCTDecodeParams`, `JPXDecodeParams`, `CryptFilterDecodeParams` |
@@ -131,8 +132,8 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 | `ApprLabs\Pdf\Core\Graphics\Shading\` | `Shading` (abstract), `MeshShading` (abstract), `ShadingType1`..`ShadingType7` |
 | `ApprLabs\Pdf\Core\Graphics\Pattern\` | `TilingPattern`, `ShadingPattern` |
 | `ApprLabs\Pdf\Core\Graphics\` | `ExtGState`, `SoftMask` |
-| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `Field` (abstract), `TextField`, `ButtonField`, `ChoiceField`, `SignatureField`, `SigFieldLock`, `SeedValueDictionary` |
-| `ApprLabs\Pdf\Core\Interactive\Signature\` | `SignatureValue`, `DocTimeStamp`, `SignatureReference`, `TransformParams` (abstract), `DocMDPTransformParams`, `FieldMDPTransformParams`, `UR3TransformParams`, `IdentityTransformParams`, `Pkcs7Signer`, `TsaClient` |
+| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `Field` (abstract), `TextField`, `ButtonField`, `ChoiceField`, `SignatureField`, `SigFieldLock`, `SeedValueDictionary`, `AppearanceGenerator`, `FontContext` |
+| `ApprLabs\Pdf\Core\Interactive\Signature\` | `SignatureValue`, `DocTimeStamp`, `SignatureReference`, `TransformParams` (abstract), `DocMDPTransformParams`, `FieldMDPTransformParams`, `UR3TransformParams`, `IdentityTransformParams`, `Pkcs7Signer`, `TsaClient`, `CertificateUtils`, `OcspClient`, `CrlClient` |
 | `ApprLabs\Pdf\Core\Security\` | `EncryptDictionary`, `CryptFilter`, `PublicKeyRecipient`, `PdfEncryptor` (Standard + Public-Key handlers) |
 | `ApprLabs\Pdf\Core\Content\` | `ContentStream`, `Resources` |
 | `ApprLabs\Pdf\Core\File\` | `PdfFileWriter` (byte-level PDF emitter: header, xref, trailer, signature patching), `ObjectRegistry`, `CrossReferenceTable`, `TrailerDictionary` |
@@ -142,6 +143,18 @@ When adding a new PDF dictionary type, decide: does it need to be independently 
 | Namespace | Classes |
 |---|---|
 | `ApprLabs\FontParser\` | `TrueTypeParser`, `TrueTypeData`, `OpenTypeParser`, `OpenTypeData`, `TrueTypeSubsetter`, `CffParser`, `CffData`, `CffSubsetter`, `KerningParser`, `GsubParser`, `TextShaper`, `WoffParser`, `Woff2Parser`, `Type1Parser`, `Type1Data` |
+
+**`packages/pdf/conformance/src/`** — PSR-4 root `ApprLabs\Pdf\Conformance\`:
+
+| Namespace | Classes |
+|---|---|
+| `ApprLabs\Pdf\Conformance\` | `ConformanceMode`, `ConformanceException`, `ConformanceChecker` |
+| `ApprLabs\Pdf\Conformance\Profile\` | `ConformanceProfile` (interface), `PdfAProfile` (enum: A1a/A1b through A4f), `PdfUaProfile` (enum: UA1/UA2), `PdfXProfile` (enum: X1a2003/X32003/X4/X5g/X5pg/X5n), `PdfVtProfile` (enum: VT1/VT2/VT2s), `PdfEProfile` (enum: E1), `PdfRProfile` (enum: R1), `ZugferdProfile` (enum: MINIMUM/BASIC_WL/BASIC/EN16931/EXTENDED/XRECHNUNG), `PdfMailProfile` (enum: Mail1) |
+| `ApprLabs\Pdf\Conformance\Constraint\` | `ConformanceConstraint` (interface), `FontEmbeddingConstraint`, `EncryptionConstraint`, `MetadataConstraint`, `TransparencyConstraint`, `OutputIntentConstraint`, `ColorSpaceConstraint`, `FilterConstraint`, `ActionConstraint`, `TaggedStructureConstraint`, `EmbeddedFileConstraint`, `DisplayDocTitleConstraint`, `TabOrderConstraint`, `AnnotationConstraint`, `TrimBoxConstraint`, `TrappedConstraint`, `DPartRootConstraint`, `ThreeDContentConstraint`, `PdfEActionConstraint`, `PdfEColorSpaceConstraint`, `RasterContentConstraint`, `PdfRActionConstraint`, `PdfRFontConstraint`, `ReferenceXObjectConstraint`, `ZugferdXmpConstraint`, `ZugferdInvoiceConstraint`, `FormConstraint`, `MultimediaConstraint` |
+| `ApprLabs\Pdf\Conformance\Inspection\` | `DocumentInspector` (interface), `WriterDocumentInspector`, `ReaderDocumentInspector` |
+| `ApprLabs\Pdf\Conformance\Result\` | `ConformanceResult`, `ConformanceViolation`, `ViolationSeverity` (enum) |
+| `ApprLabs\Pdf\Conformance\Validator\` | `ConformanceValidator`, `ProfileConstraintRegistry` |
+| `ApprLabs\Pdf\Conformance\Metadata\` | `ConformanceXmpWriter` |
 
 **`packages/pdf/writer/src/`** — PSR-4 root `ApprLabs\Pdf\Writer\`:
 
@@ -223,6 +236,12 @@ setTimestamper(SignatureValue $docTimeStamp, TsaClient $tsaClient, int $placehol
 // Linearized (web-optimized) output — first page loads before full download
 setLinearized(bool $linearized = true): void
 
+// Conformance — opt-in PDF/A, PDF/X, PDF/UA validation at generate() time
+setConformance(ConformanceProfile $profile, bool $strict = true): void
+setConformanceProfiles(array $profiles, bool $strict = true): void
+checkConformance(): array  // returns ConformanceResult[]
+getConformanceResults(): array  // results from last generate()
+
 // Output
 generate(): string
 save(string $path): void
@@ -299,14 +318,16 @@ The library tracks which PDF version each feature requires and auto-bumps the do
 **Core types** (`packages/pdf/core/src/`):
 - `PdfVersion` — backed string enum (`V1_0`..`V2_0`) with `isAtLeast()`, `max()`, `fromString()`
 - `#[RequiresPdfVersion(PdfVersion::VX_Y)]` — PHP attribute on classes (feature introduced in version X.Y) or properties (field added in later version)
-- `#[DeprecatedPdfFeature(since: 'X.Y', replacement: '...')]` — marks deprecated features
+- `#[DeprecatedPdfFeature(since: 'X.Y', replacement: '...', removedIn: 'X.Y')]` — marks deprecated features; optional `removedIn` enables enforcement
 - `PdfVersionAware` interface — for objects whose version depends on runtime state (e.g., `StructElem` checks `StandardStructureType` for 2.0 types)
 - `VersionRequirementResolver` — reads attributes via reflection (cached), walks class hierarchy
-- `VersionRequirementException` — thrown in strict mode when version is too low
+- `VersionRequirementException` — thrown in strict version mode when version is too low
+- `DeprecatedFeatureException` — thrown in strict deprecation mode when a removed feature targets its removal version
 
 **Writer behavior** (`PdfFileWriter`, `IncrementalWriter`):
 - **Auto-bump (default):** Registering a feature that requires version X automatically bumps the document version to X. Warnings are collected in `getVersionWarnings()`.
 - **Strict mode:** `setStrictVersionMode(true)` throws `VersionRequirementException` instead of bumping.
+- **Strict deprecation:** `setStrictDeprecation(true)` throws `DeprecatedFeatureException` when a feature with `removedIn` is registered at or above that version.
 - **Deprecation handler:** `setDeprecationHandler(Closure)` gets called when deprecated features are registered.
 - **Catalog sync:** `PdfFileWriter::generate()` sets `Catalog::$version` for versions > 1.4 per ISO 32000 §7.2.2.
 - **Encryption:** `PdfEncryptor::getMinimumPdfVersion()` returns `V1_4` (RC4), `V1_6` (AES-128), or `V2_0` (AES-256).
@@ -319,7 +340,7 @@ The library tracks which PDF version each feature requires and auto-bumps the do
 
 **Toolkit passthrough:** All 11 toolkit classes expose `getVersionWarnings()` after `toBytes()`/`save()`.
 
-**Coverage:** 130 class/property-level annotations spanning PDF 1.1–2.0, 7 deprecated features, plus `StructElem` runtime checks for PDF 2.0 structure types.
+**Coverage:** 172 class/property-level annotations spanning PDF 1.0–2.0, 7 deprecated features (6 with `removedIn` enforcement), plus `StructElem` runtime checks for PDF 2.0 structure types.
 
 When adding new PDF spec features, add `#[RequiresPdfVersion]` to the class or property with the correct minimum version.
 
@@ -367,6 +388,9 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Interactive/DocTimeStampTest.php` | Unit: DocTimeStamp /Type, /SubFilter ETSI.RFC3161, byte-range/contents patching |
 | `Interactive/TsaClientTest.php` | Unit: TsaClient ASN.1 DER request building (SHA-256/384/512), response parsing (granted/rejected/missing), certReq flag, invalid URL handling |
 | `Interactive/Pkcs7SignerTest.php` | Unit: Pkcs7Signer signing + DER extraction + `openssl cms -verify` round-trip |
+| `Interactive/Signature/CertificateUtilsTest.php` | Unit: PEM/DER conversion, PKCS#7 cert extraction, OCSP URL/CRL CDP parsing, chain ordering, issuer/key hashes |
+| `Interactive/Signature/OcspClientTest.php` | Unit: OCSP request DER building, response parsing (successful/unauthorized/malformed), SHA-256 OID, network error handling |
+| `Interactive/Signature/CrlClientTest.php` | Unit: CRL fetching, PEM auto-detection, CDP extraction, network error handling |
 | `Security/EncryptDictionaryTest.php` | Unit: EncryptDictionary (Standard V2/R3, AES-256 R6, public-key handler), CryptFilter, PublicKeyRecipient |
 | `Security/PublicKeyEncryptorTest.php` | End-to-end: public-key AES-128 + AES-256 encryption, round-trip with certificate, multiple recipients, wrong-cert rejection |
 | `Annotation/MarkupAnnotationTest.php` | Unit: markup base fields on Text/Highlight; MarkupAnnotation hierarchy |
@@ -406,9 +430,13 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Document/MultimediaAndThreeDIntegrationTest.php` | End-to-end: ScreenAnnotation + MediaRendition + MediaClipData + RenditionAction, ThreeDAnnotation + ThreeDStream/View/Background/RenderMode/LightingScheme |
 | `Document/SignatureFieldIntegrationTest.php` | End-to-end: SignatureField + SignatureValue placeholder + SignatureReference + DocMDPTransformParams + AcroForm SigFlags + Catalog Perms |
 | `Document/SignedPdfIntegrationTest.php` | End-to-end: actually-signed PDF via `PdfWriter::setSigner()` + self-signed cert; verified with `openssl cms -verify` when the CLI is available |
+| `Document/DssBuilderTest.php` | Unit: DssBuilder cert/OCSP/CRL stream registration, VRI entries, deduplication, key computation |
+| `Document/LtvSignedPdfIntegrationTest.php` | End-to-end: signed PDF + LTV via LtvSigner, DSS/VRI structure verification, QPDF validation, byte-range preservation |
 | `Document/FormAppearancesIntegrationTest.php` | End-to-end: text field, checkbox, choice field with generated AppearanceGenerator appearances, NeedAppearances=false |
+| `Document/CustomFontFormAppearancesTest.php` | End-to-end: form fields with embedded TrueType composite font in appearances via FontContext, hex-encoded GID text, QPDF validation, PdfReader round-trip |
 | `Document/OpenTypeFontIntegrationTest.php` | End-to-end: OpenType CFF font parsed via OpenTypeParser, embedded as Type0/CIDFontType0 with CFFFontFile, hex-encoded GID text |
 | `Interactive/AppearanceGeneratorTest.php` | Unit: textField, checkbox, radioButton, pushButton, choiceField appearance generation, AppearanceDict builders |
+| `Interactive/AppearanceGeneratorCustomFontTest.php` | Unit: FontContext hex encoding, all text-rendering methods with custom font (textField, multiLine, comb, pushButton, choiceField, signatureField), resource wiring, backward compatibility |
 | `Security/PdfEncryptorTest.php` | Unit: RC4-128 and AES-128 encrypt/decrypt round-trip, password auth, permissions |
 | `File/StreamCompressionTest.php` | Unit: FlateDecode auto-compression on write, compressed PDF readability |
 | `File/PdfHydratorTest.php` | Unit: type registry, key mapping, PdfNumber/PdfArray/PdfBoolean coercion |
@@ -420,6 +448,55 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `File/EncryptionVersionGatingTest.php` | Unit: PdfEncryptor version requirements (RC4→1.4, AES-128→1.6, AES-256→2.0), auto-bump |
 | `PdfVersionTest.php` | Unit: PdfVersion enum comparisons, max(), fromString(), all cases |
 | `Graphics/HalftoneTest.php` | Unit: HalftoneType 1/5/6/10/16 serialization, field output, stream framing |
+
+### `conformance` package tests (`packages/pdf/conformance/tests/`)
+
+| Test file | What it tests |
+|---|---|
+| `Profile/PdfAProfileTest.php` | Unit: all 11 PdfAProfile enum cases — family, level, part, conformance letter, PDF version, XMP properties, tagged/transparency/embedded-file flags |
+| `Constraint/EncryptionConstraintTest.php` | Unit: encryption detection, pass/fail |
+| `Constraint/MetadataConstraintTest.php` | Unit: XMP presence, pdfaid identification tags |
+| `Constraint/TransparencyConstraintTest.php` | Unit: transparency prohibition for A-1, allowed for A-2+ |
+| `Constraint/OutputIntentConstraintTest.php` | Unit: OutputIntent presence, ICC profile requirement |
+| `Constraint/FontEmbeddingConstraintTest.php` | Unit: FontDescriptor presence, unembedded font detection |
+| `Constraint/FilterConstraintTest.php` | Unit: LZWDecode prohibition for A-1, allowed for A-2+ |
+| `Constraint/ColorSpaceConstraintTest.php` | Unit: device color warning without OutputIntent |
+| `Constraint/ActionConstraintTest.php` | Unit: JavaScript/Launch prohibition all levels, Movie/Sound/Rendition A-1 only, GoTo allowed |
+| `Constraint/TaggedStructureConstraintTest.php` | Unit: MarkInfo/StructTreeRoot/Lang requirements for Level A, skipped for Level B |
+| `Constraint/EmbeddedFileConstraintTest.php` | Unit: prohibited A-1/A-2, allowed A-3+ |
+| `Validator/ConformanceValidatorTest.php` | Unit: multiple violations detected, compliant mock passes, validateAll returns per-profile results, A-1a tagged structure violations |
+| `Integration/PdfA1bIntegrationTest.php` | End-to-end: compliant A-1b generation, missing OutputIntent throws strict, lenient mode collects violations, auto XMP injection, checkConformance() advisory |
+| `Integration/PdfALevelsIntegrationTest.php` | End-to-end: A-1a tagged structure fail/pass, A-2b allows transparency, A-2b/A-2u/A-3b XMP identification, A-4 pins PDF 2.0, JavaScript action fails A-1b |
+| `Profile/PdfUaProfileTest.php` | Unit: UA-1/UA-2 family, level, part, PDF version, XMP properties |
+| `Constraint/DisplayDocTitleConstraintTest.php` | Unit: missing/false/true ViewerPreferences DisplayDocTitle |
+| `Constraint/TabOrderConstraintTest.php` | Unit: pages with/without annotations, /Tabs /S present/missing/wrong value |
+| `Constraint/AnnotationConstraintTest.php` | Unit: annotation with/without /Contents, empty /Contents, Widget/Popup exempt, Link fails, multiple annotations |
+| `Integration/PdfUaIntegrationTest.php` | End-to-end: compliant UA-1 generation, auto XMP pdfuaid injection, UA-2 pins PDF 2.0, dual profile A-2a+UA-1, missing tagged structure throws, missing DisplayDocTitle fails, annotation without /Contents fails, annotation with /Contents passes, missing /Lang fails, checkConformance() advisory |
+| `Profile/PdfXProfileTest.php` | Unit: X-1a:2003/X-3:2003/X-4/X-5g/X-5pg/X-5n family, level, PDF version, transparency flag, XMP properties, OutputIntent subtype, referenceXObject support |
+| `Constraint/TrimBoxConstraintTest.php` | Unit: page with/without TrimBox/ArtBox, multiple pages, no pages |
+| `Constraint/TrappedConstraintTest.php` | Unit: no Info, Trapped null/Unknown/True/False |
+| `Integration/PdfXIntegrationTest.php` | End-to-end: compliant X-4 generation, auto pdfxid XMP injection, X-1a with Trapped=True, missing OutputIntent throws, missing TrimBox fails, missing/Unknown Trapped fails, checkConformance() advisory, X-1a XMP identification |
+| `Profile/PdfVtProfileTest.php` | Unit: VT-1/VT-2/VT-2s family, level, PDF 2.0 version, XMP properties |
+| `Profile/PdfEProfileTest.php` | Unit: E-1 family, level, PDF 1.6 version, XMP properties |
+| `Profile/PdfRProfileTest.php` | Unit: R-1 family, level, PDF 2.0 version, XMP properties |
+| `Constraint/DPartRootConstraintTest.php` | Unit: missing/present DPartRoot, all VT profiles checked |
+| `Integration/PdfVtEandRIntegrationTest.php` | End-to-end: compliant VT-1 with DPartRoot, VT auto XMP/version pin, missing DPartRoot throws/lenient, compliant E-1 with 3D content, E-1 auto XMP, E-1 constraint check, E-1 JavaScript fails strict/lenient, E-1 OutputIntent warning, compliant R-1, R-1 auto XMP/version pin, R-1 constraint check, R-1 JavaScript fails, R-1 font warning |
+| `Constraint/ThreeDContentConstraintTest.php` | Unit: valid U3D/PRC stream with views passes, missing /3DD fails, invalid subtype fails, no views warns, multiple violations |
+| `Constraint/PdfEActionConstraintTest.php` | Unit: GoTo/URI pass, JavaScript/Launch fail, multiple violations |
+| `Constraint/PdfEColorSpaceConstraintTest.php` | Unit: OutputIntent with ICC passes, no OutputIntent warns |
+| `Constraint/RasterContentConstraintTest.php` | Unit: raster-only passes, non-raster warns |
+| `Constraint/PdfRActionConstraintTest.php` | Unit: no actions pass, JavaScript/Launch fail |
+| `Constraint/PdfRFontConstraintTest.php` | Unit: no fonts pass, fonts present warns |
+| `Constraint/ReferenceXObjectConstraintTest.php` | Unit: no-op for non-X-5, valid reference passes, all X-5 profiles apply |
+| `Profile/ZugferdProfileTest.php` | Unit: all 6 cases family/level/version/XMP, base profile is A3b |
+| `Constraint/ZugferdXmpConstraintTest.php` | Unit: no-op for non-ZUGFeRD, missing XMP fails, correct XMP passes, missing properties fail |
+| `Constraint/ZugferdInvoiceConstraintTest.php` | Unit: no-op for non-ZUGFeRD, no embedded files fails, correct filename passes, wrong filename fails |
+| `Profile/PdfMailProfileTest.php` | Unit: mail-1 family, level, PDF 2.0, XMP properties |
+| `Constraint/FormConstraintTest.php` | Unit: no forms pass, AcroForm present fails |
+| `Constraint/MultimediaConstraintTest.php` | Unit: no multimedia passes, multimedia present fails |
+| `Integration/PdfMailIntegrationTest.php` | End-to-end: compliant PDF/mail-1, auto XMP injection, pins to 2.0, JavaScript fails, forms fail, multimedia fails |
+| `Inspection/ReaderDocumentInspectorTest.php` | Unit: getCatalog, getInfo, getPages, hasEncryption, hasXmpMetadata true/false, getXmpBytes content/null, hasOutputIntents true/false, hasTransparency, hasEmbeddedFiles — round-trip via PdfWriter → PdfReader |
+| `Integration/ConformanceCheckerTest.php` | End-to-end: round-trip PDF/A-1b write+read compliant, openString/open factory, checkProfiles multi-result, PDF/A-1b fails E-1 metadata, minimal PDF fails A-1b/UA-1/X-4, A-1b fails A-1a (missing tags), no-encryption detection |
 
 ### `writer` package tests (`packages/pdf/writer/tests/`)
 
@@ -441,6 +518,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Integration/ReadSamplePdfsTest.php` | End-to-end: reads all sample PDFs, verifies page counts, annotations, bookmarks, form fields, xref streams |
 | `Integration/RoundTripTest.php` | Hydration: typed Catalog/Page/Pages via PdfHydrator, serialization round-trip |
 | `Integration/TextExtractionTest.php` | ContentStreamParser + TextExtractor: text from simple/complex/embedded-font PDFs, Unicode em-dash, extractAllText, Form XObject text extraction (Do operator), nested XObjects |
+| `Integration/PositionedTextExtractionTest.php` | PositionedTextExtractor: per-span x/y/width/height, CTM transforms, q/Q save/restore, TJ merging/splitting, Form XObjects, font size/char spacing/horizontal scaling effects, TD/T*/'/\" operators, empty/graphics-only pages, sample PDFs |
 | `Integration/ErrorToleranceTest.php` | Lenient mode: displaced headers, expanded startxref search, getParseWarnings(), missing startxref reconstruction, corrupted xref fallback, truncated PDF recovery, trailing garbage, missing %%EOF |
 | `Integration/VersionValidationTest.php` | Unit: getPdfVersion, getEffectiveVersion, validateVersion, catalog version sync |
 
@@ -449,10 +527,11 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | Test file | What it tests |
 |---|---|
 | `TextExtractorTest.php` | Unit: text extraction per page, search, pattern search, iterable results |
+| `TextExtractorPositionedTest.php` | Unit: positioned text extraction per page, all pages, empty/out-of-range pages, span properties, sample PDF integration |
 | `PageSelectorTest.php` | Unit: all/pages/range/even/odd selection, matches, resolve |
 | `MetadataEditorTest.php` | Unit: read/write Info dict fields, round-trip, custom fields, no-info PDFs |
 | `FormFillerTest.php` | Unit: getFieldNames, fill text/checkbox/choice, fillMany, round-trip |
-| `PdfStamperTest.php` | Unit: text stamps, watermarks, page numbers, opacity, PageSelector, headers/footers |
+| `PdfStamperTest.php` | Unit: text stamps, watermarks, page numbers, opacity, PageSelector, headers/footers, image stamps (JPEG/PNG with scaling/opacity/page selection), PDF stamps (FormXObject import with scaling/opacity/page selection), negative paths (missing files, invalid page index, unsupported format) |
 | `PageTransformerTest.php` | Unit: rotate, setCropBox/MediaBox, PageSelector targeting |
 | `AnnotationFlattenerTest.php` | Unit: flattenAll removes annotations, appearance merged into content |
 | `TextRedactorTest.php` | Unit: area redaction, text search redaction, custom color, apply() gating |
@@ -461,6 +540,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `PdfEncryptTest.php` | Unit: AES-128/256 encrypt, decrypt round-trip, isEncrypted query |
 | `BookmarkEditorTest.php` | Unit: setBookmarks, addBookmark, hasBookmarks, getBookmarks, removeBookmarks |
 | `PageLabelerTest.php` | Unit: setLabels with styles, setRomanNumerals, setArabic, removeLabels |
+| `LtvSignerTest.php` | Unit: open/openString, pre-loaded cert/OCSP/CRL, forSignature targeting, DSS/VRI output, version warnings, save, fluent API, PdfReader round-trip |
 
 ### Support package tests
 
@@ -471,8 +551,8 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `crypt` | `PublicKeyEncryptionTest.php` | PKCS#7 envelope create/open, file key derivation, wrong-key rejection |
 | `encoding` | `EncodingTest.php` | WinAnsi/MacRoman/StandardEncoding/MacExpert/PDFDocEncoding tables, Glyph List |
 | `filters` | `FilterTest.php` | FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode |
-| `filters` | `CCITTFaxFilterTest.php` | Group 3 (1D) decoding: all-white, all-black, mixed, blackIs1, multi-row |
-| `filters` | `Jbig2FilterTest.php` | JBIG2 segment parsing, page info, globals, fallback handling |
+| `filters` | `CCITTFaxFilterTest.php` | Group 3 (1D) and Group 4 (2D) encode/decode roundtrip, all-white, all-black, mixed, blackIs1, endOfLine, encodedByteAlign, wide rows, random bitmap, compression ratio |
+| `filters` | `Jbig2FilterTest.php` | JBIG2 encode/decode roundtrip (MMR generic regions), segment structure validation, dimension requirements, backward compatibility, globals, fallback handling |
 | `font-metrics` | `StandardFontMetricsTest.php` | Width lookups for all 14 standard fonts |
 | `font-parser` | `TrueTypeParserTest.php` | TrueType binary parsing: metrics, widths, cmap, name tables |
 | `font-parser` | `TrueTypeSubsetterTest.php` | TrueType subsetting: glyph reduction, valid header, re-parsability |
@@ -498,9 +578,9 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 
 `benchmarks/MemoryBench.php` — peak memory (`memory_get_peak_usage(true)`); compares phpdftk against FPDF and TCPDF at the same page counts.
 
-`benchmarks/GeneratePdfBench.php` also includes `benchPhpdftk10PagesWithFormAppearances()` exercising `AppearanceGenerator` for text fields and checkboxes per page, `benchPhpdftk10PagesWithOpenTypeCff()` exercising OpenType CFF font embedding via `OpenTypeParser` + `addOpenTypeFont()` (requires macOS OTF font), `benchPhpdftk10PagesWithPublicKeyEncryption()` exercising public-key (certificate-based) AES-128 encryption via `PdfEncryptor::publicKeyAes128()` with PKCS#7 envelope generation, `benchPhpdftkTsaRequestBuildAndParse()` exercising RFC 3161 `TsaClient` ASN.1 DER request building and response parsing (100 iterations, no network), `benchPhpdftk10PagesLinearized()` exercising linearized (web-optimized) PDF writing with two-pass layout and hint stream, `benchPhpdftkType1FontParsing()` exercising PFB segment parsing and ASCII header extraction (100 iterations), and `benchPhpdftkCCITTFaxDecode()` exercising Group 3 Huffman fax decoding of 100 rows (100 iterations).
+`benchmarks/GeneratePdfBench.php` also includes `benchPhpdftk10PagesWithFormAppearances()` exercising `AppearanceGenerator` for text fields and checkboxes per page, `benchPhpdftk10PagesWithOpenTypeCff()` exercising OpenType CFF font embedding via `OpenTypeParser` + `addOpenTypeFont()` (requires macOS OTF font), `benchPhpdftk10PagesWithPublicKeyEncryption()` exercising public-key (certificate-based) AES-128 encryption via `PdfEncryptor::publicKeyAes128()` with PKCS#7 envelope generation, `benchPhpdftkTsaRequestBuildAndParse()` exercising RFC 3161 `TsaClient` ASN.1 DER request building and response parsing (100 iterations, no network), `benchPhpdftk10PagesLinearized()` exercising linearized (web-optimized) PDF writing with two-pass layout and hint stream, `benchPhpdftkType1FontParsing()` exercising PFB segment parsing and ASCII header extraction (100 iterations), `benchPhpdftkCCITTFaxDecode()` exercising Group 3 Huffman fax decoding of 100 rows (100 iterations), `benchPhpdftkCCITTFaxEncode()` exercising Group 3 Huffman fax encoding of 100 rows (100 iterations), `benchPhpdftkJbig2Encode()` exercising JBIG2 MMR generic region encoding with segment assembly (100 iterations), `benchPhpdftk10PagesWithLtvSignature()` exercising the full LTV pipeline: 10-page signed PDF via `Pkcs7Signer`, then `LtvSigner` adding DSS with certificates, OCSP responses, CRLs, and VRI entries via incremental update, `benchPhpdftk10PagesWithImageStamp()` exercising `PdfStamper::stampImage()` with JPEG overlay, ImageXObject creation, and Do operator rendering on 10 pages, `benchPhpdftk10PagesWithPdfStamp()` exercising `PdfStamper::stampPdf()` with FormXObject import from a source PDF page overlaid on 10 pages with opacity, `benchPhpdftk10PagesWithCustomFontFormAppearances()` exercising `AppearanceGenerator` with embedded TrueType composite font via `FontContext`, hex-encoded GID text, and font resource wiring on 10 pages with text and choice fields, `benchPhpdftk10PagesWithPdfAConformance()` exercising the full PDF/A-1b conformance pipeline: `setConformance()`, auto XMP injection, OutputIntent with embedded ICC profile, TrueType font embedding, and generate-time constraint validation on 10 pages, `benchPhpdftk10PagesWithPdfUaConformance()` exercising the full PDF/UA-1 conformance pipeline: tagged structure (MarkInfo, StructTreeRoot, Lang), ViewerPreferences DisplayDocTitle, /Tabs /S on pages, embedded TrueType font, and generate-time constraint validation including annotation accessibility checks, `benchPhpdftk10PagesWithPdfXConformance()` exercising the full PDF/X-4 conformance pipeline: OutputIntent with ICC profile, /TrimBox on every page, /Trapped in Info dict, embedded TrueType font, pdfxid XMP identification, and generate-time constraint validation, and `benchPhpdftk10PagesWithPdfVtConformance()` exercising the full PDF/VT-1 conformance pipeline: builds on PDF/X-4 constraints plus DPartRoot for variable-data printing, pdfvtid XMP identification, and generate-time constraint validation, `benchPhpdftk10PagesWithPdfEConformance()` exercising the full PDF/E-1 conformance pipeline with 3D annotations/streams, OutputIntent, and deep constraint validation, `benchPhpdftk10PagesWithPdfRConformance()` exercising the PDF/R-1 conformance pipeline with raster-only content and lenient mode, `benchPhpdftk10PagesWithPdfX5Conformance()` exercising the PDF/X-5g conformance pipeline with OutputIntent, TrimBox, and reference XObject support, `benchPhpdftk10PagesWithZugferdConformance()` exercising the Factur-X conformance pipeline with PDF/A-3b base, embedded XML invoice, and Factur-X XMP identification, and `benchPhpdftk10PagesWithPdfMailConformance()` exercising the PDF/mail-1 conformance pipeline with font embedding, action/form/multimedia constraints, and PDF 2.0 version pinning.
 
-`benchmarks/ReadPdfBench.php` also includes `benchPhpdftkTextExtractionWithFormXObjects()` exercising text extraction from a 10-page PDF where each page invokes a Form XObject containing text via the `Do` operator, `benchPhpdftkLinearizedPdf()` exercising linearized PDF generation and round-trip reading with `isLinearized()` verification, and `benchPhpdftkWoff2Parsing()` exercising TrueType font parsing with variable font detection (10 iterations).
+`benchmarks/ReadPdfBench.php` also includes `benchPhpdftkTextExtractionWithFormXObjects()` exercising text extraction from a 10-page PDF where each page invokes a Form XObject containing text via the `Do` operator, `benchPhpdftkPositionedTextExtraction()` exercising positioned text extraction (`extractAllTextWithPositions`) from a 10-page PDF with 3 text blocks per page, `benchPhpdftkLinearizedPdf()` exercising linearized PDF generation and round-trip reading with `isLinearized()` verification, `benchPhpdftkWoff2Parsing()` exercising TrueType font parsing with variable font detection (10 iterations), and `benchPhpdftkConformanceChecker()` exercising reader-side conformance checking: parse a sample PDF and validate against PDF/A-1b via `ConformanceChecker` with `ReaderDocumentInspector`.
 
 `benchmarks/ReadPdfBench.php` — PDF reader/parser performance; compares phpdftk reader against smalot/pdfparser and setasign/fpdi at 1, 10, and 100 pages. Uses FPDF-generated reference PDFs (`docs/sample-pdfs/bench_*.pdf`) with classic xref tables to ensure all three readers can parse them. Each benchmark parses the file, extracts structure (catalog, info, version), and iterates all pages.
 

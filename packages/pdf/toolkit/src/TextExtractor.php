@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Toolkit;
 
 use ApprLabs\Pdf\Reader\PdfReader;
+use ApprLabs\Pdf\Reader\TextSpan;
 
 /**
  * Extract text from PDFs — per page, full document, or with search.
@@ -69,6 +70,40 @@ final class TextExtractor
         $count = $this->reader->getPageCount();
         for ($i = 0; $i < $count; $i++) {
             $result[$i + 1] = $this->reader->extractText($i);
+        }
+        return $result;
+    }
+
+    // -----------------------------------------------------------------------
+    // Positioned extraction
+    // -----------------------------------------------------------------------
+
+    /**
+     * Extract text with precise positioning from a single page.
+     *
+     * Returns a list of TextSpan objects, each containing the text content,
+     * position (x, y in user space), dimensions (width, height), font size,
+     * and font name.
+     *
+     * @param int $pageNumber 1-based page number
+     * @return list<TextSpan>
+     */
+    public function pageWithPositions(int $pageNumber): array
+    {
+        return $this->reader->extractTextWithPositions($pageNumber - 1);
+    }
+
+    /**
+     * Extract text with precise positioning from all pages.
+     *
+     * @return array<int, list<TextSpan>> 1-based page number => spans
+     */
+    public function allPagesWithPositions(): array
+    {
+        $zeroIndexed = $this->reader->extractAllTextWithPositions();
+        $result = [];
+        foreach ($zeroIndexed as $index => $spans) {
+            $result[$index + 1] = $spans;
         }
         return $result;
     }

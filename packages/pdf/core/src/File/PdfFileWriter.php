@@ -65,6 +65,8 @@ class PdfFileWriter
     /** @var (\Closure(string): void)|null */
     private ?\Closure $deprecationHandler = null;
 
+    private bool $strictDeprecation = false;
+
     public function __construct(
         bool $compressStreams = true,
         bool $useXRefStream = false,
@@ -148,6 +150,11 @@ class PdfFileWriter
     public function setDeprecationHandler(\Closure $handler): void
     {
         $this->deprecationHandler = $handler;
+    }
+
+    public function setStrictDeprecation(bool $strict = true): void
+    {
+        $this->strictDeprecation = $strict;
     }
 
     /** @return list<string> */
@@ -1028,6 +1035,11 @@ class PdfFileWriter
             if (!$object instanceof PdfStream) {
                 continue;
             }
+            // Metadata streams must not be compressed (ISO 32000 §14.3.2,
+            // ISO 19005 clause 6.7.2) so they remain searchable/readable.
+            if ($object instanceof \ApprLabs\Pdf\Core\Document\MetadataStream) {
+                continue;
+            }
             // Skip streams that already have a filter configured via setFilter()
             // or an explicit /Filter entry in their dictionary
             if ($object->dictionary->has('Filter')) {
@@ -1133,6 +1145,8 @@ class PdfFileWriter
             if ($this->deprecationHandler !== null) {
                 ($this->deprecationHandler)($msg);
             }
+
+            $this->enforceRemoval($object::class, $deprecation);
         }
 
         // Ceiling mode: strip incompatible properties instead of bumping
@@ -1168,7 +1182,27 @@ class PdfFileWriter
                     if ($this->deprecationHandler !== null) {
                         ($this->deprecationHandler)($msg);
                     }
+
+                    $this->enforceRemoval($value::class, $childDeprecation);
                 }
+            }
+        }
+    }
+
+    /**
+     * Enforce removal: throw if the feature has a removedIn version and
+     * the target version is at or above it (in strict deprecation or ceiling mode).
+     */
+    private function enforceRemoval(string $class, \ApprLabs\Pdf\Core\DeprecatedPdfFeature $deprecation): void
+    {
+        if ($deprecation->removedInVersion === null) {
+            return;
+        }
+
+        $targetVersion = $this->ceilingVersion ?? $this->version;
+        if ($targetVersion->isAtLeast($deprecation->removedInVersion)) {
+            if ($this->strictDeprecation || $this->ceilingVersion !== null) {
+                throw new DeprecatedFeatureException($class, $deprecation, $targetVersion);
             }
         }
     }

@@ -8,6 +8,7 @@ use ApprLabs\Pdf\Core\Annotation\AppearanceDict;
 use ApprLabs\Pdf\Core\Content\Resources;
 use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
 use ApprLabs\Pdf\Core\PdfArray;
+use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
@@ -32,12 +33,13 @@ final class AppearanceGenerator
      * Draws a border rectangle and renders the field value using
      * the specified font resource name and size.
      *
-     * @param PdfArray $rect  Widget rectangle [x1, y1, x2, y2]
-     * @param string   $fontName Font resource name (e.g., "F1")
-     * @param float    $fontSize Font size in points
-     * @param string   $value Current field value text
-     * @param int      $justification 0=left, 1=center, 2=right
-     * @param float    $borderWidth Border line width
+     * @param PdfArray      $rect  Widget rectangle [x1, y1, x2, y2]
+     * @param string        $fontName Font resource name (e.g., "F1")
+     * @param float         $fontSize Font size in points
+     * @param string        $value Current field value text
+     * @param int           $justification 0=left, 1=center, 2=right
+     * @param float         $borderWidth Border line width
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function textField(
         PdfArray $rect,
@@ -46,6 +48,7 @@ final class AppearanceGenerator
         string $value = '',
         int $justification = 0,
         float $borderWidth = 1.0,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         $dims = self::rectDimensions($rect);
         $w = $dims['width'];
@@ -78,7 +81,7 @@ final class AppearanceGenerator
             $ops[] = sprintf('/%s %.2f Tf', $fontName, $fontSize);
             $ops[] = '0 g';
             $ops[] = sprintf('%.2f %.2f Td', $textX, $textY);
-            $ops[] = '(' . self::escapeString($value) . ') Tj';
+            $ops[] = self::textOperator($value, $fontContext);
             $ops[] = 'ET';
         }
 
@@ -88,7 +91,7 @@ final class AppearanceGenerator
         ]);
 
         $xObj = new FormXObject($bbox, implode("\n", $ops));
-        $xObj->resources = new Resources();
+        $xObj->resources = self::buildResources($fontName, $fontContext);
 
         return $xObj;
     }
@@ -213,6 +216,7 @@ final class AppearanceGenerator
      * @param float    $leading    Line height in points (default: fontSize × 1.2)
      * @param float    $borderWidth Border line width
      * @param float    $charWidth  Approximate average character width as fraction of fontSize (default 0.5)
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function textFieldMultiLine(
         PdfArray $rect,
@@ -222,6 +226,7 @@ final class AppearanceGenerator
         float $leading = 0,
         float $borderWidth = 1.0,
         float $charWidth = 0.5,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         $dims = self::rectDimensions($rect);
         $w = $dims['width'];
@@ -284,7 +289,7 @@ final class AppearanceGenerator
                 if ($i > 0) {
                     $ops[] = "T*";
                 }
-                $ops[] = '(' . self::escapeString($line) . ') Tj';
+                $ops[] = self::textOperator($line, $fontContext);
             }
             $ops[] = 'ET';
         }
@@ -295,7 +300,7 @@ final class AppearanceGenerator
         ]);
 
         $xObj = new FormXObject($bbox, implode("\n", $ops));
-        $xObj->resources = new Resources();
+        $xObj->resources = self::buildResources($fontName, $fontContext);
 
         return $xObj;
     }
@@ -324,6 +329,7 @@ final class AppearanceGenerator
      * Each character is centered in its own cell, with vertical dividers.
      *
      * @param int $maxLen Maximum number of characters (/MaxLen)
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function combTextField(
         PdfArray $rect,
@@ -332,6 +338,7 @@ final class AppearanceGenerator
         string $value = '',
         int $maxLen = 10,
         float $borderWidth = 1.0,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         $dims = self::rectDimensions($rect);
         $w = $dims['width'];
@@ -379,7 +386,7 @@ final class AppearanceGenerator
                 if ($idx > 0) {
                     $ops[] = sprintf('%.2f 0 Td', $cellWidth);
                 }
-                $ops[] = '(' . self::escapeString($char) . ') Tj';
+                $ops[] = self::textOperator($char, $fontContext);
             }
 
             $ops[] = 'ET';
@@ -391,7 +398,7 @@ final class AppearanceGenerator
         ]);
 
         $xObj = new FormXObject($bbox, implode("\n", $ops));
-        $xObj->resources = new Resources();
+        $xObj->resources = self::buildResources($fontName, $fontContext);
 
         return $xObj;
     }
@@ -400,6 +407,8 @@ final class AppearanceGenerator
      * Generate a signature field appearance.
      *
      * Renders a bordered box with signature information text.
+     *
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function signatureField(
         PdfArray $rect,
@@ -409,6 +418,7 @@ final class AppearanceGenerator
         string $reason = '',
         string $date = '',
         float $borderWidth = 1.0,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         $dims = self::rectDimensions($rect);
         $w = $dims['width'];
@@ -456,7 +466,7 @@ final class AppearanceGenerator
             if ($i > 0) {
                 $ops[] = "T*";
             }
-            $ops[] = '(' . self::escapeString($line) . ') Tj';
+            $ops[] = self::textOperator($line, $fontContext);
         }
         $ops[] = 'ET';
 
@@ -466,7 +476,7 @@ final class AppearanceGenerator
         ]);
 
         $xObj = new FormXObject($bbox, implode("\n", $ops));
-        $xObj->resources = new Resources();
+        $xObj->resources = self::buildResources($fontName, $fontContext);
 
         return $xObj;
     }
@@ -475,6 +485,8 @@ final class AppearanceGenerator
      * Generate a normal appearance for a choice field (combo/list box).
      *
      * Renders the currently selected value text in a bordered box.
+     *
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function choiceField(
         PdfArray $rect,
@@ -482,13 +494,16 @@ final class AppearanceGenerator
         float $fontSize,
         string $selectedValue = '',
         float $borderWidth = 1.0,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         // Choice field appearance is visually identical to text field
-        return self::textField($rect, $fontName, $fontSize, $selectedValue, borderWidth: $borderWidth);
+        return self::textField($rect, $fontName, $fontSize, $selectedValue, borderWidth: $borderWidth, fontContext: $fontContext);
     }
 
     /**
      * Generate a push button appearance.
+     *
+     * @param FontContext|null $fontContext Custom font context for composite font rendering
      */
     public static function pushButton(
         PdfArray $rect,
@@ -496,6 +511,7 @@ final class AppearanceGenerator
         float $fontSize,
         string $label = '',
         float $borderWidth = 1.5,
+        ?FontContext $fontContext = null,
     ): FormXObject {
         $dims = self::rectDimensions($rect);
         $w = $dims['width'];
@@ -528,7 +544,7 @@ final class AppearanceGenerator
             $ops[] = sprintf('/%s %.2f Tf', $fontName, $fontSize);
             $ops[] = '0 g';
             $ops[] = sprintf('%.2f %.2f Td', $textX, $textY);
-            $ops[] = '(' . self::escapeString($label) . ') Tj';
+            $ops[] = self::textOperator($label, $fontContext);
             $ops[] = 'ET';
         }
 
@@ -538,7 +554,7 @@ final class AppearanceGenerator
         ]);
 
         $xObj = new FormXObject($bbox, implode("\n", $ops));
-        $xObj->resources = new Resources();
+        $xObj->resources = self::buildResources($fontName, $fontContext);
 
         return $xObj;
     }
@@ -566,7 +582,7 @@ final class AppearanceGenerator
         string $onStateName = 'Yes',
     ): AppearanceDict {
         $ap = new AppearanceDict();
-        $stateDict = new \ApprLabs\Pdf\Core\PdfDictionary();
+        $stateDict = new PdfDictionary();
         $stateDict->set($onStateName, $onRef);
         $stateDict->set('Off', $offRef);
         $ap->n = $stateDict;
@@ -576,6 +592,29 @@ final class AppearanceGenerator
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
+
+    /**
+     * Build a Tj text operator, using hex-encoded GIDs when a FontContext is present.
+     */
+    private static function textOperator(string $text, ?FontContext $fontContext): string
+    {
+        if ($fontContext !== null) {
+            return '<' . $fontContext->textToHex($text) . '> Tj';
+        }
+        return '(' . self::escapeString($text) . ') Tj';
+    }
+
+    /**
+     * Build a Resources dictionary, wiring the font reference when a FontContext is present.
+     */
+    private static function buildResources(string $fontName, ?FontContext $fontContext): Resources
+    {
+        $resources = new Resources();
+        if ($fontContext !== null) {
+            $resources->addFont($fontName, $fontContext->fontRef);
+        }
+        return $resources;
+    }
 
     /**
      * @return array{width: float, height: float}

@@ -28,6 +28,8 @@ use ApprLabs\Pdf\Core\ThreeD\ThreeDRenderMode;
 use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
 use ApprLabs\Pdf\Core\ThreeD\ThreeDView;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,8 +39,11 @@ use PHPUnit\Framework\TestCase;
  *   - ThreeDAnnotation wired to a ThreeDStream with view, background,
  *     render-mode and lighting-scheme dictionaries
  */
+#[Group("qpdf")]
 class MultimediaAndThreeDIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/multimedia_3d.pdf';
 
     public function testGeneratesMultimediaAnd3DPdf(): void
@@ -149,6 +154,7 @@ class MultimediaAndThreeDIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($contents);
         self::assertStringStartsWith('%PDF-', $contents);

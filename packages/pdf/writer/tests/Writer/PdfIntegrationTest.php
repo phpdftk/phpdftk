@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Writer\PageSize;
 use ApprLabs\Pdf\Writer\Pdf;
 use ApprLabs\Pdf\Writer\TextStyle;
 use ApprLabs\Pdf\Writer\Theme;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,8 +20,11 @@ use PHPUnit\Framework\TestCase;
  * spacers, rules, alignment overrides, automatic pagination, and all
  * three output modes (save / toBytes / writeTo).
  */
+#[Group("qpdf")]
 class PdfIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/high_level_pdf.pdf';
 
     public function testGeneratesHighLevelDocument(): void
@@ -85,5 +90,9 @@ class PdfIntegrationTest extends TestCase
         self::assertStringContainsString('(Filler paragraph number 1.', $fileContent);
         // Auto-pagination + explicit newPage should produce 3+ pages.
         self::assertMatchesRegularExpression('#/Count [3-9]#', $fileContent);
+
+        // QPDF structural validation
+        $this->assertQpdfValid(self::OUTPUT_FILE);
+        $this->assertQpdfValidBytes($bytes);
     }
 }

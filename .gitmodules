@@ -1,0 +1,21 @@
+[submodule "vendor-data/arlington-pdf-model"]
+	path = vendor-data/arlington-pdf-model
+	url = https://github.com/pdf-association/arlington-pdf-model.git
+[submodule "vendor-data/poppler-test"]
+	path = vendor-data/poppler-test
+	url = https://gitlab.freedesktop.org/poppler/test.git
+[submodule "vendor-data/qpdf"]
+	path = vendor-data/qpdf
+	url = https://github.com/qpdf/qpdf.git
+[submodule "vendor-data/pdf20examples"]
+	path = vendor-data/pdf20examples
+	url = https://github.com/pdf-association/pdf20examples.git
+[submodule "vendor-data/verapdf-corpus"]
+	path = vendor-data/verapdf-corpus
+	url = https://github.com/veraPDF/veraPDF-corpus.git
+[submodule "vendor-data/pdfium"]
+	path = vendor-data/pdfium
+	url = https://github.com/chromium/pdfium.git
+[submodule "vendor-data/pdfbox"]
+	path = vendor-data/pdfbox
+	url = https://github.com/apache/pdfbox.git

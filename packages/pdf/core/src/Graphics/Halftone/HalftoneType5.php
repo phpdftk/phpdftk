@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Contains one entry per colorant (e.g. /Cyan, /Magenta, etc.),
  * each referencing a single-component halftone, plus a /Default entry.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class HalftoneType5 extends PdfObject
 {
     public const PDF_TYPE = 'Halftone';

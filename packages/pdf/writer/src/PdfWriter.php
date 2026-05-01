@@ -31,6 +31,13 @@ use ApprLabs\Pdf\Core\Font\Type0FontFactory;
 use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
 use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
 use ApprLabs\Pdf\Core\Interactive\Signature\TsaClient;
+use ApprLabs\Pdf\Conformance\ConformanceException;
+use ApprLabs\Pdf\Conformance\ConformanceMode;
+use ApprLabs\Pdf\Conformance\Inspection\WriterDocumentInspector;
+use ApprLabs\Pdf\Conformance\Metadata\ConformanceXmpWriter;
+use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
+use ApprLabs\Pdf\Conformance\Result\ConformanceResult;
+use ApprLabs\Pdf\Conformance\Validator\ConformanceValidator;
 use ApprLabs\Pdf\Core\Security\PdfEncryptor;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
@@ -87,6 +94,12 @@ class PdfWriter
 
     /** Whether to produce linearized (web-optimized) output */
     private bool $linearized = false;
+
+    /** Active conformance mode, if any. */
+    private ?ConformanceMode $conformanceMode = null;
+
+    /** @var list<ConformanceResult> */
+    private array $conformanceResults = [];
 
     public function __construct(bool $compressStreams = true, PdfVersion|string $version = PdfFileWriter::DEFAULT_PDF_VERSION)
     {
@@ -656,6 +669,11 @@ class PdfWriter
         $this->file->setDeprecationHandler($handler);
     }
 
+    public function setStrictDeprecation(bool $strict = true): void
+    {
+        $this->file->setStrictDeprecation($strict);
+    }
+
     /** @return list<string> */
     public function getVersionWarnings(): array
     {
@@ -675,10 +693,73 @@ class PdfWriter
     }
 
     /**
+     * Set one or more conformance profiles (e.g. PDF/A-1b, PDF/UA-1).
+     *
+     * When set, `generate()` will:
+     *   1. Auto-inject XMP identification metadata (if not already present)
+     *   2. Pin the PDF version to the profile minimum
+     *   3. Run all applicable constraint checks
+     *   4. In strict mode (default): throw ConformanceException on errors
+     *   5. In lenient mode: collect results in getConformanceResults()
+     *
+     * @param bool $strict Throw on conformance errors (default true)
+     */
+    public function setConformance(ConformanceProfile $profile, bool $strict = true): void
+    {
+        $this->conformanceMode = new ConformanceMode([$profile], $strict);
+    }
+
+    /**
+     * Set multiple conformance profiles at once (e.g. PDF/A-2a + PDF/UA-1).
+     *
+     * @param ConformanceProfile[] $profiles
+     * @param bool $strict Throw on conformance errors (default true)
+     */
+    public function setConformanceProfiles(array $profiles, bool $strict = true): void
+    {
+        $this->conformanceMode = new ConformanceMode($profiles, $strict);
+    }
+
+    /**
+     * Run conformance checks without generating the PDF.
+     *
+     * @return list<ConformanceResult>
+     */
+    public function checkConformance(): array
+    {
+        if ($this->conformanceMode === null) {
+            return [];
+        }
+
+        $inspector = new WriterDocumentInspector(
+            $this->catalog,
+            $this->file,
+            $this->fonts,
+        );
+
+        $validator = new ConformanceValidator();
+        return $validator->validateAll($inspector, $this->conformanceMode->profiles);
+    }
+
+    /**
+     * Get the conformance results from the last generate() call.
+     *
+     * @return list<ConformanceResult>
+     */
+    public function getConformanceResults(): array
+    {
+        return $this->conformanceResults;
+    }
+
+    /**
      * Generate the complete PDF as a binary string.
      */
     public function generate(): string
     {
+        if ($this->conformanceMode !== null) {
+            $this->applyConformance();
+        }
+
         if ($this->linearized) {
             return $this->file->generateLinearized($this->collectFirstPageObjectNumbers());
         }
@@ -824,6 +905,49 @@ class PdfWriter
     // Private helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Apply conformance: auto-inject XMP, pin version, validate.
+     */
+    private function applyConformance(): void
+    {
+        $mode = $this->conformanceMode;
+
+        foreach ($mode->profiles as $profile) {
+            // Pin PDF version to profile minimum
+            $required = $profile->getPdfVersion();
+            if ($required->isGreaterThan($this->file->getPdfVersion())) {
+                $this->file->setVersion($required);
+            }
+
+            // Auto-inject XMP identification if not already present
+            if (!$this->catalog->metadata) {
+                $info = $this->file->getInfo();
+                $xmpWriter = new ConformanceXmpWriter();
+                $xmp = $xmpWriter->buildXmp(
+                    $profile,
+                    title: $info?->title->value ?? '',
+                    creator: $info?->author->value ?? '',
+                    producer: $info?->producer->value ?? 'phpdftk',
+                );
+                $this->setMetadata($xmp);
+            }
+        }
+
+        // Run validation
+        $this->conformanceResults = $this->checkConformance();
+
+        // In strict mode, throw on any non-compliant result
+        if ($mode->strict) {
+            $failures = array_filter(
+                $this->conformanceResults,
+                static fn(ConformanceResult $r) => !$r->isCompliant,
+            );
+            if ($failures !== []) {
+                throw new ConformanceException(array_values($failures));
+            }
+        }
+    }
+
     private function embedTrueTypeFont(TrueTypeFont $font): void
     {
         $data = $font->parsedFontData;
@@ -872,6 +996,7 @@ class PdfWriter
         // 4. Wire back to font
         $font->fontDescriptor = new PdfReference($descriptor->objectNumber);
         $font->toUnicode      = new PdfReference($cmapStream->objectNumber);
+        $font->encoding       = new PdfName('WinAnsiEncoding');
     }
 
     /**

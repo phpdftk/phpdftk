@@ -12,13 +12,16 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Movie dictionary — ISO 32000-2 §13.4 (deprecated in PDF 2.0 in favor
  * of RichMedia, but still part of the spec and referenced by
  * MovieAnnotation).
  */
-#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation')]
+#[RequiresPdfVersion(PdfVersion::V1_2)]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RichMediaAnnotation', removedIn: '2.0')]
 class Movie extends PdfObject
 {
     public FileSpec|PdfReference $f;         // /F  file spec (required)

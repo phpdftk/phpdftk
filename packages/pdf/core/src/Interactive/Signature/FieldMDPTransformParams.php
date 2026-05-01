@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Interactive\Signature;
 
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * FieldMDP transform parameters — ISO 32000-2 §12.8.2.4, Table 255.
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfName;
  *   /Action /Include  — lock the fields listed in /Fields
  *   /Action /Exclude  — lock everything except the fields listed in /Fields
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class FieldMDPTransformParams extends TransformParams
 {
     public PdfName $action;        // /Action

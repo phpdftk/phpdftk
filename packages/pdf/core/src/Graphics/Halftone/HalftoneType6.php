@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * The stream data contains the threshold array. The dictionary carries
  * /Width, /Height, and optional /TransferFunction.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class HalftoneType6 extends PdfStream
 {
     public const PDF_TYPE = 'Halftone';

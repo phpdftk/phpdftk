@@ -566,6 +566,38 @@ final class PdfReader
         return implode($separator, $texts);
     }
 
+    /**
+     * Extract text with precise positioning from a page by index (zero-based).
+     *
+     * Returns a list of TextSpan objects, each containing the text content,
+     * position (x, y in user space), dimensions (width, height), font size,
+     * and font name.
+     *
+     * @return list<TextSpan>
+     */
+    public function extractTextWithPositions(int $pageIndex): array
+    {
+        $page = $this->getPage($pageIndex);
+        $extractor = new PositionedTextExtractor($this->resolver);
+        return $extractor->extractFromPage($page);
+    }
+
+    /**
+     * Extract text with precise positioning from all pages.
+     *
+     * @return array<int, list<TextSpan>> Zero-based page index => spans
+     */
+    public function extractAllTextWithPositions(): array
+    {
+        $pages = $this->getPages();
+        $result = [];
+        $extractor = new PositionedTextExtractor($this->resolver);
+        foreach ($pages as $index => $page) {
+            $result[$index] = $extractor->extractFromPage($page);
+        }
+        return $result;
+    }
+
     // -----------------------------------------------------------------------
     // Hydration — typed object access
     // -----------------------------------------------------------------------

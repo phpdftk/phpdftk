@@ -85,4 +85,39 @@ class IncrementalWriterVersionTest extends TestCase
         $dPartRoot = new DPartRoot(new PdfReference(1));
         $writer->addNewObject($dPartRoot);
     }
+
+    public function testStrictDeprecationThrows(): void
+    {
+        $pdf = $this->makeSimplePdf(PdfVersion::V2_0);
+        $reader = PdfReader::fromString($pdf);
+        $writer = IncrementalWriter::fromReader($reader, $pdf);
+        $writer->setStrictDeprecation(true);
+
+        $this->expectException(\ApprLabs\Pdf\Core\File\DeprecatedFeatureException::class);
+
+        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
+            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        );
+        $writer->addNewObject($movie);
+    }
+
+    public function testStrictDeprecationAllowsBelowRemoval(): void
+    {
+        $pdf = $this->makeSimplePdf(PdfVersion::V1_7);
+        $reader = PdfReader::fromString($pdf);
+        $writer = IncrementalWriter::fromReader($reader, $pdf);
+        $writer->setStrictDeprecation(true);
+
+        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
+            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        );
+        $writer->addNewObject($movie);
+
+        // Should warn but not throw
+        $depWarnings = array_filter(
+            $writer->getVersionWarnings(),
+            fn($w) => str_contains($w, 'deprecated')
+        );
+        $this->assertNotEmpty($depWarnings);
+    }
 }

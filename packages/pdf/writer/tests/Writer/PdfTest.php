@@ -10,10 +10,15 @@ use ApprLabs\Pdf\Writer\Pdf;
 use ApprLabs\Pdf\Writer\PdfWriter;
 use ApprLabs\Pdf\Writer\TextStyle;
 use ApprLabs\Pdf\Writer\Theme;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PdfTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     public function testEmptyDocumentHasNoPages(): void
     {
         // An untouched Pdf should still produce a valid (empty) PDF file.
@@ -21,6 +26,7 @@ class PdfTest extends TestCase
         $bytes = $pdf->toBytes();
         self::assertStringStartsWith('%PDF-', $bytes);
         self::assertStringEndsWith('%%EOF', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testAddTextCreatesFirstPageAutomatically(): void
@@ -31,6 +37,7 @@ class PdfTest extends TestCase
         self::assertStringContainsString('/Type /Page', $bytes);
         self::assertStringContainsString('/Count 1', $bytes);
         self::assertStringContainsString('(hello)', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testAddHeadingEmitsLargerText(): void
@@ -43,6 +50,7 @@ class PdfTest extends TestCase
         self::assertStringContainsString('(Body)', $bytes);
         // H1 size is 24pt
         self::assertStringContainsString('24', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testExplicitNewPageCreatesSecondPage(): void
@@ -55,6 +63,7 @@ class PdfTest extends TestCase
         self::assertStringContainsString('/Count 2', $bytes);
         self::assertStringContainsString('(page 1)', $bytes);
         self::assertStringContainsString('(page 2)', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testLongTextAutoPaginates(): void
@@ -70,6 +79,7 @@ class PdfTest extends TestCase
         $pdf->addText($longText);
         $bytes = $pdf->toBytes();
         self::assertStringContainsString('/Count 2', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testAddSpacerConsumesVerticalSpace(): void
@@ -81,6 +91,7 @@ class PdfTest extends TestCase
         $bytes = $pdf->toBytes();
         self::assertStringContainsString('(top)', $bytes);
         self::assertStringContainsString('(bottom)', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testAddRuleDrawsStroke(): void
@@ -92,6 +103,7 @@ class PdfTest extends TestCase
         $bytes = $pdf->toBytes();
         // Stroke operator `S` should appear for the rule.
         self::assertMatchesRegularExpression('/\sS\s/', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testAlignmentCenterEmitsCenteredText(): void
@@ -100,6 +112,7 @@ class PdfTest extends TestCase
         $pdf->addText('centered', new TextStyle(alignment: Alignment::Center));
         $bytes = $pdf->toBytes();
         self::assertStringContainsString('(centered)', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testSetFontSwitchesFontFamily(): void
@@ -110,6 +123,7 @@ class PdfTest extends TestCase
         $bytes = $pdf->toBytes();
         // A Times-Roman font resource must be registered.
         self::assertStringContainsString('/Times-Roman', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testBoldAndItalicResolveToCorrectPostScriptName(): void
@@ -119,6 +133,7 @@ class PdfTest extends TestCase
         $pdf->addText('bold-italic');
         $bytes = $pdf->toBytes();
         self::assertStringContainsString('/Helvetica-BoldOblique', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testUnknownFamilyIsRejected(): void
@@ -136,6 +151,7 @@ class PdfTest extends TestCase
         $pdf->addText('themed');
         $bytes = $pdf->toBytes();
         self::assertStringContainsString('/Times-Roman', $bytes);
+        $this->assertQpdfValidBytes($bytes);
     }
 
     public function testSaveWritesFile(): void
@@ -149,6 +165,7 @@ class PdfTest extends TestCase
             $content = (string) file_get_contents($path);
             self::assertStringStartsWith('%PDF-', $content);
             self::assertStringContainsString('(file output)', $content);
+            $this->assertQpdfValid($path);
         } finally {
             @unlink($path);
         }
@@ -170,6 +187,7 @@ class PdfTest extends TestCase
 
         self::assertStringStartsWith('%PDF-', $content);
         self::assertStringContainsString('(stream output)', $content);
+        $this->assertQpdfValidBytes($content);
     }
 
     public function testWriteToRejectsNonResource(): void
@@ -193,6 +211,7 @@ class PdfTest extends TestCase
             self::assertStringStartsWith('%PDF-', $bytes);
             self::assertStringEndsWith('%%EOF', $bytes);
             self::assertStringContainsString('/Filter /FlateDecode', $bytes);
+            $this->assertQpdfValidBytes($bytes);
         }
     }
 

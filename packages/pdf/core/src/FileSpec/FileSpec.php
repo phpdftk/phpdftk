@@ -21,6 +21,7 @@ use ApprLabs\Pdf\Core\RequiresPdfVersion;
  * FileAttachment annotations, embedded-file name trees, and the Launch,
  * ImportData, SubmitForm, and GoToE actions.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class FileSpec extends PdfObject
 {
     public const PDF_TYPE = 'Filespec';

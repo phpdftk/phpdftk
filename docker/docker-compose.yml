@@ -1,0 +1,14 @@
+services:
+  qpdf:
+    build: ./qpdf
+    image: phpdftk/qpdf
+  verapdf:
+    image: verapdf/cli
+  jhove:
+    image: openpreserve/jhove
+  pdfid:
+    build: ./pdfid
+    image: phpdftk/pdfid
+  pdfbox-preflight:
+    build: ./pdfbox-preflight
+    image: phpdftk/pdfbox-preflight

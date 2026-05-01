@@ -11,6 +11,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Encryption dictionary (/Type /Encrypt) — ISO 32000-2 §7.6.
@@ -27,6 +29,7 @@ use ApprLabs\Pdf\Core\PdfString;
  * Covers both the Standard security handler (Table 21) and the
  * Public-key handler (Table 26), plus the shared crypt filter entries.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class EncryptDictionary extends PdfObject
 {
     public const PDF_TYPE = 'Encrypt';

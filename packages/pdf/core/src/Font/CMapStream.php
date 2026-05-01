@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfStream;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CMap stream (/Type /CMap) — ISO 32000-2 §9.7.5.4.
@@ -17,6 +19,7 @@ use ApprLabs\Pdf\Core\PdfStream;
  * CIDFont, or (in ToUnicode form) to Unicode code points. The stream
  * body holds the CMap program text.
  */
+#[RequiresPdfVersion(PdfVersion::V1_4)]
 class CMapStream extends PdfStream
 {
     public const PDF_TYPE = 'CMap';

@@ -226,6 +226,24 @@ final class PdfEncrypt
     // Internal
     // -----------------------------------------------------------------------
 
+    /**
+     * Copy a resolved stream, stripping /Filter and /DecodeParms since the
+     * reader has already decompressed the data. PdfFileWriter will re-compress
+     * if its compressStreams option is enabled.
+     */
+    private function copyStream(PdfStream $source): PdfStream
+    {
+        $dict = clone $source->dictionary;
+        unset($dict->entries['Filter'], $dict->entries['DecodeParms'], $dict->entries['Length']);
+
+        return new class ($dict, $source->data) extends PdfStream {
+            public function __construct(PdfDictionary $dict, string $data)
+            {
+                parent::__construct($dict, $data);
+            }
+        };
+    }
+
     private function copyPage(PdfDictionary $sourceDict, PdfFileWriter $fw): Page
     {
         $page = new Page();
@@ -247,12 +265,7 @@ final class PdfEncrypt
         if ($contents instanceof PdfReference) {
             $stream = $this->reader->resolveReference($contents);
             if ($stream instanceof PdfStream) {
-                $newCs = new class ($stream) extends PdfStream {
-                    public function __construct(PdfStream $source)
-                    {
-                        parent::__construct(clone $source->dictionary, $source->data);
-                    }
-                };
+                $newCs = $this->copyStream($stream);
                 $fw->register($newCs);
                 $page->contents = [new PdfReference($newCs->objectNumber)];
             }
@@ -262,12 +275,7 @@ final class PdfEncrypt
                 if ($ref instanceof PdfReference) {
                     $stream = $this->reader->resolveReference($ref);
                     if ($stream instanceof PdfStream) {
-                        $newCs = new class ($stream) extends PdfStream {
-                            public function __construct(PdfStream $source)
-                            {
-                                parent::__construct(clone $source->dictionary, $source->data);
-                            }
-                        };
+                        $newCs = $this->copyStream($stream);
                         $fw->register($newCs);
                         $contentRefs[] = new PdfReference($newCs->objectNumber);
                     }

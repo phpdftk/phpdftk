@@ -6,11 +6,14 @@ namespace ApprLabs\Pdf\Core\Filter;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfNumber;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
  * JPXDecode (JPEG 2000) parameters — ISO 32000-2 §7.4.9.
  */
+#[RequiresPdfVersion(PdfVersion::V1_6)]
 class JPXDecodeParams implements Serializable
 {
     public ?int $colorTransform = null;  // /ColorTransform

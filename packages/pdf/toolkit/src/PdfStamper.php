@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Toolkit;
 
+use ApprLabs\ImageMetadata\ImageParser;
 use ApprLabs\Pdf\Core\Content\ContentStream;
 use ApprLabs\Pdf\Core\Content\Resources;
 use ApprLabs\Pdf\Core\File\IncrementalWriter;
 use ApprLabs\Pdf\Core\Font\StandardFont;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Core\Graphics\ExtGState;
+use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\Internal\PageResolver;
+use ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle;
 use ApprLabs\Pdf\Toolkit\Stamper\StampPosition;
 use ApprLabs\Pdf\Toolkit\Stamper\StampStyle;
 use ApprLabs\Pdf\Toolkit\Stamper\WatermarkStyle;
@@ -105,6 +109,58 @@ final class PdfStamper
         return $this->stampText($text, StampPosition::BottomCenter, $pages, $style);
     }
 
+    /**
+     * Overlay a JPEG or PNG image at a given position on selected pages.
+     *
+     * Dimensions default to the image's native pixel size (at 72 DPI).
+     * Set width or height in the style to scale; setting one preserves
+     * the aspect ratio. Set both to stretch.
+     */
+    public function stampImage(
+        string $imagePath,
+        StampPosition $position,
+        ?PageSelector $pages = null,
+        ?ImageStampStyle $style = null,
+    ): self {
+        if (!is_file($imagePath)) {
+            throw new \RuntimeException("Image file not found: $imagePath");
+        }
+        $this->operations[] = ['type' => 'image', 'args' => compact('imagePath', 'position', 'pages', 'style')];
+        return $this;
+    }
+
+    /**
+     * Overlay a page from another PDF at a given position on selected pages.
+     *
+     * The source page is imported as a Form XObject. Dimensions default to
+     * the source page's MediaBox size. Use width/height in the style to scale.
+     *
+     * @param string $pdfPath   Path to the source PDF file
+     * @param int    $pageIndex 0-based page index in the source PDF
+     */
+    public function stampPdf(
+        string $pdfPath,
+        int $pageIndex = 0,
+        ?StampPosition $position = null,
+        ?PageSelector $pages = null,
+        ?ImageStampStyle $style = null,
+    ): self {
+        if (!is_file($pdfPath)) {
+            throw new \RuntimeException("PDF file not found: $pdfPath");
+        }
+        $sourceReader = PdfReader::fromFile($pdfPath);
+        if ($pageIndex < 0 || $pageIndex >= $sourceReader->getPageCount()) {
+            throw new \InvalidArgumentException(sprintf(
+                'Page index %d out of range (source has %d pages)',
+                $pageIndex,
+                $sourceReader->getPageCount(),
+            ));
+        }
+        $position ??= StampPosition::Center;
+        $this->operations[] = ['type' => 'pdf', 'args' => compact('sourceReader', 'pageIndex', 'position', 'pages', 'style')];
+        return $this;
+    }
+
     // -----------------------------------------------------------------------
     // Output
     // -----------------------------------------------------------------------
@@ -128,19 +184,64 @@ final class PdfStamper
         $pageRefs = PageResolver::getPageReferences($this->reader);
         $totalPages = count($pageRefs);
 
-        // Register a standard font for text stamps
-        $font = new Type1Font(StandardFont::Helvetica);
-        $fontRef = $writer->addNewObject($font);
+        // Register a standard font for text stamps (only when needed)
+        $fontRef = null;
         $fontName = 'StF1';
+        $needsFont = false;
+        foreach ($this->operations as $op) {
+            if (in_array($op['type'], ['text', 'watermark', 'pageNumbers'], true)) {
+                $needsFont = true;
+                break;
+            }
+        }
+        if ($needsFont) {
+            $font = new Type1Font(StandardFont::Helvetica);
+            $fontRef = $writer->addNewObject($font);
+        }
 
         // Pre-create shared ExtGState for opacity if needed
         $gsRefs = [];
+
+        // Pre-register XObject resources that are shared across pages
+        $xObjectCounter = 0;
+        /** @var array<string, PdfReference> $xObjectRefs  xoName => ref */
+        $xObjectRefs = [];
+
+        // Pre-process image and PDF operations to register XObjects once
+        foreach ($this->operations as $idx => $op) {
+            if ($op['type'] === 'image') {
+                $xObjectCounter++;
+                $xoName = 'StXo' . $xObjectCounter;
+                $xoRef = $this->registerImageXObject($writer, $op['args']['imagePath']);
+                $xObjectRefs[$xoName] = $xoRef;
+                $this->operations[$idx]['xoName'] = $xoName;
+
+                $info = ImageParser::parse($op['args']['imagePath']);
+                $this->operations[$idx]['sourceWidth'] = (float) $info->width;
+                $this->operations[$idx]['sourceHeight'] = (float) $info->height;
+            } elseif ($op['type'] === 'pdf') {
+                $xObjectCounter++;
+                $xoName = 'StXo' . $xObjectCounter;
+                $sourceReader = $op['args']['sourceReader'];
+                $pageIndex = $op['args']['pageIndex'];
+                $sourcePageDict = $sourceReader->getPage($pageIndex);
+                $sourceDims = PageResolver::getPageDimensions($sourcePageDict, $sourceReader);
+
+                $xoRef = $this->registerPdfPageXObject($writer, $sourceReader, $pageIndex, $sourceDims);
+                $xObjectRefs[$xoName] = $xoRef;
+                $this->operations[$idx]['xoName'] = $xoName;
+                $this->operations[$idx]['sourceWidth'] = $sourceDims['width'];
+                $this->operations[$idx]['sourceHeight'] = $sourceDims['height'];
+            }
+        }
 
         // Collect stamp content per page
         /** @var array<int, list<string>> $pageOps  0-indexed page => list of operator strings */
         $pageOps = [];
         /** @var array<int, array<string, PdfReference>> $pageExtGState */
         $pageExtGState = [];
+        /** @var array<int, array<string, PdfReference>> $pageXObjects */
+        $pageXObjects = [];
 
         foreach ($this->operations as $op) {
             for ($i = 0; $i < $totalPages; $i++) {
@@ -170,6 +271,14 @@ final class PdfStamper
                         $op['args']['style'] ?? new StampStyle(fontSize: 10.0),
                         $dims, $fontName,
                     ),
+                    'image', 'pdf' => $this->buildXObjectOps(
+                        $op['xoName'],
+                        $op['args']['position'],
+                        $op['args']['style'] ?? new ImageStampStyle(),
+                        $dims,
+                        $op['sourceWidth'],
+                        $op['sourceHeight'],
+                    ),
                     default => [],
                 };
 
@@ -186,6 +295,11 @@ final class PdfStamper
                             $pageExtGState[$i][$gsName] = $gsRefs[$gsName];
                         }
                     }
+                    if (isset($ops['xObjects'])) {
+                        foreach ($ops['xObjects'] as $xoName) {
+                            $pageXObjects[$i][$xoName] = $xObjectRefs[$xoName];
+                        }
+                    }
                 }
             }
         }
@@ -197,9 +311,14 @@ final class PdfStamper
 
             // Build resources for this content stream
             $resources = new Resources();
-            $resources->addFont($fontName, $fontRef);
+            if ($fontRef !== null) {
+                $resources->addFont($fontName, $fontRef);
+            }
             foreach ($pageExtGState[$pageIdx] ?? [] as $gsName => $gsRef) {
                 $resources->addExtGState($gsName, $gsRef);
+            }
+            foreach ($pageXObjects[$pageIdx] ?? [] as $xoName => $xoRef) {
+                $resources->addXObject($xoName, $xoRef);
             }
 
             $cs->resources = $resources;
@@ -218,15 +337,17 @@ final class PdfStamper
 
             $pageDict->set('Contents', new PdfArray($contentsArray));
 
-            // Merge resources: add font and extgstate to existing page resources
+            // Merge resources: add font, extgstate, xobjects to existing page resources
             $existingRes = $pageDict->get('Resources');
             if ($existingRes instanceof PdfDictionary) {
                 // Add font
-                $fontDict = $existingRes->get('Font');
-                if ($fontDict instanceof PdfDictionary) {
-                    $fontDict->set($fontName, $fontRef);
-                } else {
-                    $existingRes->set('Font', (new PdfDictionary())->set($fontName, $fontRef));
+                if ($fontRef !== null) {
+                    $fontDict = $existingRes->get('Font');
+                    if ($fontDict instanceof PdfDictionary) {
+                        $fontDict->set($fontName, $fontRef);
+                    } else {
+                        $existingRes->set('Font', (new PdfDictionary())->set($fontName, $fontRef));
+                    }
                 }
                 // Add ExtGState
                 foreach ($pageExtGState[$pageIdx] ?? [] as $gsName => $gsRef) {
@@ -237,10 +358,21 @@ final class PdfStamper
                         $existingRes->set('ExtGState', (new PdfDictionary())->set($gsName, $gsRef));
                     }
                 }
+                // Add XObject
+                foreach ($pageXObjects[$pageIdx] ?? [] as $xoName => $xoRef) {
+                    $xoDict = $existingRes->get('XObject');
+                    if ($xoDict instanceof PdfDictionary) {
+                        $xoDict->set($xoName, $xoRef);
+                    } else {
+                        $existingRes->set('XObject', (new PdfDictionary())->set($xoName, $xoRef));
+                    }
+                }
             } else {
-                // No existing resources dict — use inline resource dict
+                // No existing resources dict — build inline resource dict
                 $resDict = new PdfDictionary();
-                $resDict->set('Font', (new PdfDictionary())->set($fontName, $fontRef));
+                if ($fontRef !== null) {
+                    $resDict->set('Font', (new PdfDictionary())->set($fontName, $fontRef));
+                }
                 foreach ($pageExtGState[$pageIdx] ?? [] as $gsName => $gsRef) {
                     $gsDictEntry = $resDict->get('ExtGState');
                     if (!$gsDictEntry instanceof PdfDictionary) {
@@ -248,6 +380,14 @@ final class PdfStamper
                         $resDict->set('ExtGState', $gsDictEntry);
                     }
                     $gsDictEntry->set($gsName, $gsRef);
+                }
+                foreach ($pageXObjects[$pageIdx] ?? [] as $xoName => $xoRef) {
+                    $xoDictEntry = $resDict->get('XObject');
+                    if (!$xoDictEntry instanceof PdfDictionary) {
+                        $xoDictEntry = new PdfDictionary();
+                        $resDict->set('XObject', $xoDictEntry);
+                    }
+                    $xoDictEntry->set($xoName, $xoRef);
                 }
                 $pageDict->set('Resources', $resDict);
             }
@@ -371,5 +511,143 @@ final class PdfStamper
     private function escapeText(string $text): string
     {
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
+    }
+
+    /**
+     * Build content stream operators to render an XObject at a position.
+     *
+     * @return array{operators: list<string>, extGState?: array<string, float>, xObjects?: list<string>}
+     */
+    private function buildXObjectOps(
+        string $xoName,
+        StampPosition $position,
+        ImageStampStyle $style,
+        array $dims,
+        float $sourceWidth,
+        float $sourceHeight,
+    ): array {
+        // Compute display dimensions
+        if ($style->width !== null && $style->height !== null) {
+            $displayWidth = $style->width;
+            $displayHeight = $style->height;
+        } elseif ($style->width !== null) {
+            $displayWidth = $style->width;
+            $displayHeight = $sourceHeight * ($style->width / $sourceWidth);
+        } elseif ($style->height !== null) {
+            $displayHeight = $style->height;
+            $displayWidth = $sourceWidth * ($style->height / $sourceHeight);
+        } else {
+            $displayWidth = $sourceWidth;
+            $displayHeight = $sourceHeight;
+        }
+
+        [$x, $y] = $position->computeCoordinates(
+            $dims['width'], $dims['height'], $displayWidth, $displayHeight,
+        );
+
+        $operators = ['q'];
+        $extGState = [];
+
+        if ($style->opacity < 1.0) {
+            $gsName = 'GsStamp' . (int) ($style->opacity * 100);
+            $operators[] = "/$gsName gs";
+            $extGState[$gsName] = $style->opacity;
+        }
+
+        // cm operator: scale and translate the XObject
+        $operators[] = sprintf(
+            '%.4f 0 0 %.4f %.4f %.4f cm',
+            $displayWidth, $displayHeight, $x, $y,
+        );
+        $operators[] = "/$xoName Do";
+        $operators[] = 'Q';
+
+        $result = ['operators' => $operators, 'xObjects' => [$xoName]];
+        if (!empty($extGState)) {
+            $result['extGState'] = $extGState;
+        }
+        return $result;
+    }
+
+    /**
+     * Register a JPEG/PNG image as an ImageXObject in the incremental writer.
+     */
+    private function registerImageXObject(IncrementalWriter $writer, string $imagePath): PdfReference
+    {
+        $info = ImageParser::parse($imagePath);
+        $data = file_get_contents($imagePath);
+
+        $dict = new PdfDictionary([
+            'Type'             => new PdfName('XObject'),
+            'Subtype'          => new PdfName('Image'),
+            'Width'            => new PdfNumber($info->width),
+            'Height'           => new PdfNumber($info->height),
+            'ColorSpace'       => new PdfName($info->colorSpace),
+            'BitsPerComponent' => new PdfNumber($info->bitsPerComponent),
+        ]);
+
+        // Set the appropriate decode filter for pass-through formats
+        match ($info->format) {
+            'jpeg' => $dict->set('Filter', new PdfName('DCTDecode')),
+            'jpeg2000' => $dict->set('Filter', new PdfName('JPXDecode')),
+            default => null,
+        };
+
+        $xObject = new PdfStream($dict, $data);
+        return $writer->addNewObject($xObject);
+    }
+
+    /**
+     * Import a page from a source PDF as a Form XObject.
+     *
+     * Extracts the page's content streams and resources, wrapping them in
+     * a single Form XObject that can be rendered via the Do operator.
+     */
+    private function registerPdfPageXObject(
+        IncrementalWriter $writer,
+        PdfReader $sourceReader,
+        int $pageIndex,
+        array $sourceDims,
+    ): PdfReference {
+        $sourcePageDict = $sourceReader->getPage($pageIndex);
+
+        // Collect content stream data
+        $contentData = '';
+        $contents = $sourcePageDict->get('Contents');
+        if ($contents instanceof PdfReference) {
+            $obj = $sourceReader->resolveReference($contents);
+            if ($obj instanceof PdfStream) {
+                $contentData = $obj->data;
+            } elseif ($obj instanceof PdfDictionary) {
+                $contentData = '';
+            }
+        } elseif ($contents instanceof PdfArray) {
+            foreach ($contents->items as $ref) {
+                if ($ref instanceof PdfReference) {
+                    $obj = $sourceReader->resolveReference($ref);
+                    if ($obj instanceof PdfStream) {
+                        $contentData .= $obj->data . "\n";
+                    }
+                }
+            }
+        }
+
+        $bBox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber($sourceDims['width']), new PdfNumber($sourceDims['height']),
+        ]);
+
+        $formXObject = new FormXObject($bBox, $contentData);
+
+        // Copy resources from the source page
+        $sourceResources = $sourcePageDict->get('Resources');
+        if ($sourceResources instanceof PdfReference) {
+            $sourceResources = $sourceReader->resolveReference($sourceResources);
+        }
+        if ($sourceResources instanceof PdfDictionary) {
+            $formXObject->resources = $sourceResources;
+        }
+
+        return $writer->addNewObject($formXObject);
     }
 }

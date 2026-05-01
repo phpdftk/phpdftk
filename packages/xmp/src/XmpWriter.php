@@ -2,13 +2,21 @@
 namespace ApprLabs\Xmp;
 
 final class XmpWriter {
-    private const NAMESPACE_PREFIXES = [
+    private const DEFAULT_NAMESPACES = [
         'dc'   => 'http://purl.org/dc/elements/1.1/',
         'xmp'  => 'http://ns.adobe.com/xap/1.0/',
         'pdf'  => 'http://ns.adobe.com/pdf/1.3/',
         'xmpMM' => 'http://ns.adobe.com/xap/1.0/mm/',
         'stEvt' => 'http://ns.adobe.com/xap/1.0/sType/ResourceEvent#',
     ];
+
+    /** @var array<string, string> */
+    private array $namespaces;
+
+    /** @param array<string, string> $additionalNamespaces prefix => URI */
+    public function __construct(array $additionalNamespaces = []) {
+        $this->namespaces = array_merge(self::DEFAULT_NAMESPACES, $additionalNamespaces);
+    }
 
     public function serialize(XmpPacket $packet): string {
         $properties = $packet->all();
@@ -28,7 +36,7 @@ final class XmpWriter {
 
         // Build namespace declarations for used prefixes
         $nsDecls = '';
-        foreach (self::NAMESPACE_PREFIXES as $prefix => $uri) {
+        foreach ($this->namespaces as $prefix => $uri) {
             if (isset($usedPrefixes[$prefix])) {
                 $nsDecls .= "\n      xmlns:{$prefix}=\"" . htmlspecialchars($uri, ENT_XML1) . '"';
             }

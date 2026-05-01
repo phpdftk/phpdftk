@@ -6,10 +6,15 @@ namespace ApprLabs\Pdf\Writer\Tests\Writer;
 
 use ApprLabs\FontParser\OpenTypeParser;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class KerningIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private static ?string $otfPath = null;
 
     public static function setUpBeforeClass(): void
@@ -85,6 +90,7 @@ class KerningIntegrationTest extends TestCase
         $content = file_get_contents($outputPath);
         $this->assertStringStartsWith('%PDF', $content);
         $this->assertGreaterThan(0, filesize($outputPath));
+        $this->assertQpdfValid($outputPath);
     }
 
     public function testKernedPdfContainsTjOperator(): void
@@ -118,6 +124,7 @@ class KerningIntegrationTest extends TestCase
 
         $pdfBytes = $writer->toBytes();
         $this->assertStringStartsWith('%PDF', $pdfBytes);
+        $this->assertQpdfValidBytes($pdfBytes);
 
         // Check if kern adjustment was applied — the PDF should contain TJ if the
         // font has an AV kern pair, otherwise Tj

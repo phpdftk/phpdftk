@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Article bead dictionary (ISO 32000-2 Table 161).
@@ -16,6 +18,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * Represents a single bead in an article thread, linking to a specific
  * region on a page and chaining to adjacent beads.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class Bead extends PdfObject
 {
     public const PDF_TYPE = 'Bead';

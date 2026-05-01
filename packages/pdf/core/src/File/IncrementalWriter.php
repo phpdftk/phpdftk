@@ -53,6 +53,7 @@ final class IncrementalWriter
     private array $versionWarnings = [];
     /** @var (\Closure(string): void)|null */
     private ?\Closure $deprecationHandler = null;
+    private bool $strictDeprecation = false;
 
     /**
      * @param string $originalPdf The complete bytes of the original PDF
@@ -165,6 +166,11 @@ final class IncrementalWriter
     public function setDeprecationHandler(\Closure $handler): void
     {
         $this->deprecationHandler = $handler;
+    }
+
+    public function setStrictDeprecation(bool $strict = true): void
+    {
+        $this->strictDeprecation = $strict;
     }
 
     /** @return list<string> */
@@ -446,6 +452,8 @@ final class IncrementalWriter
             if ($this->deprecationHandler !== null) {
                 ($this->deprecationHandler)($msg);
             }
+
+            $this->enforceRemoval($object::class, $deprecation);
         }
 
         $required = VersionRequirementResolver::getEffectiveRequirement($object);
@@ -484,6 +492,21 @@ final class IncrementalWriter
                     $this->versionBumped = true;
                 }
             }
+        }
+    }
+
+    /**
+     * Enforce removal: throw if the feature has a removedIn version and
+     * the target version is at or above it (in strict deprecation mode).
+     */
+    private function enforceRemoval(string $class, \ApprLabs\Pdf\Core\DeprecatedPdfFeature $deprecation): void
+    {
+        if ($deprecation->removedInVersion === null) {
+            return;
+        }
+
+        if ($this->version->isAtLeast($deprecation->removedInVersion) && $this->strictDeprecation) {
+            throw new DeprecatedFeatureException($class, $deprecation, $this->version);
         }
     }
 

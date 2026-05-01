@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfString;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -18,6 +20,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Carries the PKCS#7 envelope that encrypts the file encryption key for
  * one recipient plus that recipient's access permissions.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class PublicKeyRecipient implements Serializable
 {
     public PdfString $pkcs7;            // the envelope (byte string)

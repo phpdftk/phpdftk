@@ -12,10 +12,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\MetadataEditor;
 use ApprLabs\Pdf\Toolkit\MetadataInfo;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class MetadataEditorTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdfWithInfo(): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -99,6 +103,7 @@ class MetadataEditorTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $updated);
+        $this->assertQpdfValidBytes($updated);
 
         $editor = MetadataEditor::openString($updated);
         $this->assertSame('Updated Title', $editor->getTitle());
@@ -116,6 +121,7 @@ class MetadataEditorTest extends TestCase
             ->setKeywords('new, keywords')
             ->toBytes();
 
+        $this->assertQpdfValidBytes($updated);
         $editor = MetadataEditor::openString($updated);
         $this->assertSame('New Title', $editor->getTitle());
         $this->assertSame('New Author', $editor->getAuthor());
@@ -134,6 +140,7 @@ class MetadataEditorTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $updated);
+        $this->assertQpdfValidBytes($updated);
 
         $editor = MetadataEditor::openString($updated);
         $this->assertSame('Brand New Title', $editor->getTitle());
@@ -172,6 +179,7 @@ class MetadataEditorTest extends TestCase
             ->toBytes();
 
         // Verify the PDF is valid
+        $this->assertQpdfValidBytes($updated);
         $reader = PdfReader::fromString($updated);
         $info = $reader->getInfo();
         $this->assertNotNull($info);
@@ -192,6 +200,7 @@ class MetadataEditorTest extends TestCase
 
             $this->assertFileExists($outputPath);
             $this->assertStringStartsWith('%PDF', file_get_contents($outputPath));
+            $this->assertQpdfValid($outputPath);
 
             $editor = MetadataEditor::open($outputPath);
             $this->assertSame('File Save Test', $editor->getTitle());

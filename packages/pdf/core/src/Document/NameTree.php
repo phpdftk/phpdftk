@@ -7,6 +7,8 @@ namespace ApprLabs\Pdf\Core\Document;
 use ApprLabs\Pdf\Core\PdfArray;
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfObject;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * General-purpose name-keyed tree node (ISO 32000-2 Table 36).
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\PdfObject;
  * Name trees map string keys to arbitrary values. Leaf nodes contain
  * /Names arrays; intermediate nodes contain /Kids and /Limits.
  */
+#[RequiresPdfVersion(PdfVersion::V1_2)]
 class NameTree extends PdfObject
 {
     public ?PdfArray $kids = null;    // /Kids - intermediate node children

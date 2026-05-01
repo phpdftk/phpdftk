@@ -31,6 +31,9 @@
         <testsuite name="font-parser">
             <directory>packages/font-parser/tests</directory>
         </testsuite>
+        <testsuite name="conformance">
+            <directory>packages/pdf/conformance/tests</directory>
+        </testsuite>
         <testsuite name="core">
             <directory>packages/pdf/core/tests</directory>
         </testsuite>
@@ -53,6 +56,7 @@
     </coverage>
     <source>
         <include>
+            <directory>packages/pdf/conformance/src</directory>
             <directory>packages/pdf/core/src</directory>
             <directory>packages/pdf/writer/src</directory>
             <directory>packages/pdf/reader/src</directory>

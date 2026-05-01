@@ -19,6 +19,8 @@ use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfReference;
 use ApprLabs\Pdf\Core\PdfString;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,8 +34,11 @@ use PHPUnit\Framework\TestCase;
  * This exercises the signature object graph end-to-end without performing
  * any actual cryptographic signing — /Contents is the zeroed placeholder.
  */
+#[Group("qpdf")]
 class SignatureFieldIntegrationTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/signature_field.pdf';
 
     public function testGeneratesSignatureFieldPdf(): void
@@ -105,6 +110,7 @@ class SignatureFieldIntegrationTest extends TestCase
         $writer->save(self::OUTPUT_FILE);
 
         self::assertFileExists(self::OUTPUT_FILE);
+        $this->assertQpdfValid(self::OUTPUT_FILE);
         $contents = file_get_contents(self::OUTPUT_FILE);
         self::assertNotFalse($contents);
         self::assertStringStartsWith('%PDF-', $contents);

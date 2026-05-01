@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -19,6 +21,7 @@ use ApprLabs\Pdf\Core\Serializable;
  *   $map->map('Note', 'P');
  *   $map->map('Heading1', 'H1');
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class RoleMap implements Serializable
 {
     /** @var array<string, string> */

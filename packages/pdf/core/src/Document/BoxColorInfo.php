@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ApprLabs\Pdf\Core\Document;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * boxes of a page. Assigned inline to `Page::$boxColorInfo` /
  * `PageTree::$boxColorInfo`.
  */
+#[RequiresPdfVersion(PdfVersion::V1_3)]
 class BoxColorInfo implements Serializable
 {
     public ?BoxStyle $cropBox = null;    // /CropBox

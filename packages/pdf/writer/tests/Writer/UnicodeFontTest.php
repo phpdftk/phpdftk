@@ -8,10 +8,15 @@ use ApprLabs\FontParser\TrueTypeParser;
 use ApprLabs\Pdf\Core\Font\Type0Font;
 use ApprLabs\Pdf\Core\Font\Type0FontFactory;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class UnicodeFontTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     private function findFont(): string
     {
         foreach ([
@@ -76,6 +81,7 @@ class UnicodeFontTest extends TestCase
         self::assertStringStartsWith('%PDF', $pdf);
         self::assertStringContainsString('/Type0', $pdf);
         self::assertStringContainsString('/Identity-H', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testAddCompositeFontSavesToFile(): void
@@ -115,6 +121,7 @@ class UnicodeFontTest extends TestCase
 
         self::assertFileExists($path);
         self::assertStringStartsWith('%PDF', file_get_contents($path));
+        $this->assertQpdfValid($path);
     }
 
     public function testCompositeFontAppearsInFontList(): void
@@ -169,5 +176,6 @@ class UnicodeFontTest extends TestCase
 
         $pdf = $writer->generate();
         self::assertStringStartsWith('%PDF', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 }

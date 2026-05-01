@@ -10,10 +10,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\PageSelector;
 use ApprLabs\Pdf\Toolkit\PdfMerger;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PdfMergerTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generatePdf(int $pages, string $label = 'Doc'): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -43,6 +47,7 @@ class PdfMergerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $this->assertSame(5, $reader->getPageCount());
 
@@ -65,6 +70,7 @@ class PdfMergerTest extends TestCase
                 ->addPages($path, PageSelector::pages(1, 3))
                 ->toBytes();
 
+            $this->assertQpdfValidBytes($result);
             $reader = PdfReader::fromString($result);
             $this->assertSame(2, $reader->getPageCount());
         } finally {
@@ -116,6 +122,7 @@ class PdfMergerTest extends TestCase
 
             $this->assertFileExists($path);
             $this->assertStringStartsWith('%PDF', file_get_contents($path));
+            $this->assertQpdfValid($path);
         } finally {
             @unlink($path);
         }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ApprLabs\Pdf\Writer\Tests;
 
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use ApprLabs\Pdf\Writer\PdfWriter;
 use ApprLabs\Pdf\Core\Document\Info;
@@ -12,14 +14,18 @@ use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfString;
 
+#[Group("qpdf")]
 class WriterTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     public function testPdfWriterGeneratesValidPdfHeader(): void
     {
         $writer = new PdfWriter();
         $pdf = $writer->generate();
         self::assertStringStartsWith('%PDF-', $pdf);
         self::assertStringContainsString('%PDF-1.7', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterGeneratesWithEndMarker(): void
@@ -50,6 +56,7 @@ class WriterTest extends TestCase
         $writer->addPage(612, 792);
         $pdf = $writer->generate();
         self::assertStringContainsString('/Type /Page', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterAddFont(): void
@@ -92,6 +99,7 @@ class WriterTest extends TestCase
         $pdf = $writer->generate();
         self::assertStringContainsString('BT', $pdf);
         self::assertStringContainsString('ET', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterGetContentStreams(): void
@@ -115,6 +123,7 @@ class WriterTest extends TestCase
         $pdf = $writer->generate();
         self::assertStringContainsString('/Title', $pdf);
         self::assertStringContainsString('/Info', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterGetCatalog(): void
@@ -141,6 +150,7 @@ class WriterTest extends TestCase
         $content = file_get_contents($outputPath);
         self::assertIsString($content);
         self::assertStringStartsWith('%PDF-', $content);
+        $this->assertQpdfValid($outputPath);
         unlink($outputPath);
     }
 
@@ -151,6 +161,7 @@ class WriterTest extends TestCase
         $pdf = $writer->generate();
         self::assertStringContainsString('xref', $pdf);
         self::assertStringContainsString('startxref', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterContainsTrailer(): void
@@ -170,6 +181,7 @@ class WriterTest extends TestCase
         $page = $writer->addPage($rect);
         $pdf = $writer->generate();
         self::assertStringContainsString('/MediaBox', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterRegisterObject(): void
@@ -180,6 +192,7 @@ class WriterTest extends TestCase
         $ref = $writer->register($action);
         $pdf = $writer->generate();
         self::assertStringContainsString('/S /GoTo', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testPdfWriterFontAddedToPage(): void
@@ -189,6 +202,7 @@ class WriterTest extends TestCase
         $writer->addFont(new Type1Font(StandardFont::Helvetica), $page);
         $pdf = $writer->generate();
         self::assertStringContainsString('/Font', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testSetNamedDestinations(): void
@@ -202,6 +216,7 @@ class WriterTest extends TestCase
         self::assertStringContainsString('chapter1', $pdf);
         self::assertStringContainsString('/Names', $pdf);
         self::assertStringContainsString('/Dests', $pdf);
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testSetEncryptionProducesEncryptedPdf(): void
@@ -230,6 +245,7 @@ class WriterTest extends TestCase
         // Round-trip: decrypt with user password and verify
         $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'user');
         self::assertSame(1, $reader->getPageCount());
+        $this->assertQpdfValidBytes($pdf);
     }
 
     public function testSetEncryptionAes256RoundTrip(): void
@@ -256,5 +272,6 @@ class WriterTest extends TestCase
 
         $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'pass');
         self::assertSame(1, $reader->getPageCount());
+        $this->assertQpdfValidBytes($pdf);
     }
 }

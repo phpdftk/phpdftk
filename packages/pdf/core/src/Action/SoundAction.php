@@ -16,7 +16,7 @@ use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
  * Plays a sound stream.
  */
 #[RequiresPdfVersion(PdfVersion::V1_5)]
-#[DeprecatedPdfFeature(since: '2.0', replacement: 'RenditionAction')]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'RenditionAction', removedIn: '2.0')]
 class SoundAction extends Action
 {
     public PdfReference $sound;           // /Sound - required, stream

@@ -16,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -23,6 +25,9 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: zlib, openssl, simplexml
           coverage: none
+
+      - name: Build validation tool images
+        run: cd docker && docker compose build
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
@@ -32,6 +37,74 @@ jobs:
 
       - name: Run static analysis
         run: scripts/analyse
+
+  verapdf:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Pull veraPDF image
+        run: docker pull verapdf/cli
+
+      - name: Run PDF/A conformance tests
+        run: vendor/bin/phpunit --group verapdf
+
+  compliance:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Initialize corpus submodules
+        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+          coverage: none
+
+      - name: Build QPDF image
+        run: cd docker && docker compose build
+
+      - name: Pull veraPDF image
+        run: docker pull verapdf/cli
+
+      - name: Pull JHOVE image
+        run: docker pull openpreserve/jhove
+
+      - name: Build pdfid and PDFBox Preflight images
+        run: cd docker && docker compose build pdfid pdfbox-preflight
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate compliance report
+        run: scripts/compliance
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report
+          path: docs/compliance.md
 
   validate:
     runs-on: ubuntu-latest

@@ -7,10 +7,15 @@ namespace ApprLabs\Pdf\Core\Tests\Document;
 use ApprLabs\FontParser\Type1Parser;
 use ApprLabs\Pdf\Core\Font\Type1Font;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class EmbeddedType1FontTest extends TestCase
 {
+    use QpdfValidationTrait;
+
     /**
      * Build a minimal synthetic PFB font for testing.
      */
@@ -115,6 +120,7 @@ class EmbeddedType1FontTest extends TestCase
         $writer->save($outPath);
 
         self::assertFileExists($outPath);
+        $this->assertQpdfValid($outPath);
         $content = file_get_contents($outPath);
         self::assertStringStartsWith('%PDF', $content);
 

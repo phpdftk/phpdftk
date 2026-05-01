@@ -8,6 +8,8 @@ use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfObject;
 use ApprLabs\Pdf\Core\PdfReference;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Article thread dictionary (ISO 32000-2 Table 160).
@@ -15,6 +17,7 @@ use ApprLabs\Pdf\Core\PdfReference;
  * Represents an article thread, linking together a sequence of beads
  * that form a logical reading order within the document.
  */
+#[RequiresPdfVersion(PdfVersion::V1_1)]
 class Thread extends PdfObject
 {
     public const PDF_TYPE = 'Thread';

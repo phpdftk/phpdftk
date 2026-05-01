@@ -15,7 +15,7 @@ use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
  * Movie annotation (/Subtype /Movie).
  */
 #[RequiresPdfVersion(PdfVersion::V1_4)]
-#[DeprecatedPdfFeature(since: '2.0', replacement: 'ScreenAnnotation')]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'ScreenAnnotation', removedIn: '2.0')]
 class MovieAnnotation extends Annotation
 {
     public ?PdfString $t = null;          // /T - title

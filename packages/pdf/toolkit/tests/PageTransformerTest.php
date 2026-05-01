@@ -12,10 +12,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\PageSelector;
 use ApprLabs\Pdf\Toolkit\PageTransformer;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class PageTransformerTest extends TestCase
 {
+    use QpdfValidationTrait;
     /**
      * Generate a multi-page test PDF with known dimensions.
      */
@@ -49,6 +53,7 @@ class PageTransformerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         $reader = PdfReader::fromString($result);
         $this->assertSame(3, $reader->getPageCount());
@@ -68,6 +73,7 @@ class PageTransformerTest extends TestCase
             ->rotate(180)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $rotate = $page->get('Rotate');
@@ -82,6 +88,7 @@ class PageTransformerTest extends TestCase
             ->rotate(270)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $rotate = $page->get('Rotate');
@@ -96,6 +103,7 @@ class PageTransformerTest extends TestCase
             ->rotate(90, PageSelector::pages(2))
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
 
         // Page 1 — no rotation
@@ -129,6 +137,7 @@ class PageTransformerTest extends TestCase
             ->rotate(90)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $rotate = $page->get('Rotate');
@@ -154,6 +163,7 @@ class PageTransformerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
@@ -169,6 +179,7 @@ class PageTransformerTest extends TestCase
             ->setCropBox(0, 0, 200, 300, PageSelector::pages(2))
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
 
         // Page 1 — no CropBox
@@ -193,6 +204,7 @@ class PageTransformerTest extends TestCase
             ->setMediaBox(0, 0, 400, 600)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $mediaBox = $page->get('MediaBox');
@@ -211,6 +223,7 @@ class PageTransformerTest extends TestCase
             ->setTrimBox(10, 10, 590, 770)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $trimBox = $page->get('TrimBox');
@@ -229,6 +242,7 @@ class PageTransformerTest extends TestCase
             ->setBleedBox(5, 5, 600, 780)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $bleedBox = $page->get('BleedBox');
@@ -247,6 +261,7 @@ class PageTransformerTest extends TestCase
             ->scale(0.5)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $mediaBox = $page->get('MediaBox');
@@ -262,6 +277,7 @@ class PageTransformerTest extends TestCase
             ->scale(2.0, PageSelector::pages(1))
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
 
         // Page 1 — scaled
@@ -293,6 +309,7 @@ class PageTransformerTest extends TestCase
             ->scaleTo(306, 396)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $mediaBox = $page->get('MediaBox');
@@ -308,6 +325,7 @@ class PageTransformerTest extends TestCase
             ->scaleTo(612, 612)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         $page = $reader->getPage(0);
         $mediaBox = $page->get('MediaBox');
@@ -333,6 +351,7 @@ class PageTransformerTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         $reader = PdfReader::fromString($result);
         $this->assertSame(2, $reader->getPageCount());
@@ -372,6 +391,7 @@ class PageTransformerTest extends TestCase
             ->rotate(90, PageSelector::even())
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         for ($i = 0; $i < 4; $i++) {
             $page = $reader->getPage($i);
@@ -396,6 +416,7 @@ class PageTransformerTest extends TestCase
             ->rotate(270, PageSelector::odd())
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         for ($i = 0; $i < 4; $i++) {
             $page = $reader->getPage($i);
@@ -420,6 +441,7 @@ class PageTransformerTest extends TestCase
             ->rotate(90, PageSelector::range(2, 4))
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $reader = PdfReader::fromString($result);
         for ($i = 0; $i < 5; $i++) {
             $page = $reader->getPage($i);
@@ -471,6 +493,7 @@ class PageTransformerTest extends TestCase
 
             $this->assertFileExists($outputPath);
             $this->assertStringStartsWith('%PDF', file_get_contents($outputPath));
+            $this->assertQpdfValid($outputPath);
 
             $reader = PdfReader::fromString(file_get_contents($outputPath));
             $page = $reader->getPage(0);

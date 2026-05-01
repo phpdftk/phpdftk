@@ -6,10 +6,14 @@ namespace ApprLabs\Pdf\Core\Tests\Document;
 
 use ApprLabs\Pdf\Core\Font\TrueTypeFont;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class EmbeddedFontsTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function findFont(): string
     {
         foreach ([
@@ -44,6 +48,7 @@ class EmbeddedFontsTest extends TestCase
         $writer->save($outPath);
 
         self::assertFileExists($outPath);
+        $this->assertQpdfValid($outPath);
         self::assertStringStartsWith('%PDF', file_get_contents($outPath));
     }
 

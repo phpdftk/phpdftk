@@ -10,10 +10,14 @@ use ApprLabs\Pdf\Reader\PdfReader;
 use ApprLabs\Pdf\Toolkit\Bookmark\BookmarkEntry;
 use ApprLabs\Pdf\Toolkit\BookmarkEditor;
 use ApprLabs\Pdf\Writer\PdfWriter;
+use ApprLabs\Tests\Support\QpdfValidationTrait;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group("qpdf")]
 class BookmarkEditorTest extends TestCase
 {
+    use QpdfValidationTrait;
     private function generateMultiPagePdf(int $pages = 5): string
     {
         $writer = new PdfWriter(compressStreams: false);
@@ -45,6 +49,7 @@ class BookmarkEditorTest extends TestCase
             ->toBytes();
 
         $this->assertStringStartsWith('%PDF', $result);
+        $this->assertQpdfValidBytes($result);
 
         // Round-trip: verify bookmarks can be read back
         $editor = BookmarkEditor::openString($result);
@@ -77,6 +82,7 @@ class BookmarkEditorTest extends TestCase
             )
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $editor = BookmarkEditor::openString($result);
         $bookmarks = $editor->getBookmarks();
 
@@ -103,11 +109,14 @@ class BookmarkEditorTest extends TestCase
             ->setBookmarks(new BookmarkEntry('Existing', 1))
             ->toBytes();
 
+        $this->assertQpdfValidBytes($withBookmarks);
+
         // Then append one
         $result = BookmarkEditor::openString($withBookmarks)
             ->addBookmark('Appended', 3)
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $bookmarks = BookmarkEditor::openString($result)->getBookmarks();
         $this->assertCount(2, $bookmarks);
         $this->assertSame('Existing', $bookmarks[0]->title);
@@ -142,6 +151,7 @@ class BookmarkEditorTest extends TestCase
             ->removeBookmarks()
             ->toBytes();
 
+        $this->assertQpdfValidBytes($result);
         $this->assertFalse(BookmarkEditor::openString($result)->hasBookmarks());
     }
 
@@ -171,6 +181,7 @@ class BookmarkEditorTest extends TestCase
 
             $this->assertFileExists($outputPath);
             $this->assertStringStartsWith('%PDF', file_get_contents($outputPath));
+            $this->assertQpdfValid($outputPath);
 
             // Verify round-trip from file
             $editor = BookmarkEditor::open($outputPath);
@@ -210,6 +221,7 @@ class BookmarkEditorTest extends TestCase
             )
             ->toBytes();
 
+        $this->assertQpdfValidBytes($v2);
         $bookmarks = BookmarkEditor::openString($v2)->getBookmarks();
         $this->assertCount(1, $bookmarks);
         $this->assertSame('New X', $bookmarks[0]->title);

@@ -6,6 +6,8 @@ namespace ApprLabs\Pdf\Core\Filter;
 
 use ApprLabs\Pdf\Core\PdfDictionary;
 use ApprLabs\Pdf\Core\PdfName;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 use ApprLabs\Pdf\Core\Serializable;
 
 /**
@@ -14,6 +16,7 @@ use ApprLabs\Pdf\Core\Serializable;
  * Selects which named crypt filter from the document's /CF dictionary
  * is used to decrypt a specific stream.
  */
+#[RequiresPdfVersion(PdfVersion::V1_5)]
 class CryptFilterDecodeParams implements Serializable
 {
     public ?PdfName $type = null;    // /Type /CryptFilterDecodeParms

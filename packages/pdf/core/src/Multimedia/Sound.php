@@ -9,6 +9,8 @@ use ApprLabs\Pdf\Core\PdfName;
 use ApprLabs\Pdf\Core\PdfNumber;
 use ApprLabs\Pdf\Core\PdfStream;
 use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
+use ApprLabs\Pdf\Core\PdfVersion;
+use ApprLabs\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Sound object (/Type /Sound) — ISO 32000-2 §13.3.
@@ -19,7 +21,8 @@ use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
  * Required: R (sample rate). Common: C (channels), B (bits per sample),
  * E (encoding), CO (compression format), CP (compression params).
  */
-#[DeprecatedPdfFeature(since: '2.0', replacement: 'MediaRendition')]
+#[RequiresPdfVersion(PdfVersion::V1_2)]
+#[DeprecatedPdfFeature(since: '2.0', replacement: 'MediaRendition', removedIn: '2.0')]
 class Sound extends PdfStream
 {
     public const PDF_TYPE = 'Sound';
