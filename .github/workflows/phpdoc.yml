@@ -19,7 +19,12 @@ jobs:
         with:
           php-version: '8.4'
           extensions: zlib, openssl, simplexml
-          tools: phpdocumentor
+
+      - name: Install phpDocumentor
+        run: |
+          curl -sSL https://phpdoc.org/phpDocumentor.phar -o phpDocumentor.phar
+          chmod +x phpDocumentor.phar
+          sudo mv phpDocumentor.phar /usr/local/bin/phpdoc
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress

@@ -1,3 +1,6 @@
+[plugins]
+php = "https://github.com/verzly/mise-php"
+
 [tools]
 php = "8.4"
 node = "24"
