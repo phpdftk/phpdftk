@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfHydrator;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfHydrator;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class PdfHydratorTest extends TestCase
@@ -132,7 +132,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 10);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Graphics\ExtGState::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Graphics\ExtGState::class, $result);
         $this->assertSame(0.5, $result->ca);
     }
 
@@ -146,7 +146,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 5);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Font\FontDescriptor::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Font\FontDescriptor::class, $result);
         $this->assertSame('Helvetica', $result->fontName->value);
         $this->assertSame(32, $result->flags);
     }
@@ -163,7 +163,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 7);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\TextAnnotation::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Annotation\TextAnnotation::class, $result);
     }
 
     public function testHydrateAnnotationLinkBySubtype(): void
@@ -178,7 +178,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 8);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\LinkAnnotation::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Annotation\LinkAnnotation::class, $result);
     }
 
     public function testHydrateSignatureValue(): void
@@ -190,7 +190,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 12);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue::class, $result);
     }
 
     public function testHydrateOutlineItemWithRequiredArg(): void
@@ -202,12 +202,12 @@ class PdfHydratorTest extends TestCase
 
         // OutlineItem doesn't have /Type — the hydrator won't match it
         // by type, but if we register it manually it should work
-        PdfHydrator::registerType('_OutlineItem', \ApprLabs\Pdf\Core\Document\OutlineItem::class);
+        PdfHydrator::registerType('_OutlineItem', \Phpdftk\Pdf\Core\Document\OutlineItem::class);
         $dict->set('Type', new PdfName('_OutlineItem'));
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 4);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\OutlineItem::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Document\OutlineItem::class, $result);
         $this->assertSame('Chapter 1', $result->title->value);
     }
 
@@ -219,7 +219,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 15);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\FileSpec\EmbeddedFile::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\FileSpec\EmbeddedFile::class, $result);
     }
 
     public function testHydrateMetadataStream(): void
@@ -230,7 +230,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 20);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\MetadataStream::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Document\MetadataStream::class, $result);
     }
 
     public function testSubtypeRegistration(): void
@@ -252,7 +252,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict, objectNumber: 9);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Annotation\HighlightAnnotation::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Annotation\HighlightAnnotation::class, $result);
     }
 
     public function testUnknownSubtypeReturnsDictionary(): void
@@ -284,7 +284,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\GoToAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\GoToAction::class, $result);
     }
 
     public function testHydrateURIActionWithoutType(): void
@@ -296,7 +296,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\URIAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\URIAction::class, $result);
         $this->assertSame('https://example.com', $result->uri->value);
     }
 
@@ -308,7 +308,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\JavaScriptAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\JavaScriptAction::class, $result);
     }
 
     public function testHydrateNamedAction(): void
@@ -319,7 +319,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\NamedAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\NamedAction::class, $result);
     }
 
     public function testHydrateGoToDPAction(): void
@@ -331,7 +331,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\GoToDPAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\GoToDPAction::class, $result);
     }
 
     public function testHydrateRichMediaExecuteAction(): void
@@ -342,7 +342,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\RichMediaExecuteAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\RichMediaExecuteAction::class, $result);
     }
 
     public function testHydrateNoConstructorAction(): void
@@ -352,7 +352,7 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Action\LaunchAction::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Action\LaunchAction::class, $result);
     }
 
     public function testHydrateUnknownActionReturnsDictionary(): void
@@ -372,6 +372,6 @@ class PdfHydratorTest extends TestCase
 
         $result = PdfHydrator::hydrate($dict);
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\Document\DSS::class, $result);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\Document\DSS::class, $result);
     }
 }

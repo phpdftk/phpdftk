@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\OpenTypeParser;
-use ApprLabs\FontParser\TrueTypeParser;
-use ApprLabs\Pdf\Core\Font\Type0FontFactory;
+use Phpdftk\FontParser\OpenTypeParser;
+use Phpdftk\FontParser\TrueTypeParser;
+use Phpdftk\Pdf\Core\Font\Type0FontFactory;
 use PHPUnit\Framework\TestCase;
 
 class VerticalWritingTest extends TestCase

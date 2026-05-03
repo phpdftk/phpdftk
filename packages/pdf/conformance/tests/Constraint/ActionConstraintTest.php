@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\ActionConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Action\GoToAction;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Action\LaunchAction;
-use ApprLabs\Pdf\Core\Action\MovieAction;
-use ApprLabs\Pdf\Core\Action\SoundAction;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Conformance\Constraint\ActionConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Action\GoToAction;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Action\LaunchAction;
+use Phpdftk\Pdf\Core\Action\MovieAction;
+use Phpdftk\Pdf\Core\Action\SoundAction;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class ActionConstraintTest extends TestCase

@@ -1,5 +1,10 @@
 # phpdftk
 
+[![CI](https://github.com/phpdftk/phpdftk/actions/workflows/ci.yml/badge.svg)](https://github.com/phpdftk/phpdftk/actions/workflows/ci.yml)
+[![Coverage](docs/generated/coverage-badge.svg)](docs/generated/coverage-badge.svg)
+[![PHP 8.4+](https://img.shields.io/badge/php-8.4%2B-8892BF.svg)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A PHP 8.4 monorepo for generating and manipulating PDF files. Every object in the PDF specification maps 1:1 to a PHP class, with each `/Field` from the spec mapping directly to a camelCase property.
 
 Zero dependencies outside the standard library. Spec-compliant output. Fast and memory-efficient.
@@ -8,33 +13,33 @@ Zero dependencies outside the standard library. Spec-compliant output. Fast and 
 
 | Library | 1 page | 10 pages | 100 pages | Peak Memory (100 pg) |
 |---|---|---|---|---|
-| **phpdftk** | **12ms** | **17ms** | **49ms** | **4.4 MB** |
-| FPDF | 9ms | 6ms | 9ms | 4.4 MB |
-| TCPDF | 125ms | 150ms | 626ms | 12.4 MB |
-| mPDF | 172ms | 387ms | 2.1s | 17.8 MB |
-| Dompdf | 117ms | 249ms | 2.2s | 15.4 MB |
+| **phpdftk** | **0.9 ms** | **1.2 ms** | **3.5 ms** | **7.4 MB** |
+| FPDF | 0.4 ms | 0.5 ms | 1.2 ms | 5.3 MB |
+| TCPDF | 5.4 ms | 6.3 ms | 16.2 ms | 13.0 MB |
+| mPDF | 12.4 ms | 16.4 ms | 54.4 ms | 18.6 MB |
+| Dompdf | 5.4 ms | 10.4 ms | 88.0 ms | 16.1 MB |
 
-See [docs/benchmarks.md](docs/benchmarks.md) for full results.
+See [docs/generated/benchmarks.md](docs/generated/benchmarks.md) for full results.
 
 ## Quick Start
 
 ```bash
 # Install the whole family (object model + builder)
-composer require apprlabs/pdf
+composer require phpdftk/pdf
 
 # Or cherry-pick — just the builder pulls the object model transitively
-composer require apprlabs/pdf-writer
+composer require phpdftk/pdf-writer
 ```
 
-`apprlabs/pdf` is a metapackage that depends on `apprlabs/pdf-core` and
-`apprlabs/pdf-writer` (and, once it lands, `apprlabs/pdf-reader`). Use
-it when you want one install command for the whole toolkit, or pick
-individual sub-packages for fine-grained use.
+`phpdftk/pdf` is a metapackage that depends on `phpdftk/pdf-core`,
+`phpdftk/pdf-writer`, and `phpdftk/pdf-reader`. Use it when you want
+one install command for the whole toolkit, or pick individual
+sub-packages for fine-grained use.
 
 ### High-level builder — no PDF knowledge required
 
 ```php
-use ApprLabs\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\Pdf;
 
 $pdf = new Pdf();
 $pdf->addHeading('Hello, World', 1);
@@ -65,9 +70,9 @@ streams, or any other spec-level feature, drop to the fluent
 `PdfWriter` facade:
 
 ```php
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
 
 $writer = new PdfWriter();
 $page = $writer->addPage(612, 792);
@@ -97,20 +102,23 @@ This monorepo contains independently usable packages under `packages/`:
 
 | Package | Description |
 |---|---|
-| [`apprlabs/pdf`](packages/pdf/all) | **Metapackage** — one install for the whole family (currently `pdf-core` + `pdf-writer`; `pdf-reader` added when implemented) |
-| [`apprlabs/pdf-core`](packages/pdf/core) | PDF object model **and** byte-level file serialization — document structure, content streams, fonts, annotations, forms, plus `File\PdfFileWriter` which emits complete `%PDF` bytes |
-| [`apprlabs/pdf-writer`](packages/pdf/writer) | Ergonomic document builder — `PdfWriter` facade over `Core\File\PdfFileWriter` with `addPage` / `addFont` / `setOutline` / `setSigner` convenience methods |
-| [`apprlabs/pdf-reader`](packages/pdf/reader) | Parses existing PDFs into the object model (not yet implemented) |
-| [`apprlabs/geometry`](packages/geometry) | Point, Rectangle, Matrix, PageSize constants, BezierCurve |
-| [`apprlabs/color`](packages/color) | RGB, CMYK, and Gray color models with conversion utilities |
-| [`apprlabs/encoding`](packages/encoding) | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
-| [`apprlabs/font-metrics`](packages/font-metrics) | AFM data for the 14 standard PDF fonts |
-| [`apprlabs/filters`](packages/filters) | FlateDecode, ASCII85, ASCIIHex, and RunLength stream filters |
-| [`apprlabs/image-metadata`](packages/image-metadata) | Header-only image parsing for JPEG, PNG, GIF, TIFF, WebP |
-| [`apprlabs/xmp`](packages/xmp) | Read and write XMP metadata packets |
-| [`apprlabs/crypt`](packages/crypt) | AES-128/256-CBC and RC4 with PDF key derivation (ISO 32000-2) |
+| [`phpdftk/pdf`](packages/pdf/all) | **Metapackage** — one install for the whole family (`pdf-core` + `pdf-writer` + `pdf-reader`) |
+| [`phpdftk/pdf-core`](packages/pdf/core) | PDF object model **and** byte-level file serialization — document structure, content streams, fonts, annotations, forms, plus `File\PdfFileWriter` which emits complete `%PDF` bytes |
+| [`phpdftk/pdf-writer`](packages/pdf/writer) | Ergonomic document builder — `PdfWriter` facade over `Core\File\PdfFileWriter` with `addPage` / `addFont` / `setOutline` / `setSigner` convenience methods |
+| [`phpdftk/pdf-reader`](packages/pdf/reader) | Parses existing PDFs into typed objects, extracts text, inspects structure |
+| [`phpdftk/pdf-toolkit`](packages/pdf/toolkit) | High-level pipelines — form filling, page slicing/merging, stamping, text extraction, redaction, encryption, bookmarks, page labels, metadata editing, annotation flattening, LTV signing |
+| [`phpdftk/pdf-conformance`](packages/pdf/conformance) | ISO standard validation — PDF/A, PDF/X, PDF/UA, PDF/VT, PDF/E, PDF/R, ZUGFeRD/Factur-X, PDF/mail (8 standards, 31 levels) |
+| [`phpdftk/geometry`](packages/geometry) | Point, Rectangle, Matrix, PageSize constants, BezierCurve |
+| [`phpdftk/color`](packages/color) | RGB, CMYK, and Gray color models with conversion utilities |
+| [`phpdftk/encoding`](packages/encoding) | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
+| [`phpdftk/font-metrics`](packages/font-metrics) | AFM data for the 14 standard PDF fonts |
+| [`phpdftk/font-parser`](packages/font-parser) | TrueType/OpenType/CFF/Type1/WOFF/WOFF2 parsing, subsetting, kerning, ligatures, variable fonts |
+| [`phpdftk/filters`](packages/filters) | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFax, JBIG2, Predictor stream filters |
+| [`phpdftk/image-metadata`](packages/image-metadata) | Header-only image parsing for JPEG, PNG, GIF, TIFF, WebP with ICC profile extraction |
+| [`phpdftk/xmp`](packages/xmp) | Read and write XMP metadata packets |
+| [`phpdftk/crypt`](packages/crypt) | AES-128/256-CBC and RC4 with PDF key derivation, PKCS#7 public-key envelopes (ISO 32000-2) |
 
-All sub-packages have zero PDF dependencies and can be used standalone.
+All support packages have zero PDF dependencies and can be used standalone.
 
 ## Architecture
 
@@ -118,15 +126,15 @@ All sub-packages have zero PDF dependencies and can be used standalone.
 
 | Namespace | Purpose |
 |---|---|
-| `ApprLabs\Pdf\Core\` | Primitive types: `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference` |
-| `ApprLabs\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict` |
-| `ApprLabs\Pdf\Core\Font\` | `Type1Font`, `TrueTypeFont`, `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` enum |
-| `ApprLabs\Pdf\Core\Annotation\` | `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation` |
-| `ApprLabs\Pdf\Core\Graphics\` | `ExtGState`, `DeviceRGB`, `DeviceCMYK`, `DeviceGray`, `ImageXObject`, `FormXObject` |
-| `ApprLabs\Pdf\Core\Interactive\Form\` | `AcroForm`, `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
-| `ApprLabs\Pdf\Core\Action\` | `GoToAction`, `GoToRAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
-| `ApprLabs\Pdf\Core\Content\` | `ContentStream` (fluent operator API), `Resources` |
-| `ApprLabs\Pdf\Writer\` | `PdfWriter`, `ObjectRegistry`, `CrossReferenceTable` |
+| `Phpdftk\Pdf\Core\` | Primitive types: `PdfObject`, `PdfName`, `PdfString`, `PdfNumber`, `PdfBoolean`, `PdfNull`, `PdfArray`, `PdfDictionary`, `PdfStream`, `PdfReference` |
+| `Phpdftk\Pdf\Core\Document\` | `Catalog`, `PageTree`, `Page`, `Info`, `ViewerPreferences`, `Outline`, `OutlineItem`, `PageLabel`, `TransitionDict` |
+| `Phpdftk\Pdf\Core\Font\` | `Type1Font`, `TrueTypeFont`, `Type0Font`, `CIDFont`, `FontDescriptor`, `Encoding`, `StandardFont` enum |
+| `Phpdftk\Pdf\Core\Annotation\` | `TextAnnotation`, `LinkAnnotation`, `FreeTextAnnotation`, `HighlightAnnotation`, `StampAnnotation`, `InkAnnotation`, `PopupAnnotation`, `WidgetAnnotation` |
+| `Phpdftk\Pdf\Core\Graphics\` | `ExtGState`, `DeviceRGB`, `DeviceCMYK`, `DeviceGray`, `ImageXObject`, `FormXObject` |
+| `Phpdftk\Pdf\Core\Interactive\Form\` | `AcroForm`, `TextField`, `ButtonField`, `ChoiceField`, `SignatureField` |
+| `Phpdftk\Pdf\Core\Action\` | `GoToAction`, `GoToRAction`, `URIAction`, `JavaScriptAction`, `NamedAction` |
+| `Phpdftk\Pdf\Core\Content\` | `ContentStream` (fluent operator API), `Resources` |
+| `Phpdftk\Pdf\Writer\` | `PdfWriter`, `ObjectRegistry`, `CrossReferenceTable` |
 
 ### Content Streams
 
@@ -164,6 +172,45 @@ Operator groups: text, graphics state, paths, painting, color, XObjects, raw.
 - `PdfString` escapes `(`, `)`, `\`, `\n`, `\r`, `\t`
 
 See [docs/spec-coverage.md](docs/spec-coverage.md) for a full ISO 32000-2 coverage audit.
+
+## Conformance Validation
+
+Validate PDF output against 8 ISO subset standards (31 conformance levels):
+
+| Standard | ISO | Levels |
+|---|---|---|
+| PDF/A | 19005 | 1a, 1b, 2a, 2b, 2u, 3a, 3b, 3u, 4, 4e, 4f |
+| PDF/UA | 14289 | UA-1, UA-2 |
+| PDF/X | 15930 | X-1a:2003, X-3:2003, X-4, X-5g, X-5pg, X-5n |
+| PDF/VT | 16612 | VT-1, VT-2, VT-2s |
+| PDF/E | 24517 | E-1 |
+| PDF/R | 23504 | R-1 |
+| ZUGFeRD/Factur-X | — | MINIMUM, BASIC WL, BASIC, EN 16931, EXTENDED, XRECHNUNG |
+| PDF/mail | 23053-2 | Mail-1 |
+
+```php
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+
+$writer = new PdfWriter();
+$writer->setConformance(PdfAProfile::A2b);
+// ... build document ...
+$writer->save('archive.pdf');
+// Constraints enforced automatically at generation time.
+```
+
+The library auto-injects XMP identification, pins the PDF version, and runs 14 constraint types (font embedding, color spaces, metadata, transparency, encryption, actions, tagged structure, and more).
+
+## External Compliance
+
+275 external validation tests passing across 5 independent tools:
+
+- **QPDF** (236 tests) — structural integrity
+- **Arlington PDF Model** (6 tests) — dictionary-level spec conformance
+- **veraPDF** (2 tests) — PDF/A archival conformance
+- **Matterhorn Protocol** (6 tests) — PDF/UA accessibility
+- **JHOVE + Preflight** (25 tests) — format validation, PDF/A cross-validation
+
+See [docs/generated/compliance.md](docs/generated/compliance.md) for the full report.
 
 ## Development
 

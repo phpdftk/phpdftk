@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Filters\Tests;
+namespace Phpdftk\Filters\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Filters\FlateFilter;
-use ApprLabs\Filters\Ascii85Filter;
-use ApprLabs\Filters\AsciiHexFilter;
-use ApprLabs\Filters\RunLengthFilter;
+use Phpdftk\Filters\FlateFilter;
+use Phpdftk\Filters\Ascii85Filter;
+use Phpdftk\Filters\AsciiHexFilter;
+use Phpdftk\Filters\RunLengthFilter;
 
 class FilterTest extends TestCase
 {

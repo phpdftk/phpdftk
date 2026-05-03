@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 /**
  * Predefined CMap names for CJK font encoding — ISO 32000-2 §9.7.5.

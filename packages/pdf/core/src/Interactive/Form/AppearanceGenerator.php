@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
-use ApprLabs\Pdf\Core\Annotation\AppearanceDict;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Annotation\AppearanceDict;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 
 /**
  * Generates appearance streams for interactive form fields.

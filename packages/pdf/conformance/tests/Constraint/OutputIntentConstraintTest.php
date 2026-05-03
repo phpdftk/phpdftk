@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\OutputIntentConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Constraint\OutputIntentConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
 use PHPUnit\Framework\TestCase;
 
 class OutputIntentConstraintTest extends TestCase

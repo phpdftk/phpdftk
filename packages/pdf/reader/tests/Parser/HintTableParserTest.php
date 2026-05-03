@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Parser;
+namespace Phpdftk\Pdf\Reader\Tests\Parser;
 
-use ApprLabs\Pdf\Reader\Parser\HintTableParser;
-use ApprLabs\Pdf\Reader\Parser\PageOffsetHintTable;
+use Phpdftk\Pdf\Reader\Parser\HintTableParser;
+use Phpdftk\Pdf\Reader\Parser\PageOffsetHintTable;
 use PHPUnit\Framework\TestCase;
 
 class HintTableParserTest extends TestCase

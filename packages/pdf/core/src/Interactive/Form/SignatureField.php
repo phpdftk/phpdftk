@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Signature field (/FT /Sig) — ISO 32000-2 §12.7.5.5.

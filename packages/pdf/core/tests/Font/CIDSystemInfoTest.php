@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Font;
+namespace Phpdftk\Pdf\Core\Tests\Font;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Font\CIDFont;
-use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
+use Phpdftk\Pdf\Core\Font\CIDFont;
+use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
 
 class CIDSystemInfoTest extends TestCase
 {

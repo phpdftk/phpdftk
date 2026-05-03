@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
 /**
  * Read-only snapshot of a PDF's Info dictionary fields.

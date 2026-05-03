@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Crypt;
+namespace Phpdftk\Crypt;
 
+/**
+ * RC4 stream cipher for legacy PDF encryption (PDF 1.1–1.5).
+ *
+ * Encrypt and decrypt are the same XOR operation. Retained for
+ * reading older PDFs — AES should be used for all new documents.
+ */
 final class Rc4Cipher implements CryptInterface {
     public function encrypt(string $data, string $key): string {
         return self::rc4($data, $key);

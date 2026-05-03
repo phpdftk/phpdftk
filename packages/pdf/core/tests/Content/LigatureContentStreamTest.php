@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Content;
+namespace Phpdftk\Pdf\Core\Tests\Content;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
 use PHPUnit\Framework\TestCase;
 
 class LigatureContentStreamTest extends TestCase

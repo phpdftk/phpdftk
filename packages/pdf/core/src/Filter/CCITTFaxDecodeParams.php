@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Filter;
+namespace Phpdftk\Pdf\Core\Filter;
 
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
-use ApprLabs\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * CCITTFaxDecode parameters — ISO 32000-2 §7.4.6, Table 11.

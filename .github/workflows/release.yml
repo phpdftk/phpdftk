@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  provenance:
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          composer require --dev cyclonedx/cyclonedx-php-composer --no-interaction
+          vendor/bin/cyclonedx-php-composer --output-file=sbom.json --spec-version=1.5
+
+      - name: Create source archive
+        run: git archive --format=tar.gz --prefix=phpdftk/ -o phpdftk-source.tar.gz HEAD
+
+      - name: Attest SBOM provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: sbom.json
+
+      - name: Attest source archive provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: phpdftk-source.tar.gz
+
+      - name: Attach artifacts to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ needs.release-please.outputs.tag_name }}"
+          gh release upload "$tag" sbom.json --clobber
+          gh release upload "$tag" phpdftk-source.tar.gz --clobber
+
+  # TODO: Uncomment when ready to publish to Packagist via split repos.
+  # Requires SPLIT_TOKEN secret (PAT with repo scope on phpdftk org).
+  #
+  # split:
+  #   needs: release-please
+  #   if: needs.release-please.outputs.releases_created == 'true'
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #     id-token: write
+  #     attestations: write
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - package: pdf-core
+  #           directory: packages/pdf/core
+  #         - package: pdf-writer
+  #           directory: packages/pdf/writer
+  #         - package: pdf-reader
+  #           directory: packages/pdf/reader
+  #         - package: pdf-toolkit
+  #           directory: packages/pdf/toolkit
+  #         - package: pdf-conformance
+  #           directory: packages/pdf/conformance
+  #         - package: pdf
+  #           directory: packages/pdf/all
+  #         - package: geometry
+  #           directory: packages/geometry
+  #         - package: color
+  #           directory: packages/color
+  #         - package: filters
+  #           directory: packages/filters
+  #         - package: encoding
+  #           directory: packages/encoding
+  #         - package: font-metrics
+  #           directory: packages/font-metrics
+  #         - package: font-parser
+  #           directory: packages/font-parser
+  #         - package: image-metadata
+  #           directory: packages/image-metadata
+  #         - package: xmp
+  #           directory: packages/xmp
+  #         - package: crypt
+  #           directory: packages/crypt
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #
+  #     - name: Create target repo if missing
+  #       env:
+  #         GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+  #       run: |
+  #         gh repo view phpdftk/${{ matrix.package }} >/dev/null 2>&1 || \
+  #         gh repo create phpdftk/${{ matrix.package }} --public --description "Read-only split of ${{ matrix.package }} from phpdftk monorepo"
+  #
+  #     - name: Split and push
+  #       uses: symplify/monorepo-split-github-action@v2.3.0
+  #       with:
+  #         package-directory: ${{ matrix.directory }}
+  #         repository-organization: phpdftk
+  #         repository-name: ${{ matrix.package }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+  #
+  #     - name: Create split package archive
+  #       run: |
+  #         tar -czf ${{ matrix.package }}.tar.gz -C ${{ matrix.directory }} .
+  #
+  #     - name: Attest split package provenance
+  #       uses: actions/attest-build-provenance@v2
+  #       with:
+  #         subject-path: ${{ matrix.package }}.tar.gz
+  #
+  #     - name: Attach attested archive to release
+  #       env:
+  #         GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+  #       run: |
+  #         # Push attestation to the split repo release
+  #         tag="${{ needs.release-please.outputs.tag_name }}"
+  #         gh release create "$tag" \
+  #           --repo phpdftk/${{ matrix.package }} \
+  #           --title "$tag" \
+  #           --notes "Split from phpdftk monorepo $tag" \
+  #           ${{ matrix.package }}.tar.gz \
+  #           || gh release upload "$tag" \
+  #           --repo phpdftk/${{ matrix.package }} \
+  #           ${{ matrix.package }}.tar.gz --clobber

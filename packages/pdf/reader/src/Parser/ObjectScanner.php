@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
 /**
  * Scans raw PDF bytes for indirect object definitions to reconstruct

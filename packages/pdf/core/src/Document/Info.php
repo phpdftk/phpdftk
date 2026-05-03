@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Document;
+namespace Phpdftk\Pdf\Core\Document;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfString;
 
 /**
  * PDF Document Information Dictionary.

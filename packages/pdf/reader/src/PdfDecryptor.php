@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
-use ApprLabs\Crypt\AesCipher;
-use ApprLabs\Crypt\PdfKeyDerivation;
-use ApprLabs\Crypt\PublicKeyEncryption;
-use ApprLabs\Crypt\Rc4Cipher;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Crypt\AesCipher;
+use Phpdftk\Crypt\PdfKeyDerivation;
+use Phpdftk\Crypt\PublicKeyEncryption;
+use Phpdftk\Crypt\Rc4Cipher;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
 
 /**
  * Decrypts PDF objects using the Standard security handler.
@@ -81,7 +81,7 @@ final class PdfDecryptor
 
         $encryptMetadata = true;
         $emVal = $encryptDict->get('EncryptMetadata');
-        if ($emVal instanceof \ApprLabs\Pdf\Core\PdfBoolean) {
+        if ($emVal instanceof \Phpdftk\Pdf\Core\PdfBoolean) {
             $encryptMetadata = $emVal->toPdf() === 'true';
         }
 
@@ -141,7 +141,7 @@ final class PdfDecryptor
         if ($object instanceof PdfDictionary) {
             return $this->decryptDictionary($object, $objNum, $genNum);
         }
-        if ($object instanceof \ApprLabs\Pdf\Core\PdfStream) {
+        if ($object instanceof \Phpdftk\Pdf\Core\PdfStream) {
             return $this->decryptStream($object, $objNum, $genNum);
         }
         if ($object instanceof PdfString) {
@@ -176,7 +176,7 @@ final class PdfDecryptor
         return $result;
     }
 
-    private function decryptStream(\ApprLabs\Pdf\Core\PdfStream $stream, int $objNum, int $genNum): \ApprLabs\Pdf\Core\PdfStream
+    private function decryptStream(\Phpdftk\Pdf\Core\PdfStream $stream, int $objNum, int $genNum): \Phpdftk\Pdf\Core\PdfStream
     {
         // Don't decrypt XRef streams or metadata streams (when EncryptMetadata=false)
         $type = $stream->dictionary->get('Type');
@@ -191,7 +191,7 @@ final class PdfDecryptor
         // Decrypt strings in the dictionary
         $decryptedDict = $this->decryptDictionary($stream->dictionary, $objNum, $genNum);
 
-        return new \ApprLabs\Pdf\Core\PdfStream($decryptedDict, $decryptedData);
+        return new \Phpdftk\Pdf\Core\PdfStream($decryptedDict, $decryptedData);
     }
 
     private function decryptString(PdfString $string, int $objNum, int $genNum): PdfString
@@ -299,7 +299,7 @@ final class PdfDecryptor
 
         $encryptMetadata = true;
         $emVal = $encryptDict->get('EncryptMetadata');
-        if ($emVal instanceof \ApprLabs\Pdf\Core\PdfBoolean) {
+        if ($emVal instanceof \Phpdftk\Pdf\Core\PdfBoolean) {
             $encryptMetadata = $emVal->toPdf() === 'true';
         }
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support;
+namespace Phpdftk\Tests\Support;
 
 /**
  * JHOVE format validation trait for PDF files.

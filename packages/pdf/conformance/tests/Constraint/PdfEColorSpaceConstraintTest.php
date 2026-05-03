@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\PdfEColorSpaceConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Constraint\PdfEColorSpaceConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfEProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 use PHPUnit\Framework\TestCase;
 
 class PdfEColorSpaceConstraintTest extends TestCase

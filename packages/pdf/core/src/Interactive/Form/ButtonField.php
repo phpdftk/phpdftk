@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Button field (/FT /Btn) - covers push buttons, check boxes, and radio buttons.

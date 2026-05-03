@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parse TIFF IFD tags for dimensions, color space, and bit depth.
+ *
+ * Handles both little-endian (II) and big-endian (MM) byte orders.
+ * TIFF is commonly encountered in scanned-document workflows.
+ */
 final class TiffParser {
     public static function parseFile(string $path): ImageInfo {
         $fh = fopen($path, 'rb');

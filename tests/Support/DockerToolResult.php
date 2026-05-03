@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support;
+namespace Phpdftk\Tests\Support;
 
 final readonly class DockerToolResult
 {

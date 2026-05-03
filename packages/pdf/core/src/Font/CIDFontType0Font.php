@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
 /**
  * CIDFontType0 — CID-keyed font backed by a Type 1 / CFF font program

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\TrimBoxConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Conformance\Constraint\TrimBoxConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
 use PHPUnit\Framework\TestCase;
 
 class TrimBoxConstraintTest extends TestCase

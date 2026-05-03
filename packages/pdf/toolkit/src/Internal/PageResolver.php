@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Internal;
+namespace Phpdftk\Pdf\Toolkit\Internal;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 /**
  * Resolves page references (object numbers) from a PdfReader.

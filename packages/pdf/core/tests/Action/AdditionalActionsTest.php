@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Action;
+namespace Phpdftk\Pdf\Core\Tests\Action;
 
-use ApprLabs\Pdf\Core\Action\AdditionalActions;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Action\NamedAction;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Action\AdditionalActions;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Action\NamedAction;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class AdditionalActionsTest extends TestCase

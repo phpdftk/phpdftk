@@ -1,20 +1,20 @@
-# apprlabs/encoding
+# phpdftk/encoding
 
 WinAnsi and MacRoman encoding tables, the Adobe Glyph List, and a CMap parser. No PDF dependency — useful for any project that needs legacy 8-bit encoding or glyph name lookups.
 
 ## Installation
 
 ```bash
-composer require apprlabs/encoding
+composer require phpdftk/encoding
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Encoding\WinAnsiTable;
-use ApprLabs\Encoding\MacRomanTable;
-use ApprLabs\Encoding\GlyphList;
-use ApprLabs\Encoding\CMapParser;
+use Phpdftk\Encoding\WinAnsiTable;
+use Phpdftk\Encoding\MacRomanTable;
+use Phpdftk\Encoding\GlyphList;
+use Phpdftk\Encoding\CMapParser;
 
 // WinAnsi / MacRoman — map code point (0–255) to Unicode code point
 $unicode = WinAnsiTable::toUnicode(0xE9);    // 233 → U+00E9 (é)

@@ -8,7 +8,7 @@ description: Generate your first PDF in under a minute.
 The simplest way to create a PDF. No PDF knowledge required:
 
 ```php
-use ApprLabs\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\Pdf;
 
 $pdf = new Pdf();
 $pdf->addHeading('Hello, World!', 1);
@@ -23,9 +23,9 @@ This gives you Letter-sized pages, 72pt margins, Helvetica 11pt, automatic word 
 When you need precise control over coordinates and drawing:
 
 ```php
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
 
 $writer = new PdfWriter();
 $page = $writer->addPage(612, 792);
@@ -39,7 +39,7 @@ $writer->save('hello.pdf');
 ## Reading a PDF
 
 ```php
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 $pdf = PdfReader::fromFile('document.pdf');
 
@@ -54,7 +54,7 @@ echo $text;
 ## Text search
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextExtractor;
+use Phpdftk\Pdf\Toolkit\TextExtractor;
 
 $results = TextExtractor::open('contract.pdf')->search('indemnification');
 

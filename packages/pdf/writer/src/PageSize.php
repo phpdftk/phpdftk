@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
 /**
  * Standard page sizes, expressed in PDF user units (points, 1/72 inch).

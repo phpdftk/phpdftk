@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 /**
  * MacExpertEncoding — used by expert/small-caps Type 1 fonts on Mac.

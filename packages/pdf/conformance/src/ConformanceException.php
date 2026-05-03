@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance;
+namespace Phpdftk\Pdf\Conformance;
 
-use ApprLabs\Pdf\Conformance\Result\ConformanceResult;
+use Phpdftk\Pdf\Conformance\Result\ConformanceResult;
 
 /**
  * Thrown in strict mode when the document does not conform.

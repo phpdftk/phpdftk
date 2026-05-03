@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
 
 /**
  * Base PDF Font object (/Type /Font).

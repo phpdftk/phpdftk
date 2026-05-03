@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support\Arlington;
+namespace Phpdftk\Tests\Support\Arlington;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfVersion;
 
 final class ArlingtonValidator
 {

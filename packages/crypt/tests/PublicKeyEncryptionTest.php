@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Crypt\Tests;
+namespace Phpdftk\Crypt\Tests;
 
-use ApprLabs\Crypt\PublicKeyEncryption;
+use Phpdftk\Crypt\PublicKeyEncryption;
 use PHPUnit\Framework\TestCase;
 
 class PublicKeyEncryptionTest extends TestCase

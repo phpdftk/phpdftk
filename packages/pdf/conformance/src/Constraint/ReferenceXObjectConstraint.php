@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 
 /**
  * ISO 15930-8/9 (PDF/X-5): Reference XObject validation.

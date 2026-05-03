@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive;
+namespace Phpdftk\Pdf\Core\Tests\Interactive;
 
-use ApprLabs\Pdf\Core\Interactive\Form\SignatureField;
-use ApprLabs\Pdf\Core\Interactive\Signature\DocMDPTransformParams;
-use ApprLabs\Pdf\Core\Interactive\Signature\FieldMDPTransformParams;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureReference;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
-use ApprLabs\Pdf\Core\Interactive\Signature\UR3TransformParams;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Interactive\Form\SignatureField;
+use Phpdftk\Pdf\Core\Interactive\Signature\DocMDPTransformParams;
+use Phpdftk\Pdf\Core\Interactive\Signature\FieldMDPTransformParams;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureReference;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue;
+use Phpdftk\Pdf\Core\Interactive\Signature\UR3TransformParams;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class SignatureTest extends TestCase

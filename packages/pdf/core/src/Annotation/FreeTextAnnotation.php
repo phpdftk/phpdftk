@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Annotation;
+namespace Phpdftk\Pdf\Core\Annotation;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Free text annotation (/Subtype /FreeText).
@@ -29,7 +29,7 @@ class FreeTextAnnotation extends MarkupAnnotation
     public ?PdfArray $rd = null;        // /RD - rectangle differences
     public ?PdfName $le = null;         // /LE - line ending
 
-    public function __construct(\ApprLabs\Pdf\Core\PdfArray $rect, PdfString $da)
+    public function __construct(\Phpdftk\Pdf\Core\PdfArray $rect, PdfString $da)
     {
         parent::__construct($rect);
         $this->da = $da;

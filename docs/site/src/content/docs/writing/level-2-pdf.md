@@ -8,7 +8,7 @@ The `Pdf` class is a cursor-based document builder. You add content in order, an
 ## Basic usage
 
 ```php
-use ApprLabs\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\Pdf;
 
 $pdf = new Pdf();
 $pdf->addHeading('Annual Report', 1);
@@ -42,7 +42,7 @@ $pdf->addHeading('Subsection', 3); // 16pt bold
 ## Text alignment
 
 ```php
-use ApprLabs\Pdf\Writer\Alignment;
+use Phpdftk\Pdf\Writer\Alignment;
 
 $pdf->addText('Left aligned (default)');
 $pdf->addText('Centered text', Alignment::Center);
@@ -68,7 +68,7 @@ $pdf->addSpacer(24);       // vertical whitespace
 Customize fonts, colors, and margins:
 
 ```php
-use ApprLabs\Pdf\Writer\Theme;
+use Phpdftk\Pdf\Writer\Theme;
 
 $theme = Theme::default()
     ->withFont('Courier')

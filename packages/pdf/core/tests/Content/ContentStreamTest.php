@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Content;
+namespace Phpdftk\Pdf\Core\Tests\Content;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Color\CmykColor;
-use ApprLabs\Color\GrayColor;
-use ApprLabs\Color\RgbColor;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Geometry\Matrix;
-use ApprLabs\Geometry\Rectangle;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Color\CmykColor;
+use Phpdftk\Color\GrayColor;
+use Phpdftk\Color\RgbColor;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Geometry\Matrix;
+use Phpdftk\Geometry\Rectangle;
+use Phpdftk\Pdf\Core\PdfReference;
 
 class ContentStreamTest extends TestCase
 {

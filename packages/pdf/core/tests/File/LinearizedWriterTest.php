@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\File\BitWriter;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\File\BitWriter;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class LinearizedWriterTest extends TestCase
@@ -70,7 +70,7 @@ class LinearizedWriterTest extends TestCase
         $bw->alignToByte();
 
         $data = $bw->getData();
-        $br = new \ApprLabs\Pdf\Reader\Parser\BitReader($data);
+        $br = new \Phpdftk\Pdf\Reader\Parser\BitReader($data);
         $this->assertSame(42, $br->readBits(32));
         $this->assertSame(1000, $br->readBits(32));
         $this->assertSame(7, $br->readBits(4));
@@ -87,19 +87,19 @@ class LinearizedWriterTest extends TestCase
 
         $pageTree = new PageTree();
         $writer->register($pageTree);
-        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
 
         $page = new Page();
         $writer->register($page);
-        $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
-        $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(612),
-            new \ApprLabs\Pdf\Core\PdfNumber(792),
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612),
+            new \Phpdftk\Pdf\Core\PdfNumber(792),
         ]);
 
-        $pageTree->kids = [new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
         $pageTree->count = 1;
 
         $cs = new ContentStream();
@@ -110,7 +110,7 @@ class LinearizedWriterTest extends TestCase
             ->showText('Hello')
             ->endText();
 
-        $page->contents = [new \ApprLabs\Pdf\Core\PdfReference($cs->objectNumber)];
+        $page->contents = [new \Phpdftk\Pdf\Core\PdfReference($cs->objectNumber)];
 
         $pdf = $writer->generateLinearized();
 
@@ -128,19 +128,19 @@ class LinearizedWriterTest extends TestCase
 
         $pageTree = new PageTree();
         $writer->register($pageTree);
-        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
 
         $page = new Page();
         $writer->register($page);
-        $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
-        $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(612),
-            new \ApprLabs\Pdf\Core\PdfNumber(792),
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612),
+            new \Phpdftk\Pdf\Core\PdfNumber(792),
         ]);
 
-        $pageTree->kids = [new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
         $pageTree->count = 1;
 
         $pdf = $writer->generateLinearized();
@@ -177,19 +177,19 @@ class LinearizedWriterTest extends TestCase
 
         $pageTree = new PageTree();
         $writer->register($pageTree);
-        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
 
         $page = new Page();
         $writer->register($page);
-        $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
-        $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(612),
-            new \ApprLabs\Pdf\Core\PdfNumber(792),
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612),
+            new \Phpdftk\Pdf\Core\PdfNumber(792),
         ]);
 
-        $pageTree->kids = [new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
         $pageTree->count = 1;
 
         $pdf = $writer->generateLinearized();

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive\Signature;
+namespace Phpdftk\Pdf\Core\Tests\Interactive\Signature;
 
-use ApprLabs\Pdf\Core\Interactive\Signature\CertificateUtils;
-use ApprLabs\Pdf\Core\Interactive\Signature\CrlClient;
-use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
+use Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils;
+use Phpdftk\Pdf\Core\Interactive\Signature\CrlClient;
+use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
 use PHPUnit\Framework\TestCase;
 
 class CrlClientTest extends TestCase

@@ -58,7 +58,7 @@ The trait:
 
 ### Trait source
 
-`tests/Support/VeraPdfValidationTrait.php` (`ApprLabs\Tests\Support\VeraPdfValidationTrait`)
+`tests/Support/VeraPdfValidationTrait.php` (`Phpdftk\Tests\Support\VeraPdfValidationTrait`)
 
 ## Coverage
 

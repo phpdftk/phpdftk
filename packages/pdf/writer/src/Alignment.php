@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
 /**
  * Horizontal text alignment within the content column.

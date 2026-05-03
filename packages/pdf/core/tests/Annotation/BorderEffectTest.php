@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Annotation;
+namespace Phpdftk\Pdf\Core\Tests\Annotation;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Annotation\BorderEffect;
-use ApprLabs\Pdf\Core\Annotation\FreeTextAnnotation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Annotation\BorderEffect;
+use Phpdftk\Pdf\Core\Annotation\FreeTextAnnotation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfString;
 
 class BorderEffectTest extends TestCase
 {

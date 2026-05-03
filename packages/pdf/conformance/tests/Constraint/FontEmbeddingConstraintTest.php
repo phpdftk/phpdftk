@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\FontEmbeddingConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Core\Font\Font;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Conformance\Constraint\FontEmbeddingConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Core\Font\Font;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class FontEmbeddingConstraintTest extends TestCase

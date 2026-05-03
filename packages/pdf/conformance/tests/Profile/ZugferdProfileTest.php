@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Profile;
+namespace Phpdftk\Pdf\Conformance\Tests\Profile;
 
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Profile\ZugferdProfile;
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Profile\ZugferdProfile;
+use Phpdftk\Pdf\Core\PdfVersion;
 use PHPUnit\Framework\TestCase;
 
 class ZugferdProfileTest extends TestCase

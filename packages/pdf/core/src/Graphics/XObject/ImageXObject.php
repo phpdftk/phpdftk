@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\XObject;
+namespace Phpdftk\Pdf\Core\Graphics\XObject;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
 
 /**
  * Image XObject (/Subtype /Image) — ISO 32000-2 §8.9.5, Table 89.
@@ -71,7 +71,7 @@ class ImageXObject extends PdfStream
         $this->dictionary->set('Width', new PdfNumber($this->width));
         $this->dictionary->set('Height', new PdfNumber($this->height));
 
-        if ($this->colorSpace instanceof \ApprLabs\Pdf\Core\Serializable) {
+        if ($this->colorSpace instanceof \Phpdftk\Pdf\Core\Serializable) {
             $this->dictionary->set('ColorSpace', $this->colorSpace);
         } else {
             $this->dictionary->set('ColorSpace', new PdfName((string) $this->colorSpace));

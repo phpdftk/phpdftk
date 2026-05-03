@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Signature;
+namespace Phpdftk\Pdf\Core\Interactive\Signature;
 
 /**
  * OCSP (Online Certificate Status Protocol) client — RFC 6960.
@@ -10,7 +10,7 @@ namespace ApprLabs\Pdf\Core\Interactive\Signature;
  * Builds OCSP requests, sends them to the responder specified in the
  * certificate's Authority Information Access extension, and returns
  * the raw DER-encoded OCSP response suitable for embedding in a
- * {@see \ApprLabs\Pdf\Core\Document\DSS}.
+ * {@see \Phpdftk\Pdf\Core\Document\DSS}.
  *
  * Uses inline ASN.1 DER encoding (same pattern as {@see TsaClient}).
  */

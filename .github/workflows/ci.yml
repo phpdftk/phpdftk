@@ -26,6 +26,9 @@ jobs:
           extensions: zlib, openssl, simplexml
           coverage: none
 
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
       - name: Build validation tool images
         run: cd docker && docker compose build
 
@@ -33,10 +36,16 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Run tests
-        run: vendor/bin/phpunit
+        run: mise run test
 
       - name: Run static analysis
-        run: scripts/analyse
+        run: mise run analyse
+
+      - name: Run lint
+        run: mise run lint
+
+      - name: Audit dependencies
+        run: composer audit
 
   verapdf:
     runs-on: ubuntu-latest
@@ -54,6 +63,9 @@ jobs:
           extensions: zlib, openssl, simplexml
           coverage: none
 
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
@@ -61,7 +73,7 @@ jobs:
         run: docker pull verapdf/cli
 
       - name: Run PDF/A conformance tests
-        run: vendor/bin/phpunit --group verapdf
+        run: mise run test -- --group verapdf
 
   compliance:
     runs-on: ubuntu-latest
@@ -82,6 +94,9 @@ jobs:
           extensions: zlib, openssl, simplexml
           coverage: none
 
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
       - name: Build QPDF image
         run: cd docker && docker compose build
 
@@ -98,13 +113,13 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Generate compliance report
-        run: scripts/compliance
+        run: mise run compliance
 
       - name: Upload compliance report
         uses: actions/upload-artifact@v4
         with:
           name: compliance-report
-          path: docs/compliance.md
+          path: docs/generated/compliance.md
 
   validate:
     runs-on: ubuntu-latest

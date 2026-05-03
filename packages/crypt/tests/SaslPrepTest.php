@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Crypt\Tests;
+namespace Phpdftk\Crypt\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Crypt\SaslPrep;
+use Phpdftk\Crypt\SaslPrep;
 
 class SaslPrepTest extends TestCase
 {

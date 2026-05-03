@@ -1,4 +1,4 @@
-# apprlabs/xmp
+# phpdftk/xmp
 
 Read and write XMP (Extensible Metadata Platform) packets. XMP is an XML-based metadata format used in PDF, JPEG, PNG, and other file formats. No PDF dependency.
 
@@ -7,15 +7,15 @@ Requires `ext-simplexml`.
 ## Installation
 
 ```bash
-composer require apprlabs/xmp
+composer require phpdftk/xmp
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Xmp\XmpPacket;
-use ApprLabs\Xmp\XmpWriter;
-use ApprLabs\Xmp\XmpReader;
+use Phpdftk\Xmp\XmpPacket;
+use Phpdftk\Xmp\XmpWriter;
+use Phpdftk\Xmp\XmpReader;
 
 // Build an XMP packet
 $xmp = new XmpPacket();

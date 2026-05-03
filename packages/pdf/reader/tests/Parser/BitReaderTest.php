@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Parser;
+namespace Phpdftk\Pdf\Reader\Tests\Parser;
 
-use ApprLabs\Pdf\Reader\Parser\BitReader;
+use Phpdftk\Pdf\Reader\Parser\BitReader;
 use PHPUnit\Framework\TestCase;
 
 class BitReaderTest extends TestCase

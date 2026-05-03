@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core;
+namespace Phpdftk\Pdf\Core;
 
 /**
  * PDF specification versions — ISO 32000-1 (1.x) and ISO 32000-2 (2.0).
@@ -15,11 +15,17 @@ enum PdfVersion: string
     case V1_0 = '1.0';
     case V1_1 = '1.1';
     case V1_2 = '1.2';
+    /** Introduced digital signatures and interactive forms. */
     case V1_3 = '1.3';
+    /** Introduced transparency, JBIG2, and encryption revision 3. */
     case V1_4 = '1.4';
+    /** Introduced cross-reference streams and object streams. */
     case V1_5 = '1.5';
+    /** Introduced AES-128 encryption and OpenType font embedding. */
     case V1_6 = '1.6';
+    /** Final Acrobat-era version — the default for most new PDFs. */
     case V1_7 = '1.7';
+    /** ISO 32000-2 — AES-256, tagged PDF improvements, deprecations. */
     case V2_0 = '2.0';
 
     public function isAtLeast(self $other): bool

@@ -1,6 +1,9 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Color;
+namespace Phpdftk\Color;
 
+/**
+ * CMYK color with components in 0.0–1.0 range — maps to PDF DeviceCMYK.
+ */
 final class CmykColor implements ColorInterface {
     public function __construct(
         public readonly float $c,

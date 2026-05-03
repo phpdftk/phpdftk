@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\TrueTypeParser;
+use Phpdftk\FontParser\TrueTypeParser;
 use PHPUnit\Framework\TestCase;
 
 class VariableFontTest extends TestCase

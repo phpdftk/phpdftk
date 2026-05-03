@@ -1,15 +1,15 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Encoding\Tests;
+namespace Phpdftk\Encoding\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Encoding\WinAnsiTable;
-use ApprLabs\Encoding\MacRomanTable;
-use ApprLabs\Encoding\StandardEncodingTable;
-use ApprLabs\Encoding\MacExpertEncodingTable;
-use ApprLabs\Encoding\PdfDocEncodingTable;
-use ApprLabs\Encoding\GlyphList;
-use ApprLabs\Encoding\CMapParser;
+use Phpdftk\Encoding\WinAnsiTable;
+use Phpdftk\Encoding\MacRomanTable;
+use Phpdftk\Encoding\StandardEncodingTable;
+use Phpdftk\Encoding\MacExpertEncodingTable;
+use Phpdftk\Encoding\PdfDocEncodingTable;
+use Phpdftk\Encoding\GlyphList;
+use Phpdftk\Encoding\CMapParser;
 
 class EncodingTest extends TestCase
 {

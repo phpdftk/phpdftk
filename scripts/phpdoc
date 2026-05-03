@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PHPDOC=""
+if command -v phpdoc &>/dev/null; then
+    PHPDOC="phpdoc"
+elif [ -f vendor/bin/phpdoc ]; then
+    PHPDOC="vendor/bin/phpdoc"
+else
+    echo "phpDocumentor not found. Install via:"
+    echo "  brew install phpdocumentor"
+    echo "  or: composer require --dev phpdocumentor/phpdocumentor"
+    exit 1
+fi
+
+if [[ "${1:-}" == "--all" ]]; then
+    # Generate for every package individually
+    for pkg in packages/*/phpdoc.dist.xml packages/pdf/*/phpdoc.dist.xml; do
+        dir=$(dirname "$pkg")
+        echo "=== $(basename "$dir") ==="
+        (cd "$dir" && "$OLDPWD/$PHPDOC" run 2>&1) || true
+    done
+    echo ""
+    echo "Per-package docs generated in each package's build/phpdoc/"
+elif [[ -n "${1:-}" && "${1:-}" != "--"* ]]; then
+    # Generate for a specific package directory
+    echo "=== $1 ==="
+    (cd "$1" && "$OLDPWD/$PHPDOC" run)
+    echo ""
+    echo "API docs generated in $1/build/phpdoc/"
+else
+    # Generate combined monorepo docs (root config)
+    $PHPDOC run
+    echo ""
+    echo "API docs generated in build/phpdoc/"
+fi

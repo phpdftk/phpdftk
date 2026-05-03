@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font\FontFile;
+namespace Phpdftk\Pdf\Core\Font\FontFile;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
 
 /**
  * TrueType font program stream — ISO 32000-2 §9.9, Table 124.

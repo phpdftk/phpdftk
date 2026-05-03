@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support\Arlington;
+namespace Phpdftk\Tests\Support\Arlington;
 
 final readonly class DictionarySpec
 {

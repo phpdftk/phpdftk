@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Xmp;
+namespace Phpdftk\Xmp;
 
+/**
+ * Parse XMP metadata packets from XML into {@see XmpPacket}.
+ *
+ * Strips `<?xpacket?>` processing instructions and extracts
+ * namespaced properties from the RDF structure. Used by the reader
+ * and conformance checker to inspect PDF/A identification metadata.
+ */
 final class XmpReader {
     public function parse(string $xml): XmpPacket {
         // Strip xpacket processing instructions if present

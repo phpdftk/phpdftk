@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
-use ApprLabs\Encoding\GlyphList;
-use ApprLabs\Encoding\StandardEncodingTable;
+use Phpdftk\Encoding\GlyphList;
+use Phpdftk\Encoding\StandardEncodingTable;
 
 /**
  * Parses Type 1 font files (PFB binary and PFA ASCII formats).
@@ -328,7 +328,7 @@ class Type1Parser
 
         // Check for ISOLatin1Encoding (maps to WinAnsi-like)
         if (preg_match('/\/Encoding\s+ISOLatin1Encoding\s+def/', $ascii)) {
-            return \ApprLabs\Encoding\WinAnsiTable::getTable();
+            return \Phpdftk\Encoding\WinAnsiTable::getTable();
         }
 
         // Parse custom encoding array

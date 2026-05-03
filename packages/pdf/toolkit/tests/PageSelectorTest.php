@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Tests;
+namespace Phpdftk\Pdf\Toolkit\Tests;
 
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 use PHPUnit\Framework\TestCase;
 
 class PageSelectorTest extends TestCase

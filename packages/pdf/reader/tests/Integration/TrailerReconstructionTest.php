@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Integration;
+namespace Phpdftk\Pdf\Reader\Tests\Integration;
 
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class TrailerReconstructionTest extends TestCase

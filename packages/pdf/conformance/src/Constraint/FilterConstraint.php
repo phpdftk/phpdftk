@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\PdfStream;
 
 /**
  * PDF/A-1 clause 6.8: LZWDecode filter is prohibited.
@@ -35,7 +35,7 @@ final class FilterConstraint implements ConformanceConstraint
             }
 
             $filter = $object->dictionary->get('Filter');
-            $filterStr = $filter instanceof \ApprLabs\Pdf\Core\PdfName ? $filter->value : '';
+            $filterStr = $filter instanceof \Phpdftk\Pdf\Core\PdfName ? $filter->value : '';
 
             if ($filterStr === 'LZWDecode') {
                 $violations[] = new ConformanceViolation(

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
-use ApprLabs\FontParser\OpenTypeData;
-use ApprLabs\FontParser\TrueTypeData;
+use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\TrueTypeData;
 
 /**
  * Opaque font handle returned by PdfWriter::addFont().

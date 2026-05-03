@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Color;
+namespace Phpdftk\Color;
 
+/**
+ * RGB color with components in 0.0–1.0 range — maps to PDF DeviceRGB.
+ *
+ * Factory methods `fromInt()` and `fromHex()` accept the more common
+ * 0–255 and #RRGGBB formats and normalize to the PDF float range.
+ */
 final class RgbColor implements ColorInterface {
     public function __construct(
         public readonly float $r,

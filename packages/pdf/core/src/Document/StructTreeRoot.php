@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Document;
+namespace Phpdftk\Pdf\Core\Document;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * PDF Structure Tree Root (ISO 32000-2 Table 323).

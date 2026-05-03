@@ -3,7 +3,7 @@ title: Toolkit Overview
 description: High-level pipelines for common PDF operations — extract, merge, stamp, fill, encrypt.
 ---
 
-The toolkit package (`apprlabs/pdf-toolkit`) provides reader-to-writer pipelines for common PDF manipulation tasks. Each class follows the same pattern: open a PDF, apply operations, save the result.
+The toolkit package (`phpdftk/pdf-toolkit`) provides reader-to-writer pipelines for common PDF manipulation tasks. Each class follows the same pattern: open a PDF, apply operations, save the result.
 
 ## Design principles
 
@@ -17,7 +17,7 @@ The toolkit package (`apprlabs/pdf-toolkit`) provides reader-to-writer pipelines
 ### Text Extraction
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextExtractor;
+use Phpdftk\Pdf\Toolkit\TextExtractor;
 
 $text = TextExtractor::open('report.pdf')->allPages();
 $results = TextExtractor::open('contract.pdf')->search('liability');
@@ -28,7 +28,7 @@ $results = TextExtractor::open('contract.pdf')->search('liability');
 ### Form Filling
 
 ```php
-use ApprLabs\Pdf\Toolkit\FormFiller;
+use Phpdftk\Pdf\Toolkit\FormFiller;
 
 FormFiller::open('form.pdf')
     ->fill('name', 'Jane Doe')
@@ -42,8 +42,8 @@ FormFiller::open('form.pdf')
 ### PDF Stamping
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfStamper;
-use ApprLabs\Pdf\Toolkit\Stamper\StampPosition;
+use Phpdftk\Pdf\Toolkit\PdfStamper;
+use Phpdftk\Pdf\Toolkit\Stamper\StampPosition;
 
 PdfStamper::open('report.pdf')
     ->watermark('DRAFT')
@@ -56,7 +56,7 @@ PdfStamper::open('report.pdf')
 ### Page Slicing
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSlicer;
+use Phpdftk\Pdf\Toolkit\PageSlicer;
 
 PageSlicer::open('large.pdf')
     ->keepRange(1, 5)
@@ -68,7 +68,7 @@ PageSlicer::open('large.pdf')
 ### PDF Merging
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfMerger;
+use Phpdftk\Pdf\Toolkit\PdfMerger;
 
 PdfMerger::create()
     ->addFile('chapter1.pdf')
@@ -81,7 +81,7 @@ PdfMerger::create()
 ### Page Transformation
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageTransformer;
+use Phpdftk\Pdf\Toolkit\PageTransformer;
 
 PageTransformer::open('input.pdf')
     ->rotate(90)
@@ -94,7 +94,7 @@ PageTransformer::open('input.pdf')
 ### Annotation Flattening
 
 ```php
-use ApprLabs\Pdf\Toolkit\AnnotationFlattener;
+use Phpdftk\Pdf\Toolkit\AnnotationFlattener;
 
 AnnotationFlattener::open('form.pdf')
     ->flattenAll()
@@ -106,7 +106,7 @@ AnnotationFlattener::open('form.pdf')
 ### Text Redaction
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextRedactor;
+use Phpdftk\Pdf\Toolkit\TextRedactor;
 
 TextRedactor::open('contract.pdf')
     ->redactText('Jane Doe')
@@ -120,7 +120,7 @@ TextRedactor::open('contract.pdf')
 ### Metadata Editing
 
 ```php
-use ApprLabs\Pdf\Toolkit\MetadataEditor;
+use Phpdftk\Pdf\Toolkit\MetadataEditor;
 
 MetadataEditor::open('doc.pdf')
     ->setTitle('Annual Report')
@@ -133,8 +133,8 @@ MetadataEditor::open('doc.pdf')
 ### Encryption
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfEncrypt;
-use ApprLabs\Pdf\Toolkit\Encryption\EncryptionMethod;
+use Phpdftk\Pdf\Toolkit\PdfEncrypt;
+use Phpdftk\Pdf\Toolkit\Encryption\EncryptionMethod;
 
 PdfEncrypt::open('doc.pdf')
     ->encrypt('user', 'owner', EncryptionMethod::Aes256)
@@ -146,8 +146,8 @@ PdfEncrypt::open('doc.pdf')
 ### Bookmark Editing
 
 ```php
-use ApprLabs\Pdf\Toolkit\BookmarkEditor;
-use ApprLabs\Pdf\Toolkit\Bookmark\BookmarkEntry;
+use Phpdftk\Pdf\Toolkit\BookmarkEditor;
+use Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry;
 
 BookmarkEditor::open('report.pdf')
     ->setBookmarks(
@@ -162,7 +162,7 @@ BookmarkEditor::open('report.pdf')
 ### Page Labeling
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageLabeler;
+use Phpdftk\Pdf\Toolkit\PageLabeler;
 
 PageLabeler::open('report.pdf')
     ->setRomanNumerals(1, 4)
@@ -177,7 +177,7 @@ PageLabeler::open('report.pdf')
 The `PageSelector` utility is shared across toolkit classes:
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $all = PageSelector::all();
 $specific = PageSelector::pages(1, 3, 5);
@@ -195,7 +195,7 @@ $range->resolve(10); // [1, 2, 3, 4, 5, 6, 7] (pages 2-8)
 ## Installation
 
 ```bash
-composer require apprlabs/pdf-toolkit
+composer require phpdftk/pdf-toolkit
 ```
 
 The toolkit requires `pdf-core` and `pdf-reader` (pulled in automatically).

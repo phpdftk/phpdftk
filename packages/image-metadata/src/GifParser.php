@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parse GIF logical screen descriptor for dimensions and color info.
+ *
+ * GIF is palette-based — always reported as DeviceRGB since PDF
+ * requires explicit color space declaration.
+ */
 final class GifParser {
     public static function parseFile(string $path): ImageInfo {
         $fh = fopen($path, 'rb');

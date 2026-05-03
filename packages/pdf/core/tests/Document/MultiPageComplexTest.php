@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\Arlington\ArlingtonValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a complex 10-page PDF with varied content, viewer preferences,
@@ -152,7 +152,7 @@ class MultiPageComplexTest extends TestCase
         self::assertGreaterThan(5000, strlen($content), 'PDF should be larger than 5KB for 10 pages');
     }
 
-    private function addTextContent(\ApprLabs\Pdf\Core\Content\ContentStream $cs, string $font1, string $font2, float $h): void
+    private function addTextContent(\Phpdftk\Pdf\Core\Content\ContentStream $cs, string $font1, string $font2, float $h): void
     {
         $lines = [
             'The quick brown fox jumps over the lazy dog.',
@@ -177,7 +177,7 @@ class MultiPageComplexTest extends TestCase
            ->endText();
     }
 
-    private function addGraphicsContent(\ApprLabs\Pdf\Core\Content\ContentStream $cs, float $w, float $h): void
+    private function addGraphicsContent(\Phpdftk\Pdf\Core\Content\ContentStream $cs, float $w, float $h): void
     {
         // Color bars
         $colors = [
@@ -208,7 +208,7 @@ class MultiPageComplexTest extends TestCase
         }
     }
 
-    private function addMonospaceContent(\ApprLabs\Pdf\Core\Content\ContentStream $cs, string $courier, float $h): void
+    private function addMonospaceContent(\Phpdftk\Pdf\Core\Content\ContentStream $cs, string $courier, float $h): void
     {
         $codeLines = [
             '<?php',
@@ -237,7 +237,7 @@ class MultiPageComplexTest extends TestCase
         $cs->endText();
     }
 
-    private function addMixedContent(\ApprLabs\Pdf\Core\Content\ContentStream $cs, string $bold, string $times, float $h): void
+    private function addMixedContent(\Phpdftk\Pdf\Core\Content\ContentStream $cs, string $bold, string $times, float $h): void
     {
         $cs->beginText()
            ->setFont($bold, 14)
@@ -257,7 +257,7 @@ class MultiPageComplexTest extends TestCase
            ->endText();
     }
 
-    private function addGeometricContent(\ApprLabs\Pdf\Core\Content\ContentStream $cs, float $w, float $h): void
+    private function addGeometricContent(\Phpdftk\Pdf\Core\Content\ContentStream $cs, float $w, float $h): void
     {
         $centerX = $w / 2;
         $centerY = $h / 2;
@@ -279,19 +279,19 @@ class MultiPageComplexTest extends TestCase
     /**
      * Build a PdfDictionary from ViewerPreferences for direct inline use.
      */
-    private function buildViewerPrefsDict(ViewerPreferences $prefs): \ApprLabs\Pdf\Core\PdfDictionary
+    private function buildViewerPrefsDict(ViewerPreferences $prefs): \Phpdftk\Pdf\Core\PdfDictionary
     {
         // We can re-use toPdf() result by embedding it as raw dict
         // Parse back is not needed — instead we return a pre-built dict
-        $dict = new \ApprLabs\Pdf\Core\PdfDictionary();
+        $dict = new \Phpdftk\Pdf\Core\PdfDictionary();
         if ($prefs->hideToolbar !== null) {
-            $dict->set('HideToolbar', new \ApprLabs\Pdf\Core\PdfBoolean($prefs->hideToolbar));
+            $dict->set('HideToolbar', new \Phpdftk\Pdf\Core\PdfBoolean($prefs->hideToolbar));
         }
         if ($prefs->displayDocTitle !== null) {
-            $dict->set('DisplayDocTitle', new \ApprLabs\Pdf\Core\PdfBoolean($prefs->displayDocTitle));
+            $dict->set('DisplayDocTitle', new \Phpdftk\Pdf\Core\PdfBoolean($prefs->displayDocTitle));
         }
         if ($prefs->fitWindow !== null) {
-            $dict->set('FitWindow', new \ApprLabs\Pdf\Core\PdfBoolean($prefs->fitWindow));
+            $dict->set('FitWindow', new \Phpdftk\Pdf\Core\PdfBoolean($prefs->fitWindow));
         }
         return $dict;
     }

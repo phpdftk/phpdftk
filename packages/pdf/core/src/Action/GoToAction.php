@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Action;
+namespace Phpdftk\Pdf\Core\Action;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
 
 /**
  * GoTo action (/S /GoTo).
@@ -31,10 +31,10 @@ class GoToAction extends Action
         $dict->set('Type', new PdfName(self::PDF_TYPE));
         $dict->set('S', new PdfName($this->getActionType()));
 
-        if ($this->dest instanceof \ApprLabs\Pdf\Core\Serializable) {
+        if ($this->dest instanceof \Phpdftk\Pdf\Core\Serializable) {
             $dict->set('D', $this->dest);
         } else {
-            $dict->set('D', new \ApprLabs\Pdf\Core\PdfString((string) $this->dest));
+            $dict->set('D', new \Phpdftk\Pdf\Core\PdfString((string) $this->dest));
         }
 
         if ($this->next !== null) {

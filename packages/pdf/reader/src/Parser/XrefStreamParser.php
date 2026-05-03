@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Tokenizer\Source;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
-use ApprLabs\Pdf\Reader\XrefEntry;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Tokenizer\Source;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Reader\XrefEntry;
 
 /**
  * Parses a cross-reference stream (/Type /XRef) — ISO 32000-2 §7.5.8.

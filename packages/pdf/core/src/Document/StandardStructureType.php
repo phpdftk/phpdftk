@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Document;
+namespace Phpdftk\Pdf\Core\Document;
 
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\PdfVersion;
 
 /**
  * Standard structure types — ISO 32000-2 §14.8.4.

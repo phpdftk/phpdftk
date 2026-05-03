@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 final class MacRomanTable {
     /** @return array<int, string> byte value (0-255) to PostScript glyph name */

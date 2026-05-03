@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Crypt;
+namespace Phpdftk\Crypt;
 
 /**
  * PDF encryption key derivation — ISO 32000-2 §7.6.

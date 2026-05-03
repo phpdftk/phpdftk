@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance;
+namespace Phpdftk\Pdf\Conformance;
 
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
 
 /**
  * Value object holding the active conformance profile(s) and behavior mode.

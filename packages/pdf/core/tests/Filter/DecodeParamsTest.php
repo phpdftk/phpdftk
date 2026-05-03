@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Filter;
+namespace Phpdftk\Pdf\Core\Tests\Filter;
 
-use ApprLabs\Pdf\Core\Filter\CCITTFaxDecodeParams;
-use ApprLabs\Pdf\Core\Filter\CryptFilterDecodeParams;
-use ApprLabs\Pdf\Core\Filter\DCTDecodeParams;
-use ApprLabs\Pdf\Core\Filter\FlateDecodeParams;
-use ApprLabs\Pdf\Core\Filter\JBIG2DecodeParams;
-use ApprLabs\Pdf\Core\Filter\JPXDecodeParams;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Filter\CCITTFaxDecodeParams;
+use Phpdftk\Pdf\Core\Filter\CryptFilterDecodeParams;
+use Phpdftk\Pdf\Core\Filter\DCTDecodeParams;
+use Phpdftk\Pdf\Core\Filter\FlateDecodeParams;
+use Phpdftk\Pdf\Core\Filter\JBIG2DecodeParams;
+use Phpdftk\Pdf\Core\Filter\JPXDecodeParams;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class DecodeParamsTest extends TestCase

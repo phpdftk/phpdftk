@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Reader\TextSpan;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\TextSpan;
 
 /**
  * Extract text from PDFs — per page, full document, or with search.
@@ -20,6 +20,8 @@ use ApprLabs\Pdf\Reader\TextSpan;
  *   foreach ($results as $match) {
  *       echo "Page {$match->pageNumber}: {$match->text}\n";
  *   }
+ *
+ * @api
  */
 final class TextExtractor
 {

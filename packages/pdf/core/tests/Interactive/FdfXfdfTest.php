@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive;
+namespace Phpdftk\Pdf\Core\Tests\Interactive;
 
-use ApprLabs\Pdf\Core\Interactive\Form\FdfReader;
-use ApprLabs\Pdf\Core\Interactive\Form\FdfWriter;
-use ApprLabs\Pdf\Core\Interactive\Form\XfdfReader;
-use ApprLabs\Pdf\Core\Interactive\Form\XfdfWriter;
+use Phpdftk\Pdf\Core\Interactive\Form\FdfReader;
+use Phpdftk\Pdf\Core\Interactive\Form\FdfWriter;
+use Phpdftk\Pdf\Core\Interactive\Form\XfdfReader;
+use Phpdftk\Pdf\Core\Interactive\Form\XfdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class FdfXfdfTest extends TestCase

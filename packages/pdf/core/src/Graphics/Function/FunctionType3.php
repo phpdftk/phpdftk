@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\Function;
+namespace Phpdftk\Pdf\Core\Graphics\Function;
 
-use ApprLabs\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfArray;
 
 /**
  * Stitching function (FunctionType 3) — ISO 32000-2 §7.10.4.

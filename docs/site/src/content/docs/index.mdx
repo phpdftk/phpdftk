@@ -9,7 +9,7 @@ hero:
       link: /getting-started/installation/
       icon: right-arrow
     - text: View on GitHub
-      link: https://github.com/apprlabs/phpdftk
+      link: https://github.com/phpdftk/phpdftk
       variant: minimal
       icon: external
 ---
@@ -28,8 +28,11 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
   <Card title="Toolkit" icon="puzzle">
     High-level pipelines for common tasks: text extraction with search, page selection, metadata editing, form filling, page merging, stamping, and more.
   </Card>
+  <Card title="Standards Compliance" icon="approve-check">
+    Validate against 8 ISO standards and 31 conformance levels: PDF/A, PDF/UA, PDF/X, PDF/VT, PDF/E, PDF/R, ZUGFeRD/Factur-X, and PDF/mail. Constraints enforced at generation time.
+  </Card>
   <Card title="Fast" icon="rocket">
-    100 pages in 1.8ms using 5.4 MB of memory. 3-30x faster than TCPDF, mPDF, and Dompdf. Competitive with FPDF while offering vastly more features.
+    3-30x faster than TCPDF, mPDF, and Dompdf. Competitive with FPDF while offering vastly more features. 83% code coverage, 275 external validation tests passing.
   </Card>
 </CardGrid>
 
@@ -65,3 +68,5 @@ Every object in ISO 32000-2:2020 (PDF 2.0) maps 1:1 to a PHP class. Every `/Fiel
 - 7 font types with TrueType/OpenType embedding and subsetting
 - AES-128/256 and RC4 encryption with PKCS#7 digital signatures
 - Tagged PDF, optional content groups, 3D annotations, multimedia
+
+**275 external validation tests passing** across [QPDF, veraPDF, Arlington PDF Model, Matterhorn (PDF/UA), and JHOVE](/conformance/compliance/). 15 focused packages, 8 ISO conformance standards with 31 levels.

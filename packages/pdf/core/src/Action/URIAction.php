@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Action;
+namespace Phpdftk\Pdf\Core\Action;
 
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
 
 /**
  * URI action (/S /URI).

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
-use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class CrossReferenceStreamTest extends TestCase
@@ -48,8 +48,8 @@ class CrossReferenceStreamTest extends TestCase
         $xref->root = new PdfReference(1);
         $xref->info = new PdfReference(2);
         $xref->id = new PdfArray([
-            new \ApprLabs\Pdf\Core\PdfString(str_repeat('a', 16), hex: false),
-            new \ApprLabs\Pdf\Core\PdfString(str_repeat('a', 16), hex: false),
+            new \Phpdftk\Pdf\Core\PdfString(str_repeat('a', 16), hex: false),
+            new \Phpdftk\Pdf\Core\PdfString(str_repeat('a', 16), hex: false),
         ]);
         $pdf = $xref->toPdf();
         self::assertStringContainsString('/Root 1 0 R', $pdf);

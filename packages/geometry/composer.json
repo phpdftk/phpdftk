@@ -1,17 +1,41 @@
 {
-    "name": "apprlabs/geometry",
-    "description": "Geometric primitives: Rectangle, Matrix, PageSize, BezierCurve — no PDF dependency",
+    "name": "phpdftk/geometry",
+    "description": "Geometric primitives: Rectangle, Matrix, PageSize, BezierCurve \u2014 no PDF dependency",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["geometry", "rectangle", "matrix", "bezier", "page-size"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "geometry",
+        "rectangle",
+        "matrix",
+        "bezier",
+        "page-size"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
-    "require": { "php": "^8.4" },
-    "autoload": { "psr-4": { "ApprLabs\\Geometry\\": "src/" } },
-    "autoload-dev": { "psr-4": { "ApprLabs\\Geometry\\Tests\\": "tests/" } }
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Geometry\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Geometry\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
 }

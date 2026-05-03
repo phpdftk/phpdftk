@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Profile;
+namespace Phpdftk\Pdf\Conformance\Profile;
 
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\PdfVersion;
 
 /**
  * ZUGFeRD / Factur-X conformance profiles.

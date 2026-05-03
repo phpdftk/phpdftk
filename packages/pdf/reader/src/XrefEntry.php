@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
 /**
  * A single entry from the cross-reference table.

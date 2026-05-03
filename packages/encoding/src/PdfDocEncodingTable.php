@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 /**
  * PDFDocEncoding — the encoding for PDF text strings (Info dict, bookmarks, annotations)

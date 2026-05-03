@@ -8,7 +8,7 @@ description: Add text stamps, watermarks, page numbers, headers, and footers to 
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfStamper;
+use Phpdftk\Pdf\Toolkit\PdfStamper;
 
 // From file
 $stamper = PdfStamper::open('report.pdf');
@@ -31,7 +31,7 @@ $stamper->watermark('DRAFT');
 Customize the watermark appearance:
 
 ```php
-use ApprLabs\Pdf\Toolkit\Stamper\WatermarkStyle;
+use Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle;
 
 $stamper->watermark('CONFIDENTIAL', style: new WatermarkStyle(
     fontSize: 72.0,
@@ -44,7 +44,7 @@ $stamper->watermark('CONFIDENTIAL', style: new WatermarkStyle(
 Apply to specific pages only:
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $stamper->watermark('DRAFT', pages: PageSelector::range(1, 3));
 ```
@@ -63,7 +63,7 @@ $stamper->watermark('DRAFT', pages: PageSelector::range(1, 3));
 Place text at a predefined position on the page:
 
 ```php
-use ApprLabs\Pdf\Toolkit\Stamper\StampPosition;
+use Phpdftk\Pdf\Toolkit\Stamper\StampPosition;
 
 $stamper->stampText('APPROVED', StampPosition::TopRight);
 ```
@@ -83,7 +83,7 @@ $stamper->stampText('APPROVED', StampPosition::TopRight);
 ### Stamp style
 
 ```php
-use ApprLabs\Pdf\Toolkit\Stamper\StampStyle;
+use Phpdftk\Pdf\Toolkit\Stamper\StampStyle;
 
 $stamper->stampText('APPROVED', StampPosition::TopRight, style: new StampStyle(
     fontSize: 14.0,

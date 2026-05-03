@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Integration;
+namespace Phpdftk\Pdf\Conformance\Tests\Integration;
 
-use ApprLabs\Pdf\Conformance\ConformanceException;
-use ApprLabs\Pdf\Conformance\Profile\PdfMailProfile;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Annotation\ScreenAnnotation;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\Interactive\Form\AcroForm;
-use ApprLabs\Pdf\Core\Interactive\Form\TextField;
-use ApprLabs\Pdf\Core\Multimedia\MediaRendition;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\ConformanceException;
+use Phpdftk\Pdf\Conformance\Profile\PdfMailProfile;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Annotation\ScreenAnnotation;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\Interactive\Form\AcroForm;
+use Phpdftk\Pdf\Core\Interactive\Form\TextField;
+use Phpdftk\Pdf\Core\Multimedia\MediaRendition;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class PdfMailIntegrationTest extends TestCase

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font\FontFile;
+namespace Phpdftk\Pdf\Core\Font\FontFile;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * CFF / Type 1C / CIDFontType0C font program stream — ISO 32000-2 §9.9,

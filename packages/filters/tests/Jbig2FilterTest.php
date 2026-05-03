@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters\Tests;
+namespace Phpdftk\Filters\Tests;
 
-use ApprLabs\Filters\Jbig2Filter;
+use Phpdftk\Filters\Jbig2Filter;
 use PHPUnit\Framework\TestCase;
 
 class Jbig2FilterTest extends TestCase

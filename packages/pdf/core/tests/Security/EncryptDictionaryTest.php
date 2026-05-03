@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Security;
+namespace Phpdftk\Pdf\Core\Tests\Security;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Security\CryptFilter;
-use ApprLabs\Pdf\Core\Security\EncryptDictionary;
-use ApprLabs\Pdf\Core\Security\PublicKeyRecipient;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Security\CryptFilter;
+use Phpdftk\Pdf\Core\Security\EncryptDictionary;
+use Phpdftk\Pdf\Core\Security\PublicKeyRecipient;
 use PHPUnit\Framework\TestCase;
 
 class EncryptDictionaryTest extends TestCase

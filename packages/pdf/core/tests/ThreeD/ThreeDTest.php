@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\ThreeD;
+namespace Phpdftk\Pdf\Core\Tests\ThreeD;
 
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDBackground;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDCrossSection;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDLightingScheme;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDRenderMode;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDView;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDBackground;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDCrossSection;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDLightingScheme;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDRenderMode;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDView;
 use PHPUnit\Framework\TestCase;
 
 class ThreeDTest extends TestCase

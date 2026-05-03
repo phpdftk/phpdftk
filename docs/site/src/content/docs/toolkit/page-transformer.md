@@ -8,7 +8,7 @@ description: Rotate, scale, and set page boxes on PDF pages.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageTransformer;
+use Phpdftk\Pdf\Toolkit\PageTransformer;
 
 // From file
 $transformer = PageTransformer::open('input.pdf');
@@ -29,7 +29,7 @@ Rotation must be a multiple of 90 degrees. Rotations accumulate with any existin
 $transformer->rotate(90);
 
 // Rotate specific pages
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $transformer->rotate(180, PageSelector::pages(1, 3));
 $transformer->rotate(270, PageSelector::even());

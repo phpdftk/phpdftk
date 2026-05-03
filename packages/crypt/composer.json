@@ -1,17 +1,42 @@
 {
-    "name": "apprlabs/crypt",
-    "description": "AES-128/256 and RC4 with PDF key derivation — no PDF object dependency",
+    "name": "phpdftk/crypt",
+    "description": "AES-128/256 and RC4 with PDF key derivation \u2014 no PDF object dependency",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["encryption", "aes", "rc4", "pdf", "cryptography"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "encryption",
+        "aes",
+        "rc4",
+        "pdf",
+        "cryptography"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
-    "require": { "php": "^8.4", "ext-openssl": "*" },
-    "autoload": { "psr-4": { "ApprLabs\\Crypt\\": "src/" } },
-    "autoload-dev": { "psr-4": { "ApprLabs\\Crypt\\Tests\\": "tests/" } }
+    "require": {
+        "php": "^8.4",
+        "ext-openssl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Crypt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Crypt\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
 }

@@ -2,55 +2,55 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Destination;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MetadataStream;
-use ApprLabs\Pdf\Core\Document\NameTree;
-use ApprLabs\Pdf\Core\Document\Outline;
-use ApprLabs\Pdf\Core\Document\OutlineItem;
-use ApprLabs\Pdf\Core\Document\Page as CorePage;
-use ApprLabs\Pdf\Core\Document\PageLabel;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\Font\CIDFontType0Font;
-use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
-use ApprLabs\Pdf\Core\Font\Font as CoreFont;
-use ApprLabs\Pdf\Core\Font\FontDescriptor;
-use ApprLabs\Pdf\Core\Font\FontFile\CFFFontFile;
-use ApprLabs\Pdf\Core\Font\FontFile\Type1FontFile;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\FontParser\TrueTypeSubsetter;
-use ApprLabs\Pdf\Core\Font\Type0Font;
-use ApprLabs\Pdf\Core\Font\Type0FontFactory;
-use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
-use ApprLabs\Pdf\Core\Interactive\Signature\TsaClient;
-use ApprLabs\Pdf\Conformance\ConformanceException;
-use ApprLabs\Pdf\Conformance\ConformanceMode;
-use ApprLabs\Pdf\Conformance\Inspection\WriterDocumentInspector;
-use ApprLabs\Pdf\Conformance\Metadata\ConformanceXmpWriter;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceResult;
-use ApprLabs\Pdf\Conformance\Validator\ConformanceValidator;
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Geometry\Rectangle;
-use ApprLabs\ImageMetadata\ImageParser;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Destination;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MetadataStream;
+use Phpdftk\Pdf\Core\Document\NameTree;
+use Phpdftk\Pdf\Core\Document\Outline;
+use Phpdftk\Pdf\Core\Document\OutlineItem;
+use Phpdftk\Pdf\Core\Document\Page as CorePage;
+use Phpdftk\Pdf\Core\Document\PageLabel;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\Font\CIDFontType0Font;
+use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
+use Phpdftk\Pdf\Core\Font\Font as CoreFont;
+use Phpdftk\Pdf\Core\Font\FontDescriptor;
+use Phpdftk\Pdf\Core\Font\FontFile\CFFFontFile;
+use Phpdftk\Pdf\Core\Font\FontFile\Type1FontFile;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\FontParser\TrueTypeSubsetter;
+use Phpdftk\Pdf\Core\Font\Type0Font;
+use Phpdftk\Pdf\Core\Font\Type0FontFactory;
+use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue;
+use Phpdftk\Pdf\Core\Interactive\Signature\TsaClient;
+use Phpdftk\Pdf\Conformance\ConformanceException;
+use Phpdftk\Pdf\Conformance\ConformanceMode;
+use Phpdftk\Pdf\Conformance\Inspection\WriterDocumentInspector;
+use Phpdftk\Pdf\Conformance\Metadata\ConformanceXmpWriter;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceResult;
+use Phpdftk\Pdf\Conformance\Validator\ConformanceValidator;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Geometry\Rectangle;
+use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased;
 
 /**
  * Ergonomic PDF document builder.
@@ -70,6 +70,8 @@ use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
  *   $cs     = $writer->addContentStream($page);
  *   $cs->beginText()->setFont('F1', 12)->moveTextPosition(72, 720)->showText('Hi')->endText();
  *   $writer->save('/path/to/output.pdf');
+ *
+ * @api
  */
 class PdfWriter
 {
@@ -230,12 +232,12 @@ class PdfWriter
      * plus a ToUnicode CMap. The font is subset to include only the glyphs needed for the
      * given codepoints.
      *
-     * @param \ApprLabs\FontParser\TrueTypeData $data      Parsed TrueType font data
+     * @param \Phpdftk\FontParser\TrueTypeData $data      Parsed TrueType font data
      * @param int[]                              $usedCodepoints Unicode codepoints used in the document
      * @param CorePage|Page|null                 $page      If set, add font only to this page
      * @return Font Opaque font handle
      */
-    public function addCompositeFont(\ApprLabs\FontParser\TrueTypeData $data, array $usedCodepoints, CorePage|Page|null $page = null): Font
+    public function addCompositeFont(\Phpdftk\FontParser\TrueTypeData $data, array $usedCodepoints, CorePage|Page|null $page = null): Font
     {
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
@@ -278,13 +280,13 @@ class PdfWriter
      * Creates the Type 0 → CIDFontType0 → FontDescriptor → CFFFontFile
      * stack with a ToUnicode CMap for text extraction.
      *
-     * @param \ApprLabs\FontParser\OpenTypeData $data Parsed OpenType font data
+     * @param \Phpdftk\FontParser\OpenTypeData $data Parsed OpenType font data
      * @param int[] $usedCodepoints Unicode codepoints used in the document
      * @param CorePage|Page|null $page If set, add font only to this page
      * @return Font Opaque font handle
      */
     public function addOpenTypeFont(
-        \ApprLabs\FontParser\OpenTypeData $data,
+        \Phpdftk\FontParser\OpenTypeData $data,
         array $usedCodepoints,
         CorePage|Page|null $page = null,
     ): Font {
@@ -315,7 +317,7 @@ class PdfWriter
                 $usedGids[] = $gid;
             }
         }
-        $cffBytes = (new \ApprLabs\FontParser\CffSubsetter())->subset($data->cffBytes, $usedGids);
+        $cffBytes = (new \Phpdftk\FontParser\CffSubsetter())->subset($data->cffBytes, $usedGids);
 
         // CFF font program stream (embed subsetted CFF table bytes)
         $cffStream = new CFFFontFile($cffBytes, 'CIDFontType0C');
@@ -598,8 +600,19 @@ class PdfWriter
     }
 
     /**
-     * Configure a signer for this document — see
-     * {@see PdfFileWriter::setSigner()} for the full pipeline description.
+     * Configure digital signing for this document.
+     *
+     * The signing lifecycle works in three phases:
+     *   1. **Placeholder:** A SignatureValue dictionary is emitted with a
+     *      zeroed /Contents hex string large enough to hold the final
+     *      PKCS#7 DER blob (`$placeholderBytes` controls the size).
+     *   2. **Byte-range:** After the full PDF is assembled, the /ByteRange
+     *      array is patched to cover everything except the /Contents value
+     *      itself, so the signature covers the entire file.
+     *   3. **Patch:** The Pkcs7Signer signs the byte-range data and the
+     *      resulting DER is written into the /Contents placeholder.
+     *
+     * @see PdfFileWriter::setSigner()
      */
     public function setSigner(
         SignatureValue $signatureValue,
@@ -880,7 +893,7 @@ class PdfWriter
             return;
         }
 
-        $packet = \ApprLabs\Xmp\XmpPacket::create();
+        $packet = \Phpdftk\Xmp\XmpPacket::create();
         if ($info->title !== null) {
             $packet = $packet->set('dc:title', $info->title->value);
         }
@@ -897,7 +910,7 @@ class PdfWriter
             $packet = $packet->set('pdf:Producer', $info->producer->value);
         }
 
-        $xmpXml = (new \ApprLabs\Xmp\XmpWriter())->serialize($packet);
+        $xmpXml = (new \Phpdftk\Xmp\XmpWriter())->serialize($packet);
         $this->setMetadata($xmpXml);
     }
 

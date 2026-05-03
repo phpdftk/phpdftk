@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive;
+namespace Phpdftk\Pdf\Core\Tests\Interactive;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Interactive\Form\AcroForm;
-use ApprLabs\Pdf\Core\Interactive\Form\ButtonField;
-use ApprLabs\Pdf\Core\Interactive\Form\ChoiceField;
-use ApprLabs\Pdf\Core\Interactive\Form\SignatureField;
-use ApprLabs\Pdf\Core\Interactive\Form\TextField;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Interactive\Form\AcroForm;
+use Phpdftk\Pdf\Core\Interactive\Form\ButtonField;
+use Phpdftk\Pdf\Core\Interactive\Form\ChoiceField;
+use Phpdftk\Pdf\Core\Interactive\Form\SignatureField;
+use Phpdftk\Pdf\Core\Interactive\Form\TextField;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 
 class FormTest extends TestCase
 {

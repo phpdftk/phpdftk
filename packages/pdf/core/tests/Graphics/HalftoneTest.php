@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
-use ApprLabs\Pdf\Core\Graphics\Halftone\HalftoneType1;
-use ApprLabs\Pdf\Core\Graphics\Halftone\HalftoneType5;
-use ApprLabs\Pdf\Core\Graphics\Halftone\HalftoneType6;
-use ApprLabs\Pdf\Core\Graphics\Halftone\HalftoneType10;
-use ApprLabs\Pdf\Core\Graphics\Halftone\HalftoneType16;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1;
+use Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType5;
+use Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6;
+use Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10;
+use Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class HalftoneTest extends TestCase

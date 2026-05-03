@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Integration;
+namespace Phpdftk\Pdf\Reader\Tests\Integration;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Reader\PdfReader;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -163,7 +163,7 @@ class ReadSamplePdfsTest extends TestCase
 
     public function testIsLinearizedReturnsFalseForNormalPdf(): void
     {
-        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter(compressStreams: false);
         $writer->addPage(612, 792);
         $bytes = $writer->generate();
 
@@ -175,29 +175,29 @@ class ReadSamplePdfsTest extends TestCase
     public function testIsLinearizedReturnsTrueForLinearizedPdf(): void
     {
         // Build a minimal PDF with a linearization dict as object 1
-        $writer = new \ApprLabs\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter(compressStreams: false);
 
         // Register linearization dict first (object 1)
-        $linDict = new \ApprLabs\Pdf\Core\Document\LinearizationParameters();
+        $linDict = new \Phpdftk\Pdf\Core\Document\LinearizationParameters();
         $linDict->n = 1;
         $linDict->l = 0; // will be wrong but that's fine for detection
         $writer->register($linDict);
 
-        $catalog = new \ApprLabs\Pdf\Core\Document\Catalog();
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
         $writer->setCatalog($catalog);
 
-        $pageTree = new \ApprLabs\Pdf\Core\Document\PageTree();
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
         $writer->register($pageTree);
-        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
 
-        $page = new \ApprLabs\Pdf\Core\Document\Page();
+        $page = new \Phpdftk\Pdf\Core\Document\Page();
         $writer->register($page);
-        $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
-        $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
-            new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(612), new \ApprLabs\Pdf\Core\PdfNumber(792),
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612), new \Phpdftk\Pdf\Core\PdfNumber(792),
         ]);
-        $pageTree->kids = [new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
         $pageTree->count = 1;
 
         $bytes = $writer->generate();

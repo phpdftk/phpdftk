@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\TaggedStructureConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Conformance\Constraint\TaggedStructureConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class TaggedStructureConstraintTest extends TestCase

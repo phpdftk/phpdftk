@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\File\CrossReferenceTable;
-use ApprLabs\Pdf\Core\File\ObjectRegistry;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\File\CrossReferenceTable;
+use Phpdftk\Pdf\Core\File\ObjectRegistry;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
 use PHPUnit\Framework\TestCase;
 
 class ObjectRegistryAndXrefTest extends TestCase

@@ -8,7 +8,7 @@ description: Flatten annotations and form widgets into page content, making them
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\AnnotationFlattener;
+use Phpdftk\Pdf\Toolkit\AnnotationFlattener;
 
 // From file
 $flattener = AnnotationFlattener::open('form.pdf');
@@ -29,7 +29,7 @@ $flattener->flattenAll()->save('flat.pdf');
 Restrict to specific pages:
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $flattener->flattenAll(PageSelector::pages(1, 2))->save('flat.pdf');
 ```

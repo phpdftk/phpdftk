@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
-use ApprLabs\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfObject;
 
 /**
  * Tracks all PdfObject instances and assigns sequential object numbers.
- * Object 0 is reserved as the free list head (never actually registered here).
+ *
+ * Numbering starts at 1 because object 0 is reserved by the PDF spec as the
+ * free-list head in the cross-reference table (ISO 32000-2 section 7.5.4). Generation
+ * numbers are always 0 for objects in a new document -- non-zero generations
+ * only appear in incremental updates that reuse deleted object numbers.
  */
 class ObjectRegistry
 {

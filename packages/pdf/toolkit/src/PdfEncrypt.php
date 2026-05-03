@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Encryption\EncryptionMethod;
-use ApprLabs\Pdf\Toolkit\Encryption\Permission;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Encryption\EncryptionMethod;
+use Phpdftk\Pdf\Toolkit\Encryption\Permission;
 
 /**
  * Apply, change, or remove encryption on existing PDFs.
@@ -32,6 +32,8 @@ use ApprLabs\Pdf\Toolkit\Encryption\Permission;
  *   PdfEncrypt::open('encrypted.pdf', 'password')
  *       ->decrypt()
  *       ->save('decrypted.pdf');
+ *
+ * @api
  */
 final class PdfEncrypt
 {
@@ -296,10 +298,10 @@ final class PdfEncrypt
             }
         }
         if ($resDict !== null) {
-            $copier = new \ApprLabs\Pdf\Toolkit\Internal\PageCopier($this->reader, $fw);
+            $copier = new \Phpdftk\Pdf\Toolkit\Internal\PageCopier($this->reader, $fw);
             // Use copyPages on a temp page to leverage the resource copy logic
             // Instead, build Resources directly
-            $res = new \ApprLabs\Pdf\Core\Content\Resources();
+            $res = new \Phpdftk\Pdf\Core\Content\Resources();
             $fontDict = $resDict->get('Font');
             if ($fontDict instanceof PdfDictionary) {
                 foreach (array_keys($fontDict->entries) as $name) {

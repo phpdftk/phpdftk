@@ -8,7 +8,7 @@ description: Fill interactive PDF form fields with a fluent API.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\FormFiller;
+use Phpdftk\Pdf\Toolkit\FormFiller;
 
 // From file
 $filler = FormFiller::open('form.pdf');

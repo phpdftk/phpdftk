@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Graphics\ExtGState;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Graphics\ExtGState;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 
 #[Group("qpdf")]
 class ExtGStateIntegrationTest extends TestCase

@@ -1,17 +1,41 @@
 {
-    "name": "apprlabs/xmp",
-    "description": "XMP metadata packet read/write — no PDF dependency",
+    "name": "phpdftk/xmp",
+    "description": "XMP metadata packet read/write \u2014 no PDF dependency",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["xmp", "metadata", "xml", "dublin-core"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "xmp",
+        "metadata",
+        "xml",
+        "dublin-core"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
-    "require": { "php": "^8.4", "ext-simplexml": "*" },
-    "autoload": { "psr-4": { "ApprLabs\\Xmp\\": "src/" } },
-    "autoload-dev": { "psr-4": { "ApprLabs\\Xmp\\Tests\\": "tests/" } }
+    "require": {
+        "php": "^8.4",
+        "ext-simplexml": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Xmp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Xmp\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
 }

@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
-use ApprLabs\Encoding\CMapParser;
-use ApprLabs\Encoding\GlyphList;
-use ApprLabs\Encoding\MacExpertEncodingTable;
-use ApprLabs\Encoding\MacRomanTable;
-use ApprLabs\Encoding\StandardEncodingTable;
-use ApprLabs\Encoding\WinAnsiTable;
-use ApprLabs\FontMetrics\StandardFontMetrics;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Reader\Parser\ContentStreamOp;
-use ApprLabs\Pdf\Reader\Parser\ContentStreamParser;
+use Phpdftk\Encoding\CMapParser;
+use Phpdftk\Encoding\GlyphList;
+use Phpdftk\Encoding\MacExpertEncodingTable;
+use Phpdftk\Encoding\MacRomanTable;
+use Phpdftk\Encoding\StandardEncodingTable;
+use Phpdftk\Encoding\WinAnsiTable;
+use Phpdftk\FontMetrics\StandardFontMetrics;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Reader\Parser\ContentStreamOp;
+use Phpdftk\Pdf\Reader\Parser\ContentStreamParser;
 
 /**
  * Extracts text with precise positioning from a PDF page.

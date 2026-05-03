@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
-use ApprLabs\Pdf\Core\Document\ClassMap;
-use ApprLabs\Pdf\Core\Document\RoleMap;
-use ApprLabs\Pdf\Core\Document\StructAttribute;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\Document\ClassMap;
+use Phpdftk\Pdf\Core\Document\RoleMap;
+use Phpdftk\Pdf\Core\Document\StructAttribute;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\PdfName;
 use PHPUnit\Framework\TestCase;
 
 class AccessibilityHelpersTest extends TestCase

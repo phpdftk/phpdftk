@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\ImageMetadata\ImageParser;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\File\IncrementalWriter;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Graphics\ExtGState;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Internal\PageResolver;
-use ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle;
-use ApprLabs\Pdf\Toolkit\Stamper\StampPosition;
-use ApprLabs\Pdf\Toolkit\Stamper\StampStyle;
-use ApprLabs\Pdf\Toolkit\Stamper\WatermarkStyle;
+use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Graphics\ExtGState;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Internal\PageResolver;
+use Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle;
+use Phpdftk\Pdf\Toolkit\Stamper\StampPosition;
+use Phpdftk\Pdf\Toolkit\Stamper\StampStyle;
+use Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle;
 
 /**
  * Add text overlays, watermarks, page numbers, headers and footers to PDFs.
@@ -34,6 +34,8 @@ use ApprLabs\Pdf\Toolkit\Stamper\WatermarkStyle;
  *       ->watermark('DRAFT')
  *       ->addPageNumbers(StampPosition::BottomCenter)
  *       ->save('stamped.pdf');
+ *
+ * @api
  */
 final class PdfStamper
 {

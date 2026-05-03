@@ -150,7 +150,7 @@ echo "Running Tier 4 tests..."
 vendor/bin/phpunit --group tier4 --log-junit build/compliance/tier4.xml || true
 echo ""
 
-echo "Generating docs/compliance.md..."
+echo "Generating docs/generated/compliance.md..."
 php scripts/parse-compliance.php --tools="$TOOLS"
 
-echo "Done. See docs/compliance.md"
+echo "Done. See docs/generated/compliance.md"

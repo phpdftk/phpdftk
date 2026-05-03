@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Integration;
+namespace Phpdftk\Pdf\Reader\Tests\Integration;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Reader\PdfReader;
 use PHPUnit\Framework\TestCase;
 
 /**

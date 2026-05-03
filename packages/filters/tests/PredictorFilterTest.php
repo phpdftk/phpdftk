@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters\Tests;
+namespace Phpdftk\Filters\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Filters\PredictorFilter;
+use Phpdftk\Filters\PredictorFilter;
 
 class PredictorFilterTest extends TestCase
 {

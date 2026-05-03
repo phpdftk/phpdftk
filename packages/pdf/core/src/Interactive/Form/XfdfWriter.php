@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
 /**
  * XFDF (XML Forms Data Format) writer — ISO 32000-2 §12.7.8.

@@ -2,56 +2,111 @@
 
 Thank you for your interest in contributing to phpdftk!
 
-## Development Setup
+## Prerequisites
+
+This project uses [mise](https://mise.jdx.dev/) to manage tool versions.
 
 ```bash
-git clone https://github.com/apprlabs/phpdftk.git
+# Install mise (macOS)
+brew install mise
+
+# Activate mise in your shell
+mise activate
+```
+
+## Getting Started
+
+```bash
+git clone https://github.com/phpdftk/phpdftk.git
 cd phpdftk
+mise install        # Installs PHP 8.4 + Node 24
 composer install
 ```
 
-**Requirements:** PHP 8.4+ with extensions: `zlib`, `openssl`, `simplexml`.
+**Required PHP extensions:** `zlib`, `openssl`, `simplexml`.
 
-## Running Tests
+## Dev Commands
 
-```bash
-# All tests
-vendor/bin/phpunit
+All tasks are defined in `.mise.toml` and run via `mise run`:
 
-# Single test suite
-vendor/bin/phpunit --testsuite core
-vendor/bin/phpunit --testsuite writer
+| Command | Description |
+|---|---|
+| `mise run test` | Run all tests |
+| `mise run test -- --testsuite core` | Run a single test suite |
+| `mise run test -- --filter testName` | Run a single test method |
+| `mise run analyse` | Run PHPStan static analysis (level 6) |
+| `mise run lint` | Check code style (PHP CS Fixer, dry-run) |
+| `mise run lint:fix` | Auto-fix code style |
+| `mise run benchmark` | Run benchmarks, generate `docs/generated/benchmarks.md` |
+| `mise run coverage` | Generate code coverage report and badge |
+| `mise run compliance` | Run external compliance validation (Docker required) |
 
-# Single test file
-vendor/bin/phpunit packages/pdf/core/tests/Document/SimpleTextTest.php
+## Repository Layout
 
-# Single test method
-vendor/bin/phpunit --filter testGeneratesSimpleTextPdf
+```
+phpdftk/
+  packages/           # 15 Composer packages (see README for full list)
+    pdf/core/         #   PDF object model + file serialization
+    pdf/writer/       #   Ergonomic builder facade
+    pdf/reader/       #   PDF parser
+    pdf/toolkit/      #   High-level pipelines (merge, stamp, encrypt, etc.)
+    pdf/conformance/  #   PDF/A, PDF/UA, PDF/X, PDF/VT, PDF/E, PDF/R validation
+    pdf/all/          #   Metapackage bundle
+    geometry/         #   Rectangle, Matrix, PageSize, BezierCurve
+    color/            #   RGB/CMYK/Gray color models
+    encoding/         #   Encoding tables, Adobe Glyph List, CMap parser
+    filters/          #   FlateDecode, ASCII85, LZW, CCITTFax, JBIG2 codecs
+    font-metrics/     #   AFM metrics for 14 standard PDF fonts
+    font-parser/      #   TrueType/OpenType/Type1/WOFF/CFF font parsing
+    image-metadata/   #   JPEG/PNG/GIF/TIFF/WebP header parsing
+    xmp/              #   XMP metadata read/write
+    crypt/            #   AES/RC4 encryption, PDF key derivation, PKCS#7
+  benchmarks/         # phpbench performance benchmarks
+  scripts/            # Shell scripts backing mise tasks
+  docker/             # Dockerfiles for compliance validation tools
+  docs/               # Documentation (see below)
+  docs/generated/     # Auto-generated output (benchmarks, compliance, coverage badge)
+  docs/site/          # Astro documentation site
 ```
 
-## Static Analysis
+### docs/ Contents
+
+| File | Auto-generated? | Description |
+|---|---|---|
+| `generated/benchmarks.md` | Yes (`mise run benchmark`) | Performance comparison vs FPDF, TCPDF, mPDF, Dompdf |
+| `generated/compliance.md` | Yes (`mise run compliance`) | External tool validation (QPDF, Arlington, veraPDF, JHOVE) |
+| `generated/coverage-badge.svg` | Yes (`mise run coverage`) | Code coverage badge |
+| `spec-coverage.md` | No | ISO 32000-2:2020 field-level coverage tracker |
+| `version-coverage.md` | No | PDF version feature map (1.0–2.0) with source links |
+| `iso-standards-coverage.md` | No | ISO conformance map (PDF/A, PDF/UA, PDF/X, etc.) with source links |
+
+## Docker (no mise required)
+
+If you don't have mise installed, you can use Docker instead:
 
 ```bash
-scripts/analyse
-```
+# Run tests
+docker compose -f docker-compose.dev.yml run --rm test
 
-PHPStan runs at level 6. All code must pass before merging.
+# Run static analysis
+docker compose -f docker-compose.dev.yml run --rm analyse
+
+# Run linter
+docker compose -f docker-compose.dev.yml run --rm lint
+```
 
 ## Pull Request Guidelines
 
 1. **Fork and branch** from `main`.
 2. **Write tests** for new features and bug fixes.
-3. **Run the test suite** and static analysis before submitting.
+3. **Run checks** before submitting: `mise run test`, `mise run analyse`, `mise run lint`.
 4. **Keep PRs focused** — one feature or fix per PR.
 5. **Follow existing patterns** — match the code style, naming conventions, and architecture of the surrounding code.
-
-## Project Structure
-
-This is a monorepo with 14 packages under `packages/`. Each package has its own `composer.json`, `src/`, and `tests/` directories. See the [README](README.md) for the full package overview.
+6. **Sign your commits** — this project uses the [Developer Certificate of Origin (DCO)](https://developercertificate.org/). Add `Signed-off-by` to your commits with `git commit -s`.
 
 ## Reporting Bugs
 
-Open an issue at [github.com/apprlabs/phpdftk/issues](https://github.com/apprlabs/phpdftk/issues) with:
+Open an issue at [github.com/phpdftk/phpdftk/issues](https://github.com/phpdftk/phpdftk/issues) with:
 
 - PHP version and OS
 - Minimal reproduction steps

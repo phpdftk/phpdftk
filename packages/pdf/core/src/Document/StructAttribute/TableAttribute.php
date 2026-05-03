@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Document\StructAttribute;
+namespace Phpdftk\Pdf\Core\Document\StructAttribute;
 
-use ApprLabs\Pdf\Core\Document\StructAttribute;
+use Phpdftk\Pdf\Core\Document\StructAttribute;
 
 /**
  * Table attribute object (owner /Table) — ISO 32000-2 §14.8.5.7.

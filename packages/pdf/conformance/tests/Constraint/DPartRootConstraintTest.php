@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\DPartRootConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfVtProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Conformance\Constraint\DPartRootConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfVtProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class DPartRootConstraintTest extends TestCase

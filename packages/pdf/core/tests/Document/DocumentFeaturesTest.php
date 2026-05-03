@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Document\Destination;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\OCG;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Document\StructElem;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Document\Destination;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\OCG;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\Arlington\ArlingtonValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a PDF exercising document-level features: OutputIntent, page boxes,

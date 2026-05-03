@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
 /**
  * Parse JPEG 2000 (.jp2, .j2k, .j2c) image headers.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\Type1Data;
-use ApprLabs\FontParser\Type1Parser;
+use Phpdftk\FontParser\Type1Data;
+use Phpdftk\FontParser\Type1Parser;
 use PHPUnit\Framework\TestCase;
 
 class Type1ParserTest extends TestCase

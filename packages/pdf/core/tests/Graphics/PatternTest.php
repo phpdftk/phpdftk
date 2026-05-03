@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Graphics\Pattern\ShadingPattern;
-use ApprLabs\Pdf\Core\Graphics\Pattern\TilingPattern;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern;
+use Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class PatternTest extends TestCase

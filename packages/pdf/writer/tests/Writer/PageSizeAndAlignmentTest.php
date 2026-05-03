@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests;
+namespace Phpdftk\Pdf\Writer\Tests;
 
-use ApprLabs\Pdf\Writer\Alignment;
-use ApprLabs\Pdf\Writer\PageSize;
+use Phpdftk\Pdf\Writer\Alignment;
+use Phpdftk\Pdf\Writer\PageSize;
 use PHPUnit\Framework\TestCase;
 
 class PageSizeAndAlignmentTest extends TestCase

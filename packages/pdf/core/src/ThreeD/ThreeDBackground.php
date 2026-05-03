@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\ThreeD;
+namespace Phpdftk\Pdf\Core\ThreeD;
 
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\ColorSpace;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\ColorSpace;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D background dictionary (/Type /3DBG) — ISO 32000-2 §13.6.5.

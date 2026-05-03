@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "changelog-type": "keep-a-changelog",
+  "packages": {
+    "packages/pdf/core": {
+      "package-name": "phpdftk/pdf-core",
+      "component": "pdf-core"
+    },
+    "packages/pdf/writer": {
+      "package-name": "phpdftk/pdf-writer",
+      "component": "pdf-writer"
+    },
+    "packages/pdf/reader": {
+      "package-name": "phpdftk/pdf-reader",
+      "component": "pdf-reader"
+    },
+    "packages/pdf/toolkit": {
+      "package-name": "phpdftk/pdf-toolkit",
+      "component": "pdf-toolkit"
+    },
+    "packages/pdf/conformance": {
+      "package-name": "phpdftk/pdf-conformance",
+      "component": "pdf-conformance"
+    },
+    "packages/pdf/all": {
+      "package-name": "phpdftk/pdf",
+      "component": "pdf"
+    },
+    "packages/geometry": {
+      "package-name": "phpdftk/geometry",
+      "component": "geometry"
+    },
+    "packages/color": {
+      "package-name": "phpdftk/color",
+      "component": "color"
+    },
+    "packages/filters": {
+      "package-name": "phpdftk/filters",
+      "component": "filters"
+    },
+    "packages/encoding": {
+      "package-name": "phpdftk/encoding",
+      "component": "encoding"
+    },
+    "packages/font-metrics": {
+      "package-name": "phpdftk/font-metrics",
+      "component": "font-metrics"
+    },
+    "packages/font-parser": {
+      "package-name": "phpdftk/font-parser",
+      "component": "font-parser"
+    },
+    "packages/image-metadata": {
+      "package-name": "phpdftk/image-metadata",
+      "component": "image-metadata"
+    },
+    "packages/xmp": {
+      "package-name": "phpdftk/xmp",
+      "component": "xmp"
+    },
+    "packages/crypt": {
+      "package-name": "phpdftk/crypt",
+      "component": "crypt"
+    }
+  },
+  "versioning": "default",
+  "bump-minor-pre-major": false,
+  "bump-patch-for-minor-pre-major": false,
+  "separate-pull-requests": false
+}

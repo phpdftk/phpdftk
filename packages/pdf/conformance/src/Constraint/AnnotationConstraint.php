@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Annotation\Annotation;
-use ApprLabs\Pdf\Core\Annotation\WidgetAnnotation;
-use ApprLabs\Pdf\Core\Annotation\PopupAnnotation;
-use ApprLabs\Pdf\Core\Annotation\LinkAnnotation;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Annotation\Annotation;
+use Phpdftk\Pdf\Core\Annotation\WidgetAnnotation;
+use Phpdftk\Pdf\Core\Annotation\PopupAnnotation;
+use Phpdftk\Pdf\Core\Annotation\LinkAnnotation;
 
 /**
  * PDF/UA-1 clause 7.18.1: Annotations must be accessible.

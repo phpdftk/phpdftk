@@ -10,7 +10,7 @@ These tools are integrated into the test suite and run automatically.
 
 | Suite | What it validates | Scope | CI behavior |
 |---|---|---|---|
-| [QPDF](qpdf.md) | Structural integrity (xref, page tree, streams, linearization, encryption) | All integration tests (140 assertions across 39 test files) | Runs on every push and PR |
+| [QPDF](qpdf.md) | Structural integrity (xref, page tree, streams, linearization, encryption) | All integration tests (168 assertions across 46 test files) | Runs on every push and PR |
 | [Arlington PDF Model](arlington.md) | Dictionary-level spec conformance (keys, types, required fields, version constraints) | 5 core integration tests (6 assertions), expandable | Runs on every push and PR |
 | [veraPDF](verapdf.md) | PDF/A archival conformance (ISO 19005), PDF/UA accessibility | Opt-in via `#[Group('verapdf')]` (2 dedicated tests) | Runs on pushes to `main` only |
 
@@ -231,8 +231,8 @@ Each tool handles unavailability differently based on its role:
 ### Adding validation to a new test
 
 ```php
-use ApprLabs\Tests\Support\QpdfValidationTrait;
-use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Tests\Support\Arlington\ArlingtonValidationTrait;
 
 class MyNewIntegrationTest extends TestCase
 {
@@ -266,8 +266,8 @@ To integrate a new tool from any tier, follow this repeatable pattern:
 2. **Create a validation trait** — `tests/Support/<Tool>ValidationTrait.php`:
 
 ```php
-use ApprLabs\Tests\Support\DockerToolRunner;
-use ApprLabs\Tests\Support\ExternalToolLocator;
+use Phpdftk\Tests\Support\DockerToolRunner;
+use Phpdftk\Tests\Support\ExternalToolLocator;
 
 trait FooValidationTrait
 {

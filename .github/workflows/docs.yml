@@ -34,44 +34,12 @@ jobs:
       - name: Generate versions.json
         run: node docs/site/scripts/generate-versions.js > docs/site/public/versions.json
 
-      - name: Build latest
-        run: |
-          cd docs/site
-          DOCS_VERSION=latest DOCS_BASE=/phpdftk/ npx astro build
-          mkdir -p ../../_combined
-          cp -r dist/* ../../_combined/
-
-      - name: Build tagged versions
-        run: |
-          TAGS=$(git tag -l 'v*' --sort=-version:refname)
-          for TAG in $TAGS; do
-            echo "::group::Building $TAG"
-
-            # Save HEAD content, overlay tag's content
-            cp -r docs/site/src/content/docs docs/site/src/content/docs-head
-            git show "$TAG:docs/site/src/content/docs" > /dev/null 2>&1 && \
-              git checkout "$TAG" -- docs/site/src/content/docs || true
-
-            # Build with versioned base path
-            cd docs/site
-            DOCS_VERSION="$TAG" DOCS_BASE="/docs/$TAG/" npx astro build
-            mkdir -p "../../_combined/$TAG"
-            cp -r dist/* "../../_combined/$TAG/"
-            cd ../..
-
-            # Restore HEAD content
-            rm -rf docs/site/src/content/docs
-            mv docs/site/src/content/docs-head docs/site/src/content/docs
-
-            echo "::endgroup::"
-          done
-
-      - name: Copy versions.json to root
-        run: cp docs/site/public/versions.json _combined/versions.json
+      - name: Build site
+        run: cd docs/site && npx astro build
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _combined
+          path: docs/site/dist
 
   deploy:
     needs: build

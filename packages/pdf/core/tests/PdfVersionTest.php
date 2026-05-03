@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests;
+namespace Phpdftk\Pdf\Core\Tests;
 
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\PdfVersion;
 use PHPUnit\Framework\TestCase;
 
 class PdfVersionTest extends TestCase

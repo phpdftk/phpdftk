@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core;
+namespace Phpdftk\Pdf\Core;
 
 /**
  * PDF date string helper — ISO 32000-2 §7.9.4.

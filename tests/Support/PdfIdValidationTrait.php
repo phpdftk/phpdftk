@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support;
+namespace Phpdftk\Tests\Support;
 
 /**
  * pdfid.py security scanner validation trait for PDF files.

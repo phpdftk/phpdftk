@@ -1,6 +1,9 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parse WebP container (RIFF/VP8/VP8L/VP8X) for dimensions and alpha.
+ */
 final class WebpParser {
     public static function parseFile(string $path): ImageInfo {
         $data = file_get_contents($path);

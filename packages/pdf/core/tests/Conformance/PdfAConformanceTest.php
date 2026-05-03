@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Conformance;
+namespace Phpdftk\Pdf\Core\Tests\Conformance;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MetadataStream;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
-use ApprLabs\Tests\Support\VeraPdfValidationTrait;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MetadataStream;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Tests\Support\VeraPdfValidationTrait;
 
 /**
  * Tests that validate generated PDFs against veraPDF for PDF/A compliance.
@@ -207,7 +207,7 @@ class PdfAConformanceTest extends TestCase
 
         // This test verifies that veraPDF runs without crashing.
         $rawResult = $this->runVeraPdfRaw($outPath, '1b');
-        $fullOutput = $rawResult instanceof \ApprLabs\Tests\Support\DockerToolResult
+        $fullOutput = $rawResult instanceof \Phpdftk\Tests\Support\DockerToolResult
             ? $rawResult->output
             : $rawResult;
 

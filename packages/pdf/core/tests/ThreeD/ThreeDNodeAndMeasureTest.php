@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\ThreeD;
+namespace Phpdftk\Pdf\Core\Tests\ThreeD;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDMeasure;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDNode;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDMeasure;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDNode;
 use PHPUnit\Framework\TestCase;
 
 class ThreeDNodeAndMeasureTest extends TestCase

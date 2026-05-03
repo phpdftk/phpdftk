@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
 
 /**
  * Mock document inspector for unit testing constraints.

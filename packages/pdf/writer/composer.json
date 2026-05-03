@@ -1,29 +1,42 @@
 {
-    "name": "apprlabs/pdf-writer",
-    "description": "PDF writer — serializes the phpdftk object model to spec-compliant PDF bytes",
+    "name": "phpdftk/pdf-writer",
+    "description": "PDF writer \u2014 serializes the phpdftk object model to spec-compliant PDF bytes",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["pdf", "writer", "generator", "builder"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "pdf",
+        "writer",
+        "generator",
+        "builder"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
     "require": {
         "php": "^8.4",
-        "apprlabs/pdf-core": "^1.0",
-        "apprlabs/pdf-conformance": "^1.0 || @dev"
+        "phpdftk/pdf-core": "^1.0",
+        "phpdftk/pdf-conformance": "^1.0 || @dev"
     },
     "autoload": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Writer\\": "src/"
+            "Phpdftk\\Pdf\\Writer\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Writer\\Tests\\": "tests/"
+            "Phpdftk\\Pdf\\Writer\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
         }
     }
 }

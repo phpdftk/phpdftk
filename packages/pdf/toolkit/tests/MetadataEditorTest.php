@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Tests;
+namespace Phpdftk\Pdf\Toolkit\Tests;
 
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\MetadataEditor;
-use ApprLabs\Pdf\Toolkit\MetadataInfo;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\MetadataEditor;
+use Phpdftk\Pdf\Toolkit\MetadataInfo;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 

@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Inspection;
+namespace Phpdftk\Pdf\Conformance\Tests\Inspection;
 
-use ApprLabs\Pdf\Conformance\Inspection\ReaderDocumentInspector;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\Inspection\ReaderDocumentInspector;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class ReaderDocumentInspectorTest extends TestCase

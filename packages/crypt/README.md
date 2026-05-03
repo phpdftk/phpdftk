@@ -1,4 +1,4 @@
-# apprlabs/crypt
+# phpdftk/crypt
 
 AES-128/256-CBC and RC4 ciphers with PDF key derivation (ISO 32000-2). No PDF object dependency — usable standalone for any encryption need.
 
@@ -7,15 +7,15 @@ Requires `ext-openssl`.
 ## Installation
 
 ```bash
-composer require apprlabs/crypt
+composer require phpdftk/crypt
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Crypt\AesCipher;
-use ApprLabs\Crypt\Rc4Cipher;
-use ApprLabs\Crypt\PdfKeyDerivation;
+use Phpdftk\Crypt\AesCipher;
+use Phpdftk\Crypt\Rc4Cipher;
+use Phpdftk\Crypt\PdfKeyDerivation;
 
 // AES-128 or AES-256 (random IV prepended to ciphertext)
 $aes = new AesCipher(keyBits: 128);

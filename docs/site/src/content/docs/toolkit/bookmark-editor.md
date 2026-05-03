@@ -8,7 +8,7 @@ description: Read, add, replace, and remove PDF bookmarks (document outlines).
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\BookmarkEditor;
+use Phpdftk\Pdf\Toolkit\BookmarkEditor;
 
 // From file
 $editor = BookmarkEditor::open('report.pdf');
@@ -50,7 +50,7 @@ if ($editor->hasBookmarks()) {
 `BookmarkEntry` is a readonly value object representing one node in the outline tree:
 
 ```php
-use ApprLabs\Pdf\Toolkit\Bookmark\BookmarkEntry;
+use Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry;
 
 $entry = new BookmarkEntry(
     title: 'Chapter 1',

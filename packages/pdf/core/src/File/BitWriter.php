@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
 /**
  * Writes variable-width bit fields to a binary buffer.

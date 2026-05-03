@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Font;
+namespace Phpdftk\Pdf\Core\Tests\Font;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Font\CIDFont;
-use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
-use ApprLabs\Pdf\Core\Font\Encoding;
-use ApprLabs\Pdf\Core\Font\Font;
-use ApprLabs\Pdf\Core\Font\FontDescriptor;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\Font\Type0Font;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Font\CIDFont;
+use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
+use Phpdftk\Pdf\Core\Font\Encoding;
+use Phpdftk\Pdf\Core\Font\Font;
+use Phpdftk\Pdf\Core\Font\FontDescriptor;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\Font\Type0Font;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 
 class FontTest extends TestCase
 {

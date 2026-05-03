@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
-use ApprLabs\FontParser\TrueTypeData;
-use ApprLabs\FontParser\TrueTypeParser;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\FontParser\TrueTypeData;
+use Phpdftk\FontParser\TrueTypeParser;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
 
 /**
  * TrueType font (/Subtype /TrueType).

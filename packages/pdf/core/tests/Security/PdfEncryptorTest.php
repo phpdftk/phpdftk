@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Security;
+namespace Phpdftk\Pdf\Core\Tests\Security;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Reader\PdfReader;
 use PHPUnit\Framework\TestCase;
 
 class PdfEncryptorTest extends TestCase
@@ -61,7 +61,7 @@ class PdfEncryptorTest extends TestCase
     {
         $pdf = $this->generateEncryptedPdf('rc4128', 'mypass', 'ownerpass');
 
-        $this->expectException(\ApprLabs\Pdf\Reader\Exception\InvalidPdfException::class);
+        $this->expectException(\Phpdftk\Pdf\Reader\Exception\InvalidPdfException::class);
         $this->expectExceptionMessage('Invalid password');
         PdfReader::fromString($pdf, 'wrongpass');
     }
@@ -86,7 +86,7 @@ class PdfEncryptorTest extends TestCase
     {
         $pdf = $this->generateEncryptedPdf('aes128', 'secret', 'admin');
 
-        $this->expectException(\ApprLabs\Pdf\Reader\Exception\InvalidPdfException::class);
+        $this->expectException(\Phpdftk\Pdf\Reader\Exception\InvalidPdfException::class);
         PdfReader::fromString($pdf, 'wrong');
     }
 
@@ -170,7 +170,7 @@ class PdfEncryptorTest extends TestCase
     {
         $pdf = $this->generateEncryptedPdf('aes256', 'secret256', 'admin256');
 
-        $this->expectException(\ApprLabs\Pdf\Reader\Exception\InvalidPdfException::class);
+        $this->expectException(\Phpdftk\Pdf\Reader\Exception\InvalidPdfException::class);
         $this->expectExceptionMessage('Invalid password');
         PdfReader::fromString($pdf, 'wrongpass');
     }

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Internal;
+namespace Phpdftk\Pdf\Toolkit\Internal;
 
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 /**
  * Deep-copies pages from a PdfReader source into a PdfFileWriter target.

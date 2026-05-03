@@ -1,6 +1,10 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parsed image header metadata — everything needed to build a PDF ImageXObject
+ * without decoding pixel data.
+ */
 final class ImageInfo {
     public function __construct(
         public readonly int    $width,

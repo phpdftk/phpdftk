@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Integration;
+namespace Phpdftk\Pdf\Reader\Tests\Integration;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Content\Resources;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Reader\TextSpan;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\Resources;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\TextSpan;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class PositionedTextExtractionTest extends TestCase

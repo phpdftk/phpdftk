@@ -1,0 +1,28 @@
+services:
+  dev:
+    build: .
+    volumes:
+      - .:/app
+    entrypoint: ["php"]
+    command: ["vendor/bin/phpunit"]
+
+  test:
+    build: .
+    volumes:
+      - .:/app
+    entrypoint: ["php"]
+    command: ["vendor/bin/phpunit"]
+
+  analyse:
+    build: .
+    volumes:
+      - .:/app
+    entrypoint: ["php"]
+    command: ["-d", "memory_limit=512M", "vendor/bin/phpstan", "analyse"]
+
+  lint:
+    build: .
+    volumes:
+      - .:/app
+    entrypoint: ["php"]
+    command: ["vendor/bin/php-cs-fixer", "fix", "--dry-run", "--diff"]

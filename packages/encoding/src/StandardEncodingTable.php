@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 /**
  * StandardEncoding — the default encoding for Type 1 fonts when no /Encoding is specified.

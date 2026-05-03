@@ -2,38 +2,38 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Annotation\AppearanceCharacteristics;
-use ApprLabs\Pdf\Core\Annotation\AppearanceDict;
-use ApprLabs\Pdf\Core\Document\Bead;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Collection;
-use ApprLabs\Pdf\Core\Document\CollectionItem;
-use ApprLabs\Pdf\Core\Document\CollectionSchema;
-use ApprLabs\Pdf\Core\Document\Destination;
-use ApprLabs\Pdf\Core\Document\GroupAttributes;
-use ApprLabs\Pdf\Core\Document\NameTree;
-use ApprLabs\Pdf\Core\Document\NumberTree;
-use ApprLabs\Pdf\Core\Document\ObjectRef;
-use ApprLabs\Pdf\Core\Document\OCG;
-use ApprLabs\Pdf\Core\Document\OCMD;
-use ApprLabs\Pdf\Core\Document\OCPropertiesDict;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\Document\StructElem;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Document\Thread;
-use ApprLabs\Pdf\Core\Document\TransitionDict;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Annotation\AppearanceCharacteristics;
+use Phpdftk\Pdf\Core\Annotation\AppearanceDict;
+use Phpdftk\Pdf\Core\Document\Bead;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Collection;
+use Phpdftk\Pdf\Core\Document\CollectionItem;
+use Phpdftk\Pdf\Core\Document\CollectionSchema;
+use Phpdftk\Pdf\Core\Document\Destination;
+use Phpdftk\Pdf\Core\Document\GroupAttributes;
+use Phpdftk\Pdf\Core\Document\NameTree;
+use Phpdftk\Pdf\Core\Document\NumberTree;
+use Phpdftk\Pdf\Core\Document\ObjectRef;
+use Phpdftk\Pdf\Core\Document\OCG;
+use Phpdftk\Pdf\Core\Document\OCMD;
+use Phpdftk\Pdf\Core\Document\OCPropertiesDict;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Document\Thread;
+use Phpdftk\Pdf\Core\Document\TransitionDict;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 
 class DocumentStructureTest extends TestCase
 {

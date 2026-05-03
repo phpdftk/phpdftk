@@ -8,8 +8,8 @@ description: Spatial drawing API with explicit coordinates, font handles, and fu
 ## Creating pages
 
 ```php
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Writer\PageSize;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Writer\PageSize;
 
 $writer = new PdfWriter();
 
@@ -24,8 +24,8 @@ $page = $writer->addPage(PageSize::Legal);
 ## Fonts
 
 ```php
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
 
 // Standard 14 fonts (no embedding needed)
 $helvetica = $writer->addFont(new Type1Font(StandardFont::Helvetica));
@@ -33,7 +33,7 @@ $courier = $writer->addFont(new Type1Font(StandardFont::Courier));
 
 // TrueType font (auto-embedded and subsetted)
 $custom = $writer->addFont(
-    \ApprLabs\Pdf\Core\Font\TrueTypeFont::fromFile('/path/to/font.ttf')
+    \Phpdftk\Pdf\Core\Font\TrueTypeFont::fromFile('/path/to/font.ttf')
 );
 ```
 
@@ -57,7 +57,7 @@ $page->drawText('Red text', 72, 700, $font, 14, color: new RgbColor(1, 0, 0));
 ### Shapes
 
 ```php
-use ApprLabs\Color\RgbColor;
+use Phpdftk\Color\RgbColor;
 
 // Rectangle with fill and stroke
 $page->drawRectangle(72, 600, 200, 100,
@@ -70,7 +70,7 @@ $page->drawRectangle(72, 600, 200, 100,
 $page->drawCircle(300, 400, 50, fill: new RgbColor(1, 0.8, 0));
 
 // Line with dash pattern
-use ApprLabs\Pdf\Writer\DashPattern;
+use Phpdftk\Pdf\Writer\DashPattern;
 $page->drawLine(72, 500, 540, 500,
     color: new RgbColor(0.5, 0.5, 0.5),
     dash: DashPattern::dashed(),
@@ -100,8 +100,8 @@ $page->drawPath(
 ## Bookmarks
 
 ```php
-use ApprLabs\Pdf\Core\Document\Outline;
-use ApprLabs\Pdf\Core\Document\OutlineItem;
+use Phpdftk\Pdf\Core\Document\Outline;
+use Phpdftk\Pdf\Core\Document\OutlineItem;
 
 $outline = new Outline();
 $writer->setOutline($outline);
@@ -120,7 +120,7 @@ $writer->setSigner($signatureValue, $pkcs7Signer);
 ## Encryption
 
 ```php
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
 
 $fileId = random_bytes(16);
 $encryptor = PdfEncryptor::aes256('userpass', 'ownerpass', $fileId);

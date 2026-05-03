@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\PdfRFontConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfRProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Conformance\Constraint\PdfRFontConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfRProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
 use PHPUnit\Framework\TestCase;
 
 class PdfRFontConstraintTest extends TestCase

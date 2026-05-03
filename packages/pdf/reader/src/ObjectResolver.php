@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
-use ApprLabs\Pdf\Core\PdfNull;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Parser\ObjectParser;
-use ApprLabs\Pdf\Reader\Parser\ObjectStreamParser;
-use ApprLabs\Pdf\Reader\Parser\StreamParser;
-use ApprLabs\Pdf\Reader\Tokenizer\Source;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Core\PdfNull;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Parser\ObjectParser;
+use Phpdftk\Pdf\Reader\Parser\ObjectStreamParser;
+use Phpdftk\Pdf\Reader\Parser\StreamParser;
+use Phpdftk\Pdf\Reader\Tokenizer\Source;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
 
 /**
  * Lazy-loading object cache. Resolves indirect references by seeking

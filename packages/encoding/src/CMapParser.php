@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Encoding;
+namespace Phpdftk\Encoding;
 
 final class CMapParser {
     /**

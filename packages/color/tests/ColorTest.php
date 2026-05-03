@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Color\Tests;
+namespace Phpdftk\Color\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Color\RgbColor;
-use ApprLabs\Color\CmykColor;
-use ApprLabs\Color\GrayColor;
-use ApprLabs\Color\ColorConverter;
+use Phpdftk\Color\RgbColor;
+use Phpdftk\Color\CmykColor;
+use Phpdftk\Color\GrayColor;
+use Phpdftk\Color\ColorConverter;
 
 class ColorTest extends TestCase
 {

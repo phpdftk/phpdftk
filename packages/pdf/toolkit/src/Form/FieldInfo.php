@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Form;
+namespace Phpdftk\Pdf\Toolkit\Form;
 
 /**
  * Read-only snapshot of a form field's properties.

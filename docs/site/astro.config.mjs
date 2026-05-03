@@ -2,16 +2,13 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
-const base = process.env.DOCS_BASE || '/phpdftk/';
-
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://apprlabs.github.io',
-	base,
+	site: 'https://phpdftk.dev',
 	integrations: [
 		starlight({
 			title: 'phpdftk',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/apprlabs/phpdftk' }],
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/phpdftk/phpdftk' }],
 			components: {
 				Header: './src/components/Header.astro',
 			},
@@ -59,6 +56,14 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Conformance',
+					items: [
+						{ label: 'Overview', slug: 'conformance/overview' },
+						{ label: 'ISO Standards', slug: 'conformance/iso-standards' },
+						{ label: 'Compliance Report', slug: 'conformance/compliance' },
+					],
+				},
+				{
 					label: 'Design',
 					items: [
 						{ label: 'Why phpdftk?', slug: 'design/why-phpdftk' },
@@ -73,6 +78,8 @@ export default defineConfig({
 						{ label: 'Performance', slug: 'reference/performance' },
 						{ label: 'Packages', slug: 'reference/packages' },
 						{ label: 'Spec Coverage', slug: 'reference/spec-coverage' },
+						{ label: 'Version Coverage', slug: 'reference/version-coverage' },
+						{ label: 'Validation Suites', slug: 'reference/validations' },
 					],
 				},
 			],

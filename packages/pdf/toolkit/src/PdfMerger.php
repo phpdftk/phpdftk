@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Internal\PageCopier;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Internal\PageCopier;
 
 /**
  * Combine multiple PDFs into one document.
@@ -19,6 +19,8 @@ use ApprLabs\Pdf\Toolkit\Internal\PageCopier;
  *       ->addFile('chapter1.pdf')
  *       ->addFile('chapter2.pdf')
  *       ->save('book.pdf');
+ *
+ * @api
  */
 final class PdfMerger
 {
@@ -100,6 +102,14 @@ final class PdfMerger
         file_put_contents($path, $this->toBytes());
     }
 
+    /**
+     * Build the merged PDF.
+     *
+     * Creates a new PdfFileWriter with a fresh page tree, then uses PageCopier
+     * for each source to deep-copy pages and their dependent objects (fonts,
+     * images, ExtGState, etc.) with reference remapping so cross-document
+     * object numbers do not collide.
+     */
     public function toBytes(): string
     {
         if (empty($this->sources)) {

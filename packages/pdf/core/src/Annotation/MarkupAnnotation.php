@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Annotation;
+namespace Phpdftk\Pdf\Core\Annotation;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Shared base for markup annotations — ISO 32000-2 §12.5.6.2, Table 170.
@@ -50,7 +50,7 @@ abstract class MarkupAnnotation extends Annotation
             $dict->set('Popup', $this->popup);
         }
         if ($this->markupCa !== null) {
-            $dict->set('CA', new \ApprLabs\Pdf\Core\PdfNumber($this->markupCa));
+            $dict->set('CA', new \Phpdftk\Pdf\Core\PdfNumber($this->markupCa));
         }
         if ($this->rc !== null) {
             $dict->set('RC', $this->rc);

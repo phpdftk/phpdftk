@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\ReferenceXObjectConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Conformance\Constraint\ReferenceXObjectConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class ReferenceXObjectConstraintTest extends TestCase

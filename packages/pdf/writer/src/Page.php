@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
-use ApprLabs\Color\ColorInterface;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Document\Page as CorePage;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\ImageMetadata\ImageParser;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
+use Phpdftk\Color\ColorInterface;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Document\Page as CorePage;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased;
 
 /**
  * Level 1 Page — spatial drawing surface with explicit coordinates.

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
-use ApprLabs\Encoding\WinAnsiTable;
-use ApprLabs\FontMetrics\AfmData;
-use ApprLabs\FontMetrics\StandardFontMetrics;
-use ApprLabs\ImageMetadata\ImageParser;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Encoding\WinAnsiTable;
+use Phpdftk\FontMetrics\AfmData;
+use Phpdftk\FontMetrics\StandardFontMetrics;
+use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\PdfVersion;
 
 /**
  * High-level PDF document builder — **zero PDF object-model knowledge
@@ -51,6 +51,8 @@ use ApprLabs\Pdf\Core\PdfVersion;
  * families plus Symbol and ZapfDingbats). For custom TrueType fonts,
  * embedded images with precise transforms, tables, or absolute-positioned
  * graphics, drop to the underlying {@see PdfWriter} via {@see writer()}.
+ *
+ * @api
  */
 class Pdf
 {

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Validator;
+namespace Phpdftk\Pdf\Conformance\Validator;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceResult;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceResult;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 
 /**
  * Orchestrates conformance validation: runs all applicable constraints

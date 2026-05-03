@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Metadata;
+namespace Phpdftk\Pdf\Conformance\Metadata;
 
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
 
 /**
  * Builds XMP metadata with the conformance identification schema.

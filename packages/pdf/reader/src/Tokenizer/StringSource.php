@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tokenizer;
+namespace Phpdftk\Pdf\Reader\Tokenizer;
 
+/**
+ * Tokenizer source backed by an in-memory string -- used by
+ * {@see \Phpdftk\Pdf\Reader\PdfReader::fromString()}.
+ */
 final class StringSource implements Source
 {
     private int $position = 0;

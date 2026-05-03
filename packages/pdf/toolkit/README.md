@@ -1,11 +1,11 @@
-# apprlabs/pdf-toolkit
+# phpdftk/pdf-toolkit
 
 High-level pipelines for common PDF operations: fill forms, stamp text, merge files, extract text, encrypt, and more.
 
 ## Installation
 
 ```bash
-composer require apprlabs/pdf-toolkit
+composer require phpdftk/pdf-toolkit
 ```
 
 ## Tools
@@ -13,7 +13,7 @@ composer require apprlabs/pdf-toolkit
 ### Form Filling
 
 ```php
-use ApprLabs\Pdf\Toolkit\FormFiller;
+use Phpdftk\Pdf\Toolkit\FormFiller;
 
 FormFiller::open('form.pdf')
     ->fill('name', 'Jane Doe')
@@ -25,8 +25,8 @@ FormFiller::open('form.pdf')
 ### Stamping & Watermarks
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfStamper;
-use ApprLabs\Pdf\Toolkit\StampPosition;
+use Phpdftk\Pdf\Toolkit\PdfStamper;
+use Phpdftk\Pdf\Toolkit\StampPosition;
 
 PdfStamper::open('report.pdf')
     ->watermark('DRAFT')
@@ -37,7 +37,7 @@ PdfStamper::open('report.pdf')
 ### Merging
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfMerger;
+use Phpdftk\Pdf\Toolkit\PdfMerger;
 
 PdfMerger::create()
     ->addFile('chapter1.pdf')
@@ -48,7 +48,7 @@ PdfMerger::create()
 ### Page Slicing
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSlicer;
+use Phpdftk\Pdf\Toolkit\PageSlicer;
 
 PageSlicer::open('large.pdf')
     ->keepRange(1, 5)
@@ -58,8 +58,8 @@ PageSlicer::open('large.pdf')
 ### Encryption
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfEncrypt;
-use ApprLabs\Pdf\Toolkit\EncryptionMethod;
+use Phpdftk\Pdf\Toolkit\PdfEncrypt;
+use Phpdftk\Pdf\Toolkit\EncryptionMethod;
 
 PdfEncrypt::open('doc.pdf')
     ->encrypt('user', 'owner', EncryptionMethod::Aes256)

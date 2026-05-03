@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\File\IncrementalWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Form\FieldInfo;
-use ApprLabs\Pdf\Toolkit\Form\FieldType;
+use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Form\FieldInfo;
+use Phpdftk\Pdf\Toolkit\Form\FieldType;
 
 /**
  * Fill interactive PDF form fields (AcroForm).
@@ -29,6 +29,8 @@ use ApprLabs\Pdf\Toolkit\Form\FieldType;
  *       ->check('subscribe')
  *       ->select('country', 'Canada')
  *       ->save('filled.pdf');
+ *
+ * @api
  */
 final class FormFiller
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
 /**
  * Simple text shaper for Latin ligature substitution.

@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceCMYK;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceGray;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
-use ApprLabs\Pdf\Core\Graphics\ExtGState;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceCMYK;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceGray;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
+use Phpdftk\Pdf\Core\Graphics\ExtGState;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
 
 class GraphicsTest extends TestCase
 {

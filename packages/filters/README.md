@@ -1,4 +1,4 @@
-# apprlabs/filters
+# phpdftk/filters
 
 Encode and decode PDF stream filters: FlateDecode, ASCII85, ASCIIHex, and RunLength. No PDF dependency — usable for any compression/encoding need.
 
@@ -7,16 +7,16 @@ Requires `ext-zlib` for `FlateFilter`.
 ## Installation
 
 ```bash
-composer require apprlabs/filters
+composer require phpdftk/filters
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Filters\FlateFilter;
-use ApprLabs\Filters\Ascii85Filter;
-use ApprLabs\Filters\AsciiHexFilter;
-use ApprLabs\Filters\RunLengthFilter;
+use Phpdftk\Filters\FlateFilter;
+use Phpdftk\Filters\Ascii85Filter;
+use Phpdftk\Filters\AsciiHexFilter;
+use Phpdftk\Filters\RunLengthFilter;
 
 // FlateDecode — zlib deflate/inflate
 $flate = new FlateFilter();

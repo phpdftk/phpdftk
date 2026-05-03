@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics;
+namespace Phpdftk\Pdf\Core\Graphics;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * External Graphics State parameter dictionary (/Type /ExtGState).
@@ -101,14 +101,14 @@ class ExtGState extends PdfObject
             $dict->set('SA', new PdfBoolean($this->sa));
         }
         if ($this->bm !== null) {
-            if ($this->bm instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->bm instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('BM', $this->bm);
             } else {
                 $dict->set('BM', new PdfName((string) $this->bm));
             }
         }
         if ($this->sMask !== null) {
-            if ($this->sMask instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->sMask instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('SMask', $this->sMask);
             } else {
                 $dict->set('SMask', new PdfName((string) $this->sMask));
@@ -127,49 +127,49 @@ class ExtGState extends PdfObject
             $dict->set('TK', new PdfBoolean($this->tk));
         }
         if ($this->bg !== null) {
-            if ($this->bg instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->bg instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('BG', $this->bg);
             } else {
                 $dict->set('BG', new PdfName((string) $this->bg));
             }
         }
         if ($this->bg2 !== null) {
-            if ($this->bg2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->bg2 instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('BG2', $this->bg2);
             } else {
                 $dict->set('BG2', new PdfName((string) $this->bg2));
             }
         }
         if ($this->ucr !== null) {
-            if ($this->ucr instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->ucr instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('UCR', $this->ucr);
             } else {
                 $dict->set('UCR', new PdfName((string) $this->ucr));
             }
         }
         if ($this->ucr2 !== null) {
-            if ($this->ucr2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->ucr2 instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('UCR2', $this->ucr2);
             } else {
                 $dict->set('UCR2', new PdfName((string) $this->ucr2));
             }
         }
         if ($this->tr !== null) {
-            if ($this->tr instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->tr instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('TR', $this->tr);
             } else {
                 $dict->set('TR', new PdfName((string) $this->tr));
             }
         }
         if ($this->tr2 !== null) {
-            if ($this->tr2 instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->tr2 instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('TR2', $this->tr2);
             } else {
                 $dict->set('TR2', new PdfName((string) $this->tr2));
             }
         }
         if ($this->ht !== null) {
-            if ($this->ht instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->ht instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('HT', $this->ht);
             } else {
                 $dict->set('HT', new PdfName((string) $this->ht));

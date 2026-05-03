@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
 /**
  * Parsed data from a Type 1 font (PFB/PFA).

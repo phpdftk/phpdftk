@@ -1,21 +1,21 @@
-# apprlabs/geometry
+# phpdftk/geometry
 
 Geometric primitives: Point, Rectangle, Matrix (CTM), PageSize constants, and BezierCurve. No PDF dependency — usable in any PHP project that deals with 2D geometry.
 
 ## Installation
 
 ```bash
-composer require apprlabs/geometry
+composer require phpdftk/geometry
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Geometry\Point;
-use ApprLabs\Geometry\Rectangle;
-use ApprLabs\Geometry\Matrix;
-use ApprLabs\Geometry\PageSize;
-use ApprLabs\Geometry\BezierCurve;
+use Phpdftk\Geometry\Point;
+use Phpdftk\Geometry\Rectangle;
+use Phpdftk\Geometry\Matrix;
+use Phpdftk\Geometry\PageSize;
+use Phpdftk\Geometry\BezierCurve;
 
 // Point
 $p = new Point(72.0, 720.0);

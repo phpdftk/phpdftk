@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Tests;
+namespace Phpdftk\Pdf\Toolkit\Tests;
 
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\TextExtractor;
-use ApprLabs\Pdf\Toolkit\TextMatch;
-use ApprLabs\Pdf\Toolkit\TextSearchResults;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\TextExtractor;
+use Phpdftk\Pdf\Toolkit\TextMatch;
+use Phpdftk\Pdf\Toolkit\TextSearchResults;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class TextExtractorTest extends TestCase

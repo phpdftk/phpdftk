@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
-use ApprLabs\FontParser\OpenTypeParser;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\FontParser\OpenTypeParser;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 

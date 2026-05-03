@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tests\Compliance;
+namespace Phpdftk\Pdf\Reader\Tests\Compliance;
 
-use ApprLabs\Tests\Support\DockerToolResult;
-use ApprLabs\Tests\Support\VeraPdfValidationTrait;
+use Phpdftk\Tests\Support\DockerToolResult;
+use Phpdftk\Tests\Support\VeraPdfValidationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;

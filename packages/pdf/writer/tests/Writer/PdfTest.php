@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests;
+namespace Phpdftk\Pdf\Writer\Tests;
 
-use ApprLabs\Pdf\Writer\Alignment;
-use ApprLabs\Pdf\Writer\PageSize;
-use ApprLabs\Pdf\Writer\Pdf;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Writer\TextStyle;
-use ApprLabs\Pdf\Writer\Theme;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Writer\Alignment;
+use Phpdftk\Pdf\Writer\PageSize;
+use Phpdftk\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Writer\TextStyle;
+use Phpdftk\Pdf\Writer\Theme;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 

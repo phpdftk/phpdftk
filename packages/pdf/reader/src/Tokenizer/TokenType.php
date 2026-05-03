@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tokenizer;
+namespace Phpdftk\Pdf\Reader\Tokenizer;
 
+/**
+ * PDF lexical token types produced by the tokenizer -- one case per
+ * distinct syntactic element in the PDF file format (ISO 32000-2 S7.2).
+ */
 enum TokenType
 {
     case Name;              // /SomeName

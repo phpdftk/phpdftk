@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\XObject;
+namespace Phpdftk\Pdf\Core\Graphics\XObject;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\DeprecatedPdfFeature;
 
 /**
  * PostScript XObject (/Subtype /PS).
  * ISO 32000-2 section 8.8.2. Deprecated since PDF 1.7.1.
  * The stream data contains the PostScript language code.
  */
-#[DeprecatedPdfFeature(since: '1.7.1')]
+#[DeprecatedPdfFeature(since: '1.7.1', removedIn: '2.0')]
 class PostScriptXObject extends PdfStream
 {
     public const PDF_TYPE    = 'XObject';

@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Xmp;
+namespace Phpdftk\Xmp;
 
+/**
+ * Immutable bag of XMP metadata properties.
+ *
+ * Properties are stored as namespace-prefixed keys (e.g., "dc:title").
+ * `set()` returns a new instance — the original is never mutated.
+ */
 final class XmpPacket {
     /** @param array<string, string> $properties */
     private function __construct(

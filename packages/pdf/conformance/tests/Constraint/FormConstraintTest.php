@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\FormConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfMailProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Constraint\FormConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfMailProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 use PHPUnit\Framework\TestCase;
 
 class FormConstraintTest extends TestCase

@@ -24,13 +24,13 @@ vendor/bin/phpunit --filter testGeneratesSimpleTextPdf
 # Run static analysis
 scripts/analyse
 
-# Run benchmarks (generates docs/benchmarks.md automatically)
+# Run benchmarks (generates docs/generated/benchmarks.md automatically)
 scripts/benchmark
 
 # Run benchmarks for a specific class
 vendor/phpbench/phpbench/phpbench run benchmarks/GeneratePdfBench.php --report=default
 
-# Generate code coverage (writes docs/coverage-badge.svg)
+# Generate code coverage (writes docs/generated/coverage-badge.svg)
 scripts/coverage
 ```
 
@@ -466,7 +466,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Constraint/EmbeddedFileConstraintTest.php` | Unit: prohibited A-1/A-2, allowed A-3+ |
 | `Validator/ConformanceValidatorTest.php` | Unit: multiple violations detected, compliant mock passes, validateAll returns per-profile results, A-1a tagged structure violations |
 | `Integration/PdfA1bIntegrationTest.php` | End-to-end: compliant A-1b generation, missing OutputIntent throws strict, lenient mode collects violations, auto XMP injection, checkConformance() advisory |
-| `Integration/PdfALevelsIntegrationTest.php` | End-to-end: A-1a tagged structure fail/pass, A-2b allows transparency, A-2b/A-2u/A-3b XMP identification, A-4 pins PDF 2.0, JavaScript action fails A-1b |
+| `Integration/PdfALevelsIntegrationTest.php` | End-to-end: A-1a tagged structure fail/pass, A-2a/A-3a tagged structure pass, A-2b allows transparency, A-2b/A-2u/A-3b/A-3u XMP identification, A-4/A-4e/A-4f pin PDF 2.0, JavaScript action fails A-1b |
 | `Profile/PdfUaProfileTest.php` | Unit: UA-1/UA-2 family, level, part, PDF version, XMP properties |
 | `Constraint/DisplayDocTitleConstraintTest.php` | Unit: missing/false/true ViewerPreferences DisplayDocTitle |
 | `Constraint/TabOrderConstraintTest.php` | Unit: pages with/without annotations, /Tabs /S present/missing/wrong value |
@@ -475,12 +475,12 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Profile/PdfXProfileTest.php` | Unit: X-1a:2003/X-3:2003/X-4/X-5g/X-5pg/X-5n family, level, PDF version, transparency flag, XMP properties, OutputIntent subtype, referenceXObject support |
 | `Constraint/TrimBoxConstraintTest.php` | Unit: page with/without TrimBox/ArtBox, multiple pages, no pages |
 | `Constraint/TrappedConstraintTest.php` | Unit: no Info, Trapped null/Unknown/True/False |
-| `Integration/PdfXIntegrationTest.php` | End-to-end: compliant X-4 generation, auto pdfxid XMP injection, X-1a with Trapped=True, missing OutputIntent throws, missing TrimBox fails, missing/Unknown Trapped fails, checkConformance() advisory, X-1a XMP identification |
+| `Integration/PdfXIntegrationTest.php` | End-to-end: compliant X-4 generation, auto pdfxid XMP injection, X-1a with Trapped=True, missing OutputIntent throws, missing TrimBox fails, missing/Unknown Trapped fails, checkConformance() advisory, X-1a XMP identification, compliant X-3:2003, compliant X-5g |
 | `Profile/PdfVtProfileTest.php` | Unit: VT-1/VT-2/VT-2s family, level, PDF 2.0 version, XMP properties |
 | `Profile/PdfEProfileTest.php` | Unit: E-1 family, level, PDF 1.6 version, XMP properties |
 | `Profile/PdfRProfileTest.php` | Unit: R-1 family, level, PDF 2.0 version, XMP properties |
 | `Constraint/DPartRootConstraintTest.php` | Unit: missing/present DPartRoot, all VT profiles checked |
-| `Integration/PdfVtEandRIntegrationTest.php` | End-to-end: compliant VT-1 with DPartRoot, VT auto XMP/version pin, missing DPartRoot throws/lenient, compliant E-1 with 3D content, E-1 auto XMP, E-1 constraint check, E-1 JavaScript fails strict/lenient, E-1 OutputIntent warning, compliant R-1, R-1 auto XMP/version pin, R-1 constraint check, R-1 JavaScript fails, R-1 font warning |
+| `Integration/PdfVtEandRIntegrationTest.php` | End-to-end: compliant VT-1/VT-2/VT-2s with DPartRoot, VT auto XMP/version pin, missing DPartRoot throws/lenient, compliant E-1 with 3D content, E-1 auto XMP, E-1 constraint check, E-1 JavaScript fails strict/lenient, E-1 OutputIntent warning, compliant R-1, R-1 auto XMP/version pin, R-1 constraint check, R-1 JavaScript fails, R-1 font warning |
 | `Constraint/ThreeDContentConstraintTest.php` | Unit: valid U3D/PRC stream with views passes, missing /3DD fails, invalid subtype fails, no views warns, multiple violations |
 | `Constraint/PdfEActionConstraintTest.php` | Unit: GoTo/URI pass, JavaScript/Launch fail, multiple violations |
 | `Constraint/PdfEColorSpaceConstraintTest.php` | Unit: OutputIntent with ICC passes, no OutputIntent warns |
@@ -494,6 +494,7 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 | `Profile/PdfMailProfileTest.php` | Unit: mail-1 family, level, PDF 2.0, XMP properties |
 | `Constraint/FormConstraintTest.php` | Unit: no forms pass, AcroForm present fails |
 | `Constraint/MultimediaConstraintTest.php` | Unit: no multimedia passes, multimedia present fails |
+| `Integration/ZugferdIntegrationTest.php` | End-to-end: compliant Factur-X BASIC with PDF/A-3b base, embedded XML invoice via FileSpec/EmbeddedFile, auto Factur-X XMP injection, version pinning, all profile levels, missing invoice fails, missing OutputIntent fails, strict mode throws, checkConformance() advisory |
 | `Integration/PdfMailIntegrationTest.php` | End-to-end: compliant PDF/mail-1, auto XMP injection, pins to 2.0, JavaScript fails, forms fail, multimedia fails |
 | `Inspection/ReaderDocumentInspectorTest.php` | Unit: getCatalog, getInfo, getPages, hasEncryption, hasXmpMetadata true/false, getXmpBytes content/null, hasOutputIntents true/false, hasTransparency, hasEmbeddedFiles — round-trip via PdfWriter → PdfReader |
 | `Integration/ConformanceCheckerTest.php` | End-to-end: round-trip PDF/A-1b write+read compliant, openString/open factory, checkProfiles multi-result, PDF/A-1b fails E-1 metadata, minimal PDF fails A-1b/UA-1/X-4, A-1b fails A-1a (missing tags), no-encryption detection |
@@ -584,15 +585,15 @@ Run a single suite: `vendor/bin/phpunit --testsuite core`
 
 `benchmarks/ReadPdfBench.php` — PDF reader/parser performance; compares phpdftk reader against smalot/pdfparser and setasign/fpdi at 1, 10, and 100 pages. Uses FPDF-generated reference PDFs (`docs/sample-pdfs/bench_*.pdf`) with classic xref tables to ensure all three readers can parse them. Each benchmark parses the file, extracts structure (catalog, info, version), and iterates all pages.
 
-Run `scripts/benchmark` to regenerate `docs/benchmarks.md` automatically.
+Run `scripts/benchmark` to regenerate `docs/generated/benchmarks.md` automatically.
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
 | `scripts/analyse` | Runs phpstan with 512M memory limit |
-| `scripts/benchmark` | Runs phpbench → pipes to `scripts/parse-benchmarks.php` → writes `docs/benchmarks.md` |
-| `scripts/coverage` | Generates coverage report; writes `docs/coverage-badge.svg` |
+| `scripts/benchmark` | Runs phpbench → pipes to `scripts/parse-benchmarks.php` → writes `docs/generated/benchmarks.md` |
+| `scripts/coverage` | Generates coverage report; writes `docs/generated/coverage-badge.svg` |
 | `scripts/parse-benchmarks.php` | Parses phpbench aggregate output into markdown tables |
 | `scripts/generate-badge.php` | Creates SVG badge from a coverage percentage |
 
@@ -600,8 +601,11 @@ Run `scripts/benchmark` to regenerate `docs/benchmarks.md` automatically.
 
 | File | Contents |
 |---|---|
-| `docs/benchmarks.md` | Auto-generated performance comparison (do not edit manually) |
+| `docs/generated/benchmarks.md` | Auto-generated performance comparison (do not edit manually) |
+| `docs/generated/compliance.md` | Auto-generated external compliance validation report (do not edit manually) |
+| `docs/generated/coverage-badge.svg` | Auto-generated code coverage badge |
 | `docs/spec-coverage.md` | PDF spec compliance tracker — every field of every spec object with ✓/~/✗ status |
-| `docs/coverage-badge.svg` | Auto-generated code coverage badge |
+| `docs/version-coverage.md` | PDF version feature map — which features require which PDF versions (1.0–2.0) |
+| `docs/iso-standards-coverage.md` | ISO conformance map — profiles, constraints, and tests for PDF/A, PDF/UA, PDF/X, etc. |
 
 When implementing new spec features, update `docs/spec-coverage.md` to reflect the new coverage.

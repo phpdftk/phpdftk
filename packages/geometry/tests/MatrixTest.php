@@ -1,10 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Geometry\Tests;
+namespace Phpdftk\Geometry\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Geometry\Matrix;
-use ApprLabs\Geometry\Point;
+use Phpdftk\Geometry\Matrix;
+use Phpdftk\Geometry\Point;
 
 class MatrixTest extends TestCase
 {

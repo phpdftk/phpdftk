@@ -2,30 +2,34 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Security;
+namespace Phpdftk\Pdf\Core\Security;
 
-use ApprLabs\Crypt\AesCipher;
-use ApprLabs\Crypt\PdfKeyDerivation;
-use ApprLabs\Crypt\PublicKeyEncryption;
-use ApprLabs\Crypt\Rc4Cipher;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Serializable;
+use Phpdftk\Crypt\AesCipher;
+use Phpdftk\Crypt\PdfKeyDerivation;
+use Phpdftk\Crypt\PublicKeyEncryption;
+use Phpdftk\Crypt\Rc4Cipher;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
- * Encrypts PDF objects for the Standard security handler.
+ * Encrypts PDF objects for the Standard and Adobe.PubSec security handlers.
  *
- * Supports:
- *   - V=1 R=2: RC4 40-bit
- *   - V=2 R=3: RC4 128-bit
- *   - V=4 R=4: AES-128 via crypt filters
- *   - V=5 R=6: AES-256 via crypt filters
+ * Standard handler (password-based):
+ *   - V=1 R=2: RC4 40-bit  (PDF 1.1+)
+ *   - V=2 R=3: RC4 128-bit (PDF 1.4+)
+ *   - V=4 R=4: AES-128     (PDF 1.6+)
+ *   - V=5 R=6: AES-256     (PDF 2.0)
+ *
+ * Public-key handler (certificate-based, Adobe.PubSec):
+ *   - V=4 CFM=AESV2: AES-128 with PKCS#7 recipient envelopes
+ *   - V=4 CFM=AESV3: AES-256 with PKCS#7 recipient envelopes
  */
 final class PdfEncryptor
 {
@@ -74,7 +78,7 @@ final class PdfEncryptor
     }
 
     /**
-     * Create an encryptor with RC4 128-bit encryption (V=2 R=3).
+     * Create an encryptor with RC4 128-bit encryption (V=2 R=3, PDF 1.4+).
      *
      * @param int $permissions Bitmask of PERM_* constants
      */
@@ -91,7 +95,7 @@ final class PdfEncryptor
     }
 
     /**
-     * Create an encryptor with RC4 40-bit encryption (V=1 R=2).
+     * Create an encryptor with RC4 40-bit encryption (V=1 R=2, PDF 1.1+).
      *
      * @param int $permissions Bitmask of PERM_* constants
      */
@@ -108,7 +112,7 @@ final class PdfEncryptor
     }
 
     /**
-     * Create an encryptor with AES 128-bit encryption (V=4 R=4).
+     * Create an encryptor with AES 128-bit encryption (V=4 R=4, PDF 1.6+).
      *
      * @param int $permissions Bitmask of PERM_* constants
      */
@@ -125,7 +129,7 @@ final class PdfEncryptor
     }
 
     /**
-     * Create an encryptor with AES 256-bit encryption (V=5 R=6).
+     * Create an encryptor with AES 256-bit encryption (V=5 R=6, PDF 2.0).
      *
      * @param int $permissions Bitmask of PERM_* constants
      */
@@ -279,14 +283,16 @@ final class PdfEncryptor
     }
 
     /**
-     * Get the minimum PDF version required by this encryption configuration.
+     * Return the minimum PDF version for this encryption: RC4 -> 1.4,
+     * AES-128 -> 1.6, AES-256 -> 2.0. Used by PdfFileWriter to auto-bump
+     * the document version when encryption is registered.
      */
-    public function getMinimumPdfVersion(): \ApprLabs\Pdf\Core\PdfVersion
+    public function getMinimumPdfVersion(): \Phpdftk\Pdf\Core\PdfVersion
     {
         return match (true) {
-            $this->aesKeyBits === 256 => \ApprLabs\Pdf\Core\PdfVersion::V2_0,
-            $this->useAes             => \ApprLabs\Pdf\Core\PdfVersion::V1_6,
-            default                   => \ApprLabs\Pdf\Core\PdfVersion::V1_4,
+            $this->aesKeyBits === 256 => \Phpdftk\Pdf\Core\PdfVersion::V2_0,
+            $this->useAes             => \Phpdftk\Pdf\Core\PdfVersion::V1_6,
+            default                   => \Phpdftk\Pdf\Core\PdfVersion::V1_4,
         };
     }
 

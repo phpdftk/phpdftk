@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Font;
+namespace Phpdftk\Pdf\Core\Tests\Font;
 
-use ApprLabs\Pdf\Core\Font\CIDFontType0Font;
-use ApprLabs\Pdf\Core\Font\CIDFontType2Font;
-use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
-use ApprLabs\Pdf\Core\Font\MMType1Font;
-use ApprLabs\Pdf\Core\Font\Type3Font;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Font\CIDFontType0Font;
+use Phpdftk\Pdf\Core\Font\CIDFontType2Font;
+use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
+use Phpdftk\Pdf\Core\Font\MMType1Font;
+use Phpdftk\Pdf\Core\Font\Type3Font;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class FontSubtypeTest extends TestCase
@@ -72,7 +72,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new Type3Font();
         $font->objectNumber = 1;
-        $font->resources = new \ApprLabs\Pdf\Core\PdfDictionary([
+        $font->resources = new \Phpdftk\Pdf\Core\PdfDictionary([
             'ProcSet' => new PdfArray([new PdfName('PDF')]),
         ]);
         self::assertStringContainsString('/Resources', $font->toPdf());

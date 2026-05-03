@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\FileSpec;
+namespace Phpdftk\Pdf\Core\Tests\FileSpec;
 
-use ApprLabs\Pdf\Core\FileSpec\EmbeddedFile;
-use ApprLabs\Pdf\Core\FileSpec\EmbeddedFileParams;
-use ApprLabs\Pdf\Core\FileSpec\FileSpec;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\FileSpec\EmbeddedFile;
+use Phpdftk\Pdf\Core\FileSpec\EmbeddedFileParams;
+use Phpdftk\Pdf\Core\FileSpec\FileSpec;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class FileSpecTest extends TestCase

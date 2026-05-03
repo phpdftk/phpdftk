@@ -75,3 +75,13 @@ HTML-to-PDF conversion (the mPDF/Dompdf approach) is appealing because developer
 - **Feature ceiling**: PDF features that have no HTML equivalent (annotations, form fields, digital signatures, optional content, 3D, multimedia) are either hacked in via custom HTML attributes or simply unavailable.
 
 phpdftk doesn't convert from anything. It speaks PDF natively. If you want HTML-to-PDF, use a headless browser — it will do a better job than any PHP library at CSS fidelity.
+
+### Why built-in conformance validation?
+
+No other PHP PDF library validates against ISO subset standards. If you need PDF/A for archival, PDF/UA for accessibility, or PDF/X for print production, you currently have two options: hope your output happens to be compliant, or run an external validator like veraPDF after the fact and fix issues manually.
+
+phpdftk validates at generation time. Set a conformance profile and the library enforces all applicable constraints — font embedding, color spaces, metadata identification, transparency restrictions, encryption prohibitions — before emitting any bytes. Violations are reported with ISO clause references and object paths.
+
+This matters because conformance failures are often invisible. A PDF that renders correctly in Acrobat may fail PDF/A validation because it uses device-dependent color without an OutputIntent, or because a font is referenced but not embedded. Catching these at generation time eliminates the feedback loop of generate-validate-fix-regenerate.
+
+The library supports 8 standard families (31 conformance levels) including PDF/A, PDF/UA, PDF/X, PDF/VT, PDF/E, PDF/R, ZUGFeRD/Factur-X, and PDF/mail. The same constraints work against both writer output and reader-parsed existing PDFs.

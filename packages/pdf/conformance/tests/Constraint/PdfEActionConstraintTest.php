@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\PdfEActionConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Action\GoToAction;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Action\LaunchAction;
-use ApprLabs\Pdf\Core\Action\URIAction;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Conformance\Constraint\PdfEActionConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfEProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Action\GoToAction;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Action\LaunchAction;
+use Phpdftk\Pdf\Core\Action\URIAction;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class PdfEActionConstraintTest extends TestCase

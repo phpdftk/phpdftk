@@ -9,6 +9,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 ## Document Structure
 
 ### Catalog (`/Type /Catalog`)
+*Source: [`packages/pdf/core/src/Document/Catalog.php`](../packages/pdf/core/src/Document/Catalog.php)*
 
 | Field                | Status | Notes                                          |
 |----------------------|--------|------------------------------------------------|
@@ -42,6 +43,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/DPartRoot`         | ✓      | `DPartRoot` reference (PDF 2.0)                |
 
 ### Page Tree (`/Type /Pages`)
+*Source: [`packages/pdf/core/src/Document/PageTree.php`](../packages/pdf/core/src/Document/PageTree.php)*
 
 | Field                   | Status | Notes                   |
 |-------------------------|--------|-------------------------|
@@ -77,6 +79,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/VP`                   | ✓      | Viewport array          |
 
 ### Page (`/Type /Page`)
+*Source: [`packages/pdf/core/src/Document/Page.php`](../packages/pdf/core/src/Document/Page.php)*
 
 | Field                   | Status | Notes                                            |
 |-------------------------|--------|--------------------------------------------------|
@@ -114,6 +117,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/VP`                   | ✓      | Viewport array                                   |
 
 ### Info Dictionary
+*Source: [`packages/pdf/core/src/Document/Info.php`](../packages/pdf/core/src/Document/Info.php)*
 
 | Field           | Status | Notes |
 |-----------------|--------|-------|
@@ -128,6 +132,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Trapped`      | ✓      |       |
 
 ### Viewer Preferences
+*Source: [`packages/pdf/core/src/Document/ViewerPreferences.php`](../packages/pdf/core/src/Document/ViewerPreferences.php)*
 
 | Field                    | Status | Notes |
 |--------------------------|--------|-------|
@@ -183,6 +188,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 ## Fonts
 
 ### Font (`/Type /Font`) — Common Fields
+*Source: [`packages/pdf/core/src/Font/Font.php`](../packages/pdf/core/src/Font/Font.php)*
 
 | Field             | Status | Notes                                            |
 |-------------------|--------|--------------------------------------------------|
@@ -198,17 +204,18 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 
 ### Font Subtypes
 
-| Subtype         | Class              | Status | Notes                                                          |
-|-----------------|--------------------|--------|----------------------------------------------------------------|
-| `/Type1`        | `Type1Font`        | ✓      | Includes standard 14 with AFM widths                           |
-| `/TrueType`     | `TrueTypeFont`     | ✓      | Full font program embedding via `/FontFile2`                   |
-| `/Type0`        | `Type0Font`        | ✓      | Composite font                                                 |
-| `/CIDFontType0` | `CIDFontType0Font` | ✓      | Type 1/CFF descendant of Type 0 (enforced subclass)            |
-| `/CIDFontType2` | `CIDFontType2Font` | ✓      | TrueType descendant of Type 0; /CIDToGIDMap supported          |
-| `/MMType1`      | `MMType1Font`      | ✓      | Multiple Master; encodes spaces in instance name as underscore |
-| `/Type3`        | `Type3Font`        | ✓      | FontBBox, FontMatrix, CharProcs, Encoding, Resources           |
+| Subtype         | Class              | Source | Status | Notes                                                          |
+|-----------------|--------------------|--------|--------|----------------------------------------------------------------|
+| `/Type1`        | `Type1Font`        | [`Type1Font.php`](../packages/pdf/core/src/Font/Type1Font.php) | ✓      | Includes standard 14 with AFM widths                           |
+| `/TrueType`     | `TrueTypeFont`     | [`TrueTypeFont.php`](../packages/pdf/core/src/Font/TrueTypeFont.php) | ✓      | Full font program embedding via `/FontFile2`                   |
+| `/Type0`        | `Type0Font`        | [`Type0Font.php`](../packages/pdf/core/src/Font/Type0Font.php) | ✓      | Composite font                                                 |
+| `/CIDFontType0` | `CIDFontType0Font` | [`CIDFontType0Font.php`](../packages/pdf/core/src/Font/CIDFontType0Font.php) | ✓      | Type 1/CFF descendant of Type 0 (enforced subclass)            |
+| `/CIDFontType2` | `CIDFontType2Font` | [`CIDFontType2Font.php`](../packages/pdf/core/src/Font/CIDFontType2Font.php) | ✓      | TrueType descendant of Type 0; /CIDToGIDMap supported          |
+| `/MMType1`      | `MMType1Font`      | [`MMType1Font.php`](../packages/pdf/core/src/Font/MMType1Font.php) | ✓      | Multiple Master; encodes spaces in instance name as underscore |
+| `/Type3`        | `Type3Font`        | [`Type3Font.php`](../packages/pdf/core/src/Font/Type3Font.php) | ✓      | FontBBox, FontMatrix, CharProcs, Encoding, Resources           |
 
 ### FontDescriptor (`/Type /FontDescriptor`)
+*Source: [`packages/pdf/core/src/Font/FontDescriptor.php`](../packages/pdf/core/src/Font/FontDescriptor.php)*
 
 | Field           | Status | Notes                                       |
 |-----------------|--------|---------------------------------------------|
@@ -235,6 +242,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/CharSet`      | ✓      |                                             |
 
 ### Encoding (`/Type /Encoding`)
+*Source: [`packages/pdf/core/src/Font/Encoding.php`](../packages/pdf/core/src/Font/Encoding.php)*
 
 | Field           | Status | Notes |
 |-----------------|--------|-------|
@@ -259,6 +267,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 ---
 
 ## Annotations (`/Type /Annot`)
+*Source: [`packages/pdf/core/src/Annotation/`](../packages/pdf/core/src/Annotation/)*
 
 ### Common Base Fields
 
@@ -284,6 +293,7 @@ Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpd
 | `/Lang`         | ✓      | Language                  |
 
 ### Markup Annotation Base Fields (§12.5.6.2 Table 170)
+*Source: [`packages/pdf/core/src/Annotation/MarkupAnnotation.php`](../packages/pdf/core/src/Annotation/MarkupAnnotation.php)*
 
 | Field          | Status | Notes                                                  |
 |----------------|--------|--------------------------------------------------------|
@@ -308,36 +318,36 @@ these fields.
 
 ### Annotation Subtypes
 
-| Subtype           | Class                 | Status | Notes                                                 |
-|-------------------|-----------------------|--------|-------------------------------------------------------|
-| `/Text`           | `TextAnnotation`      | ✓      | Open, Name, State, StateModel                         |
-| `/Link`           | `LinkAnnotation`      | ✓      | Dest, H, PA, QuadPoints, BS, A                        |
-| `/FreeText`       | `FreeTextAnnotation`  | ✓      | DA, Q, RC, DS, CL, IT, BE, RD, BS, LE                 |
-| `/Highlight`      | `HighlightAnnotation` | ✓      | QuadPoints                                            |
-| `/Stamp`          | `StampAnnotation`     | ✓      | Name                                                  |
-| `/Ink`            | `InkAnnotation`       | ✓      | InkList, BS                                           |
-| `/Popup`          | `PopupAnnotation`     | ✓      | Parent, Open                                          |
-| `/Widget`         | `WidgetAnnotation`    | ✓      | H, MK, A, AA, BS, Parent                              |
-| `/Line`           | `LineAnnotation`           | ✓      | L, LE, IC, LL, LLE, Cap, IT, LLO, CP, Measure, CO    |
-| `/Square`         | `SquareAnnotation`         | ✓      | IC, BE, RD, Measure                                   |
-| `/Circle`         | `CircleAnnotation`         | ✓      | IC, BE, RD, Measure                                   |
-| `/Polygon`        | `PolygonAnnotation`        | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
-| `/PolyLine`       | `PolyLineAnnotation`       | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
-| `/Underline`      | `UnderlineAnnotation`      | ✓      | QuadPoints                                            |
-| `/Squiggly`       | `SquigglyAnnotation`       | ✓      | QuadPoints                                            |
-| `/StrikeOut`      | `StrikeOutAnnotation`      | ✓      | QuadPoints                                            |
-| `/Caret`          | `CaretAnnotation`          | ✓      | RD, Sy                                                |
-| `/FileAttachment` | `FileAttachmentAnnotation` | ✓      | FS, Name                                              |
-| `/Sound`          | `SoundAnnotation`          | ✓      | Sound, Name                                           |
-| `/Movie`          | `MovieAnnotation`          | ✓      | T, Movie, A                                           |
-| `/Screen`         | `ScreenAnnotation`         | ✓      | T, MK, A, AA                                          |
-| `/PrinterMark`    | `PrinterMarkAnnotation`    | ✓      | MN                                                    |
-| `/TrapNet`        | `TrapNetAnnotation`        | ✓      | LastModified, Version, AnnotStates, FontFauxing       |
-| `/Watermark`      | `WatermarkAnnotation`      | ✓      | FixedPrint                                            |
-| `/3D`             | `ThreeDAnnotation`         | ✓      | 3DD, 3DV, 3DA, 3DI, 3DB                               |
-| `/Redact`         | `RedactAnnotation`         | ✓      | QuadPoints, IC, RO, OverlayText, Repeat, DA, Q        |
-| `/Projection`     | `ProjectionAnnotation`     | ✓      |                                                       |
-| `/RichMedia`      | `RichMediaAnnotation`      | ✓      | RichMediaSettings, RichMediaContent                   |
+| Subtype           | Class                      | Source | Status | Notes                                                 |
+|-------------------|----------------------------|--------|--------|-------------------------------------------------------|
+| `/Text`           | `TextAnnotation`           | [`TextAnnotation.php`](../packages/pdf/core/src/Annotation/TextAnnotation.php) | ✓      | Open, Name, State, StateModel                         |
+| `/Link`           | `LinkAnnotation`           | [`LinkAnnotation.php`](../packages/pdf/core/src/Annotation/LinkAnnotation.php) | ✓      | Dest, H, PA, QuadPoints, BS, A                        |
+| `/FreeText`       | `FreeTextAnnotation`       | [`FreeTextAnnotation.php`](../packages/pdf/core/src/Annotation/FreeTextAnnotation.php) | ✓      | DA, Q, RC, DS, CL, IT, BE, RD, BS, LE                 |
+| `/Highlight`      | `HighlightAnnotation`      | [`HighlightAnnotation.php`](../packages/pdf/core/src/Annotation/HighlightAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Stamp`          | `StampAnnotation`          | [`StampAnnotation.php`](../packages/pdf/core/src/Annotation/StampAnnotation.php) | ✓      | Name                                                  |
+| `/Ink`            | `InkAnnotation`            | [`InkAnnotation.php`](../packages/pdf/core/src/Annotation/InkAnnotation.php) | ✓      | InkList, BS                                           |
+| `/Popup`          | `PopupAnnotation`          | [`PopupAnnotation.php`](../packages/pdf/core/src/Annotation/PopupAnnotation.php) | ✓      | Parent, Open                                          |
+| `/Widget`         | `WidgetAnnotation`         | [`WidgetAnnotation.php`](../packages/pdf/core/src/Annotation/WidgetAnnotation.php) | ✓      | H, MK, A, AA, BS, Parent                              |
+| `/Line`           | `LineAnnotation`           | [`LineAnnotation.php`](../packages/pdf/core/src/Annotation/LineAnnotation.php) | ✓      | L, LE, IC, LL, LLE, Cap, IT, LLO, CP, Measure, CO    |
+| `/Square`         | `SquareAnnotation`         | [`SquareAnnotation.php`](../packages/pdf/core/src/Annotation/SquareAnnotation.php) | ✓      | IC, BE, RD, Measure                                   |
+| `/Circle`         | `CircleAnnotation`         | [`CircleAnnotation.php`](../packages/pdf/core/src/Annotation/CircleAnnotation.php) | ✓      | IC, BE, RD, Measure                                   |
+| `/Polygon`        | `PolygonAnnotation`        | [`PolygonAnnotation.php`](../packages/pdf/core/src/Annotation/PolygonAnnotation.php) | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/PolyLine`       | `PolyLineAnnotation`       | [`PolyLineAnnotation.php`](../packages/pdf/core/src/Annotation/PolyLineAnnotation.php) | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/Underline`      | `UnderlineAnnotation`      | [`UnderlineAnnotation.php`](../packages/pdf/core/src/Annotation/UnderlineAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Squiggly`       | `SquigglyAnnotation`       | [`SquigglyAnnotation.php`](../packages/pdf/core/src/Annotation/SquigglyAnnotation.php) | ✓      | QuadPoints                                            |
+| `/StrikeOut`      | `StrikeOutAnnotation`      | [`StrikeOutAnnotation.php`](../packages/pdf/core/src/Annotation/StrikeOutAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Caret`          | `CaretAnnotation`          | [`CaretAnnotation.php`](../packages/pdf/core/src/Annotation/CaretAnnotation.php) | ✓      | RD, Sy                                                |
+| `/FileAttachment` | `FileAttachmentAnnotation` | [`FileAttachmentAnnotation.php`](../packages/pdf/core/src/Annotation/FileAttachmentAnnotation.php) | ✓      | FS, Name                                              |
+| `/Sound`          | `SoundAnnotation`          | [`SoundAnnotation.php`](../packages/pdf/core/src/Annotation/SoundAnnotation.php) | ✓      | Sound, Name                                           |
+| `/Movie`          | `MovieAnnotation`          | [`MovieAnnotation.php`](../packages/pdf/core/src/Annotation/MovieAnnotation.php) | ✓      | T, Movie, A                                           |
+| `/Screen`         | `ScreenAnnotation`         | [`ScreenAnnotation.php`](../packages/pdf/core/src/Annotation/ScreenAnnotation.php) | ✓      | T, MK, A, AA                                          |
+| `/PrinterMark`    | `PrinterMarkAnnotation`    | [`PrinterMarkAnnotation.php`](../packages/pdf/core/src/Annotation/PrinterMarkAnnotation.php) | ✓      | MN                                                    |
+| `/TrapNet`        | `TrapNetAnnotation`        | [`TrapNetAnnotation.php`](../packages/pdf/core/src/Annotation/TrapNetAnnotation.php) | ✓      | LastModified, Version, AnnotStates, FontFauxing       |
+| `/Watermark`      | `WatermarkAnnotation`      | [`WatermarkAnnotation.php`](../packages/pdf/core/src/Annotation/WatermarkAnnotation.php) | ✓      | FixedPrint                                            |
+| `/3D`             | `ThreeDAnnotation`         | [`ThreeDAnnotation.php`](../packages/pdf/core/src/Annotation/ThreeDAnnotation.php) | ✓      | 3DD, 3DV, 3DA, 3DI, 3DB                               |
+| `/Redact`         | `RedactAnnotation`         | [`RedactAnnotation.php`](../packages/pdf/core/src/Annotation/RedactAnnotation.php) | ✓      | QuadPoints, IC, RO, OverlayText, Repeat, DA, Q        |
+| `/Projection`     | `ProjectionAnnotation`     | [`ProjectionAnnotation.php`](../packages/pdf/core/src/Annotation/ProjectionAnnotation.php) | ✓      |                                                       |
+| `/RichMedia`      | `RichMediaAnnotation`      | [`RichMediaAnnotation.php`](../packages/pdf/core/src/Annotation/RichMediaAnnotation.php) | ✓      | RichMediaSettings, RichMediaContent                   |
 
 ### Supporting Annotation Dictionaries
 
@@ -351,35 +361,37 @@ these fields.
 ---
 
 ## Actions
+*Source: [`packages/pdf/core/src/Action/`](../packages/pdf/core/src/Action/)*
 
-| `/S` Value          | Class                    | Status | Notes                                    |
-|---------------------|--------------------------|--------|------------------------------------------|
-| `/GoTo`             | `GoToAction`             | ✓      | D                                        |
-| `/URI`              | `URIAction`              | ✓      | URI, IsMap                               |
-| `/Named`            | `NamedAction`            | ✓      | N                                        |
-| `/JavaScript`       | `JavaScriptAction`       | ✓      | JS                                       |
-| `/GoToR`            | `GoToRAction`            | ✓      | F, D, NewWindow                          |
-| `/GoToE`            | `GoToEAction`            | ✓      | F, D, NewWindow, T                       |
-| `/GoToDP`           | `GoToDPAction`           | ✓      | D, DP                                    |
-| `/Launch`           | `LaunchAction`           | ✓      | F, Win, Mac, Unix, NewWindow             |
-| `/Thread`           | `ThreadAction`           | ✓      | F, D, B                                  |
-| `/Sound`            | `SoundAction`            | ✓      | Sound, Volume, Synchronous, Repeat, Mix  |
-| `/Movie`            | `MovieAction`            | ✓      | Annotation, T, Operation                 |
-| `/Hide`             | `HideAction`             | ✓      | T, H                                     |
-| `/SubmitForm`       | `SubmitFormAction`       | ✓      | F, Fields, Flags                         |
-| `/ResetForm`        | `ResetFormAction`        | ✓      | Fields, Flags                            |
-| `/ImportData`       | `ImportDataAction`       | ✓      | F                                        |
-| `/SetOCGState`      | `SetOCGStateAction`      | ✓      | State, PreserveRB                        |
-| `/Rendition`        | `RenditionAction`        | ✓      | OP, R, AN, JS                            |
-| `/Trans`            | `TransAction`            | ✓      | Trans                                    |
-| `/GoTo3DView`       | `GoTo3DViewAction`       | ✓      | TA, V                                    |
-| `/RichMediaExecute` | `RichMediaExecuteAction` | ✓      | TA, TI, CMD                              |
+| `/S` Value          | Class                    | Source | Status | Notes                                    |
+|---------------------|--------------------------|--------|--------|------------------------------------------|
+| `/GoTo`             | `GoToAction`             | [`GoToAction.php`](../packages/pdf/core/src/Action/GoToAction.php) | ✓      | D                                        |
+| `/URI`              | `URIAction`              | [`URIAction.php`](../packages/pdf/core/src/Action/URIAction.php) | ✓      | URI, IsMap                               |
+| `/Named`            | `NamedAction`            | [`NamedAction.php`](../packages/pdf/core/src/Action/NamedAction.php) | ✓      | N                                        |
+| `/JavaScript`       | `JavaScriptAction`       | [`JavaScriptAction.php`](../packages/pdf/core/src/Action/JavaScriptAction.php) | ✓      | JS                                       |
+| `/GoToR`            | `GoToRAction`            | [`GoToRAction.php`](../packages/pdf/core/src/Action/GoToRAction.php) | ✓      | F, D, NewWindow                          |
+| `/GoToE`            | `GoToEAction`            | [`GoToEAction.php`](../packages/pdf/core/src/Action/GoToEAction.php) | ✓      | F, D, NewWindow, T                       |
+| `/GoToDP`           | `GoToDPAction`           | [`GoToDPAction.php`](../packages/pdf/core/src/Action/GoToDPAction.php) | ✓      | D, DP                                    |
+| `/Launch`           | `LaunchAction`           | [`LaunchAction.php`](../packages/pdf/core/src/Action/LaunchAction.php) | ✓      | F, Win, Mac, Unix, NewWindow             |
+| `/Thread`           | `ThreadAction`           | [`ThreadAction.php`](../packages/pdf/core/src/Action/ThreadAction.php) | ✓      | F, D, B                                  |
+| `/Sound`            | `SoundAction`            | [`SoundAction.php`](../packages/pdf/core/src/Action/SoundAction.php) | ✓      | Sound, Volume, Synchronous, Repeat, Mix  |
+| `/Movie`            | `MovieAction`            | [`MovieAction.php`](../packages/pdf/core/src/Action/MovieAction.php) | ✓      | Annotation, T, Operation                 |
+| `/Hide`             | `HideAction`             | [`HideAction.php`](../packages/pdf/core/src/Action/HideAction.php) | ✓      | T, H                                     |
+| `/SubmitForm`       | `SubmitFormAction`       | [`SubmitFormAction.php`](../packages/pdf/core/src/Action/SubmitFormAction.php) | ✓      | F, Fields, Flags                         |
+| `/ResetForm`        | `ResetFormAction`        | [`ResetFormAction.php`](../packages/pdf/core/src/Action/ResetFormAction.php) | ✓      | Fields, Flags                            |
+| `/ImportData`       | `ImportDataAction`       | [`ImportDataAction.php`](../packages/pdf/core/src/Action/ImportDataAction.php) | ✓      | F                                        |
+| `/SetOCGState`      | `SetOCGStateAction`      | [`SetOCGStateAction.php`](../packages/pdf/core/src/Action/SetOCGStateAction.php) | ✓      | State, PreserveRB                        |
+| `/Rendition`        | `RenditionAction`        | [`RenditionAction.php`](../packages/pdf/core/src/Action/RenditionAction.php) | ✓      | OP, R, AN, JS                            |
+| `/Trans`            | `TransAction`            | [`TransAction.php`](../packages/pdf/core/src/Action/TransAction.php) | ✓      | Trans                                    |
+| `/GoTo3DView`       | `GoTo3DViewAction`       | [`GoTo3DViewAction.php`](../packages/pdf/core/src/Action/GoTo3DViewAction.php) | ✓      | TA, V                                    |
+| `/RichMediaExecute` | `RichMediaExecuteAction` | [`RichMediaExecuteAction.php`](../packages/pdf/core/src/Action/RichMediaExecuteAction.php) | ✓      | TA, TI, CMD                              |
 
 ---
 
 ## Interactive Forms (AcroForm)
 
 ### AcroForm Dictionary
+*Source: [`packages/pdf/core/src/Interactive/Form/AcroForm.php`](../packages/pdf/core/src/Interactive/Form/AcroForm.php)*
 
 | Field              | Status | Notes              |
 |--------------------|--------|--------------------|
@@ -409,12 +421,12 @@ these fields.
 
 ### Field Types
 
-| Type   | Class            | Status | Notes                                           |
-|--------|------------------|--------|-------------------------------------------------|
-| `/Btn` | `ButtonField`    | ✓      | H, MK, Opt; pushbutton/checkbox/radio via Ff    |
-| `/Tx`  | `TextField`      | ✓      | MaxLen, Q; multiline/password/comb via Ff       |
-| `/Ch`  | `ChoiceField`    | ✓      | Opt, TI, I; combo/edit/sort via Ff              |
-| `/Sig` | `SignatureField` | ✓      | SigFlags, Lock, SV; /V accepts `SignatureValue` |
+| Type   | Class            | Source | Status | Notes                                           |
+|--------|------------------|--------|--------|-------------------------------------------------|
+| `/Btn` | `ButtonField`    | [`ButtonField.php`](../packages/pdf/core/src/Interactive/Form/ButtonField.php) | ✓      | H, MK, Opt; pushbutton/checkbox/radio via Ff    |
+| `/Tx`  | `TextField`      | [`TextField.php`](../packages/pdf/core/src/Interactive/Form/TextField.php) | ✓      | MaxLen, Q; multiline/password/comb via Ff       |
+| `/Ch`  | `ChoiceField`    | [`ChoiceField.php`](../packages/pdf/core/src/Interactive/Form/ChoiceField.php) | ✓      | Opt, TI, I; combo/edit/sort via Ff              |
+| `/Sig` | `SignatureField` | [`SignatureField.php`](../packages/pdf/core/src/Interactive/Form/SignatureField.php) | ✓      | SigFlags, Lock, SV; /V accepts `SignatureValue` |
 
 ### Signature Objects
 
@@ -432,6 +444,7 @@ these fields.
 ## Graphics
 
 ### ExtGState (`/Type /ExtGState`)
+*Source: [`packages/pdf/core/src/Graphics/ExtGState.php`](../packages/pdf/core/src/Graphics/ExtGState.php)*
 
 | Field             | Status | Notes                         |
 |-------------------|--------|-------------------------------|
@@ -465,6 +478,7 @@ these fields.
 | `/HTO`            | ✓      | Halftone origin               |
 
 ### Soft Mask Dictionary
+*Source: [`packages/pdf/core/src/Graphics/SoftMask.php`](../packages/pdf/core/src/Graphics/SoftMask.php)*
 
 | Field   | Status | Notes                      |
 |---------|--------|----------------------------|
@@ -475,6 +489,7 @@ these fields.
 | `/TR`   | ✓      | Transfer function          |
 
 ### Color Spaces
+*Source: [`packages/pdf/core/src/Graphics/ColorSpace/`](../packages/pdf/core/src/Graphics/ColorSpace/)*
 
 | Color Space   | Status | Notes                                                           |
 |---------------|--------|-----------------------------------------------------------------|
@@ -491,6 +506,7 @@ these fields.
 | `/DeviceN`    | ✓      | `DeviceN` — names, alternate space, tint transform, attributes  |
 
 ### Pattern (`/Type /Pattern`)
+*Source: [`packages/pdf/core/src/Graphics/Pattern/`](../packages/pdf/core/src/Graphics/Pattern/)*
 
 | Type                       | Status | Notes                                                                          |
 |----------------------------|--------|--------------------------------------------------------------------------------|
@@ -498,6 +514,7 @@ these fields.
 | `/PatternType 2` (Shading) | ✓      | `ShadingPattern` — Shading, Matrix, ExtGState                                  |
 
 ### Shading (`/Type /Shading` or stream)
+*Source: [`packages/pdf/core/src/Graphics/Shading/`](../packages/pdf/core/src/Graphics/Shading/)*
 
 | Type                                    | Status | Notes                                                                      |
 |-----------------------------------------|--------|----------------------------------------------------------------------------|
@@ -510,6 +527,7 @@ these fields.
 | `/ShadingType 7` (Tensor-product patch) | ✓      | `ShadingType7` stream                                                      |
 
 ### XObject (`/Type /XObject`)
+*Source: [`packages/pdf/core/src/Graphics/XObject/`](../packages/pdf/core/src/Graphics/XObject/)*
 
 | Subtype  | Class          | Status | Notes                                                                                                                     |
 |----------|----------------|--------|---------------------------------------------------------------------------------------------------------------------------|
@@ -518,6 +536,7 @@ these fields.
 | `/PS`    | `PostScriptXObject` | ✓      | Deprecated since PDF 1.7.1                                                                                                |
 
 ### Functions
+*Source: [`packages/pdf/core/src/Graphics/Function/`](../packages/pdf/core/src/Graphics/Function/)*
 
 | Type                            | Status | Notes                                                                              |
 |---------------------------------|--------|------------------------------------------------------------------------------------|
@@ -541,6 +560,7 @@ these fields.
 ---
 
 ## Content Stream Operators
+*Source: [`packages/pdf/core/src/Content/ContentStream.php`](../packages/pdf/core/src/Content/ContentStream.php)*
 
 | Operator       | Category      | Status | Notes                                     |
 |----------------|---------------|--------|-------------------------------------------|
@@ -617,6 +637,7 @@ these fields.
 ---
 
 ## Multimedia
+*Source: [`packages/pdf/core/src/Multimedia/`](../packages/pdf/core/src/Multimedia/)*
 
 | Object                                           | Status | Notes                                           |
 |--------------------------------------------------|--------|-------------------------------------------------|
@@ -631,6 +652,7 @@ these fields.
 ---
 
 ## File Specifications
+*Source: [`packages/pdf/core/src/FileSpec/`](../packages/pdf/core/src/FileSpec/)*
 
 | Object                                        | Status | Notes                                                             |
 |-----------------------------------------------|--------|-------------------------------------------------------------------|
@@ -641,6 +663,7 @@ these fields.
 ---
 
 ## Encryption
+*Source: [`packages/pdf/core/src/Security/`](../packages/pdf/core/src/Security/)*
 
 | Object / Field                         | Status | Notes                                                             |
 |----------------------------------------|--------|-------------------------------------------------------------------|
@@ -660,6 +683,7 @@ these fields.
 ---
 
 ## Digital Signatures
+*Source: [`packages/pdf/core/src/Interactive/Signature/`](../packages/pdf/core/src/Interactive/Signature/)*
 
 | Object                              | Status | Notes                                                                       |
 |-------------------------------------|--------|-----------------------------------------------------------------------------|
@@ -674,6 +698,7 @@ these fields.
 ---
 
 ## 3D
+*Source: [`packages/pdf/core/src/ThreeD/`](../packages/pdf/core/src/ThreeD/)*
 
 | Object                          | Status | Notes                                                         |
 |---------------------------------|--------|---------------------------------------------------------------|
@@ -687,6 +712,7 @@ these fields.
 ---
 
 ## Accessibility / Tagged PDF
+*Source: [`packages/pdf/core/src/Document/StructTreeRoot.php`](../packages/pdf/core/src/Document/StructTreeRoot.php), [`StructElem.php`](../packages/pdf/core/src/Document/StructElem.php)*
 
 | Object / Feature                           | Status | Notes                                                           |
 |--------------------------------------------|--------|-----------------------------------------------------------------|
@@ -701,6 +727,7 @@ these fields.
 ---
 
 ## Character Encodings
+*Source: [`packages/encoding/src/`](../packages/encoding/src/)*
 
 | Encoding              | Status | Notes                                                                              |
 |-----------------------|--------|------------------------------------------------------------------------------------|
@@ -715,6 +742,7 @@ these fields.
 ---
 
 ## Stream Filters (Codecs)
+*Source: [`packages/filters/src/`](../packages/filters/src/)*
 
 | Filter             | Encode | Decode | Notes                                                                    |
 |--------------------|--------|--------|--------------------------------------------------------------------------|
@@ -732,6 +760,7 @@ these fields.
 ---
 
 ## Reader Capabilities
+*Source: [`packages/pdf/reader/src/`](../packages/pdf/reader/src/)*
 
 | Feature                          | Status | Notes                                                         |
 |----------------------------------|--------|---------------------------------------------------------------|
@@ -751,6 +780,7 @@ these fields.
 ---
 
 ## Writer Capabilities
+*Source: [`packages/pdf/core/src/File/PdfFileWriter.php`](../packages/pdf/core/src/File/PdfFileWriter.php)*
 
 | Feature                    | Status | Notes                                                                   |
 |----------------------------|--------|-------------------------------------------------------------------------|
@@ -767,50 +797,7 @@ these fields.
 
 ## Conformance Profiles
 
-### Supported Standards
-
-| Standard | Profile Enum | Levels | ISO Spec | PDF Version | Constraints |
-|----------|-------------|--------|----------|-------------|-------------|
-| PDF/A | `PdfAProfile` | A1a, A1b, A2a, A2b, A2u, A3a, A3b, A3u, A4, A4e, A4f | ISO 19005 | 1.4–2.0 | 7–10 per level |
-| PDF/UA | `PdfUaProfile` | UA1, UA2 | ISO 14289 | 1.7–2.0 | 6 |
-| PDF/X | `PdfXProfile` | X-1a:2003, X-3:2003, X-4, X-5g, X-5pg, X-5n | ISO 15930 | 1.3–1.6 | 6–8 per level |
-| PDF/VT | `PdfVtProfile` | VT1, VT2, VT2s | ISO 16612 | 2.0 | 7 |
-| PDF/E | `PdfEProfile` | E1 | ISO 24517-1 | 1.6 | 6 |
-| PDF/R | `PdfRProfile` | R1 | ISO 23504-1 | 2.0 | 5 |
-| Factur-X | `ZugferdProfile` | MINIMUM, BASIC_WL, BASIC, EN16931, EXTENDED, XRECHNUNG | ZUGFeRD/Factur-X | 1.7 | 9 (PDF/A-3b + 2) |
-| PDF/mail | `PdfMailProfile` | mail-1 | ISO 23053-2 | 2.0 | 6 |
-
-### Conformance Constraint Matrix
-
-| Constraint | A | UA | X | X-5 | VT | E | R | ZUGFeRD | mail |
-|---|---|---|---|---|---|---|---|---|---|
-| FontEmbedding | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ |
-| Encryption | ✓ | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Metadata | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| OutputIntent | ✓ | | ✓ | ✓ | ✓ | | | ✓ | |
-| ColorSpace | ✓ | | | | | | | ✓ | |
-| Action | ✓ | | | | | | | ✓ | ✓ |
-| EmbeddedFile | ✓ | | | | | | | ✓ | |
-| Transparency | A-1 | | X-1a/X-3 | | | | | A-1 | |
-| Filter | A-1 | | | | | | | | |
-| TaggedStructure | Level A | ✓ | | | | | | Level A | |
-| DisplayDocTitle | | ✓ | | | | | | | |
-| TabOrder | | ✓ | | | | | | | |
-| Annotation | | ✓ | | | | | | | |
-| TrimBox | | | ✓ | ✓ | ✓ | | | | |
-| Trapped | | | ✓ | ✓ | ✓ | | | | |
-| DPartRoot | | | | | ✓ | | | | |
-| ThreeDContent | | | | | | ✓ | | | |
-| PdfEAction | | | | | | ✓ | | | |
-| PdfEColorSpace | | | | | | ✓ | | | |
-| RasterContent | | | | | | | ✓ | | |
-| PdfRAction | | | | | | | ✓ | | |
-| PdfRFont | | | | | | | ✓ | | |
-| ReferenceXObject | | | | ✓ | | | | | |
-| ZugferdXmp | | | | | | | | ✓ | |
-| ZugferdInvoice | | | | | | | | ✓ | |
-| Form | | | | | | | | | ✓ |
-| Multimedia | | | | | | | | | ✓ |
+See [iso-standards-coverage.md](iso-standards-coverage.md) for the full ISO conformance map with profile enums, constraint classes, test files, and the constraint matrix.
 
 ---
 
@@ -875,35 +862,4 @@ these fields.
 
 ## Version Gating
 
-Every version-sensitive PDF feature is annotated with its minimum required PDF version. The writer auto-bumps the document version when features are used, or throws in strict mode.
-
-### Annotation Coverage
-
-| Version | Annotated Classes/Properties | Key Features |
-|---------|------------------------------|-------------|
-| **1.1** | 9 | CalGray, CalRGB, Lab, LaunchAction, Outline, OutlineItem, TransitionDict, MMType1Font, ThreadAction |
-| **1.2** | 13 | Pattern, TilingPattern, WidgetAnnotation, Type0Font, CIDFont, AcroForm, HideAction, SubmitFormAction, ResetFormAction, ImportDataAction, AppearanceDict, AppearanceCharacteristics, AdditionalActions |
-| **1.3** | 25 | ICCBased, Separation, ShadingPattern, Shading (all subtypes via inheritance), Func (all subtypes), StructTreeRoot, 14 annotation types, JavaScriptAction, PageLabel, SignatureField/Value/Reference |
-| **1.4** | 13 | SoftMask, GroupAttributes, MetadataStream, MarkupAnnotation (all subtypes), OutputIntent, MovieAnnotation, ExtGState transparency properties (bm, sMask, ca, caLower, ais, tk), Page.$outputIntents |
-| **1.5** | 30 | OCG, OCMD, OCPropertiesDict, CrossReferenceStream, ObjectStream, CryptFilter, Rendition/MediaRendition/SelectorRendition, MediaClip/Criteria/PlayParams/ScreenParams, Navigator, ScreenAnnotation, CaretAnnotation, PolygonAnnotation, PolyLineAnnotation, RedactAnnotation, BorderEffect, RenditionAction, SetOCGStateAction, TransAction, SoundAnnotation, SigFieldLock |
-| **1.6** | 17 | DeviceN, ThreeDStream + 7 sub-objects, ThreeDAnnotation, DocTimeStamp, WatermarkAnnotation, CFFFontFile, GoToEAction, GoTo3DViewAction, HalftoneType16, MarkInfo.$userProperties/.$suspects |
-| **1.7** | 6 | Collection, CollectionSchema, CollectionItem, Requirement, RequirementHandler, Catalog.$extensions |
-| **2.0** | 17 | DPartRoot, DPart, GoToDPAction, RichMediaExecuteAction, DSS, ProjectionAnnotation, RichMediaAnnotation, Catalog.$dss/.$af/.$dPartRoot, Page.$af/.$dPart, FormXObject.$af, ViewerPreferences.$enforce, FileSpec.$afRelationship, SeedValueDictionary.$lockDocument/.$appearanceFilter |
-
-### Deprecated Features
-
-| Class | Deprecated Since | Replacement |
-|-------|-----------------|-------------|
-| Movie | 2.0 | RichMediaAnnotation |
-| MovieAction | 2.0 | RichMediaExecuteAction |
-| MovieAnnotation | 2.0 | ScreenAnnotation |
-| Sound | 2.0 | MediaRendition |
-| SoundAction | 2.0 | RenditionAction |
-| SoundAnnotation | 2.0 | RichMediaAnnotation |
-| PostScriptXObject | 1.7.1 | — |
-
-### Runtime Checks
-
-- `StructElem` implements `PdfVersionAware` — checks `StandardStructureType` for PDF 2.0 types (DocumentFragment, Aside, Title, THead, TBody, TFoot, FENote, Artifact)
-- `PdfEncryptor::getMinimumPdfVersion()` — RC4→1.4, AES-128→1.6, AES-256→2.0
-- `PdfFileWriter::generate()` auto-bumps for xref streams (→1.5) and syncs Catalog `/Version` for versions > 1.4
+See [version-coverage.md](version-coverage.md) for the full PDF version feature map with 172 annotated classes/properties, deprecated features, and runtime checks.

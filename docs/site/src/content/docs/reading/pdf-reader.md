@@ -8,7 +8,7 @@ description: Parse existing PDFs into typed objects — pages, fonts, annotation
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 // From file
 $pdf = PdfReader::fromFile('document.pdf');

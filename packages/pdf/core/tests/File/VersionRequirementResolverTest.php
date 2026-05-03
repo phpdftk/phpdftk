@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
-use ApprLabs\Pdf\Core\File\VersionRequirementResolver;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
-use ApprLabs\Pdf\Core\Annotation\RedactAnnotation;
-use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
-use ApprLabs\Pdf\Core\Document\DPartRoot;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
-use ApprLabs\Pdf\Core\Graphics\ExtGState;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType2;
-use ApprLabs\Pdf\Core\Multimedia\Movie;
-use ApprLabs\Pdf\Core\Graphics\XObject\PostScriptXObject;
-use ApprLabs\Pdf\Core\Document\StandardStructureType;
-use ApprLabs\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\DeprecatedPdfFeature;
+use Phpdftk\Pdf\Core\File\VersionRequirementResolver;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\Annotation\RedactAnnotation;
+use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
+use Phpdftk\Pdf\Core\Document\DPartRoot;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Core\Graphics\ExtGState;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2;
+use Phpdftk\Pdf\Core\Multimedia\Movie;
+use Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject;
+use Phpdftk\Pdf\Core\Document\StandardStructureType;
+use Phpdftk\Pdf\Core\Document\StructElem;
 use PHPUnit\Framework\TestCase;
 
 class VersionRequirementResolverTest extends TestCase
@@ -37,7 +37,7 @@ class VersionRequirementResolverTest extends TestCase
 
     public function testClassLevelRequirementFromInstance(): void
     {
-        $obj = new DPartRoot(new \ApprLabs\Pdf\Core\PdfReference(1));
+        $obj = new DPartRoot(new \Phpdftk\Pdf\Core\PdfReference(1));
         $this->assertSame(PdfVersion::V2_0, VersionRequirementResolver::getClassRequirement($obj));
     }
 
@@ -57,7 +57,7 @@ class VersionRequirementResolverTest extends TestCase
     public function testEffectiveRequirementPropertySet(): void
     {
         $vp = new ViewerPreferences();
-        $vp->enforce = new \ApprLabs\Pdf\Core\PdfArray([]);
+        $vp->enforce = new \Phpdftk\Pdf\Core\PdfArray([]);
         $this->assertSame(PdfVersion::V2_0, VersionRequirementResolver::getEffectiveRequirement($vp));
     }
 
@@ -157,12 +157,12 @@ class VersionRequirementResolverTest extends TestCase
 
     public function testThreadRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_1, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Document\Thread::class));
+        $this->assertSame(PdfVersion::V1_1, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Document\Thread::class));
     }
 
     public function testEncryptDictionaryRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_1, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Security\EncryptDictionary::class));
+        $this->assertSame(PdfVersion::V1_1, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Security\EncryptDictionary::class));
     }
 
     public function testMovieHasVersionAndDeprecation(): void
@@ -176,15 +176,15 @@ class VersionRequirementResolverTest extends TestCase
 
     public function testSoundHasVersionAndDeprecation(): void
     {
-        $this->assertSame(PdfVersion::V1_2, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Multimedia\Sound::class));
-        $dep = VersionRequirementResolver::getDeprecation(\ApprLabs\Pdf\Core\Multimedia\Sound::class);
+        $this->assertSame(PdfVersion::V1_2, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Multimedia\Sound::class));
+        $dep = VersionRequirementResolver::getDeprecation(\Phpdftk\Pdf\Core\Multimedia\Sound::class);
         $this->assertNotNull($dep);
         $this->assertSame('2.0', $dep->removedIn);
     }
 
     public function testButtonFieldRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_2, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Interactive\Form\ButtonField::class));
+        $this->assertSame(PdfVersion::V1_2, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Interactive\Form\ButtonField::class));
     }
 
     public function testExtGStateClassLevel(): void
@@ -194,7 +194,7 @@ class VersionRequirementResolverTest extends TestCase
 
     public function testFileSpecRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_3, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\FileSpec\FileSpec::class));
+        $this->assertSame(PdfVersion::V1_3, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\FileSpec\FileSpec::class));
     }
 
     public function testStructElemClassLevel(): void
@@ -204,17 +204,17 @@ class VersionRequirementResolverTest extends TestCase
 
     public function testCMapStreamRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_4, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Font\CMapStream::class));
+        $this->assertSame(PdfVersion::V1_4, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Font\CMapStream::class));
     }
 
     public function testCCITTFaxDecodeParamsRequirement(): void
     {
-        $this->assertSame(PdfVersion::V1_5, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Filter\CCITTFaxDecodeParams::class));
+        $this->assertSame(PdfVersion::V1_5, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Filter\CCITTFaxDecodeParams::class));
     }
 
     public function testUR3TransformParamsRequirement(): void
     {
-        $this->assertSame(PdfVersion::V2_0, VersionRequirementResolver::getClassRequirement(\ApprLabs\Pdf\Core\Interactive\Signature\UR3TransformParams::class));
+        $this->assertSame(PdfVersion::V2_0, VersionRequirementResolver::getClassRequirement(\Phpdftk\Pdf\Core\Interactive\Signature\UR3TransformParams::class));
     }
 
     public function testDeprecationWithRemovedInVersion(): void
@@ -225,11 +225,12 @@ class VersionRequirementResolverTest extends TestCase
         $this->assertSame(PdfVersion::V2_0, $dep->removedInVersion);
     }
 
-    public function testDeprecationWithoutRemovedIn(): void
+    public function testPostScriptXObjectDeprecationWithRemovedIn(): void
     {
         $dep = VersionRequirementResolver::getDeprecation(PostScriptXObject::class);
         $this->assertNotNull($dep);
-        $this->assertNull($dep->removedIn);
-        $this->assertNull($dep->removedInVersion);
+        $this->assertSame('1.7.1', $dep->since);
+        $this->assertSame('2.0', $dep->removedIn);
+        $this->assertSame(PdfVersion::V2_0, $dep->removedInVersion);
     }
 }

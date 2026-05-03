@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Annotation;
+namespace Phpdftk\Pdf\Core\Tests\Annotation;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Annotation\BorderStyle;
-use ApprLabs\Pdf\Core\Annotation\LinkAnnotation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\Annotation\BorderStyle;
+use Phpdftk\Pdf\Core\Annotation\LinkAnnotation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
 
 class BorderStyleTest extends TestCase
 {

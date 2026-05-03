@@ -270,5 +270,6 @@ Parse time for PDFs using spec-compliant features. `FAIL` = parser threw an exce
 ```
 MD;
 
-file_put_contents(__DIR__ . '/../docs/benchmarks.md', $md);
-echo "docs/benchmarks.md written.\n";
+@mkdir(__DIR__ . '/../docs/generated', 0755, true);
+file_put_contents(__DIR__ . '/../docs/generated/benchmarks.md', $md);
+echo "docs/generated/benchmarks.md written.\n";

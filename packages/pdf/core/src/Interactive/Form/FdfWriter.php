@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
 /**
  * FDF (Forms Data Format) file writer — ISO 32000-2 §12.7.8.

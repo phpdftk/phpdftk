@@ -8,7 +8,7 @@ description: Read and write PDF document Info dictionary metadata.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\MetadataEditor;
+use Phpdftk\Pdf\Toolkit\MetadataEditor;
 
 // From file
 $editor = MetadataEditor::open('doc.pdf');

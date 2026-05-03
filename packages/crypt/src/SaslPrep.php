@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Crypt;
+namespace Phpdftk\Crypt;
 
 /**
  * SASLprep password normalization — RFC 4013.

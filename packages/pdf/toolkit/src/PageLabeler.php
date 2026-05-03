@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\Document\NumberTree;
-use ApprLabs\Pdf\Core\Document\PageLabel;
-use ApprLabs\Pdf\Core\File\IncrementalWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Label\LabelStyle;
+use Phpdftk\Pdf\Core\Document\NumberTree;
+use Phpdftk\Pdf\Core\Document\PageLabel;
+use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Label\LabelStyle;
 
 /**
  * Set page numbering labels on a PDF.
@@ -25,6 +25,8 @@ use ApprLabs\Pdf\Toolkit\Label\LabelStyle;
  *       ->setRomanNumerals(1, 4)        // pages 1-4: i, ii, iii, iv
  *       ->setArabic(5, null, 1)         // pages 5+: 1, 2, 3, ...
  *       ->save('labeled.pdf');
+ *
+ * @api
  */
 final class PageLabeler
 {

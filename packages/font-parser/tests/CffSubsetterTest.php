@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\CffData;
-use ApprLabs\FontParser\CffParser;
-use ApprLabs\FontParser\CffSubsetter;
-use ApprLabs\FontParser\OpenTypeParser;
+use Phpdftk\FontParser\CffData;
+use Phpdftk\FontParser\CffParser;
+use Phpdftk\FontParser\CffSubsetter;
+use Phpdftk\FontParser\OpenTypeParser;
 use PHPUnit\Framework\TestCase;
 
 class CffSubsetterTest extends TestCase

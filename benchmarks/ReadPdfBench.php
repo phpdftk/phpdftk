@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Benchmarks;
+namespace Phpdftk\Benchmarks;
 
 use PhpBench\Attributes as Bench;
-use ApprLabs\Pdf\Conformance\ConformanceChecker;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Conformance\ConformanceChecker;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 /**
  * Reader benchmarks — parse existing PDFs and extract structure.
@@ -181,9 +181,9 @@ class ReadPdfBench
         if ($this->formXObjectPdf !== null) {
             return;
         }
-        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
-        $coreFont = new \ApprLabs\Pdf\Core\Font\Type1Font(
-            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter(compressStreams: false);
+        $coreFont = new \Phpdftk\Pdf\Core\Font\Type1Font(
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
         );
         $font = $writer->addFont($coreFont);
 
@@ -191,25 +191,25 @@ class ReadPdfBench
             $page = $writer->addPage(612, 792);
 
             // Create a Form XObject with text
-            $bbox = new \ApprLabs\Pdf\Core\PdfArray([
-                new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
-                new \ApprLabs\Pdf\Core\PdfNumber(500), new \ApprLabs\Pdf\Core\PdfNumber(100),
+            $bbox = new \Phpdftk\Pdf\Core\PdfArray([
+                new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+                new \Phpdftk\Pdf\Core\PdfNumber(500), new \Phpdftk\Pdf\Core\PdfNumber(100),
             ]);
             $xobjContent = sprintf(
                 "BT\n/%s 12 Tf\n10 10 Td\n(Stamped text in Form XObject on page %d) Tj\nET",
                 $font->getResourceName(), $p + 1
             );
-            $formXObj = new \ApprLabs\Pdf\Core\Graphics\XObject\FormXObject($bbox, $xobjContent);
-            $formXObj->resources = new \ApprLabs\Pdf\Core\Content\Resources();
+            $formXObj = new \Phpdftk\Pdf\Core\Graphics\XObject\FormXObject($bbox, $xobjContent);
+            $formXObj->resources = new \Phpdftk\Pdf\Core\Content\Resources();
             $formXObj->resources->addFont(
                 $font->getResourceName(),
-                new \ApprLabs\Pdf\Core\PdfReference($coreFont->objectNumber)
+                new \Phpdftk\Pdf\Core\PdfReference($coreFont->objectNumber)
             );
             $writer->register($formXObj);
 
             $page->corePage()->resources->addXObject(
                 'FX1',
-                new \ApprLabs\Pdf\Core\PdfReference($formXObj->objectNumber)
+                new \Phpdftk\Pdf\Core\PdfReference($formXObj->objectNumber)
             );
             $content = $writer->addContentStream($page->corePage());
             $content->beginText()
@@ -227,7 +227,7 @@ class ReadPdfBench
     public function benchPhpdftkTextExtractionWithFormXObjects(): void
     {
         $this->ensureFormXObjectPdf();
-        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($this->formXObjectPdf);
+        $reader = \Phpdftk\Pdf\Reader\PdfReader::fromString($this->formXObjectPdf);
         $text = $reader->extractAllText();
         assert(str_contains($text, 'Form XObject'));
     }
@@ -241,9 +241,9 @@ class ReadPdfBench
     public function benchPhpdftkPositionedTextExtraction(): void
     {
         // Generate a 10-page PDF with multiple text blocks per page
-        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(compressStreams: false);
-        $font = $writer->addFont(new \ApprLabs\Pdf\Core\Font\Type1Font(
-            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter(compressStreams: false);
+        $font = $writer->addFont(new \Phpdftk\Pdf\Core\Font\Type1Font(
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
         ));
 
         for ($p = 1; $p <= 10; $p++) {
@@ -276,10 +276,10 @@ class ReadPdfBench
     public function benchPhpdftkLinearizedPdf(): void
     {
         // Generate a linearized PDF, then read it
-        $writer = new \ApprLabs\Pdf\Writer\PdfWriter();
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter();
         $writer->setLinearized();
-        $fontName = $writer->addFont(new \ApprLabs\Pdf\Core\Font\Type1Font(
-            \ApprLabs\Pdf\Core\Font\StandardFont::Helvetica
+        $fontName = $writer->addFont(new \Phpdftk\Pdf\Core\Font\Type1Font(
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
         ))->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {
@@ -318,7 +318,7 @@ class ReadPdfBench
 
         // Benchmark TrueType parsing including variable font detection
         for ($i = 0; $i < 10; $i++) {
-            $parser = new \ApprLabs\FontParser\TrueTypeParser($ttfPath);
+            $parser = new \Phpdftk\FontParser\TrueTypeParser($ttfPath);
             $data = $parser->parse();
             assert($data->familyName !== '');
         }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
 /**
  * WOFF 2.0 (Web Open Font Format 2.0) decompressor.

@@ -1,17 +1,42 @@
 {
-    "name": "apprlabs/filters",
-    "description": "FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode — no PDF dependency",
+    "name": "phpdftk/filters",
+    "description": "FlateDecode, ASCII85, ASCIIHex, RunLength encode/decode \u2014 no PDF dependency",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["filter", "flate", "ascii85", "compression", "decode"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "filter",
+        "flate",
+        "ascii85",
+        "compression",
+        "decode"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
-    "require": { "php": "^8.4", "ext-zlib": "*" },
-    "autoload": { "psr-4": { "ApprLabs\\Filters\\": "src/" } },
-    "autoload-dev": { "psr-4": { "ApprLabs\\Filters\\Tests\\": "tests/" } }
+    "require": {
+        "php": "^8.4",
+        "ext-zlib": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Filters\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Filters\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
 }

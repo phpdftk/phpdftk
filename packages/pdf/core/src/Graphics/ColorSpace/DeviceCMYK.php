@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\ColorSpace;
+namespace Phpdftk\Pdf\Core\Graphics\ColorSpace;
 
 /**
  * DeviceCMYK color space.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
 /**
  * Parses a CFF (Compact Font Format) binary table into a CffData structure.

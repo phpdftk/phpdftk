@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\EncryptionConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Constraint\EncryptionConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 use PHPUnit\Framework\TestCase;
 
 class EncryptionConstraintTest extends TestCase

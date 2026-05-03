@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core;
+namespace Phpdftk\Pdf\Core;
 
-use ApprLabs\Filters\FilterInterface;
+use Phpdftk\Filters\FilterInterface;
 
 /**
  * Represents a PDF stream object: a dictionary + binary/text data.

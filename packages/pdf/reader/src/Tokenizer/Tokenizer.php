@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tokenizer;
+namespace Phpdftk\Pdf\Reader\Tokenizer;
 
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
 
 /**
  * PDF tokenizer — converts a byte stream into a sequence of typed tokens.

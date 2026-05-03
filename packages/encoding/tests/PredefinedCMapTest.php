@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Encoding\Tests;
+namespace Phpdftk\Encoding\Tests;
 
-use ApprLabs\Encoding\PredefinedCMap;
+use Phpdftk\Encoding\PredefinedCMap;
 use PHPUnit\Framework\TestCase;
 
 class PredefinedCMapTest extends TestCase

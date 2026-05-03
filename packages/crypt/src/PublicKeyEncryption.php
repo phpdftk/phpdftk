@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Crypt;
+namespace Phpdftk\Crypt;
 
 /**
  * Public-key (certificate-based) PDF encryption primitives — ISO 32000-2 §7.6.5.

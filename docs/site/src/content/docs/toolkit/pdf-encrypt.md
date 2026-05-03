@@ -8,7 +8,7 @@ description: Encrypt, decrypt, and change passwords on PDF documents.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfEncrypt;
+use Phpdftk\Pdf\Toolkit\PdfEncrypt;
 
 // Unencrypted PDF
 $enc = PdfEncrypt::open('doc.pdf');
@@ -23,7 +23,7 @@ $enc = PdfEncrypt::openString($pdfBytes);
 ## Encrypting a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\Encryption\EncryptionMethod;
+use Phpdftk\Pdf\Toolkit\Encryption\EncryptionMethod;
 
 $enc->encrypt('userpass', 'ownerpass', EncryptionMethod::Aes256)
     ->save('encrypted.pdf');
@@ -65,7 +65,7 @@ If no encryption method has been explicitly set, `changePasswords` defaults to A
 Use the `Permission` constants to control what operations are allowed:
 
 ```php
-use ApprLabs\Pdf\Toolkit\Encryption\Permission;
+use Phpdftk\Pdf\Toolkit\Encryption\Permission;
 
 $enc->encrypt('user', 'owner', EncryptionMethod::Aes256,
     Permission::PRINT | Permission::COPY

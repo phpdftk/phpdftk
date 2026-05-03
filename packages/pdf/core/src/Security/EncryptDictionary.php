@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Security;
+namespace Phpdftk\Pdf\Core\Security;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Encryption dictionary (/Type /Encrypt) — ISO 32000-2 §7.6.
@@ -21,7 +21,7 @@ use ApprLabs\Pdf\Core\RequiresPdfVersion;
  * spec-compliant dictionary but is not wired into `PdfWriter`'s trailer
  * or into per-object string/stream encryption — callers implementing
  * actual encryption are responsible for driving the {@see
- * \ApprLabs\Crypt\PdfKeyDerivation} primitives and patching the writer
+ * \Phpdftk\Crypt\PdfKeyDerivation} primitives and patching the writer
  * output themselves. This distinction is deliberate so the object model
  * stays usable for libraries that want to emit encryption metadata
  * without phpdftk taking over the crypto pipeline.

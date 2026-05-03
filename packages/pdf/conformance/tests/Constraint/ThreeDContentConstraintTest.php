@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\ThreeDContentConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDView;
+use Phpdftk\Pdf\Conformance\Constraint\ThreeDContentConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfEProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDView;
 use PHPUnit\Framework\TestCase;
 
 class ThreeDContentConstraintTest extends TestCase

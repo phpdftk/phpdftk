@@ -2,39 +2,39 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Annotation\CaretAnnotation;
-use ApprLabs\Pdf\Core\Annotation\CircleAnnotation;
-use ApprLabs\Pdf\Core\Annotation\FileAttachmentAnnotation;
-use ApprLabs\Pdf\Core\Annotation\LineAnnotation;
-use ApprLabs\Pdf\Core\Annotation\MovieAnnotation;
-use ApprLabs\Pdf\Core\Annotation\PolyLineAnnotation;
-use ApprLabs\Pdf\Core\Annotation\PolygonAnnotation;
-use ApprLabs\Pdf\Core\Annotation\PrinterMarkAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ProjectionAnnotation;
-use ApprLabs\Pdf\Core\Annotation\RedactAnnotation;
-use ApprLabs\Pdf\Core\Annotation\RichMediaAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ScreenAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SoundAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SquareAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SquigglyAnnotation;
-use ApprLabs\Pdf\Core\Annotation\StrikeOutAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\Annotation\TrapNetAnnotation;
-use ApprLabs\Pdf\Core\Annotation\UnderlineAnnotation;
-use ApprLabs\Pdf\Core\Annotation\WatermarkAnnotation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Annotation\CaretAnnotation;
+use Phpdftk\Pdf\Core\Annotation\CircleAnnotation;
+use Phpdftk\Pdf\Core\Annotation\FileAttachmentAnnotation;
+use Phpdftk\Pdf\Core\Annotation\LineAnnotation;
+use Phpdftk\Pdf\Core\Annotation\MovieAnnotation;
+use Phpdftk\Pdf\Core\Annotation\PolyLineAnnotation;
+use Phpdftk\Pdf\Core\Annotation\PolygonAnnotation;
+use Phpdftk\Pdf\Core\Annotation\PrinterMarkAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ProjectionAnnotation;
+use Phpdftk\Pdf\Core\Annotation\RedactAnnotation;
+use Phpdftk\Pdf\Core\Annotation\RichMediaAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ScreenAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SoundAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SquareAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SquigglyAnnotation;
+use Phpdftk\Pdf\Core\Annotation\StrikeOutAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\Annotation\TrapNetAnnotation;
+use Phpdftk\Pdf\Core\Annotation\UnderlineAnnotation;
+use Phpdftk\Pdf\Core\Annotation\WatermarkAnnotation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a multi-page PDF exercising all new annotation subtypes and verifies validity.

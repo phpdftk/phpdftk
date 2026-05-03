@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Signature;
+namespace Phpdftk\Pdf\Core\Interactive\Signature;
 
 /**
  * CRL (Certificate Revocation List) fetcher.
  *
  * Extracts CRL Distribution Point URLs from a certificate's CDP
  * extension and fetches the CRL via HTTP GET. Returns raw DER-encoded
- * CRL bytes suitable for embedding in a {@see \ApprLabs\Pdf\Core\Document\DSS}.
+ * CRL bytes suitable for embedding in a {@see \Phpdftk\Pdf\Core\Document\DSS}.
  */
 final class CrlClient
 {

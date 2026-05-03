@@ -22,7 +22,7 @@ The extractor handles the `Do` operator to recurse into Form XObjects — text i
 ## Via PdfReader
 
 ```php
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 $pdf = PdfReader::fromFile('document.pdf');
 
@@ -38,7 +38,7 @@ $allText = $pdf->extractAllText("\n\n");
 The toolkit's `TextExtractor` adds search and per-page access with 1-based page numbers:
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextExtractor;
+use Phpdftk\Pdf\Toolkit\TextExtractor;
 
 $extractor = TextExtractor::open('document.pdf');
 

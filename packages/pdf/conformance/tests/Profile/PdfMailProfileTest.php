@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Profile;
+namespace Phpdftk\Pdf\Conformance\Tests\Profile;
 
-use ApprLabs\Pdf\Conformance\Profile\PdfMailProfile;
-use ApprLabs\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Conformance\Profile\PdfMailProfile;
+use Phpdftk\Pdf\Core\PdfVersion;
 use PHPUnit\Framework\TestCase;
 
 class PdfMailProfileTest extends TestCase

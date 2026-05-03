@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Xmp;
+namespace Phpdftk\Xmp;
 
+/**
+ * Serialize an {@see XmpPacket} into an XMP XML packet with `<?xpacket?>` wrapping.
+ *
+ * Handles namespace registration and RDF/Description structure.
+ * The output includes trailing padding per the XMP spec to allow
+ * in-place updates without rewriting the file.
+ */
 final class XmpWriter {
     private const DEFAULT_NAMESPACES = [
         'dc'   => 'http://purl.org/dc/elements/1.1/',

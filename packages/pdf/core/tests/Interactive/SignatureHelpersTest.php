@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive;
+namespace Phpdftk\Pdf\Core\Tests\Interactive;
 
-use ApprLabs\Pdf\Core\Interactive\Form\SeedValueDictionary;
-use ApprLabs\Pdf\Core\Interactive\Form\SigFieldLock;
-use ApprLabs\Pdf\Core\Interactive\Signature\IdentityTransformParams;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Interactive\Form\SeedValueDictionary;
+use Phpdftk\Pdf\Core\Interactive\Form\SigFieldLock;
+use Phpdftk\Pdf\Core\Interactive\Signature\IdentityTransformParams;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class SignatureHelpersTest extends TestCase

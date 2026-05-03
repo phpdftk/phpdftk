@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Signature;
+namespace Phpdftk\Pdf\Core\Interactive\Signature;
 
 /**
  * X.509 certificate utilities for LTV signature support.

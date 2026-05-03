@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Interactive;
+namespace Phpdftk\Pdf\Core\Tests\Interactive;
 
-use ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
 use PHPUnit\Framework\TestCase;
 
 class AppearanceGeneratorExtendedTest extends TestCase

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Content;
+namespace Phpdftk\Pdf\Core\Content;
 
-use ApprLabs\Color\CmykColor;
-use ApprLabs\Color\GrayColor;
-use ApprLabs\Color\RgbColor;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Geometry\Matrix;
-use ApprLabs\Geometry\Rectangle;
+use Phpdftk\Color\CmykColor;
+use Phpdftk\Color\GrayColor;
+use Phpdftk\Color\RgbColor;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Geometry\Matrix;
+use Phpdftk\Geometry\Rectangle;
 
 /**
  * Content stream for page graphics and text.
@@ -136,10 +136,11 @@ class ContentStream extends PdfStream
     }
 
     /**
-     * Show Unicode text with kerning adjustments using TJ operator.
+     * Emit a TJ array with kerning adjustments from GPOS data.
      *
-     * Converts UTF-8 text to hex-encoded GID sequences with kern pair
-     * adjustments inserted as numeric values between glyph runs.
+     * Positive kern values in font units are negated per PDF convention
+     * (negative TJ displacements move the cursor right). Falls back to
+     * plain Tj when no kerning pairs apply.
      *
      * @param string $text UTF-8 text
      * @param array<int, int> $unicodeToGid Unicode codepoint => GID mapping
@@ -201,11 +202,12 @@ class ContentStream extends PdfStream
     }
 
     /**
-     * Show Unicode text with ligature substitution and optional kerning.
+     * Apply OpenType GSUB ligature substitutions before kerning.
      *
-     * Applies GSUB ligature rules (fi, fl, ffi, etc.) to the text
-     * before rendering. If kern pairs are provided, kerning adjustments
-     * are also applied between the shaped glyphs.
+     * Ligatures reduce the glyph count (e.g., "fi" -> single glyph),
+     * so the GID sequence may be shorter than the input. If kern pairs
+     * are provided, kerning adjustments are applied between the shaped
+     * glyphs using TJ; otherwise a plain Tj is emitted.
      *
      * @param string $text UTF-8 text to render
      * @param array<int, int> $unicodeToGid Unicode codepoint → GID map
@@ -233,7 +235,7 @@ class ContentStream extends PdfStream
         }
 
         // Apply ligature substitutions
-        $gids = \ApprLabs\FontParser\TextShaper::applyLigatures($gids, $ligatures);
+        $gids = \Phpdftk\FontParser\TextShaper::applyLigatures($gids, $ligatures);
 
         if ($gids === []) {
             return $this;
@@ -911,7 +913,10 @@ class ContentStream extends PdfStream
     }
 
     /**
-     * Escape a PHP string for use as a PDF literal string.
+     * Return a PDF literal string including the outer parentheses.
+     *
+     * Callers must NOT wrap the result again. Escapes `(`, `)`, `\`,
+     * and control characters per ISO 32000-2 S 7.3.4.2.
      */
     private function escapeString(string $text): string
     {

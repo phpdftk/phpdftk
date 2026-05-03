@@ -8,7 +8,7 @@ description: Extract and search text from PDFs with a clean, fluent API.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextExtractor;
+use Phpdftk\Pdf\Toolkit\TextExtractor;
 
 // From file
 $extractor = TextExtractor::open('report.pdf');

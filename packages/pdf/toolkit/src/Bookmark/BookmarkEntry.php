@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Bookmark;
+namespace Phpdftk\Pdf\Toolkit\Bookmark;
 
 /**
  * A bookmark (outline item) for the toolkit API.

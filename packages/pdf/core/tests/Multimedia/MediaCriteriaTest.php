@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Multimedia;
+namespace Phpdftk\Pdf\Core\Tests\Multimedia;
 
-use ApprLabs\Pdf\Core\Multimedia\MediaCriteria;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Multimedia\MediaCriteria;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class MediaCriteriaTest extends TestCase

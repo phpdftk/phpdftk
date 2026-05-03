@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
+/**
+ * RunLengthDecode — basic run-length encoding (ISO 32000-2 §7.4.5).
+ *
+ * Rarely used standalone in modern PDFs but required by the spec.
+ * Effective only for data with long runs of identical bytes (e.g.,
+ * large solid-color image regions).
+ */
 final class RunLengthFilter implements FilterInterface {
     public function encode(string $data): string {
         $output = '';

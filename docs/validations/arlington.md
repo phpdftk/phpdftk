@@ -145,9 +145,9 @@ No additional installation is needed — the validator is pure PHP.
 ## Manual usage
 
 ```php
-use ApprLabs\Tests\Support\Arlington\ArlingtonLoader;
-use ApprLabs\Tests\Support\Arlington\ArlingtonValidator;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Tests\Support\Arlington\ArlingtonLoader;
+use Phpdftk\Tests\Support\Arlington\ArlingtonValidator;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 $specs = ArlingtonLoader::load();
 $validator = new ArlingtonValidator($specs);

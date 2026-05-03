@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
 /**
  * LZW filter — decode/encode per ISO 32000-2 §7.4.4.2.

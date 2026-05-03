@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core;
+namespace Phpdftk\Pdf\Core;
 
 /**
  * Marks a PDF object class or property as deprecated in the PDF specification.

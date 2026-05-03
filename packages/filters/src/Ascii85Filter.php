@@ -1,6 +1,14 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
+/**
+ * ASCII85Decode — base-85 encoding for binary data (ISO 32000-2 §7.4.3).
+ *
+ * Encodes 4 bytes into 5 ASCII characters (plus 'z' shorthand for
+ * all-zero groups), giving ~25% expansion vs ~100% for hex encoding.
+ * Commonly used for human-inspectable PDF streams where FlateDecode
+ * would be opaque.
+ */
 final class Ascii85Filter implements FilterInterface {
     public function encode(string $data): string {
         $output = '';

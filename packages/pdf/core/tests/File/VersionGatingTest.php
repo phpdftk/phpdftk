@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\DPartRoot;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\File\VersionRequirementException;
-use ApprLabs\Pdf\Core\File\VersionRequirementResolver;
-use ApprLabs\Pdf\Core\FileSpec\FileSpec;
-use ApprLabs\Pdf\Core\Multimedia\Movie;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\Annotation\RedactAnnotation;
-use ApprLabs\Pdf\Core\Document\StandardStructureType;
-use ApprLabs\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\DPartRoot;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\File\VersionRequirementException;
+use Phpdftk\Pdf\Core\File\VersionRequirementResolver;
+use Phpdftk\Pdf\Core\FileSpec\FileSpec;
+use Phpdftk\Pdf\Core\Multimedia\Movie;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\Annotation\RedactAnnotation;
+use Phpdftk\Pdf\Core\Document\StandardStructureType;
+use Phpdftk\Pdf\Core\Document\StructElem;
 use PHPUnit\Framework\TestCase;
 
 class VersionGatingTest extends TestCase
@@ -240,7 +240,7 @@ class VersionGatingTest extends TestCase
         $writer = $this->createWriter(PdfVersion::V2_0);
         $writer->setStrictDeprecation(true);
 
-        $this->expectException(\ApprLabs\Pdf\Core\File\DeprecatedFeatureException::class);
+        $this->expectException(\Phpdftk\Pdf\Core\File\DeprecatedFeatureException::class);
         $this->expectExceptionMessageMatches('/Movie.*removed in PDF 2\.0/');
 
         $movie = new Movie(new FileSpec('test.pdf'));
@@ -276,13 +276,24 @@ class VersionGatingTest extends TestCase
         $this->assertStringContainsString('deprecated since PDF 2.0', $warnings[0]);
     }
 
-    public function testDeprecationWithoutRemovedInNeverThrows(): void
+    public function testPostScriptXObjectRemovedInThrowsAtVersion2(): void
     {
         $writer = $this->createWriter(PdfVersion::V2_0);
         $writer->setStrictDeprecation(true);
 
-        // PostScriptXObject has no removedIn — should warn but not throw
-        $ps = new \ApprLabs\Pdf\Core\Graphics\XObject\PostScriptXObject('');
+        // PostScriptXObject has removedIn=2.0 — should throw in strict mode
+        $ps = new \Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject('');
+
+        $this->expectException(\Phpdftk\Pdf\Core\File\DeprecatedFeatureException::class);
+        $writer->register($ps);
+    }
+
+    public function testPostScriptXObjectWarnsWithoutStrictDeprecation(): void
+    {
+        $writer = $this->createWriter(PdfVersion::V2_0);
+
+        // Without strict deprecation, should warn but not throw
+        $ps = new \Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject('');
         $writer->register($ps);
 
         $warnings = $writer->getVersionWarnings();

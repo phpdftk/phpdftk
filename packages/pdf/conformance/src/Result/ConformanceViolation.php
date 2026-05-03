@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Result;
+namespace Phpdftk\Pdf\Conformance\Result;
 
 /**
  * A single conformance violation detected during validation.

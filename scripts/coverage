@@ -37,5 +37,6 @@ echo ""
 echo "Coverage: ${COVERAGE}%"
 
 # Generate badge
-php scripts/generate-badge.php "$COVERAGE" coverage > docs/coverage-badge.svg
-echo "Badge written to docs/coverage-badge.svg"
+mkdir -p docs/generated
+php scripts/generate-badge.php "$COVERAGE" coverage > docs/generated/coverage-badge.svg
+echo "Badge written to docs/generated/coverage-badge.svg"

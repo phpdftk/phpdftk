@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Conformance;
+namespace Phpdftk\Pdf\Core\Tests\Conformance;
 
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\DockerToolResult;
-use ApprLabs\Tests\Support\PdfIdValidationTrait;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\DockerToolResult;
+use Phpdftk\Tests\Support\PdfIdValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 

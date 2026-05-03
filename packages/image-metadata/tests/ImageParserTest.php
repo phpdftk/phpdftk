@@ -1,10 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\ImageMetadata\Tests;
+namespace Phpdftk\ImageMetadata\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\ImageMetadata\ImageParser;
-use ApprLabs\ImageMetadata\ImageInfo;
+use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\ImageMetadata\ImageInfo;
 
 class ImageParserTest extends TestCase
 {

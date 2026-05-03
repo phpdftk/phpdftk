@@ -6,6 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'ApprLabs\\Color\\Tests\\' => array($baseDir . '/tests'),
-    'ApprLabs\\Color\\' => array($baseDir . '/src'),
+    'Phpdftk\\Color\\Tests\\' => array($baseDir . '/tests'),
+    'Phpdftk\\Color\\' => array($baseDir . '/src'),
 );

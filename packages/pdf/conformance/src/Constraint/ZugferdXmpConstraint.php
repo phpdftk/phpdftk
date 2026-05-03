@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Profile\ZugferdProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Xmp\XmpReader;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\ZugferdProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Xmp\XmpReader;
 
 /**
  * ZUGFeRD / Factur-X: XMP metadata validation.

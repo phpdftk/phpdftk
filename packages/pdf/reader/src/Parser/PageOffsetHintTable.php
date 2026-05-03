@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
 /**
  * Parsed page offset hint table — ISO 32000-2 §F.4.1.

@@ -1,14 +1,14 @@
-# apprlabs/pdf-core
+# phpdftk/pdf-core
 
 PHP-native OOP mapping of the PDF specification (ISO 32000-2). Every PDF object type maps 1:1 to a PHP class, with each `/Field` from the spec mapping directly to a camelCase property.
 
 ## Installation
 
 ```bash
-composer require apprlabs/pdf-core
+composer require phpdftk/pdf-core
 ```
 
-Most users should install `apprlabs/pdf-writer` (which depends on this) or `apprlabs/pdf` (the metapackage) instead. Use `pdf-core` directly when you need full object-model access without the builder layer.
+Most users should install `phpdftk/pdf-writer` (which depends on this) or `phpdftk/pdf` (the metapackage) instead. Use `pdf-core` directly when you need full object-model access without the builder layer.
 
 ## What's Included
 
@@ -25,11 +25,11 @@ Most users should install `apprlabs/pdf-writer` (which depends on this) or `appr
 ## Usage
 
 ```php
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
 
 $writer = new PdfFileWriter();
 $page = new Page(mediaBox: [0, 0, 612, 792]);

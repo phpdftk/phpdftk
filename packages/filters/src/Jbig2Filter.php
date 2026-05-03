@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
 /**
  * JBIG2Decode filter — ISO 14492 / ITU-T T.88 codec.

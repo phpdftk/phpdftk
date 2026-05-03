@@ -1,17 +1,17 @@
-# apprlabs/pdf-writer
+# phpdftk/pdf-writer
 
 PDF writer with two API levels: a high-level cursor-based builder (`Pdf`) that requires no PDF knowledge, and an ergonomic object-model facade (`PdfWriter`) for full control.
 
 ## Installation
 
 ```bash
-composer require apprlabs/pdf-writer
+composer require phpdftk/pdf-writer
 ```
 
 ## High-Level API
 
 ```php
-use ApprLabs\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\Pdf;
 
 $pdf = new Pdf();
 $pdf->addHeading('Hello, World', 1);
@@ -26,9 +26,9 @@ Features: auto-pagination, word wrap, 14 standard fonts, themes, alignment, head
 ## Object-Model API
 
 ```php
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\StandardFont;
 
 $writer = new PdfWriter();
 $page = $writer->addPage(612, 792);

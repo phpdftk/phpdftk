@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance;
+namespace Phpdftk\Pdf\Conformance;
 
-use ApprLabs\Pdf\Conformance\Inspection\ReaderDocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceResult;
-use ApprLabs\Pdf\Conformance\Validator\ConformanceValidator;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Conformance\Inspection\ReaderDocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceResult;
+use Phpdftk\Pdf\Conformance\Validator\ConformanceValidator;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 /**
  * High-level conformance checker for existing PDFs.
@@ -22,6 +22,8 @@ use ApprLabs\Pdf\Reader\PdfReader;
  *
  *   $results = ConformanceChecker::openString($bytes)
  *       ->checkProfiles([PdfAProfile::A2b, PdfUaProfile::UA1]);
+ *
+ * @api
  */
 final class ConformanceChecker
 {

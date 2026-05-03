@@ -1,25 +1,25 @@
-# apprlabs/pdf
+# phpdftk/pdf
 
-Metapackage that installs the full phpdftk family: object model (`apprlabs/pdf-core`) and builder (`apprlabs/pdf-writer`).
+Metapackage that installs the full phpdftk family: object model (`phpdftk/pdf-core`) and builder (`phpdftk/pdf-writer`).
 
 ## Installation
 
 ```bash
-composer require apprlabs/pdf
+composer require phpdftk/pdf
 ```
 
 This pulls in everything you need to generate PDF files. For finer control, install individual packages:
 
 ```bash
-composer require apprlabs/pdf-writer  # builder (pulls pdf-core transitively)
-composer require apprlabs/pdf-reader  # parser
-composer require apprlabs/pdf-toolkit # high-level pipelines (merge, stamp, forms, etc.)
+composer require phpdftk/pdf-writer  # builder (pulls pdf-core transitively)
+composer require phpdftk/pdf-reader  # parser
+composer require phpdftk/pdf-toolkit # high-level pipelines (merge, stamp, forms, etc.)
 ```
 
 ## Quick Start
 
 ```php
-use ApprLabs\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\Pdf;
 
 $pdf = new Pdf();
 $pdf->addHeading('Hello, World', 1);

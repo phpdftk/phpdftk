@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Inspection;
+namespace Phpdftk\Pdf\Conformance\Inspection;
 
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Annotation\MovieAnnotation;
-use ApprLabs\Pdf\Core\Annotation\RichMediaAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ScreenAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SoundAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MetadataStream;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\Font\Font;
-use ApprLabs\Pdf\Core\Font\Type0Font;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject;
-use ApprLabs\Pdf\Core\Interactive\Form\AcroForm;
-use ApprLabs\Pdf\Core\Multimedia\MediaRendition;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Annotation\MovieAnnotation;
+use Phpdftk\Pdf\Core\Annotation\RichMediaAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ScreenAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SoundAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MetadataStream;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\Font\Font;
+use Phpdftk\Pdf\Core\Font\Type0Font;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject;
+use Phpdftk\Pdf\Core\Interactive\Form\AcroForm;
+use Phpdftk\Pdf\Core\Multimedia\MediaRendition;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
 
 /**
  * Inspects a PdfFileWriter's internal state for conformance validation.
@@ -82,7 +82,7 @@ final class WriterDocumentInspector implements DocumentInspector
     {
         // Check if any registered object is an EncryptDictionary
         foreach ($this->fileWriter->getRegistry()->getAll() as $object) {
-            if ($object instanceof \ApprLabs\Pdf\Core\Security\EncryptDictionary) {
+            if ($object instanceof \Phpdftk\Pdf\Core\Security\EncryptDictionary) {
                 return true;
             }
         }
@@ -121,7 +121,7 @@ final class WriterDocumentInspector implements DocumentInspector
     public function hasOutputIntentWithIccProfile(): bool
     {
         foreach ($this->fileWriter->getRegistry()->getAll() as $object) {
-            if ($object instanceof \ApprLabs\Pdf\Core\Document\OutputIntent
+            if ($object instanceof \Phpdftk\Pdf\Core\Document\OutputIntent
                 && $object->destOutputProfile !== null
             ) {
                 return true;

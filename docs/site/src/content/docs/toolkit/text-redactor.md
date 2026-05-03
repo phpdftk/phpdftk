@@ -10,7 +10,7 @@ description: Redact text or areas from PDF pages by drawing filled rectangles.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\TextRedactor;
+use Phpdftk\Pdf\Toolkit\TextRedactor;
 
 // From file
 $redactor = TextRedactor::open('contract.pdf');
@@ -44,7 +44,7 @@ $redactor->redactText('John Smith');
 Restrict to specific pages:
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $redactor->redactText('SSN: 123-45-6789', PageSelector::pages(1));
 ```

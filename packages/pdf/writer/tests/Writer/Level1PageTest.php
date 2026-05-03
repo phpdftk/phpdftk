@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests\Writer;
+namespace Phpdftk\Pdf\Writer\Tests\Writer;
 
-use ApprLabs\Color\CmykColor;
-use ApprLabs\Color\GrayColor;
-use ApprLabs\Color\RgbColor;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Writer\DashPattern;
-use ApprLabs\Pdf\Writer\Font;
-use ApprLabs\Pdf\Writer\Page;
-use ApprLabs\Pdf\Writer\PathBuilder;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Color\CmykColor;
+use Phpdftk\Color\GrayColor;
+use Phpdftk\Color\RgbColor;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Writer\DashPattern;
+use Phpdftk\Pdf\Writer\Font;
+use Phpdftk\Pdf\Writer\Page;
+use Phpdftk\Pdf\Writer\PathBuilder;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Reader\PdfReader;
 use PHPUnit\Framework\TestCase;
 
 class Level1PageTest extends TestCase
@@ -297,7 +297,7 @@ class Level1PageTest extends TestCase
         $writer = $this->createWriter();
         $fw = $writer->fileWriter();
 
-        $this->assertInstanceOf(\ApprLabs\Pdf\Core\File\PdfFileWriter::class, $fw);
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\File\PdfFileWriter::class, $fw);
     }
 
     // -----------------------------------------------------------------------

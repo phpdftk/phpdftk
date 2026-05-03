@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Content\ContentStream;
 
 /**
  * Fluent builder for custom PDF paths.

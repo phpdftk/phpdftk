@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\ZugferdXmpConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Profile\ZugferdProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Constraint\ZugferdXmpConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Profile\ZugferdProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 use PHPUnit\Framework\TestCase;
 
 class ZugferdXmpConstraintTest extends TestCase

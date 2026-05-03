@@ -1,36 +1,51 @@
 {
-    "name": "apprlabs/pdf-toolkit",
-    "description": "PDF toolkit — reader-modify-writer pipelines for forms, merging, stamping, extraction, and more",
+    "name": "phpdftk/pdf-toolkit",
+    "description": "PDF toolkit \u2014 reader-modify-writer pipelines for forms, merging, stamping, extraction, and more",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["pdf", "toolkit", "merge", "stamp", "form", "extract"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "pdf",
+        "toolkit",
+        "merge",
+        "stamp",
+        "form",
+        "extract"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
     "require": {
         "php": "^8.4",
-        "apprlabs/pdf-core": "^1.0",
-        "apprlabs/pdf-reader": "^1.0",
-        "apprlabs/xmp": "^1.0",
-        "apprlabs/filters": "^1.0",
-        "apprlabs/geometry": "^1.0",
-        "apprlabs/encoding": "^1.0",
-        "apprlabs/image-metadata": "^1.0",
-        "apprlabs/font-metrics": "^1.0",
-        "apprlabs/crypt": "^1.0"
+        "phpdftk/pdf-core": "^1.0",
+        "phpdftk/pdf-reader": "^1.0",
+        "phpdftk/xmp": "^1.0",
+        "phpdftk/filters": "^1.0",
+        "phpdftk/geometry": "^1.0",
+        "phpdftk/encoding": "^1.0",
+        "phpdftk/image-metadata": "^1.0",
+        "phpdftk/font-metrics": "^1.0",
+        "phpdftk/crypt": "^1.0"
     },
     "autoload": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Toolkit\\": "src/"
+            "Phpdftk\\Pdf\\Toolkit\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Toolkit\\Tests\\": "tests/"
+            "Phpdftk\\Pdf\\Toolkit\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
         }
     }
 }

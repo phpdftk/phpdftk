@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Crypt;
+namespace Phpdftk\Crypt;
 
+/**
+ * AES-CBC cipher for PDF encryption (ISO 32000-2 §7.6.3).
+ *
+ * Supports 128-bit and 256-bit keys. The 16-byte IV is prepended to
+ * the ciphertext on encrypt and stripped on decrypt, per the PDF spec
+ * requirement that each encrypted string/stream carries its own IV.
+ */
 final class AesCipher implements CryptInterface {
     public function __construct(private int $keyBits = 128) {
         if ($keyBits !== 128 && $keyBits !== 256) {

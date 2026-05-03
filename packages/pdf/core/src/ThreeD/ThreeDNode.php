@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\ThreeD;
+namespace Phpdftk\Pdf\Core\ThreeD;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D node dictionary (/Type /3DNode) — ISO 32000-2 §13.6.4.5.
@@ -47,7 +47,7 @@ class ThreeDNode extends PdfObject
             $dict->set('V', new PdfBoolean($this->v));
         }
         if ($this->o !== null) {
-            $dict->set('O', new \ApprLabs\Pdf\Core\PdfNumber($this->o));
+            $dict->set('O', new \Phpdftk\Pdf\Core\PdfNumber($this->o));
         }
         if ($this->rm !== null) {
             $dict->set('RM', $this->rm);

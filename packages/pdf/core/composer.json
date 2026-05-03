@@ -1,36 +1,50 @@
 {
-    "name": "apprlabs/pdf-core",
-    "description": "PHP-native OOP mapping of the PDF specification — object model, content streams, document structure",
+    "name": "phpdftk/pdf-core",
+    "description": "PHP-native OOP mapping of the PDF specification \u2014 object model, content streams, document structure",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["pdf", "object-model", "content-stream", "iso-32000", "document"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "pdf",
+        "object-model",
+        "content-stream",
+        "iso-32000",
+        "document"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
     "require": {
         "php": "^8.4",
-        "apprlabs/geometry": "^1.0",
-        "apprlabs/encoding": "^1.0",
-        "apprlabs/font-metrics": "^1.0",
-        "apprlabs/image-metadata": "^1.0",
-        "apprlabs/filters": "^1.0",
-        "apprlabs/color": "^1.0",
-        "apprlabs/xmp": "^1.0",
-        "apprlabs/crypt": "^1.0",
-        "apprlabs/font-parser": "^1.0"
+        "phpdftk/geometry": "^1.0",
+        "phpdftk/encoding": "^1.0",
+        "phpdftk/font-metrics": "^1.0",
+        "phpdftk/image-metadata": "^1.0",
+        "phpdftk/filters": "^1.0",
+        "phpdftk/color": "^1.0",
+        "phpdftk/xmp": "^1.0",
+        "phpdftk/crypt": "^1.0",
+        "phpdftk/font-parser": "^1.0"
     },
     "autoload": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Core\\": "src/"
+            "Phpdftk\\Pdf\\Core\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "ApprLabs\\Pdf\\Core\\Tests\\": "tests/"
+            "Phpdftk\\Pdf\\Core\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
         }
     }
 }

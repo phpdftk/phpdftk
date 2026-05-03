@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Internal\PageCopier;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Internal\PageCopier;
 
 /**
  * Extract, reorder, remove, and split pages from a PDF.
@@ -25,6 +25,8 @@ use ApprLabs\Pdf\Toolkit\Internal\PageCopier;
  *   PageSlicer::open('report.pdf')
  *       ->reorder(3, 1, 2)
  *       ->save('reordered.pdf');
+ *
+ * @api
  */
 final class PageSlicer
 {

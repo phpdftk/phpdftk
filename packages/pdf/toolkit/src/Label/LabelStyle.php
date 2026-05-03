@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Label;
+namespace Phpdftk\Pdf\Toolkit\Label;
 
 /**
  * Page label numbering styles (ISO 32000-2 Table 163).

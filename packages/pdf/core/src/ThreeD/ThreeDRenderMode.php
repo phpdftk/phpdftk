@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\ThreeD;
+namespace Phpdftk\Pdf\Core\ThreeD;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * 3D render mode dictionary (/Type /3DRenderMode) — ISO 32000-2 §13.6.6.
@@ -46,7 +46,7 @@ class ThreeDRenderMode extends PdfObject
             $dict->set('Opacity', new PdfNumber($this->op));
         }
         if ($this->cv !== null) {
-            $dict->set('CV', new \ApprLabs\Pdf\Core\PdfBoolean($this->cv));
+            $dict->set('CV', new \Phpdftk\Pdf\Core\PdfBoolean($this->cv));
         }
         return $dict->toPdf();
     }

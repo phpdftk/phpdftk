@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Signature;
+namespace Phpdftk\Pdf\Core\Interactive\Signature;
 
 /**
  * PKCS#7 / CMS detached signer — ISO 32000-2 §12.8.3.3.

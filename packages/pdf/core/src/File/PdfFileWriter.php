@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
-use ApprLabs\Pdf\Core\Interactive\Signature\TsaClient;
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
-use ApprLabs\Pdf\Core\Document\ObjectStream;
-use ApprLabs\Filters\FlateFilter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue;
+use Phpdftk\Pdf\Core\Interactive\Signature\TsaClient;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
+use Phpdftk\Pdf\Core\Document\ObjectStream;
+use Phpdftk\Filters\FlateFilter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * Byte-level PDF file emitter — ISO 32000-2 §7.5.
@@ -35,8 +35,10 @@ use ApprLabs\Pdf\Core\Serializable;
  *
  * This class deliberately knows nothing about pages, fonts, resources,
  * or any other high-level document assembly concern. Those live in
- * `ApprLabs\Pdf\Writer\PdfWriter`, which composes an instance of this
+ * `Phpdftk\Pdf\Writer\PdfWriter`, which composes an instance of this
  * class.
+ *
+ * @api
  */
 class PdfFileWriter
 {
@@ -308,6 +310,24 @@ class PdfFileWriter
 
     /**
      * Generate the complete PDF as a binary string.
+     *
+     * Assembles the file as an array of string chunks and implodes once at
+     * the end -- this is O(N) in total output size, whereas repeated string
+     * concatenation would be O(N^2) because PHP copies the growing string
+     * on every `.=`.
+     *
+     * The chunk order follows ISO 32000-2 section 7.5:
+     *   1. %PDF-X.Y header
+     *   2. Binary comment (%\xE2\xE3\xCF\xD3) so transfer tools treat
+     *      the file as binary rather than ASCII
+     *   3. Indirect-object body (one chunk per registered object)
+     *   4. Cross-reference table (or xref stream for PDF >= 1.5)
+     *   5. Trailer dictionary
+     *   6. startxref pointer
+     *   7. %%EOF marker
+     *
+     * When a signer is configured, the serialized bytes are post-processed
+     * by {@see applySignature()} to fill /ByteRange and /Contents.
      */
     public function generate(): string
     {
@@ -620,7 +640,7 @@ class PdfFileWriter
         // Count pages by looking at the page tree kids
         $pageCount = 0;
         foreach ($allObjects as $object) {
-            if ($object instanceof \ApprLabs\Pdf\Core\Document\PageTree) {
+            if ($object instanceof \Phpdftk\Pdf\Core\Document\PageTree) {
                 $pageCount = $object->count;
                 break;
             }
@@ -632,7 +652,7 @@ class PdfFileWriter
         // Find first page object number
         $firstPageObjNum = $catalogNum; // fallback
         foreach ($allObjects as $object) {
-            if ($object instanceof \ApprLabs\Pdf\Core\Document\Page) {
+            if ($object instanceof \Phpdftk\Pdf\Core\Document\Page) {
                 $firstPageObjNum = $object->objectNumber;
                 break;
             }
@@ -653,7 +673,7 @@ class PdfFileWriter
         $offset = strlen($chunks[0]) + strlen($chunks[1]);
 
         // 2. Linearization parameters dict (placeholder — will be patched)
-        $linParams = new \ApprLabs\Pdf\Core\Document\LinearizationParameters();
+        $linParams = new \Phpdftk\Pdf\Core\Document\LinearizationParameters();
         $linParams->objectNumber = 0; // will use a synthetic object number
         $linParams->generationNumber = 0;
 
@@ -669,9 +689,9 @@ class PdfFileWriter
         $linParams->o = $firstPageObjNum;
         $linParams->e = 0;          // patched later
         $linParams->t = 0;          // patched later
-        $linParams->h = new \ApprLabs\Pdf\Core\PdfArray([
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
-            new \ApprLabs\Pdf\Core\PdfNumber(0),
+        $linParams->h = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
         ]);
 
         // Emit the linearization dict with padded numbers so the byte
@@ -700,7 +720,7 @@ class PdfFileWriter
         $hintObjNum = $linObjNum + 1;
         $hintStreamOffset = $offset;
         $hintData = $this->buildMinimalHintStream($pageCount);
-        $hintStream = new \ApprLabs\Pdf\Core\Document\HintStream($hintData);
+        $hintStream = new \Phpdftk\Pdf\Core\Document\HintStream($hintData);
         $hintStream->objectNumber = $hintObjNum;
         $hintStream->generationNumber = 0;
         $hintStream->p = 0; // page offset table starts at byte 0 of stream data
@@ -742,7 +762,7 @@ class PdfFileWriter
 
         // File ID
         $id = md5(microtime() . $offset, true);
-        $idArray = new \ApprLabs\Pdf\Core\PdfArray([
+        $idArray = new \Phpdftk\Pdf\Core\PdfArray([
             new PdfString($id, hex: true),
             new PdfString($id, hex: true),
         ]);
@@ -894,7 +914,7 @@ class PdfFileWriter
      * Emit the linearization dict with padded 10-digit numbers so patching
      * doesn't change byte offsets.
      */
-    private function emitPaddedLinearizationDict(int $objNum, \ApprLabs\Pdf\Core\Document\LinearizationParameters $params): string
+    private function emitPaddedLinearizationDict(int $objNum, \Phpdftk\Pdf\Core\Document\LinearizationParameters $params): string
     {
         // Use fixed-width formatting so patching is safe
         return sprintf(
@@ -1037,7 +1057,7 @@ class PdfFileWriter
             }
             // Metadata streams must not be compressed (ISO 32000 §14.3.2,
             // ISO 19005 clause 6.7.2) so they remain searchable/readable.
-            if ($object instanceof \ApprLabs\Pdf\Core\Document\MetadataStream) {
+            if ($object instanceof \Phpdftk\Pdf\Core\Document\MetadataStream) {
                 continue;
             }
             // Skip streams that already have a filter configured via setFilter()
@@ -1052,6 +1072,17 @@ class PdfFileWriter
     /**
      * Post-process a fully serialized PDF to fill in a signature's
      * /ByteRange and /Contents placeholders with real values.
+     *
+     * The two-pass approach is required because /ByteRange must describe
+     * the exact byte offsets of the signed data, but those offsets are
+     * only known after the full PDF has been serialized. The placeholders
+     * (installed by setSigner/setTimestamper) are fixed-width so that
+     * patching them does not shift any byte offsets.
+     *
+     * The signed data is the concatenation of the two byte ranges
+     * (everything before and after the /Contents hex value), which the
+     * signer or TSA client hashes and signs. The resulting DER blob is
+     * hex-encoded and zero-padded into the /Contents placeholder.
      */
     private function applySignature(string $pdf): string
     {
@@ -1193,7 +1224,7 @@ class PdfFileWriter
      * Enforce removal: throw if the feature has a removedIn version and
      * the target version is at or above it (in strict deprecation or ceiling mode).
      */
-    private function enforceRemoval(string $class, \ApprLabs\Pdf\Core\DeprecatedPdfFeature $deprecation): void
+    private function enforceRemoval(string $class, \Phpdftk\Pdf\Core\DeprecatedPdfFeature $deprecation): void
     {
         if ($deprecation->removedInVersion === null) {
             return;
@@ -1222,7 +1253,7 @@ class PdfFileWriter
         }
 
         // PdfVersionAware runtime check
-        if ($object instanceof \ApprLabs\Pdf\Core\PdfVersionAware) {
+        if ($object instanceof \Phpdftk\Pdf\Core\PdfVersionAware) {
             $runtimeReq = $object->getMinimumPdfVersion();
             if ($runtimeReq !== null && $runtimeReq->isGreaterThan($ceiling)) {
                 throw new CeilingVersionException($object::class, $runtimeReq, $ceiling);

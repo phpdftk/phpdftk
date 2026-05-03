@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * Hydrates raw `PdfDictionary` objects (from the reader) into typed
@@ -285,7 +285,7 @@ final class PdfHydrator
             if ($value instanceof PdfName) {
                 return $value->value;
             }
-            if ($value instanceof \ApprLabs\Pdf\Core\PdfString) {
+            if ($value instanceof \Phpdftk\Pdf\Core\PdfString) {
                 return $value->value;
             }
             return (string) $value;
@@ -584,62 +584,62 @@ final class PdfHydrator
         // ---------------------------------------------------------------
         $uniqueTypes = [
             // Document structure
-            \ApprLabs\Pdf\Core\Document\Catalog::class,
-            \ApprLabs\Pdf\Core\Document\Page::class,
-            \ApprLabs\Pdf\Core\Document\PageTree::class,
-            \ApprLabs\Pdf\Core\Document\Outline::class,
-            \ApprLabs\Pdf\Core\Document\OutlineItem::class,
-            \ApprLabs\Pdf\Core\Document\PageLabel::class,
-            \ApprLabs\Pdf\Core\Document\OutputIntent::class,
-            \ApprLabs\Pdf\Core\Document\StructTreeRoot::class,
-            \ApprLabs\Pdf\Core\Document\StructElem::class,
-            \ApprLabs\Pdf\Core\Document\OCG::class,
-            \ApprLabs\Pdf\Core\Document\OCMD::class,
-            \ApprLabs\Pdf\Core\Document\Collection::class,
-            \ApprLabs\Pdf\Core\Document\CollectionSchema::class,
-            \ApprLabs\Pdf\Core\Document\Thread::class,
-            \ApprLabs\Pdf\Core\Document\Bead::class,
-            \ApprLabs\Pdf\Core\Document\ObjectRef::class,
-            \ApprLabs\Pdf\Core\Document\DPartRoot::class,
-            \ApprLabs\Pdf\Core\Document\DPart::class,
-            \ApprLabs\Pdf\Core\Document\Requirement::class,
-            \ApprLabs\Pdf\Core\Document\RequirementHandler::class,
-            \ApprLabs\Pdf\Core\Document\MetadataStream::class,
-            \ApprLabs\Pdf\Core\Document\CrossReferenceStream::class,
-            \ApprLabs\Pdf\Core\Document\ObjectStream::class,
+            \Phpdftk\Pdf\Core\Document\Catalog::class,
+            \Phpdftk\Pdf\Core\Document\Page::class,
+            \Phpdftk\Pdf\Core\Document\PageTree::class,
+            \Phpdftk\Pdf\Core\Document\Outline::class,
+            \Phpdftk\Pdf\Core\Document\OutlineItem::class,
+            \Phpdftk\Pdf\Core\Document\PageLabel::class,
+            \Phpdftk\Pdf\Core\Document\OutputIntent::class,
+            \Phpdftk\Pdf\Core\Document\StructTreeRoot::class,
+            \Phpdftk\Pdf\Core\Document\StructElem::class,
+            \Phpdftk\Pdf\Core\Document\OCG::class,
+            \Phpdftk\Pdf\Core\Document\OCMD::class,
+            \Phpdftk\Pdf\Core\Document\Collection::class,
+            \Phpdftk\Pdf\Core\Document\CollectionSchema::class,
+            \Phpdftk\Pdf\Core\Document\Thread::class,
+            \Phpdftk\Pdf\Core\Document\Bead::class,
+            \Phpdftk\Pdf\Core\Document\ObjectRef::class,
+            \Phpdftk\Pdf\Core\Document\DPartRoot::class,
+            \Phpdftk\Pdf\Core\Document\DPart::class,
+            \Phpdftk\Pdf\Core\Document\Requirement::class,
+            \Phpdftk\Pdf\Core\Document\RequirementHandler::class,
+            \Phpdftk\Pdf\Core\Document\MetadataStream::class,
+            \Phpdftk\Pdf\Core\Document\CrossReferenceStream::class,
+            \Phpdftk\Pdf\Core\Document\ObjectStream::class,
             // Font
-            \ApprLabs\Pdf\Core\Font\FontDescriptor::class,
-            \ApprLabs\Pdf\Core\Font\Encoding::class,
-            \ApprLabs\Pdf\Core\Font\CMapStream::class,
+            \Phpdftk\Pdf\Core\Font\FontDescriptor::class,
+            \Phpdftk\Pdf\Core\Font\Encoding::class,
+            \Phpdftk\Pdf\Core\Font\CMapStream::class,
             // FileSpec
-            \ApprLabs\Pdf\Core\FileSpec\FileSpec::class,
-            \ApprLabs\Pdf\Core\FileSpec\EmbeddedFile::class,
+            \Phpdftk\Pdf\Core\FileSpec\FileSpec::class,
+            \Phpdftk\Pdf\Core\FileSpec\EmbeddedFile::class,
             // Security
-            \ApprLabs\Pdf\Core\Security\EncryptDictionary::class,
+            \Phpdftk\Pdf\Core\Security\EncryptDictionary::class,
             // Graphics
-            \ApprLabs\Pdf\Core\Graphics\ExtGState::class,
+            \Phpdftk\Pdf\Core\Graphics\ExtGState::class,
             // Interactive — forms
-            \ApprLabs\Pdf\Core\Interactive\Form\SigFieldLock::class,
-            \ApprLabs\Pdf\Core\Interactive\Form\SeedValueDictionary::class,
+            \Phpdftk\Pdf\Core\Interactive\Form\SigFieldLock::class,
+            \Phpdftk\Pdf\Core\Interactive\Form\SeedValueDictionary::class,
             // Interactive — signatures
-            \ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue::class,
-            \ApprLabs\Pdf\Core\Interactive\Signature\DocTimeStamp::class,
-            \ApprLabs\Pdf\Core\Interactive\Signature\SignatureReference::class,
+            \Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue::class,
+            \Phpdftk\Pdf\Core\Interactive\Signature\DocTimeStamp::class,
+            \Phpdftk\Pdf\Core\Interactive\Signature\SignatureReference::class,
             // Multimedia
-            \ApprLabs\Pdf\Core\Multimedia\Sound::class,
-            \ApprLabs\Pdf\Core\Multimedia\MediaPlayParams::class,
-            \ApprLabs\Pdf\Core\Multimedia\MediaScreenParams::class,
-            \ApprLabs\Pdf\Core\Multimedia\MediaCriteria::class,
-            \ApprLabs\Pdf\Core\Multimedia\Navigator::class,
+            \Phpdftk\Pdf\Core\Multimedia\Sound::class,
+            \Phpdftk\Pdf\Core\Multimedia\MediaPlayParams::class,
+            \Phpdftk\Pdf\Core\Multimedia\MediaScreenParams::class,
+            \Phpdftk\Pdf\Core\Multimedia\MediaCriteria::class,
+            \Phpdftk\Pdf\Core\Multimedia\Navigator::class,
             // 3D
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDStream::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDView::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDBackground::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDRenderMode::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDLightingScheme::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDCrossSection::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDNode::class,
-            \ApprLabs\Pdf\Core\ThreeD\ThreeDMeasure::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDStream::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDView::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDBackground::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDRenderMode::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDLightingScheme::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDCrossSection::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDNode::class,
+            \Phpdftk\Pdf\Core\ThreeD\ThreeDMeasure::class,
         ];
 
         foreach ($uniqueTypes as $class) {
@@ -654,91 +654,91 @@ final class PdfHydrator
 
         // /Type /Annot — concrete annotation subtypes
         $annotationSubtypes = [
-            'Text' => \ApprLabs\Pdf\Core\Annotation\TextAnnotation::class,
-            'Link' => \ApprLabs\Pdf\Core\Annotation\LinkAnnotation::class,
-            'FreeText' => \ApprLabs\Pdf\Core\Annotation\FreeTextAnnotation::class,
-            'Highlight' => \ApprLabs\Pdf\Core\Annotation\HighlightAnnotation::class,
-            'Underline' => \ApprLabs\Pdf\Core\Annotation\UnderlineAnnotation::class,
-            'Squiggly' => \ApprLabs\Pdf\Core\Annotation\SquigglyAnnotation::class,
-            'StrikeOut' => \ApprLabs\Pdf\Core\Annotation\StrikeOutAnnotation::class,
-            'Stamp' => \ApprLabs\Pdf\Core\Annotation\StampAnnotation::class,
-            'Ink' => \ApprLabs\Pdf\Core\Annotation\InkAnnotation::class,
-            'Popup' => \ApprLabs\Pdf\Core\Annotation\PopupAnnotation::class,
-            'Widget' => \ApprLabs\Pdf\Core\Annotation\WidgetAnnotation::class,
-            'Line' => \ApprLabs\Pdf\Core\Annotation\LineAnnotation::class,
-            'Square' => \ApprLabs\Pdf\Core\Annotation\SquareAnnotation::class,
-            'Circle' => \ApprLabs\Pdf\Core\Annotation\CircleAnnotation::class,
-            'Polygon' => \ApprLabs\Pdf\Core\Annotation\PolygonAnnotation::class,
-            'PolyLine' => \ApprLabs\Pdf\Core\Annotation\PolyLineAnnotation::class,
-            'Caret' => \ApprLabs\Pdf\Core\Annotation\CaretAnnotation::class,
-            'FileAttachment' => \ApprLabs\Pdf\Core\Annotation\FileAttachmentAnnotation::class,
-            'Sound' => \ApprLabs\Pdf\Core\Annotation\SoundAnnotation::class,
-            'Movie' => \ApprLabs\Pdf\Core\Annotation\MovieAnnotation::class,
-            'Screen' => \ApprLabs\Pdf\Core\Annotation\ScreenAnnotation::class,
-            'PrinterMark' => \ApprLabs\Pdf\Core\Annotation\PrinterMarkAnnotation::class,
-            'TrapNet' => \ApprLabs\Pdf\Core\Annotation\TrapNetAnnotation::class,
-            'Watermark' => \ApprLabs\Pdf\Core\Annotation\WatermarkAnnotation::class,
-            '3D' => \ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation::class,
-            'Redact' => \ApprLabs\Pdf\Core\Annotation\RedactAnnotation::class,
-            'Projection' => \ApprLabs\Pdf\Core\Annotation\ProjectionAnnotation::class,
-            'RichMedia' => \ApprLabs\Pdf\Core\Annotation\RichMediaAnnotation::class,
+            'Text' => \Phpdftk\Pdf\Core\Annotation\TextAnnotation::class,
+            'Link' => \Phpdftk\Pdf\Core\Annotation\LinkAnnotation::class,
+            'FreeText' => \Phpdftk\Pdf\Core\Annotation\FreeTextAnnotation::class,
+            'Highlight' => \Phpdftk\Pdf\Core\Annotation\HighlightAnnotation::class,
+            'Underline' => \Phpdftk\Pdf\Core\Annotation\UnderlineAnnotation::class,
+            'Squiggly' => \Phpdftk\Pdf\Core\Annotation\SquigglyAnnotation::class,
+            'StrikeOut' => \Phpdftk\Pdf\Core\Annotation\StrikeOutAnnotation::class,
+            'Stamp' => \Phpdftk\Pdf\Core\Annotation\StampAnnotation::class,
+            'Ink' => \Phpdftk\Pdf\Core\Annotation\InkAnnotation::class,
+            'Popup' => \Phpdftk\Pdf\Core\Annotation\PopupAnnotation::class,
+            'Widget' => \Phpdftk\Pdf\Core\Annotation\WidgetAnnotation::class,
+            'Line' => \Phpdftk\Pdf\Core\Annotation\LineAnnotation::class,
+            'Square' => \Phpdftk\Pdf\Core\Annotation\SquareAnnotation::class,
+            'Circle' => \Phpdftk\Pdf\Core\Annotation\CircleAnnotation::class,
+            'Polygon' => \Phpdftk\Pdf\Core\Annotation\PolygonAnnotation::class,
+            'PolyLine' => \Phpdftk\Pdf\Core\Annotation\PolyLineAnnotation::class,
+            'Caret' => \Phpdftk\Pdf\Core\Annotation\CaretAnnotation::class,
+            'FileAttachment' => \Phpdftk\Pdf\Core\Annotation\FileAttachmentAnnotation::class,
+            'Sound' => \Phpdftk\Pdf\Core\Annotation\SoundAnnotation::class,
+            'Movie' => \Phpdftk\Pdf\Core\Annotation\MovieAnnotation::class,
+            'Screen' => \Phpdftk\Pdf\Core\Annotation\ScreenAnnotation::class,
+            'PrinterMark' => \Phpdftk\Pdf\Core\Annotation\PrinterMarkAnnotation::class,
+            'TrapNet' => \Phpdftk\Pdf\Core\Annotation\TrapNetAnnotation::class,
+            'Watermark' => \Phpdftk\Pdf\Core\Annotation\WatermarkAnnotation::class,
+            '3D' => \Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation::class,
+            'Redact' => \Phpdftk\Pdf\Core\Annotation\RedactAnnotation::class,
+            'Projection' => \Phpdftk\Pdf\Core\Annotation\ProjectionAnnotation::class,
+            'RichMedia' => \Phpdftk\Pdf\Core\Annotation\RichMediaAnnotation::class,
         ];
         foreach ($annotationSubtypes as $subtype => $class) {
             self::registerSubtype('Annot', $subtype, $class);
         }
 
         // /Type /Font — font subtypes
-        self::registerSubtype('Font', 'Type1', \ApprLabs\Pdf\Core\Font\Type1Font::class);
-        self::registerSubtype('Font', 'TrueType', \ApprLabs\Pdf\Core\Font\TrueTypeFont::class);
-        self::registerSubtype('Font', 'Type0', \ApprLabs\Pdf\Core\Font\Type0Font::class);
-        self::registerSubtype('Font', 'Type3', \ApprLabs\Pdf\Core\Font\Type3Font::class);
-        self::registerSubtype('Font', 'MMType1', \ApprLabs\Pdf\Core\Font\MMType1Font::class);
-        self::registerSubtype('Font', 'CIDFontType0', \ApprLabs\Pdf\Core\Font\CIDFontType0Font::class);
-        self::registerSubtype('Font', 'CIDFontType2', \ApprLabs\Pdf\Core\Font\CIDFontType2Font::class);
+        self::registerSubtype('Font', 'Type1', \Phpdftk\Pdf\Core\Font\Type1Font::class);
+        self::registerSubtype('Font', 'TrueType', \Phpdftk\Pdf\Core\Font\TrueTypeFont::class);
+        self::registerSubtype('Font', 'Type0', \Phpdftk\Pdf\Core\Font\Type0Font::class);
+        self::registerSubtype('Font', 'Type3', \Phpdftk\Pdf\Core\Font\Type3Font::class);
+        self::registerSubtype('Font', 'MMType1', \Phpdftk\Pdf\Core\Font\MMType1Font::class);
+        self::registerSubtype('Font', 'CIDFontType0', \Phpdftk\Pdf\Core\Font\CIDFontType0Font::class);
+        self::registerSubtype('Font', 'CIDFontType2', \Phpdftk\Pdf\Core\Font\CIDFontType2Font::class);
 
         // /Type /XObject
-        self::registerSubtype('XObject', 'Image', \ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject::class);
-        self::registerSubtype('XObject', 'Form', \ApprLabs\Pdf\Core\Graphics\XObject\FormXObject::class);
-        self::registerSubtype('XObject', 'PS', \ApprLabs\Pdf\Core\Graphics\XObject\PostScriptXObject::class);
+        self::registerSubtype('XObject', 'Image', \Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::class);
+        self::registerSubtype('XObject', 'Form', \Phpdftk\Pdf\Core\Graphics\XObject\FormXObject::class);
+        self::registerSubtype('XObject', 'PS', \Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject::class);
 
         // /Type /Rendition
-        self::registerSubtype('Rendition', 'MR', \ApprLabs\Pdf\Core\Multimedia\MediaRendition::class);
-        self::registerSubtype('Rendition', 'SR', \ApprLabs\Pdf\Core\Multimedia\SelectorRendition::class);
+        self::registerSubtype('Rendition', 'MR', \Phpdftk\Pdf\Core\Multimedia\MediaRendition::class);
+        self::registerSubtype('Rendition', 'SR', \Phpdftk\Pdf\Core\Multimedia\SelectorRendition::class);
 
         // /Type /MediaClip
-        self::registerSubtype('MediaClip', 'MCD', \ApprLabs\Pdf\Core\Multimedia\MediaClipData::class);
-        self::registerSubtype('MediaClip', 'MCS', \ApprLabs\Pdf\Core\Multimedia\MediaClipSection::class);
+        self::registerSubtype('MediaClip', 'MCD', \Phpdftk\Pdf\Core\Multimedia\MediaClipData::class);
+        self::registerSubtype('MediaClip', 'MCS', \Phpdftk\Pdf\Core\Multimedia\MediaClipSection::class);
 
         // ---------------------------------------------------------------
         // Actions — dispatched by /S (not /Type + /Subtype)
         // ---------------------------------------------------------------
         $actionTypes = [
-            'GoTo'              => \ApprLabs\Pdf\Core\Action\GoToAction::class,
-            'GoToR'             => \ApprLabs\Pdf\Core\Action\GoToRAction::class,
-            'GoToE'             => \ApprLabs\Pdf\Core\Action\GoToEAction::class,
-            'GoToDP'            => \ApprLabs\Pdf\Core\Action\GoToDPAction::class,
-            'GoTo3DView'        => \ApprLabs\Pdf\Core\Action\GoTo3DViewAction::class,
-            'Launch'            => \ApprLabs\Pdf\Core\Action\LaunchAction::class,
-            'Thread'            => \ApprLabs\Pdf\Core\Action\ThreadAction::class,
-            'URI'               => \ApprLabs\Pdf\Core\Action\URIAction::class,
-            'Sound'             => \ApprLabs\Pdf\Core\Action\SoundAction::class,
-            'Movie'             => \ApprLabs\Pdf\Core\Action\MovieAction::class,
-            'Hide'              => \ApprLabs\Pdf\Core\Action\HideAction::class,
-            'Named'             => \ApprLabs\Pdf\Core\Action\NamedAction::class,
-            'SubmitForm'        => \ApprLabs\Pdf\Core\Action\SubmitFormAction::class,
-            'ResetForm'         => \ApprLabs\Pdf\Core\Action\ResetFormAction::class,
-            'ImportData'        => \ApprLabs\Pdf\Core\Action\ImportDataAction::class,
-            'SetOCGState'       => \ApprLabs\Pdf\Core\Action\SetOCGStateAction::class,
-            'Rendition'         => \ApprLabs\Pdf\Core\Action\RenditionAction::class,
-            'Trans'             => \ApprLabs\Pdf\Core\Action\TransAction::class,
-            'JavaScript'        => \ApprLabs\Pdf\Core\Action\JavaScriptAction::class,
-            'RichMediaExecute'  => \ApprLabs\Pdf\Core\Action\RichMediaExecuteAction::class,
+            'GoTo'              => \Phpdftk\Pdf\Core\Action\GoToAction::class,
+            'GoToR'             => \Phpdftk\Pdf\Core\Action\GoToRAction::class,
+            'GoToE'             => \Phpdftk\Pdf\Core\Action\GoToEAction::class,
+            'GoToDP'            => \Phpdftk\Pdf\Core\Action\GoToDPAction::class,
+            'GoTo3DView'        => \Phpdftk\Pdf\Core\Action\GoTo3DViewAction::class,
+            'Launch'            => \Phpdftk\Pdf\Core\Action\LaunchAction::class,
+            'Thread'            => \Phpdftk\Pdf\Core\Action\ThreadAction::class,
+            'URI'               => \Phpdftk\Pdf\Core\Action\URIAction::class,
+            'Sound'             => \Phpdftk\Pdf\Core\Action\SoundAction::class,
+            'Movie'             => \Phpdftk\Pdf\Core\Action\MovieAction::class,
+            'Hide'              => \Phpdftk\Pdf\Core\Action\HideAction::class,
+            'Named'             => \Phpdftk\Pdf\Core\Action\NamedAction::class,
+            'SubmitForm'        => \Phpdftk\Pdf\Core\Action\SubmitFormAction::class,
+            'ResetForm'         => \Phpdftk\Pdf\Core\Action\ResetFormAction::class,
+            'ImportData'        => \Phpdftk\Pdf\Core\Action\ImportDataAction::class,
+            'SetOCGState'       => \Phpdftk\Pdf\Core\Action\SetOCGStateAction::class,
+            'Rendition'         => \Phpdftk\Pdf\Core\Action\RenditionAction::class,
+            'Trans'             => \Phpdftk\Pdf\Core\Action\TransAction::class,
+            'JavaScript'        => \Phpdftk\Pdf\Core\Action\JavaScriptAction::class,
+            'RichMediaExecute'  => \Phpdftk\Pdf\Core\Action\RichMediaExecuteAction::class,
         ];
         foreach ($actionTypes as $sValue => $class) {
             self::registerActionType($sValue, $class);
         }
 
         // DSS (Document Security Store — PDF 2.0)
-        self::registerType('DSS', \ApprLabs\Pdf\Core\Document\DSS::class);
+        self::registerType('DSS', \Phpdftk\Pdf\Core\Document\DSS::class);
     }
 }

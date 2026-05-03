@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Action\LaunchAction;
-use ApprLabs\Pdf\Core\Action\MovieAction;
-use ApprLabs\Pdf\Core\Action\SoundAction;
-use ApprLabs\Pdf\Core\Action\RichMediaExecuteAction;
-use ApprLabs\Pdf\Core\Action\RenditionAction;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Action\LaunchAction;
+use Phpdftk\Pdf\Core\Action\MovieAction;
+use Phpdftk\Pdf\Core\Action\SoundAction;
+use Phpdftk\Pdf\Core\Action\RichMediaExecuteAction;
+use Phpdftk\Pdf\Core\Action\RenditionAction;
 
 /**
  * PDF/A clause 6.5 / 6.6.1: Restricted action types.
@@ -54,7 +54,7 @@ final class ActionConstraint implements ConformanceConstraint
             }
 
             // PDF/A-1 is stricter about multimedia actions
-            if ($profile instanceof \ApprLabs\Pdf\Conformance\Profile\PdfAProfile
+            if ($profile instanceof \Phpdftk\Pdf\Conformance\Profile\PdfAProfile
                 && $profile->getPart() === 1
             ) {
                 if ($object instanceof MovieAction) {

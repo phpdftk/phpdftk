@@ -17,6 +17,10 @@ composer.phar
 # PHPBench
 .phpbench/
 
+# phpDocumentor
+.phpdoc/
+/build/phpdoc/
+
 # IDE / Editor
 .idea/
 .vscode/

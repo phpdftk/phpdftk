@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Profile\ZugferdProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
 
 /**
  * PDF/A-1 clause 6.9 / PDF/A-2 clause 6.10: Embedded files are prohibited.
@@ -16,7 +17,8 @@ use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
  *
  * This constraint checks for the presence of embedded files via the
  * Catalog /Names dictionary. PDF/A-3+ allows them, so the constraint
- * is skipped for those profiles.
+ * is skipped for those profiles. ZUGFeRD/Factur-X profiles are based on
+ * PDF/A-3 and require embedded files.
  */
 final class EmbeddedFileConstraint implements ConformanceConstraint
 {
@@ -24,6 +26,11 @@ final class EmbeddedFileConstraint implements ConformanceConstraint
     {
         // PDF/A-3+ allows embedded files
         if ($profile instanceof PdfAProfile && $profile->allowsEmbeddedFiles()) {
+            return [];
+        }
+
+        // ZUGFeRD/Factur-X is based on PDF/A-3 which allows embedded files
+        if ($profile instanceof ZugferdProfile) {
             return [];
         }
 

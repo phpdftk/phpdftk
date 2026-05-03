@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Geometry;
+namespace Phpdftk\Geometry;
 
+/**
+ * Cubic Bézier curve — the primitive behind PDF path operators (c, v, y).
+ *
+ * Four control points define the curve. `boundingBox()` computes tight
+ * bounds via derivative roots, used for clipping and hit-testing.
+ */
 final class BezierCurve {
     public function __construct(
         public readonly Point $p0,

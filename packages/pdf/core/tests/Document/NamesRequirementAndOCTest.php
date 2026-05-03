@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
-use ApprLabs\Pdf\Core\Document\DPart;
-use ApprLabs\Pdf\Core\Document\DPartRoot;
-use ApprLabs\Pdf\Core\Document\HintStream;
-use ApprLabs\Pdf\Core\Document\LinearizationParameters;
-use ApprLabs\Pdf\Core\Document\MetadataStream;
-use ApprLabs\Pdf\Core\Document\NamesDictionary;
-use ApprLabs\Pdf\Core\Document\OCConfig;
-use ApprLabs\Pdf\Core\Document\OCUsage;
-use ApprLabs\Pdf\Core\Document\Requirement;
-use ApprLabs\Pdf\Core\Document\RequirementHandler;
-use ApprLabs\Pdf\Core\Document\StandardStructureType;
-use ApprLabs\Pdf\Core\Document\StructAttribute\LayoutAttribute;
-use ApprLabs\Pdf\Core\Document\StructAttribute\ListAttribute;
-use ApprLabs\Pdf\Core\Document\StructAttribute\PrintFieldAttribute;
-use ApprLabs\Pdf\Core\Document\StructAttribute\TableAttribute;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Document\DPart;
+use Phpdftk\Pdf\Core\Document\DPartRoot;
+use Phpdftk\Pdf\Core\Document\HintStream;
+use Phpdftk\Pdf\Core\Document\LinearizationParameters;
+use Phpdftk\Pdf\Core\Document\MetadataStream;
+use Phpdftk\Pdf\Core\Document\NamesDictionary;
+use Phpdftk\Pdf\Core\Document\OCConfig;
+use Phpdftk\Pdf\Core\Document\OCUsage;
+use Phpdftk\Pdf\Core\Document\Requirement;
+use Phpdftk\Pdf\Core\Document\RequirementHandler;
+use Phpdftk\Pdf\Core\Document\StandardStructureType;
+use Phpdftk\Pdf\Core\Document\StructAttribute\LayoutAttribute;
+use Phpdftk\Pdf\Core\Document\StructAttribute\ListAttribute;
+use Phpdftk\Pdf\Core\Document\StructAttribute\PrintFieldAttribute;
+use Phpdftk\Pdf\Core\Document\StructAttribute\TableAttribute;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class NamesRequirementAndOCTest extends TestCase

@@ -6,7 +6,7 @@ echo "Running benchmarks..."
 vendor/bin/phpbench run benchmarks/ --report=aggregate 2>&1 | tee /tmp/phpdftk_bench_output.txt
 
 echo ""
-echo "Generating docs/benchmarks.md..."
+echo "Generating docs/generated/benchmarks.md..."
 php scripts/parse-benchmarks.php < /tmp/phpdftk_bench_output.txt
 
-echo "Done. See docs/benchmarks.md"
+echo "Done. See docs/generated/benchmarks.md"

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests;
+namespace Phpdftk\Pdf\Writer\Tests;
 
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfString;
 
 #[Group("qpdf")]
 class WriterTest extends TestCase
@@ -64,7 +64,7 @@ class WriterTest extends TestCase
         $writer = new PdfWriter();
         $writer->addPage(612, 792);
         $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
-        self::assertInstanceOf(\ApprLabs\Pdf\Writer\Font::class, $font);
+        self::assertInstanceOf(\Phpdftk\Pdf\Writer\Font::class, $font);
         self::assertSame('F1', $font->getResourceName());
         self::assertSame('Helvetica', $font->getFamily());
     }
@@ -130,14 +130,14 @@ class WriterTest extends TestCase
     {
         $writer = new PdfWriter();
         $catalog = $writer->getCatalog();
-        self::assertInstanceOf(\ApprLabs\Pdf\Core\Document\Catalog::class, $catalog);
+        self::assertInstanceOf(\Phpdftk\Pdf\Core\Document\Catalog::class, $catalog);
     }
 
     public function testPdfWriterGetPageTree(): void
     {
         $writer = new PdfWriter();
         $pt = $writer->getPageTree();
-        self::assertInstanceOf(\ApprLabs\Pdf\Core\Document\PageTree::class, $pt);
+        self::assertInstanceOf(\Phpdftk\Pdf\Core\Document\PageTree::class, $pt);
     }
 
     public function testPdfWriterSavesToFile(): void
@@ -177,7 +177,7 @@ class WriterTest extends TestCase
     public function testPdfWriterAddPageWithRectangle(): void
     {
         $writer = new PdfWriter();
-        $rect = new \ApprLabs\Geometry\Rectangle(0, 0, 595, 842);
+        $rect = new \Phpdftk\Geometry\Rectangle(0, 0, 595, 842);
         $page = $writer->addPage($rect);
         $pdf = $writer->generate();
         self::assertStringContainsString('/MediaBox', $pdf);
@@ -188,7 +188,7 @@ class WriterTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage();
-        $action = new \ApprLabs\Pdf\Core\Action\GoToAction(new PdfName('First'));
+        $action = new \Phpdftk\Pdf\Core\Action\GoToAction(new PdfName('First'));
         $ref = $writer->register($action);
         $pdf = $writer->generate();
         self::assertStringContainsString('/S /GoTo', $pdf);
@@ -209,8 +209,8 @@ class WriterTest extends TestCase
     {
         $writer = new PdfWriter();
         $page = $writer->addPage(612, 792);
-        $pageRef = new \ApprLabs\Pdf\Core\PdfReference($page->corePage()->objectNumber);
-        $dest = \ApprLabs\Pdf\Core\Document\Destination::fit($pageRef);
+        $pageRef = new \Phpdftk\Pdf\Core\PdfReference($page->corePage()->objectNumber);
+        $dest = \Phpdftk\Pdf\Core\Document\Destination::fit($pageRef);
         $writer->setNamedDestinations(['chapter1' => $dest]);
         $pdf = $writer->generate();
         self::assertStringContainsString('chapter1', $pdf);
@@ -233,7 +233,7 @@ class WriterTest extends TestCase
             ->endText();
 
         $fileId = md5('encryption-test', true);
-        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::aes128('user', 'owner', $fileId);
+        $encryptor = \Phpdftk\Pdf\Core\Security\PdfEncryptor::aes128('user', 'owner', $fileId);
         $writer->setEncryption($encryptor);
 
         $pdf = $writer->generate();
@@ -243,7 +243,7 @@ class WriterTest extends TestCase
         self::assertStringContainsString('/Filter /Standard', $pdf);
 
         // Round-trip: decrypt with user password and verify
-        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'user');
+        $reader = \Phpdftk\Pdf\Reader\PdfReader::fromString($pdf, 'user');
         self::assertSame(1, $reader->getPageCount());
         $this->assertQpdfValidBytes($pdf);
     }
@@ -262,7 +262,7 @@ class WriterTest extends TestCase
             ->endText();
 
         $fileId = md5('aes256-test', true);
-        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::aes256('pass', 'owner', $fileId);
+        $encryptor = \Phpdftk\Pdf\Core\Security\PdfEncryptor::aes256('pass', 'owner', $fileId);
         $writer->setEncryption($encryptor);
 
         $pdf = $writer->generate();
@@ -270,7 +270,7 @@ class WriterTest extends TestCase
         self::assertStringContainsString('/Encrypt', $pdf);
         self::assertStringContainsString('AESV3', $pdf);
 
-        $reader = \ApprLabs\Pdf\Reader\PdfReader::fromString($pdf, 'pass');
+        $reader = \Phpdftk\Pdf\Reader\PdfReader::fromString($pdf, 'pass');
         self::assertSame(1, $reader->getPageCount());
         $this->assertQpdfValidBytes($pdf);
     }

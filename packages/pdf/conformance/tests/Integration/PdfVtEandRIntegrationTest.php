@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Integration;
+namespace Phpdftk\Pdf\Conformance\Tests\Integration;
 
-use ApprLabs\Pdf\Conformance\ConformanceException;
-use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfRProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfVtProfile;
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\Document\DPart;
-use ApprLabs\Pdf\Core\Document\DPartRoot;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDView;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\ConformanceException;
+use Phpdftk\Pdf\Conformance\Profile\PdfEProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfRProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfVtProfile;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\Document\DPart;
+use Phpdftk\Pdf\Core\Document\DPartRoot;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDView;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class PdfVtEandRIntegrationTest extends TestCase
@@ -175,6 +175,88 @@ class PdfVtEandRIntegrationTest extends TestCase
 
         $pdf = $writer->generate();
         self::assertStringStartsWith('%PDF-2.0', $pdf);
+    }
+
+    /**
+     * Compliant PDF/VT-2 with DPartRoot generates successfully.
+     */
+    public function testCompliantPdfVt2(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfVtProfile::VT2);
+
+        $info = new Info();
+        $info->title = new PdfString('PDF/VT-2 Test');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        $this->addOutputIntent($writer);
+
+        $dpart = new DPart(new PdfReference(0));
+        $dpartRef = $writer->register($dpart);
+        $dpartRoot = new DPartRoot($dpartRef);
+        $writer->register($dpartRoot);
+        $writer->getCatalog()->dPartRoot = new PdfReference($dpartRoot->objectNumber);
+
+        $page = $writer->addPage(612, 792);
+        $page->corePage()->trimBox = $this->makeRect();
+
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('PDF/VT-2 Conformant')
+            ->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfvt2_compliant.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
+    }
+
+    /**
+     * Compliant PDF/VT-2s with DPartRoot generates successfully.
+     */
+    public function testCompliantPdfVt2s(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfVtProfile::VT2s);
+
+        $info = new Info();
+        $info->title = new PdfString('PDF/VT-2s Test');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        $this->addOutputIntent($writer);
+
+        $dpart = new DPart(new PdfReference(0));
+        $dpartRef = $writer->register($dpart);
+        $dpartRoot = new DPartRoot($dpartRef);
+        $writer->register($dpartRoot);
+        $writer->getCatalog()->dPartRoot = new PdfReference($dpartRoot->objectNumber);
+
+        $page = $writer->addPage(612, 792);
+        $page->corePage()->trimBox = $this->makeRect();
+
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('PDF/VT-2s Conformant')
+            ->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfvt2s_compliant.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
     }
 
     // -----------------------------------------------------------------------

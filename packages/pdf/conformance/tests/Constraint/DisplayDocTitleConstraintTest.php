@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\DisplayDocTitleConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfUaProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Conformance\Constraint\DisplayDocTitleConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfUaProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
 use PHPUnit\Framework\TestCase;
 
 class DisplayDocTitleConstraintTest extends TestCase

@@ -28,11 +28,11 @@ Catalog ─── PageTree ─── Page ─── ContentStream
 ## Example: minimal PDF
 
 ```php
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\Document\{Catalog, Page, PageTree};
-use ApprLabs\Pdf\Core\Content\{ContentStream, Resources};
-use ApprLabs\Pdf\Core\Font\{Type1Font, StandardFont};
-use ApprLabs\Pdf\Core\{PdfArray, PdfNumber, PdfReference};
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\Document\{Catalog, Page, PageTree};
+use Phpdftk\Pdf\Core\Content\{ContentStream, Resources};
+use Phpdftk\Pdf\Core\Font\{Type1Font, StandardFont};
+use Phpdftk\Pdf\Core\{PdfArray, PdfNumber, PdfReference};
 
 $fw = new PdfFileWriter();
 

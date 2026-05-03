@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Encryption;
+namespace Phpdftk\Pdf\Toolkit\Encryption;
 
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
 
 /**
  * PDF permission flags — mirrors PdfEncryptor constants for convenience.

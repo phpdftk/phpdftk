@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Form;
+namespace Phpdftk\Pdf\Toolkit\Form;
 
 /**
  * PDF interactive form field types (ISO 32000-2 Table 226).

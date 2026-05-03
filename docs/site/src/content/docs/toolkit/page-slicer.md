@@ -8,7 +8,7 @@ description: Extract, remove, reorder, reverse, and split pages from PDFs.
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSlicer;
+use Phpdftk\Pdf\Toolkit\PageSlicer;
 
 // From file
 $slicer = PageSlicer::open('large.pdf');
@@ -37,7 +37,7 @@ $slicer->keepRange(1, 5)->save('first-five.pdf');
 ### With PageSelector
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $slicer->keep(PageSelector::even())->save('even-pages.pdf');
 $slicer->keep(PageSelector::odd())->save('odd-pages.pdf');

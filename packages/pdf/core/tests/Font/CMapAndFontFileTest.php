@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Font;
+namespace Phpdftk\Pdf\Core\Tests\Font;
 
-use ApprLabs\Pdf\Core\Font\CIDSystemInfo;
-use ApprLabs\Pdf\Core\Font\CMapStream;
-use ApprLabs\Pdf\Core\Font\FontFile\CFFFontFile;
-use ApprLabs\Pdf\Core\Font\FontFile\TrueTypeFontFile;
-use ApprLabs\Pdf\Core\Font\FontFile\Type1FontFile;
-use ApprLabs\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
+use Phpdftk\Pdf\Core\Font\CMapStream;
+use Phpdftk\Pdf\Core\Font\FontFile\CFFFontFile;
+use Phpdftk\Pdf\Core\Font\FontFile\TrueTypeFontFile;
+use Phpdftk\Pdf\Core\Font\FontFile\Type1FontFile;
+use Phpdftk\Pdf\Core\PdfName;
 use PHPUnit\Framework\TestCase;
 
 class CMapAndFontFileTest extends TestCase

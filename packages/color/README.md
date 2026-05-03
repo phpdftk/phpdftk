@@ -1,20 +1,20 @@
-# apprlabs/color
+# phpdftk/color
 
 Color space data models (RGB, CMYK, Gray) and conversion utilities. No PDF dependency — usable in any PHP project.
 
 ## Installation
 
 ```bash
-composer require apprlabs/color
+composer require phpdftk/color
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Color\RgbColor;
-use ApprLabs\Color\CmykColor;
-use ApprLabs\Color\GrayColor;
-use ApprLabs\Color\ColorConverter;
+use Phpdftk\Color\RgbColor;
+use Phpdftk\Color\CmykColor;
+use Phpdftk\Color\GrayColor;
+use Phpdftk\Color\ColorConverter;
 
 // Create from 0–255 integers or hex string
 $red = RgbColor::fromInt(255, 0, 0);

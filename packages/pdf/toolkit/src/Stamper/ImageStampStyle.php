@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Stamper;
+namespace Phpdftk\Pdf\Toolkit\Stamper;
 
 /**
  * Style configuration for image and PDF stamps.

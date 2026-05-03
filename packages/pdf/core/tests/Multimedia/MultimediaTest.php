@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Multimedia;
+namespace Phpdftk\Pdf\Core\Tests\Multimedia;
 
-use ApprLabs\Pdf\Core\FileSpec\FileSpec;
-use ApprLabs\Pdf\Core\Multimedia\MediaClipData;
-use ApprLabs\Pdf\Core\Multimedia\MediaClipSection;
-use ApprLabs\Pdf\Core\Multimedia\MediaPlayParams;
-use ApprLabs\Pdf\Core\Multimedia\MediaRendition;
-use ApprLabs\Pdf\Core\Multimedia\MediaScreenParams;
-use ApprLabs\Pdf\Core\Multimedia\Movie;
-use ApprLabs\Pdf\Core\Multimedia\Navigator;
-use ApprLabs\Pdf\Core\Multimedia\SelectorRendition;
-use ApprLabs\Pdf\Core\Multimedia\Sound;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\FileSpec\FileSpec;
+use Phpdftk\Pdf\Core\Multimedia\MediaClipData;
+use Phpdftk\Pdf\Core\Multimedia\MediaClipSection;
+use Phpdftk\Pdf\Core\Multimedia\MediaPlayParams;
+use Phpdftk\Pdf\Core\Multimedia\MediaRendition;
+use Phpdftk\Pdf\Core\Multimedia\MediaScreenParams;
+use Phpdftk\Pdf\Core\Multimedia\Movie;
+use Phpdftk\Pdf\Core\Multimedia\Navigator;
+use Phpdftk\Pdf\Core\Multimedia\SelectorRendition;
+use Phpdftk\Pdf\Core\Multimedia\Sound;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class MultimediaTest extends TestCase

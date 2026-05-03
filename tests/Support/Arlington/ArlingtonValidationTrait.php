@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Tests\Support\Arlington;
+namespace Phpdftk\Tests\Support\Arlington;
 
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 trait ArlingtonValidationTrait
 {

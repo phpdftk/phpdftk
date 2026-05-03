@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
 /**
  * A positioned span of text extracted from a PDF page.

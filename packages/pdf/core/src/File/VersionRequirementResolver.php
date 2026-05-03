@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
-use ApprLabs\Pdf\Core\DeprecatedPdfFeature;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\PdfVersionAware;
-use ApprLabs\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\DeprecatedPdfFeature;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\PdfVersionAware;
+use Phpdftk\Pdf\Core\RequiresPdfVersion;
 
 /**
  * Reads {@see RequiresPdfVersion} and {@see DeprecatedPdfFeature} attributes

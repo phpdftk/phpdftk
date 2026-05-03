@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
 
 /**
  * CIDFontType2 — CID-keyed font backed by a TrueType font program
@@ -18,7 +18,7 @@ use ApprLabs\Pdf\Core\PdfName;
  */
 class CIDFontType2Font extends CIDFont
 {
-    public PdfName|\ApprLabs\Pdf\Core\PdfReference|null $cidToGidMap = null; // /CIDToGIDMap
+    public PdfName|\Phpdftk\Pdf\Core\PdfReference|null $cidToGidMap = null; // /CIDToGIDMap
 
     public function __construct(string $baseFontName, CIDSystemInfo $cidSystemInfo)
     {
@@ -38,7 +38,7 @@ class CIDFontType2Font extends CIDFont
             $dict->set('FontDescriptor', $this->fontDescriptor);
         }
         if ($this->dw !== null) {
-            $dict->set('DW', new \ApprLabs\Pdf\Core\PdfNumber($this->dw));
+            $dict->set('DW', new \Phpdftk\Pdf\Core\PdfNumber($this->dw));
         }
         if ($this->w !== null) {
             $dict->set('W', $this->w);

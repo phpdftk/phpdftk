@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit\Redaction;
+namespace Phpdftk\Pdf\Toolkit\Redaction;
 
 /**
  * Defines an area on a page to redact.

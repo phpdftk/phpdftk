@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNull;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Tokenizer\Source;
-use ApprLabs\Pdf\Reader\Tokenizer\Token;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
-use ApprLabs\Pdf\Reader\Tokenizer\TokenType;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNull;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Tokenizer\Source;
+use Phpdftk\Pdf\Reader\Tokenizer\Token;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Reader\Tokenizer\TokenType;
 
 /**
  * Recursive-descent PDF object parser.

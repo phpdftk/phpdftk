@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Geometry;
+namespace Phpdftk\Geometry;
 
+/**
+ * Standard page dimensions as Rectangles in PDF points (1/72 inch).
+ *
+ * ISO 216 (A0–A6, B4–B5) and North American sizes (Letter, Legal,
+ * Tabloid). All returned in portrait orientation — use `landscape()`
+ * to swap width and height.
+ */
 final class PageSize {
     // All sizes in PDF points (1/72 inch), portrait orientation
     public static function letter(): Rectangle  { return new Rectangle(0, 0, 612, 792); }

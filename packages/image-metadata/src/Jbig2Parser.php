@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
 /**
  * Parse JBIG2 image headers.

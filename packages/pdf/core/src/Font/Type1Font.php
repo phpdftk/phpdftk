@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Encoding\WinAnsiTable;
-use ApprLabs\FontMetrics\StandardFontMetrics;
-use ApprLabs\FontParser\Type1Data;
-use ApprLabs\FontParser\Type1Parser;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Encoding\WinAnsiTable;
+use Phpdftk\FontMetrics\StandardFontMetrics;
+use Phpdftk\FontParser\Type1Data;
+use Phpdftk\FontParser\Type1Parser;
 
 /**
  * Type 1 font (/Subtype /Type1).

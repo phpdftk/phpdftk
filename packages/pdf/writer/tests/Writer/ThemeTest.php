@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests;
+namespace Phpdftk\Pdf\Writer\Tests;
 
-use ApprLabs\Pdf\Writer\Theme;
+use Phpdftk\Pdf\Writer\Theme;
 use PHPUnit\Framework\TestCase;
 
 class ThemeTest extends TestCase

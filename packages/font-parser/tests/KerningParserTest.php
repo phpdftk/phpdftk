@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\KerningParser;
-use ApprLabs\FontParser\TrueTypeParser;
-use ApprLabs\FontParser\OpenTypeParser;
+use Phpdftk\FontParser\KerningParser;
+use Phpdftk\FontParser\TrueTypeParser;
+use Phpdftk\FontParser\OpenTypeParser;
 use PHPUnit\Framework\TestCase;
 
 class KerningParserTest extends TestCase

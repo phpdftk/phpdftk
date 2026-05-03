@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parse JPEG headers (SOF marker) for dimensions, components, and color space.
+ *
+ * Also extracts ICC profile data from APP2 markers when present, which
+ * is needed for accurate color reproduction in PDF/A output.
+ */
 final class JpegParser {
     public static function parseFile(string $path): ImageInfo {
         $fh = fopen($path, 'rb');

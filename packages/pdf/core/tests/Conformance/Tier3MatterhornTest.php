@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Conformance;
+namespace Phpdftk\Pdf\Core\Tests\Conformance;
 
-use ApprLabs\Pdf\Core\Annotation\TextAnnotation;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfBoolean;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\DockerToolResult;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
-use ApprLabs\Tests\Support\VeraPdfValidationTrait;
+use Phpdftk\Pdf\Core\Annotation\TextAnnotation;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfBoolean;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\DockerToolResult;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Tests\Support\VeraPdfValidationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
@@ -161,7 +161,7 @@ class Tier3MatterhornTest extends TestCase
         $cs->endMarkedContent();
 
         // Build a StructElem for this content
-        $structElem = new \ApprLabs\Pdf\Core\Document\StructElem('P');
+        $structElem = new \Phpdftk\Pdf\Core\Document\StructElem('P');
         $structElem->pg = new PdfReference($corePage->objectNumber);
         $structElem->k = new PdfArray([new PdfNumber(0)]); // MCID 0
         $writer->register($structElem);

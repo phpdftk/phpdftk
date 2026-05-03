@@ -45,7 +45,7 @@ Both methods:
 
 ### Trait source
 
-`tests/Support/QpdfValidationTrait.php` (`ApprLabs\Tests\Support\QpdfValidationTrait`)
+`tests/Support/QpdfValidationTrait.php` (`Phpdftk\Tests\Support\QpdfValidationTrait`)
 
 ## Coverage
 

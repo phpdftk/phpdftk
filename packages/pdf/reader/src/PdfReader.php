@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader;
+namespace Phpdftk\Pdf\Reader;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\File\PdfHydrator;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Parser\HintTableParser;
-use ApprLabs\Pdf\Reader\Parser\ObjectParser;
-use ApprLabs\Pdf\Reader\Parser\ObjectScanner;
-use ApprLabs\Pdf\Reader\Parser\PageOffsetHintTable;
-use ApprLabs\Pdf\Reader\Parser\StreamParser;
-use ApprLabs\Pdf\Reader\Parser\XrefParser;
-use ApprLabs\Pdf\Reader\Parser\XrefStreamParser;
-use ApprLabs\Pdf\Reader\Tokenizer\FileSource;
-use ApprLabs\Pdf\Reader\Tokenizer\Source;
-use ApprLabs\Pdf\Reader\Tokenizer\StringSource;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\File\PdfHydrator;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Parser\HintTableParser;
+use Phpdftk\Pdf\Reader\Parser\ObjectParser;
+use Phpdftk\Pdf\Reader\Parser\ObjectScanner;
+use Phpdftk\Pdf\Reader\Parser\PageOffsetHintTable;
+use Phpdftk\Pdf\Reader\Parser\StreamParser;
+use Phpdftk\Pdf\Reader\Parser\XrefParser;
+use Phpdftk\Pdf\Reader\Parser\XrefStreamParser;
+use Phpdftk\Pdf\Reader\Tokenizer\FileSource;
+use Phpdftk\Pdf\Reader\Tokenizer\Source;
+use Phpdftk\Pdf\Reader\Tokenizer\StringSource;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
 
 /**
  * PDF reader — parses existing PDF files into the phpdftk object model.
@@ -43,6 +43,8 @@ use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
  * $pdf = PdfReader::fromString($bytes);
  * $pdf = PdfReader::fromStream(fopen('php://stdin', 'rb'));
  * ```
+ *
+ * @api
  */
 final class PdfReader
 {

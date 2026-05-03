@@ -8,7 +8,7 @@ description: Set page numbering schemes with roman numerals, letters, and custom
 ## Opening a PDF
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageLabeler;
+use Phpdftk\Pdf\Toolkit\PageLabeler;
 
 // From file
 $labeler = PageLabeler::open('report.pdf');
@@ -55,7 +55,7 @@ $labeler->setAlphabetic(1, 4, uppercase: true); // A, B, C, D
 For full control, use `setLabels` with a `LabelStyle` enum:
 
 ```php
-use ApprLabs\Pdf\Toolkit\Label\LabelStyle;
+use Phpdftk\Pdf\Toolkit\Label\LabelStyle;
 
 $labeler->setLabels(
     startPage: 1,

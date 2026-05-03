@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser;
+namespace Phpdftk\FontParser;
 
 /**
  * Parsed OpenType CFF font data — metrics, glyph widths, and raw CFF bytes.

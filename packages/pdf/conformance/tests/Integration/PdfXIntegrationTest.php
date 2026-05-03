@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Integration;
+namespace Phpdftk\Pdf\Conformance\Tests\Integration;
 
-use ApprLabs\Pdf\Conformance\ConformanceException;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\ConformanceException;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class PdfXIntegrationTest extends TestCase
@@ -338,5 +338,77 @@ class PdfXIntegrationTest extends TestCase
         $pdf = $writer->generate();
 
         self::assertStringContainsString('PDF/X-1a:2003', $pdf);
+    }
+
+    /**
+     * PDF/X-3:2003 compliant document generates successfully.
+     */
+    public function testCompliantPdfX32003(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfXProfile::X32003);
+
+        $info = new Info();
+        $info->title = new PdfString('PDF/X-3:2003 Test');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        $this->addPdfXOutputIntent($writer);
+
+        $page = $writer->addPage(612, 792);
+        $page->corePage()->trimBox = $this->makeRect();
+
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('PDF/X-3:2003 Conformant Document')
+            ->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfx32003_compliant.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
+    }
+
+    /**
+     * PDF/X-5g compliant document generates successfully.
+     */
+    public function testCompliantPdfX5g(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfXProfile::X5g);
+
+        $info = new Info();
+        $info->title = new PdfString('PDF/X-5g Test');
+        $info->producer = new PdfString('phpdftk');
+        $info->trapped = new PdfName('False');
+        $writer->setInfo($info);
+
+        $this->addPdfXOutputIntent($writer);
+
+        $page = $writer->addPage(612, 792);
+        $page->corePage()->trimBox = $this->makeRect();
+
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('PDF/X-5g Conformant Document')
+            ->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfx5g_compliant.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
     }
 }

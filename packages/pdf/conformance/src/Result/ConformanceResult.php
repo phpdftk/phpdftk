@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Result;
+namespace Phpdftk\Pdf\Conformance\Result;
 
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
 
 /**
  * The result of validating a document against a conformance profile.

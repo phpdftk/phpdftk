@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Detect image format from magic bytes and delegate to the format-specific parser.
+ *
+ * Extracts only header metadata (dimensions, color space, bit depth) —
+ * never decodes pixel data. This keeps image embedding fast since PDF
+ * can reference the compressed image bytes directly.
+ */
 final class ImageParser {
     public static function parse(string $path): ImageInfo {
         if (!is_file($path)) throw new \RuntimeException("File not found: $path");

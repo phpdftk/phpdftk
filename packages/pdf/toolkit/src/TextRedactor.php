@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Toolkit;
+namespace Phpdftk\Pdf\Toolkit;
 
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\File\IncrementalWriter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Toolkit\Internal\PageResolver;
-use ApprLabs\Pdf\Toolkit\Redaction\RedactionArea;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Toolkit\Internal\PageResolver;
+use Phpdftk\Pdf\Toolkit\Redaction\RedactionArea;
 
 /**
  * Redact text or areas from PDF pages by drawing filled rectangles.
@@ -26,6 +26,8 @@ use ApprLabs\Pdf\Toolkit\Redaction\RedactionArea;
  *       ->redactArea(1, 72, 700, 200, 20)
  *       ->apply()
  *       ->save('redacted.pdf');
+ *
+ * @api
  */
 final class TextRedactor
 {

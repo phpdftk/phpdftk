@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
+/**
+ * ASCIIHexDecode — hex encoding for binary data (ISO 32000-2 §7.4.2).
+ *
+ * Simplest PDF filter: each byte becomes two hex digits. Doubles the
+ * size but produces fully human-readable output, useful for debugging.
+ * Terminated by '>'.
+ */
 final class AsciiHexFilter implements FilterInterface {
     public function encode(string $data): string {
         return bin2hex($data) . '>';

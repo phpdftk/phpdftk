@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\File;
+namespace Phpdftk\Pdf\Core\Tests\File;
 
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\DPartRoot;
-use ApprLabs\Pdf\Core\Document\PageTree;
-use ApprLabs\Pdf\Core\File\IncrementalWriter;
-use ApprLabs\Pdf\Core\File\PdfFileWriter;
-use ApprLabs\Pdf\Core\File\VersionRequirementException;
-use ApprLabs\Pdf\Core\File\VersionRequirementResolver;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\DPartRoot;
+use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Pdf\Core\File\PdfFileWriter;
+use Phpdftk\Pdf\Core\File\VersionRequirementException;
+use Phpdftk\Pdf\Core\File\VersionRequirementResolver;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Reader\PdfReader;
 use PHPUnit\Framework\TestCase;
 
 class IncrementalWriterVersionTest extends TestCase
@@ -93,10 +93,10 @@ class IncrementalWriterVersionTest extends TestCase
         $writer = IncrementalWriter::fromReader($reader, $pdf);
         $writer->setStrictDeprecation(true);
 
-        $this->expectException(\ApprLabs\Pdf\Core\File\DeprecatedFeatureException::class);
+        $this->expectException(\Phpdftk\Pdf\Core\File\DeprecatedFeatureException::class);
 
-        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
-            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
         );
         $writer->addNewObject($movie);
     }
@@ -108,8 +108,8 @@ class IncrementalWriterVersionTest extends TestCase
         $writer = IncrementalWriter::fromReader($reader, $pdf);
         $writer->setStrictDeprecation(true);
 
-        $movie = new \ApprLabs\Pdf\Core\Multimedia\Movie(
-            new \ApprLabs\Pdf\Core\FileSpec\FileSpec('test.pdf')
+        $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
         );
         $writer->addNewObject($movie);
 

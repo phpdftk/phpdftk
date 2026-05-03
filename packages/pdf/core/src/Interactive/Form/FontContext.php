@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfReference;
 
 /**
  * Carries font metadata needed to render custom (non-standard) fonts

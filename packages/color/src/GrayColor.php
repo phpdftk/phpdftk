@@ -1,6 +1,9 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Color;
+namespace Phpdftk\Color;
 
+/**
+ * Grayscale color (0.0 = black, 1.0 = white) — maps to PDF DeviceGray.
+ */
 final class GrayColor implements ColorInterface {
     public function __construct(
         public readonly float $gray,

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Font;
+namespace Phpdftk\Pdf\Core\Font;
 
 /**
  * Enum of the 14 standard PDF fonts guaranteed to be available in every viewer.

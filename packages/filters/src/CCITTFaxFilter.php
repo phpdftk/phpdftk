@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
 /**
  * CCITTFaxDecode filter — ITU-T T.4 (Group 3) and T.6 (Group 4) fax codec.

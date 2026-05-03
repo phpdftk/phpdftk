@@ -1,6 +1,13 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Color;
+namespace Phpdftk\Color;
 
+/**
+ * Lossless color model conversions between RGB, CMYK, and Gray.
+ *
+ * RGB↔CMYK uses the standard subtractive model. RGB→Gray uses
+ * ITU-R BT.601 luma coefficients (0.299R + 0.587G + 0.114B) to
+ * match perceived brightness.
+ */
 final class ColorConverter {
     public static function rgbToCmyk(RgbColor $rgb): CmykColor {
         $r = $rgb->r;

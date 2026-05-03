@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
-use ApprLabs\Pdf\Core\Graphics\Function\FunctionType0;
-use ApprLabs\Pdf\Core\Graphics\Function\FunctionType2;
-use ApprLabs\Pdf\Core\Graphics\Function\FunctionType3;
-use ApprLabs\Pdf\Core\Graphics\Function\FunctionType4;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType0;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType2;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType3;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType4;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class FunctionTest extends TestCase

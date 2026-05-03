@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\AnnotationConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfUaProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Annotation\LinkAnnotation;
-use ApprLabs\Pdf\Core\Annotation\PopupAnnotation;
-use ApprLabs\Pdf\Core\Annotation\TextAnnotation;
-use ApprLabs\Pdf\Core\Annotation\WidgetAnnotation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Conformance\Constraint\AnnotationConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfUaProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Annotation\LinkAnnotation;
+use Phpdftk\Pdf\Core\Annotation\PopupAnnotation;
+use Phpdftk\Pdf\Core\Annotation\TextAnnotation;
+use Phpdftk\Pdf\Core\Annotation\WidgetAnnotation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class AnnotationConstraintTest extends TestCase

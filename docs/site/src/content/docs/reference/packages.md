@@ -1,9 +1,9 @@
 ---
 title: Packages
-description: The 12 packages in the phpdftk monorepo and how they relate.
+description: The 15 packages in the phpdftk monorepo and how they relate.
 ---
 
-phpdftk is a monorepo with 12 packages. Each has its own Composer name, PSR-4 namespace, and can be installed independently.
+phpdftk is a monorepo with 15 packages. Each has its own Composer name, PSR-4 namespace, and can be installed independently.
 
 ## Dependency graph
 
@@ -17,19 +17,21 @@ font-parser, image-metadata, xmp, crypt
     +-- pdf-writer (Level 1 + Level 2 APIs)
     +-- pdf-reader (parser + text extraction)
     +-- pdf-toolkit (reader-to-writer pipelines)
+    +-- pdf-conformance (ISO standard validation; also depends on xmp)
 ```
 
-`pdf-writer` and `pdf-reader` never depend on each other. `pdf-toolkit` depends on `pdf-core` and `pdf-reader` but not `pdf-writer`.
+`pdf-writer` and `pdf-reader` never depend on each other. `pdf-toolkit` depends on `pdf-core` and `pdf-reader` but not `pdf-writer`. `pdf-conformance` depends on `pdf-core` and `xmp`.
 
 ## PDF packages
 
 | Package | Composer | Namespace | Purpose |
 |---|---|---|---|
-| `pdf/all` | `apprlabs/pdf` | -- | Metapackage: installs core + writer + reader |
-| `pdf/core` | `apprlabs/pdf-core` | `ApprLabs\Pdf\Core\` | Object model + file serialization |
-| `pdf/writer` | `apprlabs/pdf-writer` | `ApprLabs\Pdf\Writer\` | Level 1 (`PdfWriter`) + Level 2 (`Pdf`) APIs |
-| `pdf/reader` | `apprlabs/pdf-reader` | `ApprLabs\Pdf\Reader\` | PDF parser with text extraction |
-| `pdf/toolkit` | `apprlabs/pdf-toolkit` | `ApprLabs\Pdf\Toolkit\` | High-level manipulation pipelines |
+| `pdf/all` | `phpdftk/pdf` | -- | Metapackage: installs core + writer + reader |
+| `pdf/core` | `phpdftk/pdf-core` | `Phpdftk\Pdf\Core\` | Object model + file serialization |
+| `pdf/writer` | `phpdftk/pdf-writer` | `Phpdftk\Pdf\Writer\` | Level 1 (`PdfWriter`) + Level 2 (`Pdf`) APIs |
+| `pdf/reader` | `phpdftk/pdf-reader` | `Phpdftk\Pdf\Reader\` | PDF parser with text extraction |
+| `pdf/toolkit` | `phpdftk/pdf-toolkit` | `Phpdftk\Pdf\Toolkit\` | High-level manipulation pipelines |
+| `pdf/conformance` | `phpdftk/pdf-conformance` | `Phpdftk\Pdf\Conformance\` | ISO standard validation (PDF/A, PDF/X, PDF/UA, PDF/VT, PDF/E, PDF/R, ZUGFeRD, PDF/mail) |
 
 ## Support packages
 
@@ -37,12 +39,12 @@ These have **zero PDF dependencies** and can be used standalone in any PHP proje
 
 | Package | Composer | Namespace | Purpose |
 |---|---|---|---|
-| `geometry` | `apprlabs/geometry` | `ApprLabs\Geometry\` | Rectangle, Matrix, PageSize, BezierCurve |
-| `color` | `apprlabs/color` | `ApprLabs\Color\` | RGB, CMYK, Gray with conversions |
-| `filters` | `apprlabs/filters` | `ApprLabs\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW |
-| `encoding` | `apprlabs/encoding` | `ApprLabs\Encoding\` | WinAnsi, MacRoman, Adobe Glyph List, CMap parser |
-| `font-metrics` | `apprlabs/font-metrics` | `ApprLabs\FontMetrics\` | AFM data for all 14 standard PDF fonts |
-| `font-parser` | `apprlabs/font-parser` | `ApprLabs\FontParser\` | TrueType/OpenType parsing, subsetting, kerning, ligatures |
-| `image-metadata` | `apprlabs/image-metadata` | `ApprLabs\ImageMetadata\` | JPEG, PNG, GIF, TIFF, WebP header parsing |
-| `xmp` | `apprlabs/xmp` | `ApprLabs\Xmp\` | XMP metadata packet read/write |
-| `crypt` | `apprlabs/crypt` | `ApprLabs\Crypt\` | AES-128/256, RC4, PDF key derivation, PKCS#7 |
+| `geometry` | `phpdftk/geometry` | `Phpdftk\Geometry\` | Rectangle, Matrix, PageSize, BezierCurve |
+| `color` | `phpdftk/color` | `Phpdftk\Color\` | RGB, CMYK, Gray with conversions |
+| `filters` | `phpdftk/filters` | `Phpdftk\Filters\` | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFax, JBIG2, Predictor |
+| `encoding` | `phpdftk/encoding` | `Phpdftk\Encoding\` | WinAnsi, MacRoman, Adobe Glyph List, CMap parser |
+| `font-metrics` | `phpdftk/font-metrics` | `Phpdftk\FontMetrics\` | AFM data for all 14 standard PDF fonts |
+| `font-parser` | `phpdftk/font-parser` | `Phpdftk\FontParser\` | TrueType/OpenType parsing, subsetting, kerning, ligatures |
+| `image-metadata` | `phpdftk/image-metadata` | `Phpdftk\ImageMetadata\` | JPEG, PNG, GIF, TIFF, WebP header parsing |
+| `xmp` | `phpdftk/xmp` | `Phpdftk\Xmp\` | XMP metadata packet read/write |
+| `crypt` | `phpdftk/crypt` | `Phpdftk\Crypt\` | AES-128/256, RC4, PDF key derivation, PKCS#7 |

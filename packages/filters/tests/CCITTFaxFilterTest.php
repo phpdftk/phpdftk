@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters\Tests;
+namespace Phpdftk\Filters\Tests;
 
-use ApprLabs\Filters\CCITTFaxFilter;
+use Phpdftk\Filters\CCITTFaxFilter;
 use PHPUnit\Framework\TestCase;
 
 class CCITTFaxFilterTest extends TestCase

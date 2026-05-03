@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\Function;
+namespace Phpdftk\Pdf\Core\Graphics\Function;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
 
 /**
  * Exponential interpolation function (FunctionType 2) — ISO 32000-2 §7.10.3.

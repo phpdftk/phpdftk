@@ -1,17 +1,17 @@
-# apprlabs/pdf-reader
+# phpdftk/pdf-reader
 
 Parse existing PDF files into the phpdftk object model. Extract text, read metadata, inspect structure, and access typed objects.
 
 ## Installation
 
 ```bash
-composer require apprlabs/pdf-reader
+composer require phpdftk/pdf-reader
 ```
 
 ## Usage
 
 ```php
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 $pdf = PdfReader::fromFile('document.pdf');
 

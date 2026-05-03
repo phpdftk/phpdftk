@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Tokenizer\Source;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
-use ApprLabs\Pdf\Reader\XrefEntry;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Tokenizer\Source;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Reader\XrefEntry;
 
 /**
  * Parses a classic cross-reference table and its trailer dictionary.

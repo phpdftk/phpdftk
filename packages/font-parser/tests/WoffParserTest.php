@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\WoffParser;
-use ApprLabs\FontParser\TrueTypeParser;
+use Phpdftk\FontParser\WoffParser;
+use Phpdftk\FontParser\TrueTypeParser;
 use PHPUnit\Framework\TestCase;
 
 class WoffParserTest extends TestCase

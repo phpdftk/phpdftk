@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Validator;
+namespace Phpdftk\Pdf\Conformance\Tests\Validator;
 
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Tests\Constraint\MockDocumentInspector;
-use ApprLabs\Pdf\Conformance\Validator\ConformanceValidator;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Tests\Constraint\MockDocumentInspector;
+use Phpdftk\Pdf\Conformance\Validator\ConformanceValidator;
 use PHPUnit\Framework\TestCase;
 
 class ConformanceValidatorTest extends TestCase

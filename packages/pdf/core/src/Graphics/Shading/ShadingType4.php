@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Graphics\Shading;
+namespace Phpdftk\Pdf\Core\Graphics\Shading;
 
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\ColorSpace;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\ColorSpace;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
 
 /**
  * Free-form Gouraud-shaded triangle mesh (ShadingType 4) —

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer;
+namespace Phpdftk\Pdf\Writer;
 
 /**
  * Document-wide styling defaults for the high-level {@see Pdf} builder.

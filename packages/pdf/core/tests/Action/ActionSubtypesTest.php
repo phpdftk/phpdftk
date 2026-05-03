@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Action;
+namespace Phpdftk\Pdf\Core\Tests\Action;
 
-use ApprLabs\Pdf\Core\Action\GoTo3DViewAction;
-use ApprLabs\Pdf\Core\Action\GoToDPAction;
-use ApprLabs\Pdf\Core\Action\GoToEAction;
-use ApprLabs\Pdf\Core\Action\HideAction;
-use ApprLabs\Pdf\Core\Action\ImportDataAction;
-use ApprLabs\Pdf\Core\Action\LaunchAction;
-use ApprLabs\Pdf\Core\Action\MovieAction;
-use ApprLabs\Pdf\Core\Action\RenditionAction;
-use ApprLabs\Pdf\Core\Action\ResetFormAction;
-use ApprLabs\Pdf\Core\Action\RichMediaExecuteAction;
-use ApprLabs\Pdf\Core\Action\SetOCGStateAction;
-use ApprLabs\Pdf\Core\Action\SoundAction;
-use ApprLabs\Pdf\Core\Action\SubmitFormAction;
-use ApprLabs\Pdf\Core\Action\ThreadAction;
-use ApprLabs\Pdf\Core\Action\TransAction;
-use ApprLabs\Pdf\Core\Document\TransitionDict;
-use ApprLabs\Pdf\Core\FileSpec\FileSpec;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Action\GoTo3DViewAction;
+use Phpdftk\Pdf\Core\Action\GoToDPAction;
+use Phpdftk\Pdf\Core\Action\GoToEAction;
+use Phpdftk\Pdf\Core\Action\HideAction;
+use Phpdftk\Pdf\Core\Action\ImportDataAction;
+use Phpdftk\Pdf\Core\Action\LaunchAction;
+use Phpdftk\Pdf\Core\Action\MovieAction;
+use Phpdftk\Pdf\Core\Action\RenditionAction;
+use Phpdftk\Pdf\Core\Action\ResetFormAction;
+use Phpdftk\Pdf\Core\Action\RichMediaExecuteAction;
+use Phpdftk\Pdf\Core\Action\SetOCGStateAction;
+use Phpdftk\Pdf\Core\Action\SoundAction;
+use Phpdftk\Pdf\Core\Action\SubmitFormAction;
+use Phpdftk\Pdf\Core\Action\ThreadAction;
+use Phpdftk\Pdf\Core\Action\TransAction;
+use Phpdftk\Pdf\Core\Document\TransitionDict;
+use Phpdftk\Pdf\Core\FileSpec\FileSpec;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class ActionSubtypesTest extends TestCase

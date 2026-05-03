@@ -404,8 +404,9 @@ These validation tools run as part of the test suite. See [docs/validations/](va
 {$tier4}
 MD;
 
-file_put_contents(__DIR__ . '/../docs/compliance.md', $md);
-echo "docs/compliance.md written.\n";
+@mkdir(__DIR__ . '/../docs/generated', 0755, true);
+file_put_contents(__DIR__ . '/../docs/generated/compliance.md', $md);
+echo "docs/generated/compliance.md written.\n";
 
 // Calculate compliance percentage for badge
 if ($totalTests > 0) {

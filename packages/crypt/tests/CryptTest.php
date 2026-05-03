@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Crypt\Tests;
+namespace Phpdftk\Crypt\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Crypt\Rc4Cipher;
-use ApprLabs\Crypt\AesCipher;
-use ApprLabs\Crypt\PdfKeyDerivation;
+use Phpdftk\Crypt\Rc4Cipher;
+use Phpdftk\Crypt\AesCipher;
+use Phpdftk\Crypt\PdfKeyDerivation;
 
 class CryptTest extends TestCase
 {

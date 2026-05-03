@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\FontParser\Tests;
+namespace Phpdftk\FontParser\Tests;
 
-use ApprLabs\FontParser\TrueTypeData;
-use ApprLabs\FontParser\TrueTypeParser;
-use ApprLabs\FontParser\TrueTypeSubsetter;
+use Phpdftk\FontParser\TrueTypeData;
+use Phpdftk\FontParser\TrueTypeParser;
+use Phpdftk\FontParser\TrueTypeSubsetter;
 use PHPUnit\Framework\TestCase;
 
 class TrueTypeSubsetterTest extends TestCase

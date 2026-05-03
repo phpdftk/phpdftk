@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
-use ApprLabs\Filters\Ascii85Filter;
-use ApprLabs\Filters\AsciiHexFilter;
-use ApprLabs\Filters\CCITTFaxFilter;
-use ApprLabs\Filters\FlateFilter;
-use ApprLabs\Filters\Jbig2Filter;
-use ApprLabs\Filters\LzwFilter;
-use ApprLabs\Filters\PredictorFilter;
-use ApprLabs\Filters\RunLengthFilter;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Reader\Exception\UnsupportedFilterException;
-use ApprLabs\Pdf\Reader\ObjectResolver;
+use Phpdftk\Filters\Ascii85Filter;
+use Phpdftk\Filters\AsciiHexFilter;
+use Phpdftk\Filters\CCITTFaxFilter;
+use Phpdftk\Filters\FlateFilter;
+use Phpdftk\Filters\Jbig2Filter;
+use Phpdftk\Filters\LzwFilter;
+use Phpdftk\Filters\PredictorFilter;
+use Phpdftk\Filters\RunLengthFilter;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Reader\Exception\UnsupportedFilterException;
+use Phpdftk\Pdf\Reader\ObjectResolver;
 
 /**
  * Applies the filter pipeline from a stream dictionary's `/Filter`
@@ -124,7 +124,7 @@ final class StreamParser
             $globalsRef = $params->get('JBIG2Globals');
             if ($globalsRef instanceof PdfReference && $this->resolver !== null) {
                 $globalsObj = $this->resolver->resolveReference($globalsRef);
-                if ($globalsObj instanceof \ApprLabs\Pdf\Core\PdfStream) {
+                if ($globalsObj instanceof \Phpdftk\Pdf\Core\PdfStream) {
                     $globals = $globalsObj->data;
                 }
             }
@@ -145,7 +145,7 @@ final class StreamParser
     private function boolParam(PdfDictionary $dict, string $key, bool $default): bool
     {
         $val = $dict->get($key);
-        if ($val instanceof \ApprLabs\Pdf\Core\PdfBoolean) {
+        if ($val instanceof \Phpdftk\Pdf\Core\PdfBoolean) {
             return $val->value;
         }
         if ($val instanceof PdfName) {

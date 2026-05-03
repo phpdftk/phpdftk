@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Constraint;
+namespace Phpdftk\Pdf\Conformance\Tests\Constraint;
 
-use ApprLabs\Pdf\Conformance\Constraint\TrappedConstraint;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Conformance\Constraint\TrappedConstraint;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\PdfName;
 use PHPUnit\Framework\TestCase;
 
 class TrappedConstraintTest extends TestCase

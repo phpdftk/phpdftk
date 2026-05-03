@@ -1,17 +1,41 @@
 {
-    "name": "apprlabs/color",
-    "description": "Color space data models (RGB, CMYK, Gray) and conversion — no PDF dependency",
+    "name": "phpdftk/color",
+    "description": "Color space data models (RGB, CMYK, Gray) and conversion \u2014 no PDF dependency",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/apprlabs/phpdftk",
-    "keywords": ["color", "rgb", "cmyk", "gray", "color-space"],
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "color",
+        "rgb",
+        "cmyk",
+        "gray",
+        "color-space"
+    ],
     "authors": [
-        {"name": "Troy McCabe", "email": "troymccabe@gmail.com"}
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
     ],
     "support": {
-        "issues": "https://github.com/apprlabs/phpdftk/issues"
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
-    "require": { "php": "^8.4" },
-    "autoload": { "psr-4": { "ApprLabs\\Color\\": "src/" } },
-    "autoload-dev": { "psr-4": { "ApprLabs\\Color\\Tests\\": "tests/" } }
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Color\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Color\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
 }

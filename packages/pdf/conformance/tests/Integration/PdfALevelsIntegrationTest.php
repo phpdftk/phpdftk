@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Tests\Integration;
+namespace Phpdftk\Pdf\Conformance\Tests\Integration;
 
-use ApprLabs\Pdf\Conformance\ConformanceException;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Document\StructElem;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\ConformanceException;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Writer\PdfWriter;
 use PHPUnit\Framework\TestCase;
 
 class PdfALevelsIntegrationTest extends TestCase
@@ -248,7 +248,7 @@ class PdfALevelsIntegrationTest extends TestCase
         $this->addOutputIntent($writer);
 
         // Register a JavaScript action
-        $js = new \ApprLabs\Pdf\Core\Action\JavaScriptAction(new PdfString('alert("hi")'));
+        $js = new \Phpdftk\Pdf\Core\Action\JavaScriptAction(new PdfString('alert("hi")'));
         $writer->register($js);
 
         $page = $writer->addPage(612, 792);
@@ -299,5 +299,135 @@ class PdfALevelsIntegrationTest extends TestCase
         $pdf = $writer->generate();
 
         self::assertStringStartsWith('%PDF-2.0', $pdf);
+    }
+
+    /**
+     * PDF/A-2a requires tagged structure — passes when present.
+     */
+    public function testA2aPassesWithTaggedStructure(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A2a);
+
+        $info = new Info();
+        $info->title = new PdfString('A2a Tagged Test');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+        $this->addOutputIntent($writer);
+
+        $catalog = $writer->getCatalog();
+        $markInfo = new MarkInfo();
+        $markInfo->marked = true;
+        $catalog->markInfo = $markInfo;
+        $catalog->lang = new PdfString('en-US');
+
+        $structRoot = new StructTreeRoot();
+        $writer->register($structRoot);
+        $catalog->structTreeRoot = new PdfReference($structRoot->objectNumber);
+
+        $page = $writer->addPage(612, 792);
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)->showText('A2a tagged test')->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfa2a_tagged.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
+    }
+
+    /**
+     * PDF/A-3a requires tagged structure — passes when present.
+     */
+    public function testA3aPassesWithTaggedStructure(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A3a);
+
+        $info = new Info();
+        $info->title = new PdfString('A3a Tagged Test');
+        $info->producer = new PdfString('phpdftk');
+        $writer->setInfo($info);
+        $this->addOutputIntent($writer);
+
+        $catalog = $writer->getCatalog();
+        $markInfo = new MarkInfo();
+        $markInfo->marked = true;
+        $catalog->markInfo = $markInfo;
+        $catalog->lang = new PdfString('en-US');
+
+        $structRoot = new StructTreeRoot();
+        $writer->register($structRoot);
+        $catalog->structTreeRoot = new PdfReference($structRoot->objectNumber);
+
+        $page = $writer->addPage(612, 792);
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)->showText('A3a tagged test')->endText();
+
+        $outPath = self::OUTPUT_DIR . '/pdfa3a_tagged.pdf';
+        $writer->save($outPath);
+
+        self::assertFileExists($outPath);
+        self::assertTrue($writer->getConformanceResults()[0]->isCompliant);
+    }
+
+    /**
+     * PDF/A-3u XMP should contain conformance=U.
+     */
+    public function testA3uXmpConformanceLevel(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A3u, strict: false);
+
+        $page = $writer->addPage(612, 792);
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $writer->addFont($font, $page);
+
+        $pdf = $writer->generate();
+
+        self::assertStringContainsString('>3<', $pdf);
+        self::assertStringContainsString('>U<', $pdf);
+    }
+
+    /**
+     * PDF/A-4e generates with embedded files allowed.
+     */
+    public function testA4eGeneratesSuccessfully(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A4e, strict: false);
+
+        $page = $writer->addPage(612, 792);
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $writer->addFont($font, $page);
+
+        $pdf = $writer->generate();
+
+        self::assertStringStartsWith('%PDF-2.0', $pdf);
+        self::assertStringContainsString('pdfaid:part', $pdf);
+    }
+
+    /**
+     * PDF/A-4f generates with embedded files allowed.
+     */
+    public function testA4fGeneratesSuccessfully(): void
+    {
+        $writer = new PdfWriter();
+        $writer->setConformance(PdfAProfile::A4f, strict: false);
+
+        $page = $writer->addPage(612, 792);
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $writer->addFont($font, $page);
+
+        $pdf = $writer->generate();
+
+        self::assertStringStartsWith('%PDF-2.0', $pdf);
+        self::assertStringContainsString('pdfaid:part', $pdf);
     }
 }

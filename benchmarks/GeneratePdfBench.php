@@ -2,65 +2,65 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Benchmarks;
+namespace Phpdftk\Benchmarks;
 
 use PhpBench\Attributes as Bench;
-use ApprLabs\Pdf\Core\Annotation\HighlightAnnotation;
-use ApprLabs\Pdf\Core\Annotation\LineAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SquareAnnotation;
-use ApprLabs\Pdf\Core\Annotation\TextAnnotation;
-use ApprLabs\Pdf\Core\Document\Destination;
-use ApprLabs\Pdf\Core\Document\MarkInfo;
-use ApprLabs\Pdf\Core\Document\Outline;
-use ApprLabs\Pdf\Core\Document\OutlineItem;
-use ApprLabs\Pdf\Core\Document\OutputIntent;
-use ApprLabs\Pdf\Core\Document\PageLabel;
-use ApprLabs\Pdf\Core\Document\StructElem;
-use ApprLabs\Pdf\Core\Document\StructTreeRoot;
-use ApprLabs\Pdf\Core\Document\TransitionDict;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
-use ApprLabs\Pdf\Core\Document\ObjectStream;
-use ApprLabs\Pdf\Core\Font\Encoding;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\TrueTypeFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Core\Font\Type3Font;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
-use ApprLabs\Pdf\Core\Graphics\Function\FunctionType2;
-use ApprLabs\Pdf\Core\Graphics\Pattern\ShadingPattern;
-use ApprLabs\Pdf\Core\Graphics\Pattern\TilingPattern;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType2;
-use ApprLabs\Pdf\Core\Multimedia\MediaClipData;
-use ApprLabs\Pdf\Core\Multimedia\MediaRendition;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDView;
-use ApprLabs\Pdf\Core\FileSpec\FileSpec;
-use ApprLabs\Pdf\Core\Annotation\ScreenAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\Action\RenditionAction;
-use ApprLabs\Pdf\Core\Annotation\WidgetAnnotation;
-use ApprLabs\Pdf\Core\Interactive\Form\AcroForm;
-use ApprLabs\Pdf\Core\Interactive\Form\SignatureField;
-use ApprLabs\Pdf\Core\Interactive\Signature\DocMDPTransformParams;
-use ApprLabs\Pdf\Core\Interactive\Signature\Pkcs7Signer;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureReference;
-use ApprLabs\Pdf\Core\Interactive\Signature\SignatureValue;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\Interactive\Signature\CertificateUtils;
-use ApprLabs\Pdf\Conformance\Profile\PdfAProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfEProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfRProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfUaProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfVtProfile;
-use ApprLabs\Pdf\Conformance\Profile\PdfXProfile;
-use ApprLabs\Pdf\Toolkit\LtvSigner;
-use ApprLabs\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Annotation\HighlightAnnotation;
+use Phpdftk\Pdf\Core\Annotation\LineAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SquareAnnotation;
+use Phpdftk\Pdf\Core\Annotation\TextAnnotation;
+use Phpdftk\Pdf\Core\Document\Destination;
+use Phpdftk\Pdf\Core\Document\MarkInfo;
+use Phpdftk\Pdf\Core\Document\Outline;
+use Phpdftk\Pdf\Core\Document\OutlineItem;
+use Phpdftk\Pdf\Core\Document\OutputIntent;
+use Phpdftk\Pdf\Core\Document\PageLabel;
+use Phpdftk\Pdf\Core\Document\StructElem;
+use Phpdftk\Pdf\Core\Document\StructTreeRoot;
+use Phpdftk\Pdf\Core\Document\TransitionDict;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
+use Phpdftk\Pdf\Core\Document\ObjectStream;
+use Phpdftk\Pdf\Core\Font\Encoding;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\TrueTypeFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Core\Font\Type3Font;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType2;
+use Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern;
+use Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2;
+use Phpdftk\Pdf\Core\Multimedia\MediaClipData;
+use Phpdftk\Pdf\Core\Multimedia\MediaRendition;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDView;
+use Phpdftk\Pdf\Core\FileSpec\FileSpec;
+use Phpdftk\Pdf\Core\Annotation\ScreenAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\Action\RenditionAction;
+use Phpdftk\Pdf\Core\Annotation\WidgetAnnotation;
+use Phpdftk\Pdf\Core\Interactive\Form\AcroForm;
+use Phpdftk\Pdf\Core\Interactive\Form\SignatureField;
+use Phpdftk\Pdf\Core\Interactive\Signature\DocMDPTransformParams;
+use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureReference;
+use Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfEProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfRProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfUaProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfVtProfile;
+use Phpdftk\Pdf\Conformance\Profile\PdfXProfile;
+use Phpdftk\Pdf\Toolkit\LtvSigner;
+use Phpdftk\Pdf\Writer\PdfWriter;
 
 #[Bench\Iterations(5)]
 #[Bench\Revs(3)]
@@ -500,22 +500,22 @@ class GeneratePdfBench
     #[Bench\BeforeMethods('setUp')]
     public function benchPhpdftkXRefAndObjectStreams(): void
     {
-        $catalog = new \ApprLabs\Pdf\Core\Document\Catalog();
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
         $catalog->objectNumber = 1;
 
-        $pageTree = new \ApprLabs\Pdf\Core\Document\PageTree();
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
         $pageTree->objectNumber = 2;
 
-        $page = new \ApprLabs\Pdf\Core\Document\Page();
+        $page = new \Phpdftk\Pdf\Core\Document\Page();
         $page->objectNumber = 3;
         $page->parent = new PdfReference($pageTree->objectNumber);
         $page->mediaBox = new PdfArray([
             new PdfNumber(0), new PdfNumber(0),
             new PdfNumber(612), new PdfNumber(792),
         ]);
-        $page->resources = new \ApprLabs\Pdf\Core\Content\Resources();
+        $page->resources = new \Phpdftk\Pdf\Core\Content\Resources();
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->objectNumber = 4;
         $info->title = new PdfString('XRef Stream Bench');
 
@@ -596,7 +596,7 @@ class GeneratePdfBench
             ]),
             xStep: 20,
             yStep: 20,
-            resources: new \ApprLabs\Pdf\Core\Content\Resources(),
+            resources: new \Phpdftk\Pdf\Core\Content\Resources(),
             contentStream: "0 0.6 0 rg 0 0 20 20 re f 1 0 0 rg 5 5 10 10 re f",
         );
         $tilingRef = $writer->register($tiling);
@@ -824,14 +824,14 @@ class GeneratePdfBench
                ->showText(sprintf('Markup page %d of 10', $i))
                ->endText();
 
-            $popup = new \ApprLabs\Pdf\Core\Annotation\PopupAnnotation(new PdfArray([
+            $popup = new \Phpdftk\Pdf\Core\Annotation\PopupAnnotation(new PdfArray([
                 new PdfNumber(400), new PdfNumber(600),
                 new PdfNumber(540), new PdfNumber(700),
             ]));
             $popupRef = $writer->register($popup);
             $page->corePage()->annots[] = $popupRef;
 
-            $note = new \ApprLabs\Pdf\Core\Annotation\TextAnnotation(new PdfArray([
+            $note = new \Phpdftk\Pdf\Core\Annotation\TextAnnotation(new PdfArray([
                 new PdfNumber(100), new PdfNumber(690),
                 new PdfNumber(120), new PdfNumber(710),
             ]));
@@ -844,7 +844,7 @@ class GeneratePdfBench
             $popup->parent = $noteRef;
             $page->corePage()->annots[] = $noteRef;
 
-            $hl = new \ApprLabs\Pdf\Core\Annotation\HighlightAnnotation(
+            $hl = new \Phpdftk\Pdf\Core\Annotation\HighlightAnnotation(
                 new PdfArray([new PdfNumber(72), new PdfNumber(500), new PdfNumber(540), new PdfNumber(520)]),
                 new PdfArray([
                     new PdfNumber(72), new PdfNumber(520),
@@ -900,9 +900,9 @@ class GeneratePdfBench
         imagejpeg($img, $imgPath, 90);
         imagedestroy($img);
 
-        $style = new \ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle(width: 80.0, opacity: 0.6);
-        \ApprLabs\Pdf\Toolkit\PdfStamper::open($pdfPath)
-            ->stampImage($imgPath, \ApprLabs\Pdf\Toolkit\Stamper\StampPosition::BottomRight, style: $style)
+        $style = new \Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle(width: 80.0, opacity: 0.6);
+        \Phpdftk\Pdf\Toolkit\PdfStamper::open($pdfPath)
+            ->stampImage($imgPath, \Phpdftk\Pdf\Toolkit\Stamper\StampPosition::BottomRight, style: $style)
             ->save($this->tempDir . '/phpdftk_10pages_image_stamp.pdf');
     }
 
@@ -943,9 +943,9 @@ class GeneratePdfBench
         $stampPath = $this->tempDir . '/bench_stamp_overlay.pdf';
         $stampWriter->save($stampPath);
 
-        $style = new \ApprLabs\Pdf\Toolkit\Stamper\ImageStampStyle(width: 200.0, height: 100.0, opacity: 0.5);
-        \ApprLabs\Pdf\Toolkit\PdfStamper::open($targetPath)
-            ->stampPdf($stampPath, position: \ApprLabs\Pdf\Toolkit\Stamper\StampPosition::TopRight, style: $style)
+        $style = new \Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle(width: 200.0, height: 100.0, opacity: 0.5);
+        \Phpdftk\Pdf\Toolkit\PdfStamper::open($targetPath)
+            ->stampPdf($stampPath, position: \Phpdftk\Pdf\Toolkit\Stamper\StampPosition::TopRight, style: $style)
             ->save($this->tempDir . '/phpdftk_10pages_pdf_stamp.pdf');
     }
 
@@ -1393,12 +1393,12 @@ class GeneratePdfBench
 
             // Generate text field appearance
             $rect = new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(700)]);
-            $xObj = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::textField($rect, $fontName, 12, "Value $i");
+            $xObj = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::textField($rect, $fontName, 12, "Value $i");
             $writer->register($xObj);
 
             // Generate checkbox appearance
             $checkRect = new PdfArray([new PdfNumber(72), new PdfNumber(650), new PdfNumber(90), new PdfNumber(668)]);
-            $checkStates = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::checkbox($checkRect);
+            $checkStates = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::checkbox($checkRect);
             $writer->register($checkStates['on']);
             $writer->register($checkStates['off']);
         }
@@ -1431,7 +1431,7 @@ class GeneratePdfBench
             return;
         }
 
-        $ttData = (new \ApprLabs\FontParser\TrueTypeParser($fontPath))->parse();
+        $ttData = (new \Phpdftk\FontParser\TrueTypeParser($fontPath))->parse();
         $text = 'Form value on page 0123456789';
         $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
 
@@ -1443,21 +1443,21 @@ class GeneratePdfBench
             $fontName = $compositeFont->getResourceName();
             $fontRef = $page->corePage()->resources->font[$fontName];
 
-            $fontCtx = new \ApprLabs\Pdf\Core\Interactive\Form\FontContext(
+            $fontCtx = new \Phpdftk\Pdf\Core\Interactive\Form\FontContext(
                 fontRef: $fontRef,
                 unicodeToGid: $ttData->fullUnicodeToGid,
             );
 
             // Text field with custom font appearance
             $rect = new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(700)]);
-            $xObj = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::textField(
+            $xObj = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::textField(
                 $rect, $fontName, 12, "Value $i", fontContext: $fontCtx
             );
             $writer->register($xObj);
 
             // Choice field with custom font appearance
             $choiceRect = new PdfArray([new PdfNumber(72), new PdfNumber(640), new PdfNumber(300), new PdfNumber(660)]);
-            $choiceXObj = \ApprLabs\Pdf\Core\Interactive\Form\AppearanceGenerator::choiceField(
+            $choiceXObj = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::choiceField(
                 $choiceRect, $fontName, 12, "Option $i", fontContext: $fontCtx
             );
             $writer->register($choiceXObj);
@@ -1479,7 +1479,7 @@ class GeneratePdfBench
             return; // Skip if no OTF font available
         }
 
-        $data = (new \ApprLabs\FontParser\OpenTypeParser($fontPath))->parse();
+        $data = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
         $text = 'The quick brown fox jumps over the lazy dog. 0123456789';
         $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
 
@@ -1512,7 +1512,7 @@ class GeneratePdfBench
             return;
         }
 
-        $data = (new \ApprLabs\FontParser\OpenTypeParser($fontPath))->parse();
+        $data = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
         // Use a small character set to demonstrate subsetting benefit
         $text = 'Hello World';
         $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
@@ -1540,7 +1540,7 @@ class GeneratePdfBench
             return;
         }
 
-        $data = (new \ApprLabs\FontParser\OpenTypeParser($fontPath))->parse();
+        $data = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
         $text = 'AV To WA Typography WAVE';
         $codepoints = array_unique(array_map('mb_ord', mb_str_split($text)));
 
@@ -1579,39 +1579,39 @@ class GeneratePdfBench
         $cert = openssl_csr_sign($csr, null, $key, 365, $config);
         openssl_x509_export($cert, $certPem);
 
-        $fileWriter = new \ApprLabs\Pdf\Core\File\PdfFileWriter(compressStreams: false);
-        $catalog = new \ApprLabs\Pdf\Core\Document\Catalog();
+        $fileWriter = new \Phpdftk\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
         $fileWriter->setCatalog($catalog);
-        $pageTree = new \ApprLabs\Pdf\Core\Document\PageTree();
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
         $fileWriter->register($pageTree);
-        $catalog->pages = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
 
         $kids = [];
         for ($i = 1; $i <= 10; $i++) {
-            $page = new \ApprLabs\Pdf\Core\Document\Page();
+            $page = new \Phpdftk\Pdf\Core\Document\Page();
             $fileWriter->register($page);
-            $page->parent = new \ApprLabs\Pdf\Core\PdfReference($pageTree->objectNumber);
-            $page->mediaBox = new \ApprLabs\Pdf\Core\PdfArray([
-                new \ApprLabs\Pdf\Core\PdfNumber(0), new \ApprLabs\Pdf\Core\PdfNumber(0),
-                new \ApprLabs\Pdf\Core\PdfNumber(612), new \ApprLabs\Pdf\Core\PdfNumber(792),
+            $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+            $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+                new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+                new \Phpdftk\Pdf\Core\PdfNumber(612), new \Phpdftk\Pdf\Core\PdfNumber(792),
             ]);
-            $page->resources = new \ApprLabs\Pdf\Core\Content\Resources();
+            $page->resources = new \Phpdftk\Pdf\Core\Content\Resources();
 
-            $cs = new \ApprLabs\Pdf\Core\Content\ContentStream();
+            $cs = new \Phpdftk\Pdf\Core\Content\ContentStream();
             $fileWriter->register($cs);
             $cs->beginText()
                 ->setFont('F1', 12)
                 ->moveTextPosition(72, 720)
                 ->showText("Public-key encrypted page $i")
                 ->endText();
-            $page->contents = [new \ApprLabs\Pdf\Core\PdfReference($cs->objectNumber)];
-            $kids[] = new \ApprLabs\Pdf\Core\PdfReference($page->objectNumber);
+            $page->contents = [new \Phpdftk\Pdf\Core\PdfReference($cs->objectNumber)];
+            $kids[] = new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber);
         }
         $pageTree->kids = $kids;
         $pageTree->count = 10;
 
         $fileId = md5('bench-pubkey', true);
-        $encryptor = \ApprLabs\Pdf\Core\Security\PdfEncryptor::publicKeyAes128(
+        $encryptor = \Phpdftk\Pdf\Core\Security\PdfEncryptor::publicKeyAes128(
             [['cert' => $certPem]],
             $fileId
         );
@@ -1631,7 +1631,7 @@ class GeneratePdfBench
     #[Bench\BeforeMethods('setUp')]
     public function benchPhpdftkTsaRequestBuildAndParse(): void
     {
-        $client = new \ApprLabs\Pdf\Core\Interactive\Signature\TsaClient('http://example.com/tsa');
+        $client = new \Phpdftk\Pdf\Core\Interactive\Signature\TsaClient('http://example.com/tsa');
 
         // Build 100 timestamp requests (exercises DER encoding)
         for ($i = 0; $i < 100; $i++) {
@@ -1662,7 +1662,7 @@ class GeneratePdfBench
     #[Bench\Iterations(3)]
     public function benchPhpdftk10PagesWithVersionGating(): void
     {
-        $writer = new \ApprLabs\Pdf\Writer\PdfWriter(version: \ApprLabs\Pdf\Core\PdfVersion::V1_4);
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter(version: \Phpdftk\Pdf\Core\PdfVersion::V1_4);
 
         for ($i = 0; $i < 10; $i++) {
             $page = $writer->addPage(612, 792);
@@ -1763,7 +1763,7 @@ class GeneratePdfBench
         $pfb .= "\x80\x03";
 
         for ($i = 0; $i < 100; $i++) {
-            $parser = \ApprLabs\FontParser\Type1Parser::fromBytes($pfb);
+            $parser = \Phpdftk\FontParser\Type1Parser::fromBytes($pfb);
             $data = $parser->parse();
             assert($data->familyName === 'Bench Font');
         }
@@ -1793,7 +1793,7 @@ class GeneratePdfBench
             $data .= chr((int) bindec(substr($padded, $i, 8)));
         }
 
-        $filter = new \ApprLabs\Filters\CCITTFaxFilter(
+        $filter = new \Phpdftk\Filters\CCITTFaxFilter(
             k: 0, columns: 8, rows: 100, endOfBlock: false
         );
 
@@ -1821,7 +1821,7 @@ class GeneratePdfBench
         $rawRow = chr(0xF0); // 4 white + 4 black
         $rawData = str_repeat($rawRow, 100);
 
-        $filter = new \ApprLabs\Filters\CCITTFaxFilter(
+        $filter = new \Phpdftk\Filters\CCITTFaxFilter(
             k: 0, columns: 8, rows: 100, endOfBlock: false
         );
 
@@ -1848,7 +1848,7 @@ class GeneratePdfBench
         $rawRow = chr(0xF0);
         $rawData = str_repeat($rawRow, 100);
 
-        $filter = new \ApprLabs\Filters\Jbig2Filter(width: 8, height: 100);
+        $filter = new \Phpdftk\Filters\Jbig2Filter(width: 8, height: 100);
 
         for ($i = 0; $i < 100; $i++) {
             $result = $filter->encode($rawData);
@@ -1961,14 +1961,14 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfAProfile::A1b);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/A Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);
 
         // OutputIntent with ICC profile
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2027,28 +2027,28 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfUaProfile::UA1);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/UA Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);
 
         // Tagged structure
         $catalog = $writer->getCatalog();
-        $markInfo = new \ApprLabs\Pdf\Core\Document\MarkInfo();
+        $markInfo = new \Phpdftk\Pdf\Core\Document\MarkInfo();
         $markInfo->marked = true;
         $catalog->markInfo = $markInfo;
         $catalog->lang = new PdfString('en-US');
 
-        $structRoot = new \ApprLabs\Pdf\Core\Document\StructTreeRoot();
+        $structRoot = new \Phpdftk\Pdf\Core\Document\StructTreeRoot();
         $writer->register($structRoot);
         $catalog->structTreeRoot = new PdfReference($structRoot->objectNumber);
 
         // ViewerPreferences
-        $vp = new \ApprLabs\Pdf\Core\Document\ViewerPreferences();
+        $vp = new \Phpdftk\Pdf\Core\Document\ViewerPreferences();
         $vp->displayDocTitle = true;
         $writer->register($vp);
         $catalog->viewerPreferences = new PdfDictionary([
-            'DisplayDocTitle' => new \ApprLabs\Pdf\Core\PdfBoolean(true),
+            'DisplayDocTitle' => new \Phpdftk\Pdf\Core\PdfBoolean(true),
         ]);
 
         // Embedded font
@@ -2115,7 +2115,7 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfXProfile::X4);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/X Benchmark');
         $info->producer = new PdfString('phpdftk');
         $info->trapped = new PdfName('False');
@@ -2123,7 +2123,7 @@ class GeneratePdfBench
 
         // OutputIntent
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2201,7 +2201,7 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfVtProfile::VT1);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/VT Benchmark');
         $info->producer = new PdfString('phpdftk');
         $info->trapped = new PdfName('False');
@@ -2209,7 +2209,7 @@ class GeneratePdfBench
 
         // OutputIntent
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2221,9 +2221,9 @@ class GeneratePdfBench
         $writer->getCatalog()->outputIntents = new PdfArray([$oiRef]);
 
         // DPartRoot
-        $dpart = new \ApprLabs\Pdf\Core\Document\DPart(new PdfReference(0));
+        $dpart = new \Phpdftk\Pdf\Core\Document\DPart(new PdfReference(0));
         $dpartRef = $writer->register($dpart);
-        $dpartRoot = new \ApprLabs\Pdf\Core\Document\DPartRoot($dpartRef);
+        $dpartRoot = new \Phpdftk\Pdf\Core\Document\DPartRoot($dpartRef);
         $writer->register($dpartRoot);
         $writer->getCatalog()->dPartRoot = new PdfReference($dpartRoot->objectNumber);
 
@@ -2287,14 +2287,14 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfEProfile::E1);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/E Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);
 
         // OutputIntent
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2345,7 +2345,7 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfRProfile::R1, strict: false);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/R Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);
@@ -2402,7 +2402,7 @@ class GeneratePdfBench
         $writer = new PdfWriter();
         $writer->setConformance(PdfXProfile::X5g);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/X-5g Benchmark');
         $info->producer = new PdfString('phpdftk');
         $info->trapped = new PdfName('False');
@@ -2410,7 +2410,7 @@ class GeneratePdfBench
 
         // OutputIntent
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2479,16 +2479,16 @@ class GeneratePdfBench
         }
 
         $writer = new PdfWriter();
-        $writer->setConformance(\ApprLabs\Pdf\Conformance\Profile\ZugferdProfile::BASIC, strict: false);
+        $writer->setConformance(\Phpdftk\Pdf\Conformance\Profile\ZugferdProfile::BASIC, strict: false);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('Factur-X Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);
 
         // OutputIntent
         $iccData = file_get_contents($iccPath);
-        $iccStream = new \ApprLabs\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
+        $iccStream = new \Phpdftk\Pdf\Core\PdfStream(new PdfDictionary(), $iccData);
         $iccStream->dictionary->set('N', new PdfNumber(3));
         $iccRef = $writer->register($iccStream);
 
@@ -2542,9 +2542,9 @@ class GeneratePdfBench
         }
 
         $writer = new PdfWriter();
-        $writer->setConformance(\ApprLabs\Pdf\Conformance\Profile\PdfMailProfile::Mail1);
+        $writer->setConformance(\Phpdftk\Pdf\Conformance\Profile\PdfMailProfile::Mail1);
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
         $info->title = new PdfString('PDF/mail Benchmark');
         $info->producer = new PdfString('phpdftk');
         $writer->setInfo($info);

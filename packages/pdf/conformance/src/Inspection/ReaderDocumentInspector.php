@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Inspection;
+namespace Phpdftk\Pdf\Conformance\Inspection;
 
-use ApprLabs\Pdf\Core\Action\JavaScriptAction;
-use ApprLabs\Pdf\Core\Annotation\Annotation;
-use ApprLabs\Pdf\Core\Annotation\MovieAnnotation;
-use ApprLabs\Pdf\Core\Annotation\RichMediaAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ScreenAnnotation;
-use ApprLabs\Pdf\Core\Annotation\SoundAnnotation;
-use ApprLabs\Pdf\Core\Annotation\ThreeDAnnotation;
-use ApprLabs\Pdf\Core\Document\Catalog;
-use ApprLabs\Pdf\Core\Document\Info;
-use ApprLabs\Pdf\Core\Document\Page;
-use ApprLabs\Pdf\Core\Font\Font;
-use ApprLabs\Pdf\Core\Font\Type0Font;
-use ApprLabs\Pdf\Core\Graphics\XObject\FormXObject;
-use ApprLabs\Pdf\Core\Graphics\XObject\ImageXObject;
-use ApprLabs\Pdf\Core\Interactive\Form\AcroForm;
-use ApprLabs\Pdf\Core\Multimedia\MediaRendition;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\ThreeD\ThreeDStream;
-use ApprLabs\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Core\Action\JavaScriptAction;
+use Phpdftk\Pdf\Core\Annotation\Annotation;
+use Phpdftk\Pdf\Core\Annotation\MovieAnnotation;
+use Phpdftk\Pdf\Core\Annotation\RichMediaAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ScreenAnnotation;
+use Phpdftk\Pdf\Core\Annotation\SoundAnnotation;
+use Phpdftk\Pdf\Core\Annotation\ThreeDAnnotation;
+use Phpdftk\Pdf\Core\Document\Catalog;
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\Document\Page;
+use Phpdftk\Pdf\Core\Font\Font;
+use Phpdftk\Pdf\Core\Font\Type0Font;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject;
+use Phpdftk\Pdf\Core\Interactive\Form\AcroForm;
+use Phpdftk\Pdf\Core\Multimedia\MediaRendition;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\ThreeD\ThreeDStream;
+use Phpdftk\Pdf\Reader\PdfReader;
 
 /**
  * Inspects a parsed PDF (via PdfReader) for conformance validation.
@@ -137,7 +137,7 @@ final class ReaderDocumentInspector implements DocumentInspector
     {
         $catalogDict = $this->reader->getCatalog();
         $oi = $catalogDict->get('OutputIntents');
-        if ($oi instanceof \ApprLabs\Pdf\Core\PdfArray) {
+        if ($oi instanceof \Phpdftk\Pdf\Core\PdfArray) {
             return count($oi->items) > 0;
         }
         return false;
@@ -147,7 +147,7 @@ final class ReaderDocumentInspector implements DocumentInspector
     {
         $catalogDict = $this->reader->getCatalog();
         $oi = $catalogDict->get('OutputIntents');
-        if (!$oi instanceof \ApprLabs\Pdf\Core\PdfArray) {
+        if (!$oi instanceof \Phpdftk\Pdf\Core\PdfArray) {
             return false;
         }
 

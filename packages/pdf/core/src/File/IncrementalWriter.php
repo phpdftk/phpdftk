@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
-use ApprLabs\Filters\FlateFilter;
-use ApprLabs\Pdf\Core\Content\ContentStream;
-use ApprLabs\Pdf\Core\Document\CrossReferenceStream;
-use ApprLabs\Pdf\Core\Security\PdfEncryptor;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\PdfString;
-use ApprLabs\Pdf\Core\PdfVersion;
-use ApprLabs\Pdf\Core\Serializable;
+use Phpdftk\Filters\FlateFilter;
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
+use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfVersion;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * Incremental update writer — ISO 32000-2 §7.5.6.
@@ -100,7 +100,7 @@ final class IncrementalWriter
      * ID, encrypt) from the reader's trailer.
      */
     public static function fromReader(
-        \ApprLabs\Pdf\Reader\PdfReader $reader,
+        \Phpdftk\Pdf\Reader\PdfReader $reader,
         string $originalPdf,
         bool $compressStreams = true,
         bool $useXRefStream = false,
@@ -112,7 +112,7 @@ final class IncrementalWriter
 
         // Extract /Size
         $sizeVal = $trailer->get('Size');
-        $size = $sizeVal instanceof \ApprLabs\Pdf\Core\PdfNumber
+        $size = $sizeVal instanceof \Phpdftk\Pdf\Core\PdfNumber
             ? (int) $sizeVal->toPdf()
             : 0;
 
@@ -499,7 +499,7 @@ final class IncrementalWriter
      * Enforce removal: throw if the feature has a removedIn version and
      * the target version is at or above it (in strict deprecation mode).
      */
-    private function enforceRemoval(string $class, \ApprLabs\Pdf\Core\DeprecatedPdfFeature $deprecation): void
+    private function enforceRemoval(string $class, \Phpdftk\Pdf\Core\DeprecatedPdfFeature $deprecation): void
     {
         if ($deprecation->removedInVersion === null) {
             return;

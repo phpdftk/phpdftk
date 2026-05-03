@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Tokenizer;
+namespace Phpdftk\Pdf\Reader\Tokenizer;
 
 /**
  * Seekable byte source abstraction for the PDF tokenizer.

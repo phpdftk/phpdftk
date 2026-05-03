@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Document;
+namespace Phpdftk\Pdf\Core\Tests\Document;
 
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Tests\Support\Arlington\ArlingtonValidationTrait;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Tests\Support\Arlington\ArlingtonValidationTrait;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
 
 /**
  * Generates a multi-page PDF with simple text content and verifies

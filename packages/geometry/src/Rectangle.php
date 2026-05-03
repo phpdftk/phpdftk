@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\Geometry;
+namespace Phpdftk\Geometry;
 
 final class Rectangle {
     public function __construct(

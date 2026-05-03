@@ -1,6 +1,12 @@
 <?php declare(strict_types=1);
-namespace ApprLabs\ImageMetadata;
+namespace Phpdftk\ImageMetadata;
 
+/**
+ * Parse PNG IHDR chunk for dimensions, bit depth, and color type.
+ *
+ * Also extracts ICC profiles from iCCP chunks. PNG alpha channels
+ * are detected since PDF handles transparency via SMask, not inline.
+ */
 final class PngParser {
     public static function parseFile(string $path): ImageInfo {
         $fh = fopen($path, 'rb');

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Conformance\Constraint;
+namespace Phpdftk\Pdf\Conformance\Constraint;
 
-use ApprLabs\Pdf\Conformance\Inspection\DocumentInspector;
-use ApprLabs\Pdf\Conformance\Profile\ConformanceProfile;
-use ApprLabs\Pdf\Conformance\Result\ConformanceViolation;
-use ApprLabs\Pdf\Conformance\Result\ViolationSeverity;
-use ApprLabs\Pdf\Core\Document\ViewerPreferences;
+use Phpdftk\Pdf\Conformance\Inspection\DocumentInspector;
+use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
+use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
+use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
 
 /**
  * PDF/UA-1 clause 7.18.1: ViewerPreferences /DisplayDocTitle must be true.
@@ -37,7 +37,7 @@ final class DisplayDocTitleConstraint implements ConformanceConstraint
             // Inline PdfDictionary — check for DisplayDocTitle key
             if ($catalog->viewerPreferences->has('DisplayDocTitle')) {
                 $val = $catalog->viewerPreferences->get('DisplayDocTitle');
-                if ($val instanceof \ApprLabs\Pdf\Core\PdfBoolean && $val->value === true) {
+                if ($val instanceof \Phpdftk\Pdf\Core\PdfBoolean && $val->value === true) {
                     return [];
                 }
             }

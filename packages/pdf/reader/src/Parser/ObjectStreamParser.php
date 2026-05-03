@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Reader\Parser;
+namespace Phpdftk\Pdf\Reader\Parser;
 
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfStream;
-use ApprLabs\Pdf\Core\Serializable;
-use ApprLabs\Pdf\Reader\Exception\InvalidPdfException;
-use ApprLabs\Pdf\Reader\Tokenizer\StringSource;
-use ApprLabs\Pdf\Reader\Tokenizer\Tokenizer;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfStream;
+use Phpdftk\Pdf\Core\Serializable;
+use Phpdftk\Pdf\Reader\Exception\InvalidPdfException;
+use Phpdftk\Pdf\Reader\Tokenizer\StringSource;
+use Phpdftk\Pdf\Reader\Tokenizer\Tokenizer;
 
 /**
  * Unpacks objects stored inside a /Type /ObjStm stream —

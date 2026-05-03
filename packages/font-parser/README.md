@@ -1,11 +1,11 @@
-# apprlabs/font-parser
+# phpdftk/font-parser
 
 Parse TrueType (.ttf), OpenType CFF (.otf), and WOFF (.woff) fonts to extract metrics, glyph widths, character maps, kerning pairs, and ligatures. Includes subsetting for PDF embedding. No external dependencies.
 
 ## Installation
 
 ```bash
-composer require apprlabs/font-parser
+composer require phpdftk/font-parser
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ composer require apprlabs/font-parser
 ### TrueType
 
 ```php
-use ApprLabs\FontParser\TrueTypeParser;
+use Phpdftk\FontParser\TrueTypeParser;
 
 $parser = new TrueTypeParser('/path/to/font.ttf');
 $data = $parser->parse();
@@ -27,7 +27,7 @@ echo $data->descent;        // -212
 ### OpenType CFF
 
 ```php
-use ApprLabs\FontParser\OpenTypeParser;
+use Phpdftk\FontParser\OpenTypeParser;
 
 $parser = new OpenTypeParser('/path/to/font.otf');
 $data = $parser->parse();
@@ -38,7 +38,7 @@ $data->cffBytes; // Raw CFF data for PDF embedding
 ### Subsetting
 
 ```php
-use ApprLabs\FontParser\TrueTypeSubsetter;
+use Phpdftk\FontParser\TrueTypeSubsetter;
 
 $subset = TrueTypeSubsetter::subset($data, [65, 66, 67]); // Keep only A, B, C glyphs
 ```

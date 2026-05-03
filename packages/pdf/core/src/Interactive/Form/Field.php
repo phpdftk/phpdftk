@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Interactive\Form;
+namespace Phpdftk\Pdf\Core\Interactive\Form;
 
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfDictionary;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfObject;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfDictionary;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfObject;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 
 /**
  * Base class for all interactive form field types.
@@ -63,14 +63,14 @@ abstract class Field extends PdfObject
             $dict->set('Ff', new PdfNumber($this->ff));
         }
         if ($this->v !== null) {
-            if ($this->v instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->v instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('V', $this->v);
             } else {
                 $dict->set('V', new PdfString((string) $this->v));
             }
         }
         if ($this->dv !== null) {
-            if ($this->dv instanceof \ApprLabs\Pdf\Core\Serializable) {
+            if ($this->dv instanceof \Phpdftk\Pdf\Core\Serializable) {
                 $dict->set('DV', $this->dv);
             } else {
                 $dict->set('DV', new PdfString((string) $this->dv));

@@ -8,7 +8,7 @@ description: Combine multiple PDFs into a single document with optional page sel
 ## Creating a merger
 
 ```php
-use ApprLabs\Pdf\Toolkit\PdfMerger;
+use Phpdftk\Pdf\Toolkit\PdfMerger;
 
 $merger = PdfMerger::create();
 ```
@@ -38,7 +38,7 @@ $merger->addFile('secured.pdf', password: 'secret');
 ### Specific pages from a document
 
 ```php
-use ApprLabs\Pdf\Toolkit\PageSelector;
+use Phpdftk\Pdf\Toolkit\PageSelector;
 
 $merger->addPages('large.pdf', PageSelector::range(1, 10));
 $merger->addPages('appendix.pdf', PageSelector::pages(3, 7, 12));

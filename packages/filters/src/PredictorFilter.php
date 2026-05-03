@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Filters;
+namespace Phpdftk\Filters;
 
 /**
  * PDF predictor filter — applies/removes PNG and TIFF prediction

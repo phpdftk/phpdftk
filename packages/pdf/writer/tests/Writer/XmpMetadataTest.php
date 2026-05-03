@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Writer\Tests;
+namespace Phpdftk\Pdf\Writer\Tests;
 
-use ApprLabs\Pdf\Reader\PdfReader;
-use ApprLabs\Pdf\Writer\PdfWriter;
-use ApprLabs\Pdf\Core\Font\StandardFont;
-use ApprLabs\Pdf\Core\Font\Type1Font;
-use ApprLabs\Tests\Support\QpdfValidationTrait;
-use ApprLabs\Xmp\XmpPacket;
-use ApprLabs\Xmp\XmpWriter;
+use Phpdftk\Pdf\Reader\PdfReader;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Core\Font\StandardFont;
+use Phpdftk\Pdf\Core\Font\Type1Font;
+use Phpdftk\Tests\Support\QpdfValidationTrait;
+use Phpdftk\Xmp\XmpPacket;
+use Phpdftk\Xmp\XmpWriter;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
@@ -80,12 +80,12 @@ class XmpMetadataTest extends TestCase
         $writer = new PdfWriter(compressStreams: false);
         $writer->addPage();
 
-        $info = new \ApprLabs\Pdf\Core\Document\Info();
-        $info->title = new \ApprLabs\Pdf\Core\PdfString('My Title');
-        $info->author = new \ApprLabs\Pdf\Core\PdfString('Jane Doe');
-        $info->subject = new \ApprLabs\Pdf\Core\PdfString('A test subject');
-        $info->creator = new \ApprLabs\Pdf\Core\PdfString('phpdftk test');
-        $info->producer = new \ApprLabs\Pdf\Core\PdfString('phpdftk');
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
+        $info->title = new \Phpdftk\Pdf\Core\PdfString('My Title');
+        $info->author = new \Phpdftk\Pdf\Core\PdfString('Jane Doe');
+        $info->subject = new \Phpdftk\Pdf\Core\PdfString('A test subject');
+        $info->creator = new \Phpdftk\Pdf\Core\PdfString('phpdftk test');
+        $info->producer = new \Phpdftk\Pdf\Core\PdfString('phpdftk');
         $writer->setInfo($info);
 
         $writer->syncInfoToMetadata();

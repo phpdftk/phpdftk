@@ -2,16 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\File;
+namespace Phpdftk\Pdf\Core\File;
 
 /**
- * Builds the PDF cross-reference table.
+ * Builds the classic PDF cross-reference table (ISO 32000-2 section 7.5.4).
  *
- * Each entry is exactly 20 bytes:
- *   OOOOOOOOOO GGGGG N \r\n   (in-use objects)
- *   OOOOOOOOOO GGGGG F \r\n   (free objects)
+ * The fixed 20-byte entry width is mandated by the spec so that readers can
+ * seek directly to any entry by index without parsing the entire table:
  *
- * where O = 10-digit byte offset, G = 5-digit generation number.
+ *   OOOOOOOOOO GGGGG n \r\n   (in-use object: O = 10-digit byte offset)
+ *   OOOOOOOOOO GGGGG f \r\n   (free object: O = next free object number)
+ *
+ * Object 0 is always emitted as the free-list head with generation 65535,
+ * which signals that it can never be reused.
  */
 class CrossReferenceTable
 {

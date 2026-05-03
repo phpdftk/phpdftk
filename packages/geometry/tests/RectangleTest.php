@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace ApprLabs\Geometry\Tests;
+namespace Phpdftk\Geometry\Tests;
 
 use PHPUnit\Framework\TestCase;
-use ApprLabs\Geometry\Rectangle;
+use Phpdftk\Geometry\Rectangle;
 
 class RectangleTest extends TestCase
 {

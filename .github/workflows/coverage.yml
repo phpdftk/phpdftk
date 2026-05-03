@@ -1,0 +1,129 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+
+permissions:
+  contents: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+          coverage: pcov
+
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate coverage
+        run: |
+          mkdir -p build/coverage
+          vendor/bin/phpunit \
+            --coverage-clover build/coverage/clover.xml \
+            --coverage-html build/coverage/html \
+            --coverage-php build/coverage/coverage.php
+
+      - name: Generate text and badge
+        run: |
+          # Extract coverage percentage from clover XML
+          COVERAGE=$(php -r '
+            $xml = simplexml_load_file("build/coverage/clover.xml");
+            $metrics = $xml->project->metrics;
+            $statements = (int)$metrics["statements"];
+            $covered = (int)$metrics["coveredstatements"];
+            echo $statements > 0 ? round($covered / $statements * 100, 2) : 0;
+          ')
+          echo "Coverage: ${COVERAGE}%"
+
+          # Generate badge SVG
+          php scripts/generate-badge.php "$COVERAGE" coverage > build/coverage/coverage-badge.svg
+
+          # Generate markdown summary
+          cat > build/coverage/coverage.md <<EOF
+          # Code Coverage Report
+
+          **Coverage:** ${COVERAGE}%
+
+          Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          Commit: ${GITHUB_SHA}
+          Ref: ${GITHUB_REF}
+          EOF
+
+          # Generate JSON summary
+          php -r '
+            $xml = simplexml_load_file("build/coverage/clover.xml");
+            $metrics = $xml->project->metrics;
+            $statements = (int)$metrics["statements"];
+            $covered = (int)$metrics["coveredstatements"];
+            $methods = (int)$metrics["methods"];
+            $coveredMethods = (int)$metrics["coveredmethods"];
+            echo json_encode([
+              "coverage" => $statements > 0 ? round($covered / $statements * 100, 2) : 0,
+              "statements" => $statements,
+              "covered_statements" => $covered,
+              "methods" => $methods,
+              "covered_methods" => $coveredMethods,
+              "commit" => getenv("GITHUB_SHA"),
+              "ref" => getenv("GITHUB_REF"),
+              "timestamp" => date("c"),
+            ], JSON_PRETTY_PRINT);
+          ' > build/coverage/coverage.json
+
+      - name: Determine target directory
+        id: target
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            DIR="${GITHUB_REF#refs/tags/}"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            DIR="${BRANCH}/${SHORT_SHA}"
+          fi
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Commit to .coverage branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch orphan branch if it exists
+          git fetch origin .coverage:refs/remotes/origin/.coverage 2>/dev/null || true
+
+          # Set up worktree for the coverage branch
+          if git rev-parse --verify origin/.coverage >/dev/null 2>&1; then
+            git worktree add coverage-branch origin/.coverage
+            cd coverage-branch
+            git checkout -B .coverage origin/.coverage
+          else
+            git worktree add --detach coverage-branch
+            cd coverage-branch
+            git checkout --orphan .coverage
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy coverage artifacts into target directory
+          mkdir -p "${{ steps.target.outputs.dir }}"
+          cp -r ../build/coverage/* "${{ steps.target.outputs.dir }}/"
+
+          # Commit and push
+          git add .
+          git commit -m "coverage: ${{ steps.target.outputs.dir }}" --allow-empty
+          git push origin .coverage
+
+      - name: Cleanup worktree
+        if: always()
+        run: git worktree remove coverage-branch --force 2>/dev/null || true

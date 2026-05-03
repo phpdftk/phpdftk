@@ -9,17 +9,17 @@ class ComposerStaticInit0fa63a34d488381846be6383f8e737c9
     public static $prefixLengthsPsr4 = array (
         'A' =>
         array (
-            'ApprLabs\\Color\\Tests\\' => 21,
-            'ApprLabs\\Color\\' => 15,
+            'Phpdftk\\Color\\Tests\\' => 21,
+            'Phpdftk\\Color\\' => 15,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'ApprLabs\\Color\\Tests\\' =>
+        'Phpdftk\\Color\\Tests\\' =>
         array (
             0 => __DIR__ . '/../..' . '/tests',
         ),
-        'ApprLabs\\Color\\' =>
+        'Phpdftk\\Color\\' =>
         array (
             0 => __DIR__ . '/../..' . '/src',
         ),

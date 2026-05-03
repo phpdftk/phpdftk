@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\ImageMetadata\Tests;
+namespace Phpdftk\ImageMetadata\Tests;
 
-use ApprLabs\ImageMetadata\ImageInfo;
-use ApprLabs\ImageMetadata\JpegParser;
-use ApprLabs\ImageMetadata\PngParser;
+use Phpdftk\ImageMetadata\ImageInfo;
+use Phpdftk\ImageMetadata\JpegParser;
+use Phpdftk\ImageMetadata\PngParser;
 use PHPUnit\Framework\TestCase;
 
 class IccProfileTest extends TestCase

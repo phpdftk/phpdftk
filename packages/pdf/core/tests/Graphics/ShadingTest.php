@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType1;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType2;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType3;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType4;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType5;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType6;
-use ApprLabs\Pdf\Core\Graphics\Shading\ShadingType7;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6;
+use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use PHPUnit\Framework\TestCase;
 
 class ShadingTest extends TestCase

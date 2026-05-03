@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace ApprLabs\Pdf\Core\Tests\Graphics;
+namespace Phpdftk\Pdf\Core\Tests\Graphics;
 
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\CalGray;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\CalRGB;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceN;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\ICCBased;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\Indexed;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\Lab;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\Pattern;
-use ApprLabs\Pdf\Core\Graphics\ColorSpace\Separation;
-use ApprLabs\Pdf\Core\PdfArray;
-use ApprLabs\Pdf\Core\PdfName;
-use ApprLabs\Pdf\Core\PdfNumber;
-use ApprLabs\Pdf\Core\PdfReference;
-use ApprLabs\Pdf\Core\PdfString;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern;
+use Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\PdfString;
 use PHPUnit\Framework\TestCase;
 
 class ColorSpaceTest extends TestCase
