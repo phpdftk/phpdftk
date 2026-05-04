@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: true
 
       - uses: actions/setup-node@v4
         with:
@@ -28,7 +29,42 @@ jobs:
           cache: npm
           cache-dependency-path: docs/site/package-lock.json
 
-      - name: Install dependencies
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+          coverage: pcov
+
+      - name: Build validation tool images
+        run: cd docker && docker compose build
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate coverage report
+        run: |
+          mkdir -p build/coverage
+          vendor/bin/phpunit \
+            --coverage-clover build/coverage/clover.xml \
+            --coverage-html build/coverage/html
+
+      - name: Copy coverage to docs site
+        run: cp -r build/coverage/html docs/site/public/coverage
+
+      - name: Install phpDocumentor
+        run: |
+          curl -sSL https://github.com/phpDocumentor/phpDocumentor/releases/download/v3.9.1/phpDocumentor.phar -o phpDocumentor.phar
+          chmod +x phpDocumentor.phar
+          sudo mv phpDocumentor.phar /usr/local/bin/phpdoc
+
+      - name: Generate API docs
+        run: phpdoc run
+
+      - name: Copy API docs to docs site
+        run: cp -r build/phpdoc docs/site/public/api
+
+      - name: Install site dependencies
         run: cd docs/site && npm ci
 
       - name: Generate versions.json
