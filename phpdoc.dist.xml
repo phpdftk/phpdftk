@@ -2,34 +2,42 @@
 <phpdocumentor configVersion="3">
     <title>phpdftk API Documentation</title>
 
-    <parser>
-        <target>.phpdoc/cache</target>
-        <visibility>public,protected</visibility>
-        <default-package-name>phpdftk</default-package-name>
-    </parser>
+    <paths>
+        <output>build/phpdoc</output>
+        <cache>.phpdoc/cache</cache>
+    </paths>
 
-    <transformer>
-        <target>build/phpdoc</target>
-    </transformer>
+    <versions>
+        <version number="1.0.0">
+            <api>
+                <source dsn=".">
+                    <path>packages/pdf/core/src</path>
+                    <path>packages/pdf/writer/src</path>
+                    <path>packages/pdf/reader/src</path>
+                    <path>packages/pdf/toolkit/src</path>
+                    <path>packages/pdf/conformance/src</path>
+                    <path>packages/geometry/src</path>
+                    <path>packages/color/src</path>
+                    <path>packages/filters/src</path>
+                    <path>packages/encoding/src</path>
+                    <path>packages/font-metrics/src</path>
+                    <path>packages/font-parser/src</path>
+                    <path>packages/image-metadata/src</path>
+                    <path>packages/xmp/src</path>
+                    <path>packages/crypt/src</path>
+                </source>
+                <ignore>
+                    <path>*/tests/*</path>
+                    <path>*/vendor/*</path>
+                </ignore>
+                <visibility>public</visibility>
+                <visibility>protected</visibility>
+                <default-package-name>phpdftk</default-package-name>
+            </api>
+        </version>
+    </versions>
 
-    <files>
-        <directory>packages/pdf/core/src</directory>
-        <directory>packages/pdf/writer/src</directory>
-        <directory>packages/pdf/reader/src</directory>
-        <directory>packages/pdf/toolkit/src</directory>
-        <directory>packages/pdf/conformance/src</directory>
-        <directory>packages/geometry/src</directory>
-        <directory>packages/color/src</directory>
-        <directory>packages/filters/src</directory>
-        <directory>packages/encoding/src</directory>
-        <directory>packages/font-metrics/src</directory>
-        <directory>packages/font-parser/src</directory>
-        <directory>packages/image-metadata/src</directory>
-        <directory>packages/xmp/src</directory>
-        <directory>packages/crypt/src</directory>
-        <ignore>
-            <path>*/tests/*</path>
-            <path>*/vendor/*</path>
-        </ignore>
-    </files>
+    <settings>
+        <setting name="graphs.enabled" value="true"/>
+    </settings>
 </phpdocumentor>

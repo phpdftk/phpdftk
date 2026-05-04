@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <phpdocumentor configVersion="3">
     <title>phpdftk Filters API</title>
-    <parser>
-        <target>.phpdoc/cache</target>
-        <visibility>public,protected</visibility>
-    </parser>
-    <transformer>
-        <target>build/phpdoc</target>
-    </transformer>
-    <files>
-        <directory>src</directory>
-    </files>
+
+    <paths>
+        <output>build/phpdoc</output>
+        <cache>.phpdoc/cache</cache>
+    </paths>
+
+    <versions>
+        <version number="1.0.0">
+            <api>
+                <source dsn=".">
+                    <path>src</path>
+                </source>
+                <visibility>public</visibility>
+                <visibility>protected</visibility>
+            </api>
+        </version>
+    </versions>
 </phpdocumentor>
