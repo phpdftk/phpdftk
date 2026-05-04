@@ -1,23 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<phpdocumentor
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns="https://www.phpdoc.org/guides"
-    xsi:noNamespaceSchemaLocation="https://docs.phpdoc.org/latest/phpdoc.xsd"
->
+<phpdocumentor configVersion="3">
     <title>phpdftk PDF Reader API</title>
-
-    <paths>
-        <output>build/phpdoc</output>
-        <cache>.phpdoc/cache</cache>
-    </paths>
-
-    <version number="1.0.0">
-        <api>
-            <source dsn=".">
-                <path>src</path>
-            </source>
-            <visibility>public</visibility>
-            <visibility>protected</visibility>
-        </api>
-    </version>
+    <parser>
+        <target>.phpdoc/cache</target>
+        <visibility>public,protected</visibility>
+    </parser>
+    <transformer>
+        <target>build/phpdoc</target>
+    </transformer>
+    <files>
+        <directory>src</directory>
+    </files>
 </phpdocumentor>

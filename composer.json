@@ -63,6 +63,16 @@
             "phpbench/phpbench": true
         }
     },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "analyse": "scripts/analyse",
+        "lint": "scripts/lint",
+        "lint:fix": "scripts/lint-fix",
+        "benchmark": "scripts/benchmark",
+        "coverage": "scripts/coverage",
+        "compliance": "scripts/compliance",
+        "phpdoc": "scripts/phpdoc"
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }

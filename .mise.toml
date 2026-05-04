@@ -7,32 +7,32 @@ node = "24"
 
 [tasks.test]
 description = "Run tests"
-run = "vendor/bin/phpunit"
+run = "composer test"
 
 [tasks.analyse]
 description = "Run PHPStan static analysis"
-run = "scripts/analyse"
+run = "composer analyse"
 
 [tasks.lint]
 description = "Check code style (PHP CS Fixer dry-run)"
-run = "scripts/lint"
+run = "composer lint"
 
 [tasks."lint:fix"]
 description = "Fix code style"
-run = "scripts/lint-fix"
+run = "composer lint:fix"
 
 [tasks.benchmark]
 description = "Run benchmarks and generate docs/generated/benchmarks.md"
-run = "scripts/benchmark"
+run = "composer benchmark"
 
 [tasks.coverage]
 description = "Generate code coverage report and badge"
-run = "scripts/coverage"
+run = "composer coverage"
 
 [tasks.compliance]
 description = "Run external compliance validation suite"
-run = "scripts/compliance"
+run = "composer compliance"
 
 [tasks.phpdoc]
 description = "Generate API documentation via phpDocumentor"
-run = "scripts/phpdoc"
+run = "composer phpdoc"

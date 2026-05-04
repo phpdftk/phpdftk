@@ -23,9 +23,6 @@ jobs:
           extensions: zlib, openssl, simplexml
           coverage: pcov
 
-      - name: Setup mise
-        uses: jdx/mise-action@v2
-
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
