@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['*']
   pull_request:
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -24,7 +28,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: zlib, openssl, simplexml
-          coverage: none
+          coverage: pcov
 
       - name: Build validation tool images
         run: cd docker && docker compose build
@@ -33,7 +37,12 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Run tests
-        run: vendor/bin/phpunit
+        run: |
+          mkdir -p build/coverage
+          vendor/bin/phpunit \
+            --coverage-clover build/coverage/clover.xml \
+            --coverage-html build/coverage/html \
+            --coverage-php build/coverage/coverage.php
 
       - name: Run static analysis
         run: composer analyse
@@ -43,6 +52,221 @@ jobs:
 
       - name: Audit dependencies
         run: composer audit
+
+      - name: Upload coverage artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: build/coverage/
+
+  publish-coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: simplexml
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: build/coverage/
+
+      - name: Generate badge and summary
+        run: |
+          # Extract coverage percentage from clover XML
+          COVERAGE=$(php -r '
+            $xml = simplexml_load_file("build/coverage/clover.xml");
+            $metrics = $xml->project->metrics;
+            $statements = (int)$metrics["statements"];
+            $covered = (int)$metrics["coveredstatements"];
+            echo $statements > 0 ? round($covered / $statements * 100, 2) : 0;
+          ')
+          echo "Coverage: ${COVERAGE}%"
+
+          # Generate badge SVG
+          php scripts/generate-badge.php "$COVERAGE" coverage > build/coverage/coverage-badge.svg
+
+          # Generate markdown summary
+          cat > build/coverage/coverage.md <<EOF
+          # Code Coverage Report
+
+          **Coverage:** ${COVERAGE}%
+
+          Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          Commit: ${GITHUB_SHA}
+          Ref: ${GITHUB_REF}
+          EOF
+
+          # Generate JSON summary
+          php -r '
+            $xml = simplexml_load_file("build/coverage/clover.xml");
+            $metrics = $xml->project->metrics;
+            $statements = (int)$metrics["statements"];
+            $covered = (int)$metrics["coveredstatements"];
+            $methods = (int)$metrics["methods"];
+            $coveredMethods = (int)$metrics["coveredmethods"];
+            echo json_encode([
+              "coverage" => $statements > 0 ? round($covered / $statements * 100, 2) : 0,
+              "statements" => $statements,
+              "covered_statements" => $covered,
+              "methods" => $methods,
+              "covered_methods" => $coveredMethods,
+              "commit" => getenv("GITHUB_SHA"),
+              "ref" => getenv("GITHUB_REF"),
+              "timestamp" => date("c"),
+            ], JSON_PRETTY_PRINT);
+          ' > build/coverage/coverage.json
+
+      - name: Determine target directory
+        id: target
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          DIR="${BRANCH}/${SHORT_SHA}"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Commit to _coverage branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch orphan branch if it exists
+          git fetch origin _coverage:refs/remotes/origin/_coverage 2>/dev/null || true
+
+          # Set up worktree for the coverage branch
+          if git rev-parse --verify origin/_coverage >/dev/null 2>&1; then
+            git worktree add coverage-branch origin/_coverage
+            cd coverage-branch
+            git checkout -B _coverage origin/_coverage
+          else
+            git worktree add --detach coverage-branch
+            cd coverage-branch
+            git checkout --orphan _coverage
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy coverage artifacts into target directory
+          mkdir -p "${{ steps.target.outputs.dir }}"
+          cp -r ../build/coverage/* "${{ steps.target.outputs.dir }}/"
+
+          # Commit and push
+          git add .
+          git commit -m "coverage: ${{ steps.target.outputs.dir }}" --allow-empty
+          git push origin _coverage
+
+      - name: Cleanup worktree
+        if: always()
+        run: git worktree remove coverage-branch --force 2>/dev/null || true
+
+  phpdoc:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+
+      - name: Install phpDocumentor
+        run: |
+          curl -sSL https://github.com/phpDocumentor/phpDocumentor/releases/download/v3.9.1/phpDocumentor.phar -o phpDocumentor.phar
+          chmod +x phpDocumentor.phar
+          sudo mv phpDocumentor.phar /usr/local/bin/phpdoc
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Generate combined API docs
+        run: phpdoc run
+
+      - name: Generate per-package API docs
+        run: |
+          for pkg in packages/*/phpdoc.dist.xml packages/pdf/*/phpdoc.dist.xml; do
+            dir=$(dirname "$pkg")
+            name=$(basename "$dir")
+            if [[ "$dir" == packages/pdf/* ]]; then
+              name="pdf-$name"
+            fi
+            echo "=== Generating docs for $name ==="
+            (cd "$dir" && phpdoc run) || true
+            mkdir -p "build/phpdoc-packages/$name"
+            cp -r "$dir/build/phpdoc/"* "build/phpdoc-packages/$name/"
+          done
+
+      - name: Determine target directory
+        id: target
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            DIR="${GITHUB_REF#refs/tags/}"
+          else
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            DIR="${BRANCH}/${SHORT_SHA}"
+          fi
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Commit to _phpdoc branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch orphan branch if it exists
+          git fetch origin _phpdoc:refs/remotes/origin/_phpdoc 2>/dev/null || true
+
+          # Set up worktree for the phpdoc branch
+          if git rev-parse --verify origin/_phpdoc >/dev/null 2>&1; then
+            git worktree add phpdoc-branch origin/_phpdoc
+            cd phpdoc-branch
+            git checkout -B _phpdoc origin/_phpdoc
+          else
+            git worktree add --detach phpdoc-branch
+            cd phpdoc-branch
+            git checkout --orphan _phpdoc
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy combined docs
+          mkdir -p "${{ steps.target.outputs.dir }}"
+          cp -r ../build/phpdoc/* "${{ steps.target.outputs.dir }}/"
+
+          # Copy per-package docs
+          for pkg_dir in ../build/phpdoc-packages/*/; do
+            pkg_name=$(basename "$pkg_dir")
+            mkdir -p "packages/$pkg_name/${{ steps.target.outputs.dir }}"
+            cp -r "$pkg_dir"* "packages/$pkg_name/${{ steps.target.outputs.dir }}/"
+          done
+
+          # Update latest symlinks for tags
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            rm -f latest
+            ln -s "${{ steps.target.outputs.dir }}" latest
+            for pkg_dir in packages/*/; do
+              rm -f "${pkg_dir}latest"
+              ln -s "${{ steps.target.outputs.dir }}" "${pkg_dir}latest"
+            done
+          fi
+
+          # Commit and push
+          git add .
+          git commit -m "phpdoc: ${{ steps.target.outputs.dir }}" --allow-empty
+          git push origin _phpdoc
+
+      - name: Cleanup worktree
+        if: always()
+        run: git worktree remove phpdoc-branch --force 2>/dev/null || true
 
   verapdf:
     runs-on: ubuntu-latest
@@ -58,7 +282,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: zlib, openssl, simplexml
-          coverage: none
+          coverage: pcov
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
