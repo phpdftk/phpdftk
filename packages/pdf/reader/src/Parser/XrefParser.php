@@ -54,6 +54,11 @@ final class XrefParser
             if ($word === 'trailer') {
                 break;
             }
+            if ($word === '' || $this->source->isEof()) {
+                throw new InvalidPdfException(
+                    "Unexpected end of xref table at offset " . $this->source->tell() . ": expected 'trailer'"
+                );
+            }
 
             // $word is the first object number of this subsection
             $firstObj = (int) $word;

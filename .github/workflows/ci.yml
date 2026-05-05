@@ -29,21 +29,19 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: zlib, openssl, simplexml
-          coverage: pcov
+          coverage: none
 
       - name: Build validation tool images
         run: cd docker && docker compose build
 
+      - name: Pull veraPDF image
+        run: docker pull verapdf/cli
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run tests with coverage
-        run: |
-          mkdir -p build/coverage
-          vendor/bin/phpunit \
-            --coverage-clover build/coverage/clover.xml \
-            --coverage-html build/coverage/html \
-            --coverage-php build/coverage/coverage.php
+      - name: Run tests
+        run: php -d memory_limit=512M vendor/bin/phpunit --no-coverage
 
       - name: Run static analysis
         run: composer analyse
@@ -54,6 +52,31 @@ jobs:
       - name: Audit dependencies
         run: composer audit
 
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml
+          coverage: pcov
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p build/coverage
+          php -d memory_limit=512M vendor/bin/phpunit \
+            --exclude-group tier2 --exclude-group tier4 --exclude-group verapdf \
+            --coverage-clover build/coverage/clover.xml \
+            --coverage-html build/coverage/html \
+            --coverage-php build/coverage/coverage.php
+
       - name: Upload coverage artifacts
         if: success()
         uses: actions/upload-artifact@v4
@@ -62,7 +85,7 @@ jobs:
           path: build/coverage/
 
   publish-coverage:
-    needs: test
+    needs: coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -308,30 +331,6 @@ jobs:
         if: always()
         run: git worktree remove phpdoc-branch --force 2>/dev/null || true
 
-  verapdf:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: zlib, openssl, simplexml
-          coverage: pcov
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Pull veraPDF image
-        run: docker pull verapdf/cli
-
-      - name: Run PDF/A conformance tests
-        run: vendor/bin/phpunit --group verapdf
 
   compliance:
     runs-on: ubuntu-latest

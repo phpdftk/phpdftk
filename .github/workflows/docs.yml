@@ -21,7 +21,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
 
       - uses: actions/setup-node@v4
         with:
@@ -36,16 +35,14 @@ jobs:
           extensions: zlib, openssl, simplexml
           coverage: pcov
 
-      - name: Build validation tool images
-        run: cd docker && docker compose build
-
       - name: Install PHP dependencies
         run: composer install --prefer-dist --no-progress
 
       - name: Generate coverage report
         run: |
           mkdir -p build/coverage
-          vendor/bin/phpunit \
+          php -d memory_limit=512M vendor/bin/phpunit \
+            --exclude-group tier2 --exclude-group tier4 --exclude-group verapdf \
             --coverage-clover build/coverage/clover.xml \
             --coverage-html build/coverage/html
 

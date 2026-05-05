@@ -97,4 +97,71 @@ final class DockerToolRunner
 
         return new DockerToolResult($ret, implode("\n", $output));
     }
+
+    /**
+     * Start a persistent container with a volume mounted at /data.
+     *
+     * Returns the container ID. Use exec() to run commands inside it,
+     * then stop() when done. Much faster than run() for many invocations
+     * since the container (and JVM, etc.) only starts once.
+     *
+     * @param string   $image      Docker image name
+     * @param string   $volumePath Host directory to mount as /data
+     * @param string   $name       Optional container name for identification
+     */
+    public static function start(string $image, string $volumePath, string $name = ''): ?string
+    {
+        // Remove any leftover container with the same name
+        if ($name !== '') {
+            exec(sprintf('docker rm -f %s 2>/dev/null', escapeshellarg($name)));
+        }
+
+        $nameArg = $name !== '' ? sprintf('--name %s', escapeshellarg($name)) : '';
+        $cmd = sprintf(
+            'docker run -d %s --entrypoint "" -v %s:/data %s tail -f /dev/null 2>/dev/null',
+            $nameArg,
+            escapeshellarg($volumePath),
+            escapeshellarg($image),
+        );
+
+        $output = [];
+        $ret = 0;
+        exec($cmd, $output, $ret);
+
+        if ($ret !== 0 || $output === []) {
+            return null;
+        }
+
+        // Container ID is the last line of output
+        return trim(end($output));
+    }
+
+    /**
+     * Execute a command inside a running container.
+     *
+     * @param string   $containerId Container ID or name
+     * @param string[] $args        Command and arguments to execute
+     */
+    public static function exec(string $containerId, array $args): DockerToolResult
+    {
+        $cmd = sprintf(
+            'docker exec %s %s 2>&1',
+            escapeshellarg($containerId),
+            implode(' ', array_map(escapeshellarg(...), $args)),
+        );
+
+        $output = [];
+        $ret = 0;
+        exec($cmd, $output, $ret);
+
+        return new DockerToolResult($ret, implode("\n", $output));
+    }
+
+    /**
+     * Stop and remove a running container.
+     */
+    public static function stop(string $containerId): void
+    {
+        exec(sprintf('docker rm -f %s 2>/dev/null', escapeshellarg($containerId)));
+    }
 }

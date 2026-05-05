@@ -4,108 +4,108 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Reader\Tests\Compliance;
 
-use Phpdftk\Tests\Support\DockerToolResult;
-use Phpdftk\Tests\Support\VeraPdfValidationTrait;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Phpdftk\Tests\Support\DockerToolRunner;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tier 2 — veraPDF negative compliance tests against Isartor/Bavaria corpora.
+ * Tier 2 — veraPDF compliance tests against the veraPDF test corpus.
  *
- * These PDFs are known-bad: each one deliberately violates PDF/A rules.
- * We assert that veraPDF correctly identifies them as non-compliant.
+ * The corpus contains both "pass" and "fail" PDFs. We assert that:
+ * - Files with "fail" in the name are reported as non-compliant
+ * - Files with "pass" in the name are reported as compliant
+ *
+ * Uses a single Docker invocation with recursive scanning for performance
+ * (processes all PDFs in ~60s vs hours with one container per file).
  *
  * Run with: vendor/bin/phpunit --group tier2-pdfa
  */
 #[Group('tier2')]
 #[Group('tier2-pdfa')]
+#[Group('verapdf')]
 class Tier2PdfACorpusTest extends TestCase
 {
-    use VeraPdfValidationTrait;
-
     private const CORPUS_DIR = __DIR__ . '/../../../../../vendor-data/verapdf-corpus';
 
-    // -----------------------------------------------------------------------
-    // PDF/A-1b corpus (Isartor)
-    // -----------------------------------------------------------------------
-
-    /** @return iterable<string, array{string}> */
-    public static function pdfA1bProvider(): iterable
+    public function testPdfA1bCorpus(): void
     {
-        yield from self::pdfFilesIn(self::CORPUS_DIR . '/PDF_A-1b', 'PDF_A-1b');
+        $corpusPath = realpath(self::CORPUS_DIR . '/PDF_A-1b');
+        if ($corpusPath === false || !is_dir($corpusPath)) {
+            $this->markTestSkipped('PDF/A-1b corpus not available (vendor-data/verapdf-corpus submodule not initialized)');
+        }
+
+        $output = $this->runVeraPdfRecursive($corpusPath, '1b');
+        $this->assertCorpusResults($output, 'PDF/A-1b');
     }
 
-    #[DataProvider('pdfA1bProvider')]
-    public function testPdfA1bNonCompliance(string $path): void
+    public function testPdfA2bCorpus(): void
     {
-        $rawResult = $this->runVeraPdfRaw($path, '1b');
-        $output = $rawResult instanceof DockerToolResult ? $rawResult->output : $rawResult;
+        $corpusPath = realpath(self::CORPUS_DIR . '/PDF_A-2b');
+        if ($corpusPath === false || !is_dir($corpusPath)) {
+            $this->markTestSkipped('PDF/A-2b corpus not available (vendor-data/verapdf-corpus submodule not initialized)');
+        }
 
-        self::assertStringContainsString(
-            'isCompliant="false"',
-            $output,
-            sprintf('Expected veraPDF to report non-compliance for %s', basename($path)),
+        $output = $this->runVeraPdfRecursive($corpusPath, '2b');
+        $this->assertCorpusResults($output, 'PDF/A-2b');
+    }
+
+    private function runVeraPdfRecursive(string $directory, string $profile): string
+    {
+        if (!DockerToolRunner::isAvailable() || !DockerToolRunner::hasImage('verapdf/cli')) {
+            $this->markTestSkipped('veraPDF Docker image not available');
+        }
+
+        $result = DockerToolRunner::run(
+            'verapdf/cli',
+            ['--format', 'mrr', '-f', $profile, '-r', '/data'],
+            $directory,
         );
+
+        return $result->output;
     }
-
-    // -----------------------------------------------------------------------
-    // PDF/A-2b corpus (Bavaria)
-    // -----------------------------------------------------------------------
-
-    /** @return iterable<string, array{string}> */
-    public static function pdfA2bProvider(): iterable
-    {
-        yield from self::pdfFilesIn(self::CORPUS_DIR . '/PDF_A-2b', 'PDF_A-2b');
-    }
-
-    #[DataProvider('pdfA2bProvider')]
-    public function testPdfA2bNonCompliance(string $path): void
-    {
-        $rawResult = $this->runVeraPdfRaw($path, '2b');
-        $output = $rawResult instanceof DockerToolResult ? $rawResult->output : $rawResult;
-
-        self::assertStringContainsString(
-            'isCompliant="false"',
-            $output,
-            sprintf('Expected veraPDF to report non-compliance for %s', basename($path)),
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
 
     /**
-     * Glob all .pdf files in a directory tree and yield them as data-provider entries.
-     *
-     * @return iterable<string, array{string}>
+     * Parse veraPDF MRR output and assert that "fail" files are non-compliant
+     * and "pass" files are compliant.
      */
-    private static function pdfFilesIn(string $directory, string $prefix): iterable
+    private function assertCorpusResults(string $output, string $corpusName): void
     {
-        $resolved = realpath($directory);
-        if ($resolved === false || !is_dir($resolved)) {
-            return;
-        }
+        // Parse all job results: filename + compliance status
+        $mismatches = [];
+        $totalJobs = 0;
 
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($resolved, \FilesystemIterator::SKIP_DOTS),
-        );
+        if (preg_match_all(
+            '/<job>.*?<name>([^<]+)<\/name>.*?<validationReport[^>]*isCompliant="([^"]+)"[^>]*>/s',
+            $output,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            $totalJobs = count($matches);
+            foreach ($matches as $match) {
+                $filename = basename($match[1]);
+                $isCompliant = $match[2] === 'true';
 
-        $paths = [];
-        foreach ($iterator as $file) {
-            /** @var \SplFileInfo $file */
-            if (strtolower($file->getExtension()) !== 'pdf') {
-                continue;
+                $expectFail = str_contains($filename, 'fail');
+                $expectPass = str_contains($filename, 'pass');
+
+                if ($expectFail && $isCompliant) {
+                    $mismatches[] = "$filename: expected non-compliant, got compliant";
+                } elseif ($expectPass && !$isCompliant) {
+                    $mismatches[] = "$filename: expected compliant, got non-compliant";
+                }
             }
-            $paths[] = $file->getRealPath();
         }
 
-        sort($paths);
+        self::assertGreaterThan(0, $totalJobs, "$corpusName corpus: veraPDF processed no files");
 
-        foreach ($paths as $path) {
-            $label = $prefix . '/' . substr($path, strlen($resolved) + 1);
-            yield $label => [$path];
+        if ($mismatches !== []) {
+            self::fail(sprintf(
+                "%s corpus: %d/%d files had unexpected results:\n  - %s",
+                $corpusName,
+                count($mismatches),
+                $totalJobs,
+                implode("\n  - ", array_slice($mismatches, 0, 30)),
+            ));
         }
     }
 }
