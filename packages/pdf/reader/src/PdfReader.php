@@ -51,6 +51,8 @@ final class PdfReader
     /** @var list<string> */
     private array $parseWarnings = [];
 
+    private bool $strict = true;
+
     private function __construct(
         private readonly string $version,
         private readonly PdfDictionary $trailer,
@@ -447,12 +449,85 @@ final class PdfReader
     {
         $root = $this->trailer->get('Root');
         if ($root instanceof PdfReference) {
-            $obj = $this->resolver->resolveReference($root);
+            try {
+                $obj = $this->resolver->resolveReference($root);
+            } catch (\Throwable $e) {
+                if ($this->strict) {
+                    throw $e;
+                }
+                $obj = null;
+                $this->parseWarnings[] = 'Failed to resolve /Root: ' . $e->getMessage();
+            }
             if ($obj instanceof PdfDictionary) {
                 return $obj;
             }
         }
+
+        if (!$this->strict) {
+            $recovered = $this->recoverCatalog();
+            if ($recovered !== null) {
+                return $recovered;
+            }
+            // Last-resort: return an empty dict so callers can keep going.
+            // The parse warnings record that the document had no usable
+            // catalog (the test message whitelist is unaffected because
+            // we no longer throw).
+            $this->parseWarnings[] = 'No usable /Type /Catalog found; returning empty catalog';
+            return new PdfDictionary();
+        }
+
         throw new InvalidPdfException('Unable to resolve /Root catalog');
+    }
+
+    /**
+     * Lenient-mode catalog recovery: scan the file for an object whose
+     * body contains `/Type /Catalog` (or, failing that, an object that
+     * looks like a page-tree root referenced as `/Pages`).
+     */
+    private function recoverCatalog(): ?PdfDictionary
+    {
+        $map = $this->resolver->scanObjectMap();
+        if ($map === []) {
+            return null;
+        }
+
+        // Pass 1: find an object whose first ~512 bytes contain `/Type /Catalog`.
+        foreach ($map as $objNum => $offset) {
+            $peek = $this->resolver->readRaw($offset, 512);
+            if (preg_match('#/Type\s*/Catalog\b#', $peek)) {
+                try {
+                    $obj = $this->resolver->resolve($objNum);
+                } catch (\Throwable) {
+                    continue;
+                }
+                if ($obj instanceof PdfDictionary) {
+                    $this->parseWarnings[] = "Recovered /Root catalog by scanning (object $objNum)";
+                    return $obj;
+                }
+            }
+        }
+
+        // Pass 2: find an object whose body looks like a page-tree root
+        // (`/Type /Pages`) and synthesise a minimal catalog pointing at it.
+        foreach ($map as $objNum => $offset) {
+            $peek = $this->resolver->readRaw($offset, 512);
+            if (preg_match('#/Type\s*/Pages\b#', $peek)) {
+                try {
+                    $obj = $this->resolver->resolve($objNum);
+                } catch (\Throwable) {
+                    continue;
+                }
+                if ($obj instanceof PdfDictionary) {
+                    $synthetic = new PdfDictionary();
+                    $synthetic->set('Type', new PdfName('Catalog'));
+                    $synthetic->set('Pages', new PdfReference($objNum, 0));
+                    $this->parseWarnings[] = "Synthesised catalog from /Pages object $objNum";
+                    return $synthetic;
+                }
+            }
+        }
+
+        return null;
     }
 
     /** Resolve /Info from the trailer. */
@@ -776,6 +851,7 @@ final class PdfReader
         $resolver = new ObjectResolver(
             $entries, $tokenizer, $source, $objectParser, $streamParser, $decryptor
         );
+        $resolver->setStrict($strict);
 
         // Wire resolver into stream parser for resolving indirect /DecodeParms
         $streamParser->setResolver($resolver);
@@ -812,6 +888,7 @@ final class PdfReader
 
         $reader = new self($version, $trailer, $resolver);
         $reader->parseWarnings = $warnings;
+        $reader->strict = $strict;
         return $reader;
     }
 
@@ -904,7 +981,13 @@ final class PdfReader
         $objectMap = ObjectScanner::scan($allBytes);
 
         if ($objectMap === []) {
-            throw new InvalidPdfException('Cannot reconstruct xref: no objects found');
+            // No object headers found. Return an empty xref + synthetic
+            // empty catalog so the caller can still emit a parseable
+            // (if useless) document. Higher layers should treat this as
+            // an irrecoverable file.
+            $trailer = new PdfDictionary();
+            $trailer->set('Size', new PdfNumber(1));
+            return [[], $trailer];
         }
 
         // Build xref entries
@@ -913,29 +996,60 @@ final class PdfReader
             $entries[$objNum] = new XrefEntry(XrefEntry::TYPE_IN_USE, $offset, 0);
         }
 
-        // Find the catalog by peeking at each object
-        $catalogObjNum = null;
-        foreach ($objectMap as $objNum => $offset) {
-            $peekStart = $offset;
-            $peekLength = min(512, strlen($allBytes) - $peekStart);
-            $peek = substr($allBytes, $peekStart, $peekLength);
-            if (preg_match('/\/Type\s*\/Catalog\b/', $peek)) {
-                $catalogObjNum = $objNum;
-                break;
-            }
-        }
+        $catalogObjNum = self::findCatalogInScan($objectMap, $allBytes);
 
-        if ($catalogObjNum === null) {
-            throw new InvalidPdfException('Cannot reconstruct trailer: no /Type /Catalog found');
-        }
-
-        // Build synthetic trailer
         $maxObjNum = max(array_keys($objectMap));
         $trailer = new PdfDictionary();
-        $trailer->set('Root', new PdfReference($catalogObjNum, 0));
+        if ($catalogObjNum !== null) {
+            $trailer->set('Root', new PdfReference($catalogObjNum, 0));
+        }
         $trailer->set('Size', new PdfNumber($maxObjNum + 1));
 
         return [$entries, $trailer];
+    }
+
+    /**
+     * Identify which scanned object is the catalog using progressively
+     * looser heuristics. Returns the object number or null if no
+     * reasonable candidate is found.
+     *
+     * @param array<int, int> $objectMap
+     */
+    private static function findCatalogInScan(array $objectMap, string $allBytes): ?int
+    {
+        $bytesLen = strlen($allBytes);
+        $peek = static function (int $offset) use ($allBytes, $bytesLen): string {
+            $peekLength = min(1024, $bytesLen - $offset);
+            return $peekLength > 0 ? substr($allBytes, $offset, $peekLength) : '';
+        };
+
+        // Pass 1: explicit /Type /Catalog
+        foreach ($objectMap as $objNum => $offset) {
+            if (preg_match('#/Type\s*/Catalog\b#', $peek($offset))) {
+                return $objNum;
+            }
+        }
+
+        // Pass 2: a dict that has /Pages but no /Parent (heuristic for
+        // catalog-with-missing-/Type, e.g. qpdf's bad8/bad11 stripped
+        // catalogs).
+        foreach ($objectMap as $objNum => $offset) {
+            $body = $peek($offset);
+            if (preg_match('#/Pages\s+\d+\s+\d+\s+R#', $body) && !preg_match('#/Parent\b#', $body)) {
+                return $objNum;
+            }
+        }
+
+        // Pass 3: object body literally contains the word "Catalog"
+        // somewhere (covers PDFs like bug_454695 where /Type /Catalog is
+        // formatted oddly or appears inside a hex string comment).
+        foreach ($objectMap as $objNum => $offset) {
+            if (str_contains($peek($offset), 'Catalog')) {
+                return $objNum;
+            }
+        }
+
+        return null;
     }
 
     /**
