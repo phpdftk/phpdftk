@@ -463,12 +463,70 @@ jobs:
       - name: Generate versions.json
         run: node docs/site/scripts/generate-versions.js > docs/site/public/versions.json
 
-      - name: Build site
-        run: cd docs/site && npx astro build
+      - name: Determine ref and stability
+        id: ref
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            REF_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            REF_NAME="head"
+          fi
+          case "$REF_NAME" in
+            v*-*) IS_STABLE=0 ;;
+            v*)   IS_STABLE=1 ;;
+            *)    IS_STABLE=0 ;;
+          esac
+          echo "name=$REF_NAME"        >> "$GITHUB_OUTPUT"
+          echo "stable=$IS_STABLE"     >> "$GITHUB_OUTPUT"
+          echo "Building ref '$REF_NAME' (stable=$IS_STABLE)"
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Build site
+        env:
+          DOCS_VERSION: ${{ steps.ref.outputs.name }}
+          DOCS_BASE: /${{ steps.ref.outputs.name }}/
+        run: cd docs/site && npx astro build --base="/${{ steps.ref.outputs.name }}/"
+
+      - name: Publish build to _docs branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin _docs:refs/remotes/origin/_docs 2>/dev/null || true
+
+          if git rev-parse --verify origin/_docs >/dev/null 2>&1; then
+            git worktree add docs-branch origin/_docs
+            cd docs-branch
+            git checkout -B _docs origin/_docs
+          else
+            git worktree add --detach docs-branch
+            cd docs-branch
+            git checkout --orphan _docs
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          REF_NAME="${{ steps.ref.outputs.name }}"
+          rm -rf "$REF_NAME"
+          mkdir -p "$REF_NAME"
+          cp -r ../docs/site/dist/. "$REF_NAME/"
+
+          if [[ "${{ steps.ref.outputs.stable }}" == "1" ]]; then
+            mkdir -p latest
+            ../scripts/generate-redirect.sh "/$REF_NAME/" > latest/index.html
+            ../scripts/generate-redirect.sh "/$REF_NAME/" > index.html
+          fi
+
+          git add .
+          git commit -m "docs: $REF_NAME" --allow-empty
+          git push origin _docs
+
+      - name: Upload aggregated _docs tree as Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site/dist
+          path: docs-branch
+
+      - name: Cleanup worktree
+        if: always()
+        run: git worktree remove docs-branch --force 2>/dev/null || true
 
   deploy-docs:
     needs: docs

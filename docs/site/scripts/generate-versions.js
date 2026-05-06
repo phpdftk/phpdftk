@@ -8,6 +8,7 @@ const tags = execSync("git tag -l 'v*' --sort=-version:refname")
 
 const versions = [
 	{ label: 'latest', value: 'latest' },
+	{ label: 'main', value: 'head' },
 	...tags.map((tag) => ({ label: tag, value: tag })),
 ];
 
