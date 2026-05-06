@@ -41,7 +41,7 @@ class CrossReferenceStream extends PdfStream
     public ?PdfArray $id = null;                // /ID
     public ?PdfReference $encrypt = null;       // /Encrypt
 
-    /** @var int[] Raw entries: [type, field2, field3, ...] triples */
+    /** @var list<array{int, int, int}> Raw entries: [type, field2, field3] triples */
     private array $rawEntries = [];
 
     /** @var int[] Field widths in bytes [w0, w1, w2] */

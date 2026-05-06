@@ -661,21 +661,17 @@ final class CCITTFaxFilter implements FilterInterface
         $makeupTable = $isWhite ? self::WHITE_MAKEUP_ENC : self::BLACK_MAKEUP_ENC;
         $termTable = $isWhite ? self::WHITE_TERMINATING_ENC : self::BLACK_TERMINATING_ENC;
 
-        // Extended make-up codes for runs >= 1792
+        // Extended make-up codes for runs >= 1792 — the smallest extended
+        // makeup is 1792, so the while-guard ensures at least one entry fits.
         while ($runLength >= 1792) {
-            // Find largest extended makeup that fits
-            $best = 0;
+            $best = 1792;
             foreach (self::EXTENDED_MAKEUP_ENC as $len => $code) {
                 if ($len <= $runLength && $len > $best) {
                     $best = $len;
                 }
             }
-            if ($best > 0) {
-                $bits .= self::EXTENDED_MAKEUP_ENC[$best];
-                $runLength -= $best;
-            } else {
-                break;
-            }
+            $bits .= self::EXTENDED_MAKEUP_ENC[$best];
+            $runLength -= $best;
         }
 
         // Standard make-up codes for runs >= 64

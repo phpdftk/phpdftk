@@ -111,8 +111,8 @@ jobs:
           mkdir -p build/coverage
           php -d memory_limit=512M vendor/bin/phpunit \
             --coverage-clover build/coverage/clover.xml \
-            --coverage-html build/coverage/html \
-            --coverage-php build/coverage/coverage.php
+            --coverage-html build/coverage/html
+            --coverage-json build/coverage/json
 
       - name: Upload coverage artifacts
         if: success()
