@@ -36,9 +36,6 @@ class Tier2PdfBoxCorpusTest extends TestCase
     #[DataProvider('pdfboxProvider')]
     public function testPdfBoxCorpus(string $path): void
     {
-        if ($path === '__SKIP__') {
-            $this->markTestSkipped('PDFBox corpus not available (vendor-data/pdfbox submodule not initialized)');
-        }
         self::assertCorpusPdfParseable($path);
     }
 
@@ -55,7 +52,6 @@ class Tier2PdfBoxCorpusTest extends TestCase
     {
         $resolved = realpath($directory);
         if ($resolved === false || !is_dir($resolved)) {
-            yield '__SKIP__' => ['__SKIP__'];
             return;
         }
 

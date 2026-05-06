@@ -34,7 +34,6 @@ class Tier4Pdf20ExamplesTest extends TestCase
     {
         $resolved = realpath(self::PDF20_DIR);
         if ($resolved === false || !is_dir($resolved)) {
-            yield '__SKIP__' => ['__SKIP__'];
             return;
         }
 
@@ -66,9 +65,6 @@ class Tier4Pdf20ExamplesTest extends TestCase
     #[DataProvider('pdf20Provider')]
     public function testPdf20ExampleParseable(string $path): void
     {
-        if ($path === '__SKIP__') {
-            $this->markTestSkipped('PDF 2.0 examples not available (vendor-data/pdf20examples submodule not initialized)');
-        }
         $reader = PdfReader::fromFile($path, strict: false);
 
         self::assertNotEmpty($reader->getVersion(), 'PDF version should not be empty');
@@ -81,9 +77,6 @@ class Tier4Pdf20ExamplesTest extends TestCase
     #[DataProvider('pdf20Provider')]
     public function testPdf20ExampleQpdfValid(string $path): void
     {
-        if ($path === '__SKIP__') {
-            $this->markTestSkipped('PDF 2.0 examples not available (vendor-data/pdf20examples submodule not initialized)');
-        }
         self::assertFileExists($path);
         $this->assertQpdfValid($path);
     }
