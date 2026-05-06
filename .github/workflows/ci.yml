@@ -10,6 +10,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  pages: write
+  id-token: write
 
 jobs:
   test:
@@ -308,6 +310,12 @@ jobs:
             cp -r "$dir/build/phpdoc/"* "build/phpdoc-packages/$name/"
           done
 
+      - name: Upload phpdoc artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpdoc
+          path: build/phpdoc/
+
       - name: Determine target directory
         id: target
         run: |
@@ -427,3 +435,65 @@ jobs:
             echo "Validating $f..."
             composer validate --strict --no-check-all --no-check-lock "$f"
           done
+
+  docs:
+    needs: [coverage, phpdoc]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/site/package-lock.json
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: build/coverage/
+
+      - name: Download phpdoc artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: phpdoc
+          path: build/phpdoc/
+
+      - name: Copy coverage to docs site
+        run: cp -r build/coverage/html docs/site/public/coverage
+
+      - name: Copy API docs to docs site
+        run: cp -r build/phpdoc docs/site/public/api
+
+      - name: Install site dependencies
+        run: cd docs/site && npm ci
+
+      - name: Generate versions.json
+        run: node docs/site/scripts/generate-versions.js > docs/site/public/versions.json
+
+      - name: Build site
+        run: cd docs/site && npx astro build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site/dist
+
+  deploy-docs:
+    needs: docs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
