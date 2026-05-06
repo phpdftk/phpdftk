@@ -1,0 +1,10 @@
+[
+  {
+    "label": "latest",
+    "value": "latest"
+  },
+  {
+    "label": "main",
+    "value": "head"
+  }
+]
