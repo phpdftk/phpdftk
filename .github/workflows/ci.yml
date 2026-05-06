@@ -71,6 +71,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Initialize corpus submodules
+        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/arlington-pdf-model
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -84,6 +89,18 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-color-emoji fonts-noto-core icc-profiles-free
 
+      - name: Build validation tool images
+        run: cd docker && docker compose build
+
+      - name: Pull veraPDF image
+        run: docker pull verapdf/cli
+
+      - name: Pull JHOVE image
+        run: docker pull openpreserve/jhove
+
+      - name: Build pdfid and PDFBox Preflight images
+        run: cd docker && docker compose build pdfid pdfbox-preflight
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
@@ -91,7 +108,6 @@ jobs:
         run: |
           mkdir -p build/coverage
           php -d memory_limit=512M vendor/bin/phpunit \
-            --exclude-group tier2 --exclude-group tier4 --exclude-group verapdf \
             --coverage-clover build/coverage/clover.xml \
             --coverage-html build/coverage/html \
             --coverage-php build/coverage/coverage.php
