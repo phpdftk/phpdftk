@@ -422,7 +422,7 @@ class PdfVtEandRIntegrationTest extends TestCase
         $annot = new ThreeDAnnotation($rect);
         $annot->dd = $streamRef;
         $annotRef = $writer->register($annot);
-        $page->annots = new PdfArray([$annotRef]);
+        $page->corePage()->annots = [$annotRef];
 
         // Add OutputIntent for color space anchoring
         $this->addOutputIntent($writer, 'GTS_PDFE');

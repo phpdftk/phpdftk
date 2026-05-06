@@ -32,8 +32,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: zlib, openssl, simplexml
+          extensions: zlib, openssl, simplexml, intl
           coverage: pcov
+
+      - name: Install system fonts and ICC profiles
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-color-emoji fonts-noto-core icc-profiles-free
 
       - name: Install PHP dependencies
         run: composer install --prefer-dist --no-progress

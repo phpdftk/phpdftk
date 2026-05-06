@@ -14,12 +14,14 @@ class VariableFontTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        // Find a variable font on the system (macOS has several)
+        // Find a variable font on the system
         $variableCandidates = [
             '/System/Library/Fonts/SFCompact.ttf',
             '/System/Library/Fonts/SFNS.ttf',
             '/System/Library/Fonts/NewYork.ttf',
             '/System/Library/Fonts/SFNSMono.ttf',
+            '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf',
+            '/usr/share/fonts/truetype/noto/NotoSans[wdth,wght].ttf',
         ];
         foreach ($variableCandidates as $path) {
             if (file_exists($path)) {

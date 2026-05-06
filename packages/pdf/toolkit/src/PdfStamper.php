@@ -323,7 +323,6 @@ final class PdfStamper
                 $resources->addXObject($xoName, $xoRef);
             }
 
-            $cs->resources = $resources;
             $csRef = $writer->addNewObject($cs);
 
             // Modify the page to include the new content stream

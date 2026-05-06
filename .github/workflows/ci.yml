@@ -28,8 +28,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: zlib, openssl, simplexml
+          extensions: zlib, openssl, simplexml, intl
           coverage: none
+
+      - name: Install system fonts and ICC profiles
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-color-emoji fonts-noto-core icc-profiles-free
 
       - name: Build validation tool images
         run: cd docker && docker compose build
@@ -62,8 +67,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: zlib, openssl, simplexml
+          extensions: zlib, openssl, simplexml, intl
           coverage: pcov
+
+      - name: Install system fonts and ICC profiles
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-color-emoji fonts-noto-core icc-profiles-free
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress

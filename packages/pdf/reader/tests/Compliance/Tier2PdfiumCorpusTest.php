@@ -36,6 +36,9 @@ class Tier2PdfiumCorpusTest extends TestCase
     #[DataProvider('pdfiumProvider')]
     public function testPdfiumCorpus(string $path): void
     {
+        if ($path === '__SKIP__') {
+            $this->markTestSkipped('PDFium corpus not available (vendor-data/pdfium submodule not initialized)');
+        }
         self::assertCorpusPdfParseable($path);
     }
 
@@ -52,6 +55,7 @@ class Tier2PdfiumCorpusTest extends TestCase
     {
         $resolved = realpath($directory);
         if ($resolved === false || !is_dir($resolved)) {
+            yield '__SKIP__' => ['__SKIP__'];
             return;
         }
 

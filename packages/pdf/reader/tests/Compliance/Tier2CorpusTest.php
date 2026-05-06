@@ -39,6 +39,9 @@ class Tier2CorpusTest extends TestCase
     #[DataProvider('popplerProvider')]
     public function testPopplerCorpus(string $path): void
     {
+        if ($path === '__SKIP__') {
+            $this->markTestSkipped('Poppler corpus not available (vendor-data/poppler-test submodule not initialized)');
+        }
         self::assertCorpusPdfParseable($path);
     }
 
@@ -58,6 +61,9 @@ class Tier2CorpusTest extends TestCase
     #[DataProvider('qpdfProvider')]
     public function testQpdfCorpus(string $path): void
     {
+        if ($path === '__SKIP__') {
+            $this->markTestSkipped('QPDF corpus not available (vendor-data/qpdf submodule not initialized)');
+        }
         self::assertCorpusPdfParseable($path);
     }
 
@@ -74,6 +80,7 @@ class Tier2CorpusTest extends TestCase
     {
         $resolved = realpath($directory);
         if ($resolved === false || !is_dir($resolved)) {
+            yield '__SKIP__' => ['__SKIP__'];
             return;
         }
 
