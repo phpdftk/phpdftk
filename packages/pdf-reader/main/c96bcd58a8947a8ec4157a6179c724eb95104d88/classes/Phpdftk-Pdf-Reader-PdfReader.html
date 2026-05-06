@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+            <title>phpdftk PDF Reader API</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="../">
+    <link rel="icon" href="images/favicon.ico"/>
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/base.css">
+            <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@100;200;300;400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="css/template.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.0/css/all.min.css" integrity="sha256-ybRkN9dBjhcS2qrW1z+hfCxq+1aBdwyQM5wlQoQVt/0=" crossorigin="anonymous" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-okaidia.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-numbers/prism-line-numbers.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-highlight/prism-line-highlight.css">
+                <script src="https://cdn.jsdelivr.net/npm/fuse.js@3.4.6"></script>
+        <script src="https://cdn.jsdelivr.net/npm/css-vars-ponyfill@2"></script>
+        <script src="js/template.js"></script>
+        <script src="js/search.js"></script>
+        <script defer src="js/searchIndex.js"></script>
+    </head>
+<body id="top">
+    <header class="phpdocumentor-header phpdocumentor-section">
+    <h1 class="phpdocumentor-title"><a href="" class="phpdocumentor-title__link">phpdftk PDF Reader API</a></h1>
+    <input class="phpdocumentor-header__menu-button" type="checkbox" id="menu-button" name="menu-button" />
+    <label class="phpdocumentor-header__menu-icon" for="menu-button">
+        <i class="fas fa-bars"></i>
+    </label>
+    <section data-search-form class="phpdocumentor-search">
+    <label>
+        <span class="visually-hidden">Search for</span>
+        <svg class="phpdocumentor-search__icon" width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="2"/>
+            <line x1="12.4892" y1="12.2727" x2="19.1559" y2="18.9393" stroke="currentColor" stroke-width="3"/>
+        </svg>
+        <input type="search" class="phpdocumentor-field phpdocumentor-search__field" placeholder="Loading .." disabled />
+    </label>
+</section>
+
+    <nav class="phpdocumentor-topnav">
+    <ul class="phpdocumentor-topnav__menu">
+        </ul>
+</nav>
+</header>
+
+    <main class="phpdocumentor">
+        <div class="phpdocumentor-section">
+            <input class="phpdocumentor-sidebar__menu-button" type="checkbox" id="sidebar-button" name="sidebar-button" />
+<label class="phpdocumentor-sidebar__menu-icon" for="sidebar-button">
+    Menu
+</label>
+<aside class="phpdocumentor-column -three phpdocumentor-sidebar">
+                    <section class="phpdocumentor-sidebar__category -namespaces">
+            <h2 class="phpdocumentor-sidebar__category-header">Namespaces</h2>
+                                    <h4 class="phpdocumentor-sidebar__root-namespace">
+    <a href="namespaces/phpdftk.html" class="">Phpdftk</a>
+</h4>
+    <ul class="phpdocumentor-list">
+                    <li>
+                <a href="namespaces/phpdftk-pdf.html" class="">Pdf</a>
+                
+            </li>
+            </ul>
+
+                        </section>
+                <section class="phpdocumentor-sidebar__category -packages">
+            <h2 class="phpdocumentor-sidebar__category-header">Packages</h2>
+                                    <h4 class="phpdocumentor-sidebar__root-namespace">
+    <a href="packages/Application.html" class="">Application</a>
+</h4>
+
+                        </section>
+            
+    <section class="phpdocumentor-sidebar__category -reports">
+        <h2 class="phpdocumentor-sidebar__category-header">Reports</h2>
+                <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/deprecated.html">Deprecated</a></h3>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/errors.html">Errors</a></h3>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/markers.html">Markers</a></h3>
+    </section>
+
+    <section class="phpdocumentor-sidebar__category -indices">
+        <h2 class="phpdocumentor-sidebar__category-header">Indices</h2>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="indices/files.html">Files</a></h3>
+    </section>
+</aside>
+
+            <div class="phpdocumentor-column -nine phpdocumentor-content">
+                                <section>
+                                        <ul class="phpdocumentor-breadcrumbs">
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk.html">Phpdftk</a></li>
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk-pdf.html">Pdf</a></li>
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk-pdf-reader.html">Reader</a></li>
+    </ul>
+
+    <article class="phpdocumentor-element -class">
+        <h2 class="phpdocumentor-content__title">
+    PdfReader
+
+    
+            <div class="phpdocumentor-element__package">
+            in package
+            <ul class="phpdocumentor-breadcrumbs">
+                                    <li class="phpdocumentor-breadcrumb"><a href="packages/Application.html">Application</a></li>
+                            </ul>
+        </div>
+    
+    
+    </h2>
+
+<div class="phpdocumentor-label-line">
+
+    <div class="phpdocumentor-label phpdocumentor-label--success"><span>Final</span><span>Yes</span></div>
+
+
+</div>
+
+        <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">49</span>
+
+    </aside>
+
+            <p class="phpdocumentor-summary">PDF reader — parses existing PDF files into the phpdftk object model.</p>
+
+
+    <section class="phpdocumentor-description"><p>Phase 1 supports unencrypted PDFs with classic cross-reference tables.
+Returns raw <code class="prettyprint">PdfDictionary</code> objects; typed hydration (into <code class="prettyprint">Catalog</code>,
+<code class="prettyprint">Page</code>, etc.) is a future phase.</p>
+<p>Three factory methods mirror the writer's output modes:</p>
+<pre class="prettyprint"><code class="language-php">$pdf = PdfReader::fromFile('/path/to/document.pdf');
+$pdf = PdfReader::fromString($bytes);
+$pdf = PdfReader::fromStream(fopen('php://stdin', 'rb'));
+</code></pre>
+</section>
+
+
+
+    
+    
+<h3 id="toc">
+    Table of Contents
+    <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#toc" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h3>
+
+
+
+
+
+
+
+
+
+
+<h4 id="toc-methods">
+    Methods
+    <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#toc-methods" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h4>
+<dl class="phpdocumentor-table-of-contents">
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllText">extractAllText()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Extract text from all pages, concatenated with page separators.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllTextWithPositions">extractAllTextWithPositions()</a>
+    <span>
+                                &nbsp;: array&lt;int, array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;&gt;    </span>
+</dt>
+<dd>Extract text with precise positioning from all pages.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractText">extractText()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Extract text from a page by index (zero-based).</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractTextWithPositions">extractTextWithPositions()</a>
+    <span>
+                                &nbsp;: array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;    </span>
+</dt>
+<dd>Extract text with precise positioning from a page by index (zero-based).</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFile">fromFile()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFilePublicKey">fromFilePublicKey()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+<dd>Read a public-key (certificate-based) encrypted PDF from a file.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStream">fromStream()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromString">fromString()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStringPublicKey">fromStringPublicKey()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+<dd>Read a public-key (certificate-based) encrypted PDF from a string.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getCatalog">getCatalog()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>    </span>
+</dt>
+<dd>Resolve /Root from the trailer — returns the Catalog dictionary.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getEffectiveVersion">getEffectiveVersion()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr>    </span>
+</dt>
+<dd>Effective PDF version — max(header, catalog /Version).</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getInfo">getInfo()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>|null    </span>
+</dt>
+<dd>Resolve /Info from the trailer.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getLinearizationParameters">getLinearizationParameters()</a>
+    <span>
+                                &nbsp;: array{linearized: float, fileLength: int, firstPageObj: int, firstPageEnd: int, pageCount: int, xrefOffset: int}|null    </span>
+</dt>
+<dd>Get linearization parameters if the PDF is linearized.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getObject">getObject()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr>    </span>
+</dt>
+<dd>Resolve any object by number.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPage">getPage()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>    </span>
+</dt>
+<dd>Get a specific page by zero-based index.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageByteRange">getPageByteRange()</a>
+    <span>
+                                &nbsp;: array{offset: int, length: int}|null    </span>
+</dt>
+<dd>Calculate the byte range for a specific page in a linearized PDF.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageCount">getPageCount()</a>
+    <span>
+                                &nbsp;: int    </span>
+</dt>
+<dd>Get the total page count from /Pages -&gt; /Count.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageOffsetHintTable">getPageOffsetHintTable()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Reader-Parser-PageOffsetHintTable.html"><abbr title="\Phpdftk\Pdf\Reader\Parser\PageOffsetHintTable">PageOffsetHintTable</abbr></a>|null    </span>
+</dt>
+<dd>Parse the page offset hint table from a linearized PDF.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPages">getPages()</a>
+    <span>
+                                &nbsp;: array&lt;int, <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>&gt;    </span>
+</dt>
+<dd>Get all Page dictionaries by traversing the page tree.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getParseWarnings">getParseWarnings()</a>
+    <span>
+                                &nbsp;: array&lt;int, string&gt;    </span>
+</dt>
+<dd>Return warnings accumulated during parsing.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPdfVersion">getPdfVersion()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr>    </span>
+</dt>
+<dd>Typed PDF version from the file header.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getResolver">getResolver()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Reader-ObjectResolver.html"><abbr title="\Phpdftk\Pdf\Reader\ObjectResolver">ObjectResolver</abbr></a>    </span>
+</dt>
+<dd>The underlying object resolver.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTrailer">getTrailer()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>    </span>
+</dt>
+<dd>The raw trailer dictionary.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedCatalog">getTypedCatalog()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr>    </span>
+</dt>
+<dd>Return the document catalog as a typed Catalog object.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedObject">getTypedObject()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\PdfObject">PdfObject</abbr>|<abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>    </span>
+</dt>
+<dd>Hydrate any resolved object by object number.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPage">getTypedPage()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr>    </span>
+</dt>
+<dd>Return a specific page as a typed Page object.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPages">getTypedPages()</a>
+    <span>
+                                &nbsp;: array&lt;int, <abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr>&gt;    </span>
+</dt>
+<dd>Return all pages as typed Page objects.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getVersion">getVersion()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>PDF version string, e.g. &quot;1.7&quot;.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_isLinearized">isLinearized()</a>
+    <span>
+                                &nbsp;: bool    </span>
+</dt>
+<dd>Check whether this PDF is linearized (web-optimized).</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_resolveReference">resolveReference()</a>
+    <span>
+                                &nbsp;: <abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr>    </span>
+</dt>
+<dd>Resolve an indirect reference to its target.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_validateVersion">validateVersion()</a>
+    <span>
+                                &nbsp;: array&lt;int, string&gt;    </span>
+</dt>
+<dd>Scan the document for structural features inconsistent with the
+declared version. Returns a list of warning strings.</dd>
+
+    </dl>
+
+
+
+        
+
+        
+
+            <section class="phpdocumentor-methods">
+        <h3 class="phpdocumentor-elements__header" id="methods">
+            Methods
+            <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#methods" class="headerlink"><i class="fas fa-link"></i></a>
+
+        </h3>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_extractAllText">
+        extractAllText()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllText" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">635</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Extract text from all pages, concatenated with page separators.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">extractAllText</span><span>(</span><span class="phpdocumentor-signature__argument"><span>[</span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$separator</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">"\n"</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$separator</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">"\n"</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Separator between pages (default: newline)</p>
+</section>
+
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_extractAllTextWithPositions">
+        extractAllTextWithPositions()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllTextWithPositions" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">667</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Extract text with precise positioning from all pages.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">extractAllTextWithPositions</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;&gt;</span>
+                    &mdash;
+                <section class="phpdocumentor-description"><p>Zero-based page index =&gt; spans</p>
+</section>
+
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_extractText">
+        extractText()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractText" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">623</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Extract text from a page by index (zero-based).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">extractText</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$pageIndex</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Interprets content stream operators, resolves font encodings
+(ToUnicode CMap, /Encoding + /Differences, WinAnsi fallback),
+and infers spacing from text positioning operators.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$pageIndex</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_extractTextWithPositions">
+        extractTextWithPositions()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractTextWithPositions" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">655</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Extract text with precise positioning from a page by index (zero-based).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">extractTextWithPositions</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$pageIndex</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Returns a list of TextSpan objects, each containing the text content,
+position (x, y in user space), dimensions (width, height), font size,
+and font name.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$pageIndex</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, <a href="classes/Phpdftk-Pdf-Reader-TextSpan.html"><abbr title="\Phpdftk\Pdf\Reader\TextSpan">TextSpan</abbr></a>&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_fromFile">
+        fromFile()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFile" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">77</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromFile</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$path</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$password</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">''</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$path</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$password</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">''</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_fromFilePublicKey">
+        fromFilePublicKey()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFilePublicKey" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">90</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Read a public-key (certificate-based) encrypted PDF from a file.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromFilePublicKey</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$path</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$certificate</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$privateKey</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$path</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$certificate</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$privateKey</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_fromStream">
+        fromStream()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStream" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">112</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromStream</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">resource&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stream</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$password</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">''</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$stream</span>
+                : <span class="phpdocumentor-argument-list__argument__type">resource</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$password</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">''</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_fromString">
+        fromString()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromString" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">82</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromString</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$content</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$password</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">''</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$content</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$password</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">''</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_fromStringPublicKey">
+        fromStringPublicKey()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStringPublicKey" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">102</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Read a public-key (certificate-based) encrypted PDF from a string.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromStringPublicKey</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$content</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$certificate</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$privateKey</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$content</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$certificate</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$privateKey</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getCatalog">
+        getCatalog()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getCatalog" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">448</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Resolve /Root from the trailer — returns the Catalog dictionary.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getCatalog</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getEffectiveVersion">
+        getEffectiveVersion()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getEffectiveVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">146</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Effective PDF version — max(header, catalog /Version).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getEffectiveVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Per ISO 32000 §7.2.2, the catalog /Version entry (PDF 1.4+)
+overrides the header version if it is higher.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getInfo">
+        getInfo()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getInfo" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">534</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Resolve /Info from the trailer.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getInfo</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getLinearizationParameters">
+        getLinearizationParameters()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getLinearizationParameters" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">295</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Get linearization parameters if the PDF is linearized.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getLinearizationParameters</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array{linearized: float, fileLength: int, firstPageObj: int, firstPageEnd: int, pageCount: int, xrefOffset: int}|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array{linearized: float, fileLength: int, firstPageObj: int, firstPageEnd: int, pageCount: int, xrefOffset: int}|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getObject">
+        getObject()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getObject" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">595</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Resolve any object by number.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getObject</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$objNum</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$objNum</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPage">
+        getPage()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPage" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">585</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Get a specific page by zero-based index.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPage</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$index</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$index</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPageByteRange">
+        getPageByteRange()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageByteRange" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">427</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Calculate the byte range for a specific page in a linearized PDF.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPageByteRange</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$pageIndex</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array{offset: int, length: int}|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Returns an associative array with 'offset' and 'length' keys,
+or null if the PDF is not linearized or hints are unavailable.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$pageIndex</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array{offset: int, length: int}|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPageCount">
+        getPageCount()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageCount" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">547</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Get the total page count from /Pages -&gt; /Count.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPageCount</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">int</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">int</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPageOffsetHintTable">
+        getPageOffsetHintTable()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageOffsetHintTable" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">334</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Parse the page offset hint table from a linearized PDF.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPageOffsetHintTable</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Reader-Parser-PageOffsetHintTable.html"><abbr title="\Phpdftk\Pdf\Reader\Parser\PageOffsetHintTable">PageOffsetHintTable</abbr></a>|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Returns null if the PDF is not linearized or the hint stream
+cannot be located/parsed.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Reader-Parser-PageOffsetHintTable.html"><abbr title="\Phpdftk\Pdf\Reader\Parser\PageOffsetHintTable">PageOffsetHintTable</abbr></a>|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPages">
+        getPages()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPages" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">568</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Get all Page dictionaries by traversing the page tree.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPages</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, <abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr>&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getParseWarnings">
+        getParseWarnings()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getParseWarnings" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">68</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Return warnings accumulated during parsing.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getParseWarnings</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPdfVersion">
+        getPdfVersion()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPdfVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">135</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Typed PDF version from the file header.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPdfVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getResolver">
+        getResolver()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getResolver" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">607</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">The underlying object resolver.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getResolver</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Reader-ObjectResolver.html"><abbr title="\Phpdftk\Pdf\Reader\ObjectResolver">ObjectResolver</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Reader-ObjectResolver.html"><abbr title="\Phpdftk\Pdf\Reader\ObjectResolver">ObjectResolver</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getTrailer">
+        getTrailer()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTrailer" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">442</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">The raw trailer dictionary.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getTrailer</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getTypedCatalog">
+        getTypedCatalog()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedCatalog" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">685</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Return the document catalog as a typed Catalog object.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getTypedCatalog</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getTypedObject">
+        getTypedObject()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedObject" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">737</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Hydrate any resolved object by object number.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getTypedObject</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$objNum</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfObject">PdfObject</abbr>|<abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$objNum</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\PdfObject">PdfObject</abbr>|<abbr title="\Phpdftk\Pdf\Core\PdfDictionary">PdfDictionary</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getTypedPage">
+        getTypedPage()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPage" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">703</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Return a specific page as a typed Page object.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getTypedPage</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$index</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$index</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getTypedPages">
+        getTypedPages()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPages" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">721</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Return all pages as typed Page objects.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getTypedPages</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, <abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr>&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, <abbr title="\Phpdftk\Pdf\Core\Document\Page">Page</abbr>&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getVersion">
+        getVersion()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">129</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">PDF version string, e.g. &quot;1.7&quot;.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_isLinearized">
+        isLinearized()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_isLinearized" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">254</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Check whether this PDF is linearized (web-optimized).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">isLinearized</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">bool</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>A linearized PDF has a LinearizationParameters dictionary as the
+very first indirect object, containing a /Linearized key. The
+reader handles linearized PDFs correctly (via startxref), but
+does not use the hint tables for progressive loading.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">bool</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_resolveReference">
+        resolveReference()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_resolveReference" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">601</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Resolve an indirect reference to its target.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">resolveReference</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ref</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$ref</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><abbr title="\Phpdftk\Pdf\Core\Serializable">Serializable</abbr></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_validateVersion">
+        validateVersion()
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_validateVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="src/PdfReader.php"><a href="files/src-pdfreader.html"><abbr title="src/PdfReader.php">PdfReader.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">173</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Scan the document for structural features inconsistent with the
+declared version. Returns a list of warning strings.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">validateVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Checks top-level indicators that can be detected from raw
+dictionaries without full object hydration.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span>
+            </section>
+
+</article>
+            </section>
+
+        <div class="phpdocumentor-modal" id="source-view">
+    <div class="phpdocumentor-modal-bg" data-exit-button></div>
+    <div class="phpdocumentor-modal-container">
+        <div class="phpdocumentor-modal-content">
+            <pre style="max-height: 500px; overflow-y: scroll" data-src="files/src/PdfReader.php.txt" class="language-php line-numbers linkable-line-numbers"></pre>
+        </div>
+        <button data-exit-button class="phpdocumentor-modal__close">&times;</button>
+    </div>
+</div>
+
+    <script type="text/javascript">
+        (function () {
+            function loadExternalCodeSnippet(el, url, line) {
+                Array.prototype.slice.call(el.querySelectorAll('pre[data-src]')).forEach((pre) => {
+                    const src = url || pre.getAttribute('data-src').replace(/\\/g, '/');
+                    const language = 'php';
+
+                    const code = document.createElement('code');
+                    code.className = 'language-' + language;
+                    pre.textContent = '';
+                    pre.setAttribute('data-line', line)
+                    code.textContent = 'Loading…';
+                    pre.appendChild(code);
+
+                    var xhr = new XMLHttpRequest();
+
+                    xhr.open('GET', src, true);
+
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState !== 4) {
+                            return;
+                        }
+
+                        if (xhr.status < 400 && xhr.responseText) {
+                            code.textContent = xhr.responseText;
+                            Prism.highlightElement(code);
+                            d=document.getElementsByClassName("line-numbers");
+                            d[0].scrollTop = d[0].children[1].offsetTop;
+                            return;
+                        }
+
+                        if (xhr.status === 404) {
+                            code.textContent = '✖ Error: File could not be found';
+                            return;
+                        }
+
+                        if (xhr.status >= 400) {
+                            code.textContent = '✖ Error ' + xhr.status + ' while fetching file: ' + xhr.statusText;
+                            return;
+                        }
+
+                        code.textContent = '✖ Error: An unknown error occurred';
+                    };
+
+                    xhr.send(null);
+                });
+            }
+
+            const modalButtons = document.querySelectorAll("[data-modal]");
+            const openedAsLocalFile = window.location.protocol === 'file:';
+            if (modalButtons.length > 0 && openedAsLocalFile) {
+                console.warn(
+                    'Viewing the source code is unavailable because you are opening this page from the file:// scheme; ' +
+                    'browsers block XHR requests when a page is opened this way'
+                );
+            }
+
+            modalButtons.forEach(function (trigger) {
+                if (openedAsLocalFile) {
+                    trigger.setAttribute("hidden", "hidden");
+                }
+
+                trigger.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    const modal = document.getElementById(trigger.dataset.modal);
+                    if (!modal) {
+                        console.error(`Modal with id "${trigger.dataset.modal}" could not be found`);
+                        return;
+                    }
+                    modal.classList.add("phpdocumentor-modal__open");
+
+                    loadExternalCodeSnippet(modal, trigger.dataset.src || null, trigger.dataset.line)
+                    const exits = modal.querySelectorAll("[data-exit-button]");
+                    exits.forEach(function (exit) {
+                        exit.addEventListener("click", function (event) {
+                            event.preventDefault();
+                            modal.classList.remove("phpdocumentor-modal__open");
+                        });
+                    });
+                });
+            });
+        })();
+    </script>
+
+    </article>
+                                </section>
+                <section class="phpdocumentor-on-this-page__sidebar">
+                                
+    <section class="phpdocumentor-on-this-page__content">
+        <strong class="phpdocumentor-on-this-page__title">On this page</strong>
+
+        <ul class="phpdocumentor-list -clean">
+            <li class="phpdocumentor-on-this-page-section__title">Table Of Contents</li>
+            <li>
+                <ul class="phpdocumentor-list -clean">
+                                                                                <li><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#toc-methods">Methods</a></li>
+                                    </ul>
+            </li>
+            
+            
+                        <li class="phpdocumentor-on-this-page-section__title">Methods</li>
+            <li>
+                <ul class="phpdocumentor-list -clean">
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllText">extractAllText()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractAllTextWithPositions">extractAllTextWithPositions()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractText">extractText()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_extractTextWithPositions">extractTextWithPositions()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFile">fromFile()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromFilePublicKey">fromFilePublicKey()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStream">fromStream()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromString">fromString()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_fromStringPublicKey">fromStringPublicKey()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getCatalog">getCatalog()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getEffectiveVersion">getEffectiveVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getInfo">getInfo()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getLinearizationParameters">getLinearizationParameters()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getObject">getObject()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPage">getPage()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageByteRange">getPageByteRange()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageCount">getPageCount()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPageOffsetHintTable">getPageOffsetHintTable()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPages">getPages()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getParseWarnings">getParseWarnings()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getPdfVersion">getPdfVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getResolver">getResolver()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTrailer">getTrailer()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedCatalog">getTypedCatalog()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedObject">getTypedObject()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPage">getTypedPage()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getTypedPages">getTypedPages()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_getVersion">getVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_isLinearized">isLinearized()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_resolveReference">resolveReference()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#method_validateVersion">validateVersion()</a></li>
+                                    </ul>
+            </li>
+                    </ul>
+    </section>
+
+                </section>
+                            </div>
+            <section data-search-results class="phpdocumentor-search-results phpdocumentor-search-results--hidden">
+    <section class="phpdocumentor-search-results__dialog">
+        <header class="phpdocumentor-search-results__header">
+            <h2 class="phpdocumentor-search-results__title">Search results</h2>
+            <button class="phpdocumentor-search-results__close"><i class="fas fa-times"></i></button>
+        </header>
+        <section class="phpdocumentor-search-results__body">
+            <ul class="phpdocumentor-search-results__entries"></ul>
+        </section>
+    </section>
+</section>
+        </div>
+        <a href="classes/Phpdftk-Pdf-Reader-PdfReader.html#top" class="phpdocumentor-back-to-top"><i class="fas fa-chevron-circle-up"></i></a>
+
+    </main>
+
+    <script>
+        cssVars({});
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+</body>
+</html>
