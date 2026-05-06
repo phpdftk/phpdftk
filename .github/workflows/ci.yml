@@ -337,9 +337,11 @@ jobs:
           cp -r ../build/phpdoc/* "${{ steps.target.outputs.dir }}/"
 
           for pkg_dir in ../build/phpdoc-packages/*/; do
+            [ -d "$pkg_dir" ] || continue
+            [ -n "$(ls -A "$pkg_dir" 2>/dev/null)" ] || continue
             pkg_name=$(basename "$pkg_dir")
             mkdir -p "packages/$pkg_name/${{ steps.target.outputs.dir }}"
-            cp -r "$pkg_dir"* "packages/$pkg_name/${{ steps.target.outputs.dir }}/"
+            cp -r "$pkg_dir." "packages/$pkg_name/${{ steps.target.outputs.dir }}/"
           done
 
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
