@@ -11,6 +11,7 @@ export default defineConfig({
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/phpdftk/phpdftk' }],
 			components: {
 				Header: './src/components/Header.astro',
+				Hero: './src/components/Hero.astro',
 			},
 			sidebar: [
 				{ label: 'Overview', slug: 'index' },
