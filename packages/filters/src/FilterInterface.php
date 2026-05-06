@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Filters;
 
 /**
@@ -8,7 +11,8 @@ namespace Phpdftk\Filters;
  * /ASCII85Decode, etc.). Encode compresses for storage; decode
  * reverses it for reading.
  */
-interface FilterInterface {
+interface FilterInterface
+{
     public function encode(string $data): string;
     public function decode(string $data): string;
 }

@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\ImageMetadata;
 
 /**
@@ -7,10 +10,14 @@ namespace Phpdftk\ImageMetadata;
  * Also extracts ICC profiles from iCCP chunks. PNG alpha channels
  * are detected since PDF handles transparency via SMask, not inline.
  */
-final class PngParser {
-    public static function parseFile(string $path): ImageInfo {
+final class PngParser
+{
+    public static function parseFile(string $path): ImageInfo
+    {
         $fh = fopen($path, 'rb');
-        if ($fh === false) throw new \RuntimeException("Cannot open file: $path");
+        if ($fh === false) {
+            throw new \RuntimeException("Cannot open file: $path");
+        }
         try {
             $data = fread($fh, filesize($path));
         } finally {
@@ -19,7 +26,8 @@ final class PngParser {
         return self::parse($data);
     }
 
-    public static function parse(string $data): ImageInfo {
+    public static function parse(string $data): ImageInfo
+    {
         $len = strlen($data);
 
         // Verify PNG signature (8 bytes)
@@ -53,8 +61,8 @@ final class PngParser {
                 $unit = ord($chunkData[8]);
                 if ($unit === 1 && $xPixelsPerUnit > 0 && $yPixelsPerUnit > 0) {
                     // Unit is meters; convert to DPI
-                    $xDpi = (int)round($xPixelsPerUnit / 39.3701);
-                    $yDpi = (int)round($yPixelsPerUnit / 39.3701);
+                    $xDpi = (int) round($xPixelsPerUnit / 39.3701);
+                    $yDpi = (int) round($yPixelsPerUnit / 39.3701);
                 }
             } elseif ($chunkType === 'iCCP' && strlen($chunkData) > 2) {
                 // iCCP chunk: null-terminated profile name, 1-byte compression method, compressed data

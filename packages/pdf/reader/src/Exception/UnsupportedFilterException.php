@@ -9,6 +9,4 @@ namespace Phpdftk\Pdf\Reader\Exception;
  * (e.g. JBIG2 without the jbig2dec extension, or an unrecognized
  * custom filter name).
  */
-final class UnsupportedFilterException extends \RuntimeException
-{
-}
+final class UnsupportedFilterException extends \RuntimeException {}

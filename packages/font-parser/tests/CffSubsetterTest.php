@@ -37,7 +37,9 @@ class CffSubsetterTest extends TestCase
         if (self::$fontPath === null) {
             $dirs = ['/System/Library/Fonts/Supplemental', '/usr/share/fonts'];
             foreach ($dirs as $dir) {
-                if (!is_dir($dir)) continue;
+                if (!is_dir($dir)) {
+                    continue;
+                }
                 foreach (glob("$dir/*.otf") ?: [] as $file) {
                     $bytes = file_get_contents($file);
                     if ($bytes !== false && substr($bytes, 0, 4) === 'OTTO') {

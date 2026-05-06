@@ -14,9 +14,7 @@ final class BitReader
 {
     private int $bitPos = 0;
 
-    public function __construct(private readonly string $data)
-    {
-    }
+    public function __construct(private readonly string $data) {}
 
     /**
      * Read an unsigned integer of the given bit width.

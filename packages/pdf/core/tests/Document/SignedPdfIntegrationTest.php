@@ -89,7 +89,7 @@ class SignedPdfIntegrationTest extends TestCase
         // Wire the signer.
         $writer->setSigner(
             $sigValue,
-            new Pkcs7Signer($creds['cert'], $creds['key'])
+            new Pkcs7Signer($creds['cert'], $creds['key']),
         );
 
         $writer->save(self::OUTPUT_FILE);
@@ -108,12 +108,12 @@ class SignedPdfIntegrationTest extends TestCase
         self::assertMatchesRegularExpression(
             '/\/ByteRange \[ (\d{10}) (\d{10}) (\d{10}) (\d{10}) \]/',
             $pdf,
-            'byte range not patched'
+            'byte range not patched',
         );
         preg_match(
             '/\/ByteRange \[ (\d{10}) (\d{10}) (\d{10}) (\d{10}) \]/',
             $pdf,
-            $br
+            $br,
         );
         $br = array_map('intval', array_slice($br, 1));
         self::assertSame(0, $br[0]);
@@ -155,7 +155,7 @@ class SignedPdfIntegrationTest extends TestCase
                 escapeshellarg($openssl),
                 escapeshellarg($sigFile),
                 escapeshellarg($dataFile),
-                escapeshellarg($certFile)
+                escapeshellarg($certFile),
             );
             $output = [];
             $ret = 0;
@@ -163,7 +163,7 @@ class SignedPdfIntegrationTest extends TestCase
             self::assertSame(
                 0,
                 $ret,
-                'openssl cms -verify rejected the signed byte range: ' . implode("\n", $output)
+                'openssl cms -verify rejected the signed byte range: ' . implode("\n", $output),
             );
         } finally {
             @unlink($dataFile);

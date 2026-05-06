@@ -61,7 +61,7 @@ final class OpenTypeParser
         if ($sfVersion !== 0x4F54544F) {
             throw new \RuntimeException(sprintf(
                 'Not an OpenType CFF font (sfVersion=0x%08X); expected 0x4F54544F ("OTTO")',
-                $sfVersion
+                $sfVersion,
             ));
         }
 

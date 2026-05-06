@@ -31,7 +31,7 @@ class FunctionType0 extends PdfStream
         PdfArray $range,
         PdfArray $size,
         int $bitsPerSample,
-        string $samples = ''
+        string $samples = '',
     ) {
         parent::__construct(new PdfDictionary(), $samples);
         $this->domain = $domain;

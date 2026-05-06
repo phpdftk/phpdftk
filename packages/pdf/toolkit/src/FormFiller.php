@@ -217,14 +217,17 @@ final class FormFiller
                 'text', 'select' => $modifiedDict->set('V', new PdfString($mod['value'])),
                 'check' => $modifiedDict->set(
                     'V',
-                    $mod['checked'] ? new PdfName('Yes') : new PdfName('Off')
+                    $mod['checked'] ? new PdfName('Yes') : new PdfName('Off'),
                 ),
             };
 
             // Create a PdfObject wrapper with the original object number
             $wrapper = new class ($modifiedDict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $wrapper->objectNumber = $objNum;
             $wrapper->generationNumber = 0;

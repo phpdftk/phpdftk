@@ -25,7 +25,7 @@ class Indexed extends ColorSpace
     public function __construct(
         ColorSpace|PdfName|PdfArray $base,
         int $hival,
-        PdfString|PdfReference $lookup
+        PdfString|PdfReference $lookup,
     ) {
         $this->base = $base;
         $this->hival = $hival;

@@ -218,7 +218,7 @@ class PositionedTextExtractionTest extends TestCase
         $this->assertEqualsWithDelta(
             $spans[0]->x + $spans[0]->width,
             $spans[1]->x,
-            1.0
+            1.0,
         );
     }
 

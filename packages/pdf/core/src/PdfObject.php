@@ -34,7 +34,7 @@ abstract class PdfObject implements Serializable
             "%d %d obj\n%s\nendobj",
             $this->objectNumber,
             $this->generationNumber,
-            $this->toPdf()
+            $this->toPdf(),
         );
     }
 }

@@ -243,7 +243,7 @@ class PdfFileWriter
     public function setSigner(
         SignatureValue $signatureValue,
         Pkcs7Signer $signer,
-        int $placeholderBytes = 8192
+        int $placeholderBytes = 8192,
     ): void {
         $this->signatureValue = $signatureValue;
         $this->signer = $signer;
@@ -252,7 +252,7 @@ class PdfFileWriter
         // Install fixed-width placeholders that we'll patch after serialization.
         $signatureValue->contents = new PdfString(
             str_repeat("\x00", $placeholderBytes),
-            hex: true
+            hex: true,
         );
         $signatureValue->byteRange = new PdfArray([
             '0000000000',
@@ -277,7 +277,7 @@ class PdfFileWriter
     public function setTimestamper(
         SignatureValue $docTimeStamp,
         TsaClient $tsaClient,
-        int $placeholderBytes = 16384
+        int $placeholderBytes = 16384,
     ): void {
         $this->signatureValue = $docTimeStamp;
         $this->tsaClient = $tsaClient;
@@ -286,7 +286,7 @@ class PdfFileWriter
         // Install fixed-width placeholders (same pattern as setSigner)
         $docTimeStamp->contents = new PdfString(
             str_repeat("\x00", $placeholderBytes),
-            hex: true
+            hex: true,
         );
         $docTimeStamp->byteRange = new PdfArray([
             '0000000000',
@@ -333,7 +333,7 @@ class PdfFileWriter
     {
         if ($this->catalog === null) {
             throw new \RuntimeException(
-                'PdfFileWriter::generate() called before setCatalog()'
+                'PdfFileWriter::generate() called before setCatalog()',
             );
         }
 
@@ -592,7 +592,7 @@ class PdfFileWriter
     {
         if ($this->catalog === null) {
             throw new \RuntimeException(
-                'PdfFileWriter::generateLinearized() called before setCatalog()'
+                'PdfFileWriter::generateLinearized() called before setCatalog()',
             );
         }
 
@@ -1019,7 +1019,7 @@ class PdfFileWriter
     {
         if (!is_resource($stream)) {
             throw new \InvalidArgumentException(
-                'PdfFileWriter::writeTo() expects an open stream resource'
+                'PdfFileWriter::writeTo() expects an open stream resource',
             );
         }
         $pdf = $this->generate();
@@ -1119,7 +1119,7 @@ class PdfFileWriter
             $byteRange[0],
             $byteRange[1],
             $byteRange[2],
-            $byteRange[3]
+            $byteRange[3],
         );
         if (strlen($brReplacement) !== strlen($brPlaceholder)) {
             throw new \RuntimeException('ByteRange replacement length mismatch');
@@ -1145,7 +1145,7 @@ class PdfFileWriter
                 'Signature DER (%d bytes) exceeds placeholder capacity (%d bytes); '
                 . 'call setSigner() with a larger $placeholderBytes',
                 strlen($der),
-                $placeholderBytes
+                $placeholderBytes,
             ));
         }
         $derHexPadded = str_pad($derHex, $placeholderBytes * 2, '0', STR_PAD_RIGHT);

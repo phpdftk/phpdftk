@@ -429,7 +429,10 @@ final class BookmarkEditor
         foreach ($entries as $idx => $entry) {
             if (!empty($entry->children)) {
                 $childItems = $this->createOutlineItems(
-                    $writer, $entry->children, $items[$idx]['ref'], $pageRefs
+                    $writer,
+                    $entry->children,
+                    $items[$idx]['ref'],
+                    $pageRefs,
                 );
                 if (!empty($childItems)) {
                     $items[$idx]['item']->first = $childItems[0]['ref'];

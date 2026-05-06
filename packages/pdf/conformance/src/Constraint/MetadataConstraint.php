@@ -47,8 +47,11 @@ final class MetadataConstraint implements ConformanceConstraint
                     clause: '6.7.11',
                     message: sprintf(
                         'XMP metadata must contain <%s>%s</%s> for %s-%s identification',
-                        $tag, $expectedValue, $tag,
-                        $profile->getFamily(), $profile->getLevel(),
+                        $tag,
+                        $expectedValue,
+                        $tag,
+                        $profile->getFamily(),
+                        $profile->getLevel(),
                     ),
                     severity: ViolationSeverity::Error,
                 );

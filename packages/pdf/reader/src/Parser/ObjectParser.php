@@ -32,8 +32,7 @@ final class ObjectParser
     public function __construct(
         private readonly Tokenizer $tokenizer,
         private readonly Source $source,
-    ) {
-    }
+    ) {}
 
     /**
      * Parse any PDF value.
@@ -106,7 +105,7 @@ final class ObjectParser
             // Unknown keywords: skip and try the next token
             TokenType::Unknown        => $this->parseValue(),
             default                   => throw new InvalidPdfException(
-                "Unexpected token {$token->type->name} ('{$token->value}') at offset {$token->offset}"
+                "Unexpected token {$token->type->name} ('{$token->value}') at offset {$token->offset}",
             ),
         };
     }
@@ -319,7 +318,7 @@ final class ObjectParser
         if ($token->type !== $expected) {
             throw new InvalidPdfException(
                 "Expected $context ({$expected->name}) at offset {$token->offset}, "
-                . "got {$token->type->name} ('{$token->value}')"
+                . "got {$token->type->name} ('{$token->value}')",
             );
         }
     }

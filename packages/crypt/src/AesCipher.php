@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Crypt;
 
 /**
@@ -8,14 +11,17 @@ namespace Phpdftk\Crypt;
  * the ciphertext on encrypt and stripped on decrypt, per the PDF spec
  * requirement that each encrypted string/stream carries its own IV.
  */
-final class AesCipher implements CryptInterface {
-    public function __construct(private int $keyBits = 128) {
+final class AesCipher implements CryptInterface
+{
+    public function __construct(private int $keyBits = 128)
+    {
         if ($keyBits !== 128 && $keyBits !== 256) {
             throw new \InvalidArgumentException("keyBits must be 128 or 256, got $keyBits");
         }
     }
 
-    public function encrypt(string $data, string $key): string {
+    public function encrypt(string $data, string $key): string
+    {
         $iv = random_bytes(16);
         $cipherMethod = "AES-{$this->keyBits}-CBC";
         // Pad or truncate key to required length
@@ -29,7 +35,8 @@ final class AesCipher implements CryptInterface {
         return $iv . $encrypted;
     }
 
-    public function decrypt(string $data, string $key): string {
+    public function decrypt(string $data, string $key): string
+    {
         if (strlen($data) < 16) {
             throw new \RuntimeException('AES decrypt: data too short (missing IV)');
         }

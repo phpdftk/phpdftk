@@ -111,7 +111,7 @@ class PageTransformerTest extends TestCase
         $rotate1 = $page1->get('Rotate');
         $this->assertTrue(
             $rotate1 === null || ($rotate1 instanceof PdfNumber && (int) $rotate1->toPdf() === 0),
-            'Page 1 should not be rotated'
+            'Page 1 should not be rotated',
         );
 
         // Page 2 — rotated
@@ -125,7 +125,7 @@ class PageTransformerTest extends TestCase
         $rotate3 = $page3->get('Rotate');
         $this->assertTrue(
             $rotate3 === null || ($rotate3 instanceof PdfNumber && (int) $rotate3->toPdf() === 0),
-            'Page 3 should not be rotated'
+            'Page 3 should not be rotated',
         );
     }
 
@@ -403,7 +403,7 @@ class PageTransformerTest extends TestCase
             } else {
                 $this->assertTrue(
                     $rotate === null || ($rotate instanceof PdfNumber && (int) $rotate->toPdf() === 0),
-                    "Page " . ($i + 1) . " should not be rotated"
+                    "Page " . ($i + 1) . " should not be rotated",
                 );
             }
         }
@@ -428,7 +428,7 @@ class PageTransformerTest extends TestCase
             } else {
                 $this->assertTrue(
                     $rotate === null || ($rotate instanceof PdfNumber && (int) $rotate->toPdf() === 0),
-                    "Page " . ($i + 1) . " should not be rotated"
+                    "Page " . ($i + 1) . " should not be rotated",
                 );
             }
         }
@@ -453,7 +453,7 @@ class PageTransformerTest extends TestCase
             } else {
                 $this->assertTrue(
                     $rotate === null || ($rotate instanceof PdfNumber && (int) $rotate->toPdf() === 0),
-                    "Page " . ($i + 1) . " should not be rotated"
+                    "Page " . ($i + 1) . " should not be rotated",
                 );
             }
         }

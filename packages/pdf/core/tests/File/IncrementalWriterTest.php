@@ -252,7 +252,10 @@ class IncrementalWriterTest extends TestCase
         $reader = PdfReader::fromString($original);
 
         $incWriter = IncrementalWriter::fromReader(
-            $reader, $original, compressStreams: false, useXRefStream: true
+            $reader,
+            $original,
+            compressStreams: false,
+            useXRefStream: true,
         );
 
         $newCs = new ContentStream();

@@ -109,7 +109,7 @@ class Type0FontFactory
         $type0Font = new Type0Font(
             $data->postScriptName,
             new PdfArray([]), // placeholder, will be set after CIDFont is registered
-            $vertical ? 'Identity-V' : 'Identity-H'
+            $vertical ? 'Identity-V' : 'Identity-H',
         );
 
         return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream];

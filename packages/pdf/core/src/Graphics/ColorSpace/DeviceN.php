@@ -29,7 +29,7 @@ class DeviceN extends ColorSpace
     public function __construct(
         PdfArray $names,
         ColorSpace|PdfName|PdfArray $alternateSpace,
-        PdfReference $tintTransform
+        PdfReference $tintTransform,
     ) {
         $this->names = $names;
         $this->alternateSpace = $alternateSpace;

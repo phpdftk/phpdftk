@@ -57,8 +57,7 @@ final class PdfReader
         private readonly string $version,
         private readonly PdfDictionary $trailer,
         private readonly ObjectResolver $resolver,
-    ) {
-    }
+    ) {}
 
     /**
      * Return warnings accumulated during parsing.
@@ -757,8 +756,7 @@ final class PdfReader
         bool $strict = true,
         ?string $certificate = null,
         ?string $privateKey = null,
-    ): self
-    {
+    ): self {
         $warnings = [];
 
         // 1. Validate header — check first 20 bytes, then scan up to 1024 in lenient mode
@@ -798,7 +796,12 @@ final class PdfReader
             if ($startxrefOffset !== null) {
                 // 4. Parse xref + trailer — auto-detect classic vs stream
                 [$entries, $trailer] = self::parseXrefAt(
-                    $source, $startxrefOffset, $xrefParser, $xrefStreamParser, $strict, $warnings
+                    $source,
+                    $startxrefOffset,
+                    $xrefParser,
+                    $xrefStreamParser,
+                    $strict,
+                    $warnings,
                 );
             }
         } catch (\Throwable $e) {
@@ -836,20 +839,28 @@ final class PdfReader
 
             if ($isPublicKey && $certificate !== null && $privateKey !== null) {
                 $decryptor = PdfDecryptor::fromEncryptDictPublicKey(
-                    $encrypt, $certificate, $privateKey, $fileId
+                    $encrypt,
+                    $certificate,
+                    $privateKey,
+                    $fileId,
                 );
             } elseif (!$isPublicKey) {
                 $decryptor = PdfDecryptor::fromEncryptDict($encrypt, $password, $fileId);
             } else {
                 throw new InvalidPdfException(
-                    'PDF uses public-key encryption; use fromFilePublicKey() or fromStringPublicKey() with certificate and private key'
+                    'PDF uses public-key encryption; use fromFilePublicKey() or fromStringPublicKey() with certificate and private key',
                 );
             }
         }
 
         // 6. Build resolver (with optional decryptor)
         $resolver = new ObjectResolver(
-            $entries, $tokenizer, $source, $objectParser, $streamParser, $decryptor
+            $entries,
+            $tokenizer,
+            $source,
+            $objectParser,
+            $streamParser,
+            $decryptor,
         );
         $resolver->setStrict($strict);
 
@@ -872,7 +883,12 @@ final class PdfReader
 
                 try {
                     [$olderEntries, $olderTrailer] = self::parseXrefAt(
-                        $source, $prevOffset, $xrefParser, $xrefStreamParser, $strict, $warnings
+                        $source,
+                        $prevOffset,
+                        $xrefParser,
+                        $xrefStreamParser,
+                        $strict,
+                        $warnings,
                     );
                     $resolver->mergeOlderEntries($olderEntries);
                     $prev = $olderTrailer->get('Prev');

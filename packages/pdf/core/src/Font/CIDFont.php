@@ -34,7 +34,7 @@ class CIDFont extends PdfObject
     public function __construct(
         string $subtype,
         string $baseFontName,
-        CIDSystemInfo $cidSystemInfo
+        CIDSystemInfo $cidSystemInfo,
     ) {
         $this->subtype = new PdfName($subtype);
         $this->baseFont = new PdfName($baseFontName);

@@ -9,9 +9,7 @@ namespace Phpdftk\Pdf\Core;
  */
 class PdfBoolean implements Serializable
 {
-    public function __construct(public readonly bool $value)
-    {
-    }
+    public function __construct(public readonly bool $value) {}
 
     public function toPdf(): string
     {

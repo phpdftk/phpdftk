@@ -183,7 +183,7 @@ class ReadPdfBench
         }
         $writer = new \Phpdftk\Pdf\Writer\PdfWriter(compressStreams: false);
         $coreFont = new \Phpdftk\Pdf\Core\Font\Type1Font(
-            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica,
         );
         $font = $writer->addFont($coreFont);
 
@@ -197,19 +197,20 @@ class ReadPdfBench
             ]);
             $xobjContent = sprintf(
                 "BT\n/%s 12 Tf\n10 10 Td\n(Stamped text in Form XObject on page %d) Tj\nET",
-                $font->getResourceName(), $p + 1
+                $font->getResourceName(),
+                $p + 1,
             );
             $formXObj = new \Phpdftk\Pdf\Core\Graphics\XObject\FormXObject($bbox, $xobjContent);
             $formXObj->resources = new \Phpdftk\Pdf\Core\Content\Resources();
             $formXObj->resources->addFont(
                 $font->getResourceName(),
-                new \Phpdftk\Pdf\Core\PdfReference($coreFont->objectNumber)
+                new \Phpdftk\Pdf\Core\PdfReference($coreFont->objectNumber),
             );
             $writer->register($formXObj);
 
             $page->corePage()->resources->addXObject(
                 'FX1',
-                new \Phpdftk\Pdf\Core\PdfReference($formXObj->objectNumber)
+                new \Phpdftk\Pdf\Core\PdfReference($formXObj->objectNumber),
             );
             $content = $writer->addContentStream($page->corePage());
             $content->beginText()
@@ -243,7 +244,7 @@ class ReadPdfBench
         // Generate a 10-page PDF with multiple text blocks per page
         $writer = new \Phpdftk\Pdf\Writer\PdfWriter(compressStreams: false);
         $font = $writer->addFont(new \Phpdftk\Pdf\Core\Font\Type1Font(
-            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica,
         ));
 
         for ($p = 1; $p <= 10; $p++) {
@@ -279,7 +280,7 @@ class ReadPdfBench
         $writer = new \Phpdftk\Pdf\Writer\PdfWriter();
         $writer->setLinearized();
         $fontName = $writer->addFont(new \Phpdftk\Pdf\Core\Font\Type1Font(
-            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica
+            \Phpdftk\Pdf\Core\Font\StandardFont::Helvetica,
         ))->getResourceName();
 
         for ($i = 1; $i <= 10; $i++) {

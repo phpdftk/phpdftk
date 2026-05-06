@@ -292,22 +292,8 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Generate combined API docs
-        run: phpdoc run
-
-      - name: Generate per-package API docs
-        run: |
-          for pkg in packages/*/phpdoc.dist.xml packages/pdf/*/phpdoc.dist.xml; do
-            dir=$(dirname "$pkg")
-            name=$(basename "$dir")
-            if [[ "$dir" == packages/pdf/* ]]; then
-              name="pdf-$name"
-            fi
-            echo "=== Generating docs for $name ==="
-            (cd "$dir" && phpdoc run) || true
-            mkdir -p "build/phpdoc-packages/$name"
-            cp -r "$dir/build/phpdoc/"* "build/phpdoc-packages/$name/"
-          done
+      - name: Generate API docs (combined + per-package)
+        run: composer phpdoc -- --all
 
       - name: Upload phpdoc artifacts
         uses: actions/upload-artifact@v4

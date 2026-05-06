@@ -44,7 +44,7 @@ class AnnotationsTest extends TestCase
                 new PdfNumber(700),
                 new PdfNumber(120),
                 new PdfNumber(740),
-            ])
+            ]),
         );
         $textAnnot->contents   = new PdfString('This is a sticky note annotation.');
         $textAnnot->name       = new PdfName('Note');
@@ -63,7 +63,7 @@ class AnnotationsTest extends TestCase
                 new PdfNumber(600),
                 new PdfNumber(250),
                 new PdfNumber(625),
-            ])
+            ]),
         );
         $linkAnnot->h = new PdfName('I'); // Invert highlight mode
 
@@ -89,7 +89,7 @@ class AnnotationsTest extends TestCase
                 new PdfNumber(500),
                 new PdfNumber(300),
                 new PdfNumber(500),
-            ])
+            ]),
         );
         $highlightAnnot->contents = new PdfString('Highlighted text');
         $highlightAnnot->c = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]);
@@ -106,7 +106,7 @@ class AnnotationsTest extends TestCase
                 new PdfNumber(400),
                 new PdfNumber(272),
                 new PdfNumber(450),
-            ])
+            ]),
         );
         $stampAnnot->name     = new PdfName('Approved');
         $stampAnnot->contents = new PdfString('Document approved');

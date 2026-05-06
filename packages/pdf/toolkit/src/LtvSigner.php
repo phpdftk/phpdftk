@@ -460,7 +460,10 @@ final class LtvSigner
 
         $wrapper = new class ($modifiedDict) extends PdfObject {
             public function __construct(private readonly PdfDictionary $dict) {}
-            public function toPdf(): string { return $this->dict->toPdf(); }
+            public function toPdf(): string
+            {
+                return $this->dict->toPdf();
+            }
         };
         $wrapper->objectNumber = $rootRef->objectNumber;
         $wrapper->generationNumber = 0;

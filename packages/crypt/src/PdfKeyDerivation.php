@@ -174,8 +174,13 @@ final class PdfKeyDerivation
         bool $encryptMetadata = true,
     ): ?string {
         $key = self::computeFileEncryptionKey(
-            $password, $oValue, $pValue, $fileId,
-            $keyLengthBits, $revision, $encryptMetadata
+            $password,
+            $oValue,
+            $pValue,
+            $fileId,
+            $keyLengthBits,
+            $revision,
+            $encryptMetadata,
         );
 
         $computedU = self::computeUserKey($key, $fileId, $revision);
@@ -236,8 +241,14 @@ final class PdfKeyDerivation
 
         // Now authenticate using the recovered user password
         return self::authenticateUserPassword(
-            $userPassword, $oValue, $uValue, $pValue, $fileId,
-            $keyLengthBits, $revision, $encryptMetadata
+            $userPassword,
+            $oValue,
+            $uValue,
+            $pValue,
+            $fileId,
+            $keyLengthBits,
+            $revision,
+            $encryptMetadata,
         );
     }
 

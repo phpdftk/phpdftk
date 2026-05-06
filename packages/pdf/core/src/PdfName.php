@@ -10,9 +10,7 @@ namespace Phpdftk\Pdf\Core;
  */
 class PdfName implements Serializable
 {
-    public function __construct(public readonly string $value)
-    {
-    }
+    public function __construct(public readonly string $value) {}
 
     /**
      * Returns the PDF name token, escaping characters outside the printable

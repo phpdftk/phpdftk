@@ -11,9 +11,8 @@ class PdfString implements Serializable
 {
     public function __construct(
         public readonly string $value,
-        public readonly bool $hex = false
-    ) {
-    }
+        public readonly bool $hex = false,
+    ) {}
 
     public function toPdf(): string
     {

@@ -541,7 +541,10 @@ final class CertificateUtils
         if ($tag !== $expected) {
             throw new \RuntimeException(sprintf(
                 'DER: expected 0x%02X at %s, got 0x%02X at offset %d',
-                $expected, $context, $tag, $pos,
+                $expected,
+                $context,
+                $tag,
+                $pos,
             ));
         }
     }

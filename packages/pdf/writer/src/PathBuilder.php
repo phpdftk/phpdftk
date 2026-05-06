@@ -42,9 +42,12 @@ final class PathBuilder
      * Cubic Bézier curve to (x3, y3) with control points (x1, y1) and (x2, y2).
      */
     public function curveTo(
-        float $x1, float $y1,
-        float $x2, float $y2,
-        float $x3, float $y3,
+        float $x1,
+        float $y1,
+        float $x2,
+        float $y2,
+        float $x3,
+        float $y3,
     ): self {
         $this->operations[] = ['op' => 'curveTo', 'args' => [$x1, $y1, $x2, $y2, $x3, $y3]];
         return $this;
@@ -68,7 +71,8 @@ final class PathBuilder
      * Approximated with Bézier curves (one per 90-degree segment).
      */
     public function arcTo(
-        float $cx, float $cy,
+        float $cx,
+        float $cy,
         float $r,
         float $startAngle,
         float $endAngle,
@@ -135,10 +139,13 @@ final class PathBuilder
      */
     private static function emitArc(
         ContentStream $cs,
-        float $cx, float $cy,
+        float $cx,
+        float $cy,
         float $r,
-        float $startDeg, float $endDeg,
-        float &$lastX, float &$lastY,
+        float $startDeg,
+        float $endDeg,
+        float &$lastX,
+        float &$lastY,
     ): void {
         $startRad = deg2rad($startDeg);
         $endRad = deg2rad($endDeg);

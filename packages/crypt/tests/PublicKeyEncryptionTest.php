@@ -23,7 +23,7 @@ class PublicKeyEncryptionTest extends TestCase
         $csr = openssl_csr_new(
             ['commonName' => 'phpdftk-test', 'organizationName' => 'test'],
             $key,
-            $config
+            $config,
         );
         $cert = openssl_csr_sign($csr, null, $key, 365, $config);
 
@@ -37,7 +37,9 @@ class PublicKeyEncryptionTest extends TestCase
     {
         $seed = random_bytes(20);
         $der = PublicKeyEncryption::createEnvelope(
-            $seed, -1, self::$credentials['cert']
+            $seed,
+            -1,
+            self::$credentials['cert'],
         );
 
         // DER-encoded PKCS#7 starts with SEQUENCE tag (0x30)
@@ -49,11 +51,15 @@ class PublicKeyEncryptionTest extends TestCase
     {
         $seed = random_bytes(20);
         $der = PublicKeyEncryption::createEnvelope(
-            $seed, -1, self::$credentials['cert']
+            $seed,
+            -1,
+            self::$credentials['cert'],
         );
 
         $recovered = PublicKeyEncryption::openEnvelope(
-            $der, self::$credentials['cert'], self::$credentials['key']
+            $der,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
 
         $this->assertNotNull($recovered);
@@ -64,7 +70,9 @@ class PublicKeyEncryptionTest extends TestCase
     {
         $seed = random_bytes(20);
         $der = PublicKeyEncryption::createEnvelope(
-            $seed, -1, self::$credentials['cert']
+            $seed,
+            -1,
+            self::$credentials['cert'],
         );
 
         // Generate a different key pair
@@ -76,7 +84,9 @@ class PublicKeyEncryptionTest extends TestCase
         openssl_pkey_export($otherKey, $otherKeyPem);
 
         $recovered = PublicKeyEncryption::openEnvelope(
-            $der, $otherCertPem, $otherKeyPem
+            $der,
+            $otherCertPem,
+            $otherKeyPem,
         );
 
         $this->assertNull($recovered);
@@ -123,11 +133,15 @@ class PublicKeyEncryptionTest extends TestCase
         $permissions = -3900;
 
         $der = PublicKeyEncryption::createEnvelope(
-            $seed, $permissions, self::$credentials['cert']
+            $seed,
+            $permissions,
+            self::$credentials['cert'],
         );
 
         $recovered = PublicKeyEncryption::openEnvelope(
-            $der, self::$credentials['cert'], self::$credentials['key']
+            $der,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
 
         $this->assertNotNull($recovered);

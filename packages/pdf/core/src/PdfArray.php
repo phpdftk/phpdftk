@@ -13,9 +13,7 @@ namespace Phpdftk\Pdf\Core;
 class PdfArray implements Serializable
 {
     /** @param array<int|string, mixed> $items */
-    public function __construct(public readonly array $items = [])
-    {
-    }
+    public function __construct(public readonly array $items = []) {}
 
     public function toPdf(): string
     {

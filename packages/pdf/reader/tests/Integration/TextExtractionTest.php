@@ -255,7 +255,7 @@ class TextExtractionTest extends TestCase
         ]);
         $xobjContent = sprintf(
             "BT\n/%s 12 Tf\n10 10 Td\n(Text inside XObject) Tj\nET",
-            $font->getResourceName()
+            $font->getResourceName(),
         );
         $formXObj = new FormXObject($bbox, $xobjContent);
         $formXObj->resources = new Resources();
@@ -300,7 +300,7 @@ class TextExtractionTest extends TestCase
         // Inner Form XObject
         $innerContent = sprintf(
             "BT\n/%s 12 Tf\n10 10 Td\n(Nested inner text) Tj\nET",
-            $font->getResourceName()
+            $font->getResourceName(),
         );
         $innerXObj = new FormXObject($bbox, $innerContent);
         $innerXObj->resources = new Resources();
@@ -310,7 +310,7 @@ class TextExtractionTest extends TestCase
         // Outer Form XObject that invokes the inner one
         $outerContent = sprintf(
             "BT\n/%s 12 Tf\n10 30 Td\n(Outer XObject text) Tj\nET\n/IX1 Do",
-            $font->getResourceName()
+            $font->getResourceName(),
         );
         $outerXObj = new FormXObject($bbox, $outerContent);
         $outerXObj->resources = new Resources();

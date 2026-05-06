@@ -1,11 +1,16 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\FontMetrics;
 
-final class StandardFontMetrics {
+final class StandardFontMetrics
+{
     /** @var array<string, AfmData>|null */
     private static ?array $registry = null;
 
-    public static function get(string $postScriptName): AfmData {
+    public static function get(string $postScriptName): AfmData
+    {
         self::$registry ??= self::buildRegistry();
         if (!isset(self::$registry[$postScriptName])) {
             throw new \InvalidArgumentException("Unknown standard font: $postScriptName");
@@ -14,15 +19,21 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, AfmData> */
-    private static function buildRegistry(): array {
+    private static function buildRegistry(): array
+    {
         $reg = [];
 
         // -----------------------------------------------------------------------
         // Helvetica
         // -----------------------------------------------------------------------
         $reg['Helvetica'] = new AfmData(
-            ascender: 718, descender: -207, capHeight: 718, xHeight: 523,
-            italicAngle: 0, stemV: 88, missingWidth: 278,
+            ascender: 718,
+            descender: -207,
+            capHeight: 718,
+            xHeight: 523,
+            italicAngle: 0,
+            stemV: 88,
+            missingWidth: 278,
             fontBBox: [-166, -225, 1000, 931],
             widths: self::helveticaWidths(),
         );
@@ -31,8 +42,13 @@ final class StandardFontMetrics {
         // Helvetica-Bold
         // -----------------------------------------------------------------------
         $reg['Helvetica-Bold'] = new AfmData(
-            ascender: 718, descender: -207, capHeight: 718, xHeight: 532,
-            italicAngle: 0, stemV: 140, missingWidth: 278,
+            ascender: 718,
+            descender: -207,
+            capHeight: 718,
+            xHeight: 532,
+            italicAngle: 0,
+            stemV: 140,
+            missingWidth: 278,
             fontBBox: [-170, -228, 1003, 962],
             widths: self::helveticaBoldWidths(),
         );
@@ -41,8 +57,13 @@ final class StandardFontMetrics {
         // Helvetica-Oblique (same widths as Helvetica)
         // -----------------------------------------------------------------------
         $reg['Helvetica-Oblique'] = new AfmData(
-            ascender: 718, descender: -207, capHeight: 718, xHeight: 523,
-            italicAngle: -12, stemV: 88, missingWidth: 278,
+            ascender: 718,
+            descender: -207,
+            capHeight: 718,
+            xHeight: 523,
+            italicAngle: -12,
+            stemV: 88,
+            missingWidth: 278,
             fontBBox: [-166, -225, 1000, 931],
             widths: self::helveticaWidths(),
         );
@@ -51,8 +72,13 @@ final class StandardFontMetrics {
         // Helvetica-BoldOblique (same widths as Helvetica-Bold)
         // -----------------------------------------------------------------------
         $reg['Helvetica-BoldOblique'] = new AfmData(
-            ascender: 718, descender: -207, capHeight: 718, xHeight: 532,
-            italicAngle: -12, stemV: 140, missingWidth: 278,
+            ascender: 718,
+            descender: -207,
+            capHeight: 718,
+            xHeight: 532,
+            italicAngle: -12,
+            stemV: 140,
+            missingWidth: 278,
             fontBBox: [-170, -228, 1003, 962],
             widths: self::helveticaBoldWidths(),
         );
@@ -61,8 +87,13 @@ final class StandardFontMetrics {
         // Times-Roman
         // -----------------------------------------------------------------------
         $reg['Times-Roman'] = new AfmData(
-            ascender: 683, descender: -217, capHeight: 662, xHeight: 450,
-            italicAngle: 0, stemV: 84, missingWidth: 250,
+            ascender: 683,
+            descender: -217,
+            capHeight: 662,
+            xHeight: 450,
+            italicAngle: 0,
+            stemV: 84,
+            missingWidth: 250,
             fontBBox: [-168, -218, 1000, 898],
             widths: self::timesRomanWidths(),
         );
@@ -71,8 +102,13 @@ final class StandardFontMetrics {
         // Times-Bold
         // -----------------------------------------------------------------------
         $reg['Times-Bold'] = new AfmData(
-            ascender: 683, descender: -217, capHeight: 676, xHeight: 461,
-            italicAngle: 0, stemV: 139, missingWidth: 250,
+            ascender: 683,
+            descender: -217,
+            capHeight: 676,
+            xHeight: 461,
+            italicAngle: 0,
+            stemV: 139,
+            missingWidth: 250,
             fontBBox: [-168, -218, 1000, 935],
             widths: self::timesBoldWidths(),
         );
@@ -81,8 +117,13 @@ final class StandardFontMetrics {
         // Times-Italic
         // -----------------------------------------------------------------------
         $reg['Times-Italic'] = new AfmData(
-            ascender: 683, descender: -217, capHeight: 653, xHeight: 441,
-            italicAngle: -15.5, stemV: 76, missingWidth: 250,
+            ascender: 683,
+            descender: -217,
+            capHeight: 653,
+            xHeight: 441,
+            italicAngle: -15.5,
+            stemV: 76,
+            missingWidth: 250,
             fontBBox: [-169, -217, 1010, 883],
             widths: self::timesItalicWidths(),
         );
@@ -91,8 +132,13 @@ final class StandardFontMetrics {
         // Times-BoldItalic
         // -----------------------------------------------------------------------
         $reg['Times-BoldItalic'] = new AfmData(
-            ascender: 683, descender: -217, capHeight: 669, xHeight: 462,
-            italicAngle: -15, stemV: 121, missingWidth: 250,
+            ascender: 683,
+            descender: -217,
+            capHeight: 669,
+            xHeight: 462,
+            italicAngle: -15,
+            stemV: 121,
+            missingWidth: 250,
             fontBBox: [-200, -218, 996, 921],
             widths: self::timesBoldItalicWidths(),
         );
@@ -102,8 +148,13 @@ final class StandardFontMetrics {
         // -----------------------------------------------------------------------
         $courierWidths = self::courierWidths();
         $reg['Courier'] = new AfmData(
-            ascender: 629, descender: -157, capHeight: 562, xHeight: 426,
-            italicAngle: 0, stemV: 51, missingWidth: 600,
+            ascender: 629,
+            descender: -157,
+            capHeight: 562,
+            xHeight: 426,
+            italicAngle: 0,
+            stemV: 51,
+            missingWidth: 600,
             fontBBox: [-23, -250, 715, 805],
             widths: $courierWidths,
         );
@@ -112,8 +163,13 @@ final class StandardFontMetrics {
         // Courier-Bold
         // -----------------------------------------------------------------------
         $reg['Courier-Bold'] = new AfmData(
-            ascender: 629, descender: -157, capHeight: 562, xHeight: 426,
-            italicAngle: 0, stemV: 106, missingWidth: 600,
+            ascender: 629,
+            descender: -157,
+            capHeight: 562,
+            xHeight: 426,
+            italicAngle: 0,
+            stemV: 106,
+            missingWidth: 600,
             fontBBox: [-23, -250, 715, 805],
             widths: $courierWidths,
         );
@@ -122,8 +178,13 @@ final class StandardFontMetrics {
         // Courier-Oblique
         // -----------------------------------------------------------------------
         $reg['Courier-Oblique'] = new AfmData(
-            ascender: 629, descender: -157, capHeight: 562, xHeight: 426,
-            italicAngle: -12, stemV: 51, missingWidth: 600,
+            ascender: 629,
+            descender: -157,
+            capHeight: 562,
+            xHeight: 426,
+            italicAngle: -12,
+            stemV: 51,
+            missingWidth: 600,
             fontBBox: [-23, -250, 715, 805],
             widths: $courierWidths,
         );
@@ -132,8 +193,13 @@ final class StandardFontMetrics {
         // Courier-BoldOblique
         // -----------------------------------------------------------------------
         $reg['Courier-BoldOblique'] = new AfmData(
-            ascender: 629, descender: -157, capHeight: 562, xHeight: 426,
-            italicAngle: -12, stemV: 106, missingWidth: 600,
+            ascender: 629,
+            descender: -157,
+            capHeight: 562,
+            xHeight: 426,
+            italicAngle: -12,
+            stemV: 106,
+            missingWidth: 600,
             fontBBox: [-23, -250, 715, 805],
             widths: $courierWidths,
         );
@@ -142,8 +208,13 @@ final class StandardFontMetrics {
         // Symbol
         // -----------------------------------------------------------------------
         $reg['Symbol'] = new AfmData(
-            ascender: 0, descender: 0, capHeight: 0, xHeight: 0,
-            italicAngle: 0, stemV: 85, missingWidth: 250,
+            ascender: 0,
+            descender: 0,
+            capHeight: 0,
+            xHeight: 0,
+            italicAngle: 0,
+            stemV: 85,
+            missingWidth: 250,
             fontBBox: [-180, -293, 1090, 1010],
             widths: self::symbolWidths(),
         );
@@ -152,8 +223,13 @@ final class StandardFontMetrics {
         // ZapfDingbats
         // -----------------------------------------------------------------------
         $reg['ZapfDingbats'] = new AfmData(
-            ascender: 0, descender: 0, capHeight: 0, xHeight: 0,
-            italicAngle: 0, stemV: 90, missingWidth: 278,
+            ascender: 0,
+            descender: 0,
+            capHeight: 0,
+            xHeight: 0,
+            italicAngle: 0,
+            stemV: 90,
+            missingWidth: 278,
             fontBBox: [-1, -143, 981, 820],
             widths: self::zapfDingbatsWidths(),
         );
@@ -162,7 +238,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function helveticaWidths(): array {
+    private static function helveticaWidths(): array
+    {
         return [
             'space' => 278, 'exclam' => 278, 'quotedbl' => 355, 'numbersign' => 556,
             'dollar' => 556, 'percent' => 889, 'ampersand' => 667, 'quotesingle' => 191,
@@ -192,7 +269,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function helveticaBoldWidths(): array {
+    private static function helveticaBoldWidths(): array
+    {
         return [
             'space' => 278, 'exclam' => 333, 'quotedbl' => 474, 'numbersign' => 556,
             'dollar' => 556, 'percent' => 889, 'ampersand' => 722, 'quotesingle' => 238,
@@ -219,7 +297,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function timesRomanWidths(): array {
+    private static function timesRomanWidths(): array
+    {
         return [
             'space' => 250, 'exclam' => 333, 'quotedbl' => 408, 'numbersign' => 500,
             'dollar' => 500, 'percent' => 833, 'ampersand' => 778, 'quotesingle' => 180,
@@ -246,7 +325,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function timesBoldWidths(): array {
+    private static function timesBoldWidths(): array
+    {
         return [
             'space' => 250, 'exclam' => 333, 'quotedbl' => 555, 'numbersign' => 500,
             'dollar' => 500, 'percent' => 1000, 'ampersand' => 833, 'quotesingle' => 278,
@@ -273,7 +353,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function timesItalicWidths(): array {
+    private static function timesItalicWidths(): array
+    {
         return [
             'space' => 250, 'exclam' => 333, 'quotedbl' => 420, 'numbersign' => 500,
             'dollar' => 500, 'percent' => 833, 'ampersand' => 778, 'quotesingle' => 214,
@@ -299,7 +380,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function timesBoldItalicWidths(): array {
+    private static function timesBoldItalicWidths(): array
+    {
         return [
             'space' => 250,
             'A' => 667, 'B' => 667, 'C' => 667, 'D' => 722, 'E' => 667,
@@ -318,7 +400,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function courierWidths(): array {
+    private static function courierWidths(): array
+    {
         // All glyphs in Courier family are 600 units wide
         $widths = [];
         $glyphs = [
@@ -341,7 +424,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function symbolWidths(): array {
+    private static function symbolWidths(): array
+    {
         return [
             'space' => 250, 'exclam' => 333, 'universal' => 713, 'numbersign' => 500,
             'existential' => 549, 'percent' => 833, 'ampersand' => 778, 'suchthat' => 439,
@@ -373,7 +457,8 @@ final class StandardFontMetrics {
     }
 
     /** @return array<string, int> */
-    private static function zapfDingbatsWidths(): array {
+    private static function zapfDingbatsWidths(): array
+    {
         return [
             'space' => 278,
             'a1' => 974, 'a2' => 961, 'a202' => 974, 'a3' => 980, 'a4' => 719,

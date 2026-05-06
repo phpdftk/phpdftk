@@ -66,7 +66,7 @@ class ErrorToleranceTest extends TestCase
                 $corruptPdf,
                 (string) $newOffset,
                 $m[1][1],
-                strlen($m[1][0])
+                strlen($m[1][0]),
             );
         }
 

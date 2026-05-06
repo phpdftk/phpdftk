@@ -23,8 +23,7 @@ final class XrefParser
         private readonly Tokenizer $tokenizer,
         private readonly Source $source,
         private readonly ObjectParser $objectParser,
-    ) {
-    }
+    ) {}
 
     /**
      * Parse a classic xref table at the given byte offset.
@@ -41,7 +40,7 @@ final class XrefParser
         $keyword = $this->readWord();
         if ($keyword !== 'xref') {
             throw new InvalidPdfException(
-                "Expected 'xref' at offset $offset, got '$keyword'"
+                "Expected 'xref' at offset $offset, got '$keyword'",
             );
         }
 
@@ -56,7 +55,7 @@ final class XrefParser
             }
             if ($word === '' || $this->source->isEof()) {
                 throw new InvalidPdfException(
-                    "Unexpected end of xref table at offset " . $this->source->tell() . ": expected 'trailer'"
+                    "Unexpected end of xref table at offset " . $this->source->tell() . ": expected 'trailer'",
                 );
             }
 
@@ -77,7 +76,7 @@ final class XrefParser
                 if (!preg_match('/^(\d{10})\s+(\d{5})\s+([nf])/', $line, $em)) {
                     if ($strict) {
                         throw new InvalidPdfException(
-                            "Malformed xref entry at offset " . $this->source->tell() . ": '$line'"
+                            "Malformed xref entry at offset " . $this->source->tell() . ": '$line'",
                         );
                     }
                     $warnings[] = "Skipped malformed xref entry for object " . ($firstObj + $i) . ": '$line'";

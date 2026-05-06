@@ -266,7 +266,7 @@ class Pdf
             new TextStyle(
                 size: $style['size'],
                 bold: $style['bold'],
-            )
+            ),
         );
         // addText already left us one paragraphSpacing below; replace
         // it with the heading's own spaceBelow.
@@ -436,7 +436,7 @@ class Pdf
         ];
         if (!isset($map[$family])) {
             throw new \InvalidArgumentException(
-                "Unknown standard font family: $family (expected Helvetica, Times, Courier, Symbol, or ZapfDingbats)"
+                "Unknown standard font family: $family (expected Helvetica, Times, Courier, Symbol, or ZapfDingbats)",
             );
         }
         $key = ($bold ? '1' : '0') . ($italic ? '1' : '0');

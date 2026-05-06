@@ -243,12 +243,18 @@ final class AnnotationFlattener
                     $ty = $yMin - $apBBox[1] * $sy;
                     $flattenedOps[] = sprintf(
                         "q %.4f 0 0 %.4f %.4f %.4f cm /%s Do Q",
-                        $sx, $sy, $tx, $ty, $xoName,
+                        $sx,
+                        $sy,
+                        $tx,
+                        $ty,
+                        $xoName,
                     );
                 } else {
                     $flattenedOps[] = sprintf(
                         "q 1 0 0 1 %.4f %.4f cm /%s Do Q",
-                        $xMin, $yMin, $xoName,
+                        $xMin,
+                        $yMin,
+                        $xoName,
                     );
                 }
             }
@@ -300,7 +306,10 @@ final class AnnotationFlattener
             // Create modified page object
             $pageObj = new class ($pageDict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $pageObj->objectNumber = $pageRefs[$i]->objectNumber;
             $pageObj->generationNumber = 0;

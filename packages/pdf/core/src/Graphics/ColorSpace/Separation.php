@@ -27,7 +27,7 @@ class Separation extends ColorSpace
     public function __construct(
         PdfName $name,
         ColorSpace|PdfName|PdfArray $alternateSpace,
-        PdfReference $tintTransform
+        PdfReference $tintTransform,
     ) {
         $this->name = $name;
         $this->alternateSpace = $alternateSpace;

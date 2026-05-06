@@ -83,7 +83,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
                 new PdfNumber(540), new PdfNumber(520),
                 new PdfNumber(540), new PdfNumber(500),
                 new PdfNumber(72), new PdfNumber(500),
-            ])
+            ]),
         );
         $highlight->contents = new PdfString('I agree, this is important');
         $highlight->t = new PdfString('Bob');
@@ -100,7 +100,7 @@ class MarkupAnnotationsIntegrationTest extends TestCase
                 new PdfNumber(200), new PdfNumber(300),
                 new PdfNumber(400), new PdfNumber(400),
             ]),
-            new PdfString('0 0 0 rg /Helv 12 Tf')
+            new PdfString('0 0 0 rg /Helv 12 Tf'),
         );
         $callout->contents = new PdfString('Callout text');
         $callout->subj = new PdfString('Callout');

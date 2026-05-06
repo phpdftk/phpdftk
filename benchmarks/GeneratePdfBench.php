@@ -261,7 +261,7 @@ class GeneratePdfBench
 
             // TextAnnotation (sticky note)
             $textAnnot = new TextAnnotation(
-                new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(120), new PdfNumber(710)])
+                new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(120), new PdfNumber(710)]),
             );
             $textAnnot->contents = new PdfString(sprintf('Note on page %d', $i));
             $textAnnot->name = new PdfName('Note');
@@ -276,7 +276,7 @@ class GeneratePdfBench
                     new PdfNumber(300), new PdfNumber(640),
                     new PdfNumber(72), new PdfNumber(620),
                     new PdfNumber(300), new PdfNumber(620),
-                ])
+                ]),
             );
             $highlight->c = new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(0)]);
             $writer->register($highlight);
@@ -284,7 +284,7 @@ class GeneratePdfBench
 
             // LineAnnotation
             $line = new LineAnnotation(
-                new PdfArray([new PdfNumber(72), new PdfNumber(560), new PdfNumber(300), new PdfNumber(590)])
+                new PdfArray([new PdfNumber(72), new PdfNumber(560), new PdfNumber(300), new PdfNumber(590)]),
             );
             $line->l = new PdfArray([
                 new PdfNumber(72), new PdfNumber(575),
@@ -296,7 +296,7 @@ class GeneratePdfBench
 
             // SquareAnnotation
             $square = new SquareAnnotation(
-                new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(200), new PdfNumber(540)])
+                new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(200), new PdfNumber(540)]),
             );
             $square->ic = new PdfArray([new PdfNumber(0.8), new PdfNumber(0.9), new PdfNumber(1.0)]);
             $writer->register($square);
@@ -385,7 +385,10 @@ class GeneratePdfBench
                ->endText();
 
             $namedDests['page' . $i] = Destination::xyz(
-                new PdfReference($page->corePage()->objectNumber), 72, 720, 1.0
+                new PdfReference($page->corePage()->objectNumber),
+                72,
+                720,
+                1.0,
             );
         }
 
@@ -572,7 +575,7 @@ class GeneratePdfBench
             new PdfArray([new PdfNumber(0), new PdfNumber(1)]),
             new PdfArray([new PdfNumber(1), new PdfNumber(0), new PdfNumber(0)]),
             new PdfArray([new PdfNumber(0), new PdfNumber(0), new PdfNumber(1)]),
-            1.0
+            1.0,
         );
         $rampRef = $writer->register($ramp);
 
@@ -582,7 +585,7 @@ class GeneratePdfBench
                 new PdfNumber(72), new PdfNumber(600),
                 new PdfNumber(540), new PdfNumber(600),
             ]),
-            $rampRef
+            $rampRef,
         );
         $axialRef = $writer->register($axial);
         $axialPatternRef = $writer->register(new ShadingPattern($axialRef));
@@ -851,7 +854,7 @@ class GeneratePdfBench
                     new PdfNumber(540), new PdfNumber(520),
                     new PdfNumber(540), new PdfNumber(500),
                     new PdfNumber(72), new PdfNumber(500),
-                ])
+                ]),
             );
             $hl->t = new PdfString('Bob');
             $hl->subj = new PdfString('Agreed');
@@ -1451,14 +1454,22 @@ class GeneratePdfBench
             // Text field with custom font appearance
             $rect = new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(700)]);
             $xObj = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::textField(
-                $rect, $fontName, 12, "Value $i", fontContext: $fontCtx
+                $rect,
+                $fontName,
+                12,
+                "Value $i",
+                fontContext: $fontCtx,
             );
             $writer->register($xObj);
 
             // Choice field with custom font appearance
             $choiceRect = new PdfArray([new PdfNumber(72), new PdfNumber(640), new PdfNumber(300), new PdfNumber(660)]);
             $choiceXObj = \Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::choiceField(
-                $choiceRect, $fontName, 12, "Option $i", fontContext: $fontCtx
+                $choiceRect,
+                $fontName,
+                12,
+                "Option $i",
+                fontContext: $fontCtx,
             );
             $writer->register($choiceXObj);
         }
@@ -1613,7 +1624,7 @@ class GeneratePdfBench
         $fileId = md5('bench-pubkey', true);
         $encryptor = \Phpdftk\Pdf\Core\Security\PdfEncryptor::publicKeyAes128(
             [['cert' => $certPem]],
-            $fileId
+            $fileId,
         );
         $fileWriter->setEncryption($encryptor);
 
@@ -1678,7 +1689,7 @@ class GeneratePdfBench
             $highlight = new HighlightAnnotation(
                 new PdfArray([new PdfNumber(72), new PdfNumber(700), new PdfNumber(200), new PdfNumber(720)]),
                 new PdfArray([new PdfNumber(72), new PdfNumber(720), new PdfNumber(200), new PdfNumber(720),
-                              new PdfNumber(200), new PdfNumber(700), new PdfNumber(72), new PdfNumber(700)]),
+                    new PdfNumber(200), new PdfNumber(700), new PdfNumber(72), new PdfNumber(700)]),
             );
             $writer->register($highlight);
 
@@ -1794,7 +1805,10 @@ class GeneratePdfBench
         }
 
         $filter = new \Phpdftk\Filters\CCITTFaxFilter(
-            k: 0, columns: 8, rows: 100, endOfBlock: false
+            k: 0,
+            columns: 8,
+            rows: 100,
+            endOfBlock: false,
         );
 
         for ($i = 0; $i < 100; $i++) {
@@ -1822,7 +1836,10 @@ class GeneratePdfBench
         $rawData = str_repeat($rawRow, 100);
 
         $filter = new \Phpdftk\Filters\CCITTFaxFilter(
-            k: 0, columns: 8, rows: 100, endOfBlock: false
+            k: 0,
+            columns: 8,
+            rows: 100,
+            endOfBlock: false,
         );
 
         for ($i = 0; $i < 100; $i++) {

@@ -85,7 +85,7 @@ class Woff2ParserTest extends TestCase
         $sfVersion = unpack('N', $sfntBytes)[1];
         $this->assertTrue(
             $sfVersion === 0x00010000 || $sfVersion === 0x4F54544F,
-            'Decompressed WOFF2 should have a valid sfnt signature'
+            'Decompressed WOFF2 should have a valid sfnt signature',
         );
     }
 }

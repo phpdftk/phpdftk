@@ -23,6 +23,5 @@ final class ContentStreamOp
     public function __construct(
         public readonly array $operands,
         public readonly string $operator,
-    ) {
-    }
+    ) {}
 }

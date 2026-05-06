@@ -37,7 +37,7 @@ final class CrlClient
         $urls = CertificateUtils::getCrlDistributionPointUrls($derCert);
         if (empty($urls)) {
             throw new \RuntimeException(
-                'Certificate does not contain CRL Distribution Point URLs (no CDP extension)'
+                'Certificate does not contain CRL Distribution Point URLs (no CDP extension)',
             );
         }
 

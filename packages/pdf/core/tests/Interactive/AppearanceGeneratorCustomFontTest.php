@@ -86,7 +86,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'Hi', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'Hi',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -98,7 +102,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext(99);
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'Test', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'Test',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -109,7 +117,10 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     public function testTextFieldWithoutFontContextStillUsesLiteralText(): void
     {
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'Hello'
+            $this->makeRect(),
+            'F1',
+            12,
+            'Hello',
         );
 
         $pdf = $xObj->toPdf();
@@ -120,7 +131,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, '', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            '',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -132,7 +147,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'X', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'X',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -144,7 +163,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'Test', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'Test',
+            fontContext: $ctx,
         );
         $this->assertInstanceOf(FormXObject::class, $xObj);
     }
@@ -157,9 +180,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textFieldMultiLine(
-            $this->makeRect(200, 100), 'F1', 12,
+            $this->makeRect(200, 100),
+            'F1',
+            12,
             "Line one\nLine two",
-            fontContext: $ctx
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -172,8 +197,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext(55);
         $xObj = AppearanceGenerator::textFieldMultiLine(
-            $this->makeRect(200, 100), 'F2', 12, 'Text',
-            fontContext: $ctx
+            $this->makeRect(200, 100),
+            'F2',
+            12,
+            'Text',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -188,8 +216,12 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::combTextField(
-            $this->makeRect(200, 30), 'F1', 12, 'AB',
-            maxLen: 5, fontContext: $ctx
+            $this->makeRect(200, 30),
+            'F1',
+            12,
+            'AB',
+            maxLen: 5,
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -205,8 +237,12 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::combTextField(
-            $this->makeRect(200, 30), 'F1', 12, 'ABCDEF',
-            maxLen: 3, fontContext: $ctx
+            $this->makeRect(200, 30),
+            'F1',
+            12,
+            'ABCDEF',
+            maxLen: 3,
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -223,8 +259,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::pushButton(
-            $this->makeRect(100, 30), 'F1', 10, 'OK',
-            fontContext: $ctx
+            $this->makeRect(100, 30),
+            'F1',
+            10,
+            'OK',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -240,8 +279,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::choiceField(
-            $this->makeRect(), 'F1', 12, 'Option A',
-            fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'Option A',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -256,16 +298,22 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::signatureField(
-            $this->makeRect(200, 60), 'F1', 10,
-            signer: 'Jane', reason: 'Test', fontContext: $ctx
+            $this->makeRect(200, 60),
+            'F1',
+            10,
+            signer: 'Jane',
+            reason: 'Test',
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
         $this->assertStringContainsString(
-            '<' . $ctx->textToHex('Digitally signed by Jane') . '> Tj', $pdf
+            '<' . $ctx->textToHex('Digitally signed by Jane') . '> Tj',
+            $pdf,
         );
         $this->assertStringContainsString(
-            '<' . $ctx->textToHex('Reason: Test') . '> Tj', $pdf
+            '<' . $ctx->textToHex('Reason: Test') . '> Tj',
+            $pdf,
         );
     }
 
@@ -273,7 +321,10 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext(77);
         $xObj = AppearanceGenerator::signatureField(
-            $this->makeRect(200, 60), 'F3', 10, fontContext: $ctx
+            $this->makeRect(200, 60),
+            'F3',
+            10,
+            fontContext: $ctx,
         );
 
         $pdf = $xObj->toPdf();
@@ -287,7 +338,10 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     public function testPasswordFieldStillWorksWithStandardFont(): void
     {
         $xObj = AppearanceGenerator::passwordField(
-            $this->makeRect(), 'F1', 12, characterCount: 5
+            $this->makeRect(),
+            'F1',
+            12,
+            characterCount: 5,
         );
 
         $pdf = $xObj->toPdf();
@@ -302,7 +356,11 @@ class AppearanceGeneratorCustomFontTest extends TestCase
     {
         $ctx = $this->makeFontContext();
         $xObj = AppearanceGenerator::textField(
-            $this->makeRect(), 'F1', 12, 'Test', fontContext: $ctx
+            $this->makeRect(),
+            'F1',
+            12,
+            'Test',
+            fontContext: $ctx,
         );
 
         $indirect = $xObj->toIndirectObject();

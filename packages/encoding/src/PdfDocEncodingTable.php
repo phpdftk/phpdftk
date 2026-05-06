@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Encoding;
 
 /**
@@ -8,11 +11,13 @@ namespace Phpdftk\Encoding;
  *
  * Maps byte values 0-255 directly to Unicode code points (not glyph names).
  */
-final class PdfDocEncodingTable {
+final class PdfDocEncodingTable
+{
     /**
      * @return array<int, int|null> byte value (0-255) to Unicode code point, null = undefined
      */
-    public static function getTable(): array {
+    public static function getTable(): array
+    {
         $table = [];
 
         // 0-7: special PDF control codes / undefined
@@ -115,7 +120,8 @@ final class PdfDocEncodingTable {
      * (indicated by a BOM prefix 0xFE 0xFF). This method handles only the
      * PDFDocEncoding case.
      */
-    public static function decode(string $bytes): string {
+    public static function decode(string $bytes): string
+    {
         $table = self::getTable();
         $result = '';
         $len = strlen($bytes);
@@ -133,7 +139,8 @@ final class PdfDocEncodingTable {
     /**
      * Decode a PDF text string — auto-detects UTF-16BE (BOM) vs PDFDocEncoding.
      */
-    public static function decodeTextString(string $bytes): string {
+    public static function decodeTextString(string $bytes): string
+    {
         // Check for UTF-16BE BOM
         if (strlen($bytes) >= 2 && $bytes[0] === "\xFE" && $bytes[1] === "\xFF") {
             return mb_convert_encoding(substr($bytes, 2), 'UTF-8', 'UTF-16BE');

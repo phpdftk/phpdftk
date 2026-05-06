@@ -208,7 +208,10 @@ final class PageTransformer
             $objNum = $pageEntries[$pageIndex]['objectNumber'];
             $obj = new class ($dict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $obj->objectNumber = $objNum;
             $obj->generationNumber = 0;

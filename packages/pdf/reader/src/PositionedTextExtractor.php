@@ -153,7 +153,7 @@ final class PositionedTextExtractor
                     }
                     break;
 
-                // --- Text object ---
+                    // --- Text object ---
                 case 'BT':
                     $this->textMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
                     $this->textLineMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
@@ -164,7 +164,7 @@ final class PositionedTextExtractor
                 case 'ET':
                     break;
 
-                // --- Text state operators ---
+                    // --- Text state operators ---
                 case 'Tc':
                     if (count($op->operands) >= 1) {
                         $this->charSpacing = (float) $op->operands[0];
@@ -202,7 +202,7 @@ final class PositionedTextExtractor
                     }
                     break;
 
-                // --- Text positioning ---
+                    // --- Text positioning ---
                 case 'Td':
                     if (count($op->operands) >= 2) {
                         $tx = (float) $op->operands[0];
@@ -238,7 +238,7 @@ final class PositionedTextExtractor
                     $this->textMatrix = $this->textLineMatrix;
                     break;
 
-                // --- Marked content ---
+                    // --- Marked content ---
                 case 'BMC':
                     $this->markedContentStack[] = ['actualText' => null];
                     break;
@@ -274,7 +274,7 @@ final class PositionedTextExtractor
                     }
                     break;
 
-                // --- Text showing operators ---
+                    // --- Text showing operators ---
                 case 'Tj':
                     if (!$this->suppressText && count($op->operands) >= 1) {
                         $span = $this->showString($op->operands[0]);
@@ -321,7 +321,7 @@ final class PositionedTextExtractor
                     }
                     break;
 
-                // --- XObject invocation ---
+                    // --- XObject invocation ---
                 case 'Do':
                     if (count($op->operands) >= 1) {
                         $xobjSpans = $this->extractFromXObject(ltrim($op->operands[0], '/'));

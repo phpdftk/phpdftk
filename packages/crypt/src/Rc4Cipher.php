@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Crypt;
 
 /**
@@ -7,18 +10,24 @@ namespace Phpdftk\Crypt;
  * Encrypt and decrypt are the same XOR operation. Retained for
  * reading older PDFs — AES should be used for all new documents.
  */
-final class Rc4Cipher implements CryptInterface {
-    public function encrypt(string $data, string $key): string {
+final class Rc4Cipher implements CryptInterface
+{
+    public function encrypt(string $data, string $key): string
+    {
         return self::rc4($data, $key);
     }
 
-    public function decrypt(string $data, string $key): string {
+    public function decrypt(string $data, string $key): string
+    {
         return self::rc4($data, $key);
     }
 
-    private static function rc4(string $data, string $key): string {
+    private static function rc4(string $data, string $key): string
+    {
         $keyLen = strlen($key);
-        if ($keyLen === 0) return $data;
+        if ($keyLen === 0) {
+            return $data;
+        }
 
         // Key Scheduling Algorithm (KSA)
         $s = range(0, 255);

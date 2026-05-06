@@ -66,7 +66,7 @@ class PdfStream extends PdfObject
             "%d %d obj\n%s\nendobj",
             $this->objectNumber,
             $this->generationNumber,
-            $this->toPdf()
+            $this->toPdf(),
         );
     }
 }

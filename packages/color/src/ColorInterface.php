@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Color;
 
 /**
@@ -7,7 +10,8 @@ namespace Phpdftk\Color;
  * `getColorSpace()` returns the PDF name (DeviceRGB, DeviceCMYK, DeviceGray)
  * and `toArray()` returns component values in the order PDF operators expect.
  */
-interface ColorInterface {
+interface ColorInterface
+{
     /** @return array<int, float> */
     public function toArray(): array;
     public function getColorSpace(): string;

@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\ImageMetadata;
 
 /**
@@ -7,10 +10,14 @@ namespace Phpdftk\ImageMetadata;
  * Also extracts ICC profile data from APP2 markers when present, which
  * is needed for accurate color reproduction in PDF/A output.
  */
-final class JpegParser {
-    public static function parseFile(string $path): ImageInfo {
+final class JpegParser
+{
+    public static function parseFile(string $path): ImageInfo
+    {
         $fh = fopen($path, 'rb');
-        if ($fh === false) throw new \RuntimeException("Cannot open file: $path");
+        if ($fh === false) {
+            throw new \RuntimeException("Cannot open file: $path");
+        }
         try {
             $data = fread($fh, filesize($path));
         } finally {
@@ -19,7 +26,8 @@ final class JpegParser {
         return self::parse($data);
     }
 
-    public static function parse(string $data): ImageInfo {
+    public static function parse(string $data): ImageInfo
+    {
         $len = strlen($data);
         $pos = 0;
 
@@ -49,17 +57,25 @@ final class JpegParser {
             while ($pos < $len && ord($data[$pos]) === 0xFF) {
                 $pos++;
             }
-            if ($pos >= $len) break;
+            if ($pos >= $len) {
+                break;
+            }
 
             $marker = ord($data[$pos]);
             $pos++;
 
             // EOI or standalone markers
-            if ($marker === 0xD9 || $marker === 0xD8) break;
+            if ($marker === 0xD9 || $marker === 0xD8) {
+                break;
+            }
             // Skip standalone markers (RST0-RST7, SOI)
-            if ($marker >= 0xD0 && $marker <= 0xD7) continue;
+            if ($marker >= 0xD0 && $marker <= 0xD7) {
+                continue;
+            }
 
-            if ($pos + 2 > $len) break;
+            if ($pos + 2 > $len) {
+                break;
+            }
             $segLen = (ord($data[$pos]) << 8) | ord($data[$pos + 1]);
             $segStart = $pos;
             $pos += 2;
@@ -76,8 +92,8 @@ final class JpegParser {
                         $yDpi = $yDens;
                     } elseif ($units === 2 && $xDens > 0 && $yDens > 0) {
                         // dots per cm → DPI
-                        $xDpi = (int)round($xDens * 2.54);
-                        $yDpi = (int)round($yDens * 2.54);
+                        $xDpi = (int) round($xDens * 2.54);
+                        $yDpi = (int) round($yDens * 2.54);
                     }
                 }
             }

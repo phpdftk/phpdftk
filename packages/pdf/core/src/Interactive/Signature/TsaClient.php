@@ -106,12 +106,12 @@ final class TsaClient
 
         // AlgorithmIdentifier ::= SEQUENCE { algorithm OID, parameters NULL }
         $algId = self::derSequence(
-            self::derOid($oid) . self::derNull()
+            self::derOid($oid) . self::derNull(),
         );
 
         // MessageImprint
         $messageImprint = self::derSequence(
-            $algId . self::derOctetString($hash)
+            $algId . self::derOctetString($hash),
         );
 
         // version INTEGER v1(1)
@@ -125,7 +125,7 @@ final class TsaClient
 
         // TimeStampReq
         return self::derSequence(
-            $version . $messageImprint . $nonce . $certReq
+            $version . $messageImprint . $nonce . $certReq,
         );
     }
 

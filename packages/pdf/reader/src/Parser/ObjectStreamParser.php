@@ -20,8 +20,7 @@ final class ObjectStreamParser
 {
     public function __construct(
         private readonly StreamParser $streamParser,
-    ) {
-    }
+    ) {}
 
     /**
      * Unpack all objects from an ObjStm.
@@ -86,7 +85,7 @@ final class ObjectStreamParser
                 $result[$objNums[$i]] = $objParser->parseValue();
             } catch (\Throwable $e) {
                 throw new InvalidPdfException(
-                    "Failed to parse object {$objNums[$i]} inside ObjStm: {$e->getMessage()}"
+                    "Failed to parse object {$objNums[$i]} inside ObjStm: {$e->getMessage()}",
                 );
             }
         }

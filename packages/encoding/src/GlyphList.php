@@ -1,9 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Encoding;
 
-final class GlyphList {
+final class GlyphList
+{
     /** @return array<string, int> glyph name => Unicode codepoint */
-    public static function getList(): array {
+    public static function getList(): array
+    {
         return [
             'A' => 65, 'B' => 66, 'C' => 67, 'D' => 68, 'E' => 69,
             'F' => 70, 'G' => 71, 'H' => 72, 'I' => 73, 'J' => 74,
@@ -181,12 +186,14 @@ final class GlyphList {
         ];
     }
 
-    public static function glyphToUnicode(string $glyphName): ?int {
+    public static function glyphToUnicode(string $glyphName): ?int
+    {
         $list = self::getList();
         return $list[$glyphName] ?? null;
     }
 
-    public static function unicodeToGlyph(int $codepoint): ?string {
+    public static function unicodeToGlyph(int $codepoint): ?string
+    {
         foreach (self::getList() as $glyph => $cp) {
             if ($cp === $codepoint && $glyph !== '.notdef') {
                 return $glyph;

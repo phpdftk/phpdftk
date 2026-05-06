@@ -75,7 +75,7 @@ class FormAppearancesIntegrationTest extends TestCase
         $textWidget = new WidgetAnnotation($nameRect);
         $textWidget->parent = new PdfReference($textField->objectNumber);
         $textWidget->ap = AppearanceGenerator::buildAppearanceDict(
-            new PdfReference($textAppearance->objectNumber)
+            new PdfReference($textAppearance->objectNumber),
         );
         $writer->register($textWidget);
         $page->corePage()->annots[] = new PdfReference($textWidget->objectNumber);
@@ -127,7 +127,7 @@ class FormAppearancesIntegrationTest extends TestCase
         $choiceWidget = new WidgetAnnotation($choiceRect);
         $choiceWidget->parent = new PdfReference($choiceField->objectNumber);
         $choiceWidget->ap = AppearanceGenerator::buildAppearanceDict(
-            new PdfReference($choiceAppearance->objectNumber)
+            new PdfReference($choiceAppearance->objectNumber),
         );
         $writer->register($choiceWidget);
         $page->corePage()->annots[] = new PdfReference($choiceWidget->objectNumber);

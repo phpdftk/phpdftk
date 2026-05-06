@@ -39,8 +39,7 @@ final class ObjectResolver
         private readonly ObjectParser $objectParser,
         private readonly StreamParser $streamParser,
         private readonly ?PdfDecryptor $decryptor = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Configure whether the resolver should attempt to recover from
@@ -136,7 +135,7 @@ final class ObjectResolver
             if ($this->strict) {
                 throw new InvalidPdfException(
                     "Xref says object $objNum is at offset {$entry->offset}, "
-                    . "but found object $parsedObjNum there"
+                    . "but found object $parsedObjNum there",
                 );
             }
             // Lenient mode — try to find the correct offset for $objNum
@@ -265,7 +264,7 @@ final class ObjectResolver
         $objStm = $this->resolve($objStmNum);
         if (!$objStm instanceof PdfStream) {
             throw new InvalidPdfException(
-                "ObjStm $objStmNum is not a stream"
+                "ObjStm $objStmNum is not a stream",
             );
         }
 

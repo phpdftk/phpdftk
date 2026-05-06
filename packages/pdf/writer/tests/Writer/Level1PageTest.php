@@ -97,7 +97,10 @@ class Level1PageTest extends TestCase
         [$page] = $this->addPageAndFont($writer);
 
         $page->drawRectangle(
-            100, 600, 200, 100,
+            100,
+            600,
+            200,
+            100,
             fill: RgbColor::fromInt(200, 200, 255),
             stroke: RgbColor::fromInt(0, 0, 0),
         );
@@ -158,7 +161,11 @@ class Level1PageTest extends TestCase
         [$page] = $this->addPageAndFont($writer);
 
         $page->drawRoundedRectangle(
-            100, 500, 200, 80, 10,
+            100,
+            500,
+            200,
+            80,
+            10,
             fill: RgbColor::fromInt(240, 240, 240),
             stroke: RgbColor::fromInt(0, 0, 0),
         );
@@ -217,7 +224,12 @@ class Level1PageTest extends TestCase
         $writer = $this->createWriter();
         [$page] = $this->addPageAndFont($writer);
 
-        $page->drawStar(300, 400, 50, 20, 5,
+        $page->drawStar(
+            300,
+            400,
+            50,
+            20,
+            5,
             fill: RgbColor::fromInt(255, 215, 0),
             stroke: RgbColor::fromInt(0, 0, 0),
         );
@@ -264,7 +276,11 @@ class Level1PageTest extends TestCase
         $writer = $this->createWriter();
         [$page] = $this->addPageAndFont($writer);
 
-        $page->drawRectangle(100, 600, 200, 100,
+        $page->drawRectangle(
+            100,
+            600,
+            200,
+            100,
             fill: new CmykColor(1, 0, 0, 0), // cyan
         );
 

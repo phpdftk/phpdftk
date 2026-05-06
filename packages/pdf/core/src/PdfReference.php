@@ -11,9 +11,8 @@ class PdfReference implements Serializable
 {
     public function __construct(
         public readonly int $objectNumber,
-        public readonly int $generationNumber = 0
-    ) {
-    }
+        public readonly int $generationNumber = 0,
+    ) {}
 
     public function toPdf(): string
     {

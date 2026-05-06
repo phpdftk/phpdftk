@@ -13,9 +13,7 @@ namespace Phpdftk\Pdf\Reader\Parser;
  */
 final class HintTableParser
 {
-    public function __construct(private readonly string $data)
-    {
-    }
+    public function __construct(private readonly string $data) {}
 
     /**
      * Parse the page offset hint table starting at the given byte offset.

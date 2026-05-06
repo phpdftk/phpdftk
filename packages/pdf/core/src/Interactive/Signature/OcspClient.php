@@ -79,7 +79,7 @@ final class OcspClient
 
         // AlgorithmIdentifier for SHA-256
         $algId = self::derSequence(
-            self::derOid(self::OID_SHA256) . self::derNull()
+            self::derOid(self::OID_SHA256) . self::derNull(),
         );
 
         // CertID
@@ -87,7 +87,7 @@ final class OcspClient
             $algId
             . self::derOctetString($issuerNameHash)
             . self::derOctetString($issuerKeyHash)
-            . self::derInteger($serialNumber)
+            . self::derInteger($serialNumber),
         );
 
         // Request

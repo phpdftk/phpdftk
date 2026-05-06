@@ -101,7 +101,7 @@ final class WoffParser
                 $decompressed = @gzuncompress($compressed);
                 if ($decompressed === false) {
                     throw new \RuntimeException(
-                        "Failed to decompress WOFF table '{$table['tag']}'"
+                        "Failed to decompress WOFF table '{$table['tag']}'",
                     );
                 }
                 if (strlen($decompressed) !== $table['origLength']) {

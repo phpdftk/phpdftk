@@ -74,7 +74,7 @@ class ColorSpaceTest extends TestCase
         $cs = new Indexed(
             new DeviceRGB(),
             3,
-            new PdfString(str_repeat("\x00\xFF\x00", 4), hex: true)
+            new PdfString(str_repeat("\x00\xFF\x00", 4), hex: true),
         );
         $pdf = $cs->toPdf();
         self::assertStringContainsString('/Indexed', $pdf);
@@ -100,7 +100,7 @@ class ColorSpaceTest extends TestCase
         $cs = new Separation(
             new PdfName('PANTONE#20185#20C'),
             new DeviceRGB(),
-            new PdfReference(8)
+            new PdfReference(8),
         );
         $pdf = $cs->toPdf();
         self::assertStringContainsString('/Separation', $pdf);
@@ -112,7 +112,7 @@ class ColorSpaceTest extends TestCase
         $cs = new DeviceN(
             new PdfArray([new PdfName('Cyan'), new PdfName('Magenta')]),
             new DeviceRGB(),
-            new PdfReference(9)
+            new PdfReference(9),
         );
         $pdf = $cs->toPdf();
         self::assertStringContainsString('/DeviceN', $pdf);

@@ -199,7 +199,10 @@ class LtvSignedPdfIntegrationTest extends TestCase
         // The same byte range should exist in the LTV output
         $brPattern = sprintf(
             '/\/ByteRange \[ %s %s %s %s \]/',
-            $brOrig[1], $brOrig[2], $brOrig[3], $brOrig[4],
+            $brOrig[1],
+            $brOrig[2],
+            $brOrig[3],
+            $brOrig[4],
         );
         self::assertMatchesRegularExpression(
             $brPattern,

@@ -52,7 +52,7 @@ class SignatureValue extends PdfObject
     public function __construct(
         string $filter = 'Adobe.PPKLite',
         ?string $subFilter = 'adbe.pkcs7.detached',
-        ?PdfString $contents = null
+        ?PdfString $contents = null,
     ) {
         $this->filter = new PdfName($filter);
         if ($subFilter !== null) {

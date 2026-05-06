@@ -63,7 +63,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // UnderlineAnnotation with QuadPoints
         $underline = new UnderlineAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(670), new PdfNumber(300), new PdfNumber(690)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(670), new PdfNumber(300), new PdfNumber(690)]),
         );
         $underline->quadPoints = new PdfArray([
             new PdfNumber(72), new PdfNumber(690),
@@ -77,7 +77,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // SquigglyAnnotation with QuadPoints
         $squiggly = new SquigglyAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(630), new PdfNumber(300), new PdfNumber(650)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(630), new PdfNumber(300), new PdfNumber(650)]),
         );
         $squiggly->quadPoints = new PdfArray([
             new PdfNumber(72), new PdfNumber(650),
@@ -91,7 +91,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // StrikeOutAnnotation with QuadPoints
         $strikeOut = new StrikeOutAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(590), new PdfNumber(300), new PdfNumber(610)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(590), new PdfNumber(300), new PdfNumber(610)]),
         );
         $strikeOut->quadPoints = new PdfArray([
             new PdfNumber(72), new PdfNumber(610),
@@ -105,7 +105,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // LineAnnotation with $l and $le
         $line = new LineAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(530), new PdfNumber(300), new PdfNumber(570)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(530), new PdfNumber(300), new PdfNumber(570)]),
         );
         $line->l = new PdfArray([
             new PdfNumber(72), new PdfNumber(550),
@@ -118,7 +118,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // SquareAnnotation with $ic
         $square = new SquareAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(460), new PdfNumber(200), new PdfNumber(510)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(460), new PdfNumber(200), new PdfNumber(510)]),
         );
         $square->ic = new PdfArray([new PdfNumber(0.9), new PdfNumber(0.9), new PdfNumber(0.5)]);
         $square->contents = new PdfString('Square annotation');
@@ -127,7 +127,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // CircleAnnotation with $ic
         $circle = new CircleAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(380), new PdfNumber(200), new PdfNumber(440)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(380), new PdfNumber(200), new PdfNumber(440)]),
         );
         $circle->ic = new PdfArray([new PdfNumber(0.5), new PdfNumber(0.8), new PdfNumber(1.0)]);
         $circle->contents = new PdfString('Circle annotation');
@@ -136,7 +136,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // PolygonAnnotation with $vertices (triangle)
         $polygon = new PolygonAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(280), new PdfNumber(250), new PdfNumber(360)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(280), new PdfNumber(250), new PdfNumber(360)]),
         );
         $polygon->vertices = new PdfArray([
             new PdfNumber(160), new PdfNumber(360),
@@ -149,7 +149,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // PolyLineAnnotation with $vertices (zigzag)
         $polyLine = new PolyLineAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(200), new PdfNumber(350), new PdfNumber(260)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(200), new PdfNumber(350), new PdfNumber(260)]),
         );
         $polyLine->vertices = new PdfArray([
             new PdfNumber(72), new PdfNumber(230),
@@ -175,7 +175,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // CaretAnnotation
         $caret = new CaretAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(120), new PdfNumber(720)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(120), new PdfNumber(720)]),
         );
         $caret->sy = new PdfName('P');
         $caret->contents = new PdfString('Caret annotation');
@@ -184,7 +184,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // FileAttachmentAnnotation
         $fileAttach = new FileAttachmentAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(620), new PdfNumber(120), new PdfNumber(660)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(620), new PdfNumber(120), new PdfNumber(660)]),
         );
         $fileAttach->name = new PdfName('Paperclip');
         $fileAttach->contents = new PdfString('File attachment');
@@ -193,7 +193,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // SoundAnnotation
         $sound = new SoundAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(560), new PdfNumber(120), new PdfNumber(600)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(560), new PdfNumber(120), new PdfNumber(600)]),
         );
         $sound->name = new PdfName('Speaker');
         $sound->contents = new PdfString('Sound annotation');
@@ -202,7 +202,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // WatermarkAnnotation
         $watermark = new WatermarkAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(300), new PdfNumber(520)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(300), new PdfNumber(520)]),
         );
         $watermark->contents = new PdfString('Watermark annotation');
         $writer->register($watermark);
@@ -210,7 +210,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // PrinterMarkAnnotation
         $printerMark = new PrinterMarkAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(400), new PdfNumber(120), new PdfNumber(440)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(400), new PdfNumber(120), new PdfNumber(440)]),
         );
         $printerMark->mn = new PdfName('ColorBar');
         $printerMark->contents = new PdfString('Printer mark');
@@ -219,7 +219,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // ScreenAnnotation
         $screen = new ScreenAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(340), new PdfNumber(200), new PdfNumber(380)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(340), new PdfNumber(200), new PdfNumber(380)]),
         );
         $screen->t = new PdfString('Video');
         $screen->contents = new PdfString('Screen annotation');
@@ -228,7 +228,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // MovieAnnotation
         $movie = new MovieAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(280), new PdfNumber(200), new PdfNumber(320)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(280), new PdfNumber(200), new PdfNumber(320)]),
         );
         $movie->t = new PdfString('Clip');
         $movie->contents = new PdfString('Movie annotation');
@@ -237,7 +237,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // RedactAnnotation
         $redact = new RedactAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(220), new PdfNumber(300), new PdfNumber(260)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(220), new PdfNumber(300), new PdfNumber(260)]),
         );
         $redact->quadPoints = new PdfArray([
             new PdfNumber(72), new PdfNumber(260),
@@ -263,7 +263,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // ThreeDAnnotation
         $threeD = new ThreeDAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(720)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(680), new PdfNumber(300), new PdfNumber(720)]),
         );
         $threeD->contents = new PdfString('3D annotation');
         $writer->register($threeD);
@@ -271,7 +271,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // ProjectionAnnotation
         $projection = new ProjectionAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(580), new PdfNumber(300), new PdfNumber(620)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(580), new PdfNumber(300), new PdfNumber(620)]),
         );
         $projection->contents = new PdfString('Projection annotation');
         $writer->register($projection);
@@ -279,7 +279,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // RichMediaAnnotation
         $richMedia = new RichMediaAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(300), new PdfNumber(520)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(480), new PdfNumber(300), new PdfNumber(520)]),
         );
         $richMedia->contents = new PdfString('RichMedia annotation');
         $writer->register($richMedia);
@@ -287,7 +287,7 @@ class AnnotationSubtypesTest extends TestCase
 
         // TrapNetAnnotation
         $trapNet = new TrapNetAnnotation(
-            new PdfArray([new PdfNumber(72), new PdfNumber(380), new PdfNumber(300), new PdfNumber(420)])
+            new PdfArray([new PdfNumber(72), new PdfNumber(380), new PdfNumber(300), new PdfNumber(420)]),
         );
         $trapNet->contents = new PdfString('TrapNet annotation');
         $writer->register($trapNet);

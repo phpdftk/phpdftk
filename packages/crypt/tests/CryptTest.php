@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Phpdftk\Crypt\Tests;
 
@@ -268,14 +270,18 @@ class CryptTest extends TestCase
 
         // Authenticate with correct password
         $recoveredKey = PdfKeyDerivation::authenticateUserPasswordR6(
-            $password, $result['u'], $result['ue']
+            $password,
+            $result['u'],
+            $result['ue'],
         );
         $this->assertNotNull($recoveredKey);
         $this->assertSame($fileEncryptionKey, $recoveredKey);
 
         // Fail with wrong password
         $wrongKey = PdfKeyDerivation::authenticateUserPasswordR6(
-            'wrongpassword', $result['u'], $result['ue']
+            'wrongpassword',
+            $result['u'],
+            $result['ue'],
         );
         $this->assertNull($wrongKey);
     }
@@ -295,14 +301,20 @@ class CryptTest extends TestCase
 
         // Authenticate with correct password
         $recoveredKey = PdfKeyDerivation::authenticateOwnerPasswordR6(
-            $password, $oResult['o'], $oResult['oe'], $uResult['u']
+            $password,
+            $oResult['o'],
+            $oResult['oe'],
+            $uResult['u'],
         );
         $this->assertNotNull($recoveredKey);
         $this->assertSame($fileEncryptionKey, $recoveredKey);
 
         // Fail with wrong password
         $wrongKey = PdfKeyDerivation::authenticateOwnerPasswordR6(
-            'wrongpassword', $oResult['o'], $oResult['oe'], $uResult['u']
+            'wrongpassword',
+            $oResult['o'],
+            $oResult['oe'],
+            $uResult['u'],
         );
         $this->assertNull($wrongKey);
     }

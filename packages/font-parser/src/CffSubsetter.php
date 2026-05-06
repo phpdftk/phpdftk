@@ -459,13 +459,20 @@ final class CffSubsetter
                             case 5: case 6: case 7: case 8: case 9:
                                 $realStr .= (string) $nibble;
                                 break;
-                            case 0x0A: $realStr .= '.'; break;
-                            case 0x0B: $realStr .= 'E'; break;
-                            case 0x0C: $realStr .= 'E-'; break;
-                            case 0x0E: $realStr .= '-'; break;
-                            case 0x0F: $done = true; break;
+                            case 0x0A: $realStr .= '.';
+                                break;
+                            case 0x0B: $realStr .= 'E';
+                                break;
+                            case 0x0C: $realStr .= 'E-';
+                                break;
+                            case 0x0E: $realStr .= '-';
+                                break;
+                            case 0x0F: $done = true;
+                                break;
                         }
-                        if ($done) break;
+                        if ($done) {
+                            break;
+                        }
                     }
                 }
                 $operandStack[] = (float) $realStr;

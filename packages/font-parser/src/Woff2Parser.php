@@ -250,7 +250,7 @@ final class Woff2Parser
             if ($exitCode !== 0 || !file_exists($outFile)) {
                 @unlink($outFile);
                 throw new \RuntimeException(
-                    'Brotli CLI decompression failed (exit code ' . $exitCode . '): ' . implode("\n", $output)
+                    'Brotli CLI decompression failed (exit code ' . $exitCode . '): ' . implode("\n", $output),
                 );
             }
 
@@ -264,7 +264,7 @@ final class Woff2Parser
         }
 
         throw new \RuntimeException(
-            'WOFF2 requires Brotli decompression. Install ext-brotli or the brotli CLI tool.'
+            'WOFF2 requires Brotli decompression. Install ext-brotli or the brotli CLI tool.',
         );
     }
 

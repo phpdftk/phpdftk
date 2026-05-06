@@ -9,6 +9,4 @@ namespace Phpdftk\Pdf\Reader\Exception;
  * cannot be recovered (e.g. missing %PDF header, corrupt xref table,
  * unresolvable /Root catalog).
  */
-final class InvalidPdfException extends \RuntimeException
-{
-}
+final class InvalidPdfException extends \RuntimeException {}

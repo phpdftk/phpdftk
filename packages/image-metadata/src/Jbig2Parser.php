@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\ImageMetadata;
 
 /**
@@ -92,7 +95,9 @@ final class Jbig2Parser
             $segNum = self::readUint32($data, $pos);
             $pos += 4;
 
-            if ($pos >= $len) break;
+            if ($pos >= $len) {
+                break;
+            }
             $segFlags = ord($data[$pos]);
             $pos++;
 
@@ -100,14 +105,18 @@ final class Jbig2Parser
             $pageAssocSizeLarge = ($segFlags & 0x40) !== 0;
 
             // Referred-to segment count (bits 5-7 of next byte, or long form)
-            if ($pos >= $len) break;
+            if ($pos >= $len) {
+                break;
+            }
             $retainByte = ord($data[$pos]);
             $refCount = ($retainByte >> 5) & 0x07;
             $pos++;
 
             if ($refCount === 7) {
                 // Long form: next 4 bytes are the count
-                if ($pos + 4 > $len) break;
+                if ($pos + 4 > $len) {
+                    break;
+                }
                 $refCount = self::readUint32($data, $pos) & 0x1FFFFFFF;
                 $pos += 4;
             }
@@ -121,7 +130,9 @@ final class Jbig2Parser
             $pos += $pageAssocSize;
 
             // Data length
-            if ($pos + 4 > $len) break;
+            if ($pos + 4 > $len) {
+                break;
+            }
             $dataLen = self::readUint32($data, $pos);
             $pos += 4;
 
@@ -142,7 +153,9 @@ final class Jbig2Parser
             }
 
             // Skip segment data (0xFFFFFFFF means unknown length — bail)
-            if ($dataLen === 0xFFFFFFFF) break;
+            if ($dataLen === 0xFFFFFFFF) {
+                break;
+            }
             $pos += $dataLen;
         }
 

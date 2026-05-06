@@ -104,23 +104,41 @@ final class PdfDecryptor
 
         // Try user password
         $key = PdfKeyDerivation::authenticateUserPassword(
-            $password, $oValue, $uValue, $p, $fileId,
-            $keyLengthBits, $r, $encryptMetadata
+            $password,
+            $oValue,
+            $uValue,
+            $p,
+            $fileId,
+            $keyLengthBits,
+            $r,
+            $encryptMetadata,
         );
 
         // Try owner password
         if ($key === null) {
             $key = PdfKeyDerivation::authenticateOwnerPassword(
-                $password, $oValue, $uValue, $p, $fileId,
-                $keyLengthBits, $r, $encryptMetadata
+                $password,
+                $oValue,
+                $uValue,
+                $p,
+                $fileId,
+                $keyLengthBits,
+                $r,
+                $encryptMetadata,
             );
         }
 
         // Try empty password as fallback
         if ($key === null && $password !== '') {
             $key = PdfKeyDerivation::authenticateUserPassword(
-                '', $oValue, $uValue, $p, $fileId,
-                $keyLengthBits, $r, $encryptMetadata
+                '',
+                $oValue,
+                $uValue,
+                $p,
+                $fileId,
+                $keyLengthBits,
+                $r,
+                $encryptMetadata,
             );
         }
 
@@ -330,7 +348,11 @@ final class PdfDecryptor
 
         // Derive file encryption key
         $encryptionKey = PublicKeyEncryption::deriveFileKey(
-            $seed, $recipientStrings, $p, (int) $keyLengthBytes, $encryptMetadata
+            $seed,
+            $recipientStrings,
+            $p,
+            (int) $keyLengthBytes,
+            $encryptMetadata,
         );
 
         $revision = self::intVal($encryptDict, 'R', 4);
@@ -387,7 +409,10 @@ final class PdfDecryptor
         }
 
         return PdfKeyDerivation::deriveObjectKey(
-            $this->encryptionKey, $objNum, $genNum, $this->useAes
+            $this->encryptionKey,
+            $objNum,
+            $genNum,
+            $this->useAes,
         );
     }
 

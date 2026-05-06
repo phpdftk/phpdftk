@@ -54,7 +54,7 @@ class GraphicsPipelineIntegrationTest extends TestCase
             domain: new PdfArray([new PdfNumber(0), new PdfNumber(1)]),
             c0: new PdfArray([new PdfNumber(1), new PdfNumber(0), new PdfNumber(0)]),
             c1: new PdfArray([new PdfNumber(0), new PdfNumber(0), new PdfNumber(1)]),
-            n: 1.0
+            n: 1.0,
         );
         $rampRef = $writer->register($rampRedToBlue);
 
@@ -64,7 +64,7 @@ class GraphicsPipelineIntegrationTest extends TestCase
                 new PdfNumber(72), new PdfNumber(600),
                 new PdfNumber(540), new PdfNumber(600),
             ]),
-            $rampRef
+            $rampRef,
         );
         $axialRef = $writer->register($axial);
 
@@ -74,7 +74,7 @@ class GraphicsPipelineIntegrationTest extends TestCase
                 new PdfNumber(306), new PdfNumber(400), new PdfNumber(0),
                 new PdfNumber(306), new PdfNumber(400), new PdfNumber(150),
             ]),
-            $rampRef
+            $rampRef,
         );
         $radialRef = $writer->register($radial);
 

@@ -211,7 +211,7 @@ class FontTest extends TestCase
         $cidFont = new CIDFont(
             'CIDFontType2',
             'Arial',
-            new CIDSystemInfo('Adobe', 'Identity', 0)
+            new CIDSystemInfo('Adobe', 'Identity', 0),
         );
         $cidFont->objectNumber = 5;
         $descendant = new PdfArray([new PdfReference($cidFont->objectNumber)]);

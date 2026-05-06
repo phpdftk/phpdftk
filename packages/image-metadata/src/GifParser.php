@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\ImageMetadata;
 
 /**
@@ -7,10 +10,14 @@ namespace Phpdftk\ImageMetadata;
  * GIF is palette-based — always reported as DeviceRGB since PDF
  * requires explicit color space declaration.
  */
-final class GifParser {
-    public static function parseFile(string $path): ImageInfo {
+final class GifParser
+{
+    public static function parseFile(string $path): ImageInfo
+    {
         $fh = fopen($path, 'rb');
-        if ($fh === false) throw new \RuntimeException("Cannot open file: $path");
+        if ($fh === false) {
+            throw new \RuntimeException("Cannot open file: $path");
+        }
         try {
             $data = fread($fh, 13);
         } finally {
@@ -19,7 +26,8 @@ final class GifParser {
         return self::parse($data);
     }
 
-    public static function parse(string $data): ImageInfo {
+    public static function parse(string $data): ImageInfo
+    {
         if (strlen($data) < 13) {
             throw new \RuntimeException('Not enough data for a valid GIF file');
         }

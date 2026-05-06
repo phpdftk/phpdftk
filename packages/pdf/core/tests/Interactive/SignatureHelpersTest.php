@@ -29,7 +29,7 @@ class SignatureHelpersTest extends TestCase
     {
         $lock = new SigFieldLock(
             'Include',
-            new PdfArray([new PdfString('name'), new PdfString('email')])
+            new PdfArray([new PdfString('name'), new PdfString('email')]),
         );
         $lock->objectNumber = 1;
         $pdf = $lock->toPdf();

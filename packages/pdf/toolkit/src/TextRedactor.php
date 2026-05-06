@@ -244,7 +244,10 @@ final class TextRedactor
 
             $pageObj = new class ($pageDict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $pageObj->objectNumber = $pageRefs[$pageIdx]->objectNumber;
             $pageObj->generationNumber = 0;

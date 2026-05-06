@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Color;
 
 /**
@@ -8,8 +11,10 @@ namespace Phpdftk\Color;
  * ITU-R BT.601 luma coefficients (0.299R + 0.587G + 0.114B) to
  * match perceived brightness.
  */
-final class ColorConverter {
-    public static function rgbToCmyk(RgbColor $rgb): CmykColor {
+final class ColorConverter
+{
+    public static function rgbToCmyk(RgbColor $rgb): CmykColor
+    {
         $r = $rgb->r;
         $g = $rgb->g;
         $b = $rgb->b;
@@ -28,7 +33,8 @@ final class ColorConverter {
         );
     }
 
-    public static function cmykToRgb(CmykColor $cmyk): RgbColor {
+    public static function cmykToRgb(CmykColor $cmyk): RgbColor
+    {
         $c = $cmyk->c;
         $m = $cmyk->m;
         $y = $cmyk->y;
@@ -40,12 +46,14 @@ final class ColorConverter {
         );
     }
 
-    public static function rgbToGray(RgbColor $rgb): GrayColor {
+    public static function rgbToGray(RgbColor $rgb): GrayColor
+    {
         $gray = 0.299 * $rgb->r + 0.587 * $rgb->g + 0.114 * $rgb->b;
         return new GrayColor(max(0.0, min(1.0, $gray)));
     }
 
-    public static function grayToRgb(GrayColor $gray): RgbColor {
+    public static function grayToRgb(GrayColor $gray): RgbColor
+    {
         return new RgbColor($gray->gray, $gray->gray, $gray->gray);
     }
 }

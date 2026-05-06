@@ -9,6 +9,7 @@ use Phpdftk\Pdf\Conformance\Profile\ConformanceProfile;
 use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
 use Phpdftk\Pdf\Conformance\Result\ConformanceViolation;
 use Phpdftk\Pdf\Conformance\Result\ViolationSeverity;
+
 /**
  * PDF/A clause 6.2.2: At least one OutputIntent with the correct
  * subtype and an embedded ICC profile is required.

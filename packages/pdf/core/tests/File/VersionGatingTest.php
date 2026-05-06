@@ -228,7 +228,7 @@ class VersionGatingTest extends TestCase
         // No auto-bump warning
         $autoBumpWarnings = array_filter(
             $writer->getVersionWarnings(),
-            fn($w) => str_contains($w, 'Auto-bumped')
+            fn($w) => str_contains($w, 'Auto-bumped'),
         );
         $this->assertEmpty($autoBumpWarnings);
     }

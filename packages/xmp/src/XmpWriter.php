@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Xmp;
 
 /**
@@ -8,7 +11,8 @@ namespace Phpdftk\Xmp;
  * The output includes trailing padding per the XMP spec to allow
  * in-place updates without rewriting the file.
  */
-final class XmpWriter {
+final class XmpWriter
+{
     private const DEFAULT_NAMESPACES = [
         'dc'   => 'http://purl.org/dc/elements/1.1/',
         'xmp'  => 'http://ns.adobe.com/xap/1.0/',
@@ -21,11 +25,13 @@ final class XmpWriter {
     private array $namespaces;
 
     /** @param array<string, string> $additionalNamespaces prefix => URI */
-    public function __construct(array $additionalNamespaces = []) {
+    public function __construct(array $additionalNamespaces = [])
+    {
         $this->namespaces = array_merge(self::DEFAULT_NAMESPACES, $additionalNamespaces);
     }
 
-    public function serialize(XmpPacket $packet): string {
+    public function serialize(XmpPacket $packet): string
+    {
         $properties = $packet->all();
 
         // Group properties by namespace prefix
@@ -52,7 +58,9 @@ final class XmpWriter {
         // Build property elements
         $propsXml = '';
         foreach ($grouped as $prefix => $props) {
-            if ($prefix === '_unqualified') continue;
+            if ($prefix === '_unqualified') {
+                continue;
+            }
             foreach ($props as $localName => $value) {
                 $escaped = htmlspecialchars($value, ENT_XML1 | ENT_COMPAT, 'UTF-8');
                 $propsXml .= "      <{$prefix}:{$localName}>{$escaped}</{$prefix}:{$localName}>\n";

@@ -13,9 +13,7 @@ namespace Phpdftk\Pdf\Core;
 class PdfDictionary implements Serializable
 {
     /** @param array<string, mixed> $entries */
-    public function __construct(public array $entries = [])
-    {
-    }
+    public function __construct(public array $entries = []) {}
 
     /**
      * Set or replace an entry. Returns $this for fluent chaining.

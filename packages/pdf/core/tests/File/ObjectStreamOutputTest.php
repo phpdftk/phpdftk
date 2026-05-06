@@ -31,7 +31,7 @@ class ObjectStreamOutputTest extends TestCase
         $this->assertLessThan(
             strlen($pdfNormal),
             strlen($pdfPacked),
-            'Object stream packed PDF should be smaller than normal'
+            'Object stream packed PDF should be smaller than normal',
         );
     }
 

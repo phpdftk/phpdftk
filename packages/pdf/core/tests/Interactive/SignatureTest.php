@@ -35,7 +35,7 @@ class SignatureTest extends TestCase
         $sig = new SignatureValue(
             filter: 'Adobe.PPKLite',
             subFilter: 'ETSI.CAdES.detached',
-            contents: new PdfString(str_repeat("\x42", 16), hex: true)
+            contents: new PdfString(str_repeat("\x42", 16), hex: true),
         );
         $sig->objectNumber = 1;
         $sig->name = new PdfString('Alice Signer');
@@ -90,7 +90,7 @@ class SignatureTest extends TestCase
     {
         $p = new FieldMDPTransformParams(
             'Include',
-            new PdfArray([new PdfString('name'), new PdfString('email')])
+            new PdfArray([new PdfString('name'), new PdfString('email')]),
         );
         $p->objectNumber = 1;
         $pdf = $p->toPdf();

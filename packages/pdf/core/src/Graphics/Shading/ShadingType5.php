@@ -23,14 +23,14 @@ class ShadingType5 extends MeshShading
         int $bitsPerComponent,
         int $verticesPerRow,
         PdfArray $decode,
-        string $meshData = ''
+        string $meshData = '',
     ) {
         parent::__construct(
             $colorSpace,
             $bitsPerCoordinate,
             $bitsPerComponent,
             $decode,
-            $meshData
+            $meshData,
         );
         $this->verticesPerRow = $verticesPerRow;
     }

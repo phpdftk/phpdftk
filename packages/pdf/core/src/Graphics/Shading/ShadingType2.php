@@ -22,7 +22,7 @@ class ShadingType2 extends Shading
     public function __construct(
         ColorSpace|PdfName|PdfArray $colorSpace,
         PdfArray $coords,
-        PdfReference|PdfArray $function
+        PdfReference|PdfArray $function,
     ) {
         $this->colorSpace = $colorSpace;
         $this->coords = $coords;

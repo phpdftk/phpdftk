@@ -21,7 +21,7 @@ class FunctionTest extends TestCase
             domain: new PdfArray([new PdfNumber(0), new PdfNumber(1)]),
             c0: new PdfArray([new PdfNumber(0), new PdfNumber(0), new PdfNumber(0)]),
             c1: new PdfArray([new PdfNumber(1), new PdfNumber(1), new PdfNumber(1)]),
-            n: 1.0
+            n: 1.0,
         );
         $f->objectNumber = 1;
         $pdf = $f->toPdf();
@@ -44,7 +44,7 @@ class FunctionTest extends TestCase
             encode: new PdfArray([
                 new PdfNumber(0), new PdfNumber(1),
                 new PdfNumber(0), new PdfNumber(1),
-            ])
+            ]),
         );
         $f->objectNumber = 1;
         $pdf = $f->toPdf();

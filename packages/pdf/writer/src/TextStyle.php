@@ -33,6 +33,5 @@ final class TextStyle
         public readonly ?bool $italic = null,
         public readonly ?array $color = null,
         public readonly ?Alignment $alignment = null,
-    ) {
-    }
+    ) {}
 }

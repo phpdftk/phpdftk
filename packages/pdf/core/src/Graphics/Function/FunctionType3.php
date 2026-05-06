@@ -24,7 +24,7 @@ class FunctionType3 extends Func
         PdfArray $domain,
         PdfArray $functions,
         PdfArray $bounds,
-        PdfArray $encode
+        PdfArray $encode,
     ) {
         $this->domain = $domain;
         $this->functions = $functions;

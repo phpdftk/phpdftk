@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Crypt;
 
 /**
@@ -7,7 +10,8 @@ namespace Phpdftk\Crypt;
  * The key is derived externally by {@see PdfKeyDerivation} — implementations
  * only handle the raw encrypt/decrypt with a pre-derived key.
  */
-interface CryptInterface {
+interface CryptInterface
+{
     public function encrypt(string $data, string $key): string;
     public function decrypt(string $data, string $key): string;
 }

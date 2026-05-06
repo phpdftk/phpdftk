@@ -46,7 +46,7 @@ class PdfIntegrationTest extends TestCase
 
         $pdf->addHeading('Alignment', 3);
         $pdf->addText('Left-aligned is the default.', new TextStyle(alignment: Alignment::Left));
-        $pdf->addText('This line is centered.',      new TextStyle(alignment: Alignment::Center));
+        $pdf->addText('This line is centered.', new TextStyle(alignment: Alignment::Center));
         $pdf->addText('This line is right-aligned.', new TextStyle(alignment: Alignment::Right));
 
         $pdf->addSpacer(20);
@@ -83,9 +83,9 @@ class PdfIntegrationTest extends TestCase
 
         // --- Structural assertions ------------------------------------
         self::assertStringContainsString('/Type /Catalog', $fileContent);
-        self::assertStringContainsString('/Type /Pages',   $fileContent);
-        self::assertStringContainsString('/Type /Page',    $fileContent);
-        self::assertStringContainsString('/Helvetica',     $fileContent);
+        self::assertStringContainsString('/Type /Pages', $fileContent);
+        self::assertStringContainsString('/Type /Page', $fileContent);
+        self::assertStringContainsString('/Helvetica', $fileContent);
         self::assertStringContainsString('(phpdftk High-Level Builder)', $fileContent);
         self::assertStringContainsString('(Filler paragraph number 1.', $fileContent);
         // Auto-pagination + explicit newPage should produce 3+ pages.

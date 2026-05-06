@@ -89,8 +89,14 @@ final class PdfEncryptor
         int $permissions = self::PERM_ALL,
     ): self {
         return self::createStandard(
-            $userPassword, $ownerPassword, $fileId, $permissions,
-            keyLengthBits: 128, v: 2, r: 3, useAes: false,
+            $userPassword,
+            $ownerPassword,
+            $fileId,
+            $permissions,
+            keyLengthBits: 128,
+            v: 2,
+            r: 3,
+            useAes: false,
         );
     }
 
@@ -106,8 +112,14 @@ final class PdfEncryptor
         int $permissions = self::PERM_ALL,
     ): self {
         return self::createStandard(
-            $userPassword, $ownerPassword, $fileId, $permissions,
-            keyLengthBits: 40, v: 1, r: 2, useAes: false,
+            $userPassword,
+            $ownerPassword,
+            $fileId,
+            $permissions,
+            keyLengthBits: 40,
+            v: 1,
+            r: 2,
+            useAes: false,
         );
     }
 
@@ -123,8 +135,14 @@ final class PdfEncryptor
         int $permissions = self::PERM_ALL,
     ): self {
         return self::createStandard(
-            $userPassword, $ownerPassword, $fileId, $permissions,
-            keyLengthBits: 128, v: 4, r: 4, useAes: true,
+            $userPassword,
+            $ownerPassword,
+            $fileId,
+            $permissions,
+            keyLengthBits: 128,
+            v: 4,
+            r: 4,
+            useAes: true,
         );
     }
 
@@ -180,7 +198,11 @@ final class PdfEncryptor
 
         // Derive file encryption key: SHA-1(seed || recipients || P || metadata_flag)
         $encryptionKey = PublicKeyEncryption::deriveFileKey(
-            $seed, $recipientDerStrings, $combinedPermissions, 16, $encryptMetadata
+            $seed,
+            $recipientDerStrings,
+            $combinedPermissions,
+            16,
+            $encryptMetadata,
         );
 
         // Build /Recipients array of PdfString (binary PKCS#7 DER)
@@ -245,7 +267,11 @@ final class PdfEncryptor
 
         // Derive 32-byte file encryption key via SHA-256
         $encryptionKey = PublicKeyEncryption::deriveFileKey(
-            $seed, $recipientDerStrings, $combinedPermissions, 32, $encryptMetadata
+            $seed,
+            $recipientDerStrings,
+            $combinedPermissions,
+            32,
+            $encryptMetadata,
         );
 
         $recipientStrings = [];
@@ -464,7 +490,10 @@ final class PdfEncryptor
         }
 
         return PdfKeyDerivation::deriveObjectKey(
-            $this->encryptionKey, $objNum, $genNum, $this->useAes
+            $this->encryptionKey,
+            $objNum,
+            $genNum,
+            $this->useAes,
         );
     }
 
@@ -496,7 +525,12 @@ final class PdfEncryptor
 
         // Compute file encryption key
         $encryptionKey = PdfKeyDerivation::computeFileEncryptionKey(
-            $userPassword, $oValue, $p, $fileId, $keyLengthBits, $r
+            $userPassword,
+            $oValue,
+            $p,
+            $fileId,
+            $keyLengthBits,
+            $r,
         );
 
         // Compute /U value

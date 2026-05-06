@@ -70,7 +70,7 @@ class TrueTypeParser
         if ($sfVersion !== 0x00010000) {
             throw new \RuntimeException(sprintf(
                 'Not a TrueType font (sfVersion=0x%08X); expected 0x00010000',
-                $sfVersion
+                $sfVersion,
             ));
         }
 

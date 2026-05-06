@@ -617,7 +617,7 @@ class PdfWriter
     public function setSigner(
         SignatureValue $signatureValue,
         Pkcs7Signer $signer,
-        int $placeholderBytes = 8192
+        int $placeholderBytes = 8192,
     ): void {
         $this->file->setSigner($signatureValue, $signer, $placeholderBytes);
     }
@@ -640,7 +640,7 @@ class PdfWriter
     public function setTimestamper(
         SignatureValue $docTimeStamp,
         TsaClient $tsaClient,
-        int $placeholderBytes = 16384
+        int $placeholderBytes = 16384,
     ): void {
         $this->file->setTimestamper($docTimeStamp, $tsaClient, $placeholderBytes);
     }
@@ -796,7 +796,7 @@ class PdfWriter
     {
         if (!is_resource($stream)) {
             throw new \InvalidArgumentException(
-                'PdfWriter::writeTo() expects an open stream resource'
+                'PdfWriter::writeTo() expects an open stream resource',
             );
         }
         $pdf = $this->generate();

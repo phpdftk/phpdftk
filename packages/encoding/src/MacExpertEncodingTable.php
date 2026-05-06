@@ -1,13 +1,18 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Encoding;
 
 /**
  * MacExpertEncoding — used by expert/small-caps Type 1 fonts on Mac.
  * Per PDF spec ISO 32000-2:2020, Table D.4.
  */
-final class MacExpertEncodingTable {
+final class MacExpertEncodingTable
+{
     /** @return array<int, string> byte value (0-255) to PostScript glyph name */
-    public static function getTable(): array {
+    public static function getTable(): array
+    {
         $notdef = '.notdef';
         $table = array_fill(0, 256, $notdef);
 

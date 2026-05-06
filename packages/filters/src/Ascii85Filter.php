@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Filters;
 
 /**
@@ -9,8 +12,10 @@ namespace Phpdftk\Filters;
  * Commonly used for human-inspectable PDF streams where FlateDecode
  * would be opaque.
  */
-final class Ascii85Filter implements FilterInterface {
-    public function encode(string $data): string {
+final class Ascii85Filter implements FilterInterface
+{
+    public function encode(string $data): string
+    {
         $output = '';
         $len = strlen($data);
         $i = 0;
@@ -58,7 +63,8 @@ final class Ascii85Filter implements FilterInterface {
         return $output;
     }
 
-    public function decode(string $data): string {
+    public function decode(string $data): string
+    {
         $output = '';
         $len = strlen($data);
         $i = 0;

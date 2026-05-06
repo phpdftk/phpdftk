@@ -61,7 +61,7 @@ class Pkcs7SignerTest extends TestCase
                 escapeshellarg($openssl),
                 escapeshellarg($sigFile),
                 escapeshellarg($dataFile),
-                escapeshellarg($certFile)
+                escapeshellarg($certFile),
             );
             $output = [];
             $ret = 0;
@@ -90,7 +90,7 @@ class Pkcs7SignerTest extends TestCase
                 $creds['cert'],
                 $creds['key'],
                 [],
-                PKCS7_BINARY | PKCS7_DETACHED
+                PKCS7_BINARY | PKCS7_DETACHED,
             );
             self::assertTrue($ok);
 
@@ -103,7 +103,7 @@ class Pkcs7SignerTest extends TestCase
             preg_match(
                 '/Content-Type:\s*application\/(?:x-)?pkcs7-signature[^\r\n]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n(.+?)\r?\n--/s',
                 $smime,
-                $m
+                $m,
             );
             $expected = (string) base64_decode((string) preg_replace('/\s+/', '', $m[1]), true);
             self::assertSame($expected, $der);

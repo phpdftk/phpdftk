@@ -23,14 +23,14 @@ class ShadingType4 extends MeshShading
         int $bitsPerComponent,
         int $bitsPerFlag,
         PdfArray $decode,
-        string $meshData = ''
+        string $meshData = '',
     ) {
         parent::__construct(
             $colorSpace,
             $bitsPerCoordinate,
             $bitsPerComponent,
             $decode,
-            $meshData
+            $meshData,
         );
         $this->bitsPerFlag = $bitsPerFlag;
     }

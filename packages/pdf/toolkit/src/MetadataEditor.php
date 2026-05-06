@@ -230,7 +230,10 @@ final class MetadataEditor
         // Create a PdfObject wrapper for the Info dictionary
         $info = new class ($dict) extends PdfObject {
             public function __construct(private readonly PdfDictionary $dict) {}
-            public function toPdf(): string { return $this->dict->toPdf(); }
+            public function toPdf(): string
+            {
+                return $this->dict->toPdf();
+            }
         };
 
         if ($existingInfoRef instanceof PdfReference) {
@@ -257,8 +260,12 @@ final class MetadataEditor
             $infoRef = new PdfReference($size);
 
             $writer = new IncrementalWriter(
-                $this->originalBytes, $size, $xrefOffset, $root,
-                $infoRef, $idArray,
+                $this->originalBytes,
+                $size,
+                $xrefOffset,
+                $root,
+                $infoRef,
+                $idArray,
             );
             $writer->addModifiedObject($info);
         }

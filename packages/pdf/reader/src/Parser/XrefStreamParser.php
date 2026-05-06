@@ -23,8 +23,7 @@ final class XrefStreamParser
         private readonly Source $source,
         private readonly ObjectParser $objectParser,
         private readonly StreamParser $streamParser,
-    ) {
-    }
+    ) {}
 
     /**
      * Parse a cross-reference stream at the given byte offset.
@@ -39,7 +38,7 @@ final class XrefStreamParser
 
         if (!$value instanceof PdfStream) {
             throw new InvalidPdfException(
-                "Expected a stream at xref stream offset $offset, got " . $value::class
+                "Expected a stream at xref stream offset $offset, got " . $value::class,
             );
         }
 
@@ -50,7 +49,9 @@ final class XrefStreamParser
             $data = $this->streamParser->decode($value->data, $dict);
         } catch (\Throwable $e) {
             throw new InvalidPdfException(
-                "Failed to decompress xref stream at offset $offset: " . $e->getMessage(), 0, $e
+                "Failed to decompress xref stream at offset $offset: " . $e->getMessage(),
+                0,
+                $e,
             );
         }
 

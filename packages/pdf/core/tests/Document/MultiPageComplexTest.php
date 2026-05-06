@@ -87,7 +87,7 @@ class MultiPageComplexTest extends TestCase
             $pageNum = $i + 1;
             [$w, $h] = $pageSizes[$i];
 
-            $page = $writer->addPage((float)$w, (float)$h);
+            $page = $writer->addPage((float) $w, (float) $h);
             $cs   = $writer->addContentStream($page);
 
             // Every page: a header bar

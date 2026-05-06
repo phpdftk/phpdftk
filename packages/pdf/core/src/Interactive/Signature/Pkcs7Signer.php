@@ -39,7 +39,7 @@ final class Pkcs7Signer
     public function __construct(
         $certificate,
         $privateKey,
-        array $extraCerts = []
+        array $extraCerts = [],
     ) {
         $this->certificate = $certificate;
         $this->privateKey = $privateKey;
@@ -81,11 +81,11 @@ final class Pkcs7Signer
                 $this->privateKey,
                 [],
                 PKCS7_BINARY | PKCS7_DETACHED,
-                $extraCertsFile
+                $extraCertsFile,
             );
             if ($ok !== true) {
                 throw new \RuntimeException(
-                    'openssl_pkcs7_sign failed: ' . (openssl_error_string() ?: 'unknown error')
+                    'openssl_pkcs7_sign failed: ' . (openssl_error_string() ?: 'unknown error'),
                 );
             }
 
@@ -115,7 +115,7 @@ final class Pkcs7Signer
         if (!preg_match(
             '/Content-Type:\s*application\/(?:x-)?pkcs7-signature[^\r\n]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n(.+?)\r?\n--/s',
             $smime,
-            $m
+            $m,
         )) {
             throw new \RuntimeException('Could not locate pkcs7-signature part in SMIME output');
         }
@@ -136,7 +136,7 @@ final class Pkcs7Signer
      */
     public static function createSelfSignedTestCredentials(
         string $commonName = 'phpdftk test',
-        int $days = 365
+        int $days = 365,
     ): array {
         $config = [
             'digest_alg' => 'sha256',
@@ -151,7 +151,7 @@ final class Pkcs7Signer
         $csr = openssl_csr_new(
             ['commonName' => $commonName, 'organizationName' => 'phpdftk'],
             $keyRes,
-            $config
+            $config,
         );
         if ($csr === false) {
             throw new \RuntimeException('openssl_csr_new failed');

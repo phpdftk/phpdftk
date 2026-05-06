@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Xmp;
 
 /**
@@ -8,8 +11,10 @@ namespace Phpdftk\Xmp;
  * namespaced properties from the RDF structure. Used by the reader
  * and conformance checker to inspect PDF/A identification metadata.
  */
-final class XmpReader {
-    public function parse(string $xml): XmpPacket {
+final class XmpReader
+{
+    public function parse(string $xml): XmpPacket
+    {
         // Strip xpacket processing instructions if present
         $xmlContent = preg_replace('/<\?xpacket[^?]*\?>/s', '', $xml);
         $xmlContent = trim($xmlContent);
@@ -41,18 +46,22 @@ final class XmpReader {
         $descriptions = $rdfRDF->children($rdfNs);
 
         foreach ($descriptions as $descName => $desc) {
-            if ($descName !== 'Description') continue;
+            if ($descName !== 'Description') {
+                continue;
+            }
 
             // Get all namespaces defined at this level and below
             $namespaces = $desc->getNamespaces(true);
 
             foreach ($namespaces as $prefix => $uri) {
-                if ($prefix === '' || $prefix === 'rdf' || $prefix === 'x') continue;
+                if ($prefix === '' || $prefix === 'rdf' || $prefix === 'x') {
+                    continue;
+                }
 
                 // Check child elements in this namespace
                 foreach ($desc->children($uri) as $localName => $child) {
                     $key = $prefix . ':' . $localName;
-                    $packet = $packet->set($key, (string)$child);
+                    $packet = $packet->set($key, (string) $child);
                 }
 
                 // Check attributes in this namespace
@@ -60,7 +69,7 @@ final class XmpReader {
                 if ($attrs !== null) {
                     foreach ($attrs as $attrName => $attrValue) {
                         $key = $prefix . ':' . $attrName;
-                        $packet = $packet->set($key, (string)$attrValue);
+                        $packet = $packet->set($key, (string) $attrValue);
                     }
                 }
             }

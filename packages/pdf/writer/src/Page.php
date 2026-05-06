@@ -135,8 +135,10 @@ final class Page
      * Draw a straight line.
      */
     public function drawLine(
-        float $x1, float $y1,
-        float $x2, float $y2,
+        float $x1,
+        float $y1,
+        float $x2,
+        float $y2,
         ?ColorInterface $color = null,
         float $width = 1.0,
         ?DashPattern $dash = null,
@@ -164,8 +166,10 @@ final class Page
      * Draw a rectangle.
      */
     public function drawRectangle(
-        float $x, float $y,
-        float $width, float $height,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
         ?ColorInterface $fill = null,
         ?ColorInterface $stroke = null,
         float $strokeWidth = 1.0,
@@ -192,7 +196,8 @@ final class Page
      * Draw a circle.
      */
     public function drawCircle(
-        float $cx, float $cy,
+        float $cx,
+        float $cy,
         float $radius,
         ?ColorInterface $fill = null,
         ?ColorInterface $stroke = null,
@@ -205,8 +210,10 @@ final class Page
      * Draw an ellipse.
      */
     public function drawEllipse(
-        float $cx, float $cy,
-        float $rx, float $ry,
+        float $cx,
+        float $cy,
+        float $rx,
+        float $ry,
         ?ColorInterface $fill = null,
         ?ColorInterface $stroke = null,
         float $strokeWidth = 1.0,
@@ -239,8 +246,10 @@ final class Page
      * Draw a rectangle with rounded corners.
      */
     public function drawRoundedRectangle(
-        float $x, float $y,
-        float $width, float $height,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
         float $radius,
         ?ColorInterface $fill = null,
         ?ColorInterface $stroke = null,
@@ -321,8 +330,10 @@ final class Page
      * Draw an arrow from (x1,y1) to (x2,y2) with a triangular arrowhead.
      */
     public function drawArrow(
-        float $x1, float $y1,
-        float $x2, float $y2,
+        float $x1,
+        float $y1,
+        float $x2,
+        float $y2,
         float $headSize = 8,
         ?ColorInterface $color = null,
         float $width = 1.0,
@@ -360,7 +371,8 @@ final class Page
      * @param int $points Number of points (5 = classic star)
      */
     public function drawStar(
-        float $cx, float $cy,
+        float $cx,
+        float $cy,
         float $outerRadius,
         float $innerRadius,
         int $points = 5,
@@ -456,7 +468,8 @@ final class Page
      */
     public function drawImage(
         string $path,
-        float $x, float $y,
+        float $x,
+        float $y,
         ?float $width = null,
         ?float $height = null,
     ): self {

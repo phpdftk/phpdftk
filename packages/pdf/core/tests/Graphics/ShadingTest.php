@@ -44,7 +44,7 @@ class ShadingTest extends TestCase
         $s = new ShadingType2(
             new DeviceRGB(),
             new PdfArray([new PdfNumber(0), new PdfNumber(0), new PdfNumber(200), new PdfNumber(0)]),
-            new PdfReference(10)
+            new PdfReference(10),
         );
         $s->objectNumber = 1;
         $pdf = $s->toPdf();
@@ -61,7 +61,7 @@ class ShadingTest extends TestCase
                 new PdfNumber(100), new PdfNumber(100), new PdfNumber(0),
                 new PdfNumber(100), new PdfNumber(100), new PdfNumber(50),
             ]),
-            new PdfReference(10)
+            new PdfReference(10),
         );
         $s->objectNumber = 1;
         $pdf = $s->toPdf();

@@ -27,8 +27,7 @@ final class LzwFilter implements FilterInterface
      */
     public function __construct(
         private readonly int $earlyChange = 1,
-    ) {
-    }
+    ) {}
 
     public function decode(string $data): string
     {

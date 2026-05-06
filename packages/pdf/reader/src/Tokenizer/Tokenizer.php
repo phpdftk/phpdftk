@@ -19,9 +19,7 @@ final class Tokenizer
 {
     private ?Token $peeked = null;
 
-    public function __construct(private readonly Source $source)
-    {
-    }
+    public function __construct(private readonly Source $source) {}
 
     public function getSource(): Source
     {
@@ -283,7 +281,7 @@ final class Tokenizer
         return new Token(
             $isReal ? TokenType::Real : TokenType::Integer,
             $num,
-            $offset
+            $offset,
         );
     }
 

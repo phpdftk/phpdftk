@@ -23,7 +23,7 @@ class FunctionType2 extends Func
         PdfArray $domain,
         PdfArray $c0,
         PdfArray $c1,
-        float $n = 1.0
+        float $n = 1.0,
     ) {
         $this->domain = $domain;
         $this->c0 = $c0;

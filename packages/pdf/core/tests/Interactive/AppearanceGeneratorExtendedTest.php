@@ -27,8 +27,9 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::textFieldMultiLine(
             $this->makeRect(200, 100),
-            'F1', 12,
-            "Line one\nLine two\nLine three"
+            'F1',
+            12,
+            "Line one\nLine two\nLine three",
         );
 
         $pdf = $xObj->toPdf();
@@ -46,8 +47,9 @@ class AppearanceGeneratorExtendedTest extends TestCase
 
         $xObj = AppearanceGenerator::textFieldMultiLine(
             $this->makeRect(100, 80),
-            'F1', 12,
-            $longText
+            'F1',
+            12,
+            $longText,
         );
 
         $pdf = $xObj->toPdf();
@@ -61,8 +63,9 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::textFieldMultiLine(
             $this->makeRect(200, 100),
-            'F1', 12,
-            ''
+            'F1',
+            12,
+            '',
         );
 
         $pdf = $xObj->toPdf();
@@ -77,8 +80,9 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::passwordField(
             $this->makeRect(),
-            'F1', 12,
-            characterCount: 8
+            'F1',
+            12,
+            characterCount: 8,
         );
 
         $pdf = $xObj->toPdf();
@@ -90,8 +94,9 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::passwordField(
             $this->makeRect(),
-            'F1', 12,
-            characterCount: 0
+            'F1',
+            12,
+            characterCount: 0,
         );
 
         $pdf = $xObj->toPdf();
@@ -107,7 +112,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::combTextField(
             $this->makeRect(200, 30),
-            'F1', 12,
+            'F1',
+            12,
             'ABCDE',
             maxLen: 10,
         );
@@ -125,7 +131,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::combTextField(
             $this->makeRect(200, 30),
-            'F1', 12,
+            'F1',
+            12,
             'ABCDEFGHIJKLMNOP', // 16 chars
             maxLen: 5,
         );
@@ -141,7 +148,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::combTextField(
             $this->makeRect(200, 30),
-            'F1', 12,
+            'F1',
+            12,
             '',
             maxLen: 5,
         );
@@ -160,7 +168,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::signatureField(
             $this->makeRect(200, 60),
-            'F1', 10,
+            'F1',
+            10,
             signer: 'John Doe',
             reason: 'Approval',
             date: '2024-01-15',
@@ -176,7 +185,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::signatureField(
             $this->makeRect(200, 60),
-            'F1', 10,
+            'F1',
+            10,
         );
 
         $pdf = $xObj->toPdf();
@@ -187,7 +197,8 @@ class AppearanceGeneratorExtendedTest extends TestCase
     {
         $xObj = AppearanceGenerator::signatureField(
             $this->makeRect(200, 60),
-            'F1', 10,
+            'F1',
+            10,
         );
 
         $pdf = $xObj->toPdf();

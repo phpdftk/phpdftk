@@ -113,7 +113,10 @@ class IncrementalWriterExtendedTest extends TestCase
 
         // Incremental update with xref stream + deletion
         $incWriter = IncrementalWriter::fromReader(
-            $reader, $basePdf, compressStreams: false, useXRefStream: true
+            $reader,
+            $basePdf,
+            compressStreams: false,
+            useXRefStream: true,
         );
 
         // Add a new object then delete it (simulates remove workflow)
@@ -155,7 +158,10 @@ class IncrementalWriterExtendedTest extends TestCase
 
         // Incremental update with xref stream mode
         $incWriter = IncrementalWriter::fromReader(
-            $reader, $basePdf, compressStreams: false, useXRefStream: true
+            $reader,
+            $basePdf,
+            compressStreams: false,
+            useXRefStream: true,
         );
 
         $newCs = new ContentStream();

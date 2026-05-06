@@ -33,7 +33,9 @@ class WoffParserTest extends TestCase
         // Fallback: scan font directories
         $dirs = ['/System/Library/Fonts/Supplemental', '/usr/share/fonts'];
         foreach ($dirs as $dir) {
-            if (!is_dir($dir)) continue;
+            if (!is_dir($dir)) {
+                continue;
+            }
             foreach (glob("$dir/*.ttf") ?: [] as $file) {
                 $bytes = file_get_contents($file);
                 if ($bytes !== false && strlen($bytes) > 4 && unpack('N', $bytes)[1] === 0x00010000) {

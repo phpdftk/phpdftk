@@ -42,7 +42,7 @@ class TilingPattern extends PdfStream
         float $xStep,
         float $yStep,
         Resources|PdfDictionary $resources,
-        string $contentStream = ''
+        string $contentStream = '',
     ) {
         parent::__construct(new PdfDictionary(), $contentStream);
         $this->paintType = $paintType;

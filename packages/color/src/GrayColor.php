@@ -1,10 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Color;
 
 /**
  * Grayscale color (0.0 = black, 1.0 = white) — maps to PDF DeviceGray.
  */
-final class GrayColor implements ColorInterface {
+final class GrayColor implements ColorInterface
+{
     public function __construct(
         public readonly float $gray,
     ) {
@@ -13,24 +17,29 @@ final class GrayColor implements ColorInterface {
         }
     }
 
-    public static function black(): self {
+    public static function black(): self
+    {
         return new self(0.0);
     }
 
-    public static function white(): self {
+    public static function white(): self
+    {
         return new self(1.0);
     }
 
-    public function toRgb(): RgbColor {
+    public function toRgb(): RgbColor
+    {
         return ColorConverter::grayToRgb($this);
     }
 
     /** @return array<int, float> */
-    public function toArray(): array {
+    public function toArray(): array
+    {
         return [$this->gray];
     }
 
-    public function getColorSpace(): string {
+    public function getColorSpace(): string
+    {
         return 'DeviceGray';
     }
 }

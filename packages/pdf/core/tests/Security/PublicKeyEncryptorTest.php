@@ -62,7 +62,9 @@ class PublicKeyEncryptorTest extends TestCase
         $pdf = $this->generatePublicKeyPdf([self::$credentials['cert']]);
 
         $reader = PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials['cert'], self::$credentials['key']
+            $pdf,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
         $this->assertSame(1, $reader->getPageCount());
         $this->assertSame('1.7', $reader->getVersion());
@@ -75,7 +77,9 @@ class PublicKeyEncryptorTest extends TestCase
         $this->expectException(\Phpdftk\Pdf\Reader\Exception\InvalidPdfException::class);
         $this->expectExceptionMessage('No matching recipient');
         PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials2['cert'], self::$credentials2['key']
+            $pdf,
+            self::$credentials2['cert'],
+            self::$credentials2['key'],
         );
     }
 
@@ -88,12 +92,16 @@ class PublicKeyEncryptorTest extends TestCase
 
         // Both recipients should be able to decrypt
         $reader1 = PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials['cert'], self::$credentials['key']
+            $pdf,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
         $this->assertSame(1, $reader1->getPageCount());
 
         $reader2 = PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials2['cert'], self::$credentials2['key']
+            $pdf,
+            self::$credentials2['cert'],
+            self::$credentials2['key'],
         );
         $this->assertSame(1, $reader2->getPageCount());
     }
@@ -107,7 +115,9 @@ class PublicKeyEncryptorTest extends TestCase
 
         // But structure is accessible after decryption
         $reader = PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials['cert'], self::$credentials['key']
+            $pdf,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
         $pages = $reader->getPages();
         $this->assertCount(1, $pages);
@@ -128,7 +138,9 @@ class PublicKeyEncryptorTest extends TestCase
         $this->assertFileExists($path);
 
         $reader = PdfReader::fromFilePublicKey(
-            $path, self::$credentials['cert'], self::$credentials['key']
+            $path,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
         $this->assertSame(1, $reader->getPageCount());
     }
@@ -156,7 +168,9 @@ class PublicKeyEncryptorTest extends TestCase
         $pdf = $this->generatePublicKeyPdf([self::$credentials['cert']], 'aes256');
 
         $reader = PdfReader::fromStringPublicKey(
-            $pdf, self::$credentials['cert'], self::$credentials['key']
+            $pdf,
+            self::$credentials['cert'],
+            self::$credentials['key'],
         );
         $this->assertSame(1, $reader->getPageCount());
     }
@@ -207,7 +221,7 @@ class PublicKeyEncryptorTest extends TestCase
         $fileId = md5('test-public-key', true);
         $recipientList = array_map(
             fn(string $cert) => ['cert' => $cert],
-            $certificates
+            $certificates,
         );
         $encryptor = match ($mode) {
             'aes256' => PdfEncryptor::publicKeyAes256($recipientList, $fileId),

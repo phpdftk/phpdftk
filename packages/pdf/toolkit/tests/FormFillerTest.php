@@ -60,7 +60,7 @@ class FormFillerTest extends TestCase
                 new PdfNumber(685),
                 new PdfNumber(400),
                 new PdfNumber(705),
-            ])
+            ]),
         );
         $nameWidget->parent = new PdfReference($nameField->objectNumber);
         $writer->register($nameWidget);
@@ -80,7 +80,7 @@ class FormFillerTest extends TestCase
                 new PdfNumber(635),
                 new PdfNumber(400),
                 new PdfNumber(655),
-            ])
+            ]),
         );
         $emailWidget->parent = new PdfReference($emailField->objectNumber);
         $writer->register($emailWidget);
@@ -99,7 +99,7 @@ class FormFillerTest extends TestCase
                 new PdfNumber(585),
                 new PdfNumber(165),
                 new PdfNumber(600),
-            ])
+            ]),
         );
         $checkWidget->parent = new PdfReference($checkField->objectNumber);
         $writer->register($checkWidget);
@@ -123,7 +123,7 @@ class FormFillerTest extends TestCase
                 new PdfNumber(535),
                 new PdfNumber(400),
                 new PdfNumber(555),
-            ])
+            ]),
         );
         $countryWidget->parent = new PdfReference($countryField->objectNumber);
         $writer->register($countryWidget);

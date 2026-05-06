@@ -258,20 +258,24 @@ final class PdfStamper
 
                 $ops = match ($op['type']) {
                     'text' => $this->buildTextOps(
-                        $op['args']['text'], $op['args']['position'],
+                        $op['args']['text'],
+                        $op['args']['position'],
                         $op['args']['style'] ?? new StampStyle(),
-                        $dims, $fontName,
+                        $dims,
+                        $fontName,
                     ),
                     'watermark' => $this->buildWatermarkOps(
                         $op['args']['text'],
                         $op['args']['style'] ?? new WatermarkStyle(),
-                        $dims, $fontName,
+                        $dims,
+                        $fontName,
                     ),
                     'pageNumbers' => $this->buildTextOps(
                         str_replace(['{n}', '{total}'], [(string) $pageNum, (string) $totalPages], $op['args']['format']),
                         $op['args']['position'],
                         $op['args']['style'] ?? new StampStyle(fontSize: 10.0),
-                        $dims, $fontName,
+                        $dims,
+                        $fontName,
                     ),
                     'image', 'pdf' => $this->buildXObjectOps(
                         $op['xoName'],
@@ -396,7 +400,10 @@ final class PdfStamper
             // Create a PdfObject wrapper for the modified page
             $pageObj = new class ($pageDict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $pageObj->objectNumber = $pageRefs[$pageIdx]->objectNumber;
             $pageObj->generationNumber = 0;
@@ -445,7 +452,10 @@ final class PdfStamper
         $textWidth = strlen($text) * $style->fontSize * 0.5; // approximate
         $textHeight = $style->fontSize;
         [$x, $y] = $position->computeCoordinates(
-            $dims['width'], $dims['height'], $textWidth, $textHeight,
+            $dims['width'],
+            $dims['height'],
+            $textWidth,
+            $textHeight,
         );
 
         $escaped = $this->escapeText($text);
@@ -499,8 +509,12 @@ final class PdfStamper
         // Position: translate to center, then apply rotation matrix
         $operators[] = sprintf(
             '%.4f %.4f %.4f %.4f %.2f %.2f Tm',
-            $cos, $sin, -$sin, $cos,
-            $cx - ($textWidth * $cos / 2), $cy - ($textWidth * $sin / 2),
+            $cos,
+            $sin,
+            -$sin,
+            $cos,
+            $cx - ($textWidth * $cos / 2),
+            $cy - ($textWidth * $sin / 2),
         );
         $operators[] = sprintf('(%s) Tj', $escaped);
         $operators[] = 'ET';
@@ -543,7 +557,10 @@ final class PdfStamper
         }
 
         [$x, $y] = $position->computeCoordinates(
-            $dims['width'], $dims['height'], $displayWidth, $displayHeight,
+            $dims['width'],
+            $dims['height'],
+            $displayWidth,
+            $displayHeight,
         );
 
         $operators = ['q'];
@@ -558,7 +575,10 @@ final class PdfStamper
         // cm operator: scale and translate the XObject
         $operators[] = sprintf(
             '%.4f 0 0 %.4f %.4f %.4f cm',
-            $displayWidth, $displayHeight, $x, $y,
+            $displayWidth,
+            $displayHeight,
+            $x,
+            $y,
         );
         $operators[] = "/$xoName Do";
         $operators[] = 'Q';

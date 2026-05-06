@@ -64,7 +64,7 @@ final class StreamParser
                 'DCTDecode', 'DCT',
                 'JPXDecode'              => $data,
                 default                  => throw new UnsupportedFilterException(
-                    "Unsupported stream filter: $name"
+                    "Unsupported stream filter: $name",
                 ),
             };
         }

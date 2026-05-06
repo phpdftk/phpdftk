@@ -101,14 +101,18 @@ class CustomFontFormAppearancesTest extends TestCase
         $writer->register($textField);
 
         $textAppearance = AppearanceGenerator::textField(
-            $nameRect, $compositeFontName, 12, $fieldValue, fontContext: $fontCtx
+            $nameRect,
+            $compositeFontName,
+            12,
+            $fieldValue,
+            fontContext: $fontCtx,
         );
         $writer->register($textAppearance);
 
         $textWidget = new WidgetAnnotation($nameRect);
         $textWidget->parent = new PdfReference($textField->objectNumber);
         $textWidget->ap = AppearanceGenerator::buildAppearanceDict(
-            new PdfReference($textAppearance->objectNumber)
+            new PdfReference($textAppearance->objectNumber),
         );
         $writer->register($textWidget);
         $page->corePage()->annots[] = new PdfReference($textWidget->objectNumber);
@@ -125,14 +129,18 @@ class CustomFontFormAppearancesTest extends TestCase
         $writer->register($choiceField);
 
         $choiceAppearance = AppearanceGenerator::choiceField(
-            $choiceRect, $compositeFontName, 12, $choiceValue, fontContext: $fontCtx
+            $choiceRect,
+            $compositeFontName,
+            12,
+            $choiceValue,
+            fontContext: $fontCtx,
         );
         $writer->register($choiceAppearance);
 
         $choiceWidget = new WidgetAnnotation($choiceRect);
         $choiceWidget->parent = new PdfReference($choiceField->objectNumber);
         $choiceWidget->ap = AppearanceGenerator::buildAppearanceDict(
-            new PdfReference($choiceAppearance->objectNumber)
+            new PdfReference($choiceAppearance->objectNumber),
         );
         $writer->register($choiceWidget);
         $page->corePage()->annots[] = new PdfReference($choiceWidget->objectNumber);

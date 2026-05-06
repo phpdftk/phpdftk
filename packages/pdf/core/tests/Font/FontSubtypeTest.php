@@ -113,7 +113,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType0Font(
             'KozMin-Regular',
-            new CIDSystemInfo('Adobe', 'Japan1', 6)
+            new CIDSystemInfo('Adobe', 'Japan1', 6),
         );
         $font->objectNumber = 1;
         self::assertStringContainsString('/Subtype /CIDFontType0', $font->toPdf());
@@ -123,7 +123,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType0Font(
             'KozMin-Regular',
-            new CIDSystemInfo('Adobe', 'Japan1', 6)
+            new CIDSystemInfo('Adobe', 'Japan1', 6),
         );
         $font->objectNumber = 1;
         self::assertStringContainsString('/BaseFont /KozMin-Regular', $font->toPdf());
@@ -137,7 +137,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType2Font(
             'Arial',
-            new CIDSystemInfo('Adobe', 'Identity', 0)
+            new CIDSystemInfo('Adobe', 'Identity', 0),
         );
         $font->objectNumber = 1;
         self::assertStringContainsString('/Subtype /CIDFontType2', $font->toPdf());
@@ -147,7 +147,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType2Font(
             'Arial',
-            new CIDSystemInfo('Adobe', 'Identity', 0)
+            new CIDSystemInfo('Adobe', 'Identity', 0),
         );
         $font->objectNumber = 1;
         self::assertStringContainsString('/CIDToGIDMap /Identity', $font->toPdf());
@@ -157,7 +157,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType2Font(
             'Arial',
-            new CIDSystemInfo('Adobe', 'Identity', 0)
+            new CIDSystemInfo('Adobe', 'Identity', 0),
         );
         $font->objectNumber = 1;
         $font->cidToGidMap = new PdfReference(42);
@@ -168,7 +168,7 @@ class FontSubtypeTest extends TestCase
     {
         $font = new CIDFontType2Font(
             'Arial',
-            new CIDSystemInfo('Adobe', 'Identity', 0)
+            new CIDSystemInfo('Adobe', 'Identity', 0),
         );
         $font->objectNumber = 1;
         $font->dw = 1000;

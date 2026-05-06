@@ -9,6 +9,4 @@ use Phpdftk\Pdf\Core\Serializable;
 /**
  * Abstract base for PDF color spaces.
  */
-abstract class ColorSpace implements Serializable
-{
-}
+abstract class ColorSpace implements Serializable {}

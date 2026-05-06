@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Filters;
 
 /**
@@ -8,8 +11,10 @@ namespace Phpdftk\Filters;
  * Effective only for data with long runs of identical bytes (e.g.,
  * large solid-color image regions).
  */
-final class RunLengthFilter implements FilterInterface {
-    public function encode(string $data): string {
+final class RunLengthFilter implements FilterInterface
+{
+    public function encode(string $data): string
+    {
         $output = '';
         $len = strlen($data);
         $i = 0;
@@ -55,7 +60,8 @@ final class RunLengthFilter implements FilterInterface {
         return $output;
     }
 
-    public function decode(string $data): string {
+    public function decode(string $data): string
+    {
         $output = '';
         $len = strlen($data);
         $i = 0;

@@ -43,8 +43,7 @@ final class Theme
             5 => ['size' => 12.0, 'bold' => true, 'spaceAbove' => 8.0,  'spaceBelow' => 4.0],
             6 => ['size' => 11.0, 'bold' => true, 'spaceAbove' => 6.0,  'spaceBelow' => 3.0],
         ],
-    ) {
-    }
+    ) {}
 
     public function withFont(string $family, float $size): self
     {

@@ -153,14 +153,14 @@ final class SaslPrep
             // C.2.1: ASCII control characters (U+0000-U+001F, U+007F)
             if ($codepoint <= 0x001F || $codepoint === 0x007F) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (ASCII control) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (ASCII control) in SASLprep input', $codepoint),
                 );
             }
 
             // C.2.2: Non-ASCII control characters (U+0080-U+009F)
             if ($codepoint >= 0x0080 && $codepoint <= 0x009F) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (non-ASCII control) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (non-ASCII control) in SASLprep input', $codepoint),
                 );
             }
 
@@ -174,7 +174,7 @@ final class SaslPrep
                 || $codepoint === 0xFEFF
             ) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (non-ASCII control) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (non-ASCII control) in SASLprep input', $codepoint),
                 );
             }
 
@@ -184,7 +184,7 @@ final class SaslPrep
                 || ($codepoint >= 0x100000 && $codepoint <= 0x10FFFD)
             ) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (private use) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (private use) in SASLprep input', $codepoint),
                 );
             }
 
@@ -193,21 +193,21 @@ final class SaslPrep
                 || ($codepoint & 0xFFFE) === 0xFFFE // catches U+xFFFE and U+xFFFF for all planes
             ) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (non-character) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (non-character) in SASLprep input', $codepoint),
                 );
             }
 
             // C.5: Surrogate codes (should not appear in valid UTF-8, but check anyway)
             if ($codepoint >= 0xD800 && $codepoint <= 0xDFFF) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (surrogate) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (surrogate) in SASLprep input', $codepoint),
                 );
             }
 
             // C.6: Inappropriate for plain text
             if ($codepoint === 0xFFF9 || $codepoint === 0xFFFA || $codepoint === 0xFFFB) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (inappropriate for plain text) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (inappropriate for plain text) in SASLprep input', $codepoint),
                 );
             }
 
@@ -217,14 +217,14 @@ final class SaslPrep
                 || ($codepoint >= 0x202A && $codepoint <= 0x202E)
             ) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (change display / deprecated) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (change display / deprecated) in SASLprep input', $codepoint),
                 );
             }
 
             // C.9: Tagging characters
             if ($codepoint === 0xE0001 || ($codepoint >= 0xE0020 && $codepoint <= 0xE007F)) {
                 throw new \InvalidArgumentException(
-                    sprintf('Prohibited character U+%04X (tagging character) in SASLprep input', $codepoint)
+                    sprintf('Prohibited character U+%04X (tagging character) in SASLprep input', $codepoint),
                 );
             }
         }
@@ -265,7 +265,7 @@ final class SaslPrep
         if ($hasRandAL) {
             if ($hasL) {
                 throw new \InvalidArgumentException(
-                    'SASLprep bidi violation: string with RandALCat characters must not contain LCat characters'
+                    'SASLprep bidi violation: string with RandALCat characters must not contain LCat characters',
                 );
             }
 
@@ -274,7 +274,7 @@ final class SaslPrep
 
             if (!self::isRandALCat($first) || !self::isRandALCat($last)) {
                 throw new \InvalidArgumentException(
-                    'SASLprep bidi violation: first and last characters must be RandALCat'
+                    'SASLprep bidi violation: first and last characters must be RandALCat',
                 );
             }
         }

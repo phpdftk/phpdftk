@@ -27,7 +27,7 @@ class DocTimeStampTest extends TestCase
     public function testByteRangeAndContentsPatching(): void
     {
         $ts = new DocTimeStamp(
-            contents: new PdfString("\xDE\xAD\xBE\xEF", hex: true)
+            contents: new PdfString("\xDE\xAD\xBE\xEF", hex: true),
         );
         $ts->objectNumber = 1;
         $ts->byteRange = new PdfArray([

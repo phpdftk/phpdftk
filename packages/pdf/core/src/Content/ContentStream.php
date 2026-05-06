@@ -290,8 +290,12 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s %s %s Tm',
-            $this->num($a), $this->num($b), $this->num($c),
-            $this->num($d), $this->num($e), $this->num($f)
+            $this->num($a),
+            $this->num($b),
+            $this->num($c),
+            $this->num($d),
+            $this->num($e),
+            $this->num($f),
         );
         return $this;
     }
@@ -420,8 +424,12 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s %s %s cm',
-            $this->num($a), $this->num($b), $this->num($c),
-            $this->num($d), $this->num($e), $this->num($f)
+            $this->num($a),
+            $this->num($b),
+            $this->num($c),
+            $this->num($d),
+            $this->num($e),
+            $this->num($f),
         );
         return $this;
     }
@@ -449,9 +457,12 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s %s %s c',
-            $this->num($x1), $this->num($y1),
-            $this->num($x2), $this->num($y2),
-            $this->num($x3), $this->num($y3)
+            $this->num($x1),
+            $this->num($y1),
+            $this->num($x2),
+            $this->num($y2),
+            $this->num($x3),
+            $this->num($y3),
         );
         return $this;
     }
@@ -461,8 +472,10 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s v',
-            $this->num($x2), $this->num($y2),
-            $this->num($x3), $this->num($y3)
+            $this->num($x2),
+            $this->num($y2),
+            $this->num($x3),
+            $this->num($y3),
         );
         return $this;
     }
@@ -472,8 +485,10 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s y',
-            $this->num($x1), $this->num($y1),
-            $this->num($x3), $this->num($y3)
+            $this->num($x1),
+            $this->num($y1),
+            $this->num($x3),
+            $this->num($y3),
         );
         return $this;
     }
@@ -490,8 +505,10 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s re',
-            $this->num($x), $this->num($y),
-            $this->num($w), $this->num($h)
+            $this->num($x),
+            $this->num($y),
+            $this->num($w),
+            $this->num($h),
         );
         return $this;
     }
@@ -600,7 +617,10 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s K',
-            $this->num($c), $this->num($m), $this->num($y), $this->num($k)
+            $this->num($c),
+            $this->num($m),
+            $this->num($y),
+            $this->num($k),
         );
         return $this;
     }
@@ -610,7 +630,10 @@ class ContentStream extends PdfStream
     {
         $this->operators[] = sprintf(
             '%s %s %s %s k',
-            $this->num($c), $this->num($m), $this->num($y), $this->num($k)
+            $this->num($c),
+            $this->num($m),
+            $this->num($y),
+            $this->num($k),
         );
         return $this;
     }
@@ -770,7 +793,7 @@ class ContentStream extends PdfStream
             '%s %s %s "',
             $this->num($aw),
             $this->num($ac),
-            $this->escapeString($text)
+            $this->escapeString($text),
         );
         return $this;
     }
@@ -799,15 +822,21 @@ class ContentStream extends PdfStream
 
     /** d1 - Set glyph width and bounding box in a Type 3 font (uncoloured glyph) */
     public function setGlyphWidthAndBoundingBox(
-        float $wx, float $wy,
-        float $llx, float $lly,
-        float $urx, float $ury
+        float $wx,
+        float $wy,
+        float $llx,
+        float $lly,
+        float $urx,
+        float $ury,
     ): self {
         $this->operators[] = sprintf(
             '%s %s %s %s %s %s d1',
-            $this->num($wx), $this->num($wy),
-            $this->num($llx), $this->num($lly),
-            $this->num($urx), $this->num($ury)
+            $this->num($wx),
+            $this->num($wy),
+            $this->num($llx),
+            $this->num($lly),
+            $this->num($urx),
+            $this->num($ury),
         );
         return $this;
     }

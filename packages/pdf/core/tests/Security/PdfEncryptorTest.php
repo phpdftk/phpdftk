@@ -194,8 +194,10 @@ class PdfEncryptorTest extends TestCase
     {
         $fileId = md5('test-perms', true);
         $encryptor = PdfEncryptor::rc4128(
-            'user', 'owner', $fileId,
-            PdfEncryptor::PERM_PRINT | PdfEncryptor::PERM_COPY
+            'user',
+            'owner',
+            $fileId,
+            PdfEncryptor::PERM_PRINT | PdfEncryptor::PERM_COPY,
         );
         $dict = $encryptor->getEncryptDictionary();
         $this->assertNotNull($dict->p);

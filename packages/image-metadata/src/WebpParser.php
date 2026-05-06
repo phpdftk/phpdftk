@@ -1,25 +1,37 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\ImageMetadata;
 
 /**
  * Parse WebP container (RIFF/VP8/VP8L/VP8X) for dimensions and alpha.
  */
-final class WebpParser {
-    public static function parseFile(string $path): ImageInfo {
+final class WebpParser
+{
+    public static function parseFile(string $path): ImageInfo
+    {
         $data = file_get_contents($path);
-        if ($data === false) throw new \RuntimeException("Cannot open file: $path");
+        if ($data === false) {
+            throw new \RuntimeException("Cannot open file: $path");
+        }
         return self::parse($data);
     }
 
-    public static function parse(string $data): ImageInfo {
+    public static function parse(string $data): ImageInfo
+    {
         $len = strlen($data);
-        if ($len < 12) throw new \RuntimeException('Not enough data for WebP');
+        if ($len < 12) {
+            throw new \RuntimeException('Not enough data for WebP');
+        }
 
         if (substr($data, 0, 4) !== 'RIFF' || substr($data, 8, 4) !== 'WEBP') {
             throw new \RuntimeException('Not a valid WebP file');
         }
 
-        if ($len < 16) throw new \RuntimeException('WebP data too short');
+        if ($len < 16) {
+            throw new \RuntimeException('WebP data too short');
+        }
 
         $chunkType = substr($data, 12, 4);
         $width = 0;
@@ -29,7 +41,9 @@ final class WebpParser {
 
         if ($chunkType === 'VP8 ') {
             // Lossy VP8
-            if ($len < 30) throw new \RuntimeException('WebP VP8 data too short');
+            if ($len < 30) {
+                throw new \RuntimeException('WebP VP8 data too short');
+            }
             $offset = 23;
             if (ord($data[$offset]) === 0x9D && ord($data[$offset + 1]) === 0x01 && ord($data[$offset + 2]) === 0x2A) {
                 $w = unpack('v', substr($data, $offset + 3, 2))[1];
@@ -39,7 +53,9 @@ final class WebpParser {
             }
         } elseif ($chunkType === 'VP8L') {
             // Lossless VP8L
-            if ($len < 25) throw new \RuntimeException('WebP VP8L data too short');
+            if ($len < 25) {
+                throw new \RuntimeException('WebP VP8L data too short');
+            }
             $offset = 20;
             if (ord($data[$offset]) === 0x2F) {
                 $packed = unpack('V', substr($data, $offset + 1, 4))[1];
@@ -48,7 +64,9 @@ final class WebpParser {
             }
         } elseif ($chunkType === 'VP8X') {
             // Extended VP8X
-            if ($len < 30) throw new \RuntimeException('WebP VP8X data too short');
+            if ($len < 30) {
+                throw new \RuntimeException('WebP VP8X data too short');
+            }
 
             // Flags byte at offset 20
             $flags = ord($data[20]);

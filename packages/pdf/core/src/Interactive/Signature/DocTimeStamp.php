@@ -31,7 +31,7 @@ class DocTimeStamp extends SignatureValue
     public function __construct(
         string $filter = 'Adobe.PPKLite',
         ?string $subFilter = 'ETSI.RFC3161',
-        ?PdfString $contents = null
+        ?PdfString $contents = null,
     ) {
         parent::__construct($filter, $subFilter, $contents);
     }

@@ -164,7 +164,7 @@ class CeilingVersionTest extends TestCase
         $this->expectExceptionMessageMatches('/Movie.*removed in PDF 2\.0/');
 
         $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
-            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf'),
         );
         $writer->register($movie);
     }
@@ -175,7 +175,7 @@ class CeilingVersionTest extends TestCase
 
         // Movie removed in 2.0, ceiling is 1.7 — should be allowed
         $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
-            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf'),
         );
         $writer->register($movie);
 
@@ -190,7 +190,7 @@ class CeilingVersionTest extends TestCase
         $this->expectExceptionMessageMatches('/Movie.*requires PDF 1\.2.*ceiling.*1\.1/');
 
         $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
-            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf'),
         );
         $writer->register($movie);
     }

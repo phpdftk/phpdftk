@@ -26,8 +26,7 @@ class Destination implements Serializable
         private PdfReference $page,
         private PdfName $type,
         private array $params,
-    ) {
-    }
+    ) {}
 
     /**
      * /XYZ left top zoom — display page at given position and zoom.

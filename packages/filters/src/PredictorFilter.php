@@ -29,8 +29,7 @@ final class PredictorFilter
         private readonly int $columns = 1,
         private readonly int $colors = 1,
         private readonly int $bitsPerComponent = 8,
-    ) {
-    }
+    ) {}
 
     public function decode(string $data): string
     {

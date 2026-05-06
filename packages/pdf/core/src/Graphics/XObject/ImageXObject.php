@@ -55,7 +55,7 @@ class ImageXObject extends PdfStream
         int $height,
         mixed $colorSpace,
         int $bitsPerComponent = 8,
-        string $data = ''
+        string $data = '',
     ) {
         parent::__construct(new PdfDictionary(), $data);
         $this->width = $width;

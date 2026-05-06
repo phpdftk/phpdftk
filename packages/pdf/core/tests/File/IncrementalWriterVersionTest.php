@@ -96,7 +96,7 @@ class IncrementalWriterVersionTest extends TestCase
         $this->expectException(\Phpdftk\Pdf\Core\File\DeprecatedFeatureException::class);
 
         $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
-            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf'),
         );
         $writer->addNewObject($movie);
     }
@@ -109,14 +109,14 @@ class IncrementalWriterVersionTest extends TestCase
         $writer->setStrictDeprecation(true);
 
         $movie = new \Phpdftk\Pdf\Core\Multimedia\Movie(
-            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf')
+            new \Phpdftk\Pdf\Core\FileSpec\FileSpec('test.pdf'),
         );
         $writer->addNewObject($movie);
 
         // Should warn but not throw
         $depWarnings = array_filter(
             $writer->getVersionWarnings(),
-            fn($w) => str_contains($w, 'deprecated')
+            fn($w) => str_contains($w, 'deprecated'),
         );
         $this->assertNotEmpty($depWarnings);
     }

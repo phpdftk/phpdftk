@@ -17,9 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class FakeDictionaryObject extends PdfObject
 {
-    public function __construct(private readonly PdfDictionary $dict)
-    {
-    }
+    public function __construct(private readonly PdfDictionary $dict) {}
 
     public function toPdf(): string
     {

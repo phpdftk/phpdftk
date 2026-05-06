@@ -1,10 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Color;
 
 /**
  * CMYK color with components in 0.0–1.0 range — maps to PDF DeviceCMYK.
  */
-final class CmykColor implements ColorInterface {
+final class CmykColor implements ColorInterface
+{
     public function __construct(
         public readonly float $c,
         public readonly float $m,
@@ -18,16 +22,19 @@ final class CmykColor implements ColorInterface {
         }
     }
 
-    public function toRgb(): RgbColor {
+    public function toRgb(): RgbColor
+    {
         return ColorConverter::cmykToRgb($this);
     }
 
     /** @return array<int, float> */
-    public function toArray(): array {
+    public function toArray(): array
+    {
         return [$this->c, $this->m, $this->y, $this->k];
     }
 
-    public function getColorSpace(): string {
+    public function getColorSpace(): string
+    {
         return 'DeviceCMYK';
     }
 }

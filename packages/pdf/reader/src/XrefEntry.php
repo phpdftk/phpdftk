@@ -21,6 +21,5 @@ final readonly class XrefEntry
         public int $type,
         public int $offset,
         public int $generation,
-    ) {
-    }
+    ) {}
 }

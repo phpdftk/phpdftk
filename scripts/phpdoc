@@ -14,14 +14,25 @@ else
 fi
 
 if [[ "${1:-}" == "--all" ]]; then
-    # Generate for every package individually
+    # Mirror CI: combined monorepo docs + per-package docs collected under
+    # build/phpdoc-packages/<name>/ (with a "pdf-" prefix for nested PDF packages).
+    echo "=== combined ==="
+    $PHPDOC run
+
     for pkg in packages/*/phpdoc.dist.xml packages/pdf/*/phpdoc.dist.xml; do
         dir=$(dirname "$pkg")
-        echo "=== $(basename "$dir") ==="
+        name=$(basename "$dir")
+        if [[ "$dir" == packages/pdf/* ]]; then
+            name="pdf-$name"
+        fi
+        echo "=== $name ==="
         (cd "$dir" && "$OLDPWD/$PHPDOC" run 2>&1) || true
+        mkdir -p "build/phpdoc-packages/$name"
+        cp -r "$dir/build/phpdoc/"* "build/phpdoc-packages/$name/" 2>/dev/null || true
     done
     echo ""
-    echo "Per-package docs generated in each package's build/phpdoc/"
+    echo "Combined docs:    build/phpdoc/"
+    echo "Per-package docs: build/phpdoc-packages/<name>/"
 elif [[ -n "${1:-}" && "${1:-}" != "--"* ]]; then
     # Generate for a specific package directory
     echo "=== $1 ==="

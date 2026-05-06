@@ -37,7 +37,7 @@ abstract class MeshShading extends PdfStream
         int $bitsPerCoordinate,
         int $bitsPerComponent,
         PdfArray $decode,
-        string $meshData = ''
+        string $meshData = '',
     ) {
         parent::__construct(new PdfDictionary(), $meshData);
         $this->colorSpace = $colorSpace;

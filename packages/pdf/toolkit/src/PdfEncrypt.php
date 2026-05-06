@@ -150,16 +150,28 @@ final class PdfEncrypt
         if ($this->newMethod !== null && !$this->shouldDecrypt) {
             $encryptor = match ($this->newMethod) {
                 EncryptionMethod::Rc440 => PdfEncryptor::rc440(
-                    $this->newUserPassword, $this->newOwnerPassword, $fileId, $this->newPermissions,
+                    $this->newUserPassword,
+                    $this->newOwnerPassword,
+                    $fileId,
+                    $this->newPermissions,
                 ),
                 EncryptionMethod::Rc4128 => PdfEncryptor::rc4128(
-                    $this->newUserPassword, $this->newOwnerPassword, $fileId, $this->newPermissions,
+                    $this->newUserPassword,
+                    $this->newOwnerPassword,
+                    $fileId,
+                    $this->newPermissions,
                 ),
                 EncryptionMethod::Aes128 => PdfEncryptor::aes128(
-                    $this->newUserPassword, $this->newOwnerPassword, $fileId, $this->newPermissions,
+                    $this->newUserPassword,
+                    $this->newOwnerPassword,
+                    $fileId,
+                    $this->newPermissions,
                 ),
                 EncryptionMethod::Aes256 => PdfEncryptor::aes256(
-                    $this->newUserPassword, $this->newOwnerPassword, $fileId, $this->newPermissions,
+                    $this->newUserPassword,
+                    $this->newOwnerPassword,
+                    $fileId,
+                    $this->newPermissions,
                 ),
                 default => throw new \RuntimeException('Public-key encryption not supported for re-encryption'),
             };
@@ -179,7 +191,10 @@ final class PdfEncrypt
         if ($infoDict !== null) {
             $info = new class ($infoDict) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $dict) {}
-                public function toPdf(): string { return $this->dict->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->dict->toPdf();
+                }
             };
             $fw->register($info);
             $fw->setInfo($info);
@@ -316,7 +331,10 @@ final class PdfEncrypt
                         } elseif ($resolved instanceof PdfDictionary) {
                             $wrapper = new class ($resolved) extends PdfObject {
                                 public function __construct(private readonly PdfDictionary $d) {}
-                                public function toPdf(): string { return $this->d->toPdf(); }
+                                public function toPdf(): string
+                                {
+                                    return $this->d->toPdf();
+                                }
                             };
                             $fw->register($wrapper);
                             $res->font[$name] = new PdfReference($wrapper->objectNumber);

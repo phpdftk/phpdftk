@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace Phpdftk\Filters;
 
 /**
@@ -8,12 +11,15 @@ namespace Phpdftk\Filters;
  * size but produces fully human-readable output, useful for debugging.
  * Terminated by '>'.
  */
-final class AsciiHexFilter implements FilterInterface {
-    public function encode(string $data): string {
+final class AsciiHexFilter implements FilterInterface
+{
+    public function encode(string $data): string
+    {
         return bin2hex($data) . '>';
     }
 
-    public function decode(string $data): string {
+    public function decode(string $data): string
+    {
         // Strip whitespace
         $data = preg_replace('/\s+/', '', $data);
         // Strip trailing >

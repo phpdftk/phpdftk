@@ -28,7 +28,7 @@ class Type1FontFile extends PdfStream
         string $bytes,
         int $length1,
         int $length2,
-        int $length3
+        int $length3,
     ) {
         parent::__construct(new PdfDictionary(), $bytes);
         $this->length1 = $length1;

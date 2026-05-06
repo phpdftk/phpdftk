@@ -9,9 +9,7 @@ namespace Phpdftk\Pdf\Core;
  */
 class PdfNumber implements Serializable
 {
-    public function __construct(public readonly int|float $value)
-    {
-    }
+    public function __construct(public readonly int|float $value) {}
 
     public function toPdf(): string
     {

@@ -135,8 +135,15 @@ final class IncrementalWriter
         $encryptRef = $encrypt instanceof PdfReference ? $encrypt : null;
 
         return new self(
-            $originalPdf, $size, $xrefOffset, $root,
-            $infoRef, $idArray, $encryptRef, $compressStreams, $useXRefStream,
+            $originalPdf,
+            $size,
+            $xrefOffset,
+            $root,
+            $infoRef,
+            $idArray,
+            $encryptRef,
+            $compressStreams,
+            $useXRefStream,
             $reader->getPdfVersion(),
         );
     }
@@ -189,7 +196,7 @@ final class IncrementalWriter
     {
         if ($object->objectNumber <= 0) {
             throw new \InvalidArgumentException(
-                'Modified object must have its original objectNumber set'
+                'Modified object must have its original objectNumber set',
             );
         }
         $this->checkVersionRequirements($object);

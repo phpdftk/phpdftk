@@ -148,7 +148,10 @@ final class PageCopier
         if ($resolved instanceof PdfDictionary) {
             $wrapper = new class ($resolved) extends PdfObject {
                 public function __construct(private readonly PdfDictionary $d) {}
-                public function toPdf(): string { return $this->d->toPdf(); }
+                public function toPdf(): string
+                {
+                    return $this->d->toPdf();
+                }
             };
             $this->writer->register($wrapper);
             $this->objectMap[$ref->objectNumber] = $wrapper->objectNumber;

@@ -53,7 +53,7 @@ class ObjectStream extends PdfStream
     {
         if ($object->objectNumber === 0) {
             throw new \InvalidArgumentException(
-                'ObjectStream requires objects with assigned object numbers'
+                'ObjectStream requires objects with assigned object numbers',
             );
         }
         $this->contained[$object->objectNumber] = $object;

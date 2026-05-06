@@ -649,7 +649,7 @@ final class AppearanceGenerator
         return str_replace(
             ['\\', '(', ')'],
             ['\\\\', '\\(', '\\)'],
-            $text
+            $text,
         );
     }
 
@@ -662,25 +662,41 @@ final class AppearanceGenerator
     {
         $ops = [];
         $ops[] = sprintf('%.2f %.2f m', $cx + $r, $cy);
-        $ops[] = sprintf('%.2f %.2f %.2f %.2f %.2f %.2f c',
-            $cx + $r, $cy + $r * $k,
-            $cx + $r * $k, $cy + $r,
-            $cx, $cy + $r
+        $ops[] = sprintf(
+            '%.2f %.2f %.2f %.2f %.2f %.2f c',
+            $cx + $r,
+            $cy + $r * $k,
+            $cx + $r * $k,
+            $cy + $r,
+            $cx,
+            $cy + $r,
         );
-        $ops[] = sprintf('%.2f %.2f %.2f %.2f %.2f %.2f c',
-            $cx - $r * $k, $cy + $r,
-            $cx - $r, $cy + $r * $k,
-            $cx - $r, $cy
+        $ops[] = sprintf(
+            '%.2f %.2f %.2f %.2f %.2f %.2f c',
+            $cx - $r * $k,
+            $cy + $r,
+            $cx - $r,
+            $cy + $r * $k,
+            $cx - $r,
+            $cy,
         );
-        $ops[] = sprintf('%.2f %.2f %.2f %.2f %.2f %.2f c',
-            $cx - $r, $cy - $r * $k,
-            $cx - $r * $k, $cy - $r,
-            $cx, $cy - $r
+        $ops[] = sprintf(
+            '%.2f %.2f %.2f %.2f %.2f %.2f c',
+            $cx - $r,
+            $cy - $r * $k,
+            $cx - $r * $k,
+            $cy - $r,
+            $cx,
+            $cy - $r,
         );
-        $ops[] = sprintf('%.2f %.2f %.2f %.2f %.2f %.2f c',
-            $cx + $r * $k, $cy - $r,
-            $cx + $r, $cy - $r * $k,
-            $cx + $r, $cy
+        $ops[] = sprintf(
+            '%.2f %.2f %.2f %.2f %.2f %.2f c',
+            $cx + $r * $k,
+            $cy - $r,
+            $cx + $r,
+            $cy - $r * $k,
+            $cx + $r,
+            $cy,
         );
         return $ops;
     }
