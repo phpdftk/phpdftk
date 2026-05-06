@@ -1,0 +1,10 @@
+{
+    "coverage": 80.51,
+    "statements": 18340,
+    "covered_statements": 14765,
+    "methods": 1827,
+    "covered_methods": 1234,
+    "commit": "67298ad6050ded4e6d1438a9cebe855c3db09859",
+    "ref": "refs\/heads\/main",
+    "timestamp": "2026-05-06T12:40:21+00:00"
+}
