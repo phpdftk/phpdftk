@@ -443,8 +443,59 @@ function computeBenchmarkVerdict(?array $cur, ?array $base, float $thresholdPct)
     ];
 }
 
+/**
+ * Compliance gate: fails if any suite regresses vs main. A regression is a
+ * baseline-PASS suite that flipped to FAIL/WARN/NO TESTS, a failed-test count
+ * that grew, or a suite that lost tests (possible NO TESTS / disabled suite).
+ * Skipped if no current data or no baseline.
+ */
+function computeComplianceVerdict(?array $cur, ?array $base): array
+{
+    if ($cur === null) {
+        return ['failed' => false, 'reason' => 'no_current_data', 'regressions' => []];
+    }
+    if ($base === null) {
+        return ['failed' => false, 'reason' => 'no_baseline', 'regressions' => []];
+    }
+
+    $regressions = [];
+    foreach (($cur['suites'] ?? []) as $key => $suite) {
+        $baseSuite = $base['suites'][$key] ?? null;
+        if ($baseSuite === null) {
+            continue;
+        }
+        $curStatus  = (string) ($suite['status']     ?? '');
+        $baseStatus = (string) ($baseSuite['status'] ?? '');
+        $curFailed  = (int)    ($suite['failed']     ?? 0);
+        $baseFailed = (int)    ($baseSuite['failed'] ?? 0);
+        $curTests   = (int)    ($suite['tests']      ?? 0);
+        $baseTests  = (int)    ($baseSuite['tests']  ?? 0);
+
+        $statusFlip = $baseStatus === 'PASS'
+            && in_array($curStatus, ['FAIL', 'WARN', 'NO TESTS'], true);
+        $newFailures = $curFailed > $baseFailed;
+        $suiteShrank = $baseTests > 0 && $curTests < $baseTests;
+
+        if ($statusFlip || $newFailures || $suiteShrank) {
+            $regressions[] = [
+                'suite'         => (string) ($suite['label'] ?? $key),
+                'before'        => $baseStatus,
+                'after'         => $curStatus,
+                'failed_delta'  => $curFailed - $baseFailed,
+                'tests_delta'   => $curTests  - $baseTests,
+            ];
+        }
+    }
+
+    return [
+        'failed'      => !empty($regressions),
+        'regressions' => $regressions,
+    ];
+}
+
 $coverageVerdict   = computeCoverageVerdict($coverageCurrent, $coverageBaseline, $coverageFailPp);
 $benchmarkVerdict  = computeBenchmarkVerdict($benchmarksCurrent, $benchmarksBaseline, $benchmarkFailPct);
+$complianceVerdict = computeComplianceVerdict($complianceCurrent, $complianceBaseline);
 
 // ---------------------------------------------------------------------------
 // Assemble
@@ -481,6 +532,16 @@ $gateRows[] = sprintf(
             ? 'no main baseline (skipped)'
             : 'within threshold'),
 );
+$compIcon = $complianceVerdict['failed'] ? '❌' : '✅';
+$gateRows[] = sprintf(
+    '- %s **Compliance:** no new failures vs main — %s',
+    $compIcon,
+    $complianceVerdict['failed']
+        ? sprintf('**%d suite regression(s)**', count($complianceVerdict['regressions']))
+        : (($complianceVerdict['reason'] ?? '') === 'no_baseline'
+            ? 'no main baseline (skipped)'
+            : 'within threshold'),
+);
 $out .= implode("\n", $gateRows) . "\n";
 
 if (!empty($benchmarkVerdict['regressions'])) {
@@ -492,6 +553,20 @@ if (!empty($benchmarkVerdict['regressions'])) {
             $r['current'],
             $r['baseline'],
             $r['delta_pct'],
+        );
+    }
+}
+
+if (!empty($complianceVerdict['regressions'])) {
+    $out .= "\n  Suite regressions vs main:\n";
+    foreach ($complianceVerdict['regressions'] as $r) {
+        $out .= sprintf(
+            "  - `%s`: %s → %s (failed Δ %+d, tests Δ %+d)\n",
+            $r['suite'],
+            $r['before'] !== '' ? $r['before'] : '?',
+            $r['after']  !== '' ? $r['after']  : '?',
+            $r['failed_delta'],
+            $r['tests_delta'],
         );
     }
 }
@@ -520,7 +595,10 @@ if ($verdictOutputPath !== '') {
     $verdict = [
         'coverage'   => $coverageVerdict,
         'benchmarks' => $benchmarkVerdict,
-        'overall_failed' => $coverageVerdict['failed'] || $benchmarkVerdict['failed'],
+        'compliance' => $complianceVerdict,
+        'overall_failed' => $coverageVerdict['failed']
+                         || $benchmarkVerdict['failed']
+                         || $complianceVerdict['failed'],
     ];
     file_put_contents(
         $verdictOutputPath,
