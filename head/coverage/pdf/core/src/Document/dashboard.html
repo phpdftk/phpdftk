@@ -4,9 +4,8 @@
   <meta charset="UTF-8">
   <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/pdf/core/src/Document</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../../../_css/bootstrap.min.css?v=11.0.12" rel="stylesheet" type="text/css">
-  <link href="../../../../_css/nv.d3.min.css?v=11.0.12" rel="stylesheet" type="text/css">
-  <link href="../../../../_css/style.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/bootstrap.min.css?v=14.1.7" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/style.css?v=14.1.7" rel="stylesheet" type="text/css">
   <link href="../../../../_css/custom.css" rel="stylesheet" type="text/css">
  </head>
  <body>
@@ -30,304 +29,432 @@
    </div>
   </header>
   <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
+   <div class="row dashboard-row">
     <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="PageTree.php.html#20"><circle cx="727.1" cy="86.0" r="20.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\PageTree — Coverage: 92.6% | Lines: 68 | Complexity: 32</title></circle></a>
+ <a href="Page.php.html#23"><circle cx="694.0" cy="77.8" r="19.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\Page — Coverage: 88.1% | Lines: 67 | Complexity: 33</title></circle></a>
+ <a href="Catalog.php.html#21"><circle cx="768.6" cy="94.2" r="19.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Catalog — Coverage: 98.4% | Lines: 63 | Complexity: 31</title></circle></a>
+ <a href="CrossReferenceStream.php.html#31"><circle cx="730.3" cy="152.0" r="18.5" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream — Coverage: 93.1% | Lines: 58 | Complexity: 24</title></circle></a>
+ <a href="DssBuilder.php.html#25"><circle cx="780.0" cy="193.2" r="18.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder — Coverage: 100.0% | Lines: 55 | Complexity: 19</title></circle></a>
+ <a href="ViewerPreferences.php.html#20"><circle cx="533.7" cy="193.2" r="15.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\ViewerPreferences — Coverage: 65.8% | Lines: 38 | Complexity: 19</title></circle></a>
+ <a href="StructElem.php.html#29"><circle cx="780.0" cy="226.2" r="13.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructElem — Coverage: 100.0% | Lines: 30 | Complexity: 15</title></circle></a>
+ <a href="ObjectStream.php.html#32"><circle cx="780.0" cy="284.0" r="12.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectStream — Coverage: 100.0% | Lines: 28 | Complexity: 8</title></circle></a>
+ <a href="OutlineItem.php.html#26"><circle cx="752.3" cy="234.5" r="12.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OutlineItem — Coverage: 96.2% | Lines: 26 | Complexity: 14</title></circle></a>
+ <a href="OCConfig.php.html#26"><circle cx="540.0" cy="251.0" r="11.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCConfig — Coverage: 66.7% | Lines: 24 | Complexity: 12</title></circle></a>
+ <a href="NamesDictionary.php.html#20"><circle cx="550.9" cy="259.2" r="11.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\NamesDictionary — Coverage: 68.2% | Lines: 22 | Complexity: 11</title></circle></a>
+ <a href="OutputIntent.php.html#22"><circle cx="677.1" cy="275.8" r="11.1" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OutputIntent — Coverage: 85.7% | Lines: 21 | Complexity: 9</title></circle></a>
+ <a href="Info.php.html#16"><circle cx="780.0" cy="267.5" r="10.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Info — Coverage: 100.0% | Lines: 20 | Complexity: 10</title></circle></a>
+ <a href="OCUsage.php.html#23"><circle cx="540.0" cy="275.8" r="10.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCUsage — Coverage: 66.7% | Lines: 18 | Complexity: 9</title></circle></a>
+ <a href="TransitionDict.php.html#33"><circle cx="780.0" cy="284.0" r="10.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\TransitionDict — Coverage: 100.0% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="Destination.php.html#20"><circle cx="780.0" cy="251.0" r="9.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination — Coverage: 100.0% | Lines: 15 | Complexity: 12</title></circle></a>
+ <a href="StructTreeRoot.php.html#27"><circle cx="732.0" cy="292.2" r="9.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructTreeRoot — Coverage: 93.3% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="Bead.php.html#22"><circle cx="780.0" cy="300.5" r="8.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Bead — Coverage: 100.0% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="DPart.php.html#23"><circle cx="669.2" cy="300.5" r="8.7" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\DPart — Coverage: 84.6% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="Collection.php.html#25"><circle cx="583.6" cy="308.8" r="8.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\Collection — Coverage: 72.7% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="DPartRoot.php.html#24"><circle cx="714.5" cy="308.8" r="8.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DPartRoot — Coverage: 90.9% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="GroupAttributes.php.html#20"><circle cx="780.0" cy="308.8" r="8.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\GroupAttributes — Coverage: 100.0% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="BoxColorInfo.php.html#20"><circle cx="636.0" cy="308.8" r="7.7" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\BoxColorInfo — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="BoxStyle.php.html#22"><circle cx="780.0" cy="308.8" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\BoxStyle — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="DSS.php.html#24"><circle cx="780.0" cy="308.8" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DSS — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="HintStream.php.html#20"><circle cx="780.0" cy="317.0" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\HintStream — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="LinearizationParameters.php.html#22"><circle cx="780.0" cy="333.5" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\LinearizationParameters — Coverage: 100.0% | Lines: 10 | Complexity: 2</title></circle></a>
+ <a href="OCG.php.html#23"><circle cx="700.0" cy="317.0" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCG — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="OCMD.php.html#25"><circle cx="700.0" cy="317.0" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCMD — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="Outline.php.html#22"><circle cx="780.0" cy="317.0" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Outline — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="PageLabel.php.html#31"><circle cx="780.0" cy="317.0" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\PageLabel — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="MarkInfo.php.html#24"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\MarkInfo — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="NameTree.php.html#20"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\NameTree — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="NumberTree.php.html#20"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\NumberTree — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="OCPropertiesDict.php.html#25"><circle cx="780.0" cy="325.2" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OCPropertiesDict — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="ClassMap.php.html#21"><circle cx="780.0" cy="317.0" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ClassMap — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="ObjectRef.php.html#26"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectRef — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Requirement.php.html#21"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Requirement — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="RequirementHandler.php.html#19"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RequirementHandler — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="RoleMap.php.html#25"><circle cx="780.0" cy="317.0" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RoleMap — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="Thread.php.html#21"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Thread — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="CollectionSchema.php.html#23"><circle cx="780.0" cy="325.2" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionSchema — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="StructAttribute.php.html#25"><circle cx="780.0" cy="325.2" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="MetadataStream.php.html#23"><circle cx="780.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\MetadataStream — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="StandardStructureType.php.html#17"><circle cx="780.0" cy="333.5" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StandardStructureType — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="CollectionItem.php.html#22"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionItem — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="StructAttribute/LayoutAttribute.php.html#16"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\LayoutAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/ListAttribute.php.html#12"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\ListAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/PrintFieldAttribute.php.html#12"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\PrintFieldAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/TableAttribute.php.html#14"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\TableAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Insufficient Coverage</h3>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
      <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="ViewerPreferences.php.html#20">Phpdftk\Pdf\Core\Document\ViewerPreferences</a></td><td class="text-right">65%</td></tr>
-       <tr><td><a href="OCConfig.php.html#25">Phpdftk\Pdf\Core\Document\OCConfig</a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="OCUsage.php.html#22">Phpdftk\Pdf\Core\Document\OCUsage</a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="NamesDictionary.php.html#19">Phpdftk\Pdf\Core\Document\NamesDictionary</a></td><td class="text-right">68%</td></tr>
-       <tr><td><a href="Collection.php.html#24">Phpdftk\Pdf\Core\Document\Collection</a></td><td class="text-right">72%</td></tr>
-       <tr><td><a href="BoxColorInfo.php.html#19">Phpdftk\Pdf\Core\Document\BoxColorInfo</a></td><td class="text-right">80%</td></tr>
-       <tr><td><a href="DPart.php.html#22">Phpdftk\Pdf\Core\Document\DPart</a></td><td class="text-right">84%</td></tr>
-       <tr><td><a href="OutputIntent.php.html#21">Phpdftk\Pdf\Core\Document\OutputIntent</a></td><td class="text-right">85%</td></tr>
-       <tr><td><a href="Page.php.html#23">Phpdftk\Pdf\Core\Document\Page</a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="OCG.php.html#22">Phpdftk\Pdf\Core\Document\OCG</a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="OCMD.php.html#24">Phpdftk\Pdf\Core\Document\OCMD</a></td><td class="text-right">88%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Page.php.html#23">Phpdftk\Pdf\Core\Document\Page</a></td><td class="text-right">34</td></tr>
-       <tr><td><a href="ViewerPreferences.php.html#20">Phpdftk\Pdf\Core\Document\ViewerPreferences</a></td><td class="text-right">33</td></tr>
-       <tr><td><a href="OCConfig.php.html#25">Phpdftk\Pdf\Core\Document\OCConfig</a></td><td class="text-right">17</td></tr>
-       <tr><td><a href="NamesDictionary.php.html#19">Phpdftk\Pdf\Core\Document\NamesDictionary</a></td><td class="text-right">14</td></tr>
-       <tr><td><a href="OCUsage.php.html#22">Phpdftk\Pdf\Core\Document\OCUsage</a></td><td class="text-right">12</td></tr>
-       <tr><td><a href="OutputIntent.php.html#21">Phpdftk\Pdf\Core\Document\OutputIntent</a></td><td class="text-right">9</td></tr>
-       <tr><td><a href="DPart.php.html#22">Phpdftk\Pdf\Core\Document\DPart</a></td><td class="text-right">6</td></tr>
-       <tr><td><a href="Collection.php.html#24">Phpdftk\Pdf\Core\Document\Collection</a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="BoxColorInfo.php.html#19">Phpdftk\Pdf\Core\Document\BoxColorInfo</a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="OCG.php.html#22">Phpdftk\Pdf\Core\Document\OCG</a></td><td class="text-right">4</td></tr>
-       <tr><td><a href="OCMD.php.html#24">Phpdftk\Pdf\Core\Document\OCMD</a></td><td class="text-right">4</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Methods</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodCoverageDistribution" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="Page.php.html#23">Phpdftk\Pdf\Core\Document\Page</a></td><td class="text-right">34.85</td><td class="text-right">88.1%</td></tr>
+  <tr><td><a href="ViewerPreferences.php.html#20">Phpdftk\Pdf\Core\Document\ViewerPreferences</a></td><td class="text-right">33.45</td><td class="text-right">65.8%</td></tr>
+  <tr><td><a href="PageTree.php.html#20">Phpdftk\Pdf\Core\Document\PageTree</a></td><td class="text-right">32.41</td><td class="text-right">92.6%</td></tr>
+  <tr><td><a href="Catalog.php.html#21">Phpdftk\Pdf\Core\Document\Catalog</a></td><td class="text-right">31</td><td class="text-right">98.4%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#31">Phpdftk\Pdf\Core\Document\CrossReferenceStream</a></td><td class="text-right">24.19</td><td class="text-right">93.1%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#25">Phpdftk\Pdf\Core\Document\DssBuilder</a></td><td class="text-right">19</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCConfig.php.html#26">Phpdftk\Pdf\Core\Document\OCConfig</a></td><td class="text-right">17.33</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="StructElem.php.html#29">Phpdftk\Pdf\Core\Document\StructElem</a></td><td class="text-right">15</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NamesDictionary.php.html#20">Phpdftk\Pdf\Core\Document\NamesDictionary</a></td><td class="text-right">14.90</td><td class="text-right">68.2%</td></tr>
+  <tr><td><a href="OutlineItem.php.html#26">Phpdftk\Pdf\Core\Document\OutlineItem</a></td><td class="text-right">14</td><td class="text-right">96.2%</td></tr>
+  <tr><td><a href="Destination.php.html#20">Phpdftk\Pdf\Core\Document\Destination</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCUsage.php.html#23">Phpdftk\Pdf\Core\Document\OCUsage</a></td><td class="text-right">12.00</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="Info.php.html#16">Phpdftk\Pdf\Core\Document\Info</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OutputIntent.php.html#22">Phpdftk\Pdf\Core\Document\OutputIntent</a></td><td class="text-right">9.24</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ObjectStream.php.html#32">Phpdftk\Pdf\Core\Document\ObjectStream</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TransitionDict.php.html#33">Phpdftk\Pdf\Core\Document\TransitionDict</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructTreeRoot.php.html#27">Phpdftk\Pdf\Core\Document\StructTreeRoot</a></td><td class="text-right">7.01</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="DPart.php.html#23">Phpdftk\Pdf\Core\Document\DPart</a></td><td class="text-right">6.13</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="Bead.php.html#22">Phpdftk\Pdf\Core\Document\Bead</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Collection.php.html#25">Phpdftk\Pdf\Core\Document\Collection</a></td><td class="text-right">5.51</td><td class="text-right">72.7%</td></tr>
+  <tr><td><a href="BoxColorInfo.php.html#20">Phpdftk\Pdf\Core\Document\BoxColorInfo</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="DPartRoot.php.html#24">Phpdftk\Pdf\Core\Document\DPartRoot</a></td><td class="text-right">5.02</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="BoxStyle.php.html#22">Phpdftk\Pdf\Core\Document\BoxStyle</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DSS.php.html#24">Phpdftk\Pdf\Core\Document\DSS</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="GroupAttributes.php.html#20">Phpdftk\Pdf\Core\Document\GroupAttributes</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCG.php.html#23">Phpdftk\Pdf\Core\Document\OCG</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="OCMD.php.html#25">Phpdftk\Pdf\Core\Document\OCMD</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="ClassMap.php.html#21">Phpdftk\Pdf\Core\Document\ClassMap</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HintStream.php.html#20">Phpdftk\Pdf\Core\Document\HintStream</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MarkInfo.php.html#24">Phpdftk\Pdf\Core\Document\MarkInfo</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NameTree.php.html#20">Phpdftk\Pdf\Core\Document\NameTree</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NumberTree.php.html#20">Phpdftk\Pdf\Core\Document\NumberTree</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Outline.php.html#22">Phpdftk\Pdf\Core\Document\Outline</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PageLabel.php.html#31">Phpdftk\Pdf\Core\Document\PageLabel</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RoleMap.php.html#25">Phpdftk\Pdf\Core\Document\RoleMap</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionSchema.php.html#23">Phpdftk\Pdf\Core\Document\CollectionSchema</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCPropertiesDict.php.html#25">Phpdftk\Pdf\Core\Document\OCPropertiesDict</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRef.php.html#26">Phpdftk\Pdf\Core\Document\ObjectRef</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Requirement.php.html#21">Phpdftk\Pdf\Core\Document\Requirement</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RequirementHandler.php.html#19">Phpdftk\Pdf\Core\Document\RequirementHandler</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute.php.html#25">Phpdftk\Pdf\Core\Document\StructAttribute</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Thread.php.html#21">Phpdftk\Pdf\Core\Document\Thread</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionItem.php.html#22">Phpdftk\Pdf\Core\Document\CollectionItem</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearizationParameters.php.html#22">Phpdftk\Pdf\Core\Document\LinearizationParameters</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MetadataStream.php.html#23">Phpdftk\Pdf\Core\Document\MetadataStream</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StandardStructureType.php.html#17">Phpdftk\Pdf\Core\Document\StandardStructureType</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/LayoutAttribute.php.html#16">Phpdftk\Pdf\Core\Document\StructAttribute\LayoutAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/ListAttribute.php.html#12">Phpdftk\Pdf\Core\Document\StructAttribute\ListAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/PrintFieldAttribute.php.html#12">Phpdftk\Pdf\Core\Document\StructAttribute\PrintFieldAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/TableAttribute.php.html#14">Phpdftk\Pdf\Core\Document\StructAttribute\TableAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
      </div>
     </div>
    </div>
-   <div class="row">
+   <div class="row dashboard-row">
     <div class="col-md-6">
-     <h3>Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="CrossReferenceStream.php.html#129"><abbr title="Phpdftk\Pdf\Core\Document\CrossReferenceStream::bytesNeeded">bytesNeeded</abbr></a></td><td class="text-right">57%</td></tr>
-       <tr><td><a href="ViewerPreferences.php.html#42"><abbr title="Phpdftk\Pdf\Core\Document\ViewerPreferences::toPdf">toPdf</abbr></a></td><td class="text-right">65%</td></tr>
-       <tr><td><a href="OCConfig.php.html#40"><abbr title="Phpdftk\Pdf\Core\Document\OCConfig::toPdf">toPdf</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="OCUsage.php.html#34"><abbr title="Phpdftk\Pdf\Core\Document\OCUsage::toPdf">toPdf</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="NamesDictionary.php.html#33"><abbr title="Phpdftk\Pdf\Core\Document\NamesDictionary::toPdf">toPdf</abbr></a></td><td class="text-right">68%</td></tr>
-       <tr><td><a href="Collection.php.html#34"><abbr title="Phpdftk\Pdf\Core\Document\Collection::toPdf">toPdf</abbr></a></td><td class="text-right">72%</td></tr>
-       <tr><td><a href="BoxColorInfo.php.html#27"><abbr title="Phpdftk\Pdf\Core\Document\BoxColorInfo::toPdf">toPdf</abbr></a></td><td class="text-right">80%</td></tr>
-       <tr><td><a href="DPart.php.html#38"><abbr title="Phpdftk\Pdf\Core\Document\DPart::toPdf">toPdf</abbr></a></td><td class="text-right">83%</td></tr>
-       <tr><td><a href="OutputIntent.php.html#42"><abbr title="Phpdftk\Pdf\Core\Document\OutputIntent::toPdf">toPdf</abbr></a></td><td class="text-right">84%</td></tr>
-       <tr><td><a href="OCG.php.html#36"><abbr title="Phpdftk\Pdf\Core\Document\OCG::toPdf">toPdf</abbr></a></td><td class="text-right">87%</td></tr>
-       <tr><td><a href="Page.php.html#64"><abbr title="Phpdftk\Pdf\Core\Document\Page::toPdf">toPdf</abbr></a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="OCMD.php.html#33"><abbr title="Phpdftk\Pdf\Core\Document\OCMD::toPdf">toPdf</abbr></a></td><td class="text-right">88%</td></tr>
-
-       </tbody>
-      </table>
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="PageTree.php.html#58"><circle cx="727.1" cy="86.0" r="20.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\PageTree::toPdf — Coverage: 92.6% | Lines: 68 | Complexity: 32</title></circle></a>
+ <a href="Page.php.html#64"><circle cx="694.0" cy="77.8" r="19.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\Page::toPdf — Coverage: 88.1% | Lines: 67 | Complexity: 33</title></circle></a>
+ <a href="Catalog.php.html#60"><circle cx="768.6" cy="94.2" r="19.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Catalog::toPdf — Coverage: 98.4% | Lines: 63 | Complexity: 31</title></circle></a>
+ <a href="ViewerPreferences.php.html#42"><circle cx="533.7" cy="193.2" r="15.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\ViewerPreferences::toPdf — Coverage: 65.8% | Lines: 38 | Complexity: 19</title></circle></a>
+ <a href="StructElem.php.html#57"><circle cx="780.0" cy="242.8" r="12.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructElem::toPdf — Coverage: 100.0% | Lines: 28 | Complexity: 13</title></circle></a>
+ <a href="OutlineItem.php.html#52"><circle cx="751.2" cy="251.0" r="12.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OutlineItem::toPdf — Coverage: 96.0% | Lines: 25 | Complexity: 12</title></circle></a>
+ <a href="CrossReferenceStream.php.html#86"><circle cx="780.0" cy="300.5" r="11.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::packAllEntries — Coverage: 100.0% | Lines: 24 | Complexity: 6</title></circle></a>
+ <a href="DssBuilder.php.html#119"><circle cx="780.0" cy="275.8" r="11.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::build — Coverage: 100.0% | Lines: 24 | Complexity: 9</title></circle></a>
+ <a href="OCConfig.php.html#40"><circle cx="540.0" cy="251.0" r="11.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCConfig::toPdf — Coverage: 66.7% | Lines: 24 | Complexity: 12</title></circle></a>
+ <a href="NamesDictionary.php.html#33"><circle cx="550.9" cy="259.2" r="11.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\NamesDictionary::toPdf — Coverage: 68.2% | Lines: 22 | Complexity: 11</title></circle></a>
+ <a href="ObjectStream.php.html#70"><circle cx="780.0" cy="317.0" r="11.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectStream::toPdf — Coverage: 100.0% | Lines: 21 | Complexity: 4</title></circle></a>
+ <a href="Info.php.html#28"><circle cx="780.0" cy="267.5" r="10.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Info::toPdf — Coverage: 100.0% | Lines: 20 | Complexity: 10</title></circle></a>
+ <a href="CrossReferenceStream.php.html#155"><circle cx="742.1" cy="284.0" r="10.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::toPdf — Coverage: 94.7% | Lines: 19 | Complexity: 8</title></circle></a>
+ <a href="OutputIntent.php.html#42"><circle cx="666.3" cy="284.0" r="10.6" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OutputIntent::toPdf — Coverage: 84.2% | Lines: 19 | Complexity: 8</title></circle></a>
+ <a href="OCUsage.php.html#34"><circle cx="540.0" cy="275.8" r="10.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCUsage::toPdf — Coverage: 66.7% | Lines: 18 | Complexity: 9</title></circle></a>
+ <a href="TransitionDict.php.html#43"><circle cx="780.0" cy="284.0" r="10.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\TransitionDict::toPdf — Coverage: 100.0% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="StructTreeRoot.php.html#38"><circle cx="732.0" cy="292.2" r="9.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructTreeRoot::toPdf — Coverage: 93.3% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="Bead.php.html#32"><circle cx="780.0" cy="300.5" r="8.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Bead::toPdf — Coverage: 100.0% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="DPart.php.html#38"><circle cx="660.0" cy="308.8" r="8.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\DPart::toPdf — Coverage: 83.3% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Collection.php.html#34"><circle cx="583.6" cy="308.8" r="8.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\Collection::toPdf — Coverage: 72.7% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="BoxColorInfo.php.html#27"><circle cx="636.0" cy="308.8" r="7.7" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\BoxColorInfo::toPdf — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="BoxStyle.php.html#29"><circle cx="780.0" cy="308.8" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\BoxStyle::toPdf — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="DPartRoot.php.html#38"><circle cx="708.0" cy="317.0" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DPartRoot::toPdf — Coverage: 90.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="DSS.php.html#33"><circle cx="780.0" cy="308.8" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DSS::toPdf — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="GroupAttributes.php.html#32"><circle cx="780.0" cy="317.0" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\GroupAttributes::toPdf — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="HintStream.php.html#40"><circle cx="780.0" cy="325.2" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\HintStream::toPdf — Coverage: 100.0% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="LinearizationParameters.php.html#37"><circle cx="780.0" cy="341.8" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\LinearizationParameters::toPdf — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="OCMD.php.html#33"><circle cx="700.0" cy="317.0" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCMD::toPdf — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="Outline.php.html#30"><circle cx="780.0" cy="317.0" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Outline::toPdf — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="PageLabel.php.html#39"><circle cx="780.0" cy="317.0" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\PageLabel::toPdf — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="MarkInfo.php.html#32"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\MarkInfo::toPdf — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="NameTree.php.html#26"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\NameTree::toPdf — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="NumberTree.php.html#26"><circle cx="780.0" cy="317.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\NumberTree::toPdf — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="OCG.php.html#36"><circle cx="690.0" cy="325.2" r="6.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCG::toPdf — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="CrossReferenceStream.php.html#129"><circle cx="471.4" cy="317.0" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::bytesNeeded — Coverage: 57.1% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="DssBuilder.php.html#49"><circle cx="780.0" cy="333.5" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::addCertificate — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="DssBuilder.php.html#65"><circle cx="780.0" cy="333.5" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::addOcspResponse — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="DssBuilder.php.html#81"><circle cx="780.0" cy="333.5" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::addCrl — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="ObjectRef.php.html#33"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectRef::toPdf — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Thread.php.html#28"><circle cx="780.0" cy="325.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Thread::toPdf — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Destination.php.html#96"><circle cx="780.0" cy="325.2" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="OCPropertiesDict.php.html#37"><circle cx="780.0" cy="333.5" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OCPropertiesDict::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Requirement.php.html#33"><circle cx="780.0" cy="333.5" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Requirement::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="RequirementHandler.php.html#31"><circle cx="780.0" cy="333.5" r="5.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RequirementHandler::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="CollectionSchema.php.html#34"><circle cx="780.0" cy="333.5" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionSchema::toPdf — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="DssBuilder.php.html#103"><circle cx="780.0" cy="341.8" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::addVriEntry — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="ObjectStream.php.html#52"><circle cx="780.0" cy="333.5" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectStream::addObject — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="StructAttribute.php.html#37"><circle cx="780.0" cy="333.5" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute::toPdf — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="ClassMap.php.html#32"><circle cx="780.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ClassMap::toDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="CrossReferenceStream.php.html#146"><circle cx="780.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::packField — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="RoleMap.php.html#36"><circle cx="780.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RoleMap::toDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="DssBuilder.php.html#181"><circle cx="780.0" cy="341.8" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::createStream — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="MetadataStream.php.html#33"><circle cx="780.0" cy="341.8" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\MetadataStream::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="StandardStructureType.php.html#97"><circle cx="780.0" cy="333.5" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StandardStructureType::minimumVersion — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ClassMap.php.html#26"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ClassMap::set — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="OCPropertiesDict.php.html#31"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OCPropertiesDict::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="OutputIntent.php.html#36"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OutputIntent::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="RoleMap.php.html#30"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RoleMap::map — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ClassMap.php.html#41"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ClassMap::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CollectionItem.php.html#26"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionItem::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CollectionItem.php.html#31"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionItem::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CollectionSchema.php.html#29"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CollectionSchema::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceStream.php.html#50"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceStream.php.html#58"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::addInUseEntry — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceStream.php.html#66"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::addFreeEntry — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceStream.php.html#74"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::addCompressedEntry — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DPart.php.html#33"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DPart::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DPartRoot.php.html#33"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DPartRoot::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#25"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#35"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::xyz — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#43"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fit — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#51"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitH — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#59"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitV — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#67"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitR — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#75"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitB — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#83"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitBH — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Destination.php.html#91"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Destination::fitBV — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DssBuilder.php.html#39"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DssBuilder.php.html#173"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::computeVriKey — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="GroupAttributes.php.html#27"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\GroupAttributes::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HintStream.php.html#35"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\HintStream::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LinearizationParameters.php.html#32"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\LinearizationParameters::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="MetadataStream.php.html#28"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\MetadataStream::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="OCG.php.html#31"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OCG::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ObjectStream.php.html#42"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectStream::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ObjectStream.php.html#65"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\ObjectStream::count — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="OutlineItem.php.html#47"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\OutlineItem::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Requirement.php.html#28"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Requirement::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RequirementHandler.php.html#26"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RequirementHandler::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RoleMap.php.html#45"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\RoleMap::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute.php.html#32"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/LayoutAttribute.php.html#18"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\LayoutAttribute::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/ListAttribute.php.html#14"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\ListAttribute::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/PrintFieldAttribute.php.html#14"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\PrintFieldAttribute::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructAttribute/TableAttribute.php.html#16"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructAttribute\TableAttribute::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructElem.php.html#47"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructElem::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StructElem.php.html#52"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\StructElem::getMinimumPdfVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Project Risks</h3>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
      <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Page.php.html#64"><abbr title="Phpdftk\Pdf\Core\Document\Page::toPdf">toPdf</abbr></a></td><td class="text-right">34</td></tr>
-       <tr><td><a href="ViewerPreferences.php.html#42"><abbr title="Phpdftk\Pdf\Core\Document\ViewerPreferences::toPdf">toPdf</abbr></a></td><td class="text-right">33</td></tr>
-       <tr><td><a href="OCConfig.php.html#40"><abbr title="Phpdftk\Pdf\Core\Document\OCConfig::toPdf">toPdf</abbr></a></td><td class="text-right">17</td></tr>
-       <tr><td><a href="NamesDictionary.php.html#33"><abbr title="Phpdftk\Pdf\Core\Document\NamesDictionary::toPdf">toPdf</abbr></a></td><td class="text-right">14</td></tr>
-       <tr><td><a href="OCUsage.php.html#34"><abbr title="Phpdftk\Pdf\Core\Document\OCUsage::toPdf">toPdf</abbr></a></td><td class="text-right">12</td></tr>
-       <tr><td><a href="OutputIntent.php.html#42"><abbr title="Phpdftk\Pdf\Core\Document\OutputIntent::toPdf">toPdf</abbr></a></td><td class="text-right">8</td></tr>
-       <tr><td><a href="Collection.php.html#34"><abbr title="Phpdftk\Pdf\Core\Document\Collection::toPdf">toPdf</abbr></a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="CrossReferenceStream.php.html#129"><abbr title="Phpdftk\Pdf\Core\Document\CrossReferenceStream::bytesNeeded">bytesNeeded</abbr></a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="BoxColorInfo.php.html#27"><abbr title="Phpdftk\Pdf\Core\Document\BoxColorInfo::toPdf">toPdf</abbr></a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="DPart.php.html#38"><abbr title="Phpdftk\Pdf\Core\Document\DPart::toPdf">toPdf</abbr></a></td><td class="text-right">5</td></tr>
-       <tr><td><a href="OCMD.php.html#33"><abbr title="Phpdftk\Pdf\Core\Document\OCMD::toPdf">toPdf</abbr></a></td><td class="text-right">4</td></tr>
-       <tr><td><a href="OCG.php.html#36"><abbr title="Phpdftk\Pdf\Core\Document\OCG::toPdf">toPdf</abbr></a></td><td class="text-right">3</td></tr>
-
-       </tbody>
-      </table>
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="Page.php.html#64">Phpdftk\Pdf\Core\Document\Page::toPdf</a></td><td class="text-right">34.85</td><td class="text-right">88.1%</td></tr>
+  <tr><td><a href="ViewerPreferences.php.html#42">Phpdftk\Pdf\Core\Document\ViewerPreferences::toPdf</a></td><td class="text-right">33.45</td><td class="text-right">65.8%</td></tr>
+  <tr><td><a href="PageTree.php.html#58">Phpdftk\Pdf\Core\Document\PageTree::toPdf</a></td><td class="text-right">32.41</td><td class="text-right">92.6%</td></tr>
+  <tr><td><a href="Catalog.php.html#60">Phpdftk\Pdf\Core\Document\Catalog::toPdf</a></td><td class="text-right">31</td><td class="text-right">98.4%</td></tr>
+  <tr><td><a href="OCConfig.php.html#40">Phpdftk\Pdf\Core\Document\OCConfig::toPdf</a></td><td class="text-right">17.33</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="NamesDictionary.php.html#33">Phpdftk\Pdf\Core\Document\NamesDictionary::toPdf</a></td><td class="text-right">14.90</td><td class="text-right">68.2%</td></tr>
+  <tr><td><a href="StructElem.php.html#57">Phpdftk\Pdf\Core\Document\StructElem::toPdf</a></td><td class="text-right">13</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCUsage.php.html#34">Phpdftk\Pdf\Core\Document\OCUsage::toPdf</a></td><td class="text-right">12.00</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="OutlineItem.php.html#52">Phpdftk\Pdf\Core\Document\OutlineItem::toPdf</a></td><td class="text-right">12</td><td class="text-right">96.0%</td></tr>
+  <tr><td><a href="Info.php.html#28">Phpdftk\Pdf\Core\Document\Info::toPdf</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#119">Phpdftk\Pdf\Core\Document\DssBuilder::build</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OutputIntent.php.html#42">Phpdftk\Pdf\Core\Document\OutputIntent::toPdf</a></td><td class="text-right">8.25</td><td class="text-right">84.2%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#155">Phpdftk\Pdf\Core\Document\CrossReferenceStream::toPdf</a></td><td class="text-right">8.01</td><td class="text-right">94.7%</td></tr>
+  <tr><td><a href="TransitionDict.php.html#43">Phpdftk\Pdf\Core\Document\TransitionDict::toPdf</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructTreeRoot.php.html#38">Phpdftk\Pdf\Core\Document\StructTreeRoot::toPdf</a></td><td class="text-right">7.01</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="Bead.php.html#32">Phpdftk\Pdf\Core\Document\Bead::toPdf</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#86">Phpdftk\Pdf\Core\Document\CrossReferenceStream::packAllEntries</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Collection.php.html#34">Phpdftk\Pdf\Core\Document\Collection::toPdf</a></td><td class="text-right">5.51</td><td class="text-right">72.7%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#129">Phpdftk\Pdf\Core\Document\CrossReferenceStream::bytesNeeded</a></td><td class="text-right">5.26</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="BoxColorInfo.php.html#27">Phpdftk\Pdf\Core\Document\BoxColorInfo::toPdf</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="DPart.php.html#38">Phpdftk\Pdf\Core\Document\DPart::toPdf</a></td><td class="text-right">5.12</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BoxStyle.php.html#29">Phpdftk\Pdf\Core\Document\BoxStyle::toPdf</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DSS.php.html#33">Phpdftk\Pdf\Core\Document\DSS::toPdf</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DPartRoot.php.html#38">Phpdftk\Pdf\Core\Document\DPartRoot::toPdf</a></td><td class="text-right">4.02</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="OCMD.php.html#33">Phpdftk\Pdf\Core\Document\OCMD::toPdf</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="GroupAttributes.php.html#32">Phpdftk\Pdf\Core\Document\GroupAttributes::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MarkInfo.php.html#32">Phpdftk\Pdf\Core\Document\MarkInfo::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NameTree.php.html#26">Phpdftk\Pdf\Core\Document\NameTree::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NumberTree.php.html#26">Phpdftk\Pdf\Core\Document\NumberTree::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectStream.php.html#70">Phpdftk\Pdf\Core\Document\ObjectStream::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Outline.php.html#30">Phpdftk\Pdf\Core\Document\Outline::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PageLabel.php.html#39">Phpdftk\Pdf\Core\Document\PageLabel::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCG.php.html#36">Phpdftk\Pdf\Core\Document\OCG::toPdf</a></td><td class="text-right">3.02</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="Destination.php.html#96">Phpdftk\Pdf\Core\Document\Destination::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HintStream.php.html#40">Phpdftk\Pdf\Core\Document\HintStream::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRef.php.html#33">Phpdftk\Pdf\Core\Document\ObjectRef::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Thread.php.html#28">Phpdftk\Pdf\Core\Document\Thread::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassMap.php.html#32">Phpdftk\Pdf\Core\Document\ClassMap::toDictionary</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionSchema.php.html#34">Phpdftk\Pdf\Core\Document\CollectionSchema::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#146">Phpdftk\Pdf\Core\Document\CrossReferenceStream::packField</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#49">Phpdftk\Pdf\Core\Document\DssBuilder::addCertificate</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#65">Phpdftk\Pdf\Core\Document\DssBuilder::addOcspResponse</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#81">Phpdftk\Pdf\Core\Document\DssBuilder::addCrl</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCPropertiesDict.php.html#37">Phpdftk\Pdf\Core\Document\OCPropertiesDict::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectStream.php.html#52">Phpdftk\Pdf\Core\Document\ObjectStream::addObject</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OutlineItem.php.html#47">Phpdftk\Pdf\Core\Document\OutlineItem::__construct</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Requirement.php.html#33">Phpdftk\Pdf\Core\Document\Requirement::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RequirementHandler.php.html#31">Phpdftk\Pdf\Core\Document\RequirementHandler::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RoleMap.php.html#36">Phpdftk\Pdf\Core\Document\RoleMap::toDictionary</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StandardStructureType.php.html#97">Phpdftk\Pdf\Core\Document\StandardStructureType::minimumVersion</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute.php.html#37">Phpdftk\Pdf\Core\Document\StructAttribute::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassMap.php.html#26">Phpdftk\Pdf\Core\Document\ClassMap::set</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassMap.php.html#41">Phpdftk\Pdf\Core\Document\ClassMap::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionItem.php.html#26">Phpdftk\Pdf\Core\Document\CollectionItem::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionItem.php.html#31">Phpdftk\Pdf\Core\Document\CollectionItem::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CollectionSchema.php.html#29">Phpdftk\Pdf\Core\Document\CollectionSchema::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#50">Phpdftk\Pdf\Core\Document\CrossReferenceStream::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#58">Phpdftk\Pdf\Core\Document\CrossReferenceStream::addInUseEntry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#66">Phpdftk\Pdf\Core\Document\CrossReferenceStream::addFreeEntry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceStream.php.html#74">Phpdftk\Pdf\Core\Document\CrossReferenceStream::addCompressedEntry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DPart.php.html#33">Phpdftk\Pdf\Core\Document\DPart::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DPartRoot.php.html#33">Phpdftk\Pdf\Core\Document\DPartRoot::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#25">Phpdftk\Pdf\Core\Document\Destination::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#35">Phpdftk\Pdf\Core\Document\Destination::xyz</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#43">Phpdftk\Pdf\Core\Document\Destination::fit</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#51">Phpdftk\Pdf\Core\Document\Destination::fitH</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#59">Phpdftk\Pdf\Core\Document\Destination::fitV</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#67">Phpdftk\Pdf\Core\Document\Destination::fitR</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#75">Phpdftk\Pdf\Core\Document\Destination::fitB</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#83">Phpdftk\Pdf\Core\Document\Destination::fitBH</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Destination.php.html#91">Phpdftk\Pdf\Core\Document\Destination::fitBV</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#39">Phpdftk\Pdf\Core\Document\DssBuilder::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#103">Phpdftk\Pdf\Core\Document\DssBuilder::addVriEntry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#173">Phpdftk\Pdf\Core\Document\DssBuilder::computeVriKey</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DssBuilder.php.html#181">Phpdftk\Pdf\Core\Document\DssBuilder::createStream</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="GroupAttributes.php.html#27">Phpdftk\Pdf\Core\Document\GroupAttributes::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HintStream.php.html#35">Phpdftk\Pdf\Core\Document\HintStream::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearizationParameters.php.html#32">Phpdftk\Pdf\Core\Document\LinearizationParameters::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearizationParameters.php.html#37">Phpdftk\Pdf\Core\Document\LinearizationParameters::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MetadataStream.php.html#28">Phpdftk\Pdf\Core\Document\MetadataStream::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MetadataStream.php.html#33">Phpdftk\Pdf\Core\Document\MetadataStream::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCG.php.html#31">Phpdftk\Pdf\Core\Document\OCG::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OCPropertiesDict.php.html#31">Phpdftk\Pdf\Core\Document\OCPropertiesDict::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectStream.php.html#42">Phpdftk\Pdf\Core\Document\ObjectStream::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectStream.php.html#65">Phpdftk\Pdf\Core\Document\ObjectStream::count</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="OutputIntent.php.html#36">Phpdftk\Pdf\Core\Document\OutputIntent::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Requirement.php.html#28">Phpdftk\Pdf\Core\Document\Requirement::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RequirementHandler.php.html#26">Phpdftk\Pdf\Core\Document\RequirementHandler::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RoleMap.php.html#30">Phpdftk\Pdf\Core\Document\RoleMap::map</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RoleMap.php.html#45">Phpdftk\Pdf\Core\Document\RoleMap::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute.php.html#32">Phpdftk\Pdf\Core\Document\StructAttribute::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/LayoutAttribute.php.html#18">Phpdftk\Pdf\Core\Document\StructAttribute\LayoutAttribute::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/ListAttribute.php.html#14">Phpdftk\Pdf\Core\Document\StructAttribute\ListAttribute::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/PrintFieldAttribute.php.html#14">Phpdftk\Pdf\Core\Document\StructAttribute\PrintFieldAttribute::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructAttribute/TableAttribute.php.html#16">Phpdftk\Pdf\Core\Document\StructAttribute\TableAttribute::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructElem.php.html#47">Phpdftk\Pdf\Core\Document\StructElem::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StructElem.php.html#52">Phpdftk\Pdf\Core\Document\StructElem::getMinimumPdfVersion</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
      </div>
     </div>
    </div>
    <footer>
     <hr/>
     <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.12</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 11.5.55</a> at Fri May 8 20:17:45 UTC 2026.</small>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.1.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 13.1.8</a> at Fri May 8 21:11:40 UTC 2026.</small>
     </p>
    </footer>
   </div>
-  <script src="../../../../_js/jquery.min.js?v=11.0.12" type="text/javascript"></script>
-  <script src="../../../../_js/d3.min.js?v=11.0.12" type="text/javascript"></script>
-  <script src="../../../../_js/nv.d3.min.js?v=11.0.12" type="text/javascript"></script>
-  <script type="text/javascript">
-$(document).ready(function() {
-  nv.addGraph(function() {
-    var chart = nv.models.multiBarChart();
-    chart.tooltips(false)
-      .showControls(false)
-      .showLegend(false)
-      .reduceXTicks(false)
-      .staggerLabels(true)
-      .yAxis.tickFormat(d3.format('d'));
-
-    d3.select('#classCoverageDistribution svg')
-      .datum(getCoverageDistributionData([0,0,0,0,0,0,0,4,1,6,6,33], "Class Coverage"))
-      .transition().duration(500).call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  nv.addGraph(function() {
-    var chart = nv.models.multiBarChart();
-    chart.tooltips(false)
-      .showControls(false)
-      .showLegend(false)
-      .reduceXTicks(false)
-      .staggerLabels(true)
-      .yAxis.tickFormat(d3.format('d'));
-
-    d3.select('#methodCoverageDistribution svg')
-      .datum(getCoverageDistributionData([0,0,0,0,0,0,1,4,1,6,6,79], "Method Coverage"))
-      .transition().duration(500).call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  function getCoverageDistributionData(data, label) {
-    var labels = [
-      '0%',
-      '0-10%',
-      '10-20%',
-      '20-30%',
-      '30-40%',
-      '40-50%',
-      '50-60%',
-      '60-70%',
-      '70-80%',
-      '80-90%',
-      '90-100%',
-      '100%'
-    ];
-    var values = [];
-    $.each(labels, function(key) {
-      values.push({x: labels[key], y: data[key]});
-    });
-
-    return [
-      {
-        key: label,
-        values: values,
-        color: "#4572A7"
-      }
-    ];
-  }
-  nv.addGraph(function() {
-    var chart = nv.models.scatterChart()
-      .showDistX(true)
-      .showDistY(true)
-      .showLegend(false)
-      .forceX([0, 100]);
-    chart.tooltipContent(function(graph) {
-      return '<p>' + graph.point.class + '</p>';
-    });
-
-    chart.xAxis.axisLabel('Code Coverage (in percent)');
-    chart.yAxis.axisLabel('Cyclomatic Complexity');
-
-    d3.select('#classComplexity svg')
-      .datum(getComplexityData([[100,6,"<a href=\"Bead.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\Bead<\/a>"],[80,5,"<a href=\"BoxColorInfo.php.html#19\">Phpdftk\\Pdf\\Core\\Document\\BoxColorInfo<\/a>"],[100,5,"<a href=\"BoxStyle.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\BoxStyle<\/a>"],[98.4126984126984,31,"<a href=\"Catalog.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\Catalog<\/a>"],[100,4,"<a href=\"ClassMap.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\ClassMap<\/a>"],[72.72727272727273,5,"<a href=\"Collection.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\Collection<\/a>"],[100,2,"<a href=\"CollectionItem.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\CollectionItem<\/a>"],[100,3,"<a href=\"CollectionSchema.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\CollectionSchema<\/a>"],[93.10344827586206,24,"<a href=\"CrossReferenceStream.php.html#30\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream<\/a>"],[84.61538461538461,6,"<a href=\"DPart.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\DPart<\/a>"],[90.9090909090909,5,"<a href=\"DPartRoot.php.html#23\">Phpdftk\\Pdf\\Core\\Document\\DPartRoot<\/a>"],[100,5,"<a href=\"DSS.php.html#23\">Phpdftk\\Pdf\\Core\\Document\\DSS<\/a>"],[100,12,"<a href=\"Destination.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\Destination<\/a>"],[100,19,"<a href=\"DssBuilder.php.html#25\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder<\/a>"],[100,5,"<a href=\"GroupAttributes.php.html#19\">Phpdftk\\Pdf\\Core\\Document\\GroupAttributes<\/a>"],[100,4,"<a href=\"HintStream.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\HintStream<\/a>"],[100,10,"<a href=\"Info.php.html#16\">Phpdftk\\Pdf\\Core\\Document\\Info<\/a>"],[100,2,"<a href=\"LinearizationParameters.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\LinearizationParameters<\/a>"],[100,4,"<a href=\"MarkInfo.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\MarkInfo<\/a>"],[100,2,"<a href=\"MetadataStream.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\MetadataStream<\/a>"],[100,4,"<a href=\"NameTree.php.html#19\">Phpdftk\\Pdf\\Core\\Document\\NameTree<\/a>"],[68.18181818181817,11,"<a href=\"NamesDictionary.php.html#19\">Phpdftk\\Pdf\\Core\\Document\\NamesDictionary<\/a>"],[100,4,"<a href=\"NumberTree.php.html#19\">Phpdftk\\Pdf\\Core\\Document\\NumberTree<\/a>"],[66.66666666666666,12,"<a href=\"OCConfig.php.html#25\">Phpdftk\\Pdf\\Core\\Document\\OCConfig<\/a>"],[88.88888888888889,4,"<a href=\"OCG.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\OCG<\/a>"],[88.88888888888889,4,"<a href=\"OCMD.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\OCMD<\/a>"],[100,3,"<a href=\"OCPropertiesDict.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\OCPropertiesDict<\/a>"],[66.66666666666666,9,"<a href=\"OCUsage.php.html#22\">Phpdftk\\Pdf\\Core\\Document\\OCUsage<\/a>"],[100,3,"<a href=\"ObjectRef.php.html#25\">Phpdftk\\Pdf\\Core\\Document\\ObjectRef<\/a>"],[100,8,"<a href=\"ObjectStream.php.html#31\">Phpdftk\\Pdf\\Core\\Document\\ObjectStream<\/a>"],[100,4,"<a href=\"Outline.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\Outline<\/a>"],[96.15384615384616,14,"<a href=\"OutlineItem.php.html#25\">Phpdftk\\Pdf\\Core\\Document\\OutlineItem<\/a>"],[85.71428571428571,9,"<a href=\"OutputIntent.php.html#21\">Phpdftk\\Pdf\\Core\\Document\\OutputIntent<\/a>"],[88.05970149253731,33,"<a href=\"Page.php.html#23\">Phpdftk\\Pdf\\Core\\Document\\Page<\/a>"],[100,4,"<a href=\"PageLabel.php.html#30\">Phpdftk\\Pdf\\Core\\Document\\PageLabel<\/a>"],[92.64705882352942,32,"<a href=\"PageTree.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\PageTree<\/a>"],[100,3,"<a href=\"Requirement.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\Requirement<\/a>"],[100,3,"<a href=\"RequirementHandler.php.html#18\">Phpdftk\\Pdf\\Core\\Document\\RequirementHandler<\/a>"],[100,4,"<a href=\"RoleMap.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\RoleMap<\/a>"],[100,2,"<a href=\"StandardStructureType.php.html#17\">Phpdftk\\Pdf\\Core\\Document\\StandardStructureType<\/a>"],[100,3,"<a href=\"StructAttribute.php.html#24\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute<\/a>"],[100,1,"<a href=\"StructAttribute\/LayoutAttribute.php.html#16\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\LayoutAttribute<\/a>"],[100,1,"<a href=\"StructAttribute\/ListAttribute.php.html#12\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\ListAttribute<\/a>"],[100,1,"<a href=\"StructAttribute\/PrintFieldAttribute.php.html#12\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\PrintFieldAttribute<\/a>"],[100,1,"<a href=\"StructAttribute\/TableAttribute.php.html#14\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\TableAttribute<\/a>"],[100,15,"<a href=\"StructElem.php.html#28\">Phpdftk\\Pdf\\Core\\Document\\StructElem<\/a>"],[93.33333333333333,7,"<a href=\"StructTreeRoot.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\StructTreeRoot<\/a>"],[100,3,"<a href=\"Thread.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\Thread<\/a>"],[100,8,"<a href=\"TransitionDict.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\TransitionDict<\/a>"],[65.78947368421053,19,"<a href=\"ViewerPreferences.php.html#20\">Phpdftk\\Pdf\\Core\\Document\\ViewerPreferences<\/a>"]], 'Class Complexity'))
-      .transition()
-      .duration(500)
-      .call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  nv.addGraph(function() {
-    var chart = nv.models.scatterChart()
-      .showDistX(true)
-      .showDistY(true)
-      .showLegend(false)
-      .forceX([0, 100]);
-    chart.tooltipContent(function(graph) {
-      return '<p>' + graph.point.class + '</p>';
-    });
-
-    chart.xAxis.axisLabel('Code Coverage (in percent)');
-    chart.yAxis.axisLabel('Method Complexity');
-
-    d3.select('#methodComplexity svg')
-      .datum(getComplexityData([[100,6,"<a href=\"Bead.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\Bead::toPdf<\/a>"],[80,5,"<a href=\"BoxColorInfo.php.html#27\">Phpdftk\\Pdf\\Core\\Document\\BoxColorInfo::toPdf<\/a>"],[100,5,"<a href=\"BoxStyle.php.html#29\">Phpdftk\\Pdf\\Core\\Document\\BoxStyle::toPdf<\/a>"],[98.4126984126984,31,"<a href=\"Catalog.php.html#60\">Phpdftk\\Pdf\\Core\\Document\\Catalog::toPdf<\/a>"],[100,1,"<a href=\"ClassMap.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\ClassMap::set<\/a>"],[100,2,"<a href=\"ClassMap.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\ClassMap::toDictionary<\/a>"],[100,1,"<a href=\"ClassMap.php.html#41\">Phpdftk\\Pdf\\Core\\Document\\ClassMap::toPdf<\/a>"],[72.72727272727273,5,"<a href=\"Collection.php.html#34\">Phpdftk\\Pdf\\Core\\Document\\Collection::toPdf<\/a>"],[100,1,"<a href=\"CollectionItem.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\CollectionItem::__construct<\/a>"],[100,1,"<a href=\"CollectionItem.php.html#31\">Phpdftk\\Pdf\\Core\\Document\\CollectionItem::toPdf<\/a>"],[100,1,"<a href=\"CollectionSchema.php.html#29\">Phpdftk\\Pdf\\Core\\Document\\CollectionSchema::__construct<\/a>"],[100,2,"<a href=\"CollectionSchema.php.html#34\">Phpdftk\\Pdf\\Core\\Document\\CollectionSchema::toPdf<\/a>"],[100,1,"<a href=\"CrossReferenceStream.php.html#50\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::__construct<\/a>"],[100,1,"<a href=\"CrossReferenceStream.php.html#58\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::addInUseEntry<\/a>"],[100,1,"<a href=\"CrossReferenceStream.php.html#66\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::addFreeEntry<\/a>"],[100,1,"<a href=\"CrossReferenceStream.php.html#74\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::addCompressedEntry<\/a>"],[100,6,"<a href=\"CrossReferenceStream.php.html#86\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::packAllEntries<\/a>"],[57.14285714285714,4,"<a href=\"CrossReferenceStream.php.html#129\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::bytesNeeded<\/a>"],[100,2,"<a href=\"CrossReferenceStream.php.html#146\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::packField<\/a>"],[94.73684210526315,8,"<a href=\"CrossReferenceStream.php.html#155\">Phpdftk\\Pdf\\Core\\Document\\CrossReferenceStream::toPdf<\/a>"],[100,1,"<a href=\"DPart.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\DPart::__construct<\/a>"],[83.33333333333334,5,"<a href=\"DPart.php.html#38\">Phpdftk\\Pdf\\Core\\Document\\DPart::toPdf<\/a>"],[100,1,"<a href=\"DPartRoot.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\DPartRoot::__construct<\/a>"],[90,4,"<a href=\"DPartRoot.php.html#38\">Phpdftk\\Pdf\\Core\\Document\\DPartRoot::toPdf<\/a>"],[100,5,"<a href=\"DSS.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\DSS::toPdf<\/a>"],[100,1,"<a href=\"Destination.php.html#25\">Phpdftk\\Pdf\\Core\\Document\\Destination::__construct<\/a>"],[100,1,"<a href=\"Destination.php.html#35\">Phpdftk\\Pdf\\Core\\Document\\Destination::xyz<\/a>"],[100,1,"<a href=\"Destination.php.html#43\">Phpdftk\\Pdf\\Core\\Document\\Destination::fit<\/a>"],[100,1,"<a href=\"Destination.php.html#51\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitH<\/a>"],[100,1,"<a href=\"Destination.php.html#59\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitV<\/a>"],[100,1,"<a href=\"Destination.php.html#67\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitR<\/a>"],[100,1,"<a href=\"Destination.php.html#75\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitB<\/a>"],[100,1,"<a href=\"Destination.php.html#83\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitBH<\/a>"],[100,1,"<a href=\"Destination.php.html#91\">Phpdftk\\Pdf\\Core\\Document\\Destination::fitBV<\/a>"],[100,3,"<a href=\"Destination.php.html#96\">Phpdftk\\Pdf\\Core\\Document\\Destination::toPdf<\/a>"],[100,1,"<a href=\"DssBuilder.php.html#39\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::__construct<\/a>"],[100,2,"<a href=\"DssBuilder.php.html#49\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::addCertificate<\/a>"],[100,2,"<a href=\"DssBuilder.php.html#65\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::addOcspResponse<\/a>"],[100,2,"<a href=\"DssBuilder.php.html#81\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::addCrl<\/a>"],[100,1,"<a href=\"DssBuilder.php.html#103\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::addVriEntry<\/a>"],[100,9,"<a href=\"DssBuilder.php.html#119\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::build<\/a>"],[100,1,"<a href=\"DssBuilder.php.html#173\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::computeVriKey<\/a>"],[100,1,"<a href=\"DssBuilder.php.html#181\">Phpdftk\\Pdf\\Core\\Document\\DssBuilder::createStream<\/a>"],[100,1,"<a href=\"GroupAttributes.php.html#27\">Phpdftk\\Pdf\\Core\\Document\\GroupAttributes::__construct<\/a>"],[100,4,"<a href=\"GroupAttributes.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\GroupAttributes::toPdf<\/a>"],[100,1,"<a href=\"HintStream.php.html#35\">Phpdftk\\Pdf\\Core\\Document\\HintStream::__construct<\/a>"],[100,3,"<a href=\"HintStream.php.html#40\">Phpdftk\\Pdf\\Core\\Document\\HintStream::toPdf<\/a>"],[100,10,"<a href=\"Info.php.html#28\">Phpdftk\\Pdf\\Core\\Document\\Info::toPdf<\/a>"],[100,1,"<a href=\"LinearizationParameters.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\LinearizationParameters::__construct<\/a>"],[100,1,"<a href=\"LinearizationParameters.php.html#37\">Phpdftk\\Pdf\\Core\\Document\\LinearizationParameters::toPdf<\/a>"],[100,4,"<a href=\"MarkInfo.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\MarkInfo::toPdf<\/a>"],[100,1,"<a href=\"MetadataStream.php.html#28\">Phpdftk\\Pdf\\Core\\Document\\MetadataStream::__construct<\/a>"],[100,1,"<a href=\"MetadataStream.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\MetadataStream::toPdf<\/a>"],[100,4,"<a href=\"NameTree.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\NameTree::toPdf<\/a>"],[68.18181818181817,11,"<a href=\"NamesDictionary.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\NamesDictionary::toPdf<\/a>"],[100,4,"<a href=\"NumberTree.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\NumberTree::toPdf<\/a>"],[66.66666666666666,12,"<a href=\"OCConfig.php.html#40\">Phpdftk\\Pdf\\Core\\Document\\OCConfig::toPdf<\/a>"],[100,1,"<a href=\"OCG.php.html#31\">Phpdftk\\Pdf\\Core\\Document\\OCG::__construct<\/a>"],[87.5,3,"<a href=\"OCG.php.html#36\">Phpdftk\\Pdf\\Core\\Document\\OCG::toPdf<\/a>"],[88.88888888888889,4,"<a href=\"OCMD.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\OCMD::toPdf<\/a>"],[100,1,"<a href=\"OCPropertiesDict.php.html#31\">Phpdftk\\Pdf\\Core\\Document\\OCPropertiesDict::__construct<\/a>"],[100,2,"<a href=\"OCPropertiesDict.php.html#37\">Phpdftk\\Pdf\\Core\\Document\\OCPropertiesDict::toPdf<\/a>"],[66.66666666666666,9,"<a href=\"OCUsage.php.html#34\">Phpdftk\\Pdf\\Core\\Document\\OCUsage::toPdf<\/a>"],[100,3,"<a href=\"ObjectRef.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\ObjectRef::toPdf<\/a>"],[100,1,"<a href=\"ObjectStream.php.html#42\">Phpdftk\\Pdf\\Core\\Document\\ObjectStream::__construct<\/a>"],[100,2,"<a href=\"ObjectStream.php.html#52\">Phpdftk\\Pdf\\Core\\Document\\ObjectStream::addObject<\/a>"],[100,1,"<a href=\"ObjectStream.php.html#65\">Phpdftk\\Pdf\\Core\\Document\\ObjectStream::count<\/a>"],[100,4,"<a href=\"ObjectStream.php.html#70\">Phpdftk\\Pdf\\Core\\Document\\ObjectStream::toPdf<\/a>"],[100,4,"<a href=\"Outline.php.html#30\">Phpdftk\\Pdf\\Core\\Document\\Outline::toPdf<\/a>"],[100,2,"<a href=\"OutlineItem.php.html#47\">Phpdftk\\Pdf\\Core\\Document\\OutlineItem::__construct<\/a>"],[96,12,"<a href=\"OutlineItem.php.html#52\">Phpdftk\\Pdf\\Core\\Document\\OutlineItem::toPdf<\/a>"],[100,1,"<a href=\"OutputIntent.php.html#36\">Phpdftk\\Pdf\\Core\\Document\\OutputIntent::__construct<\/a>"],[84.21052631578947,8,"<a href=\"OutputIntent.php.html#42\">Phpdftk\\Pdf\\Core\\Document\\OutputIntent::toPdf<\/a>"],[88.05970149253731,33,"<a href=\"Page.php.html#64\">Phpdftk\\Pdf\\Core\\Document\\Page::toPdf<\/a>"],[100,4,"<a href=\"PageLabel.php.html#39\">Phpdftk\\Pdf\\Core\\Document\\PageLabel::toPdf<\/a>"],[92.64705882352942,32,"<a href=\"PageTree.php.html#58\">Phpdftk\\Pdf\\Core\\Document\\PageTree::toPdf<\/a>"],[100,1,"<a href=\"Requirement.php.html#28\">Phpdftk\\Pdf\\Core\\Document\\Requirement::__construct<\/a>"],[100,2,"<a href=\"Requirement.php.html#33\">Phpdftk\\Pdf\\Core\\Document\\Requirement::toPdf<\/a>"],[100,1,"<a href=\"RequirementHandler.php.html#26\">Phpdftk\\Pdf\\Core\\Document\\RequirementHandler::__construct<\/a>"],[100,2,"<a href=\"RequirementHandler.php.html#31\">Phpdftk\\Pdf\\Core\\Document\\RequirementHandler::toPdf<\/a>"],[100,1,"<a href=\"RoleMap.php.html#30\">Phpdftk\\Pdf\\Core\\Document\\RoleMap::map<\/a>"],[100,2,"<a href=\"RoleMap.php.html#36\">Phpdftk\\Pdf\\Core\\Document\\RoleMap::toDictionary<\/a>"],[100,1,"<a href=\"RoleMap.php.html#45\">Phpdftk\\Pdf\\Core\\Document\\RoleMap::toPdf<\/a>"],[100,2,"<a href=\"StandardStructureType.php.html#97\">Phpdftk\\Pdf\\Core\\Document\\StandardStructureType::minimumVersion<\/a>"],[100,1,"<a href=\"StructAttribute.php.html#32\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute::__construct<\/a>"],[100,2,"<a href=\"StructAttribute.php.html#37\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute::toPdf<\/a>"],[100,1,"<a href=\"StructAttribute\/LayoutAttribute.php.html#18\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\LayoutAttribute::__construct<\/a>"],[100,1,"<a href=\"StructAttribute\/ListAttribute.php.html#14\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\ListAttribute::__construct<\/a>"],[100,1,"<a href=\"StructAttribute\/PrintFieldAttribute.php.html#14\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\PrintFieldAttribute::__construct<\/a>"],[100,1,"<a href=\"StructAttribute\/TableAttribute.php.html#16\">Phpdftk\\Pdf\\Core\\Document\\StructAttribute\\TableAttribute::__construct<\/a>"],[100,1,"<a href=\"StructElem.php.html#47\">Phpdftk\\Pdf\\Core\\Document\\StructElem::__construct<\/a>"],[100,1,"<a href=\"StructElem.php.html#52\">Phpdftk\\Pdf\\Core\\Document\\StructElem::getMinimumPdfVersion<\/a>"],[100,13,"<a href=\"StructElem.php.html#57\">Phpdftk\\Pdf\\Core\\Document\\StructElem::toPdf<\/a>"],[93.33333333333333,7,"<a href=\"StructTreeRoot.php.html#38\">Phpdftk\\Pdf\\Core\\Document\\StructTreeRoot::toPdf<\/a>"],[100,3,"<a href=\"Thread.php.html#28\">Phpdftk\\Pdf\\Core\\Document\\Thread::toPdf<\/a>"],[100,8,"<a href=\"TransitionDict.php.html#43\">Phpdftk\\Pdf\\Core\\Document\\TransitionDict::toPdf<\/a>"],[65.78947368421053,19,"<a href=\"ViewerPreferences.php.html#42\">Phpdftk\\Pdf\\Core\\Document\\ViewerPreferences::toPdf<\/a>"]], 'Method Complexity'))
-      .transition()
-      .duration(500)
-      .call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  function getComplexityData(data, label) {
-    var values = [];
-    $.each(data, function(key) {
-      var value = Math.round(data[key][0]*100) / 100;
-      values.push({
-        x: value,
-        y: data[key][1],
-        class: data[key][2],
-        size: 0.05,
-        shape: 'diamond'
-      });
-    });
-
-    return [
-      {
-        key: label,
-        values: values,
-        color: "#4572A7"
-      }
-    ];
-  }
-});
-  </script>
  </body>
 </html>

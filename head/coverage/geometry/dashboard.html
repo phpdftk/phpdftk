@@ -4,9 +4,8 @@
   <meta charset="UTF-8">
   <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/geometry</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../_css/bootstrap.min.css?v=11.0.12" rel="stylesheet" type="text/css">
-  <link href="../_css/nv.d3.min.css?v=11.0.12" rel="stylesheet" type="text/css">
-  <link href="../_css/style.css?v=11.0.12" rel="stylesheet" type="text/css">
+  <link href="../_css/bootstrap.min.css?v=14.1.7" rel="stylesheet" type="text/css">
+  <link href="../_css/style.css?v=14.1.7" rel="stylesheet" type="text/css">
   <link href="../_css/custom.css" rel="stylesheet" type="text/css">
  </head>
  <body>
@@ -27,258 +26,208 @@
    </div>
   </header>
   <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
+   <div class="row dashboard-row">
     <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/BezierCurve.php.html#13"><circle cx="736.4" cy="86.0" r="20.0" class="bubble-success"><title>Phpdftk\Geometry\BezierCurve — Coverage: 93.9% | Lines: 33 | Complexity: 12</title></circle></a>
+ <a href="src/Rectangle.php.html#7"><circle cx="780.0" cy="86.0" r="19.1" class="bubble-success"><title>Phpdftk\Geometry\Rectangle — Coverage: 100.0% | Lines: 30 | Complexity: 12</title></circle></a>
+ <a href="src/Matrix.php.html#11"><circle cx="780.0" cy="174.0" r="16.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix — Coverage: 100.0% | Lines: 21 | Complexity: 8</title></circle></a>
+ <a href="src/PageSize.php.html#14"><circle cx="780.0" cy="64.0" r="12.6" class="bubble-success"><title>Phpdftk\Geometry\PageSize — Coverage: 100.0% | Lines: 13 | Complexity: 13</title></circle></a>
+ <a href="src/Point.php.html#10"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Point — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Insufficient Coverage</h3>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
      <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/PageSize.php.html#14">Phpdftk\Geometry\PageSize</a></td><td class="text-right">13</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BezierCurve.php.html#13">Phpdftk\Geometry\BezierCurve</a></td><td class="text-right">12.03</td><td class="text-right">93.9%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#7">Phpdftk\Geometry\Rectangle</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#11">Phpdftk\Geometry\Matrix</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Point.php.html#10">Phpdftk\Geometry\Point</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
      </div>
     </div>
    </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Methods</h2>
-    </div>
-   </div>
-   <div class="row">
+   <div class="row dashboard-row">
     <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/BezierCurve.php.html#32"><circle cx="726.7" cy="130.0" r="20.0" class="bubble-success"><title>Phpdftk\Geometry\BezierCurve::bounds — Coverage: 92.6% | Lines: 27 | Complexity: 10</title></circle></a>
+ <a href="src/Matrix.php.html#33"><circle cx="780.0" cy="328.0" r="10.9" class="bubble-success"><title>Phpdftk\Geometry\Matrix::multiply — Coverage: 100.0% | Lines: 8 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#30"><circle cx="780.0" cy="284.0" r="10.2" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::intersect — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="src/Rectangle.php.html#51"><circle cx="780.0" cy="328.0" r="9.4" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::scale — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#61"><circle cx="780.0" cy="328.0" r="9.4" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::expand — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/BezierCurve.php.html#22"><circle cx="780.0" cy="328.0" r="8.6" class="bubble-success"><title>Phpdftk\Geometry\BezierCurve::pointAt — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#42"><circle cx="780.0" cy="328.0" r="8.6" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::union — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#55"><circle cx="780.0" cy="328.0" r="7.7" class="bubble-success"><title>Phpdftk\Geometry\Matrix::rotate — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#63"><circle cx="780.0" cy="328.0" r="7.7" class="bubble-success"><title>Phpdftk\Geometry\Matrix::transformPoint — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#22"><circle cx="780.0" cy="262.0" r="7.7" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::contains — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="src/BezierCurve.php.html#15"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\BezierCurve::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#13"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#22"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix::identity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#28"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix::toArray — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#45"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix::translate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Matrix.php.html#50"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Matrix::scale — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#17"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::letter — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#21"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::legal — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#25"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::tabloid — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#29"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a0 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#33"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#37"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#41"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a3 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#45"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a4 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#49"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a5 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#53"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::a6 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#57"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::b4 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#61"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::b5 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSize.php.html#65"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\PageSize::landscape — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Point.php.html#12"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Point::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#9"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Rectangle.php.html#17"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\Geometry\Rectangle::toArray — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Insufficient Coverage</h3>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
      <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/BezierCurve.php.html#32">Phpdftk\Geometry\BezierCurve::bounds</a></td><td class="text-right">10.04</td><td class="text-right">92.6%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#22">Phpdftk\Geometry\Rectangle::contains</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#30">Phpdftk\Geometry\Rectangle::intersect</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BezierCurve.php.html#15">Phpdftk\Geometry\BezierCurve::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BezierCurve.php.html#22">Phpdftk\Geometry\BezierCurve::pointAt</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#13">Phpdftk\Geometry\Matrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#22">Phpdftk\Geometry\Matrix::identity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#28">Phpdftk\Geometry\Matrix::toArray</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#33">Phpdftk\Geometry\Matrix::multiply</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#45">Phpdftk\Geometry\Matrix::translate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#50">Phpdftk\Geometry\Matrix::scale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#55">Phpdftk\Geometry\Matrix::rotate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Matrix.php.html#63">Phpdftk\Geometry\Matrix::transformPoint</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#17">Phpdftk\Geometry\PageSize::letter</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#21">Phpdftk\Geometry\PageSize::legal</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#25">Phpdftk\Geometry\PageSize::tabloid</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#29">Phpdftk\Geometry\PageSize::a0</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#33">Phpdftk\Geometry\PageSize::a1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#37">Phpdftk\Geometry\PageSize::a2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#41">Phpdftk\Geometry\PageSize::a3</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#45">Phpdftk\Geometry\PageSize::a4</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#49">Phpdftk\Geometry\PageSize::a5</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#53">Phpdftk\Geometry\PageSize::a6</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#57">Phpdftk\Geometry\PageSize::b4</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#61">Phpdftk\Geometry\PageSize::b5</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSize.php.html#65">Phpdftk\Geometry\PageSize::landscape</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Point.php.html#12">Phpdftk\Geometry\Point::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#9">Phpdftk\Geometry\Rectangle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#17">Phpdftk\Geometry\Rectangle::toArray</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#42">Phpdftk\Geometry\Rectangle::union</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#51">Phpdftk\Geometry\Rectangle::scale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Rectangle.php.html#61">Phpdftk\Geometry\Rectangle::expand</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
      </div>
     </div>
    </div>
    <footer>
     <hr/>
     <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.12</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 11.5.55</a> at Fri May 8 20:17:45 UTC 2026.</small>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.1.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 13.1.8</a> at Fri May 8 21:11:40 UTC 2026.</small>
     </p>
    </footer>
   </div>
-  <script src="../_js/jquery.min.js?v=11.0.12" type="text/javascript"></script>
-  <script src="../_js/d3.min.js?v=11.0.12" type="text/javascript"></script>
-  <script src="../_js/nv.d3.min.js?v=11.0.12" type="text/javascript"></script>
-  <script type="text/javascript">
-$(document).ready(function() {
-  nv.addGraph(function() {
-    var chart = nv.models.multiBarChart();
-    chart.tooltips(false)
-      .showControls(false)
-      .showLegend(false)
-      .reduceXTicks(false)
-      .staggerLabels(true)
-      .yAxis.tickFormat(d3.format('d'));
-
-    d3.select('#classCoverageDistribution svg')
-      .datum(getCoverageDistributionData([0,0,0,0,0,0,0,0,0,0,1,4], "Class Coverage"))
-      .transition().duration(500).call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  nv.addGraph(function() {
-    var chart = nv.models.multiBarChart();
-    chart.tooltips(false)
-      .showControls(false)
-      .showLegend(false)
-      .reduceXTicks(false)
-      .staggerLabels(true)
-      .yAxis.tickFormat(d3.format('d'));
-
-    d3.select('#methodCoverageDistribution svg')
-      .datum(getCoverageDistributionData([0,0,0,0,0,0,0,0,0,0,1,31], "Method Coverage"))
-      .transition().duration(500).call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  function getCoverageDistributionData(data, label) {
-    var labels = [
-      '0%',
-      '0-10%',
-      '10-20%',
-      '20-30%',
-      '30-40%',
-      '40-50%',
-      '50-60%',
-      '60-70%',
-      '70-80%',
-      '80-90%',
-      '90-100%',
-      '100%'
-    ];
-    var values = [];
-    $.each(labels, function(key) {
-      values.push({x: labels[key], y: data[key]});
-    });
-
-    return [
-      {
-        key: label,
-        values: values,
-        color: "#4572A7"
-      }
-    ];
-  }
-  nv.addGraph(function() {
-    var chart = nv.models.scatterChart()
-      .showDistX(true)
-      .showDistY(true)
-      .showLegend(false)
-      .forceX([0, 100]);
-    chart.tooltipContent(function(graph) {
-      return '<p>' + graph.point.class + '</p>';
-    });
-
-    chart.xAxis.axisLabel('Code Coverage (in percent)');
-    chart.yAxis.axisLabel('Cyclomatic Complexity');
-
-    d3.select('#classComplexity svg')
-      .datum(getComplexityData([[93.93939393939394,12,"<a href=\"src\/BezierCurve.php.html#13\">Phpdftk\\Geometry\\BezierCurve<\/a>"],[100,8,"<a href=\"src\/Matrix.php.html#11\">Phpdftk\\Geometry\\Matrix<\/a>"],[100,13,"<a href=\"src\/PageSize.php.html#14\">Phpdftk\\Geometry\\PageSize<\/a>"],[100,1,"<a href=\"src\/Point.php.html#10\">Phpdftk\\Geometry\\Point<\/a>"],[100,12,"<a href=\"src\/Rectangle.php.html#7\">Phpdftk\\Geometry\\Rectangle<\/a>"]], 'Class Complexity'))
-      .transition()
-      .duration(500)
-      .call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  nv.addGraph(function() {
-    var chart = nv.models.scatterChart()
-      .showDistX(true)
-      .showDistY(true)
-      .showLegend(false)
-      .forceX([0, 100]);
-    chart.tooltipContent(function(graph) {
-      return '<p>' + graph.point.class + '</p>';
-    });
-
-    chart.xAxis.axisLabel('Code Coverage (in percent)');
-    chart.yAxis.axisLabel('Method Complexity');
-
-    d3.select('#methodComplexity svg')
-      .datum(getComplexityData([[100,1,"<a href=\"src\/BezierCurve.php.html#15\">Phpdftk\\Geometry\\BezierCurve::__construct<\/a>"],[100,1,"<a href=\"src\/BezierCurve.php.html#22\">Phpdftk\\Geometry\\BezierCurve::pointAt<\/a>"],[92.5925925925926,10,"<a href=\"src\/BezierCurve.php.html#32\">Phpdftk\\Geometry\\BezierCurve::bounds<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#13\">Phpdftk\\Geometry\\Matrix::__construct<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#22\">Phpdftk\\Geometry\\Matrix::identity<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#28\">Phpdftk\\Geometry\\Matrix::toArray<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#33\">Phpdftk\\Geometry\\Matrix::multiply<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#45\">Phpdftk\\Geometry\\Matrix::translate<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#50\">Phpdftk\\Geometry\\Matrix::scale<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#55\">Phpdftk\\Geometry\\Matrix::rotate<\/a>"],[100,1,"<a href=\"src\/Matrix.php.html#63\">Phpdftk\\Geometry\\Matrix::transformPoint<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#17\">Phpdftk\\Geometry\\PageSize::letter<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#21\">Phpdftk\\Geometry\\PageSize::legal<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#25\">Phpdftk\\Geometry\\PageSize::tabloid<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#29\">Phpdftk\\Geometry\\PageSize::a0<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#33\">Phpdftk\\Geometry\\PageSize::a1<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#37\">Phpdftk\\Geometry\\PageSize::a2<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#41\">Phpdftk\\Geometry\\PageSize::a3<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#45\">Phpdftk\\Geometry\\PageSize::a4<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#49\">Phpdftk\\Geometry\\PageSize::a5<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#53\">Phpdftk\\Geometry\\PageSize::a6<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#57\">Phpdftk\\Geometry\\PageSize::b4<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#61\">Phpdftk\\Geometry\\PageSize::b5<\/a>"],[100,1,"<a href=\"src\/PageSize.php.html#65\">Phpdftk\\Geometry\\PageSize::landscape<\/a>"],[100,1,"<a href=\"src\/Point.php.html#12\">Phpdftk\\Geometry\\Point::__construct<\/a>"],[100,1,"<a href=\"src\/Rectangle.php.html#9\">Phpdftk\\Geometry\\Rectangle::__construct<\/a>"],[100,1,"<a href=\"src\/Rectangle.php.html#17\">Phpdftk\\Geometry\\Rectangle::toArray<\/a>"],[100,4,"<a href=\"src\/Rectangle.php.html#22\">Phpdftk\\Geometry\\Rectangle::contains<\/a>"],[100,3,"<a href=\"src\/Rectangle.php.html#30\">Phpdftk\\Geometry\\Rectangle::intersect<\/a>"],[100,1,"<a href=\"src\/Rectangle.php.html#42\">Phpdftk\\Geometry\\Rectangle::union<\/a>"],[100,1,"<a href=\"src\/Rectangle.php.html#51\">Phpdftk\\Geometry\\Rectangle::scale<\/a>"],[100,1,"<a href=\"src\/Rectangle.php.html#61\">Phpdftk\\Geometry\\Rectangle::expand<\/a>"]], 'Method Complexity'))
-      .transition()
-      .duration(500)
-      .call(chart);
-
-    nv.utils.windowResize(chart.update);
-
-    return chart;
-  });
-
-  function getComplexityData(data, label) {
-    var values = [];
-    $.each(data, function(key) {
-      var value = Math.round(data[key][0]*100) / 100;
-      values.push({
-        x: value,
-        y: data[key][1],
-        class: data[key][2],
-        size: 0.05,
-        shape: 'diamond'
-      });
-    });
-
-    return [
-      {
-        key: label,
-        values: values,
-        color: "#4572A7"
-      }
-    ];
-  }
-});
-  </script>
  </body>
 </html>
