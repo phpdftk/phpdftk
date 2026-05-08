@@ -31,7 +31,7 @@ jobs:
           vendor/bin/cyclonedx-php-composer --output-file=sbom.json --spec-version=1.5
 
       - name: Attest SBOM provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: sbom.json
 

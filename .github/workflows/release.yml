@@ -48,12 +48,12 @@ jobs:
         run: git archive --format=tar.gz --prefix=phpdftk/ -o phpdftk-source.tar.gz HEAD
 
       - name: Attest SBOM provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: sbom.json
 
       - name: Attest source archive provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: phpdftk-source.tar.gz
 
@@ -135,7 +135,7 @@ jobs:
   #         tar -czf ${{ matrix.package }}.tar.gz -C ${{ matrix.directory }} .
   #
   #     - name: Attest split package provenance
-  #       uses: actions/attest-build-provenance@v2
+  #       uses: actions/attest-build-provenance@v4
   #       with:
   #         subject-path: ${{ matrix.package }}.tar.gz
   #
