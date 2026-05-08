@@ -16,8 +16,14 @@ fi
 if [[ "${1:-}" == "--all" ]]; then
     # Mirror CI: combined monorepo docs + per-package docs collected under
     # build/phpdoc-packages/<name>/ (with a "pdf-" prefix for nested PDF packages).
+    # Per-package failures are recorded and rerolled into a non-zero exit at the
+    # end so callers (CI) can gate on doc-build health without losing the
+    # ability to see all failures in one run.
+    failed_pkgs=()
     echo "=== combined ==="
-    "$PHPDOC" run
+    if ! "$PHPDOC" run; then
+        failed_pkgs+=("combined")
+    fi
 
     for pkg in packages/*/phpdoc.dist.xml packages/pdf/*/phpdoc.dist.xml; do
         dir=$(dirname "$pkg")
@@ -27,19 +33,26 @@ if [[ "${1:-}" == "--all" ]]; then
         fi
         echo "=== $name ==="
         if ! (cd "$dir" && "$PHPDOC" run); then
-            echo "WARNING: phpdoc run failed for $name; skipping" >&2
+            echo "ERROR: phpdoc run failed for $name" >&2
+            failed_pkgs+=("$name")
             continue
         fi
         if [ -d "$dir/build/phpdoc" ] && [ -n "$(ls -A "$dir/build/phpdoc" 2>/dev/null)" ]; then
             mkdir -p "build/phpdoc-packages/$name"
             cp -r "$dir/build/phpdoc/." "build/phpdoc-packages/$name/"
         else
-            echo "WARNING: $name produced no output in $dir/build/phpdoc; skipping" >&2
+            echo "ERROR: $name produced no output in $dir/build/phpdoc" >&2
+            failed_pkgs+=("$name (no output)")
         fi
     done
     echo ""
     echo "Combined docs:    build/phpdoc/"
     echo "Per-package docs: build/phpdoc-packages/<name>/"
+    if [ ${#failed_pkgs[@]} -gt 0 ]; then
+        echo ""
+        echo "phpdoc --all failed for: ${failed_pkgs[*]}" >&2
+        exit 1
+    fi
 elif [[ -n "${1:-}" && "${1:-}" != "--"* ]]; then
     # Generate for a specific package directory
     echo "=== $1 ==="

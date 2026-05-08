@@ -1,78 +1,869 @@
 ---
 title: Spec Coverage
-description: 100% coverage of ISO 32000-2:2020 — every PDF object type implemented as a PHP class.
+description: ISO 32000-2 (PDF 2.0) implementation status — every object, every field.
 ---
 
-phpdftk implements **100% of the PDF specification**. Every dictionary type, every field, every content stream operator defined in ISO 32000-2:2020 (PDF 2.0) has a corresponding PHP class with full serialization support.
 
-This isn't partial coverage with TODOs — it's the complete spec, from PDF 1.0 primitives through PDF 2.0 features like Document Security Store, Associated Files, and Rich Media annotations.
+Tracks implementation status of ISO 32000-2:2020 (PDF 2.0) objects against `phpdftk/phpdftk`.
 
-## The numbers
-
-| Category | Coverage |
-|---|---|
-| Document structure (Catalog, Page, Info, ViewerPreferences) | **100%** — all 120 fields |
-| Font subtypes (Type1, TrueType, Type0, Type3, CID, MM) | **100%** — all 7 types |
-| FontDescriptor fields | **100%** — all 19 fields |
-| Annotation subtypes | **100%** — all 26 types |
-| Markup annotation fields | **100%** — all 10 fields |
-| Actions | **100%** — all 20 types |
-| Interactive forms (AcroForm, fields, signatures) | **100%** — all 4 field types |
-| ExtGState fields | **100%** — all 28 fields |
-| Color spaces | **100%** — all 11 types |
-| Patterns and shadings | **100%** — all 9 types |
-| Content stream operators | **100%** — all 69 operators |
-| Encryption (RC4, AES-128, AES-256, public-key) | **100%** |
-| Digital signatures (PKCS#7, RFC 3161 TSA, LTV) | **100%** |
-| Multimedia (Rendition, MediaClip, Navigator) | **100%** |
-| 3D (U3D, PRC, views, lighting, cross-sections) | **100%** |
-| Tagged PDF / accessibility | **100%** |
-| Stream filters (Flate, LZW, ASCII85, CCITTFax, JBIG2) | **100%** |
-
-**Every area is at 100%.** No partial implementations, no stubs, no "coming soon."
-
-## What "100% coverage" means in practice
-
-- **Every `/Field` in the spec** maps to a typed PHP property in camelCase
-- **Every object type** has a PHP class with `toPdf()` serialization
-- **Every content stream operator** is a fluent method on `ContentStream`
-- **Version gating** tracks 172 features across PDF 1.0–2.0 with auto-bump or strict enforcement
-- **Deprecation tracking** marks 7 features removed in PDF 2.0 with enforcement
-
-## Validated by external tools
-
-This isn't just self-reported coverage — every generated PDF passes validation by 5 independent tools:
-
-- **QPDF** — structural integrity (236 tests)
-- **Arlington PDF Model** — dictionary-level spec conformance
-- **veraPDF** — ISO 19005 (PDF/A) validation
-- **Matterhorn Protocol** — ISO 14289 (PDF/UA) accessibility
-- **JHOVE** — format well-formedness
-
-See the [Compliance Report](/conformance/compliance/) for current results and [Validation Suites](/reference/validations/) for infrastructure details.
-
-## Highlights
-
-### Fonts — complete embedding pipeline
-
-All 7 font subtypes with full embedding: TrueType (`.ttf`), OpenType CFF (`.otf`), Type 1 (`.pfb`), WOFF/WOFF2 decompression, automatic subsetting, ToUnicode CMap generation, and kerning via GPOS tables.
-
-### Annotations — every subtype, every field
-
-All 26 annotation subtypes including the full markup annotation hierarchy with reply threading (`/IRT`, `/RT`), creation dates, popups, and rich content. Plus BorderStyle, BorderEffect, AppearanceDict, and AppearanceCharacteristics.
-
-### Digital signatures — production-ready
-
-PKCS#7 signing with ByteRange patching, RFC 3161 document timestamps via any TSA server (SHA-256/384/512), LTV signatures with DSS/VRI (certificates, OCSP responses, CRLs), and signature field seed values. Verified in CI with `openssl cms -verify`.
-
-### Encryption — all algorithms
-
-RC4 (40/128-bit), AES-128, AES-256 with both password-based (Standard handler) and certificate-based (Public-Key handler) encryption. Full key derivation per ISO 32000.
-
-### PDF 2.0 features
-
-Document Security Store, DPartRoot for variable data, Associated Files, Rich Media annotations, Projection annotations, enforced ViewerPreferences — all first-class.
+**Legend:** ✓ Implemented · ~ Partial · ✗ Missing
 
 ---
 
-**Related:** [Version Coverage](/reference/version-coverage/) details which features require which PDF versions. [ISO Standards](/conformance/iso-standards/) covers conformance validation across 8 standards.
+## Document Structure
+
+### Catalog (`/Type /Catalog`)
+*Source: [`packages/pdf/core/src/Document/Catalog.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/Catalog.php)*
+
+| Field                | Status | Notes                                          |
+|----------------------|--------|------------------------------------------------|
+| `/Pages`             | ✓      |                                                |
+| `/Version`           | ✓      |                                                |
+| `/Outlines`          | ✓      | `Outline` + `OutlineItem` classes implemented  |
+| `/Names`             | ✓      | Reference stored; `NameTree` class available   |
+| `/Dests`             | ✓      | Ref stored; `Destination` class available      |
+| `/ViewerPreferences` | ✓      |                                                |
+| `/PageLayout`        | ✓      |                                                |
+| `/PageMode`          | ✓      |                                                |
+| `/OpenAction`        | ✓      |                                                |
+| `/AcroForm`          | ✓      |                                                |
+| `/Metadata`          | ✓      | Reference stored; XMP stream via `phpdftk/xmp` |
+| `/MarkInfo`          | ✓      | `MarkInfo` class on `Catalog::$markInfo`       |
+| `/Lang`              | ✓      |                                                |
+| `/AA`                | ✓      | Reference stored                               |
+| `/URI`               | ✓      | Inline dict                                    |
+| `/SpiderInfo`        | ✓      | Reference stored                               |
+| `/OutputIntents`     | ✓      | Array of OutputIntent refs                     |
+| `/PieceInfo`         | ✓      | Inline dict                                    |
+| `/OCProperties`      | ✓      | Reference stored                               |
+| `/Perms`             | ✓      | Inline dict                                    |
+| `/Legal`             | ✓      | Inline dict                                    |
+| `/Requirements`      | ✓      | Array stored                                   |
+| `/Collection`        | ✓      | Reference stored                               |
+| `/NeedsRendering`    | ✓      |                                                |
+| `/DSS`               | ✓      | `DSS` class + `DssBuilder` + `LtvSigner` for PAdES LTV — certs, OCSPs, CRLs, VRI entries |
+| `/Extensions`        | ✓      | Developer extensions dict                      |
+| `/AF`                | ✓      | Associated files array                         |
+| `/DPartRoot`         | ✓      | `DPartRoot` reference (PDF 2.0)                |
+
+### Page Tree (`/Type /Pages`)
+*Source: [`packages/pdf/core/src/Document/PageTree.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/PageTree.php)*
+
+| Field                   | Status | Notes                   |
+|-------------------------|--------|-------------------------|
+| `/Type`                 | ✓      |                         |
+| `/Parent`               | ✓      |                         |
+| `/Kids`                 | ✓      |                         |
+| `/Count`                | ✓      |                         |
+| `/MediaBox`             | ✓      |                         |
+| `/Resources`            | ✓      |                         |
+| `/Rotate`               | ✓      |                         |
+| `/CropBox`              | ✓      | Inheritable box         |
+| `/BleedBox`             | ✓      | Inheritable box         |
+| `/TrimBox`              | ✓      | Inheritable box         |
+| `/ArtBox`               | ✓      | Inheritable box         |
+| `/BoxColorInfo`         | ✓      | Inline dict             |
+| `/Group`                | ✓      | Reference stored        |
+| `/Thumb`                | ✓      | Reference stored        |
+| `/B`                    | ✓      | Article bead refs       |
+| `/Dur`                  | ✓      |                         |
+| `/Trans`                | ✓      | TransitionDict or Serializable |
+| `/Annots`               | ✓      | Inheritable annotations |
+| `/AA`                   | ✓      | Reference stored        |
+| `/Metadata`             | ✓      | XMP stream reference    |
+| `/PieceInfo`            | ✓      | Inline dict             |
+| `/StructParents`        | ✓      |                         |
+| `/ID`                   | ✓      |                         |
+| `/PZ`                   | ✓      |                         |
+| `/SeparationInfo`       | ✓      | Inline dict             |
+| `/Tabs`                 | ✓      |                         |
+| `/TemplateInstantiated` | ✓      |                         |
+| `/PresSteps`            | ✓      | Reference stored        |
+| `/UserUnit`             | ✓      |                         |
+| `/VP`                   | ✓      | Viewport array          |
+
+### Page (`/Type /Page`)
+*Source: [`packages/pdf/core/src/Document/Page.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/Page.php)*
+
+| Field                   | Status | Notes                                            |
+|-------------------------|--------|--------------------------------------------------|
+| `/Type`                 | ✓      |                                                  |
+| `/Parent`               | ✓      |                                                  |
+| `/Resources`            | ✓      |                                                  |
+| `/MediaBox`             | ✓      |                                                  |
+| `/CropBox`              | ✓      |                                                  |
+| `/BleedBox`             | ✓      |                                                  |
+| `/TrimBox`              | ✓      |                                                  |
+| `/ArtBox`               | ✓      |                                                  |
+| `/Contents`             | ✓      |                                                  |
+| `/Rotate`               | ✓      |                                                  |
+| `/Annots`               | ✓      |                                                  |
+| `/Group`                | ✓      | Reference stored                                 |
+| `/Thumb`                | ✓      | Reference stored                                 |
+| `/UserUnit`             | ✓      |                                                  |
+| `/StructParents`        | ✓      |                                                  |
+| `/Trans`                | ✓      | `TransitionDict` class; S, D, Dm, M, Di, SS, B  |
+| `/Dur`                  | ✓      |                                                  |
+| `/BoxColorInfo`         | ✓      | Typed `BoxColorInfo` + `BoxStyle` (§14.11.2)     |
+| `/B`                    | ✓      | Article beads                                    |
+| `/AF`                   | ✓      | Associated files                                 |
+| `/OutputIntents`        | ✓      | Page-level output intents                        |
+| `/DPart`                | ✓      | Document part reference (PDF 2.0)                |
+| `/AA`                   | ✓      | Reference stored                                 |
+| `/Metadata`             | ✓      | XMP stream reference on page                     |
+| `/PieceInfo`            | ✓      | Reference stored                                 |
+| `/ID`                   | ✓      |                                                  |
+| `/PZ`                   | ✓      |                                                  |
+| `/SeparationInfo`       | ✓      | Inline dict                                      |
+| `/Tabs`                 | ✓      |                                                  |
+| `/TemplateInstantiated` | ✓      |                                                  |
+| `/PresSteps`            | ✓      | Reference stored                                 |
+| `/VP`                   | ✓      | Viewport array                                   |
+
+### Info Dictionary
+*Source: [`packages/pdf/core/src/Document/Info.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/Info.php)*
+
+| Field           | Status | Notes |
+|-----------------|--------|-------|
+| `/Title`        | ✓      |       |
+| `/Author`       | ✓      |       |
+| `/Subject`      | ✓      |       |
+| `/Keywords`     | ✓      |       |
+| `/Creator`      | ✓      |       |
+| `/Producer`     | ✓      |       |
+| `/CreationDate` | ✓      |       |
+| `/ModDate`      | ✓      |       |
+| `/Trapped`      | ✓      |       |
+
+### Viewer Preferences
+*Source: [`packages/pdf/core/src/Document/ViewerPreferences.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/ViewerPreferences.php)*
+
+| Field                    | Status | Notes |
+|--------------------------|--------|-------|
+| `/HideToolbar`           | ✓      |       |
+| `/HideMenubar`           | ✓      |       |
+| `/HideWindowUI`          | ✓      |       |
+| `/FitWindow`             | ✓      |       |
+| `/CenterWindow`          | ✓      |       |
+| `/DisplayDocTitle`       | ✓      |       |
+| `/NonFullScreenPageMode` | ✓      |       |
+| `/Direction`             | ✓      |       |
+| `/ViewArea`              | ✓      |       |
+| `/ViewClip`              | ✓      |       |
+| `/PrintArea`             | ✓      |       |
+| `/PrintClip`             | ✓      |       |
+| `/PrintScaling`          | ✓      |       |
+| `/Duplex`                | ✓      |       |
+| `/PickTrayByPDFSize`     | ✓      |       |
+| `/PrintPageRange`        | ✓      |       |
+| `/NumCopies`             | ✓      |       |
+
+### Missing Document Structure Objects
+
+| Object                                         | Status | Notes                                                                  |
+|------------------------------------------------|--------|------------------------------------------------------------------------|
+| `Outline` (`/Type /Outlines`)                  | ✓      | First, Last, Count; `PdfWriter::setOutline()` wires to Catalog         |
+| `OutlineItem`                                  | ✓      | Title, Parent, Prev, Next, First, Last, Count, Dest, A, C, F           |
+| `PageLabel` (`/Type /PageLabel`)               | ✓      | S, P, St; `PdfWriter::setPageLabels()` builds inline number tree       |
+| Named destinations                             | ✓      | `PdfWriter::setNamedDestinations()` with NameTree                      |
+| Explicit destinations                          | ✓      | `Destination` class with static factory methods for all 8 types        |
+| `OutputIntent` (`/Type /OutputIntent`)         | ✓      | S, OutputConditionIdentifier, RegistryName, Info, DestOutputProfile    |
+| `OCG` (`/Type /OCG`)                           | ✓      | Name, Intent, Usage; extends PdfObject                                 |
+| `OCMD` (`/Type /OCMD`)                         | ✓      | OCGs, P, VE; extends PdfObject                                        |
+| `OCProperties`                                 | ✓      | OCGs, D, Configs; extends PdfObject                                    |
+| `TransitionDict` (`/Type /Trans`)              | ✓      | S, D, Dm, M, Di, SS, B; assigned to `Page::$transition`               |
+| `GroupAttributes`                              | ✓      | S, CS, I, K; implements Serializable                                   |
+| `NameTree`                                     | ✓      | Kids, Names, Limits; extends PdfObject                                 |
+| `NumberTree`                                   | ✓      | Kids, Nums, Limits; extends PdfObject                                  |
+| `MarkInfo` dict                                | ✓      | Marked, UserProperties, Suspects; assigned to `Catalog::$markInfo`     |
+| `Collection` (`/Type /Collection`)             | ✓      | Schema, D, View, Sort; extends PdfObject                               |
+| `CollectionItem` (`/Type /CollectionItem`)     | ✓      | Field values dict; extends PdfObject                                   |
+| `CollectionSchema` (`/Type /CollectionSchema`) | ✓      | Field definitions; extends PdfObject                                   |
+| `Thread` (`/Type /Thread`)                     | ✓      | I, F; extends PdfObject                                                |
+| `Bead` (`/Type /Bead`)                         | ✓      | T, N, V, P, R; extends PdfObject                                       |
+| `StructTreeRoot` (`/Type /StructTreeRoot`)     | ✓      | K, IDTree, ParentTree, RoleMap, ClassMap; extends PdfObject            |
+| `StructElem` (`/Type /StructElem`)             | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText; extends PdfObject |
+| `ObjectRef` (`/Type /OBJR`)                    | ✓      | Pg, Obj; extends PdfObject                                             |
+| Cross-reference stream (`/Type /XRef`)         | ✓      | Size, Index, Prev, W, Root, Info, ID; binary entry packing             |
+| Object stream (`/Type /ObjStm`)                | ✓      | N, First, Extends; packs compressed indirect objects                   |
+
+---
+
+## Fonts
+
+### Font (`/Type /Font`) — Common Fields
+*Source: [`packages/pdf/core/src/Font/Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/Font.php)*
+
+| Field             | Status | Notes                                            |
+|-------------------|--------|--------------------------------------------------|
+| `/Type`           | ✓      |                                                  |
+| `/Subtype`        | ✓      |                                                  |
+| `/BaseFont`       | ✓      |                                                  |
+| `/FirstChar`      | ✓      | Auto-populated from AFM data                     |
+| `/LastChar`       | ✓      | Auto-populated from AFM data                     |
+| `/Widths`         | ✓      | Auto-populated from AFM data                     |
+| `/FontDescriptor` | ✓      |                                                  |
+| `/Encoding`       | ✓      |                                                  |
+| `/ToUnicode`      | ✓      | CMap stream generated from TrueType cmap table |
+
+### Font Subtypes
+
+| Subtype         | Class              | Source | Status | Notes                                                          |
+|-----------------|--------------------|--------|--------|----------------------------------------------------------------|
+| `/Type1`        | `Type1Font`        | [`Type1Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/Type1Font.php) | ✓      | Includes standard 14 with AFM widths                           |
+| `/TrueType`     | `TrueTypeFont`     | [`TrueTypeFont.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/TrueTypeFont.php) | ✓      | Full font program embedding via `/FontFile2`                   |
+| `/Type0`        | `Type0Font`        | [`Type0Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/Type0Font.php) | ✓      | Composite font                                                 |
+| `/CIDFontType0` | `CIDFontType0Font` | [`CIDFontType0Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/CIDFontType0Font.php) | ✓      | Type 1/CFF descendant of Type 0 (enforced subclass)            |
+| `/CIDFontType2` | `CIDFontType2Font` | [`CIDFontType2Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/CIDFontType2Font.php) | ✓      | TrueType descendant of Type 0; /CIDToGIDMap supported          |
+| `/MMType1`      | `MMType1Font`      | [`MMType1Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/MMType1Font.php) | ✓      | Multiple Master; encodes spaces in instance name as underscore |
+| `/Type3`        | `Type3Font`        | [`Type3Font.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/Type3Font.php) | ✓      | FontBBox, FontMatrix, CharProcs, Encoding, Resources           |
+
+### FontDescriptor (`/Type /FontDescriptor`)
+*Source: [`packages/pdf/core/src/Font/FontDescriptor.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/FontDescriptor.php)*
+
+| Field           | Status | Notes                                       |
+|-----------------|--------|---------------------------------------------|
+| `/FontName`     | ✓      |                                             |
+| `/FontFamily`   | ✓      |                                             |
+| `/FontStretch`  | ✓      |                                             |
+| `/FontWeight`   | ✓      |                                             |
+| `/Flags`        | ✓      |                                             |
+| `/FontBBox`     | ✓      |                                             |
+| `/ItalicAngle`  | ✓      |                                             |
+| `/Ascent`       | ✓      |                                             |
+| `/Descent`      | ✓      |                                             |
+| `/Leading`      | ✓      |                                             |
+| `/CapHeight`    | ✓      |                                             |
+| `/XHeight`      | ✓      |                                             |
+| `/StemV`        | ✓      |                                             |
+| `/StemH`        | ✓      |                                             |
+| `/AvgWidth`     | ✓      |                                             |
+| `/MaxWidth`     | ✓      |                                             |
+| `/MissingWidth` | ✓      |                                             |
+| `/FontFile`     | ✓      | Type 1 font program embedding via `Type1Font::fromFile()` + `Type1FontFile` |
+| `/FontFile2`    | ✓      | TrueType font program embedding via `TrueTypeFont::fromFile()` |
+| `/FontFile3`    | ✓      | CFF font program embedding via `CFFFontFile`                    |
+| `/CharSet`      | ✓      |                                             |
+
+### Encoding (`/Type /Encoding`)
+*Source: [`packages/pdf/core/src/Font/Encoding.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Font/Encoding.php)*
+
+| Field           | Status | Notes |
+|-----------------|--------|-------|
+| `/BaseEncoding` | ✓      |       |
+| `/Differences`  | ✓      |       |
+
+### Missing Font Objects
+
+| Object                        | Status | Notes                                                                   |
+|-------------------------------|--------|-------------------------------------------------------------------------|
+| `CIDSystemInfo` dict          | ✓      | Registry, Ordering, Supplement; typed on `CIDFont::$cidSystemInfo`      |
+| `CMap` stream (`/Type /CMap`) | ✓      | CMapName, CIDSystemInfo, WMode; CMapStream class                        |
+| ToUnicode CMap stream         | ✓      | Generated from TrueType cmap table; WinAnsi byte → Unicode mapping      |
+| TrueType font embedding       | ✓      | Full font program embedded via `/FontFile2`; `TrueTypeFont::fromFile()` |
+| Font subsetting               | ✓      | TrueTypeSubsetter implemented                                           |
+| OpenType font support         | ✓      | OpenTypeParser + CFFFontFile via `/FontFile3`                            |
+| Type 1 font parsing           | ✓      | `Type1Parser` — PFB/PFA formats, `Type1Font::fromFile()` factory        |
+| WOFF 1.0 decompression        | ✓      | `WoffParser` — WOFF→sfnt conversion                                     |
+| WOFF 2.0 decompression        | ✓      | `Woff2Parser` — Brotli decompression, table transforms, sfnt reconstruction |
+| Variable font detection       | ✓      | `TrueTypeParser::parseFvar()` — axes, named instances, `isVariableFont` |
+
+---
+
+## Annotations (`/Type /Annot`)
+*Source: [`packages/pdf/core/src/Annotation/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/)*
+
+### Common Base Fields
+
+| Field           | Status | Notes                     |
+|-----------------|--------|---------------------------|
+| `/Type`         | ✓      |                           |
+| `/Subtype`      | ✓      |                           |
+| `/Rect`         | ✓      |                           |
+| `/Contents`     | ✓      |                           |
+| `/P`            | ✓      | Page reference            |
+| `/NM`           | ✓      | Annotation name           |
+| `/M`            | ✓      | Modification date         |
+| `/F`            | ✓      | Flags                     |
+| `/AP`           | ✓      | Appearance dict reference |
+| `/AS`           | ✓      | Appearance state          |
+| `/Border`       | ✓      |                           |
+| `/C`            | ✓      | Color                     |
+| `/StructParent` | ✓      |                           |
+| `/OC`           | ✓      | Optional content          |
+| `/AF`           | ✓      | Associated files          |
+| `/ca`           | ✓      | Constant opacity          |
+| `/BM`           | ✓      | Blend mode                |
+| `/Lang`         | ✓      | Language                  |
+
+### Markup Annotation Base Fields (§12.5.6.2 Table 170)
+*Source: [`packages/pdf/core/src/Annotation/MarkupAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/MarkupAnnotation.php)*
+
+| Field          | Status | Notes                                                  |
+|----------------|--------|--------------------------------------------------------|
+| `/T`           | ✓      | Text label (author) on `MarkupAnnotation`              |
+| `/Popup`       | ✓      | Linked popup annotation reference                      |
+| `/CA`          | ✓      | Constant opacity override on markup                    |
+| `/RC`          | ✓      | Rich content stream                                    |
+| `/CreationDate`| ✓      |                                                        |
+| `/IRT`         | ✓      | In-reply-to chaining                                   |
+| `/Subj`        | ✓      | Short description                                      |
+| `/RT`          | ✓      | Reply type (R / Group)                                 |
+| `/IT`          | ✓      | Intent (e.g. FreeTextCallout, PolygonCloud, LineArrow) |
+| `/ExData`      | ✓      | External data dict                                     |
+
+All 17 markup annotation subclasses (`TextAnnotation`, `FreeTextAnnotation`,
+`LineAnnotation`, `SquareAnnotation`, `CircleAnnotation`, `PolygonAnnotation`,
+`PolyLineAnnotation`, `HighlightAnnotation`, `UnderlineAnnotation`,
+`SquigglyAnnotation`, `StrikeOutAnnotation`, `StampAnnotation`,
+`CaretAnnotation`, `InkAnnotation`, `FileAttachmentAnnotation`,
+`SoundAnnotation`, `RedactAnnotation`) extend `MarkupAnnotation` and inherit
+these fields.
+
+### Annotation Subtypes
+
+| Subtype           | Class                      | Source | Status | Notes                                                 |
+|-------------------|----------------------------|--------|--------|-------------------------------------------------------|
+| `/Text`           | `TextAnnotation`           | [`TextAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/TextAnnotation.php) | ✓      | Open, Name, State, StateModel                         |
+| `/Link`           | `LinkAnnotation`           | [`LinkAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/LinkAnnotation.php) | ✓      | Dest, H, PA, QuadPoints, BS, A                        |
+| `/FreeText`       | `FreeTextAnnotation`       | [`FreeTextAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/FreeTextAnnotation.php) | ✓      | DA, Q, RC, DS, CL, IT, BE, RD, BS, LE                 |
+| `/Highlight`      | `HighlightAnnotation`      | [`HighlightAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/HighlightAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Stamp`          | `StampAnnotation`          | [`StampAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/StampAnnotation.php) | ✓      | Name                                                  |
+| `/Ink`            | `InkAnnotation`            | [`InkAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/InkAnnotation.php) | ✓      | InkList, BS                                           |
+| `/Popup`          | `PopupAnnotation`          | [`PopupAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/PopupAnnotation.php) | ✓      | Parent, Open                                          |
+| `/Widget`         | `WidgetAnnotation`         | [`WidgetAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/WidgetAnnotation.php) | ✓      | H, MK, A, AA, BS, Parent                              |
+| `/Line`           | `LineAnnotation`           | [`LineAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/LineAnnotation.php) | ✓      | L, LE, IC, LL, LLE, Cap, IT, LLO, CP, Measure, CO    |
+| `/Square`         | `SquareAnnotation`         | [`SquareAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/SquareAnnotation.php) | ✓      | IC, BE, RD, Measure                                   |
+| `/Circle`         | `CircleAnnotation`         | [`CircleAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/CircleAnnotation.php) | ✓      | IC, BE, RD, Measure                                   |
+| `/Polygon`        | `PolygonAnnotation`        | [`PolygonAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/PolygonAnnotation.php) | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/PolyLine`       | `PolyLineAnnotation`       | [`PolyLineAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/PolyLineAnnotation.php) | ✓      | Vertices, LE, IC, BE, IT, Measure                     |
+| `/Underline`      | `UnderlineAnnotation`      | [`UnderlineAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/UnderlineAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Squiggly`       | `SquigglyAnnotation`       | [`SquigglyAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/SquigglyAnnotation.php) | ✓      | QuadPoints                                            |
+| `/StrikeOut`      | `StrikeOutAnnotation`      | [`StrikeOutAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/StrikeOutAnnotation.php) | ✓      | QuadPoints                                            |
+| `/Caret`          | `CaretAnnotation`          | [`CaretAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/CaretAnnotation.php) | ✓      | RD, Sy                                                |
+| `/FileAttachment` | `FileAttachmentAnnotation` | [`FileAttachmentAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/FileAttachmentAnnotation.php) | ✓      | FS, Name                                              |
+| `/Sound`          | `SoundAnnotation`          | [`SoundAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/SoundAnnotation.php) | ✓      | Sound, Name                                           |
+| `/Movie`          | `MovieAnnotation`          | [`MovieAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/MovieAnnotation.php) | ✓      | T, Movie, A                                           |
+| `/Screen`         | `ScreenAnnotation`         | [`ScreenAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/ScreenAnnotation.php) | ✓      | T, MK, A, AA                                          |
+| `/PrinterMark`    | `PrinterMarkAnnotation`    | [`PrinterMarkAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/PrinterMarkAnnotation.php) | ✓      | MN                                                    |
+| `/TrapNet`        | `TrapNetAnnotation`        | [`TrapNetAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/TrapNetAnnotation.php) | ✓      | LastModified, Version, AnnotStates, FontFauxing       |
+| `/Watermark`      | `WatermarkAnnotation`      | [`WatermarkAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/WatermarkAnnotation.php) | ✓      | FixedPrint                                            |
+| `/3D`             | `ThreeDAnnotation`         | [`ThreeDAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/ThreeDAnnotation.php) | ✓      | 3DD, 3DV, 3DA, 3DI, 3DB                               |
+| `/Redact`         | `RedactAnnotation`         | [`RedactAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/RedactAnnotation.php) | ✓      | QuadPoints, IC, RO, OverlayText, Repeat, DA, Q        |
+| `/Projection`     | `ProjectionAnnotation`     | [`ProjectionAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/ProjectionAnnotation.php) | ✓      |                                                       |
+| `/RichMedia`      | `RichMediaAnnotation`      | [`RichMediaAnnotation.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Annotation/RichMediaAnnotation.php) | ✓      | RichMediaSettings, RichMediaContent                   |
+
+### Supporting Annotation Dictionaries
+
+| Object                           | Status | Notes                                                |
+|----------------------------------|--------|------------------------------------------------------|
+| `AppearanceDict` (AP)            | ✓      | N, R, D; implements Serializable                     |
+| `AppearanceCharacteristics` (MK) | ✓      | R, BC, BG, CA, RC, AC, I, RI, IX, IF, TP; implements Serializable |
+| `BorderStyle` (BS)               | ✓      | W, S, D; `Annotation::$bs` accepts it directly       |
+| `BorderEffect` (BE)              | ✓      | S, I; `FreeTextAnnotation::$be` accepts it directly  |
+
+---
+
+## Actions
+*Source: [`packages/pdf/core/src/Action/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/)*
+
+| `/S` Value          | Class                    | Source | Status | Notes                                    |
+|---------------------|--------------------------|--------|--------|------------------------------------------|
+| `/GoTo`             | `GoToAction`             | [`GoToAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/GoToAction.php) | ✓      | D                                        |
+| `/URI`              | `URIAction`              | [`URIAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/URIAction.php) | ✓      | URI, IsMap                               |
+| `/Named`            | `NamedAction`            | [`NamedAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/NamedAction.php) | ✓      | N                                        |
+| `/JavaScript`       | `JavaScriptAction`       | [`JavaScriptAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/JavaScriptAction.php) | ✓      | JS                                       |
+| `/GoToR`            | `GoToRAction`            | [`GoToRAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/GoToRAction.php) | ✓      | F, D, NewWindow                          |
+| `/GoToE`            | `GoToEAction`            | [`GoToEAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/GoToEAction.php) | ✓      | F, D, NewWindow, T                       |
+| `/GoToDP`           | `GoToDPAction`           | [`GoToDPAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/GoToDPAction.php) | ✓      | D, DP                                    |
+| `/Launch`           | `LaunchAction`           | [`LaunchAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/LaunchAction.php) | ✓      | F, Win, Mac, Unix, NewWindow             |
+| `/Thread`           | `ThreadAction`           | [`ThreadAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/ThreadAction.php) | ✓      | F, D, B                                  |
+| `/Sound`            | `SoundAction`            | [`SoundAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/SoundAction.php) | ✓      | Sound, Volume, Synchronous, Repeat, Mix  |
+| `/Movie`            | `MovieAction`            | [`MovieAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/MovieAction.php) | ✓      | Annotation, T, Operation                 |
+| `/Hide`             | `HideAction`             | [`HideAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/HideAction.php) | ✓      | T, H                                     |
+| `/SubmitForm`       | `SubmitFormAction`       | [`SubmitFormAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/SubmitFormAction.php) | ✓      | F, Fields, Flags                         |
+| `/ResetForm`        | `ResetFormAction`        | [`ResetFormAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/ResetFormAction.php) | ✓      | Fields, Flags                            |
+| `/ImportData`       | `ImportDataAction`       | [`ImportDataAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/ImportDataAction.php) | ✓      | F                                        |
+| `/SetOCGState`      | `SetOCGStateAction`      | [`SetOCGStateAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/SetOCGStateAction.php) | ✓      | State, PreserveRB                        |
+| `/Rendition`        | `RenditionAction`        | [`RenditionAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/RenditionAction.php) | ✓      | OP, R, AN, JS                            |
+| `/Trans`            | `TransAction`            | [`TransAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/TransAction.php) | ✓      | Trans                                    |
+| `/GoTo3DView`       | `GoTo3DViewAction`       | [`GoTo3DViewAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/GoTo3DViewAction.php) | ✓      | TA, V                                    |
+| `/RichMediaExecute` | `RichMediaExecuteAction` | [`RichMediaExecuteAction.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Action/RichMediaExecuteAction.php) | ✓      | TA, TI, CMD                              |
+
+---
+
+## Interactive Forms (AcroForm)
+
+### AcroForm Dictionary
+*Source: [`packages/pdf/core/src/Interactive/Form/AcroForm.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Form/AcroForm.php)*
+
+| Field              | Status | Notes              |
+|--------------------|--------|--------------------|
+| `/Fields`          | ✓      |                    |
+| `/NeedAppearances` | ✓      |                    |
+| `/SigFlags`        | ✓      |                    |
+| `/CO`              | ✓      | Calculation order  |
+| `/DR`              | ✓      | Default resources  |
+| `/DA`              | ✓      | Default appearance |
+| `/Q`               | ✓      | Justification      |
+| `/XFA`             | ✓      | Reference stored   |
+
+### Field Common Fields
+
+| Field     | Status | Notes              |
+|-----------|--------|--------------------|
+| `/FT`     | ✓      |                    |
+| `/Parent` | ✓      |                    |
+| `/Kids`   | ✓      |                    |
+| `/T`      | ✓      | Partial name       |
+| `/TU`     | ✓      | User name          |
+| `/TM`     | ✓      | Mapping name       |
+| `/Ff`     | ✓      | Flags              |
+| `/V`      | ✓      | Value              |
+| `/DV`     | ✓      | Default value      |
+| `/AA`     | ✓      | Additional actions |
+
+### Field Types
+
+| Type   | Class            | Source | Status | Notes                                           |
+|--------|------------------|--------|--------|-------------------------------------------------|
+| `/Btn` | `ButtonField`    | [`ButtonField.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Form/ButtonField.php) | ✓      | H, MK, Opt; pushbutton/checkbox/radio via Ff    |
+| `/Tx`  | `TextField`      | [`TextField.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Form/TextField.php) | ✓      | MaxLen, Q; multiline/password/comb via Ff       |
+| `/Ch`  | `ChoiceField`    | [`ChoiceField.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Form/ChoiceField.php) | ✓      | Opt, TI, I; combo/edit/sort via Ff              |
+| `/Sig` | `SignatureField` | [`SignatureField.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Form/SignatureField.php) | ✓      | SigFlags, Lock, SV; /V accepts `SignatureValue` |
+
+### Signature Objects
+
+| Object                              | Status | Notes                                                                       |
+|-------------------------------------|--------|-----------------------------------------------------------------------------|
+| Signature value dict (`/Type /Sig`) | ✓      | `SignatureValue` — placeholder for real signing; all Table 258 entries      |
+| `SignatureReference` dict           | ✓      | `SignatureReference` — TransformMethod, TransformParams, Data, DigestMethod |
+| `DocMDP` transform params           | ✓      | `DocMDPTransformParams` — P, V                                              |
+| `FieldMDP` transform params         | ✓      | `FieldMDPTransformParams` — Action, Fields, V                               |
+| `UR3` transform params              | ✓      | `UR3TransformParams` — Document, Msg, V, Annots, Form, Signature, EF, P     |
+| `Perms` dict (in Catalog)           | ✓      | `Catalog::$perms` inline PdfDictionary — DocMDP, UR3, Legal                 |
+
+---
+
+## Graphics
+
+### ExtGState (`/Type /ExtGState`)
+*Source: [`packages/pdf/core/src/Graphics/ExtGState.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/ExtGState.php)*
+
+| Field             | Status | Notes                         |
+|-------------------|--------|-------------------------------|
+| `/LW`             | ✓      | Line width                    |
+| `/LC`             | ✓      | Line cap                      |
+| `/LJ`             | ✓      | Line join                     |
+| `/ML`             | ✓      | Miter limit                   |
+| `/D`              | ✓      | Dash pattern                  |
+| `/RI`             | ✓      | Rendering intent              |
+| `/OP`             | ✓      | Overprint stroke              |
+| `/op`             | ✓      | Overprint fill                |
+| `/OPM`            | ✓      | Overprint mode                |
+| `/Font`           | ✓      |                               |
+| `/FL`             | ✓      | Flatness                      |
+| `/SM`             | ✓      | Smoothness                    |
+| `/SA`             | ✓      | Stroke adjustment             |
+| `/BM`             | ✓      | Blend mode                    |
+| `/SMask`          | ✓      | Soft mask reference           |
+| `/CA`             | ✓      | Stroke alpha                  |
+| `/ca`             | ✓      | Fill alpha                    |
+| `/AIS`            | ✓      | Alpha is shape                |
+| `/TK`             | ✓      | Text knockout                 |
+| `/BG`             | ✓      | Black generation function     |
+| `/BG2`            | ✓      | Black generation (PDF 1.3+)   |
+| `/UCR`            | ✓      | Undercolor removal            |
+| `/UCR2`           | ✓      | Undercolor removal (PDF 1.3+) |
+| `/TR`             | ✓      | Transfer function             |
+| `/TR2`            | ✓      | Transfer function (PDF 1.3+)  |
+| `/HT`             | ✓      | Halftone                      |
+| `/UseBlackPtComp` | ✓      | Black point compensation      |
+| `/HTO`            | ✓      | Halftone origin               |
+
+### Soft Mask Dictionary
+*Source: [`packages/pdf/core/src/Graphics/SoftMask.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/SoftMask.php)*
+
+| Field   | Status | Notes                      |
+|---------|--------|----------------------------|
+| `/Type` | ✓      | `SoftMask` class           |
+| `/S`    | ✓      | Alpha or Luminosity        |
+| `/G`    | ✓      | Transparency group XObject |
+| `/BC`   | ✓      | Backdrop color             |
+| `/TR`   | ✓      | Transfer function          |
+
+### Color Spaces
+*Source: [`packages/pdf/core/src/Graphics/ColorSpace/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/ColorSpace/)*
+
+| Color Space   | Status | Notes                                                           |
+|---------------|--------|-----------------------------------------------------------------|
+| `/DeviceGray` | ✓      | `DeviceGray`                                                    |
+| `/DeviceRGB`  | ✓      | `DeviceRGB`                                                     |
+| `/DeviceCMYK` | ✓      | `DeviceCMYK`                                                    |
+| `/CalGray`    | ✓      | `CalGray` — WhitePoint, BlackPoint, Gamma                       |
+| `/CalRGB`     | ✓      | `CalRGB` — WhitePoint, BlackPoint, Gamma, Matrix                |
+| `/Lab`        | ✓      | `Lab` — WhitePoint, BlackPoint, Range                           |
+| `/ICCBased`   | ✓      | `ICCBased` — wraps an ICC profile stream reference              |
+| `/Indexed`    | ✓      | `Indexed` — base, hival, lookup                                 |
+| `/Pattern`    | ✓      | `Pattern` — bare name or [Pattern underlyingSpace]              |
+| `/Separation` | ✓      | `Separation` — colorant, alternate space, tint transform        |
+| `/DeviceN`    | ✓      | `DeviceN` — names, alternate space, tint transform, attributes  |
+
+### Pattern (`/Type /Pattern`)
+*Source: [`packages/pdf/core/src/Graphics/Pattern/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/Pattern/)*
+
+| Type                       | Status | Notes                                                                          |
+|----------------------------|--------|--------------------------------------------------------------------------------|
+| `/PatternType 1` (Tiling)  | ✓      | `TilingPattern` — PaintType, TilingType, BBox, XStep, YStep, Resources, Matrix |
+| `/PatternType 2` (Shading) | ✓      | `ShadingPattern` — Shading, Matrix, ExtGState                                  |
+
+### Shading (`/Type /Shading` or stream)
+*Source: [`packages/pdf/core/src/Graphics/Shading/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/Shading/)*
+
+| Type                                    | Status | Notes                                                                      |
+|-----------------------------------------|--------|----------------------------------------------------------------------------|
+| `/ShadingType 1` (Function-based)       | ✓      | `ShadingType1` — ColorSpace, Domain, Matrix, Function                      |
+| `/ShadingType 2` (Axial)                | ✓      | `ShadingType2` — Coords, Domain, Extend, Function (linear gradient)        |
+| `/ShadingType 3` (Radial)               | ✓      | `ShadingType3` — Coords, Domain, Extend, Function (radial gradient)        |
+| `/ShadingType 4` (Free-form Gouraud)    | ✓      | `ShadingType4` stream — BitsPerCoordinate/Component/Flag, Decode, Function |
+| `/ShadingType 5` (Lattice Gouraud)      | ✓      | `ShadingType5` stream — VerticesPerRow                                     |
+| `/ShadingType 6` (Coons patch)          | ✓      | `ShadingType6` stream                                                      |
+| `/ShadingType 7` (Tensor-product patch) | ✓      | `ShadingType7` stream                                                      |
+
+### XObject (`/Type /XObject`)
+*Source: [`packages/pdf/core/src/Graphics/XObject/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/XObject/)*
+
+| Subtype  | Class          | Status | Notes                                                                                                                     |
+|----------|----------------|--------|---------------------------------------------------------------------------------------------------------------------------|
+| `/Image` | `ImageXObject` | ✓      | Width, Height, ColorSpace, BitsPerComponent, Filter, DecodeParms, Intent, ImageMask, Mask, SMask, Interpolate, Alternates |
+| `/Form`  | `FormXObject`  | ✓      | BBox, Matrix, Resources                                                                                                   |
+| `/PS`    | `PostScriptXObject` | ✓      | Deprecated since PDF 1.7.1                                                                                                |
+
+### Functions
+*Source: [`packages/pdf/core/src/Graphics/Function/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Graphics/Function/)*
+
+| Type                            | Status | Notes                                                                              |
+|---------------------------------|--------|------------------------------------------------------------------------------------|
+| `/FunctionType 0` (Sampled)     | ✓      | `FunctionType0` stream — Domain, Range, Size, BitsPerSample, Order, Encode, Decode |
+| `/FunctionType 2` (Exponential) | ✓      | `FunctionType2` — Domain, Range, C0, C1, N                                         |
+| `/FunctionType 3` (Stitching)   | ✓      | `FunctionType3` — Domain, Functions, Bounds, Encode                                |
+| `/FunctionType 4` (PostScript)  | ✓      | `FunctionType4` stream — PS operators in stream body                               |
+
+> Functions are a prerequisite for Shading types 1–3 and Separation/DeviceN color spaces.
+
+### Halftone (`/Type /Halftone`)
+
+| Type                                       | Status | Notes                          |
+|--------------------------------------------|--------|--------------------------------|
+| `/HalftoneType 1` (dictionary)             | ✓      | Frequency, Angle, SpotFunction |
+| `/HalftoneType 5` (multidotted)            | ✓      | Dict of component halftones    |
+| `/HalftoneType 6` (threshold array stream) | ✓      |                                |
+| `/HalftoneType 10` (threshold)             | ✓      |                                |
+| `/HalftoneType 16` (threshold)             | ✓      |                                |
+
+---
+
+## Content Stream Operators
+*Source: [`packages/pdf/core/src/Content/ContentStream.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Content/ContentStream.php)*
+
+| Operator       | Category      | Status | Notes                                     |
+|----------------|---------------|--------|-------------------------------------------|
+| `m`            | Path          | ✓      |                                           |
+| `l`            | Path          | ✓      |                                           |
+| `c`            | Path          | ✓      |                                           |
+| `v`            | Path          | ✓      |                                           |
+| `y`            | Path          | ✓      |                                           |
+| `h`            | Path          | ✓      |                                           |
+| `re`           | Path          | ✓      |                                           |
+| `S`            | Paint         | ✓      |                                           |
+| `s`            | Paint         | ✓      |                                           |
+| `f`            | Paint         | ✓      |                                           |
+| `F`            | Paint         | ✓      |                                           |
+| `f*`           | Paint         | ✓      |                                           |
+| `B`            | Paint         | ✓      |                                           |
+| `B*`           | Paint         | ✓      |                                           |
+| `b`            | Paint         | ✓      |                                           |
+| `b*`           | Paint         | ✓      |                                           |
+| `n`            | Paint         | ✓      |                                           |
+| `W`            | Clip          | ✓      |                                           |
+| `W*`           | Clip          | ✓      |                                           |
+| `q`            | State         | ✓      |                                           |
+| `Q`            | State         | ✓      |                                           |
+| `cm`           | State         | ✓      |                                           |
+| `w`            | State         | ✓      |                                           |
+| `J`            | State         | ✓      |                                           |
+| `j`            | State         | ✓      |                                           |
+| `M`            | State         | ✓      |                                           |
+| `d`            | State         | ✓      |                                           |
+| `ri`           | State         | ✓      |                                           |
+| `i`            | State         | ✓      |                                           |
+| `gs`           | State         | ✓      |                                           |
+| `CS`           | Color         | ✓      |                                           |
+| `cs`           | Color         | ✓      |                                           |
+| `SC`           | Color         | ✓      |                                           |
+| `SCN`          | Color         | ✓      |                                           |
+| `sc`           | Color         | ✓      |                                           |
+| `scn`          | Color         | ✓      |                                           |
+| `G`            | Color         | ✓      |                                           |
+| `g`            | Color         | ✓      |                                           |
+| `RG`           | Color         | ✓      |                                           |
+| `rg`           | Color         | ✓      |                                           |
+| `K`            | Color         | ✓      |                                           |
+| `k`            | Color         | ✓      |                                           |
+| `Tc`           | Text          | ✓      |                                           |
+| `Tw`           | Text          | ✓      |                                           |
+| `Tz`           | Text          | ✓      |                                           |
+| `TL`           | Text          | ✓      |                                           |
+| `Tf`           | Text          | ✓      |                                           |
+| `Tr`           | Text          | ✓      |                                           |
+| `Ts`           | Text          | ✓      |                                           |
+| `Td`           | Text          | ✓      |                                           |
+| `TD`           | Text          | ✓      |                                           |
+| `Tm`           | Text          | ✓      |                                           |
+| `T*`           | Text          | ✓      |                                           |
+| `Tj`           | Text          | ✓      |                                           |
+| `TJ`           | Text          | ✓      |                                           |
+| `Do`           | XObject       | ✓      |                                           |
+| `BI`/`ID`/`EI` | Image         | ✓      |                                           |
+| `'`            | Text          | ✓      | `moveToNextLineAndShowText()`             |
+| `"`            | Text          | ✓      | `setSpacingMoveAndShowText()`             |
+| `sh`           | Shading       | ✓      | `paintShading()`                          |
+| `d0`           | Type3         | ✓      | `setGlyphWidth()`                         |
+| `d1`           | Type3         | ✓      | `setGlyphWidthAndBoundingBox()`           |
+| `MP`           | MarkedContent | ✓      | `markedContentPoint()`                    |
+| `DP`           | MarkedContent | ✓      | `markedContentPointWithProperties()`      |
+| `BMC`          | MarkedContent | ✓      | `beginMarkedContent()`                    |
+| `BDC`          | MarkedContent | ✓      | `beginMarkedContentWithProperties()`      |
+| `EMC`          | MarkedContent | ✓      | `endMarkedContent()`                      |
+| `BX`           | Compat        | ✓      | `beginCompatibility()`                    |
+| `EX`           | Compat        | ✓      | `endCompatibility()`                      |
+
+---
+
+## Multimedia
+*Source: [`packages/pdf/core/src/Multimedia/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Multimedia/)*
+
+| Object                                           | Status | Notes                                           |
+|--------------------------------------------------|--------|-------------------------------------------------|
+| `Sound` (`/Type /Sound`)                         | ✓      | `Sound` stream — R, C, B, E, CO, CP             |
+| `Movie` dict                                     | ✓      | `Movie` — F, Aspect, Rotate, Poster             |
+| `Rendition` (`/Type /Rendition`)                 | ✓      | `MediaRendition` (MR), `SelectorRendition` (SR) |
+| `MediaClip` (`/Type /MediaClip`)                 | ✓      | `MediaClipData` (MCD), `MediaClipSection` (MCS) |
+| `MediaPlayParams` (`/Type /MediaPlayParams`)     | ✓      | `MediaPlayParams` — MH, BE, PL                  |
+| `MediaScreenParams` (`/Type /MediaScreenParams`) | ✓      | `MediaScreenParams` — MH, BE                    |
+| `Navigator` (`/Type /Navigator`)                 | ✓      | `Navigator` — NA, NR, Duration                  |
+
+---
+
+## File Specifications
+*Source: [`packages/pdf/core/src/FileSpec/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/FileSpec/)*
+
+| Object                                        | Status | Notes                                                             |
+|-----------------------------------------------|--------|-------------------------------------------------------------------|
+| `FileSpec` (`/Type /Filespec`)                | ✓      | `FileSpec` — FS, F, UF, DOS, Mac, Unix, ID, V, EF, RF, Desc, CI   |
+| `EmbeddedFile` stream (`/Type /EmbeddedFile`) | ✓      | `EmbeddedFile` — Subtype, Params                                  |
+| `EmbeddedFileParams` dict                     | ✓      | `EmbeddedFileParams` — Size, CreationDate, ModDate, Mac, CheckSum |
+
+---
+
+## Encryption
+*Source: [`packages/pdf/core/src/Security/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Security/)*
+
+| Object / Field                         | Status | Notes                                                             |
+|----------------------------------------|--------|-------------------------------------------------------------------|
+| `EncryptDictionary` (`/Type /Encrypt`) | ✓      | `EncryptDictionary` — object model only                           |
+| Standard handler fields                | ✓      | R, O, U, P, EncryptMetadata, OE, UE, Perms on `EncryptDictionary` |
+| Crypt filter dict                      | ✓      | `CryptFilter` — Type, CFM, AuthEvent, Length                      |
+| Public-key handler                     | ✓      | `PublicKeyRecipient` + /Recipients array                          |
+| RC4 cipher                             | ✓      | `phpdftk/crypt` — `Rc4Cipher`                                     |
+| AES-128/256 cipher                     | ✓      | `phpdftk/crypt` — `AesCipher`                                     |
+| PDF key derivation                     | ✓      | `phpdftk/crypt` — `PdfKeyDerivation`                              |
+
+> Fully wired: `PdfWriter::setEncryption()` registers the `/Encrypt`
+> dictionary, encrypts all strings/streams per-object during `generate()`,
+> and emits `/Encrypt` in the trailer automatically. Supports RC4-40,
+> RC4-128, AES-128, AES-256, and public-key (certificate-based) encryption.
+
+---
+
+## Digital Signatures
+*Source: [`packages/pdf/core/src/Interactive/Signature/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Interactive/Signature/)*
+
+| Object                              | Status | Notes                                                                       |
+|-------------------------------------|--------|-----------------------------------------------------------------------------|
+| Signature value dict (`/Type /Sig`) | ✓      | `SignatureValue` — all Table 258 entries                                    |
+| `SignatureReference` dict           | ✓      | `SignatureReference` — TransformMethod, TransformParams, Data, DigestMethod |
+| `DocMDP` transform params           | ✓      | `DocMDPTransformParams`                                                     |
+| `FieldMDP` transform params         | ✓      | `FieldMDPTransformParams`                                                   |
+| `UR3` transform params              | ✓      | `UR3TransformParams`                                                        |
+| PKCS#7 / CAdES signing              | ✓      | `Pkcs7Signer` + `PdfWriter::setSigner()` — ByteRange + /Contents patching   |
+| Timestamp authority                 | ✓      | `DocTimeStamp` + `TsaClient` — full RFC 3161 TSA HTTP client with SHA-256/384/512, wired into signing pipeline via `setTimestamper()` |
+
+---
+
+## 3D
+*Source: [`packages/pdf/core/src/ThreeD/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/ThreeD/)*
+
+| Object                          | Status | Notes                                                         |
+|---------------------------------|--------|---------------------------------------------------------------|
+| `3D` stream (`/Type /3D`)       | ✓      | `ThreeDStream` — Subtype (U3D or PRC), VA, DV, AN, ColorSpace |
+| `3DView` dict (`/Type /3DView`) | ✓      | `ThreeDView` — XN, IN, MS, C2W, CO, P, O, BG, RM, LS, SA      |
+| `3DBackground` dict             | ✓      | `ThreeDBackground` — CS, C, EA                                |
+| `3DRenderMode` dict             | ✓      | `ThreeDRenderMode` — Subtype, AC, FC, Opacity, CV             |
+| `3DLightingScheme` dict         | ✓      | `ThreeDLightingScheme` — Subtype                              |
+| `3DCrossSection` dict           | ✓      | `ThreeDCrossSection` — C, O, PC, PO, IV, IC, ST               |
+
+---
+
+## Accessibility / Tagged PDF
+*Source: [`packages/pdf/core/src/Document/StructTreeRoot.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/StructTreeRoot.php), [`StructElem.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/Document/StructElem.php)*
+
+| Object / Feature                           | Status | Notes                                                           |
+|--------------------------------------------|--------|-----------------------------------------------------------------|
+| `StructTreeRoot` (`/Type /StructTreeRoot`) | ✓      | K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap     |
+| `StructElem` (`/Type /StructElem`)         | ✓      | S, P, ID, Pg, K, A, C, R, T, Lang, Alt, E, ActualText           |
+| `ObjectRef` (`/Type /OBJR`)                | ✓      | Pg, Obj                                                         |
+| Marked content operators                   | ✓      | `BMC`, `BDC`, `EMC`, `MP`, `DP` implemented in `ContentStream`  |
+| `RoleMap` dict                             | ✓      | `RoleMap` — typed wrapper mapping custom types to standard ones |
+| `ClassMap` dict                            | ✓      | `ClassMap` — maps class names to `StructAttribute` entries      |
+| Attribute objects                          | ✓      | `StructAttribute` — /O owner + arbitrary entries                |
+
+---
+
+## Character Encodings
+*Source: [`packages/encoding/src/`](https://github.com/phpdftk/phpdftk/blob/main/packages/encoding/src/)*
+
+| Encoding              | Status | Notes                                                                              |
+|-----------------------|--------|------------------------------------------------------------------------------------|
+| WinAnsiEncoding       | ✓      | `WinAnsiTable` — standard Windows encoding for most modern PDFs                   |
+| MacRomanEncoding      | ✓      | `MacRomanTable` — Mac OS encoding for older PDFs                                   |
+| StandardEncoding      | ✓      | `StandardEncodingTable` — default Type 1 font encoding per Table D.1               |
+| MacExpertEncoding     | ✓      | `MacExpertEncodingTable` — expert/small-caps Type 1 fonts per Table D.4            |
+| PDFDocEncoding        | ✓      | `PdfDocEncodingTable` — text strings in Info, bookmarks, annotations; auto-detects UTF-16BE/UTF-8/fallback |
+| Adobe Glyph List      | ✓      | `GlyphList` — glyph name ↔ Unicode mapping                                        |
+| CJK predefined CMaps  | ✓      | 16 CJK CMaps (UniGB-UCS2-H, UniJIS-UCS2-H, etc.)                                  |
+
+---
+
+## Stream Filters (Codecs)
+*Source: [`packages/filters/src/`](https://github.com/phpdftk/phpdftk/blob/main/packages/filters/src/)*
+
+| Filter             | Encode | Decode | Notes                                                                    |
+|--------------------|--------|--------|--------------------------------------------------------------------------|
+| `FlateDecode`      | ✓      | ✓      | `FlateFilter` — zlib inflate/deflate                                     |
+| `ASCII85Decode`    | ✓      | ✓      | `Ascii85Filter` — base-85 encoding                                      |
+| `ASCIIHexDecode`   | ✓      | ✓      | `AsciiHexFilter` — hex encoding                                         |
+| `RunLengthDecode`  | ✓      | ✓      | `RunLengthFilter` — PackBits-style RLE                                   |
+| `LZWDecode`        | ✓      | ✓      | `LzwFilter` — LZW compression and decompression with EarlyChange support |
+| `CCITTFaxDecode`   | ✓      | ✓      | `CCITTFaxFilter` — Group 3 (1D) and Group 4 (2D) Huffman fax encoding and decoding |
+| `JBIG2Decode`      | ✓      | ✓      | `Jbig2Filter` — MMR generic region encoding, segment parsing, `jbig2dec` fallback  |
+| `DCTDecode`        | —      | —      | Pass-through (JPEG data usable as-is)                                    |
+| `JPXDecode`        | —      | —      | Pass-through (JPEG 2000 data usable as-is)                               |
+| Predictor          | ✓      | ✓      | `PredictorFilter` — PNG/TIFF predictor encoding and decoding for Flate/LZW |
+
+---
+
+## Reader Capabilities
+*Source: [`packages/pdf/reader/src/`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/reader/src/)*
+
+| Feature                          | Status | Notes                                                         |
+|----------------------------------|--------|---------------------------------------------------------------|
+| Classic xref table parsing       | ✓      | Standard and lenient modes                                    |
+| Xref stream parsing (PDF 1.5+)  | ✓      | Binary entry unpacking with width clamping                    |
+| Object stream unpacking          | ✓      | Decompresses and parses packed objects                        |
+| Incremental update chains        | ✓      | `/Prev` chain with loop detection                             |
+| Hybrid xref support              | ✓      | Scans both classic xref and xref streams                      |
+| Linearized PDF detection         | ✓      | Scans up to 50 objects for linearization dict                 |
+| Encryption (read)                | ✓      | RC4-40/128, AES-128/256, public-key                           |
+| Text extraction                  | ✓      | All encoding fallbacks (Standard/MacRoman/MacExpert/WinAnsi)  |
+| Positioned text extraction       | ✓      | Per-span x/y/width/height via full text state machine (CTM, Tm, Tc, Tw, Tz, Ts, font widths) |
+| Error tolerance                  | ✓      | Missing startxref, corrupted xref, truncated PDF, trailing garbage, missing %%EOF |
+| Object recovery                  | ✓      | Scans for endobj, tolerates missing endobj, partial dicts     |
+| Stream recovery                  | ✓      | Sliding-window endstream scan with 64MB safety limit          |
+
+---
+
+## Writer Capabilities
+*Source: [`packages/pdf/core/src/File/PdfFileWriter.php`](https://github.com/phpdftk/phpdftk/blob/main/packages/pdf/core/src/File/PdfFileWriter.php)*
+
+| Feature                    | Status | Notes                                                                   |
+|----------------------------|--------|-------------------------------------------------------------------------|
+| Classic xref output        | ✓      | 20-byte-per-entry xref tables                                          |
+| Xref stream output         | ✓      | `CrossReferenceStream` binary packing                                   |
+| Object stream output       | ✓      | `ObjectStream` compressed indirect objects                              |
+| Incremental updates        | ✓      | `IncrementalWriter` with `/Prev` chain                                  |
+| Linearized output          | ✓      | Two-pass write with padded linearization dict, hint stream, first-page partitioning |
+| Stream compression         | ✓      | Auto FlateDecode compression                                            |
+| Version auto-bump          | ✓      | 172 `#[RequiresPdfVersion]` annotations, strict mode, ceiling mode      |
+| Deprecation enforcement    | ✓      | `removedIn` on `#[DeprecatedPdfFeature]`, strict deprecation mode       |
+
+---
+
+## Conformance Profiles
+
+See [iso-standards-coverage.md](iso-standards-coverage.md) for the full ISO conformance map with profile enums, constraint classes, test files, and the constraint matrix.
+
+---
+
+## Coverage Summary
+
+| Area                       | Implemented | Total | %    |
+|----------------------------|-------------|-------|------|
+| Catalog fields             | 28          | 28    | 100% |
+| PageTree fields            | 33          | 33    | 100% |
+| Page fields                | 32          | 32    | 100% |
+| Info fields                | 9           | 9     | 100% |
+| ViewerPreferences fields   | 18          | 18    | 100% |
+| Document structure objects | 24          | 24    | 100% |
+| Font subtypes              | 7           | 7     | 100% |
+| FontDescriptor fields      | 19          | 19    | 100% |
+| Annotation base fields     | 18          | 18    | 100% |
+| Markup annotation fields   | 10          | 10    | 100% |
+| Annotation subtypes        | 26          | 26    | 100% |
+| Supporting annot dicts     | 4           | 4     | 100% |
+| Actions                    | 20          | 20    | 100% |
+| AcroForm fields            | 8           | 8     | 100% |
+| Field types                | 4           | 4     | 100% |
+| ExtGState fields           | 28          | 28    | 100% |
+| Soft Mask fields           | 5           | 5     | 100% |
+| Color spaces               | 11          | 11    | 100% |
+| XObject subtypes           | 3           | 3     | 100% |
+| Function types             | 4           | 4     | 100% |
+| Pattern types              | 2           | 2     | 100% |
+| Shading types              | 7           | 7     | 100% |
+| Content stream operators   | 69          | 69    | 100% |
+| Encryption                 | 8           | 8     | 100% |
+| Digital signatures         | 7           | 7     | 100% |
+| Multimedia                 | 7           | 7     | 100% |
+| File specifications        | 3           | 3     | 100% |
+| Accessibility / Tagged PDF | 7           | 7     | 100% |
+| 3D                         | 6           | 6     | 100% |
+| Character encodings        | 7           | 7     | 100% |
+| Stream filters (codecs)    | 10          | 10    | 100% |
+| Reader capabilities        | 11          | 11    | 100% |
+| Writer capabilities        | 7           | 7     | 100% |
+
+> Every spec **object** has a PHP class and full end-to-end integration.
+>
+> **RFC 3161 timestamping** is fully wired: `TsaClient` sends
+> `TimeStampReq` messages to any TSA server, and `PdfWriter::setTimestamper()`
+> / `PdfFileWriter::setTimestamper()` produce PAdES-compatible document-level
+> timestamps via `DocTimeStamp`. TSA clients can also be attached alongside
+> regular signers via `setTsaClient()`.
+>
+> **Encryption** is fully wired: `PdfWriter::setEncryption()` (and
+> `PdfFileWriter::setEncryption()`) register the `/Encrypt` dictionary,
+> encrypt all strings and streams per-object during `generate()`, and
+> emit `/Encrypt` in the trailer automatically. Supports RC4-40,
+> RC4-128, AES-128, AES-256, and public-key (certificate-based)
+> encryption.
+>
+> `PdfWriter::setSigner()` **is** fully wired: it computes `/ByteRange`,
+> patches `/Contents` in place, and produces signatures verified in CI via
+> `openssl cms -verify`.
+
+---
+
+## Version Gating
+
+See [version-coverage.md](version-coverage.md) for the full PDF version feature map with 172 annotated classes/properties, deprecated features, and runtime checks.

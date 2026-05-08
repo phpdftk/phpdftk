@@ -273,3 +273,24 @@ MD;
 @mkdir(__DIR__ . '/../docs/generated', 0755, true);
 file_put_contents(__DIR__ . '/../docs/generated/benchmarks.md', $md);
 echo "docs/generated/benchmarks.md written.\n";
+
+// Emit a structured JSON copy for downstream consumers (PR-comment delta
+// computation). Values remain phpbench-formatted strings (e.g. "1.234ms",
+// "8.0mb"); consumers are responsible for normalization.
+$json = [
+    'generated_at'         => $date,
+    'php_version'          => $phpVer,
+    'GeneratePdfBench_time' => $timeData['GeneratePdfBench'] ?? new stdClass(),
+    'GeneratePdfBench_mem'  => $memData['GeneratePdfBench']  ?? new stdClass(),
+    'MemoryBench_time'      => $timeData['MemoryBench']      ?? new stdClass(),
+    'MemoryBench_mem'       => $memData['MemoryBench']       ?? new stdClass(),
+    'ReadPdfBench_time'     => $timeData['ReadPdfBench']     ?? new stdClass(),
+    'ReadPdfBench_mem'      => $memData['ReadPdfBench']      ?? new stdClass(),
+    'compat_time'           => $compatTime,
+    'compat_mem'            => $compatMem,
+];
+file_put_contents(
+    __DIR__ . '/../docs/generated/benchmarks.json',
+    json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
+);
+echo "docs/generated/benchmarks.json written.\n";

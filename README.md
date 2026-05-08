@@ -1,7 +1,7 @@
 # phpdftk
 
 [![CI](https://github.com/phpdftk/phpdftk/actions/workflows/ci.yml/badge.svg)](https://github.com/phpdftk/phpdftk/actions/workflows/ci.yml)
-[![Coverage](docs/generated/coverage-badge.svg)](docs/generated/coverage-badge.svg)
+[![Coverage](https://raw.githubusercontent.com/phpdftk/phpdftk/_coverage/latest/coverage-badge.svg)](https://phpdftk.dev/coverage/)
 [![PHP 8.4+](https://img.shields.io/badge/php-8.4%2B-8892BF.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -19,7 +19,7 @@ Zero dependencies outside the standard library. Spec-compliant output. Fast and 
 | mPDF | 12.4 ms | 16.4 ms | 54.4 ms | 18.6 MB |
 | Dompdf | 5.4 ms | 10.4 ms | 88.0 ms | 16.1 MB |
 
-See [docs/generated/benchmarks.md](docs/generated/benchmarks.md) for full results.
+See the [Benchmarks page](https://phpdftk.dev/reference/benchmarks/) for full results.
 
 ## Quick Start
 
@@ -171,7 +171,7 @@ Operator groups: text, graphics state, paths, painting, color, XObjects, raw.
 - `PdfName` hex-escapes special characters with `#XX`
 - `PdfString` escapes `(`, `)`, `\`, `\n`, `\r`, `\t`
 
-See [docs/spec-coverage.md](docs/spec-coverage.md) for a full ISO 32000-2 coverage audit.
+See the [Spec Coverage tracker](https://phpdftk.dev/reference/spec-coverage/) for a full ISO 32000-2 coverage audit.
 
 ## Conformance Validation
 
@@ -210,7 +210,7 @@ The library auto-injects XMP identification, pins the PDF version, and runs 14 c
 - **Matterhorn Protocol** (6 tests) — PDF/UA accessibility
 - **JHOVE + Preflight** (25 tests) — format validation, PDF/A cross-validation
 
-See [docs/generated/compliance.md](docs/generated/compliance.md) for the full report.
+See the [Compliance Report](https://phpdftk.dev/conformance/report/) for the full report.
 
 ## Development
 

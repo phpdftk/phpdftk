@@ -1,4 +1,8 @@
-# Arlington PDF Model Validation
+---
+title: Arlington PDF Model
+description: Dictionary-level spec conformance — keys, types, required fields, and version constraints.
+---
+
 
 The [Arlington PDF Model](https://github.com/pdf-association/arlington-pdf-model) is a machine-readable definition of every PDF object type maintained by the PDF Association (the ISO 32000 standards body). It provides the canonical grammar for PDF file structure — 613 dictionary specifications covering PDF 1.0 through 2.0.
 

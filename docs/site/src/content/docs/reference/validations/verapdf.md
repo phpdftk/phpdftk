@@ -1,4 +1,8 @@
-# veraPDF PDF/A Conformance Validation
+---
+title: veraPDF
+description: Archival and accessibility conformance — PDF/A (ISO 19005) and PDF/UA (ISO 14289).
+---
+
 
 [veraPDF](https://verapdf.org/) is the PDF Association's official open-source reference validator for PDF/A (ISO 19005) and PDF/UA (ISO 14289). It is the industry standard for archival and accessibility compliance testing.
 

@@ -8,6 +8,9 @@ composer.phar
 .phpunit.result.cache
 /build/coverage/
 
+# PHP CS Fixer
+.php-cs-fixer.cache
+
 # Test output
 /tests/output/
 /tests/.tmp/
@@ -16,6 +19,12 @@ composer.phar
 
 # PHPBench
 .phpbench/
+
+# Generated reports (coverage badge, benchmarks, compliance) — produced by
+# scripts/{coverage,benchmark,compliance} for local inspection. CI publishes
+# these to dedicated _coverage/_benchmarks/_compliance branches and into the
+# docs site, so the in-tree copies aren't a source of truth.
+/docs/generated/
 
 # phpDocumentor
 .phpdoc/

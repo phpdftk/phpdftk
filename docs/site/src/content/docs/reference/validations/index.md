@@ -1,4 +1,8 @@
-# Enterprise PDF Validation Suites
+---
+title: Validation Suites
+description: Enterprise PDF validation suites — four tiers of structural, conformance, accessibility, and security testing.
+---
+
 
 phpdftk integrates three enterprise-grade PDF validation tools (Tier 1) and documents additional tools available for future integration (Tiers 2-4). Together these cover structural integrity, spec conformance, archival compliance, accessibility, and edge-case robustness.
 
@@ -10,9 +14,9 @@ These tools are integrated into the test suite and run automatically.
 
 | Suite | What it validates | Scope | CI behavior |
 |---|---|---|---|
-| [QPDF](qpdf.md) | Structural integrity (xref, page tree, streams, linearization, encryption) | All integration tests (168 assertions across 46 test files) | Runs on every push and PR |
-| [Arlington PDF Model](arlington.md) | Dictionary-level spec conformance (keys, types, required fields, version constraints) | 5 core integration tests (6 assertions), expandable | Runs on every push and PR |
-| [veraPDF](verapdf.md) | PDF/A archival conformance (ISO 19005), PDF/UA accessibility | Opt-in via `#[Group('verapdf')]` (2 dedicated tests) | Runs on pushes to `main` only |
+| [QPDF](qpdf/) | Structural integrity (xref, page tree, streams, linearization, encryption) | All integration tests (168 assertions across 46 test files) | Runs on every push and PR |
+| [Arlington PDF Model](arlington/) | Dictionary-level spec conformance (keys, types, required fields, version constraints) | 5 core integration tests (6 assertions), expandable | Runs on every push and PR |
+| [veraPDF](verapdf/) | PDF/A archival conformance (ISO 19005), PDF/UA accessibility | Opt-in via `#[Group('verapdf')]` (2 dedicated tests) | Runs on pushes to `main` only |
 
 ### Quick start (Docker — recommended)
 
@@ -134,7 +138,7 @@ General-purpose validation tools and reference document collections.
 
 ### Integrated
 
-#### JHOVE
+#### [JHOVE](jhove/)
 
 - **Source:** https://github.com/openpreservation/jhove
 - **Maintainer:** Open Preservation Foundation
@@ -153,7 +157,7 @@ General-purpose validation tools and reference document collections.
 - **PHPUnit group:** `#[Group('tier4')]`
 - **Behavior:** Parsed with `PdfReader`, verified for version, page count, catalog. QPDF structural validation.
 
-#### Didier Stevens' pdfid
+#### [Didier Stevens' pdfid](pdfid/)
 
 - **Source:** https://github.com/DidierStevens/DidierStevensSuite
 - **License:** Public domain
@@ -162,7 +166,7 @@ General-purpose validation tools and reference document collections.
 - **PHPUnit group:** `#[Group('tier4')]`, `#[Group('tier4-security')]`
 - **Behavior:** Generated PDFs validated via `PdfIdValidationTrait`. Asserts zero counts for `/JS`, `/JavaScript`, `/AA`, `/OpenAction`, `/Launch`.
 
-#### Apache PDFBox Preflight
+#### [Apache PDFBox Preflight](pdfbox-preflight/)
 
 - **Source:** https://github.com/apache/pdfbox (preflight module)
 - **License:** Apache 2.0

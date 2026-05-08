@@ -1,4 +1,8 @@
-# QPDF Structural Validation
+---
+title: QPDF
+description: Structural integrity validation — every xref entry, page tree link, and stream length verified.
+---
+
 
 [QPDF](https://github.com/qpdf/qpdf) is an open-source PDF transformation and inspection tool (Apache 2.0). Its `--check` mode validates the structural integrity of a PDF file: cross-reference tables, page tree, stream lengths, linearization parameters, and encryption dictionaries.
 

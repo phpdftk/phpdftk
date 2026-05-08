@@ -408,8 +408,60 @@ MD;
 file_put_contents(__DIR__ . '/../docs/generated/compliance.md', $md);
 echo "docs/generated/compliance.md written.\n";
 
+// Emit a structured JSON copy for PR-comment delta computation. Per-suite
+// counts and overall totals are preserved; per-test detail (cases) is
+// intentionally omitted to keep the file small enough to fetch as a baseline.
+$jsonSuites = [];
+foreach ($suites as $key => $suite) {
+    $r = $results[$key];
+    $jsonSuites[$key] = [
+        'label'      => $suite['label'],
+        'tier'       => $suite['tier'],
+        'tool_available' => $toolAvailability[$key],
+        'status'     => suiteStatus($r, $toolAvailability[$key]),
+        'tests'      => $r['tests'],
+        'passed'     => $r['passed'],
+        'failed'     => $r['failed'] + $r['errors'],
+        'skipped'    => $r['skipped'],
+        'time_s'     => round($r['time'], 3),
+    ];
+}
+$json = [
+    'generated_at'   => $date,
+    'php_version'    => $phpVer,
+    'overall_status' => $overallStatus,
+    'totals' => [
+        'tests'   => $totalTests,
+        'passed'  => $totalPassed,
+        'failed'  => $totalFailed,
+        'skipped' => $totalSkipped,
+        'time_s'  => round($totalTime, 3),
+    ],
+    'suites' => $jsonSuites,
+];
+file_put_contents(
+    __DIR__ . '/../docs/generated/compliance.json',
+    json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
+);
+echo "docs/generated/compliance.json written.\n";
+
 // Calculate compliance percentage for badge
 if ($totalTests > 0) {
     $pct = (int) round(($totalPassed / $totalTests) * 100);
     echo "Compliance: {$pct}% ({$totalPassed}/{$totalTests})\n";
+}
+
+// Hard-fail the script if any suite is FAIL / NO TESTS / WARN. SKIP and PASS
+// are tolerated. Markdown + JSON have already been written above so the CI
+// step `if: always()` artifact upload still gets the data.
+$badStatuses = ['FAIL', 'NO TESTS', 'WARN'];
+$badSuites = [];
+foreach ($jsonSuites as $key => $entry) {
+    if (in_array($entry['status'], $badStatuses, true)) {
+        $badSuites[] = sprintf('%s (%s)', $entry['label'], $entry['status']);
+    }
+}
+if (!empty($badSuites)) {
+    fwrite(STDERR, "Compliance gate: failing suites — " . implode(', ', $badSuites) . "\n");
+    exit(1);
 }

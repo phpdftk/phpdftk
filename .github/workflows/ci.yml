@@ -182,6 +182,12 @@ jobs:
             ], JSON_PRETTY_PRINT);
           ' > build/coverage/coverage.json
 
+      - name: Upload coverage.json for PR aggregator
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-json
+          path: build/coverage/coverage.json
+
       - name: Determine target directory
         id: target
         run: |
@@ -217,9 +223,14 @@ jobs:
           mkdir -p "${{ steps.target.outputs.dir }}"
           cp -r ../build/coverage/* "${{ steps.target.outputs.dir }}/"
 
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            rm -f latest
-            ln -s "${{ steps.target.outputs.dir }}" latest
+          # Refresh `latest/` on every main push and tag push so consumers
+          # (README badge, deployed docs site) have a stable URL. Use a real
+          # directory copy rather than a symlink — raw.githubusercontent.com
+          # serves symlinks as their target string, not the target file.
+          if [[ "$GITHUB_REF" == refs/heads/main || "$GITHUB_REF" == refs/tags/* ]]; then
+            rm -rf latest
+            mkdir -p latest
+            cp -r ../build/coverage/* latest/
           fi
 
           git add .
@@ -229,47 +240,6 @@ jobs:
       - name: Cleanup worktree
         if: always()
         run: git worktree remove coverage-branch --force 2>/dev/null || true
-
-      - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const coverage = process.env.COVERAGE;
-            const fs = require('fs');
-            const json = JSON.parse(fs.readFileSync('build/coverage/coverage.json', 'utf8'));
-            const body = [
-              '<!-- coverage-report -->',
-              '## Code Coverage',
-              '',
-              `**Coverage:** ${json.coverage}% (${json.covered_statements}/${json.statements} statements)`,
-              `**Methods:** ${json.methods > 0 ? ((json.covered_methods / json.methods) * 100).toFixed(2) : 0}% (${json.covered_methods}/${json.methods})`,
-              `Commit: \`${context.sha.substring(0, 7)}\``,
-            ].join('\n');
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const existing = comments.find(c => c.body.includes('<!-- coverage-report -->'));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
 
   phpdoc:
     runs-on: ubuntu-latest
@@ -364,7 +334,6 @@ jobs:
 
   compliance:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -380,6 +349,9 @@ jobs:
           php-version: '8.4'
           extensions: zlib, openssl, simplexml
           coverage: none
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build QPDF image
         run: cd docker && docker compose build
@@ -400,12 +372,18 @@ jobs:
         run: composer compliance
 
       - name: Upload compliance report
+        # Always upload so the PR-report aggregator can render the comment
+        # even when the compliance gate (parse-compliance.php) failed the job.
+        if: always() && hashFiles('docs/generated/compliance.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: compliance-report
-          path: docs/generated/compliance.md
+          path: |
+            docs/generated/compliance.md
+            docs/generated/compliance.json
 
       - name: Publish to _compliance branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -426,19 +404,180 @@ jobs:
           DIR="${GITHUB_REF#refs/heads/}/${GITHUB_SHA}"
           mkdir -p "$DIR"
           cp ../docs/generated/compliance.md "$DIR/compliance.md"
+          cp ../docs/generated/compliance.json "$DIR/compliance.json"
 
-          # `latest/compliance.md` always points at the most recent main run
-          # so consumers (the docs job) have a stable URL to fetch.
+          # `latest/` always points at the most recent main run so consumers
+          # (the docs site, the PR-report aggregator) have a stable URL.
           mkdir -p latest
           cp ../docs/generated/compliance.md latest/compliance.md
+          cp ../docs/generated/compliance.json latest/compliance.json
 
           git add .
           git commit -m "compliance: $DIR" --allow-empty
           git push origin _compliance
 
       - name: Cleanup worktree
-        if: always()
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: git worktree remove compliance-branch --force 2>/dev/null || true
+
+  benchmarks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml, intl
+          coverage: none
+
+      - name: Install system fonts and ICC profiles
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-color-emoji fonts-noto-core icc-profiles-free
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run benchmarks
+        run: composer benchmark
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: |
+            docs/generated/benchmarks.md
+            docs/generated/benchmarks.json
+
+      - name: Publish to _benchmarks branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin _benchmarks:refs/remotes/origin/_benchmarks 2>/dev/null || true
+
+          if git rev-parse --verify origin/_benchmarks >/dev/null 2>&1; then
+            git worktree add benchmarks-branch origin/_benchmarks
+            cd benchmarks-branch
+            git checkout -B _benchmarks origin/_benchmarks
+          else
+            git worktree add --detach benchmarks-branch
+            cd benchmarks-branch
+            git checkout --orphan _benchmarks
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          DIR="${GITHUB_REF#refs/heads/}/${GITHUB_SHA}"
+          mkdir -p "$DIR"
+          cp ../docs/generated/benchmarks.md "$DIR/benchmarks.md"
+          cp ../docs/generated/benchmarks.json "$DIR/benchmarks.json"
+
+          # `latest/` always points at the most recent main run so the docs
+          # site and the PR-report aggregator have a stable URL.
+          mkdir -p latest
+          cp ../docs/generated/benchmarks.md latest/benchmarks.md
+          cp ../docs/generated/benchmarks.json latest/benchmarks.json
+
+          git add .
+          git commit -m "benchmarks: $DIR" --allow-empty
+          git push origin _benchmarks
+
+      - name: Cleanup worktree
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: git worktree remove benchmarks-branch --force 2>/dev/null || true
+
+  pr-report:
+    runs-on: ubuntu-latest
+    needs: [publish-coverage, compliance, benchmarks]
+    # `always()` so the comment posts (and gates) even if compliance/benchmarks
+    # exited non-zero — the comment is the user-facing signal.
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: simplexml
+
+      - name: Download current artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Fetch main baselines
+        run: |
+          mkdir -p baselines
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/_coverage/latest/coverage.json"     -o baselines/coverage.json     || echo "no coverage baseline"
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/_benchmarks/latest/benchmarks.json" -o baselines/benchmarks.json   || echo "no benchmarks baseline"
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/_compliance/latest/compliance.json" -o baselines/compliance.json   || echo "no compliance baseline"
+
+      - name: Build PR comment body
+        run: |
+          php scripts/build-pr-comment.php \
+            --coverage-current=artifacts/coverage-json/coverage.json \
+            --coverage-baseline=baselines/coverage.json \
+            --benchmarks-current=artifacts/benchmark-report/benchmarks.json \
+            --benchmarks-baseline=baselines/benchmarks.json \
+            --compliance-current=artifacts/compliance-report/compliance.json \
+            --compliance-baseline=baselines/compliance.json \
+            --commit-sha=${{ github.sha }} \
+            --pr-number=${{ github.event.pull_request.number }} \
+            --repo=${{ github.repository }} \
+            --coverage-fail-threshold=1.0 \
+            --benchmark-fail-threshold=15.0 \
+            --verdict-output=verdict.json \
+            > body.md
+          echo "----- BEGIN COMMENT BODY -----"
+          cat body.md
+          echo "----- END COMMENT BODY -----"
+          echo "----- VERDICT -----"
+          cat verdict.json
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('body.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('<!-- pr-report -->'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Enforce coverage and benchmark thresholds
+        # Runs after the comment posts so the verdict is visible to reviewers
+        # before the check goes red.
+        run: |
+          if jq -e '.overall_failed == true' verdict.json > /dev/null; then
+            echo "::error::PR-report gate breached — see comment body for details."
+            jq . verdict.json
+            exit 1
+          fi
+          echo "PR-report gate: pass."
 
   validate:
     runs-on: ubuntu-latest
@@ -515,6 +654,26 @@ jobs:
             echo "No _compliance branch yet — skipping report embed"
           fi
 
+      - name: Embed latest benchmarks
+        run: |
+          # Same pattern as the compliance embed: pull latest/benchmarks.md
+          # from the _benchmarks branch (populated on every main push) and
+          # render it as a Starlight page. Skip silently on first run.
+          if git fetch origin _benchmarks:refs/remotes/origin/_benchmarks 2>/dev/null \
+             && git show "origin/_benchmarks:latest/benchmarks.md" > /tmp/benchmarks.md 2>/dev/null; then
+            {
+              echo '---'
+              echo 'title: Benchmarks'
+              echo 'description: Auto-generated benchmark results vs. TCPDF, FPDF, mPDF, Dompdf, smalot/pdfparser, and setasign/fpdi.'
+              echo '---'
+              echo
+              tail -n +2 /tmp/benchmarks.md
+            } > docs/site/src/content/docs/reference/benchmarks.md
+            echo "Embedded benchmarks ($(wc -l < /tmp/benchmarks.md) lines)"
+          else
+            echo "No _benchmarks branch yet — skipping benchmarks embed"
+          fi
+
       - name: Install site dependencies
         run: cd docs/site && npm ci
 
@@ -569,8 +728,16 @@ jobs:
 
           if [[ "${{ steps.ref.outputs.stable }}" == "1" ]]; then
             mkdir -p latest
-            ../scripts/generate-redirect.sh "/$REF_NAME/" > latest/index.html
-            ../scripts/generate-redirect.sh "/$REF_NAME/" > index.html
+            cat > latest/index.html <<EOF
+          <!DOCTYPE html>
+          <meta charset="utf-8">
+          <title>Redirecting…</title>
+          <meta http-equiv="refresh" content="0; url=/$REF_NAME/">
+          <link rel="canonical" href="/$REF_NAME/">
+          <script>location.replace("/$REF_NAME/");</script>
+          <p>Redirecting to <a href="/$REF_NAME/">/$REF_NAME/</a>…</p>
+          EOF
+            cp latest/index.html index.html
           fi
 
           git add .
