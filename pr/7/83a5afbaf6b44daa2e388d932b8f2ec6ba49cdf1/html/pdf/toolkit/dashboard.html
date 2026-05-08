@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/pdf/toolkit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../_css/bootstrap.min.css?v=14.1.7" rel="stylesheet" type="text/css">
+  <link href="../../_css/style.css?v=14.1.7" rel="stylesheet" type="text/css">
+  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">pdf</a></li>
+         <li class="breadcrumb-item"><a href="index.html">toolkit</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/PdfStamper.php.html#40"><circle cx="695.3" cy="66.2" r="20.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfStamper — Coverage: 88.2% | Lines: 323 | Complexity: 86</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#29"><circle cx="562.3" cy="158.6" r="14.6" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener — Coverage: 69.8% | Lines: 172 | Complexity: 58</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#37"><circle cx="714.1" cy="128.9" r="14.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor — Coverage: 90.9% | Lines: 164 | Complexity: 67</title></circle></a>
+ <a href="src/FormFiller.php.html#35"><circle cx="634.2" cy="92.6" r="14.2" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller — Coverage: 79.8% | Lines: 163 | Complexity: 78</title></circle></a>
+ <a href="src/LtvSigner.php.html#44"><circle cx="624.7" cy="152.0" r="13.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner — Coverage: 78.4% | Lines: 153 | Complexity: 60</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#38"><circle cx="517.3" cy="194.9" r="13.5" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt — Coverage: 63.5% | Lines: 148 | Complexity: 47</title></circle></a>
+ <a href="src/PageTransformer.php.html#30"><circle cx="684.7" cy="155.3" r="13.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer — Coverage: 86.8% | Lines: 136 | Complexity: 59</title></circle></a>
+ <a href="src/MetadataEditor.php.html#32"><circle cx="670.2" cy="191.6" r="12.1" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor — Coverage: 84.7% | Lines: 118 | Complexity: 48</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#27"><circle cx="351.9" cy="214.7" r="11.7" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier — Coverage: 40.5% | Lines: 111 | Complexity: 41</title></circle></a>
+ <a href="src/PageLabeler.php.html#31"><circle cx="695.7" cy="241.1" r="10.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageLabeler — Coverage: 88.3% | Lines: 94 | Complexity: 33</title></circle></a>
+ <a href="src/TextRedactor.php.html#32"><circle cx="695.7" cy="237.8" r="10.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\TextRedactor — Coverage: 88.3% | Lines: 94 | Complexity: 34</title></circle></a>
+ <a href="src/PdfMerger.php.html#25"><circle cx="647.8" cy="290.6" r="7.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfMerger — Coverage: 81.6% | Lines: 49 | Complexity: 18</title></circle></a>
+ <a href="src/TextExtractor.php.html#26"><circle cx="780.0" cy="277.4" r="7.8" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor — Coverage: 100.0% | Lines: 49 | Complexity: 22</title></circle></a>
+ <a href="src/PageSlicer.php.html#31"><circle cx="642.1" cy="290.6" r="7.6" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageSlicer — Coverage: 80.9% | Lines: 47 | Complexity: 18</title></circle></a>
+ <a href="src/Internal/PageResolver.php.html#19"><circle cx="546.0" cy="290.6" r="7.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageResolver — Coverage: 67.5% | Lines: 40 | Complexity: 18</title></circle></a>
+ <a href="src/PageSelector.php.html#13"><circle cx="780.0" cy="293.9" r="4.7" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector — Coverage: 100.0% | Lines: 18 | Complexity: 17</title></circle></a>
+ <a href="src/Stamper/StampPosition.php.html#10"><circle cx="780.0" cy="323.6" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\StampPosition — Coverage: 100.0% | Lines: 8 | Complexity: 8</title></circle></a>
+ <a href="src/TextSearchResults.php.html#12"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="src/Bookmark/BookmarkEntry.php.html#13"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Form/FieldInfo.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Form\FieldInfo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataInfo.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataInfo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Redaction/RedactionArea.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Redaction\RedactionArea — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/ImageStampStyle.php.html#14"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/StampStyle.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\StampStyle — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/WatermarkStyle.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextBlock.php.html#10"><circle cx="60.0" cy="346.7" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\TextBlock — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextMatch.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextMatch — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/Internal/PageCopier.php.html#27">Phpdftk\Pdf\Toolkit\Internal\PageCopier</a></td><td class="text-right">394.37</td><td class="text-right">40.5%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#38">Phpdftk\Pdf\Toolkit\PdfEncrypt</a></td><td class="text-right">154.30</td><td class="text-right">63.5%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#29">Phpdftk\Pdf\Toolkit\AnnotationFlattener</a></td><td class="text-right">150.96</td><td class="text-right">69.8%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#35">Phpdftk\Pdf\Toolkit\FormFiller</a></td><td class="text-right">128.49</td><td class="text-right">79.8%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#40">Phpdftk\Pdf\Toolkit\PdfStamper</a></td><td class="text-right">98.04</td><td class="text-right">88.2%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#44">Phpdftk\Pdf\Toolkit\LtvSigner</a></td><td class="text-right">96.12</td><td class="text-right">78.4%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#37">Phpdftk\Pdf\Toolkit\BookmarkEditor</a></td><td class="text-right">70.43</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#30">Phpdftk\Pdf\Toolkit\PageTransformer</a></td><td class="text-right">67.07</td><td class="text-right">86.8%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#32">Phpdftk\Pdf\Toolkit\MetadataEditor</a></td><td class="text-right">56.18</td><td class="text-right">84.7%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#32">Phpdftk\Pdf\Toolkit\TextRedactor</a></td><td class="text-right">35.85</td><td class="text-right">88.3%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#31">Phpdftk\Pdf\Toolkit\PageLabeler</a></td><td class="text-right">34.75</td><td class="text-right">88.3%</td></tr>
+  <tr><td><a href="src/Internal/PageResolver.php.html#19">Phpdftk\Pdf\Toolkit\Internal\PageResolver</a></td><td class="text-right">29.12</td><td class="text-right">67.5%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#26">Phpdftk\Pdf\Toolkit\TextExtractor</a></td><td class="text-right">22</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#31">Phpdftk\Pdf\Toolkit\PageSlicer</a></td><td class="text-right">20.27</td><td class="text-right">80.9%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#25">Phpdftk\Pdf\Toolkit\PdfMerger</a></td><td class="text-right">20.01</td><td class="text-right">81.6%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#13">Phpdftk\Pdf\Toolkit\PageSelector</a></td><td class="text-right">17</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/StampPosition.php.html#10">Phpdftk\Pdf\Toolkit\Stamper\StampPosition</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#12">Phpdftk\Pdf\Toolkit\TextSearchResults</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextBlock.php.html#10">Phpdftk\Pdf\Toolkit\TextBlock</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Bookmark/BookmarkEntry.php.html#13">Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Form/FieldInfo.php.html#10">Phpdftk\Pdf\Toolkit\Form\FieldInfo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataInfo.php.html#10">Phpdftk\Pdf\Toolkit\MetadataInfo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Redaction/RedactionArea.php.html#10">Phpdftk\Pdf\Toolkit\Redaction\RedactionArea</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/ImageStampStyle.php.html#14">Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/StampStyle.php.html#10">Phpdftk\Pdf\Toolkit\Stamper\StampStyle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/WatermarkStyle.php.html#10">Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextMatch.php.html#10">Phpdftk\Pdf\Toolkit\TextMatch</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Encryption/EncryptionMethod.php.html#16">Phpdftk\Pdf\Toolkit\Encryption\EncryptionMethod</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Encryption/Permission.php.html#12">Phpdftk\Pdf\Toolkit\Encryption\Permission</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Form/FieldType.php.html#10">Phpdftk\Pdf\Toolkit\Form\FieldType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Label/LabelStyle.php.html#10">Phpdftk\Pdf\Toolkit\Label\LabelStyle</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/PdfStamper.php.html#179"><circle cx="679.1" cy="79.4" r="20.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfStamper::toBytes — Coverage: 86.0% | Lines: 157 | Complexity: 41</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#95"><circle cx="583.2" cy="59.6" r="19.5" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::toBytes — Coverage: 72.7% | Lines: 150 | Complexity: 44</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#137"><circle cx="691.6" cy="270.8" r="12.1" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::toBytes — Coverage: 87.7% | Lines: 57 | Complexity: 12</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#264"><circle cx="374.2" cy="231.2" r="11.8" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::copyPage — Coverage: 43.6% | Lines: 55 | Complexity: 18</title></circle></a>
+ <a href="src/MetadataEditor.php.html#209"><circle cx="763.3" cy="290.6" r="10.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::toBytes — Coverage: 97.7% | Lines: 43 | Complexity: 9</title></circle></a>
+ <a href="src/PageTransformer.php.html#158"><circle cx="744.0" cy="270.8" r="10.1" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::toBytes — Coverage: 95.0% | Lines: 40 | Complexity: 12</title></circle></a>
+ <a href="src/TextRedactor.php.html#196"><circle cx="724.6" cy="290.6" r="10.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::toBytes — Coverage: 92.3% | Lines: 39 | Complexity: 9</title></circle></a>
+ <a href="src/PdfStamper.php.html#536"><circle cx="780.0" cy="303.8" r="9.6" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::buildXObjectOps — Coverage: 100.0% | Lines: 36 | Complexity: 7</title></circle></a>
+ <a href="src/LtvSigner.php.html#361"><circle cx="387.3" cy="284.0" r="9.2" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\LtvSigner::processSignature — Coverage: 45.5% | Lines: 33 | Complexity: 10</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#62"><circle cx="465.0" cy="264.2" r="9.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyPage — Coverage: 56.2% | Lines: 32 | Complexity: 13</title></circle></a>
+ <a href="src/TextRedactor.php.html#123"><circle cx="733.5" cy="277.4" r="8.9" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::apply — Coverage: 93.5% | Lines: 31 | Complexity: 11</title></circle></a>
+ <a href="src/PageLabeler.php.html#186"><circle cx="780.0" cy="303.8" r="8.7" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::toBytes — Coverage: 100.0% | Lines: 30 | Complexity: 7</title></circle></a>
+ <a href="src/LtvSigner.php.html#164"><circle cx="780.0" cy="290.6" r="8.6" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::toBytes — Coverage: 100.0% | Lines: 29 | Complexity: 9</title></circle></a>
+ <a href="src/FormFiller.php.html#303"><circle cx="600.0" cy="244.4" r="8.4" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller::walkField — Coverage: 75.0% | Lines: 28 | Complexity: 16</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#396"><circle cx="780.0" cy="290.6" r="8.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::createOutlineItems — Coverage: 100.0% | Lines: 27 | Complexity: 9</title></circle></a>
+ <a href="src/PdfStamper.php.html#485"><circle cx="780.0" cy="343.4" r="8.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::buildWatermarkOps — Coverage: 100.0% | Lines: 27 | Complexity: 1</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#164"><circle cx="281.5" cy="264.2" r="8.1" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::buildResources — Coverage: 30.8% | Lines: 26 | Complexity: 13</title></circle></a>
+ <a href="src/PdfStamper.php.html#627"><circle cx="530.8" cy="284.0" r="8.1" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfStamper::registerPdfPageXObject — Coverage: 65.4% | Lines: 26 | Complexity: 10</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#119"><circle cx="319.2" cy="317.0" r="8.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyIndirectObject — Coverage: 36.0% | Lines: 25 | Complexity: 5</title></circle></a>
+ <a href="src/LtvSigner.php.html#302"><circle cx="664.8" cy="264.2" r="8.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner::walkFieldForSignatures — Coverage: 84.0% | Lines: 25 | Complexity: 13</title></circle></a>
+ <a href="src/PdfMerger.php.html#113"><circle cx="780.0" cy="323.6" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfMerger::toBytes — Coverage: 100.0% | Lines: 23 | Complexity: 4</title></circle></a>
+ <a href="src/PdfStamper.php.html#445"><circle cx="780.0" cy="336.8" r="7.7" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::buildTextOps — Coverage: 100.0% | Lines: 23 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#152"><circle cx="780.0" cy="303.8" r="7.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::toBytes — Coverage: 100.0% | Lines: 22 | Complexity: 7</title></circle></a>
+ <a href="src/FormFiller.php.html#202"><circle cx="780.0" cy="310.4" r="7.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::toBytes — Coverage: 100.0% | Lines: 22 | Complexity: 6</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#272"><circle cx="704.2" cy="317.0" r="7.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::readOutlineChildren — Coverage: 89.5% | Lines: 19 | Complexity: 5</title></circle></a>
+ <a href="src/LtvSigner.php.html#264"><circle cx="666.3" cy="310.4" r="7.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner::discoverSignatures — Coverage: 84.2% | Lines: 19 | Complexity: 6</title></circle></a>
+ <a href="src/LtvSigner.php.html#439"><circle cx="700.0" cy="323.6" r="6.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner::updateCatalog — Coverage: 88.9% | Lines: 18 | Complexity: 4</title></circle></a>
+ <a href="src/FormFiller.php.html#270"><circle cx="610.6" cy="310.4" r="6.6" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller::discoverFields — Coverage: 76.5% | Lines: 17 | Complexity: 6</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#213"><circle cx="60.0" cy="310.4" r="6.6" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyResourceDict — Coverage: 0.0% | Lines: 17 | Complexity: 6</title></circle></a>
+ <a href="src/PageTransformer.php.html#277"><circle cx="600.0" cy="303.8" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::collectPageEntries — Coverage: 75.0% | Lines: 16 | Complexity: 7</title></circle></a>
+ <a href="src/PdfStamper.php.html#596"><circle cx="735.0" cy="323.6" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::registerImageXObject — Coverage: 93.8% | Lines: 16 | Complexity: 4</title></circle></a>
+ <a href="src/FormFiller.php.html#90"><circle cx="732.0" cy="330.2" r="6.2" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::getFieldInfo — Coverage: 93.3% | Lines: 15 | Complexity: 3</title></circle></a>
+ <a href="src/Internal/PageResolver.php.html#48"><circle cx="471.4" cy="310.4" r="6.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageResolver::getPageDimensions — Coverage: 57.1% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="src/PageSlicer.php.html#154"><circle cx="780.0" cy="343.4" r="6.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::toBytes — Coverage: 100.0% | Lines: 14 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#243"><circle cx="558.5" cy="303.8" r="5.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::collectPageRefs — Coverage: 69.2% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="src/Internal/PageResolver.php.html#74"><circle cx="558.5" cy="303.8" r="5.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageResolver::collectPageRefs — Coverage: 69.2% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="src/TextExtractor.php.html#135"><circle cx="780.0" cy="330.2" r="5.8" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::search — Coverage: 100.0% | Lines: 13 | Complexity: 3</title></circle></a>
+ <a href="src/PdfStamper.php.html#143"><circle cx="780.0" cy="323.6" r="5.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::stampPdf — Coverage: 100.0% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="src/TextExtractor.php.html#159"><circle cx="780.0" cy="323.6" r="5.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::searchPattern — Coverage: 100.0% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="src/FormFiller.php.html#445"><circle cx="583.6" cy="303.8" r="5.3" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller::extractOptions — Coverage: 72.7% | Lines: 11 | Complexity: 7</title></circle></a>
+ <a href="src/MetadataEditor.php.html#117"><circle cx="780.0" cy="343.4" r="5.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getAll — Coverage: 100.0% | Lines: 11 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#94"><circle cx="780.0" cy="323.6" r="5.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::setRomanNumerals — Coverage: 100.0% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="src/PageLabeler.php.html#120"><circle cx="780.0" cy="323.6" r="5.3" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::setAlphabetic — Coverage: 100.0% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="src/PageLabeler.php.html#144"><circle cx="256.4" cy="323.6" r="5.3" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageLabeler::setArabic — Coverage: 27.3% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#224"><circle cx="636.0" cy="330.2" r="5.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::collectPageReferences — Coverage: 80.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="src/FormFiller.php.html#373"><circle cx="348.0" cy="317.0" r="5.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\FormFiller::resolveFieldType — Coverage: 40.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#44"><circle cx="708.0" cy="330.2" r="5.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyPages — Coverage: 90.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="src/Internal/PageResolver.php.html#26"><circle cx="636.0" cy="330.2" r="5.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageResolver::getPageReferences — Coverage: 80.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="src/PageTransformer.php.html#255"><circle cx="636.0" cy="330.2" r="5.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::resolvePageEntries — Coverage: 80.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#82"><circle cx="700.0" cy="330.2" r="4.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::getBookmarks — Coverage: 88.9% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="src/MetadataEditor.php.html#321"><circle cx="620.0" cy="330.2" r="4.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::findStartxrefOffset — Coverage: 77.8% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="src/PageTransformer.php.html#325"><circle cx="620.0" cy="317.0" r="4.8" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::applyScaleTo — Coverage: 77.8% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#320"><circle cx="690.0" cy="310.4" r="4.5" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::resolveDestPageNumber — Coverage: 87.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#346"><circle cx="780.0" cy="323.6" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::resolveEffectiveBookmarks — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#367"><circle cx="690.0" cy="330.2" r="4.5" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::buildOutlineTree — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="src/FormFiller.php.html#416"><circle cx="330.0" cy="317.0" r="4.5" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\FormFiller::extractRect — Coverage: 37.5% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="src/Stamper/StampPosition.php.html#25"><circle cx="780.0" cy="297.2" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\StampPosition::computeCoordinates — Coverage: 100.0% | Lines: 8 | Complexity: 8</title></circle></a>
+ <a href="src/PageLabeler.php.html#77"><circle cx="780.0" cy="343.4" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::setLabels — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#54"><circle cx="780.0" cy="297.2" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::matches — Coverage: 100.0% | Lines: 7 | Complexity: 8</title></circle></a>
+ <a href="src/FormFiller.php.html#395"><circle cx="660.0" cy="330.2" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller::extractValue — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/PageSlicer.php.html#131"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::split — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#343"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::applySetBox — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#357"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::scaleBox — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#76"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::encrypt — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#79"><circle cx="660.0" cy="330.2" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfMerger::getTotalPageCount — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/TextExtractor.php.html#120"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::contains — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/MetadataEditor.php.html#107"><circle cx="636.0" cy="330.2" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getTrapped — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/MetadataEditor.php.html#302"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getStringField — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/PageSelector.php.html#71"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::resolve — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/PageTransformer.php.html#70"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::rotate — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#97"><circle cx="60.0" cy="330.2" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::changePasswords — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#251"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::copyStream — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#44"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfMerger::addFile — Coverage: 0.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="src/PdfMerger.php.html#60"><circle cx="636.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfMerger::addPages — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="src/TextExtractor.php.html#69"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::perPage — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="src/TextExtractor.php.html#103"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::allPagesWithPositions — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#46"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#86"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#59"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::open — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#111"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::setBookmarks — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#131"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::removeBookmarks — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#143"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#306"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::extractTitle — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#453"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::countAllEntries — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#466"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::cloneDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#475"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::wrapDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#59"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\FormFiller::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#119"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::getFieldValues — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#143"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::fill — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#168"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::check — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#180"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::select — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#193"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\FormFiller::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#407"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::extractFlags — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#433"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::extractMaxLen — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/LtvSigner.php.html#76"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner::open — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/LtvSigner.php.html#155"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\LtvSigner::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/MetadataEditor.php.html#49"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::open — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/MetadataEditor.php.html#200"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/MetadataEditor.php.html#312"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getDateField — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageLabeler.php.html#54"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageLabeler::open — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageLabeler.php.html#177"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageLabeler::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageLabeler.php.html#261"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::cloneDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageLabeler.php.html#270"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::wrapDictionary — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#48"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageSlicer::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageSlicer.php.html#86"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::remove — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#145"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageSlicer::save — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageTransformer.php.html#47"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageTransformer::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageTransformer.php.html#86"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::scale — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageTransformer.php.html#100"><circle cx="600.0" cy="330.2" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::scaleTo — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="src/PageTransformer.php.html#149"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageTransformer.php.html#307"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::applyRotate — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PageTransformer.php.html#315"><circle cx="780.0" cy="323.6" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::applyScale — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="src/PageTransformer.php.html#375"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::cloneDict — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#58"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#128"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::save — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfMerger.php.html#96"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfMerger::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfStamper.php.html#57"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfStamper::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfStamper.php.html#121"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::stampImage — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/PdfStamper.php.html#170"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PdfStamper::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/TextRedactor.php.html#57"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\TextRedactor::open — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/TextRedactor.php.html#108"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::setRedactionColor — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#187"><circle cx="600.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\TextRedactor::save — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#348"><circle cx="540.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::toFloat — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#157"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::fillMany — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/FormFiller.php.html#361"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::resolve — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/Internal/PageResolver.php.html#97"><circle cx="540.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\Internal\PageResolver::toFloat — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/LtvSigner.php.html#477"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::resolve — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/PageLabeler.php.html#166"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::removeLabels — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#112"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::reverse — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#367"><circle cx="540.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Toolkit\PageTransformer::numVal — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#90"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::decrypt — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#64"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenAll — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#70"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenType — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#76"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenForms — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#122"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::addBookmark — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#51"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#97"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\LtvSigner::setOcspClient — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#106"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\LtvSigner::setCrlClient — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#115"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::addOcspResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#124"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::addCrl — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#133"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::addCertificate — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#145"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::forSignature — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#136"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setTitle — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#142"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setAuthor — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#148"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setSubject — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#154"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setKeywords — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#160"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setCreator — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#166"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setProducer — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#172"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setCreationDate — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#178"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setModDate — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#184"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setTrapped — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#190"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::setCustom — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#66"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::keep — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#106"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::reorder — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#112"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::setCropBox — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#121"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::setMediaBox — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#130"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::setTrimBox — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#139"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::setBleedBox — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#108"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::setPermissions — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#118"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::isEncrypted — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#54"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfMerger::addString — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#75"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::stampText — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#85"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::watermark — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#94"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::addPageNumbers — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#81"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::redactText — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#87"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::redactPattern — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#102"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::redactArea — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#39"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#55"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#329"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#334"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnnotationFlattener.php.html#339"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\AnnotationFlattener::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Bookmark/BookmarkEntry.php.html#18"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#52"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#68"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#99"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::hasBookmarks — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#200"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#205"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/BookmarkEditor.php.html#210"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\BookmarkEditor::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Form/FieldInfo.php.html#21"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Form\FieldInfo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#68"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#82"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::getFieldNames — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#131"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::hasField — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#248"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\FormFiller::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#253"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/FormFiller.php.html#258"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\FormFiller::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Internal/PageCopier.php.html#32"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Internal\PageCopier::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#69"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#85"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#229"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::getVersionWarnings — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#239"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::getWarnings — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#244"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/LtvSigner.php.html#249"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\LtvSigner::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#42"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#58"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#67"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getTitle — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#72"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getAuthor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#77"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getSubject — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#82"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getKeywords — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#87"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getCreator — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#92"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getProducer — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#97"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getCreationDate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#102"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getModDate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#283"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#288"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataEditor.php.html#293"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataEditor::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MetadataInfo.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\MetadataInfo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#47"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#63"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#242"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageLabeler::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#247"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageLabeler.php.html#252"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageLabeler::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::all — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#28"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::pages — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#33"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::range — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#38"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::even — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSelector.php.html#43"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSelector::odd — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#41"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#57"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#72"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::keepPages — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#77"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::keepRange — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#94"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::removePages — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#182"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageSlicer::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#187"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageSlicer.php.html#192"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageSlicer::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#40"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#56"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#231"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PageTransformer::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#236"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PageTransformer.php.html#241"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PageTransformer::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#51"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#67"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#227"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#232"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfEncrypt.php.html#237"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfEncrypt::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#33"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfMerger::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#35"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfMerger::create — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#74"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfMerger::getSourceCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfMerger.php.html#153"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfMerger::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#50"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#66"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#104"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::header — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#109"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::footer — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#423"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\PdfStamper::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#428"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#433"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/PdfStamper.php.html#526"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\PdfStamper::escapeText — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Redaction/RedactionArea.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Redaction\RedactionArea::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/ImageStampStyle.php.html#16"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/StampStyle.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\StampStyle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Stamper/WatermarkStyle.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextBlock.php.html#12"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\TextBlock::__construct — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#28"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#32"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::open — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#37"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#51"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::page — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#59"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::allPages — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#93"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::pageWithPositions — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#184"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextExtractor.php.html#193"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextExtractor::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextMatch.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextMatch::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#50"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#66"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::openString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#178"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::getRedactionCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#267"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Pdf\Toolkit\TextRedactor::getVersionWarnings — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#272"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::getReader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextRedactor.php.html#277"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextRedactor::getPageCount — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextSearchResults.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextSearchResults.php.html#19"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults::count — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextSearchResults.php.html#25"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults::all — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextSearchResults.php.html#30"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults::first — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/TextSearchResults.php.html#36"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Toolkit\TextSearchResults::getIterator — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/AnnotationFlattener.php.html#95">Phpdftk\Pdf\Toolkit\AnnotationFlattener::toBytes</a></td><td class="text-right">83.54</td><td class="text-right">72.7%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#264">Phpdftk\Pdf\Toolkit\PdfEncrypt::copyPage</a></td><td class="text-right">76.02</td><td class="text-right">43.6%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#164">Phpdftk\Pdf\Toolkit\Internal\PageCopier::buildResources</a></td><td class="text-right">69.08</td><td class="text-right">30.8%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#179">Phpdftk\Pdf\Toolkit\PdfStamper::toBytes</a></td><td class="text-right">45.63</td><td class="text-right">86.0%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#213">Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyResourceDict</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#62">Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyPage</a></td><td class="text-right">27.15</td><td class="text-right">56.2%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#361">Phpdftk\Pdf\Toolkit\LtvSigner::processSignature</a></td><td class="text-right">26.23</td><td class="text-right">45.5%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#303">Phpdftk\Pdf\Toolkit\FormFiller::walkField</a></td><td class="text-right">20.00</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#627">Phpdftk\Pdf\Toolkit\PdfStamper::registerPdfPageXObject</a></td><td class="text-right">14.15</td><td class="text-right">65.4%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#302">Phpdftk\Pdf\Toolkit\LtvSigner::walkFieldForSignatures</a></td><td class="text-right">13.69</td><td class="text-right">84.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#137">Phpdftk\Pdf\Toolkit\PdfEncrypt::toBytes</a></td><td class="text-right">12.27</td><td class="text-right">87.7%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#158">Phpdftk\Pdf\Toolkit\PageTransformer::toBytes</a></td><td class="text-right">12</td><td class="text-right">95.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#97">Phpdftk\Pdf\Toolkit\PdfEncrypt::changePasswords</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#119">Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyIndirectObject</a></td><td class="text-right">11.55</td><td class="text-right">36.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#416">Phpdftk\Pdf\Toolkit\FormFiller::extractRect</a></td><td class="text-right">11.10</td><td class="text-right">37.5%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#123">Phpdftk\Pdf\Toolkit\TextRedactor::apply</a></td><td class="text-right">11.03</td><td class="text-right">93.5%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#373">Phpdftk\Pdf\Toolkit\FormFiller::resolveFieldType</a></td><td class="text-right">10.40</td><td class="text-right">40.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#144">Phpdftk\Pdf\Toolkit\PageLabeler::setArabic</a></td><td class="text-right">10.15</td><td class="text-right">27.3%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#196">Phpdftk\Pdf\Toolkit\TextRedactor::toBytes</a></td><td class="text-right">9.04</td><td class="text-right">92.3%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#396">Phpdftk\Pdf\Toolkit\BookmarkEditor::createOutlineItems</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#164">Phpdftk\Pdf\Toolkit\LtvSigner::toBytes</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#209">Phpdftk\Pdf\Toolkit\MetadataEditor::toBytes</a></td><td class="text-right">9</td><td class="text-right">97.7%</td></tr>
+  <tr><td><a href="src/Internal/PageResolver.php.html#48">Phpdftk\Pdf\Toolkit\Internal\PageResolver::getPageDimensions</a></td><td class="text-right">8.83</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#243">Phpdftk\Pdf\Toolkit\BookmarkEditor::collectPageRefs</a></td><td class="text-right">8.43</td><td class="text-right">69.2%</td></tr>
+  <tr><td><a href="src/Internal/PageResolver.php.html#74">Phpdftk\Pdf\Toolkit\Internal\PageResolver::collectPageRefs</a></td><td class="text-right">8.43</td><td class="text-right">69.2%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#54">Phpdftk\Pdf\Toolkit\PageSelector::matches</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/StampPosition.php.html#25">Phpdftk\Pdf\Toolkit\Stamper\StampPosition::computeCoordinates</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#445">Phpdftk\Pdf\Toolkit\FormFiller::extractOptions</a></td><td class="text-right">7.99</td><td class="text-right">72.7%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#277">Phpdftk\Pdf\Toolkit\PageTransformer::collectPageEntries</a></td><td class="text-right">7.77</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#152">Phpdftk\Pdf\Toolkit\BookmarkEditor::toBytes</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#186">Phpdftk\Pdf\Toolkit\PageLabeler::toBytes</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#536">Phpdftk\Pdf\Toolkit\PdfStamper::buildXObjectOps</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#270">Phpdftk\Pdf\Toolkit\FormFiller::discoverFields</a></td><td class="text-right">6.47</td><td class="text-right">76.5%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#264">Phpdftk\Pdf\Toolkit\LtvSigner::discoverSignatures</a></td><td class="text-right">6.14</td><td class="text-right">84.2%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#320">Phpdftk\Pdf\Toolkit\BookmarkEditor::resolveDestPageNumber</a></td><td class="text-right">6.07</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#46">Phpdftk\Pdf\Toolkit\AnnotationFlattener::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#59">Phpdftk\Pdf\Toolkit\FormFiller::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#202">Phpdftk\Pdf\Toolkit\FormFiller::toBytes</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#48">Phpdftk\Pdf\Toolkit\PageSlicer::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#145">Phpdftk\Pdf\Toolkit\PageSlicer::save</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#47">Phpdftk\Pdf\Toolkit\PageTransformer::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#58">Phpdftk\Pdf\Toolkit\PdfEncrypt::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#128">Phpdftk\Pdf\Toolkit\PdfEncrypt::save</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#44">Phpdftk\Pdf\Toolkit\PdfMerger::addFile</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#57">Phpdftk\Pdf\Toolkit\PdfStamper::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#57">Phpdftk\Pdf\Toolkit\TextRedactor::open</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#325">Phpdftk\Pdf\Toolkit\PageTransformer::applyScaleTo</a></td><td class="text-right">5.27</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#272">Phpdftk\Pdf\Toolkit\BookmarkEditor::readOutlineChildren</a></td><td class="text-right">5.03</td><td class="text-right">89.5%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#439">Phpdftk\Pdf\Toolkit\LtvSigner::updateCatalog</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#346">Phpdftk\Pdf\Toolkit\BookmarkEditor::resolveEffectiveBookmarks</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#94">Phpdftk\Pdf\Toolkit\PageLabeler::setRomanNumerals</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#120">Phpdftk\Pdf\Toolkit\PageLabeler::setAlphabetic</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#315">Phpdftk\Pdf\Toolkit\PageTransformer::applyScale</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#113">Phpdftk\Pdf\Toolkit\PdfMerger::toBytes</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#143">Phpdftk\Pdf\Toolkit\PdfStamper::stampPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#596">Phpdftk\Pdf\Toolkit\PdfStamper::registerImageXObject</a></td><td class="text-right">4.00</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#159">Phpdftk\Pdf\Toolkit\TextExtractor::searchPattern</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#100">Phpdftk\Pdf\Toolkit\PageTransformer::scaleTo</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#321">Phpdftk\Pdf\Toolkit\MetadataEditor::findStartxrefOffset</a></td><td class="text-right">3.10</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#224">Phpdftk\Pdf\Toolkit\BookmarkEditor::collectPageReferences</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Internal/PageResolver.php.html#26">Phpdftk\Pdf\Toolkit\Internal\PageResolver::getPageReferences</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#107">Phpdftk\Pdf\Toolkit\MetadataEditor::getTrapped</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#255">Phpdftk\Pdf\Toolkit\PageTransformer::resolvePageEntries</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#395">Phpdftk\Pdf\Toolkit\FormFiller::extractValue</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#79">Phpdftk\Pdf\Toolkit\PdfMerger::getTotalPageCount</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#367">Phpdftk\Pdf\Toolkit\BookmarkEditor::buildOutlineTree</a></td><td class="text-right">3.02</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#82">Phpdftk\Pdf\Toolkit\BookmarkEditor::getBookmarks</a></td><td class="text-right">3.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#44">Phpdftk\Pdf\Toolkit\Internal\PageCopier::copyPages</a></td><td class="text-right">3.01</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#90">Phpdftk\Pdf\Toolkit\FormFiller::getFieldInfo</a></td><td class="text-right">3.00</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#302">Phpdftk\Pdf\Toolkit\MetadataEditor::getStringField</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#71">Phpdftk\Pdf\Toolkit\PageSelector::resolve</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#120">Phpdftk\Pdf\Toolkit\TextExtractor::contains</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#135">Phpdftk\Pdf\Toolkit\TextExtractor::search</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#348">Phpdftk\Pdf\Toolkit\AnnotationFlattener::toFloat</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Internal/PageResolver.php.html#97">Phpdftk\Pdf\Toolkit\Internal\PageResolver::toFloat</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#367">Phpdftk\Pdf\Toolkit\PageTransformer::numVal</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#86">Phpdftk\Pdf\Toolkit\AnnotationFlattener::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#59">Phpdftk\Pdf\Toolkit\BookmarkEditor::open</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#143">Phpdftk\Pdf\Toolkit\BookmarkEditor::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#306">Phpdftk\Pdf\Toolkit\BookmarkEditor::extractTitle</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#193">Phpdftk\Pdf\Toolkit\FormFiller::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#76">Phpdftk\Pdf\Toolkit\LtvSigner::open</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#155">Phpdftk\Pdf\Toolkit\LtvSigner::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#49">Phpdftk\Pdf\Toolkit\MetadataEditor::open</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#200">Phpdftk\Pdf\Toolkit\MetadataEditor::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#312">Phpdftk\Pdf\Toolkit\MetadataEditor::getDateField</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#54">Phpdftk\Pdf\Toolkit\PageLabeler::open</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#177">Phpdftk\Pdf\Toolkit\PageLabeler::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#149">Phpdftk\Pdf\Toolkit\PageTransformer::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#96">Phpdftk\Pdf\Toolkit\PdfMerger::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#170">Phpdftk\Pdf\Toolkit\PdfStamper::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#187">Phpdftk\Pdf\Toolkit\TextRedactor::save</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#60">Phpdftk\Pdf\Toolkit\PdfMerger::addPages</a></td><td class="text-right">2.03</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#70">Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenType</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#76">Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenForms</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#329">Phpdftk\Pdf\Toolkit\AnnotationFlattener::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#200">Phpdftk\Pdf\Toolkit\BookmarkEditor::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#453">Phpdftk\Pdf\Toolkit\BookmarkEditor::countAllEntries</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#466">Phpdftk\Pdf\Toolkit\BookmarkEditor::cloneDictionary</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#119">Phpdftk\Pdf\Toolkit\FormFiller::getFieldValues</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#143">Phpdftk\Pdf\Toolkit\FormFiller::fill</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#157">Phpdftk\Pdf\Toolkit\FormFiller::fillMany</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#168">Phpdftk\Pdf\Toolkit\FormFiller::check</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#180">Phpdftk\Pdf\Toolkit\FormFiller::select</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#248">Phpdftk\Pdf\Toolkit\FormFiller::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#361">Phpdftk\Pdf\Toolkit\FormFiller::resolve</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#407">Phpdftk\Pdf\Toolkit\FormFiller::extractFlags</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#433">Phpdftk\Pdf\Toolkit\FormFiller::extractMaxLen</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#97">Phpdftk\Pdf\Toolkit\LtvSigner::setOcspClient</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#106">Phpdftk\Pdf\Toolkit\LtvSigner::setCrlClient</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#477">Phpdftk\Pdf\Toolkit\LtvSigner::resolve</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#160">Phpdftk\Pdf\Toolkit\MetadataEditor::setCreator</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#166">Phpdftk\Pdf\Toolkit\MetadataEditor::setProducer</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#172">Phpdftk\Pdf\Toolkit\MetadataEditor::setCreationDate</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#178">Phpdftk\Pdf\Toolkit\MetadataEditor::setModDate</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#184">Phpdftk\Pdf\Toolkit\MetadataEditor::setTrapped</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#283">Phpdftk\Pdf\Toolkit\MetadataEditor::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#242">Phpdftk\Pdf\Toolkit\PageLabeler::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#261">Phpdftk\Pdf\Toolkit\PageLabeler::cloneDictionary</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#182">Phpdftk\Pdf\Toolkit\PageSlicer::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#70">Phpdftk\Pdf\Toolkit\PageTransformer::rotate</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#86">Phpdftk\Pdf\Toolkit\PageTransformer::scale</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#231">Phpdftk\Pdf\Toolkit\PageTransformer::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#307">Phpdftk\Pdf\Toolkit\PageTransformer::applyRotate</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#375">Phpdftk\Pdf\Toolkit\PageTransformer::cloneDict</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#108">Phpdftk\Pdf\Toolkit\PdfEncrypt::setPermissions</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#227">Phpdftk\Pdf\Toolkit\PdfEncrypt::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#153">Phpdftk\Pdf\Toolkit\PdfMerger::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#121">Phpdftk\Pdf\Toolkit\PdfStamper::stampImage</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#423">Phpdftk\Pdf\Toolkit\PdfStamper::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#445">Phpdftk\Pdf\Toolkit\PdfStamper::buildTextOps</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextBlock.php.html#12">Phpdftk\Pdf\Toolkit\TextBlock::__construct</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#69">Phpdftk\Pdf\Toolkit\TextExtractor::perPage</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#103">Phpdftk\Pdf\Toolkit\TextExtractor::allPagesWithPositions</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#267">Phpdftk\Pdf\Toolkit\TextRedactor::getVersionWarnings</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#39">Phpdftk\Pdf\Toolkit\AnnotationFlattener::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#55">Phpdftk\Pdf\Toolkit\AnnotationFlattener::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#64">Phpdftk\Pdf\Toolkit\AnnotationFlattener::flattenAll</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#334">Phpdftk\Pdf\Toolkit\AnnotationFlattener::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnnotationFlattener.php.html#339">Phpdftk\Pdf\Toolkit\AnnotationFlattener::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Bookmark/BookmarkEntry.php.html#18">Phpdftk\Pdf\Toolkit\Bookmark\BookmarkEntry::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#52">Phpdftk\Pdf\Toolkit\BookmarkEditor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#68">Phpdftk\Pdf\Toolkit\BookmarkEditor::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#99">Phpdftk\Pdf\Toolkit\BookmarkEditor::hasBookmarks</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#111">Phpdftk\Pdf\Toolkit\BookmarkEditor::setBookmarks</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#122">Phpdftk\Pdf\Toolkit\BookmarkEditor::addBookmark</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#131">Phpdftk\Pdf\Toolkit\BookmarkEditor::removeBookmarks</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#205">Phpdftk\Pdf\Toolkit\BookmarkEditor::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#210">Phpdftk\Pdf\Toolkit\BookmarkEditor::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/BookmarkEditor.php.html#475">Phpdftk\Pdf\Toolkit\BookmarkEditor::wrapDictionary</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Form/FieldInfo.php.html#21">Phpdftk\Pdf\Toolkit\Form\FieldInfo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#51">Phpdftk\Pdf\Toolkit\FormFiller::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#68">Phpdftk\Pdf\Toolkit\FormFiller::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#82">Phpdftk\Pdf\Toolkit\FormFiller::getFieldNames</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#131">Phpdftk\Pdf\Toolkit\FormFiller::hasField</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#253">Phpdftk\Pdf\Toolkit\FormFiller::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/FormFiller.php.html#258">Phpdftk\Pdf\Toolkit\FormFiller::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Internal/PageCopier.php.html#32">Phpdftk\Pdf\Toolkit\Internal\PageCopier::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#69">Phpdftk\Pdf\Toolkit\LtvSigner::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#85">Phpdftk\Pdf\Toolkit\LtvSigner::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#115">Phpdftk\Pdf\Toolkit\LtvSigner::addOcspResponse</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#124">Phpdftk\Pdf\Toolkit\LtvSigner::addCrl</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#133">Phpdftk\Pdf\Toolkit\LtvSigner::addCertificate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#145">Phpdftk\Pdf\Toolkit\LtvSigner::forSignature</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#229">Phpdftk\Pdf\Toolkit\LtvSigner::getVersionWarnings</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#239">Phpdftk\Pdf\Toolkit\LtvSigner::getWarnings</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#244">Phpdftk\Pdf\Toolkit\LtvSigner::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/LtvSigner.php.html#249">Phpdftk\Pdf\Toolkit\LtvSigner::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#42">Phpdftk\Pdf\Toolkit\MetadataEditor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#58">Phpdftk\Pdf\Toolkit\MetadataEditor::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#67">Phpdftk\Pdf\Toolkit\MetadataEditor::getTitle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#72">Phpdftk\Pdf\Toolkit\MetadataEditor::getAuthor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#77">Phpdftk\Pdf\Toolkit\MetadataEditor::getSubject</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#82">Phpdftk\Pdf\Toolkit\MetadataEditor::getKeywords</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#87">Phpdftk\Pdf\Toolkit\MetadataEditor::getCreator</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#92">Phpdftk\Pdf\Toolkit\MetadataEditor::getProducer</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#97">Phpdftk\Pdf\Toolkit\MetadataEditor::getCreationDate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#102">Phpdftk\Pdf\Toolkit\MetadataEditor::getModDate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#117">Phpdftk\Pdf\Toolkit\MetadataEditor::getAll</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#136">Phpdftk\Pdf\Toolkit\MetadataEditor::setTitle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#142">Phpdftk\Pdf\Toolkit\MetadataEditor::setAuthor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#148">Phpdftk\Pdf\Toolkit\MetadataEditor::setSubject</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#154">Phpdftk\Pdf\Toolkit\MetadataEditor::setKeywords</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#190">Phpdftk\Pdf\Toolkit\MetadataEditor::setCustom</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#288">Phpdftk\Pdf\Toolkit\MetadataEditor::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataEditor.php.html#293">Phpdftk\Pdf\Toolkit\MetadataEditor::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MetadataInfo.php.html#12">Phpdftk\Pdf\Toolkit\MetadataInfo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#47">Phpdftk\Pdf\Toolkit\PageLabeler::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#63">Phpdftk\Pdf\Toolkit\PageLabeler::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#77">Phpdftk\Pdf\Toolkit\PageLabeler::setLabels</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#166">Phpdftk\Pdf\Toolkit\PageLabeler::removeLabels</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#247">Phpdftk\Pdf\Toolkit\PageLabeler::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#252">Phpdftk\Pdf\Toolkit\PageLabeler::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageLabeler.php.html#270">Phpdftk\Pdf\Toolkit\PageLabeler::wrapDictionary</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#15">Phpdftk\Pdf\Toolkit\PageSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#23">Phpdftk\Pdf\Toolkit\PageSelector::all</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#28">Phpdftk\Pdf\Toolkit\PageSelector::pages</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#33">Phpdftk\Pdf\Toolkit\PageSelector::range</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#38">Phpdftk\Pdf\Toolkit\PageSelector::even</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSelector.php.html#43">Phpdftk\Pdf\Toolkit\PageSelector::odd</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#41">Phpdftk\Pdf\Toolkit\PageSlicer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#57">Phpdftk\Pdf\Toolkit\PageSlicer::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#66">Phpdftk\Pdf\Toolkit\PageSlicer::keep</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#72">Phpdftk\Pdf\Toolkit\PageSlicer::keepPages</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#77">Phpdftk\Pdf\Toolkit\PageSlicer::keepRange</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#86">Phpdftk\Pdf\Toolkit\PageSlicer::remove</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#94">Phpdftk\Pdf\Toolkit\PageSlicer::removePages</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#106">Phpdftk\Pdf\Toolkit\PageSlicer::reorder</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#112">Phpdftk\Pdf\Toolkit\PageSlicer::reverse</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#131">Phpdftk\Pdf\Toolkit\PageSlicer::split</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#154">Phpdftk\Pdf\Toolkit\PageSlicer::toBytes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#187">Phpdftk\Pdf\Toolkit\PageSlicer::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageSlicer.php.html#192">Phpdftk\Pdf\Toolkit\PageSlicer::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#40">Phpdftk\Pdf\Toolkit\PageTransformer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#56">Phpdftk\Pdf\Toolkit\PageTransformer::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#112">Phpdftk\Pdf\Toolkit\PageTransformer::setCropBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#121">Phpdftk\Pdf\Toolkit\PageTransformer::setMediaBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#130">Phpdftk\Pdf\Toolkit\PageTransformer::setTrimBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#139">Phpdftk\Pdf\Toolkit\PageTransformer::setBleedBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#236">Phpdftk\Pdf\Toolkit\PageTransformer::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#241">Phpdftk\Pdf\Toolkit\PageTransformer::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#343">Phpdftk\Pdf\Toolkit\PageTransformer::applySetBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PageTransformer.php.html#357">Phpdftk\Pdf\Toolkit\PageTransformer::scaleBox</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#51">Phpdftk\Pdf\Toolkit\PdfEncrypt::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#67">Phpdftk\Pdf\Toolkit\PdfEncrypt::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#76">Phpdftk\Pdf\Toolkit\PdfEncrypt::encrypt</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#90">Phpdftk\Pdf\Toolkit\PdfEncrypt::decrypt</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#118">Phpdftk\Pdf\Toolkit\PdfEncrypt::isEncrypted</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#232">Phpdftk\Pdf\Toolkit\PdfEncrypt::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#237">Phpdftk\Pdf\Toolkit\PdfEncrypt::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfEncrypt.php.html#251">Phpdftk\Pdf\Toolkit\PdfEncrypt::copyStream</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#33">Phpdftk\Pdf\Toolkit\PdfMerger::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#35">Phpdftk\Pdf\Toolkit\PdfMerger::create</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#54">Phpdftk\Pdf\Toolkit\PdfMerger::addString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfMerger.php.html#74">Phpdftk\Pdf\Toolkit\PdfMerger::getSourceCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#50">Phpdftk\Pdf\Toolkit\PdfStamper::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#66">Phpdftk\Pdf\Toolkit\PdfStamper::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#75">Phpdftk\Pdf\Toolkit\PdfStamper::stampText</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#85">Phpdftk\Pdf\Toolkit\PdfStamper::watermark</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#94">Phpdftk\Pdf\Toolkit\PdfStamper::addPageNumbers</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#104">Phpdftk\Pdf\Toolkit\PdfStamper::header</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#109">Phpdftk\Pdf\Toolkit\PdfStamper::footer</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#428">Phpdftk\Pdf\Toolkit\PdfStamper::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#433">Phpdftk\Pdf\Toolkit\PdfStamper::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#485">Phpdftk\Pdf\Toolkit\PdfStamper::buildWatermarkOps</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/PdfStamper.php.html#526">Phpdftk\Pdf\Toolkit\PdfStamper::escapeText</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Redaction/RedactionArea.php.html#12">Phpdftk\Pdf\Toolkit\Redaction\RedactionArea::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/ImageStampStyle.php.html#16">Phpdftk\Pdf\Toolkit\Stamper\ImageStampStyle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/StampStyle.php.html#12">Phpdftk\Pdf\Toolkit\Stamper\StampStyle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Stamper/WatermarkStyle.php.html#12">Phpdftk\Pdf\Toolkit\Stamper\WatermarkStyle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#28">Phpdftk\Pdf\Toolkit\TextExtractor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#32">Phpdftk\Pdf\Toolkit\TextExtractor::open</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#37">Phpdftk\Pdf\Toolkit\TextExtractor::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#51">Phpdftk\Pdf\Toolkit\TextExtractor::page</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#59">Phpdftk\Pdf\Toolkit\TextExtractor::allPages</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#93">Phpdftk\Pdf\Toolkit\TextExtractor::pageWithPositions</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#184">Phpdftk\Pdf\Toolkit\TextExtractor::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextExtractor.php.html#193">Phpdftk\Pdf\Toolkit\TextExtractor::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextMatch.php.html#12">Phpdftk\Pdf\Toolkit\TextMatch::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#50">Phpdftk\Pdf\Toolkit\TextRedactor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#66">Phpdftk\Pdf\Toolkit\TextRedactor::openString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#81">Phpdftk\Pdf\Toolkit\TextRedactor::redactText</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#87">Phpdftk\Pdf\Toolkit\TextRedactor::redactPattern</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#102">Phpdftk\Pdf\Toolkit\TextRedactor::redactArea</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#108">Phpdftk\Pdf\Toolkit\TextRedactor::setRedactionColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#178">Phpdftk\Pdf\Toolkit\TextRedactor::getRedactionCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#272">Phpdftk\Pdf\Toolkit\TextRedactor::getReader</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextRedactor.php.html#277">Phpdftk\Pdf\Toolkit\TextRedactor::getPageCount</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#15">Phpdftk\Pdf\Toolkit\TextSearchResults::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#19">Phpdftk\Pdf\Toolkit\TextSearchResults::count</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#25">Phpdftk\Pdf\Toolkit\TextSearchResults::all</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#30">Phpdftk\Pdf\Toolkit\TextSearchResults::first</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/TextSearchResults.php.html#36">Phpdftk\Pdf\Toolkit\TextSearchResults::getIterator</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.1.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 13.1.8</a> at Fri May 8 20:53:14 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>
