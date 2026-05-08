@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+            <title>phpdftk API Documentation</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="../">
+    <link rel="icon" href="images/favicon.ico"/>
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/base.css">
+            <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@100;200;300;400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="css/template.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.0/css/all.min.css" integrity="sha256-ybRkN9dBjhcS2qrW1z+hfCxq+1aBdwyQM5wlQoQVt/0=" crossorigin="anonymous" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-okaidia.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-numbers/prism-line-numbers.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-highlight/prism-line-highlight.css">
+                <script src="https://cdn.jsdelivr.net/npm/fuse.js@3.4.6"></script>
+        <script src="https://cdn.jsdelivr.net/npm/css-vars-ponyfill@2"></script>
+        <script src="js/template.js"></script>
+        <script src="js/search.js"></script>
+        <script defer src="js/searchIndex.js"></script>
+    </head>
+<body id="top">
+    <header class="phpdocumentor-header phpdocumentor-section">
+    <h1 class="phpdocumentor-title"><a href="" class="phpdocumentor-title__link">phpdftk API Documentation</a></h1>
+    <input class="phpdocumentor-header__menu-button" type="checkbox" id="menu-button" name="menu-button" />
+    <label class="phpdocumentor-header__menu-icon" for="menu-button">
+        <i class="fas fa-bars"></i>
+    </label>
+    <section data-search-form class="phpdocumentor-search">
+    <label>
+        <span class="visually-hidden">Search for</span>
+        <svg class="phpdocumentor-search__icon" width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="2"/>
+            <line x1="12.4892" y1="12.2727" x2="19.1559" y2="18.9393" stroke="currentColor" stroke-width="3"/>
+        </svg>
+        <input type="search" class="phpdocumentor-field phpdocumentor-search__field" placeholder="Loading .." disabled />
+    </label>
+</section>
+
+    <nav class="phpdocumentor-topnav">
+    <ul class="phpdocumentor-topnav__menu">
+        </ul>
+</nav>
+</header>
+
+    <main class="phpdocumentor">
+        <div class="phpdocumentor-section">
+            <input class="phpdocumentor-sidebar__menu-button" type="checkbox" id="sidebar-button" name="sidebar-button" />
+<label class="phpdocumentor-sidebar__menu-icon" for="sidebar-button">
+    Menu
+</label>
+<aside class="phpdocumentor-column -three phpdocumentor-sidebar">
+                    <section class="phpdocumentor-sidebar__category -namespaces">
+            <h2 class="phpdocumentor-sidebar__category-header">Namespaces</h2>
+                                    <h4 class="phpdocumentor-sidebar__root-namespace">
+    <a href="namespaces/phpdftk.html" class="">Phpdftk</a>
+</h4>
+    <ul class="phpdocumentor-list">
+                    <li>
+                <a href="namespaces/phpdftk-color.html" class="">Color</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-crypt.html" class="">Crypt</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-encoding.html" class="">Encoding</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-filters.html" class="">Filters</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-fontmetrics.html" class="">FontMetrics</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-fontparser.html" class="">FontParser</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-geometry.html" class="">Geometry</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-imagemetadata.html" class="">ImageMetadata</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-pdf.html" class="">Pdf</a>
+                
+            </li>
+                    <li>
+                <a href="namespaces/phpdftk-xmp.html" class="">Xmp</a>
+                
+            </li>
+            </ul>
+
+                        </section>
+                <section class="phpdocumentor-sidebar__category -packages">
+            <h2 class="phpdocumentor-sidebar__category-header">Packages</h2>
+                                    <h4 class="phpdocumentor-sidebar__root-namespace">
+    <a href="packages/phpdftk.html" class="">phpdftk</a>
+</h4>
+
+                        </section>
+            
+    <section class="phpdocumentor-sidebar__category -reports">
+        <h2 class="phpdocumentor-sidebar__category-header">Reports</h2>
+                <h3 class="phpdocumentor-sidebar__root-package"><a href="graphs/classes.html">Class Diagram</a></h3>
+                <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/deprecated.html">Deprecated</a></h3>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/errors.html">Errors</a></h3>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="reports/markers.html">Markers</a></h3>
+    </section>
+
+    <section class="phpdocumentor-sidebar__category -indices">
+        <h2 class="phpdocumentor-sidebar__category-header">Indices</h2>
+        <h3 class="phpdocumentor-sidebar__root-package"><a href="indices/files.html">Files</a></h3>
+    </section>
+</aside>
+
+            <div class="phpdocumentor-column -nine phpdocumentor-content">
+                                <section>
+                                        <ul class="phpdocumentor-breadcrumbs">
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk.html">Phpdftk</a></li>
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk-pdf.html">Pdf</a></li>
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk-pdf-core.html">Core</a></li>
+            <li class="phpdocumentor-breadcrumb"><a href="namespaces/phpdftk-pdf-core-file.html">File</a></li>
+    </ul>
+
+    <article class="phpdocumentor-element -class">
+        <h2 class="phpdocumentor-content__title">
+    PdfFileWriter
+
+    
+            <div class="phpdocumentor-element__package">
+            in package
+            <ul class="phpdocumentor-breadcrumbs">
+                                    <li class="phpdocumentor-breadcrumb"><a href="packages/phpdftk.html">phpdftk</a></li>
+                            </ul>
+        </div>
+    
+    
+    </h2>
+
+<div class="phpdocumentor-label-line">
+
+
+</div>
+
+        <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">43</span>
+
+    </aside>
+
+            <p class="phpdocumentor-summary">Byte-level PDF file emitter — ISO 32000-2 §7.5.</p>
+
+
+    <section class="phpdocumentor-description"><p>Given a <a href="classes/Phpdftk-Pdf-Core-Document-Catalog.html"><abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr></a> root, an <a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a> (optional), a working
+<a href="classes/Phpdftk-Pdf-Core-File-ObjectRegistry.html"><abbr title="\Phpdftk\Pdf\Core\File\ObjectRegistry">ObjectRegistry</abbr></a>, and optionally a signer, <code class="prettyprint">generate()</code> produces
+the exact bytes of a spec-compliant PDF file: header, binary comment,
+indirect-object body, cross-reference table, trailer, <code class="prettyprint">startxref</code>,
+<code class="prettyprint">%%EOF</code>. With a signer configured, the output is post-processed to
+compute <code class="prettyprint">/ByteRange</code> and patch <code class="prettyprint">/Contents</code> in place.</p>
+<p>This class deliberately knows nothing about pages, fonts, resources,
+or any other high-level document assembly concern. Those live in
+<code class="prettyprint">Phpdftk\Pdf\Writer\PdfWriter</code>, which composes an instance of this
+class.</p>
+</section>
+
+
+
+    
+    
+<h3 id="toc">
+    Table of Contents
+    <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#toc" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h3>
+
+
+
+
+
+
+
+<h4 id="toc-constants">
+    Constants
+    <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#toc-constants" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h4>
+<dl class="phpdocumentor-table-of-contents">
+            <dt class="phpdocumentor-table-of-contents__entry -constant -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_PDF_VERSION">DEFAULT_PDF_VERSION</a>
+    <span>
+        &nbsp;= \Phpdftk\Pdf\Core\PdfVersion::V1_7                            </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -constant -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_VERSION">DEFAULT_VERSION</a>
+    <span>
+        &nbsp;= &#039;1.7&#039;                            </span>
+</dt>
+
+    </dl>
+
+
+
+<h4 id="toc-methods">
+    Methods
+    <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#toc-methods" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h4>
+<dl class="phpdocumentor-table-of-contents">
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method___construct">__construct()</a>
+    <span>
+                                &nbsp;: mixed    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generate">generate()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Generate the complete PDF as a binary string.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generateLinearized">generateLinearized()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Generate a linearized (web-optimized) PDF per ISO 32000-2 Annex F.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getInfo">getInfo()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a>|null    </span>
+</dt>
+<dd>Return the Info dict, if set.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getPdfVersion">getPdfVersion()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getRegistry">getRegistry()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-File-ObjectRegistry.html"><abbr title="\Phpdftk\Pdf\Core\File\ObjectRegistry">ObjectRegistry</abbr></a>    </span>
+</dt>
+<dd>The underlying object registry. Exposed so callers that want
+fine-grained control over registration order can drive it
+directly. Most callers should use {@see register()}.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersion">getVersion()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersionWarnings">getVersionWarnings()</a>
+    <span>
+                                &nbsp;: array&lt;int, string&gt;    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_register">register()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a>    </span>
+</dt>
+<dd>Register any PdfObject and return a reference to it.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_save">save()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Write the generated PDF to a file, creating parent directories
+as needed.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCatalog">setCatalog()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a>    </span>
+</dt>
+<dd>Register the document catalog and return its reference. The
+catalog becomes the `/Root` of the emitted file.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCeilingVersion">setCeilingVersion()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Set a ceiling version — properties requiring a higher version are
+silently stripped (set to null) during registration. Objects whose
+class-level requirement exceeds the ceiling throw CeilingVersionException.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCompressStreams">setCompressStreams()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Enable or disable automatic FlateDecode compression of streams
+that have no filter already set.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setDeprecationHandler">setDeprecationHandler()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setEncryption">setEncryption()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Configure encryption for the generated PDF.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setInfo">setInfo()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Set the document info dict. Pass null to clear. Registers the
+object if non-null.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setSigner">setSigner()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Configure a signer. After calling this, {@see generate()} will:</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictDeprecation">setStrictDeprecation()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictVersionMode">setStrictVersionMode()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTimestamper">setTimestamper()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Configure a document-level timestamp using a TSA client.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTsaClient">setTsaClient()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+<dd>Configure a TSA client for RFC 3161 timestamping.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setVersion">setVersion()</a>
+    <span>
+                                &nbsp;: void    </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_toBytes">toBytes()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Alias for {@see generate()} — returns the raw PDF bytes as a string.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_writeTo">writeTo()</a>
+    <span>
+                                &nbsp;: int    </span>
+</dt>
+<dd>Write the generated PDF to an open stream resource (anything
+`fwrite()` accepts: a file handle, `php://memory`, `php://output`,
+a socket, …). Returns the number of bytes written.</dd>
+
+    </dl>
+
+
+
+        
+    <section class="phpdocumentor-constants">
+        <h3 class="phpdocumentor-elements__header" id="constants">
+            Constants
+            <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constants" class="headerlink"><i class="fas fa-link"></i></a>
+
+        </h3>
+                    <article class="phpdocumentor-element -constant -public ">
+    <h4 class="phpdocumentor-element__name" id="constant_DEFAULT_PDF_VERSION">
+        DEFAULT_PDF_VERSION
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_PDF_VERSION" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">46</span>
+
+    </aside>
+
+    
+    
+    <code class="phpdocumentor-signature phpdocumentor-code ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+        <span class="phpdocumentor-signature__type">mixed</span>
+    <span class="phpdocumentor-signature__name">DEFAULT_PDF_VERSION</span>
+    = <span class="phpdocumentor-signature__default-value">\Phpdftk\Pdf\Core\PdfVersion::V1_7</span>
+</code>
+
+
+    
+    
+    
+
+        
+    </article>
+                    <article class="phpdocumentor-element -constant -public ">
+    <h4 class="phpdocumentor-element__name" id="constant_DEFAULT_VERSION">
+        DEFAULT_VERSION
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_VERSION" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">45</span>
+
+    </aside>
+
+    
+    
+    <code class="phpdocumentor-signature phpdocumentor-code ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+        <span class="phpdocumentor-signature__type">mixed</span>
+    <span class="phpdocumentor-signature__name">DEFAULT_VERSION</span>
+    = <span class="phpdocumentor-signature__default-value">&#039;1.7&#039;</span>
+</code>
+
+
+    
+    
+    
+
+        
+    </article>
+            </section>
+
+        
+
+            <section class="phpdocumentor-methods">
+        <h3 class="phpdocumentor-elements__header" id="methods">
+            Methods
+            <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#methods" class="headerlink"><i class="fas fa-link"></i></a>
+
+        </h3>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method___construct">
+        __construct()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method___construct" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">72</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">__construct</span><span>(</span><span class="phpdocumentor-signature__argument"><span>[</span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$compressStreams</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$useXRefStream</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$useObjectStreams</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$version</span><span> = </span><span class="phpdocumentor-signature__argument__default-value"><abbr title="\self::DEFAULT_PDF_VERSION">self::DEFAULT_PDF_VERSION</abbr></span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">mixed</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$compressStreams</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$useXRefStream</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">false</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$useObjectStreams</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">false</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$version</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value"><abbr title="\self::DEFAULT_PDF_VERSION">self::DEFAULT_PDF_VERSION</abbr></span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_generate">
+        generate()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generate" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">332</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Generate the complete PDF as a binary string.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">generate</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Assembles the file as an array of string chunks and implodes once at
+the end -- this is O(N) in total output size, whereas repeated string
+concatenation would be O(N^2) because PHP copies the growing string
+on every <code class="prettyprint">.=</code>.</p>
+<p>The chunk order follows ISO 32000-2 section 7.5:</p>
+<ol>
+<li>%PDF-X.Y header</li>
+<li>Binary comment (%\xE2\xE3\xCF\xD3) so transfer tools treat
+the file as binary rather than ASCII</li>
+<li>Indirect-object body (one chunk per registered object)</li>
+<li>Cross-reference table (or xref stream for PDF &gt;= 1.5)</li>
+<li>Trailer dictionary</li>
+<li>startxref pointer</li>
+<li>%%EOF marker</li>
+</ol>
+<p>When a signer is configured, the serialized bytes are post-processed
+by <abbr title="\Phpdftk\Pdf\Core\File\applySignature()">applySignature()</abbr> to fill /ByteRange and /Contents.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_generateLinearized">
+        generateLinearized()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generateLinearized" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">591</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Generate a linearized (web-optimized) PDF per ISO 32000-2 Annex F.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">generateLinearized</span><span>(</span><span class="phpdocumentor-signature__argument"><span>[</span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$firstPageObjectNumbers</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Linearized PDFs place the first page's objects at the front of the
+file so a viewer can display it before downloading the rest. The
+structure is:</p>
+<ol>
+<li>Header + linearization parameters dict (object 1)</li>
+<li>First-page cross-reference section</li>
+<li>Catalog, page tree, first page, and its resources</li>
+<li>Hint stream</li>
+<li>Remaining pages and objects</li>
+<li>Main cross-reference section + trailer</li>
+</ol>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$firstPageObjectNumbers</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, int&gt;</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">[]</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Object numbers belonging to the first page
+(page, content streams, fonts, images).
+If empty, auto-detected from object order.</p>
+</section>
+
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getInfo">
+        getInfo()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getInfo" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">210</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Return the Info dict, if set.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getInfo</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a>|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a>|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getPdfVersion">
+        getPdfVersion()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getPdfVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">135</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getPdfVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getRegistry">
+        getRegistry()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getRegistry" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">125</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">The underlying object registry. Exposed so callers that want
+fine-grained control over registration order can drive it
+directly. Most callers should use {@see register()}.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getRegistry</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-File-ObjectRegistry.html"><abbr title="\Phpdftk\Pdf\Core\File\ObjectRegistry">ObjectRegistry</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-File-ObjectRegistry.html"><abbr title="\Phpdftk\Pdf\Core\File\ObjectRegistry">ObjectRegistry</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getVersion">
+        getVersion()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">130</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getVersion</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getVersionWarnings">
+        getVersionWarnings()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersionWarnings" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">163</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getVersionWarnings</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_register">
+        register()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_register" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">218</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Register any PdfObject and return a reference to it.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">register</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfObject.html"><abbr title="\Phpdftk\Pdf\Core\PdfObject">PdfObject</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$object</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$object</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfObject.html"><abbr title="\Phpdftk\Pdf\Core\PdfObject">PdfObject</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_save">
+        save()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_save" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">1037</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Write the generated PDF to a file, creating parent directories
+as needed.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">save</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$path</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$path</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setCatalog">
+        setCatalog()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCatalog" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">188</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Register the document catalog and return its reference. The
+catalog becomes the `/Root` of the emitted file.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setCatalog</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Document-Catalog.html"><abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$catalog</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$catalog</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Document-Catalog.html"><abbr title="\Phpdftk\Pdf\Core\Document\Catalog">Catalog</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-PdfReference.html"><abbr title="\Phpdftk\Pdf\Core\PdfReference">PdfReference</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setCeilingVersion">
+        setCeilingVersion()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCeilingVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">175</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Set a ceiling version — properties requiring a higher version are
+silently stripped (set to null) during registration. Objects whose
+class-level requirement exceeds the ceiling throw CeilingVersionException.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setCeilingVersion</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ceiling</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Mutually exclusive with strict mode — setting a ceiling disables strict.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$ceiling</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|null</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setCompressStreams">
+        setCompressStreams()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCompressStreams" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">92</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Enable or disable automatic FlateDecode compression of streams
+that have no filter already set.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setCompressStreams</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$compress</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$compress</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setDeprecationHandler">
+        setDeprecationHandler()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setDeprecationHandler" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">152</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setDeprecationHandler</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><abbr title="\Closure">Closure</abbr>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$handler</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$handler</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><abbr title="\Closure">Closure</abbr></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setEncryption">
+        setEncryption()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setEncryption" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">106</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Configure encryption for the generated PDF.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setEncryption</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Security-PdfEncryptor.html"><abbr title="\Phpdftk\Pdf\Core\Security\PdfEncryptor">PdfEncryptor</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$encryptor</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>The encrypt dictionary is registered as an indirect object and
+referenced from the trailer. All string values and stream data
+are encrypted per-object during generation.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$encryptor</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Security-PdfEncryptor.html"><abbr title="\Phpdftk\Pdf\Core\Security\PdfEncryptor">PdfEncryptor</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>A configured encryptor (use PdfEncryptor::rc4128() or ::aes128())</p>
+</section>
+
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setInfo">
+        setInfo()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setInfo" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">200</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Set the document info dict. Pass null to clear. Registers the
+object if non-null.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setInfo</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$info</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$info</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Document-Info.html"><abbr title="\Phpdftk\Pdf\Core\Document\Info">Info</abbr></a>|null</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setSigner">
+        setSigner()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setSigner" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">243</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Configure a signer. After calling this, {@see generate()} will:</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setSigner</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-SignatureValue.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue">SignatureValue</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$signatureValue</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-Pkcs7Signer.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer">Pkcs7Signer</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$signer</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$placeholderBytes</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">8192</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><ol>
+<li>Serialize the document with a fixed-size <code class="prettyprint">/Contents</code> hex
+placeholder and a 4-element <code class="prettyprint">/ByteRange</code> of zero-padded
+10-digit slots inside <code class="prettyprint">$signatureValue</code>.</li>
+<li>Locate the placeholders in the serialized bytes.</li>
+<li>Patch <code class="prettyprint">/ByteRange</code> with the real offsets (same byte length).</li>
+<li>Feed the two byte ranges to <code class="prettyprint">$signer</code> to produce a PKCS#7
+SignedData blob.</li>
+<li>Patch <code class="prettyprint">/Contents</code> with the DER bytes (hex-encoded, zero-padded
+to the placeholder length).</li>
+</ol>
+<p><code class="prettyprint">$signatureValue</code> must already be registered as an indirect object
+and referenced by a <code class="prettyprint">SignatureField::$v</code> (directly or via
+reference). <code class="prettyprint">$placeholderBytes</code> bounds the maximum signature size
+— 8 KiB is more than enough for typical RSA/ECDSA PKCS#7 blobs.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$signatureValue</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-SignatureValue.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue">SignatureValue</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$signer</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-Pkcs7Signer.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer">Pkcs7Signer</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$placeholderBytes</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">8192</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setStrictDeprecation">
+        setStrictDeprecation()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictDeprecation" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">157</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setStrictDeprecation</span><span>(</span><span class="phpdocumentor-signature__argument"><span>[</span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setStrictVersionMode">
+        setStrictVersionMode()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictVersionMode" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">147</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setStrictVersionMode</span><span>(</span><span class="phpdocumentor-signature__argument"><span>[</span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$strict</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$strict</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setTimestamper">
+        setTimestamper()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTimestamper" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">277</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Configure a document-level timestamp using a TSA client.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setTimestamper</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-SignatureValue.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue">SignatureValue</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$docTimeStamp</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-TsaClient.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\TsaClient">TsaClient</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$tsaClient</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$placeholderBytes</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">16384</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>This is the timestamp equivalent of <abbr title="\Phpdftk\Pdf\Core\File\setSigner()">setSigner()</abbr>: it installs
+a DocTimeStamp signature value and TSA client, then patches
+/ByteRange and /Contents at generation time with the RFC 3161
+timestamp token from the TSA.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$docTimeStamp</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-SignatureValue.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\SignatureValue">SignatureValue</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>A DocTimeStamp instance to hold the token</p>
+</section>
+
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$tsaClient</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-TsaClient.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\TsaClient">TsaClient</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>The TSA client to request the token from</p>
+</section>
+
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$placeholderBytes</span>
+                : <span class="phpdocumentor-argument-list__argument__type">int</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">16384</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Size of the /Contents placeholder</p>
+</section>
+
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setTsaClient">
+        setTsaClient()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTsaClient" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">306</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Configure a TSA client for RFC 3161 timestamping.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setTsaClient</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-TsaClient.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\TsaClient">TsaClient</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$tsaClient</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>When set alongside a signer, the timestamp token will be embedded
+in the PKCS#7 signature. When set without a signer (with a
+DocTimeStamp signature value), produces a document-level timestamp.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$tsaClient</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Interactive-Signature-TsaClient.html"><abbr title="\Phpdftk\Pdf\Core\Interactive\Signature\TsaClient">TsaClient</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_setVersion">
+        setVersion()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setVersion" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">140</span>
+
+    </aside>
+
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">setVersion</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$version</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">void</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$version</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>|string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+    
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_toBytes">
+        toBytes()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_toBytes" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">1006</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Alias for {@see generate()} — returns the raw PDF bytes as a string.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">toBytes</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_writeTo">
+        writeTo()
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_writeTo" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/PdfFileWriter.php"><a href="files/packages-pdf-core-src-file-pdffilewriter.html"><abbr title="packages/pdf/core/src/File/PdfFileWriter.php">PdfFileWriter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">1018</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Write the generated PDF to an open stream resource (anything
+`fwrite()` accepts: a file handle, `php://memory`, `php://output`,
+a socket, …). Returns the number of bytes written.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">writeTo</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">resource&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stream</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">int</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$stream</span>
+                : <span class="phpdocumentor-argument-list__argument__type">resource</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">int</span>
+            </section>
+
+</article>
+            </section>
+
+        <div class="phpdocumentor-modal" id="source-view">
+    <div class="phpdocumentor-modal-bg" data-exit-button></div>
+    <div class="phpdocumentor-modal-container">
+        <div class="phpdocumentor-modal-content">
+            <pre style="max-height: 500px; overflow-y: scroll" data-src="files/packages/pdf/core/src/File/PdfFileWriter.php.txt" class="language-php line-numbers linkable-line-numbers"></pre>
+        </div>
+        <button data-exit-button class="phpdocumentor-modal__close">&times;</button>
+    </div>
+</div>
+
+    <script type="text/javascript">
+        (function () {
+            function loadExternalCodeSnippet(el, url, line) {
+                Array.prototype.slice.call(el.querySelectorAll('pre[data-src]')).forEach((pre) => {
+                    const src = url || pre.getAttribute('data-src').replace(/\\/g, '/');
+                    const language = 'php';
+
+                    const code = document.createElement('code');
+                    code.className = 'language-' + language;
+                    pre.textContent = '';
+                    pre.setAttribute('data-line', line)
+                    code.textContent = 'Loading…';
+                    pre.appendChild(code);
+
+                    var xhr = new XMLHttpRequest();
+
+                    xhr.open('GET', src, true);
+
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState !== 4) {
+                            return;
+                        }
+
+                        if (xhr.status < 400 && xhr.responseText) {
+                            code.textContent = xhr.responseText;
+                            Prism.highlightElement(code);
+                            d=document.getElementsByClassName("line-numbers");
+                            d[0].scrollTop = d[0].children[1].offsetTop;
+                            return;
+                        }
+
+                        if (xhr.status === 404) {
+                            code.textContent = '✖ Error: File could not be found';
+                            return;
+                        }
+
+                        if (xhr.status >= 400) {
+                            code.textContent = '✖ Error ' + xhr.status + ' while fetching file: ' + xhr.statusText;
+                            return;
+                        }
+
+                        code.textContent = '✖ Error: An unknown error occurred';
+                    };
+
+                    xhr.send(null);
+                });
+            }
+
+            const modalButtons = document.querySelectorAll("[data-modal]");
+            const openedAsLocalFile = window.location.protocol === 'file:';
+            if (modalButtons.length > 0 && openedAsLocalFile) {
+                console.warn(
+                    'Viewing the source code is unavailable because you are opening this page from the file:// scheme; ' +
+                    'browsers block XHR requests when a page is opened this way'
+                );
+            }
+
+            modalButtons.forEach(function (trigger) {
+                if (openedAsLocalFile) {
+                    trigger.setAttribute("hidden", "hidden");
+                }
+
+                trigger.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    const modal = document.getElementById(trigger.dataset.modal);
+                    if (!modal) {
+                        console.error(`Modal with id "${trigger.dataset.modal}" could not be found`);
+                        return;
+                    }
+                    modal.classList.add("phpdocumentor-modal__open");
+
+                    loadExternalCodeSnippet(modal, trigger.dataset.src || null, trigger.dataset.line)
+                    const exits = modal.querySelectorAll("[data-exit-button]");
+                    exits.forEach(function (exit) {
+                        exit.addEventListener("click", function (event) {
+                            event.preventDefault();
+                            modal.classList.remove("phpdocumentor-modal__open");
+                        });
+                    });
+                });
+            });
+        })();
+    </script>
+
+    </article>
+                                </section>
+                <section class="phpdocumentor-on-this-page__sidebar">
+                                
+    <section class="phpdocumentor-on-this-page__content">
+        <strong class="phpdocumentor-on-this-page__title">On this page</strong>
+
+        <ul class="phpdocumentor-list -clean">
+            <li class="phpdocumentor-on-this-page-section__title">Table Of Contents</li>
+            <li>
+                <ul class="phpdocumentor-list -clean">
+                                        <li><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#toc-constants">Constants</a></li>
+                                                                                <li><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#toc-methods">Methods</a></li>
+                                    </ul>
+            </li>
+                            <li class="phpdocumentor-on-this-page-section__title">Constants</li>
+                <li>
+                    <ul class="phpdocumentor-list -clean">
+                                                    <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_PDF_VERSION">DEFAULT_PDF_VERSION</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#constant_DEFAULT_VERSION">DEFAULT_VERSION</a></li>
+                                            </ul>
+                </li>
+            
+            
+                        <li class="phpdocumentor-on-this-page-section__title">Methods</li>
+            <li>
+                <ul class="phpdocumentor-list -clean">
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method___construct">__construct()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generate">generate()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_generateLinearized">generateLinearized()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getInfo">getInfo()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getPdfVersion">getPdfVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getRegistry">getRegistry()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersion">getVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_getVersionWarnings">getVersionWarnings()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_register">register()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_save">save()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCatalog">setCatalog()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCeilingVersion">setCeilingVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setCompressStreams">setCompressStreams()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setDeprecationHandler">setDeprecationHandler()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setEncryption">setEncryption()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setInfo">setInfo()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setSigner">setSigner()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictDeprecation">setStrictDeprecation()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setStrictVersionMode">setStrictVersionMode()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTimestamper">setTimestamper()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setTsaClient">setTsaClient()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_setVersion">setVersion()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_toBytes">toBytes()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#method_writeTo">writeTo()</a></li>
+                                    </ul>
+            </li>
+                    </ul>
+    </section>
+
+                </section>
+                            </div>
+            <section data-search-results class="phpdocumentor-search-results phpdocumentor-search-results--hidden">
+    <section class="phpdocumentor-search-results__dialog">
+        <header class="phpdocumentor-search-results__header">
+            <h2 class="phpdocumentor-search-results__title">Search results</h2>
+            <button class="phpdocumentor-search-results__close"><i class="fas fa-times"></i></button>
+        </header>
+        <section class="phpdocumentor-search-results__body">
+            <ul class="phpdocumentor-search-results__entries"></ul>
+        </section>
+    </section>
+</section>
+        </div>
+        <a href="classes/Phpdftk-Pdf-Core-File-PdfFileWriter.html#top" class="phpdocumentor-back-to-top"><i class="fas fa-chevron-circle-up"></i></a>
+
+    </main>
+
+    <script>
+        cssVars({});
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/plugins/line-highlight/prism-line-highlight.min.js"></script>
+</body>
+</html>
