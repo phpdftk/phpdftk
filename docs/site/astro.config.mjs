@@ -61,7 +61,8 @@ export default defineConfig({
 					items: [
 						{ label: 'Overview', slug: 'conformance/overview' },
 						{ label: 'ISO Standards', slug: 'conformance/iso-standards' },
-						{ label: 'Compliance Report', slug: 'conformance/compliance' },
+						{ label: 'Compliance', slug: 'conformance/compliance' },
+						{ label: 'Latest Report', slug: 'conformance/report' },
 					],
 				},
 				{

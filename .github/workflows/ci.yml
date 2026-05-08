@@ -405,6 +405,41 @@ jobs:
           name: compliance-report
           path: docs/generated/compliance.md
 
+      - name: Publish to _compliance branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin _compliance:refs/remotes/origin/_compliance 2>/dev/null || true
+
+          if git rev-parse --verify origin/_compliance >/dev/null 2>&1; then
+            git worktree add compliance-branch origin/_compliance
+            cd compliance-branch
+            git checkout -B _compliance origin/_compliance
+          else
+            git worktree add --detach compliance-branch
+            cd compliance-branch
+            git checkout --orphan _compliance
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          DIR="${GITHUB_REF#refs/heads/}/${GITHUB_SHA}"
+          mkdir -p "$DIR"
+          cp ../docs/generated/compliance.md "$DIR/compliance.md"
+
+          # `latest/compliance.md` always points at the most recent main run
+          # so consumers (the docs job) have a stable URL to fetch.
+          mkdir -p latest
+          cp ../docs/generated/compliance.md latest/compliance.md
+
+          git add .
+          git commit -m "compliance: $DIR" --allow-empty
+          git push origin _compliance
+
+      - name: Cleanup worktree
+        if: always()
+        run: git worktree remove compliance-branch --force 2>/dev/null || true
+
   validate:
     runs-on: ubuntu-latest
 
@@ -456,6 +491,29 @@ jobs:
 
       - name: Copy API docs to docs site
         run: cp -r build/phpdoc docs/site/public/api
+
+      - name: Embed latest compliance report
+        run: |
+          # Pull latest/compliance.md from the _compliance branch (populated
+          # by the compliance job on every main push). On tag deploys this
+          # surfaces the most recent main-branch report — there's no
+          # per-tag compliance run today, so the same report rides along.
+          # If _compliance hasn't been created yet (first run), skip silently.
+          if git fetch origin _compliance:refs/remotes/origin/_compliance 2>/dev/null \
+             && git show "origin/_compliance:latest/compliance.md" > /tmp/compliance.md 2>/dev/null; then
+            {
+              echo '---'
+              echo 'title: Compliance Report'
+              echo 'description: Auto-generated test results from QPDF, veraPDF, Arlington, Matterhorn, and JHOVE.'
+              echo '---'
+              echo
+              # Drop the generated file's H1 — Starlight renders the title from frontmatter.
+              tail -n +2 /tmp/compliance.md
+            } > docs/site/src/content/docs/conformance/report.md
+            echo "Embedded compliance report ($(wc -l < /tmp/compliance.md) lines)"
+          else
+            echo "No _compliance branch yet — skipping report embed"
+          fi
 
       - name: Install site dependencies
         run: cd docs/site && npm ci
