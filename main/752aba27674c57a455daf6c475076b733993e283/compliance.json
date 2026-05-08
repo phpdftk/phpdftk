@@ -1,0 +1,80 @@
+{
+    "generated_at": "2026-05-08 15:29:34 UTC",
+    "php_version": "8.4.21",
+    "overall_status": "PASS",
+    "totals": {
+        "tests": 1444,
+        "passed": 1438,
+        "failed": 0,
+        "skipped": 6,
+        "time_s": 90.206
+    },
+    "suites": {
+        "qpdf": {
+            "label": "QPDF",
+            "tier": 1,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 236,
+            "passed": 232,
+            "failed": 0,
+            "skipped": 4,
+            "time_s": 30.774
+        },
+        "arlington": {
+            "label": "Arlington PDF Model",
+            "tier": 1,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 6,
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0,
+            "time_s": 1.292
+        },
+        "verapdf": {
+            "label": "veraPDF",
+            "tier": 1,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 4,
+            "passed": 3,
+            "failed": 0,
+            "skipped": 1,
+            "time_s": 19.77
+        },
+        "tier2": {
+            "label": "Test Corpora",
+            "tier": 2,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 1167,
+            "passed": 1167,
+            "failed": 0,
+            "skipped": 0,
+            "time_s": 18.754
+        },
+        "tier3": {
+            "label": "Matterhorn (PDF/UA)",
+            "tier": 3,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 6,
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0,
+            "time_s": 11.231
+        },
+        "tier4": {
+            "label": "JHOVE + PDF 2.0 + Security + Preflight",
+            "tier": 4,
+            "tool_available": true,
+            "status": "PASS",
+            "tests": 25,
+            "passed": 24,
+            "failed": 0,
+            "skipped": 1,
+            "time_s": 8.384
+        }
+    }
+}
