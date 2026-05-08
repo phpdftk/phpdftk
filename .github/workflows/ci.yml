@@ -568,7 +568,7 @@ jobs:
               });
             }
 
-      - name: Enforce coverage and benchmark thresholds
+      - name: Enforce gate thresholds
         # Runs after the comment posts so the verdict is visible to reviewers
         # before the check goes red.
         run: |
