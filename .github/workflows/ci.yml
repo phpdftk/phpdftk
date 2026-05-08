@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload coverage artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: build/coverage/
@@ -183,7 +183,7 @@ jobs:
           ' > build/coverage/coverage.json
 
       - name: Upload coverage.json for PR aggregator
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-json
           path: build/coverage/coverage.json
@@ -266,7 +266,7 @@ jobs:
         run: composer phpdoc -- --all
 
       - name: Upload phpdoc artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: phpdoc
           path: build/phpdoc/
@@ -375,7 +375,7 @@ jobs:
         # Always upload so the PR-report aggregator can render the comment
         # even when the compliance gate (parse-compliance.php) failed the job.
         if: always() && hashFiles('docs/generated/compliance.json') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compliance-report
           path: |
@@ -445,7 +445,7 @@ jobs:
         run: composer benchmark
 
       - name: Upload benchmark report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-report
           path: |
