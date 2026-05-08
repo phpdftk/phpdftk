@@ -127,27 +127,27 @@ echo "Available tools: ${TOOLS:-none}"
 echo ""
 
 echo "Running QPDF validation tests..."
-vendor/bin/phpunit --group qpdf --log-junit build/compliance/qpdf.xml || true
+vendor/bin/phpunit --no-coverage --group qpdf --log-junit build/compliance/qpdf.xml || true
 echo ""
 
 echo "Running Arlington validation tests..."
-vendor/bin/phpunit --group arlington --log-junit build/compliance/arlington.xml || true
+vendor/bin/phpunit --no-coverage --group arlington --log-junit build/compliance/arlington.xml || true
 echo ""
 
 echo "Running veraPDF validation tests..."
-vendor/bin/phpunit --group verapdf --exclude-group tier3 --log-junit build/compliance/verapdf.xml || true
+vendor/bin/phpunit --no-coverage --group verapdf --exclude-group tier3 --log-junit build/compliance/verapdf.xml || true
 echo ""
 
 echo "Running Tier 2 corpus tests..."
-vendor/bin/phpunit --group tier2 --log-junit build/compliance/tier2.xml || true
+vendor/bin/phpunit --no-coverage --group tier2 --log-junit build/compliance/tier2.xml || true
 echo ""
 
 echo "Running Tier 3 Matterhorn tests..."
-vendor/bin/phpunit --group tier3 --log-junit build/compliance/tier3.xml || true
+vendor/bin/phpunit --no-coverage --group tier3 --log-junit build/compliance/tier3.xml || true
 echo ""
 
 echo "Running Tier 4 tests..."
-vendor/bin/phpunit --group tier4 --log-junit build/compliance/tier4.xml || true
+vendor/bin/phpunit --no-coverage --group tier4 --log-junit build/compliance/tier4.xml || true
 echo ""
 
 echo "Generating docs/generated/compliance.md..."
