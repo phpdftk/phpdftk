@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/phpdftk/phpdftk/security/advisories/new
+    about: Please report security issues privately via GitHub Security Advisories — do not open a public issue. See SECURITY.md.
+  - name: Documentation site
+    url: https://phpdftk.dev
+    about: Browse the docs site before filing a usage question.
+  - name: Discussions
+    url: https://github.com/phpdftk/phpdftk/discussions
+    about: For open-ended questions, design discussions, or showing off what you built.
