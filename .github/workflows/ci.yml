@@ -745,7 +745,7 @@ jobs:
           git push origin _docs
 
       - name: Upload aggregated _docs tree as Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs-branch
 
