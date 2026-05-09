@@ -23,7 +23,7 @@ PdfEncrypt::open('plain.pdf')
     ->encrypt(
         userPassword: 'reader',
         ownerPassword: 'admin',
-        method: EncryptionMethod::Aes256,
+        method: EncryptionMethod::Aes128,    // also: Aes256 (PDF 2.0), Rc4128, Rc440
         permissions: Permission::PRINT | Permission::COPY,
     )
     ->save('encrypted.pdf');

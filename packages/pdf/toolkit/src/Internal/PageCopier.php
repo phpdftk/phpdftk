@@ -126,10 +126,17 @@ final class PageCopier
         $resolved = $this->reader->resolveReference($ref);
 
         if ($resolved instanceof PdfStream) {
-            $newStream = new class ($resolved) extends PdfStream {
-                public function __construct(PdfStream $source)
+            // PdfReader returns decoded stream data, so the dictionary's
+            // /Filter and /DecodeParms entries no longer describe the bytes
+            // we're about to write. Strip them — PdfStream::toPdf() will
+            // re-set /Length to the unencoded byte count.
+            $newDict = clone $resolved->dictionary;
+            unset($newDict->entries['Filter'], $newDict->entries['DecodeParms'], $newDict->entries['DP']);
+
+            $newStream = new class ($newDict, $resolved->data) extends PdfStream {
+                public function __construct(PdfDictionary $dict, string $data)
                 {
-                    parent::__construct(clone $source->dictionary, $source->data);
+                    parent::__construct($dict, $data);
                 }
             };
             $this->writer->register($newStream);

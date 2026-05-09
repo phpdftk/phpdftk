@@ -22,7 +22,7 @@ const { source, pdf, inputPdf, outputPdf, region = 'example', lang = 'php' } = A
 
 const downloads: { label: string; href: string }[] = [];
 if (pdf) {
-	downloads.push({ label: '📄 Download the sample PDF', href: `/${pdf.replace(/^\//, '')}` });
+	downloads.push({ label: '📄 View the sample PDF', href: `/${pdf.replace(/^\//, '')}` });
 }
 if (inputPdf) {
 	downloads.push({ label: '📥 Input PDF', href: `/${inputPdf.replace(/^\//, '')}` });
@@ -76,13 +76,13 @@ const sourceUrl = `https://github.com/phpdftk/phpdftk/blob/main/examples/${sourc
 <Code code={code} lang={lang} />
 
 <p class="example-links">
-	{downloads.map((dl, i) => (
+	{downloads.map((dl) => (
 		<>
-			<a href={dl.href} download>{dl.label}</a>
-			{(i < downloads.length - 1 || true) && ' · '}
+			<a href={dl.href} target="_blank" rel="noopener noreferrer">{dl.label}</a>
+			{' · '}
 		</>
 	))}
-	<a href={sourceUrl}>View the full script on GitHub ↗</a>
+	<a href={sourceUrl} target="_blank" rel="noopener noreferrer">View the full script on GitHub ↗</a>
 </p>
 
 <style>

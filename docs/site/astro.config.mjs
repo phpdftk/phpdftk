@@ -100,7 +100,7 @@ export default defineConfig({
 						{
 							label: 'Performance',
 							items: [
-								{ label: 'Performance Overview', slug: 'standards/performance/overview' },
+								{ label: 'Performance', slug: 'standards/performance/overview' },
 								{ label: 'Latest Benchmarks', slug: 'standards/performance/benchmarks' },
 							],
 						},
