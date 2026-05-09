@@ -1,0 +1,21 @@
+---
+title: API Reference
+description: Auto-generated phpDocumentor API reference for every public class, method, and property in phpdftk.
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+The full API reference is generated from PHPDoc on every commit by
+[phpDocumentor](https://www.phpdoc.org/) and deployed alongside this site.
+
+<LinkCard
+	title="Open the API Reference"
+	description="Combined documentation for all 15 packages — classes, interfaces, traits, methods, and properties."
+	href={`${import.meta.env.BASE_URL}api/`}
+/>
+
+## How it's generated
+
+Run locally with `composer phpdoc`. The output lands in `build/phpdoc/`.
+CI publishes per-commit and per-tag snapshots to the `_phpdoc` orphan branch,
+and bundles the latest combined output into this site.

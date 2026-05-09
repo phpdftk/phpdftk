@@ -104,6 +104,13 @@ export default defineConfig({
 								{ label: 'Latest Benchmarks', slug: 'standards/performance/benchmarks' },
 							],
 						},
+						{ label: 'Code Coverage', slug: 'standards/coverage' },
+					],
+				},
+				{
+					label: 'API Reference',
+					items: [
+						{ label: 'Overview', slug: 'api-reference' },
 					],
 				},
 			],
