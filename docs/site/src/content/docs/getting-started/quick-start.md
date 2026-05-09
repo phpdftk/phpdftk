@@ -66,6 +66,6 @@ foreach ($results as $match) {
 
 ## Next steps
 
-- [API Levels](/writing/api-levels/) — understand the three-level architecture
-- [Performance](/reference/performance/) — benchmark comparisons
-- [Packages](/reference/packages/) — the full package map
+- [Choose Your API](/writing/api-levels/) — understand the three-level architecture
+- [Performance](/standards/performance/overview/) — benchmark comparisons
+- [Packages](/design/packages/) — the full package map

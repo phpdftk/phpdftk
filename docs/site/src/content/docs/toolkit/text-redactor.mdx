@@ -1,0 +1,118 @@
+---
+title: Text Redactor
+description: Redact text or areas from PDF pages by drawing filled rectangles.
+---
+
+import Example from '../../../components/Example.astro';
+
+`TextRedactor` draws opaque rectangles over sensitive content. It supports both coordinate-based area redaction and text-search-based redaction. Redactions must be explicitly applied before saving.
+
+**Note:** This is visual redaction -- the underlying text bytes remain in the PDF stream data. The redaction rectangles visually obscure content but do not remove it from the file.
+
+## End-to-end example
+
+<Example
+	source="toolkit/text-redactor.php"
+	inputPdf="samples/toolkit/text-redactor/input.pdf"
+	outputPdf="samples/toolkit/text-redactor/output.pdf"
+/>
+
+## Opening a PDF
+
+```php
+use Phpdftk\Pdf\Toolkit\TextRedactor;
+
+// From file
+$redactor = TextRedactor::open('contract.pdf');
+
+// From string
+$redactor = TextRedactor::openString($pdfBytes);
+
+// Encrypted PDF
+$redactor = TextRedactor::open('secured.pdf', password: 'secret');
+```
+
+## Area redaction
+
+Specify a rectangle by page number (1-based), x, y, width, and height in points:
+
+```php
+$redactor->redactArea(1, 72, 700, 200, 20);  // page 1
+$redactor->redactArea(2, 100, 500, 150, 14); // page 2
+```
+
+## Text redaction
+
+### Literal string
+
+Search for a literal string and redact all occurrences:
+
+```php
+$redactor->redactText('John Smith');
+```
+
+Restrict to specific pages:
+
+```php
+use Phpdftk\Pdf\Toolkit\PageSelector;
+
+$redactor->redactText('SSN: 123-45-6789', PageSelector::pages(1));
+```
+
+### Regex pattern
+
+```php
+$redactor->redactPattern('/\d{3}-\d{2}-\d{4}/'); // SSN pattern
+$redactor->redactPattern('/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i'); // email
+```
+
+## Redaction color
+
+The default color is black. Change it before applying:
+
+```php
+$redactor->setRedactionColor(1.0, 1.0, 1.0); // white
+$redactor->setRedactionColor(0.5, 0.5, 0.5); // gray
+```
+
+## Applying and saving
+
+Redactions are staged until `apply()` is called. This two-step process lets you review the redaction count before committing:
+
+```php
+$redactor
+    ->redactText('CONFIDENTIAL')
+    ->redactArea(1, 72, 700, 200, 20)
+    ->apply();
+
+echo $redactor->getRedactionCount(); // number of redaction rectangles
+
+$redactor->save('redacted.pdf');
+```
+
+Calling `save()` or `toBytes()` without first calling `apply()` will throw a `RuntimeException`.
+
+## Complete example
+
+```php
+TextRedactor::open('contract.pdf')
+    ->redactText('Jane Doe')
+    ->redactPattern('/\d{3}-\d{2}-\d{4}/')
+    ->redactArea(3, 50, 600, 300, 30)
+    ->setRedactionColor(0.0, 0.0, 0.0)
+    ->apply()
+    ->save('redacted.pdf');
+```
+
+## Document info
+
+```php
+$redactor->getPageCount();     // int
+$redactor->getRedactionCount(); // int (after apply)
+```
+
+## Escape hatch
+
+```php
+$reader = $redactor->getReader(); // PdfReader
+```

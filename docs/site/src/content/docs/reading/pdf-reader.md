@@ -85,6 +85,8 @@ $text = $pdf->extractText(0);
 $allText = $pdf->extractAllText("\n\n");
 ```
 
+For per-page access, search, and a friendlier 1-based API, see [Working with PDFs → Text Extractor](/toolkit/text-extractor/). That page also covers how text extraction works under the hood (ToUnicode CMaps, encoding fallbacks, Form XObject recursion).
+
 ## Error tolerance
 
 In lenient mode, the reader recovers from common PDF issues:

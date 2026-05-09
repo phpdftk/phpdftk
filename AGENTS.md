@@ -19,7 +19,7 @@ All workflows are exposed as `composer <task>`. Trivial wrappers (`analyse`, `li
 | `composer analyse` | PHPStan |
 | `composer lint` / `composer lint:fix` | PHP-CS-Fixer (PSR-12) |
 | `composer coverage` | Coverage report + badge |
-| `composer benchmark` | PHPBench → regenerates `docs/site/src/content/docs/reference/benchmarks.md` |
+| `composer benchmark` | PHPBench → regenerates `docs/site/src/content/docs/standards/performance/benchmarks.md` |
 | `composer compliance` | Run external validator suites (verapdf, qpdf, pdfbox, jhove, pdfid, arlington) — needs Docker |
 | `composer phpdoc` | Regenerate API docs |
 
@@ -132,21 +132,21 @@ Run a single suite: `composer test -- --testsuite core`. Run a single file: `ven
 
 ## Benchmarks
 
-`composer benchmark` runs PHPBench and regenerates `docs/site/src/content/docs/reference/benchmarks.md` via `scripts/parse-benchmarks.php`. Suites live in `benchmarks/`; configuration is in `phpbench.json`.
+`composer benchmark` runs PHPBench and regenerates `docs/site/src/content/docs/standards/performance/benchmarks.md` via `scripts/parse-benchmarks.php`. Suites live in `benchmarks/`; configuration is in `phpbench.json`.
 
 Add a benchmark under `benchmarks/` for any new public writer/reader/toolkit API or any change that could affect a hot path. Name and structure new benches to match the existing files.
 
 ## Docs
 
-The canonical agent-readable docs live under `docs/site/src/content/docs/` (Astro Starlight site, served at phpdftk.dev). Reference content (`reference/benchmarks.md`, `reference/iso-standards-coverage.md`, `reference/spec-coverage.md`, `reference/version-coverage.md`, `reference/validations/*.md`) is generated; do not hand-edit the generated files.
+The canonical agent-readable docs live under `docs/site/src/content/docs/` (Astro Starlight site, served at phpdftk.dev). The "Standards & Performance" section is partly generated: the latest benchmarks (`standards/performance/benchmarks.md`) and the latest compliance report (`standards/validation/report.md`) are populated by CI from the `_benchmarks` and `_compliance` orphan branches — do not hand-edit those two files.
 
 Generators:
-- `scripts/parse-benchmarks.php` — phpbench → `reference/benchmarks.md` (+ JSON sibling).
-- `scripts/parse-compliance.php` — compliance suites → compliance reports (+ JSON sibling). Hard-fails on regressions.
+- `scripts/parse-benchmarks.php` — phpbench → `docs/generated/benchmarks.md` (+ JSON sibling); CI publishes to `_benchmarks` branch and embeds into `standards/performance/benchmarks.md`.
+- `scripts/parse-compliance.php` — compliance suites → `docs/generated/compliance.md` (+ JSON sibling). Hard-fails on regressions; CI publishes to `_compliance` branch and embeds into `standards/validation/report.md`.
 - `scripts/build-pr-comment.php` — assembles the CI PR comment from the JSON siblings.
 - `scripts/generate-badge.php` — coverage SVG badge.
 
-When you add a new spec feature, update `docs/site/src/content/docs/reference/spec-coverage.md` to reflect the new coverage. Do not recreate the legacy paths `docs/generated/`, `docs/spec-coverage.md`, `docs/version-coverage.md`, or `docs/iso-standards-coverage.md` — they were intentionally migrated to `docs/site/`.
+When you add a new spec feature, update `docs/site/src/content/docs/standards/spec/coverage.md` to reflect the new coverage. Do not recreate the legacy paths `docs/generated/`, `docs/spec-coverage.md`, `docs/version-coverage.md`, or `docs/iso-standards-coverage.md` — they were intentionally migrated to `docs/site/`.
 
 ## New-feature checklist
 

@@ -1,0 +1,97 @@
+---
+import { Code } from '@astrojs/starlight/components';
+import fs from 'node:fs';
+import path from 'node:path';
+
+interface Props {
+	/** Path under examples/, e.g. "toolkit/text-extractor.php" */
+	source: string;
+	/** Path under public/ for an example that produces a single PDF. */
+	pdf?: string;
+	/** Path under public/ for the input PDF when the example transforms one PDF into another. */
+	inputPdf?: string;
+	/** Path under public/ for the output PDF when the example transforms one PDF into another. */
+	outputPdf?: string;
+	/** Optional region name to extract; defaults to "example" */
+	region?: string;
+	/** Override the language; defaults to "php" */
+	lang?: string;
+}
+
+const { source, pdf, inputPdf, outputPdf, region = 'example', lang = 'php' } = Astro.props;
+
+const downloads: { label: string; href: string }[] = [];
+if (pdf) {
+	downloads.push({ label: '📄 Download the sample PDF', href: `/${pdf.replace(/^\//, '')}` });
+}
+if (inputPdf) {
+	downloads.push({ label: '📥 Input PDF', href: `/${inputPdf.replace(/^\//, '')}` });
+}
+if (outputPdf) {
+	downloads.push({ label: '📤 Output PDF', href: `/${outputPdf.replace(/^\//, '')}` });
+}
+
+// Astro builds run from docs/site/ — the repo root is two levels up.
+const repoRoot = path.resolve(process.cwd(), '../..');
+const sourcePath = path.join(repoRoot, 'examples', source);
+
+let raw: string;
+try {
+	raw = fs.readFileSync(sourcePath, 'utf-8');
+} catch (err) {
+	throw new Error(`<Example> could not read examples/${source}: ${(err as Error).message}`);
+}
+
+const startMarker = `// region: ${region}`;
+const endMarker = `// endregion`;
+const startIdx = raw.indexOf(startMarker);
+const endIdx = startIdx === -1 ? -1 : raw.indexOf(endMarker, startIdx);
+
+let code: string;
+if (startIdx !== -1 && endIdx !== -1) {
+	code = raw.slice(startIdx + startMarker.length, endIdx).replace(/^\n+|\n+$/g, '');
+} else {
+	code = raw.replace(/^<\?php\s*/, '').trimStart();
+}
+
+const minIndent = code
+	.split('\n')
+	.filter((line) => line.trim().length > 0)
+	.reduce((min, line) => {
+		const m = line.match(/^[\t ]*/);
+		const indent = m ? m[0].length : 0;
+		return Math.min(min, indent);
+	}, Infinity);
+
+if (minIndent > 0 && minIndent !== Infinity) {
+	code = code
+		.split('\n')
+		.map((line) => line.slice(minIndent))
+		.join('\n');
+}
+
+const sourceUrl = `https://github.com/phpdftk/phpdftk/blob/main/examples/${source}`;
+---
+
+<Code code={code} lang={lang} />
+
+<p class="example-links">
+	{downloads.map((dl, i) => (
+		<>
+			<a href={dl.href} download>{dl.label}</a>
+			{(i < downloads.length - 1 || true) && ' · '}
+		</>
+	))}
+	<a href={sourceUrl}>View the full script on GitHub ↗</a>
+</p>
+
+<style>
+	.example-links {
+		font-size: 0.875rem;
+		margin-top: 0.5rem;
+		color: var(--sl-color-gray-3);
+	}
+	.example-links a {
+		color: var(--sl-color-text-accent);
+	}
+</style>

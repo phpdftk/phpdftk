@@ -60,7 +60,7 @@ A developer who has used phpdftk can read the PDF spec and know exactly which cl
 
 ### Complete coverage by construction
 
-If a spec field exists, the property exists. The [spec coverage audit](/reference/spec-coverage/) shows 100% field coverage across every major object type — not because we went through and checked boxes, but because the design process *is* reading the spec table and creating the corresponding property.
+If a spec field exists, the property exists. The [spec coverage audit](/standards/spec/coverage/) shows 100% field coverage across every major object type — not because we went through and checked boxes, but because the design process *is* reading the spec table and creating the corresponding property.
 
 ### Future-proof
 

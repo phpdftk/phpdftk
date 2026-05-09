@@ -1,0 +1,128 @@
+---
+title: Text Extractor
+description: Extract and search text from PDFs with a clean, fluent API.
+---
+
+import Example from '../../../components/Example.astro';
+
+`TextExtractor` wraps `PdfReader`'s text extraction with a friendly, toolkit-level API. All page numbers are 1-based.
+
+## End-to-end example
+
+<Example source="toolkit/text-extractor.php" pdf="samples/toolkit/text-extractor.pdf" />
+
+## Opening a PDF
+
+```php
+use Phpdftk\Pdf\Toolkit\TextExtractor;
+
+// From file
+$extractor = TextExtractor::open('report.pdf');
+
+// From string
+$extractor = TextExtractor::openString($pdfBytes);
+
+// Encrypted PDF
+$extractor = TextExtractor::open('secured.pdf', password: 'secret');
+```
+
+## Extracting text
+
+```php
+// Single page (1-based)
+$text = $extractor->page(1);
+
+// All pages with separator
+$text = $extractor->allPages("\n---\n");
+
+// Per-page array
+$pages = $extractor->perPage();
+// => [1 => "page 1 text", 2 => "page 2 text"]
+```
+
+## Searching
+
+### Literal string
+
+```php
+$results = $extractor->search('indemnification');
+
+echo $results->count() . " matches\n";
+
+foreach ($results as $match) {
+    echo "Page {$match->pageNumber}: {$match->text}\n";
+}
+```
+
+### Regex pattern
+
+```php
+$results = $extractor->searchPattern('/\d{3}-\d{2}-\d{4}/'); // SSN pattern
+```
+
+### Quick contains check
+
+```php
+if ($extractor->contains('CONFIDENTIAL')) {
+    // handle sensitive document
+}
+```
+
+## Search results API
+
+```php
+$results = $extractor->search('term');
+
+$results->count();   // int
+$results->all();     // list<TextMatch>
+$results->first();   // ?TextMatch
+
+// TextMatch properties
+$match->pageNumber;  // int (1-based)
+$match->text;        // string
+$match->offset;      // int (char offset in page text)
+```
+
+`TextSearchResults` implements `IteratorAggregate` and `Countable`, so it works with `foreach` and `count()`.
+
+## Document info
+
+```php
+$extractor->getPageCount(); // int
+```
+
+## Escape hatch
+
+```php
+$reader = $extractor->getReader(); // PdfReader
+```
+
+## Lower-level access via PdfReader
+
+`TextExtractor` wraps `PdfReader`. If you only need text extraction without the search/per-page conveniences, you can call the reader directly. Note that `PdfReader` uses **0-based** page indexes:
+
+```php
+use Phpdftk\Pdf\Reader\PdfReader;
+
+$pdf = PdfReader::fromFile('document.pdf');
+
+// Single page (0-based index)
+$text = $pdf->extractText(0);
+
+// All pages
+$allText = $pdf->extractAllText("\n\n");
+```
+
+## How it works
+
+The text extractor processes content stream operators (`BT`, `ET`, `Tf`, `Td`, `Tj`, `TJ`, etc.) and converts character codes to Unicode using:
+
+1. **ToUnicode CMap** (if present on the font) — most reliable
+2. **Encoding + Differences** (custom encoding vectors)
+3. **WinAnsi + Adobe Glyph List** fallback for standard fonts
+
+Text positioning operators are used to infer spaces and line breaks.
+
+### Form XObjects
+
+The extractor handles the `Do` operator to recurse into Form XObjects — text inside stamped content, form field appearances, and embedded XObjects is extracted automatically. Nested Form XObjects are supported up to 10 levels deep, with font state properly saved/restored across XObject boundaries.

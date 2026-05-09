@@ -642,13 +642,13 @@ jobs:
              && git show "origin/_compliance:latest/compliance.md" > /tmp/compliance.md 2>/dev/null; then
             {
               echo '---'
-              echo 'title: Compliance Report'
+              echo 'title: Latest Compliance Report'
               echo 'description: Auto-generated test results from QPDF, veraPDF, Arlington, Matterhorn, and JHOVE.'
               echo '---'
               echo
               # Drop the generated file's H1 — Starlight renders the title from frontmatter.
               tail -n +2 /tmp/compliance.md
-            } > docs/site/src/content/docs/conformance/report.md
+            } > docs/site/src/content/docs/standards/validation/report.md
             echo "Embedded compliance report ($(wc -l < /tmp/compliance.md) lines)"
           else
             echo "No _compliance branch yet — skipping report embed"
@@ -663,16 +663,27 @@ jobs:
              && git show "origin/_benchmarks:latest/benchmarks.md" > /tmp/benchmarks.md 2>/dev/null; then
             {
               echo '---'
-              echo 'title: Benchmarks'
+              echo 'title: Latest Benchmarks'
               echo 'description: Auto-generated benchmark results vs. TCPDF, FPDF, mPDF, Dompdf, smalot/pdfparser, and setasign/fpdi.'
               echo '---'
               echo
               tail -n +2 /tmp/benchmarks.md
-            } > docs/site/src/content/docs/reference/benchmarks.md
+            } > docs/site/src/content/docs/standards/performance/benchmarks.md
             echo "Embedded benchmarks ($(wc -l < /tmp/benchmarks.md) lines)"
           else
             echo "No _benchmarks branch yet — skipping benchmarks embed"
           fi
+
+      - name: Setup PHP for example scripts
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate sample PDFs
+        run: composer examples
 
       - name: Install site dependencies
         run: cd docs/site && npm ci

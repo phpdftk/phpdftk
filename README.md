@@ -19,7 +19,7 @@ Zero dependencies outside the standard library. Spec-compliant output. Fast and 
 | mPDF | 12.4 ms | 16.4 ms | 54.4 ms | 18.6 MB |
 | Dompdf | 5.4 ms | 10.4 ms | 88.0 ms | 16.1 MB |
 
-See the [Benchmarks page](https://phpdftk.dev/reference/benchmarks/) for full results.
+See the [Benchmarks page](https://phpdftk.dev/standards/performance/benchmarks/) for full results.
 
 ## Quick Start
 
@@ -171,7 +171,7 @@ Operator groups: text, graphics state, paths, painting, color, XObjects, raw.
 - `PdfName` hex-escapes special characters with `#XX`
 - `PdfString` escapes `(`, `)`, `\`, `\n`, `\r`, `\t`
 
-See the [Spec Coverage tracker](https://phpdftk.dev/reference/spec-coverage/) for a full ISO 32000-2 coverage audit.
+See the [Spec Coverage tracker](https://phpdftk.dev/standards/spec/coverage/) for a full ISO 32000-2 coverage audit.
 
 ## Conformance Validation
 
@@ -210,7 +210,7 @@ The library auto-injects XMP identification, pins the PDF version, and runs 14 c
 - **Matterhorn Protocol** (6 tests) — PDF/UA accessibility
 - **JHOVE + Preflight** (25 tests) — format validation, PDF/A cross-validation
 
-See the [Compliance Report](https://phpdftk.dev/conformance/report/) for the full report.
+See the [Compliance Report](https://phpdftk.dev/standards/validation/report/) for the full report.
 
 ## Development
 

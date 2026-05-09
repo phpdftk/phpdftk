@@ -388,7 +388,7 @@ PHP: {$phpVer}
 
 ## Tier 1 — Integrated
 
-These validation tools run as part of the test suite. See [docs/validations/](validations/) for integration details.
+These validation tools run as part of the test suite. See [About the Suites](/standards/validation/about/) for integration details.
 
 {$tier1DetailSections}
 ---

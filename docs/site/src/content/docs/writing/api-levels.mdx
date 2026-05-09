@@ -1,0 +1,66 @@
+---
+title: Choose Your API
+description: phpdftk's three-level writer architecture — pick the right abstraction for every task.
+---
+
+import Example from '../../../components/Example.astro';
+
+phpdftk organizes PDF generation into three levels. Each level removes a category of concerns. You can drop down a level at any time via **escape hatches** — methods that return the underlying object from the level below.
+
+```
+Level 2: Pdf (cursor-based, auto-layout, themes)
+  | escape hatch: $pdf->writer()
+  v
+Level 1: PdfWriter + Page (spatial drawing, explicit coordinates)
+  | escape hatch: $page->contentStream() / $writer->fileWriter()
+  v
+Level 0: PdfFileWriter + PdfObject tree (raw PDF spec objects)
+```
+
+## What each level removes
+
+| Transition | Knowledge eliminated |
+|---|---|
+| Level 0 to Level 1 | Object numbers, xref, trailer, resource naming, PdfReference wiring, content stream operators |
+| Level 1 to Level 2 | Coordinates, page breaks, font management, text measurement |
+
+## The same PDF, three ways
+
+The three snippets below all produce a Letter-sized page with the same heading. Skim them top to bottom to see how much each level frees you from.
+
+### Level 2: `Pdf` — high-level builder
+
+For documents that are mostly text and images. You think in terms of *content*, not coordinates:
+
+<Example source="writer/api-levels.php" region="high-level" pdf="samples/writer/api-levels-high.pdf" />
+
+**What you get:** auto page creation, word wrap, font metrics-based text measurement, heading hierarchy (h1–h6), themes, alignment, bold/italic font resolution.
+
+**What you give up:** precise positioning, custom graphics, non-standard fonts.
+
+**Escape hatch:** `$pdf->writer()` returns the underlying `PdfWriter`.
+
+### Level 1: `PdfWriter` — object model
+
+For documents with precise layout — invoices, reports with charts, form overlays:
+
+<Example source="writer/api-levels.php" region="mid-level" pdf="samples/writer/api-levels-mid.pdf" />
+
+**What you get:** explicit page creation, font handles, content streams with the full PDF operator set, image embedding, automatic graphics state isolation.
+
+**What you give up:** nothing — you have full PDF capability at this level.
+
+**Escape hatches:**
+- `$page->contentStream()` — raw `ContentStream` for PDF operators
+- `$page->corePage()` — the underlying `Core\Document\Page` for resource/annotation access
+- `$writer->fileWriter()` — the `PdfFileWriter` for byte-level control
+
+### Level 0: `PdfFileWriter` — byte-level
+
+For libraries building on top of phpdftk, or when you need something the higher levels don't expose:
+
+<Example source="writer/api-levels.php" region="low-level" pdf="samples/writer/api-levels-low.pdf" />
+
+**What you get:** total control over every byte in the output. Every PDF spec object is a PHP class with typed properties.
+
+**What you give up:** convenience. You're responsible for object numbers, resource dictionaries, page tree wiring, and correct operator sequences.

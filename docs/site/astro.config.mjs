@@ -25,21 +25,20 @@ export default defineConfig({
 				{
 					label: 'Writing PDFs',
 					items: [
-						{ label: 'API Levels', slug: 'writing/api-levels' },
-						{ label: 'Level 2: Pdf', slug: 'writing/level-2-pdf' },
-						{ label: 'Level 1: PdfWriter', slug: 'writing/level-1-pdfwriter' },
-						{ label: 'Level 0: PdfFileWriter', slug: 'writing/level-0-core' },
+						{ label: 'Choose Your API', slug: 'writing/api-levels' },
+						{ label: 'Pdf — High-Level Builder', slug: 'writing/level-2-pdf' },
+						{ label: 'PdfWriter — Object Model', slug: 'writing/level-1-pdfwriter' },
+						{ label: 'PdfFileWriter — Byte-Level', slug: 'writing/level-0-core' },
 					],
 				},
 				{
 					label: 'Reading PDFs',
 					items: [
 						{ label: 'PdfReader', slug: 'reading/pdf-reader' },
-						{ label: 'Text Extraction', slug: 'reading/text-extraction' },
 					],
 				},
 				{
-					label: 'Toolkit',
+					label: 'Working with PDFs',
 					items: [
 						{ label: 'Overview', slug: 'toolkit/overview' },
 						{ label: 'Text Extractor', slug: 'toolkit/text-extractor' },
@@ -57,43 +56,52 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Conformance',
-					items: [
-						{ label: 'Overview', slug: 'conformance/overview' },
-						{ label: 'ISO Standards', slug: 'conformance/iso-standards' },
-						{ label: 'Compliance', slug: 'conformance/compliance' },
-						{ label: 'Latest Report', slug: 'conformance/report' },
-					],
-				},
-				{
-					label: 'Design',
+					label: 'Architecture',
 					items: [
 						{ label: 'Why phpdftk?', slug: 'design/why-phpdftk' },
 						{ label: 'Spec-First Design', slug: 'design/spec-first' },
 						{ label: 'The Object Model', slug: 'design/object-model' },
 						{ label: 'Escape Hatches', slug: 'design/escape-hatches' },
+						{ label: 'Packages', slug: 'design/packages' },
 					],
 				},
 				{
-					label: 'Reference',
+					label: 'Standards & Performance',
 					items: [
-						{ label: 'Performance', slug: 'reference/performance' },
-						{ label: 'Benchmarks', slug: 'reference/benchmarks' },
-						{ label: 'Packages', slug: 'reference/packages' },
-						{ label: 'Spec Coverage', slug: 'reference/spec-coverage' },
-						{ label: 'ISO Standards Coverage', slug: 'reference/iso-standards-coverage' },
-						{ label: 'Version Coverage', slug: 'reference/version-coverage' },
+						{ label: 'Overview', slug: 'standards/overview' },
 						{
-							label: 'Validation Suites',
+							label: 'PDF Specification',
+							items: [
+								{ label: 'Spec Coverage', slug: 'standards/spec/coverage' },
+								{ label: 'Version Coverage', slug: 'standards/spec/version-coverage' },
+							],
+						},
+						{
+							label: 'ISO Profiles',
+							items: [
+								{ label: 'Conformance Overview', slug: 'standards/profiles/overview' },
+								{ label: 'ISO Standards', slug: 'standards/profiles/iso-standards' },
+							],
+						},
+						{
+							label: 'External Validation',
 							collapsed: true,
 							items: [
-								{ label: 'Overview', slug: 'reference/validations' },
-								{ label: 'QPDF', slug: 'reference/validations/qpdf' },
-								{ label: 'Arlington PDF Model', slug: 'reference/validations/arlington' },
-								{ label: 'veraPDF', slug: 'reference/validations/verapdf' },
-								{ label: 'JHOVE', slug: 'reference/validations/jhove' },
-								{ label: 'Apache PDFBox Preflight', slug: 'reference/validations/pdfbox-preflight' },
-								{ label: 'pdfid', slug: 'reference/validations/pdfid' },
+								{ label: 'About the Suites', slug: 'standards/validation/about' },
+								{ label: 'Latest Compliance Report', slug: 'standards/validation/report' },
+								{ label: 'QPDF', slug: 'standards/validation/qpdf' },
+								{ label: 'Arlington PDF Model', slug: 'standards/validation/arlington' },
+								{ label: 'veraPDF', slug: 'standards/validation/verapdf' },
+								{ label: 'JHOVE', slug: 'standards/validation/jhove' },
+								{ label: 'Apache PDFBox Preflight', slug: 'standards/validation/pdfbox-preflight' },
+								{ label: 'pdfid', slug: 'standards/validation/pdfid' },
+							],
+						},
+						{
+							label: 'Performance',
+							items: [
+								{ label: 'Performance Overview', slug: 'standards/performance/overview' },
+								{ label: 'Latest Benchmarks', slug: 'standards/performance/benchmarks' },
 							],
 						},
 					],

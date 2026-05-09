@@ -71,6 +71,7 @@
         "benchmark": "scripts/benchmark",
         "coverage": "scripts/coverage",
         "compliance": "scripts/compliance",
+        "examples": "@php examples/run-all.php",
         "phpdoc": "scripts/phpdoc"
     },
     "minimum-stability": "dev",
