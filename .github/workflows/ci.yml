@@ -134,7 +134,7 @@ jobs:
           extensions: simplexml
 
       - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage
           path: build/coverage/
@@ -507,7 +507,7 @@ jobs:
           extensions: simplexml
 
       - name: Download current artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -614,13 +614,13 @@ jobs:
           cache-dependency-path: docs/site/package-lock.json
 
       - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage
           path: build/coverage/
 
       - name: Download phpdoc artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: phpdoc
           path: build/phpdoc/
