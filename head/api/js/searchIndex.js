@@ -576,6 +576,36 @@ Search.appendIndex(
             "summary": "",
             "url": "classes/Phpdftk-Encoding-StandardEncodingTable.html#method_getTable"
         },                {
+            "fqsen": "\\Phpdftk\\Encoding\\TextEncoder",
+            "name": "TextEncoder",
+            "summary": "Converts\u0020a\u0020UTF\u002D8\u0020string\u0020into\u0020the\u0020byte\u0020sequence\u0020expected\u0020by\u0020a\u0020PDF\u0020font\u0027s\nencoding\u0020\u0028e.g.\u0020WinAnsi\u0029.",
+            "url": "classes/Phpdftk-Encoding-TextEncoder.html"
+        },                {
+            "fqsen": "\\Phpdftk\\Encoding\\TextEncoder\u003A\u003Aencode\u0028\u0029",
+            "name": "encode",
+            "summary": "Encode\u0020UTF\u002D8\u0020input\u0020to\u0020the\u0020target\u0020encoding.\u0020Unmappable\u0020codepoints\u0020are\nsubstituted\u0020with\u00200x3F\u0020\u0028\u0027\u003F\u0027\u0029\u0020and\u0020recorded\u0020for\u0020later\u0020inspection.",
+            "url": "classes/Phpdftk-Encoding-TextEncoder.html#method_encode"
+        },                {
+            "fqsen": "\\Phpdftk\\Encoding\\TextEncoder\u003A\u003AgetMissingCodepoints\u0028\u0029",
+            "name": "getMissingCodepoints",
+            "summary": "Codepoints\u0020encountered\u0020since\u0020construction\u0020that\u0020could\u0020not\u0020be\u0020mapped.",
+            "url": "classes/Phpdftk-Encoding-TextEncoder.html#method_getMissingCodepoints"
+        },                {
+            "fqsen": "\\Phpdftk\\Encoding\\WinAnsiEncoder",
+            "name": "WinAnsiEncoder",
+            "summary": "Encodes\u0020UTF\u002D8\u0020strings\u0020to\u0020WinAnsi\u0020\u0028single\u002Dbyte,\u0020ISO\u00208859\u002D1\u0020\u002B\u0020Microsoft\nadditions\u0020in\u00200x80\u20130x9F\u0029\u0020for\u0020use\u0020with\u0020Type1\u0020standard\u0020fonts\u0020and\u0020any\u0020other\nfont\u0020whose\u0020\/Encoding\u0020is\u0020WinAnsiEncoding.",
+            "url": "classes/Phpdftk-Encoding-WinAnsiEncoder.html"
+        },                {
+            "fqsen": "\\Phpdftk\\Encoding\\WinAnsiEncoder\u003A\u003Aencode\u0028\u0029",
+            "name": "encode",
+            "summary": "Encode\u0020UTF\u002D8\u0020input\u0020to\u0020the\u0020target\u0020encoding.\u0020Unmappable\u0020codepoints\u0020are\nsubstituted\u0020with\u00200x3F\u0020\u0028\u0027\u003F\u0027\u0029\u0020and\u0020recorded\u0020for\u0020later\u0020inspection.",
+            "url": "classes/Phpdftk-Encoding-WinAnsiEncoder.html#method_encode"
+        },                {
+            "fqsen": "\\Phpdftk\\Encoding\\WinAnsiEncoder\u003A\u003AgetMissingCodepoints\u0028\u0029",
+            "name": "getMissingCodepoints",
+            "summary": "Codepoints\u0020encountered\u0020since\u0020construction\u0020that\u0020could\u0020not\u0020be\u0020mapped.",
+            "url": "classes/Phpdftk-Encoding-WinAnsiEncoder.html#method_getMissingCodepoints"
+        },                {
             "fqsen": "\\Phpdftk\\Encoding\\WinAnsiTable",
             "name": "WinAnsiTable",
             "summary": "",
@@ -5153,7 +5183,7 @@ Search.appendIndex(
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Core\\Content\\ContentStream\u003A\u003AsetFont\u0028\u0029",
             "name": "setFont",
-            "summary": "Tf\u0020\u002D\u0020Set\u0020font\u0020and\u0020size",
+            "summary": "Tf\u0020\u002D\u0020Set\u0020font\u0020and\u0020size.",
             "url": "classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_setFont"
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Core\\Content\\ContentStream\u003A\u003AmoveTextPosition\u0028\u0029",
@@ -9450,6 +9480,21 @@ Search.appendIndex(
             "name": "__construct",
             "summary": "",
             "url": "classes/Phpdftk-Pdf-Core-Font-MMType1Font.html#method___construct"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Core\\Font\\RegisteredFont",
+            "name": "RegisteredFont",
+            "summary": "A\u0020font\u0020that\u0020has\u0020been\u0020registered\u0020with\u0020a\u0020writer\u0020and\u0020assigned\u0020a\u0020resource\nname.\u0020ContentStream\u003A\u003AsetFont\u0028\u0029\u0020accepts\u0020this\u0020so\u0020callers\u0020can\u0020pass\u0020UTF\u002D8\u0020to\nshowText\u0028\u0029\u0020and\u0020have\u0020the\u0020encoder\u0020do\u0020the\u0020byte\u002Dlevel\u0020translation\u0020for\u0020them.",
+            "url": "classes/Phpdftk-Pdf-Core-Font-RegisteredFont.html"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Core\\Font\\RegisteredFont\u003A\u003AgetResourceName\u0028\u0029",
+            "name": "getResourceName",
+            "summary": "",
+            "url": "classes/Phpdftk-Pdf-Core-Font-RegisteredFont.html#method_getResourceName"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Core\\Font\\RegisteredFont\u003A\u003AgetTextEncoder\u0028\u0029",
+            "name": "getTextEncoder",
+            "summary": "",
+            "url": "classes/Phpdftk-Pdf-Core-Font-RegisteredFont.html#method_getTextEncoder"
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Core\\Font\\StandardFont",
             "name": "StandardFont",
@@ -16176,6 +16221,11 @@ Search.appendIndex(
             "summary": "",
             "url": "classes/Phpdftk-Pdf-Writer-Font.html#method_getFamily"
         },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\Font\u003A\u003AgetTextEncoder\u0028\u0029",
+            "name": "getTextEncoder",
+            "summary": "The\u0020text\u0020encoder\u0020that\u0020converts\u0020UTF\u002D8\u0020input\u0020into\u0020the\u0020byte\u0020sequence\u0020the\nunderlying\u0020PDF\u0020font\u0020expects.\u0020Null\u0020for\u0020composite\/CID\u0020fonts,\u0020which\u0020use\nthe\u0020GID\u002Dhex\u0020path\u0020\u0028ContentStream\u003A\u003AshowTextHex\u0020\/\u0020showUnicodeText\u0029.",
+            "url": "classes/Phpdftk-Pdf-Writer-Font.html#method_getTextEncoder"
+        },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\Page",
             "name": "Page",
             "summary": "Level\u00201\u0020Page\u0020\u2014\u0020spatial\u0020drawing\u0020surface\u0020with\u0020explicit\u0020coordinates.",
@@ -16371,6 +16421,11 @@ Search.appendIndex(
             "summary": "Escape\u0020hatch\u003A\u0020returns\u0020the\u0020underlying\u0020\u007B\u0040see\u0020PdfWriter\u007D\u0020so\u0020callers\ncan\u0020mix\u0020high\u002Dlevel\u0020flow\u0020with\u0020low\u002Dlevel\u0020object\u002Dmodel\u0020operations.",
             "url": "classes/Phpdftk-Pdf-Writer-Pdf.html#method_writer"
         },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\Pdf\u003A\u003AgetEncodingWarnings\u0028\u0029",
+            "name": "getEncodingWarnings",
+            "summary": "Codepoints\u0020that\u0020were\u0020substituted\u0020with\u0020\u0060\u003F\u0060\u0020because\u0020the\u0020active\u0020font\u0027s\nencoding\u0020could\u0020not\u0020represent\u0020them.\u0020Useful\u0020after\u0020building\u0020a\u0020document\nto\u0020confirm\u0020that\u0020no\u0020unintended\u0020replacement\u0020characters\u0020slipped\u0020in.",
+            "url": "classes/Phpdftk-Pdf-Writer-Pdf.html#method_getEncodingWarnings"
+        },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\Pdf\u003A\u003AaddPage\u0028\u0029",
             "name": "addPage",
             "summary": "Start\u0020a\u0020new\u0020page.\u0020The\u0020first\u0020\u0060add\u002A\u0060\u0020call\u0020will\u0020also\u0020start\u0020a\u0020page\nautomatically\u0020if\u0020one\u0020has\u0020not\u0020yet\u0020been\u0020created,\u0020so\u0020calling\u0020this\nexplicitly\u0020is\u0020only\u0020required\u0020when\u0020you\u0020want\u0020to\u0020force\u0020a\u0020page\u0020break\nor\u0020use\u0020a\u0020non\u002Ddefault\u0020size.",
@@ -16565,6 +16620,11 @@ Search.appendIndex(
             "name": "getVersionWarnings",
             "summary": "",
             "url": "classes/Phpdftk-Pdf-Writer-PdfWriter.html#method_getVersionWarnings"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfWriter\u003A\u003AgetEncodingWarnings\u0028\u0029",
+            "name": "getEncodingWarnings",
+            "summary": "Diagnostics\u0020for\u0020codepoints\u0020that\u0020were\u0020substituted\u0020with\u0020\u0060\u003F\u0060\u0020because\u0020the\nfont\u0027s\u0020encoding\u0020could\u0020not\u0020represent\u0020them.\u0020Empty\u0020when\u0020every\u0020glyph\nlanded\u0020cleanly.\u0020Each\u0020entry\u0020names\u0020the\u0020font\u0020resource,\u0020the\u0020codepoint,\nand\u0020how\u0020many\u0020times\u0020it\u0020was\u0020requested.",
+            "url": "classes/Phpdftk-Pdf-Writer-PdfWriter.html#method_getEncodingWarnings"
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfWriter\u003A\u003AsetLinearized\u0028\u0029",
             "name": "setLinearized",

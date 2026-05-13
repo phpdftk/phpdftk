@@ -276,6 +276,15 @@ paragraph runs past the bottom margin, the remaining lines
 continue on a new automatically-created page.</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getEncodingWarnings">getEncodingWarnings()</a>
+    <span>
+                                &nbsp;: array&lt;int, string&gt;    </span>
+</dt>
+<dd>Codepoints that were substituted with `?` because the active font&#039;s
+encoding could not represent them. Useful after building a document
+to confirm that no unintended replacement characters slipped in.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getPdfVersion">getPdfVersion()</a>
     <span>
                                 &nbsp;: <a href="classes/Phpdftk-Pdf-Core-PdfVersion.html"><abbr title="\Phpdftk\Pdf\Core\PdfVersion">PdfVersion</abbr></a>    </span>
@@ -421,7 +430,7 @@ can mix high-level flow with low-level object-model operations.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">259</span>
+    <span class="phpdocumentor-element-found-in__line">276</span>
 
     </aside>
 
@@ -478,7 +487,7 @@ given level.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">322</span>
+    <span class="phpdocumentor-element-found-in__line">339</span>
 
     </aside>
 
@@ -552,7 +561,7 @@ both are given the image is stretched to fit.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">167</span>
+    <span class="phpdocumentor-element-found-in__line">179</span>
 
     </aside>
 
@@ -604,7 +613,7 @@ or use a non-default size.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">294</span>
+    <span class="phpdocumentor-element-found-in__line">311</span>
 
     </aside>
 
@@ -653,7 +662,7 @@ or use a non-default size.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">281</span>
+    <span class="phpdocumentor-element-found-in__line">298</span>
 
     </aside>
 
@@ -702,7 +711,7 @@ or use a non-default size.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">194</span>
+    <span class="phpdocumentor-element-found-in__line">206</span>
 
     </aside>
 
@@ -744,6 +753,47 @@ continue on a new automatically-created page.</p>
             <section>
         <h5 class="phpdocumentor-return-value__heading">Return values</h5>
         <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getEncodingWarnings">
+        getEncodingWarnings()
+        <a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getEncodingWarnings" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">164</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Codepoints that were substituted with `?` because the active font&#039;s
+encoding could not represent them. Useful after building a document
+to confirm that no unintended replacement characters slipped in.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getEncodingWarnings</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, string&gt;</span>
             </section>
 
 </article>
@@ -837,7 +887,7 @@ continue on a new automatically-created page.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">179</span>
+    <span class="phpdocumentor-element-found-in__line">191</span>
 
     </aside>
 
@@ -876,7 +926,7 @@ continue on a new automatically-created page.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">371</span>
+    <span class="phpdocumentor-element-found-in__line">388</span>
 
     </aside>
 
@@ -1040,7 +1090,7 @@ Symbol, ZapfDingbats.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">376</span>
+    <span class="phpdocumentor-element-found-in__line">393</span>
 
     </aside>
 
@@ -1122,7 +1172,7 @@ for.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Pdf.php"><a href="files/packages-pdf-writer-src-pdf.html"><abbr title="packages/pdf/writer/src/Pdf.php">Pdf.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">382</span>
+    <span class="phpdocumentor-element-found-in__line">399</span>
 
     </aside>
 
@@ -1278,6 +1328,7 @@ for.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_addRule">addRule()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_addSpacer">addSpacer()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_addText">addText()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getEncodingWarnings">getEncodingWarnings()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getPdfVersion">getPdfVersion()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_getTheme">getTheme()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Pdf.html#method_newPage">newPage()</a></li>
