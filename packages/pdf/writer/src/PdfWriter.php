@@ -26,6 +26,8 @@ use Phpdftk\Pdf\Core\Font\FontFile\Type1FontFile;
 use Phpdftk\Pdf\Core\Font\TrueTypeFont;
 use Phpdftk\Pdf\Core\Font\Type1Font;
 use Phpdftk\FontParser\TrueTypeSubsetter;
+use Phpdftk\Encoding\TextEncoder;
+use Phpdftk\Encoding\WinAnsiEncoder;
 use Phpdftk\Pdf\Core\Font\Type0Font;
 use Phpdftk\Pdf\Core\Font\Type0FontFactory;
 use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
@@ -84,6 +86,13 @@ class PdfWriter
 
     /** @var array<string, CoreFont|Type0Font> keyed by resource name (F1, F2, …) */
     private array $fonts = [];
+
+    /**
+     * @var array<string, TextEncoder> resource name → encoder.
+     * Tracked alongside $fonts so getEncodingWarnings() can collect missing
+     * codepoints across the whole document without holding onto Font handles.
+     */
+    private array $fontEncoders = [];
 
     /** @var array<int, ContentStream> */
     private array $contentStreams = [];
@@ -222,7 +231,34 @@ class PdfWriter
 
         $family = $font->baseFont !== null ? $font->baseFont->value : 'Unknown';
 
-        return new Font($name, $family, $parsedData);
+        $encoder = $this->buildEncoderFor($font);
+        if ($encoder !== null) {
+            $this->fontEncoders[$name] = $encoder;
+        }
+
+        return new Font($name, $family, $parsedData, $encoder);
+    }
+
+    /**
+     * Pick the right text encoder for a font being registered. WinAnsi for
+     * Latin-script Type1 standard fonts and any TrueType font (the writer
+     * embeds those with /Encoding /WinAnsiEncoding); null for everything
+     * else. Composite/CID fonts go through a separate registration path
+     * (addCompositeFont), so they never reach this method.
+     */
+    private function buildEncoderFor(CoreFont $font): ?TextEncoder
+    {
+        if ($font instanceof TrueTypeFont) {
+            return new WinAnsiEncoder();
+        }
+        if ($font instanceof Type1Font) {
+            $base = $font->baseFont?->value;
+            if ($base === 'Symbol' || $base === 'ZapfDingbats') {
+                return null;
+            }
+            return new WinAnsiEncoder();
+        }
+        return null;
     }
 
     /**
@@ -691,6 +727,35 @@ class PdfWriter
     public function getVersionWarnings(): array
     {
         return $this->file->getVersionWarnings();
+    }
+
+    /**
+     * Diagnostics for codepoints that were substituted with `?` because the
+     * font's encoding could not represent them. Empty when every glyph
+     * landed cleanly. Each entry names the font resource, the codepoint,
+     * and how many times it was requested.
+     *
+     * @return list<string>
+     */
+    public function getEncodingWarnings(): array
+    {
+        $warnings = [];
+        foreach ($this->fontEncoders as $resourceName => $encoder) {
+            $missing = $encoder->getMissingCodepoints();
+            if ($missing === []) {
+                continue;
+            }
+            $counts = array_count_values($missing);
+            foreach ($counts as $cp => $count) {
+                $warnings[] = sprintf(
+                    'Font %s: codepoint U+%04X has no WinAnsi mapping (substituted ? %dx)',
+                    $resourceName,
+                    $cp,
+                    $count,
+                );
+            }
+        }
+        return $warnings;
     }
 
     /**

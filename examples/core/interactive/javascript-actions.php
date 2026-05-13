@@ -22,24 +22,24 @@ use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
 $page = $writer->addPage();
-$writer->addFont(new Type1Font(StandardFont::Helvetica));     // F1
-$writer->addFont(new Type1Font(StandardFont::HelveticaBold)); // F2
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 $cs = $writer->addContentStream($page);
-$cs->beginText()->setFont('F2', 22)->moveTextPosition(72, 740)
+$cs->beginText()->setFont($bold, 22)->moveTextPosition(72, 740)
     ->showText('JavaScript Actions')->endText();
-$cs->beginText()->setFont('F1', 11)->moveTextPosition(72, 706)
+$cs->beginText()->setFont($body, 11)->moveTextPosition(72, 706)
     ->showText('When opened, this PDF runs a script that greets the reader.')
     ->endText();
-$cs->beginText()->setFont('F1', 11)->moveTextPosition(72, 690)
+$cs->beginText()->setFont($body, 11)->moveTextPosition(72, 690)
     ->showText('Click the button below to run another script on demand.')
     ->endText();
 
 // Page text labelling the interactive regions.
-$cs->beginText()->setFont('F2', 12)->moveTextPosition(96, 632)
+$cs->beginText()->setFont($bold, 12)->moveTextPosition(96, 632)
     ->showText('Roll the dice')->endText();
-$cs->beginText()->setFont('F1', 10)->moveTextPosition(246, 632)
-    ->showText('Result appears here →')->endText();
+$cs->beginText()->setFont($body, 10)->moveTextPosition(246, 632)
+    ->showText('Result appears here ->')->endText();
 
 // 1) /OpenAction — a script that fires when the document is opened.
 $openJs = new JavaScriptAction(new PdfString(

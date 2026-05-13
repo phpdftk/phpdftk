@@ -12,8 +12,8 @@ use Phpdftk\Pdf\Core\Font\Type1Font;
 use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 // First page rendered immediately on web display; subsequent pages stream in.
 $first = $writer->addPage();

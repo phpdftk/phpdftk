@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Toolkit;
 
+use Phpdftk\Encoding\WinAnsiEncoder;
 use Phpdftk\ImageMetadata\ImageParser;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Content\Resources;
@@ -525,6 +526,11 @@ final class PdfStamper
 
     private function escapeText(string $text): string
     {
+        // The stamper always renders with Helvetica (WinAnsi), so convert
+        // UTF-8 input to its WinAnsi byte form before escaping reserved
+        // characters. Without this, an em dash would emit three WinAnsi
+        // glyphs (â€") instead of one.
+        $text = (new WinAnsiEncoder())->encode($text);
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
 

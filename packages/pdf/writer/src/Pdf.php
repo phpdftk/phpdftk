@@ -84,7 +84,7 @@ class Pdf
     /** Remember current fill color so we only emit it when it changes. */
     private ?string $lastFillColor = null;
 
-    /** @var array<string, string> family+variant key => registered font resource name ("F1") */
+    /** @var array<string, Font> family+variant key => registered font handle */
     private array $fontResourceCache = [];
 
     /** @var array<string, AfmData> family+variant key => AFM metrics for width measurement */
@@ -154,6 +154,18 @@ class Pdf
         return $this->writer;
     }
 
+    /**
+     * Codepoints that were substituted with `?` because the active font's
+     * encoding could not represent them. Useful after building a document
+     * to confirm that no unintended replacement characters slipped in.
+     *
+     * @return list<string>
+     */
+    public function getEncodingWarnings(): array
+    {
+        return $this->writer->getEncodingWarnings();
+    }
+
     // -----------------------------------------------------------------------
     // Pages
     // -----------------------------------------------------------------------
@@ -205,12 +217,17 @@ class Pdf
 
         $postScriptName = $this->resolveFontName($family, $bold, $italic);
         $metrics = $this->getMetrics($postScriptName);
-        $resourceName = $this->ensureFontResource($postScriptName);
+        $fontHandle = $this->ensureFontResource($postScriptName);
 
         $lineHeight = $size * $this->theme->lineHeight;
         $columnWidth = $this->contentWidth();
 
-        $lines = $this->wrapText($text, $metrics, $size, $columnWidth);
+        // Encode UTF-8 to the font's byte encoding up front so wrapText /
+        // measureText (both of which index by byte into a WinAnsi width
+        // table) operate on the correct bytes. With pre-encoded text we
+        // hand showText the string-form setFont so it doesn't double-encode.
+        $encoded = $fontHandle->getTextEncoder()?->encode($text) ?? $text;
+        $lines = $this->wrapText($encoded, $metrics, $size, $columnWidth);
 
         $this->applyFillColor($color);
 
@@ -240,7 +257,7 @@ class Pdf
 
             $this->currentStream
                 ->beginText()
-                ->setFont($resourceName, $size)
+                ->setFont($fontHandle->getResourceName(), $size)
                 ->moveTextPosition($x, $baselineY)
                 ->showText($line)
                 ->endText();
@@ -451,18 +468,19 @@ class Pdf
 
     /**
      * Ensure the given standard font is registered in the underlying
-     * writer and return the assigned resource name (F1, F2, …).
+     * writer and return the font handle. The handle exposes both the
+     * resource name (for the Tf operator) and the text encoder (so
+     * showText can take UTF-8 directly).
      */
-    private function ensureFontResource(string $postScriptName): string
+    private function ensureFontResource(string $postScriptName): Font
     {
         if (isset($this->fontResourceCache[$postScriptName])) {
             return $this->fontResourceCache[$postScriptName];
         }
         $standardCase = StandardFont::from($postScriptName);
         $fontHandle = $this->writer->addFont(new Type1Font($standardCase));
-        $name = $fontHandle->getResourceName();
-        $this->fontResourceCache[$postScriptName] = $name;
-        return $name;
+        $this->fontResourceCache[$postScriptName] = $fontHandle;
+        return $fontHandle;
     }
 
     /**

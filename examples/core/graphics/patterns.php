@@ -17,8 +17,8 @@ use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
 $page = $writer->addPage();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 $bbox = static fn () => new PdfArray([
     new PdfNumber(0), new PdfNumber(0), new PdfNumber(20), new PdfNumber(20),

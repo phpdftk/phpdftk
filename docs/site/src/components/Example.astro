@@ -20,15 +20,19 @@ interface Props {
 
 const { source, pdf, inputPdf, outputPdf, region = 'example', lang = 'php' } = Astro.props;
 
+// Astro's BASE_URL already has a trailing slash (e.g. "/v1.0.0/" or "/").
+const base = import.meta.env.BASE_URL;
+const sampleHref = (p: string): string => `${base}${p.replace(/^\//, '')}`;
+
 const downloads: { label: string; href: string }[] = [];
 if (pdf) {
-	downloads.push({ label: '📄 View the sample PDF', href: `/${pdf.replace(/^\//, '')}` });
+	downloads.push({ label: '📄 View the sample PDF', href: sampleHref(pdf) });
 }
 if (inputPdf) {
-	downloads.push({ label: '📥 Input PDF', href: `/${inputPdf.replace(/^\//, '')}` });
+	downloads.push({ label: '📥 Input PDF', href: sampleHref(inputPdf) });
 }
 if (outputPdf) {
-	downloads.push({ label: '📤 Output PDF', href: `/${outputPdf.replace(/^\//, '')}` });
+	downloads.push({ label: '📤 Output PDF', href: sampleHref(outputPdf) });
 }
 
 // Astro builds run from docs/site/ — the repo root is two levels up.

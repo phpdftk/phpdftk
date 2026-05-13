@@ -13,8 +13,8 @@ use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
 $page = $writer->addPage();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 $cs = $writer->addContentStream($page);
 $cs->beginText()->setFont($bold, 22)->moveTextPosition(72, 740)

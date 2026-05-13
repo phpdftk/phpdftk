@@ -19,8 +19,8 @@ use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 // Build three target pages, each with a heading.
 $chapters = [
@@ -63,7 +63,7 @@ $cs->beginText()->setFont($body, 11)->moveTextPosition(72, 706)
 $y = 660;
 foreach ($chapters as $key => $title) {
     $cs->beginText()->setFont($body, 14)->moveTextPosition(72, $y)
-        ->showText('→ ' . $title)->endText();
+        ->showText('-> ' . $title)->endText();
 
     $link = new LinkAnnotation(new PdfArray([
         new PdfNumber(72),  new PdfNumber($y - 4),

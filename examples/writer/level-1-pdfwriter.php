@@ -18,13 +18,13 @@ $font = $writer->addFont(new Type1Font(StandardFont::Helvetica));
 
 $cs = $writer->addContentStream($page);
 $cs->beginText()
-    ->setFont($font->getResourceName(), 24)
+    ->setFont($font, 24)
     ->moveTextPosition(72, 720)
     ->showText('Quarterly Report')
     ->endText();
 
 $cs->beginText()
-    ->setFont($font->getResourceName(), 12)
+    ->setFont($font, 12)
     ->moveTextPosition(72, 690)
     ->showText('Q4 2026 — prepared by Finance')
     ->endText();

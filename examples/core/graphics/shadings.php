@@ -20,8 +20,8 @@ use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
 $page = $writer->addPage();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 // A Type 2 function defines the color ramp used by every shading on this page:
 // magenta at t=0, cyan at t=1, linear interpolation in between.

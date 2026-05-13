@@ -29,6 +29,14 @@ class Type1Font extends Font
         // Embed character widths for standard fonts when requested
         if ($embedWidths && $font instanceof StandardFont) {
             $this->populateWidths($font->value);
+            // For the Latin-script standard fonts (Helvetica, Times, Courier),
+            // declare /Encoding /WinAnsiEncoding so the byte→glyph mapping in
+            // the rendered PDF matches the WinAnsi widths above and any
+            // text encoder the writer attaches. Symbol and ZapfDingbats use
+            // their own built-in encodings and must NOT be marked WinAnsi.
+            if ($font !== StandardFont::Symbol && $font !== StandardFont::ZapfDingbats) {
+                $this->encoding = new PdfName('WinAnsiEncoding');
+            }
         }
     }
 

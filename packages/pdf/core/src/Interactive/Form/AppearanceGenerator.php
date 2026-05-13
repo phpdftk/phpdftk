@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Core\Interactive\Form;
 
+use Phpdftk\Encoding\WinAnsiEncoder;
 use Phpdftk\Pdf\Core\Annotation\AppearanceDict;
 use Phpdftk\Pdf\Core\Content\Resources;
 use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
@@ -646,6 +647,12 @@ final class AppearanceGenerator
 
     private static function escapeString(string $text): string
     {
+        // Appearance streams without a FontContext render with a WinAnsi
+        // standard font (typically Helvetica). Convert UTF-8 input to its
+        // WinAnsi byte form so non-ASCII default/filled values display
+        // correctly. The FontContext (composite-font) path uses textToHex
+        // upstream of this method, so this branch only fires for WinAnsi.
+        $text = (new WinAnsiEncoder())->encode($text);
         return str_replace(
             ['\\', '(', ')'],
             ['\\\\', '\\(', '\\)'],

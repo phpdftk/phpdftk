@@ -43,6 +43,19 @@ $custom = $writer->addFont(
 );
 ```
 
+### Text encoding
+
+Standard Type1 fonts (Helvetica, Times, Courier) and embedded TrueType fonts use WinAnsi encoding. Pass the `Font` handle returned by `addFont()` to `ContentStream::setFont()` and the stream will encode UTF-8 input to the right bytes for you:
+
+```php
+$cs->beginText()
+   ->setFont($helvetica, 12)         // pass the handle, not the resource name
+   ->showText('café — résumé · 20×20')
+   ->endText();
+```
+
+If a codepoint has no WinAnsi mapping it is substituted with `?`; inspect `$writer->getEncodingWarnings()` to see what was lost. Passing the resource name string (`$helvetica->getResourceName()`) instead disables the encoder so you can emit pre-encoded bytes by hand.
+
 For Unicode beyond WinAnsi (CJK, Cyrillic, mathematical symbols), use `addCompositeFont()` — see the [Fonts gallery](/core/fonts/) for the full pattern. The example below subsets a TrueType font down to the glyphs an accented Latin string actually needs:
 
 <Example source="writer/custom-font.php" pdf="samples/writer/custom-font.pdf" />

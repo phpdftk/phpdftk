@@ -7,6 +7,8 @@ namespace Phpdftk\Pdf\Core\Content;
 use Phpdftk\Color\CmykColor;
 use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
+use Phpdftk\Encoding\TextEncoder;
+use Phpdftk\Pdf\Core\Font\RegisteredFont;
 use Phpdftk\Pdf\Core\PdfDictionary;
 use Phpdftk\Pdf\Core\PdfStream;
 use Phpdftk\Geometry\Matrix;
@@ -22,6 +24,15 @@ class ContentStream extends PdfStream
 {
     /** @var array<int, string> */
     private array $operators = [];
+
+    /**
+     * Encoder for the currently-active single-byte font. When set, showText
+     * and showTextArray convert their UTF-8 input to the font's byte
+     * encoding before emitting Tj/TJ. Null when no font has been set, or
+     * when the active font is a composite/CID font (those use the
+     * showTextHex / showUnicodeText path).
+     */
+    private ?TextEncoder $activeEncoder = null;
 
     public function __construct()
     {
@@ -61,9 +72,23 @@ class ContentStream extends PdfStream
         return $this;
     }
 
-    /** Tf - Set font and size */
-    public function setFont(string $name, float $size): self
+    /**
+     * Tf - Set font and size.
+     *
+     * Accepts either a resource name string (legacy / raw-bytes mode — the
+     * caller is responsible for emitting bytes in the font's encoding) or
+     * a `RegisteredFont` handle from `PdfWriter::addFont()`. When a handle
+     * is passed, the stream remembers the font's text encoder so subsequent
+     * showText/showTextArray calls accept UTF-8 directly.
+     */
+    public function setFont(RegisteredFont|string $name, float $size): self
     {
+        if ($name instanceof RegisteredFont) {
+            $this->activeEncoder = $name->getTextEncoder();
+            $name = $name->getResourceName();
+        } else {
+            $this->activeEncoder = null;
+        }
         $this->operators[] = sprintf('/%s %s Tf', $name, $this->num($size));
         return $this;
     }
@@ -85,7 +110,7 @@ class ContentStream extends PdfStream
     /** Tj - Show text */
     public function showText(string $text): self
     {
-        $this->operators[] = $this->escapeString($text) . ' Tj';
+        $this->operators[] = $this->escapeString($this->encodeForActiveFont($text)) . ' Tj';
         return $this;
     }
 
@@ -97,13 +122,23 @@ class ContentStream extends PdfStream
         $parts = [];
         foreach ($texts as $item) {
             if (is_string($item)) {
-                $parts[] = $this->escapeString($item);
+                $parts[] = $this->escapeString($this->encodeForActiveFont($item));
             } elseif (is_int($item) || is_float($item)) {
                 $parts[] = $this->num($item);
             }
         }
         $this->operators[] = '[ ' . implode(' ', $parts) . ' ] TJ';
         return $this;
+    }
+
+    /**
+     * Run text through the active font's encoder if one was set via
+     * setFont(RegisteredFont). Otherwise return it verbatim so callers
+     * that pre-encoded their bytes continue to work.
+     */
+    private function encodeForActiveFont(string $text): string
+    {
+        return $this->activeEncoder?->encode($text) ?? $text;
     }
 
     /** Tj with hex-encoded string - Show text using hex-encoded glyph IDs (for CID fonts) */
