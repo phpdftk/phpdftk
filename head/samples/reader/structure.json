@@ -1,0 +1,61 @@
+{
+    "pdfVersion": "1.7",
+    "linearized": false,
+    "pageCount": 4,
+    "catalog": {
+        "Type": "present",
+        "Version": "present",
+        "Pages": "present",
+        "Outlines": "present",
+        "Names": "absent",
+        "PageLabels": "absent",
+        "AcroForm": "absent",
+        "OpenAction": "absent"
+    },
+    "pages": [
+        {
+            "index": 0,
+            "mediaBox": [
+                0,
+                0,
+                612,
+                792
+            ],
+            "hasContents": true,
+            "hasAnnots": false
+        },
+        {
+            "index": 1,
+            "mediaBox": [
+                0,
+                0,
+                612,
+                792
+            ],
+            "hasContents": true,
+            "hasAnnots": false
+        },
+        {
+            "index": 2,
+            "mediaBox": [
+                0,
+                0,
+                612,
+                792
+            ],
+            "hasContents": true,
+            "hasAnnots": false
+        },
+        {
+            "index": 3,
+            "mediaBox": [
+                0,
+                0,
+                612,
+                792
+            ],
+            "hasContents": true,
+            "hasAnnots": false
+        }
+    ]
+}
