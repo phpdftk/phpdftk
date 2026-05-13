@@ -27,8 +27,8 @@ use Phpdftk\Pdf\Writer\PdfWriter;
 
 $writer = new PdfWriter();
 $page = $writer->addPage();
-$body = $writer->addFont(new Type1Font(StandardFont::Helvetica))->getResourceName();
-$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold))->getResourceName();
+$body = $writer->addFont(new Type1Font(StandardFont::Helvetica));
+$bold = $writer->addFont(new Type1Font(StandardFont::HelveticaBold));
 
 // Helper: build a /Rect array.
 $rect = static fn (float $x1, float $y1, float $x2, float $y2) => new PdfArray([
@@ -54,8 +54,8 @@ $cs->beginText()->setFont($bold, 22)->moveTextPosition(72, 740)
 $labels = [
     [700, 'Sticky note — click the icon to expand.'],
     [640, 'Highlighted text — visible in any PDF viewer.'],
-    [580, 'Click this link to open phpdftk.dev →'],
-    [520, 'Approved stamp ↓'],
+    [580, 'Click this link to open phpdftk.dev ->'],
+    [520, 'Approved stamp (below):'],
     [440, 'Ink scribble (freehand annotation):'],
     [340, 'Paperclip — embedded text file attached.'],
 ];
