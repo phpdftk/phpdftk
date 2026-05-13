@@ -1,0 +1,32 @@
+---
+title: Fonts
+description: Standard Type 1 fonts, TrueType subsetting, Type 0 CID fonts for Unicode, and Type 3 custom glyphs.
+---
+
+import Example from '../../../components/Example.astro';
+
+phpdftk supports every font kind in ISO 32000-2: the 14 standard Type 1 fonts that every viewer ships, custom TrueType and Type 1 fonts with automatic subsetting, Type 0 composite (CID) fonts for full Unicode coverage, and Type 3 fonts whose glyph procedures are PDF content streams.
+
+## Standard Type 1 fonts
+
+The 14 standard fonts — Helvetica, Times, Courier in their weights — are always available, embedded in zero bytes, and perfect for body text when you don't need a custom typeface.
+
+<Example source="core/fonts/type1.php" pdf="samples/core/fonts/type1.pdf" />
+
+## TrueType embedding & subsetting
+
+`TrueTypeFont::fromFile()` parses a `.ttf` and registers it as a simple (non-composite) font. `PdfWriter::addFont()` embeds and subsets the program so only the WinAnsi-mapped glyphs you actually use are written into the file.
+
+<Example source="core/fonts/truetype-subset.php" pdf="samples/core/fonts/truetype-subset.pdf" />
+
+## Type 0 (CID) fonts for Unicode
+
+For non-WinAnsi text — CJK, Cyrillic, Greek, mathematical symbols — use `addCompositeFont()`. The font is embedded as a Type 0 CID font with a ToUnicode CMap, automatically subset to the codepoints you provide.
+
+<Example source="core/fonts/unicode-cid.php" pdf="samples/core/fonts/unicode-cid.pdf" />
+
+## Type 3 custom glyphs
+
+A `Type3Font` lets you ship arbitrary PDF content streams as glyphs — perfect for pictograms, dingbats, or any vector mark that should behave like text and scale to any size.
+
+<Example source="core/fonts/type3-custom.php" pdf="samples/core/fonts/type3-custom.pdf" />

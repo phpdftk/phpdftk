@@ -3,6 +3,8 @@ title: PdfReader
 description: Parse existing PDFs into typed objects — pages, fonts, annotations, metadata.
 ---
 
+import Example from '../../../components/Example.astro';
+
 `PdfReader` parses existing PDF files into the phpdftk object model. It handles classic xref tables, cross-reference streams, object streams, incremental updates, and encrypted PDFs.
 
 ## Opening a PDF
@@ -85,7 +87,27 @@ $text = $pdf->extractText(0);
 $allText = $pdf->extractAllText("\n\n");
 ```
 
+The example below reads the [page-labels showcase PDF](/samples/writer/page-labels.pdf) and writes both the joined and per-page transcriptions to disk.
+
+<Example source="reader/extract-text.php" inputPdf="samples/writer/page-labels.pdf" />
+
 For per-page access, search, and a friendlier 1-based API, see [Working with PDFs → Text Extractor](/toolkit/text-extractor/). That page also covers how text extraction works under the hood (ToUnicode CMaps, encoding fallbacks, Form XObject recursion).
+
+## Extracting metadata
+
+`getInfo()` returns the document's `/Info` dictionary. The example below builds a PDF with rich metadata, reads it back, and writes a JSON summary.
+
+<Example source="reader/extract-metadata.php" />
+
+The captured summary lives at [`samples/reader/metadata.json`](/samples/reader/metadata.json).
+
+## Inspecting structure
+
+`getCatalog()` and `getPages()` expose the document's structural skeleton. The example below walks the [outline showcase PDF](/samples/writer/outline.pdf) and emits a JSON description of its catalog and page tree.
+
+<Example source="reader/extract-structure.php" inputPdf="samples/writer/outline.pdf" />
+
+The summary lives at [`samples/reader/structure.json`](/samples/reader/structure.json).
 
 ## Error tolerance
 

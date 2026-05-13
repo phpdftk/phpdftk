@@ -1,0 +1,32 @@
+---
+title: Annotations
+description: PDF annotations — sticky notes, highlights, links, stamps, ink, file attachments, and redactions.
+---
+
+import Example from '../../../components/Example.astro';
+
+Annotations live on a page and let viewers interact with the document — leaving notes, highlighting text, jumping to links, attaching files, or flagging content for redaction. Every annotation in the spec is exposed as a `Phpdftk\Pdf\Core\Annotation\*` class.
+
+## Annotation gallery
+
+A single page exercising the six most common annotation types — sticky note, highlight, link, stamp, ink scribble, and file attachment.
+
+<Example source="core/annotations/gallery.php" pdf="samples/core/annotations/gallery.pdf" />
+
+## Text markup
+
+`Highlight`, `Underline`, `StrikeOut`, and `Squiggly` all mark spans of text using `/QuadPoints`. Note that `HighlightAnnotation` takes the quad-points in its constructor, while the other three expose it as a property.
+
+<Example source="core/annotations/markup.php" pdf="samples/core/annotations/markup.pdf" />
+
+## File attachments
+
+A `FileAttachmentAnnotation` ties an `EmbeddedFile` stream and `FileSpec` to a clickable hotspot on the page. The file rides inside the PDF and can be saved out from any viewer.
+
+<Example source="core/annotations/file-attachment.php" pdf="samples/core/annotations/file-attachment.pdf" />
+
+## Redactions
+
+A `RedactAnnotation` marks content as pending redaction. A redaction-capable viewer can then "apply" it — replacing the underlying content with the overlay text and fill colour you specified.
+
+<Example source="core/annotations/redact.php" pdf="samples/core/annotations/redact.pdf" />

@@ -38,6 +38,16 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Core Object Model',
+					items: [
+						{ label: 'Annotations', slug: 'core/annotations' },
+						{ label: 'Graphics', slug: 'core/graphics' },
+						{ label: 'Fonts', slug: 'core/fonts' },
+						{ label: 'Interactive', slug: 'core/interactive' },
+						{ label: 'Security & Files', slug: 'core/security' },
+					],
+				},
+				{
 					label: 'Working with PDFs',
 					items: [
 						{ label: 'Overview', slug: 'toolkit/overview' },

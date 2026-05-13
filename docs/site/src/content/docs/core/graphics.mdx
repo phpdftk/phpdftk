@@ -1,0 +1,38 @@
+---
+title: Graphics
+description: Shadings, tiling patterns, transparency, blend modes, color spaces, and PDF functions.
+---
+
+import Example from '../../../components/Example.astro';
+
+The graphics namespace covers everything between "set fill colour" and "fill the path" — including the colour spaces, patterns, shadings, and functions that drive rendering.
+
+## Shadings
+
+`ShadingType2` (axial) and `ShadingType3` (radial) are the workhorses. Both are driven by a `Func` (usually a `FunctionType2`) that interpolates between two colour stops.
+
+<Example source="core/graphics/shadings.php" pdf="samples/core/graphics/shadings.pdf" />
+
+## Tiling patterns
+
+`TilingPattern` defines a repeating motif by embedding a small content stream that's painted across the fill area. Cell size is set by `xStep` and `yStep`.
+
+<Example source="core/graphics/patterns.php" pdf="samples/core/graphics/patterns.pdf" />
+
+## Transparency and blend modes
+
+`ExtGState` configures the graphics state — including fill/stroke alpha and blend modes. The Multiply blend mode below mixes three primaries the way subtractive inks would.
+
+<Example source="core/graphics/transparency.php" pdf="samples/core/graphics/transparency.pdf" />
+
+## Color spaces
+
+`DeviceRGB`, `DeviceCMYK`, and `DeviceGray` are the three device-dependent spaces. The content stream API exposes `setFillColorRGB`, `setFillColorCMYK`, and `setFillColorGray` directly.
+
+<Example source="core/graphics/color-spaces.php" pdf="samples/core/graphics/color-spaces.pdf" />
+
+## Functions
+
+A PDF function maps an input domain to an output range. `FunctionType2` (exponential interpolation) and `FunctionType3` (stitching) are the most common ways to define colour ramps.
+
+<Example source="core/graphics/functions.php" pdf="samples/core/graphics/functions.pdf" />

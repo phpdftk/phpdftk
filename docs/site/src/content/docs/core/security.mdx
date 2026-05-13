@@ -1,0 +1,28 @@
+---
+title: Security & Files
+description: Public-key encryption, embedded files in the names tree, and 3D annotations.
+---
+
+import Example from '../../../components/Example.astro';
+
+This page covers three slices of the spec that share the "attach extra content to the document" theme — encryption (who can read), embedded files (extra payloads), and 3D annotations (interactive viewports).
+
+## Public-key encryption
+
+`PdfEncryptor::publicKeyAes256()` seals the PDF for one or more X.509 recipients. Only the holder of a matching private key can open it. The example generates a throwaway keypair so it runs anywhere; in production you would import a recipient's certificate.
+
+<Example source="core/security/public-key.php" pdf="samples/core/security/public-key.pdf" />
+
+The generated `recipient.cert.pem` and `recipient.key.pem` are written next to the PDF so you can decrypt it locally.
+
+## Embedded files (Attachments panel)
+
+`FileAttachmentAnnotation` exposes embedded files at fixed positions on the page. `Names → EmbeddedFiles` is the document-wide equivalent — files show up in any viewer's Attachments panel without consuming page space.
+
+<Example source="core/multimedia/embedded-file.php" pdf="samples/core/multimedia/embedded-file.pdf" />
+
+## 3D annotations
+
+A `ThreeDAnnotation` reserves a viewport on the page and binds a U3D or PRC model stream, a default view, and rendering parameters (background, lighting, render mode). The example below wires the full object graph using placeholder model bytes — substitute a real `.u3d` file in production.
+
+<Example source="core/threed/3d-annotation.php" pdf="samples/core/threed/3d-annotation.pdf" />

@@ -43,6 +43,10 @@ $custom = $writer->addFont(
 );
 ```
 
+For Unicode beyond WinAnsi (CJK, Cyrillic, mathematical symbols), use `addCompositeFont()` — see the [Fonts gallery](/core/fonts/) for the full pattern. The example below subsets a TrueType font down to the glyphs an accented Latin string actually needs:
+
+<Example source="writer/custom-font.php" pdf="samples/writer/custom-font.pdf" />
+
 The returned `Font` handle is opaque — pass it to drawing methods:
 
 ```php
@@ -105,17 +109,21 @@ $page->drawPath(
 
 ## Bookmarks
 
-```php
-use Phpdftk\Pdf\Core\Document\Outline;
-use Phpdftk\Pdf\Core\Document\OutlineItem;
+`setOutline()` registers an `Outline` root and wires it to the catalog; `addOutlineItem()` registers each entry and returns a reference for cross-linking. Each item carries a `/Dest` array (or named destination) describing where the bookmark jumps to.
 
-$outline = new Outline();
-$writer->setOutline($outline);
+<Example source="writer/outline.php" pdf="samples/writer/outline.pdf" />
 
-$item = new OutlineItem('Chapter 1');
-$item->dest = $page; // link to page
-$writer->addOutlineItem($item);
-```
+## Page labels
+
+`setPageLabels()` overrides the displayed page numbers — useful for front matter in roman numerals followed by arabic body pages and a prefixed appendix.
+
+<Example source="writer/page-labels.php" pdf="samples/writer/page-labels.pdf" />
+
+## Linearization (fast web view)
+
+Linearized PDFs front-load the first page's objects so a viewer can render it before the rest of the file finishes downloading. Toggle it with `setLinearized(true)`.
+
+<Example source="writer/linearized.php" pdf="samples/writer/linearized.pdf" />
 
 ## Digital signatures
 
@@ -123,15 +131,15 @@ $writer->addOutlineItem($item);
 $writer->setSigner($signatureValue, $pkcs7Signer);
 ```
 
+See [Core → Interactive → Signature fields](/core/interactive/) for the full object graph.
+
 ## Encryption
 
-```php
-use Phpdftk\Pdf\Core\Security\PdfEncryptor;
+`PdfEncryptor::aes256()` encrypts the document with a user/owner password and a permission mask. The version is automatically bumped to PDF 2.0 (the minimum AES-256 requires).
 
-$fileId = random_bytes(16);
-$encryptor = PdfEncryptor::aes256('userpass', 'ownerpass', $fileId);
-$writer->setEncryption($encryptor);
-```
+<Example source="writer/encrypted.php" pdf="samples/writer/encrypted.pdf" />
+
+For public-key (X.509) encryption, see [Core → Security & Files](/core/security/).
 
 ## Escape hatches
 

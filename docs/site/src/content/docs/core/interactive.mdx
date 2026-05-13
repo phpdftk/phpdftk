@@ -1,0 +1,32 @@
+---
+title: Interactive
+description: Form widgets, signature fields, JavaScript actions, and named destinations.
+---
+
+import Example from '../../../components/Example.astro';
+
+PDF interactivity is built from form fields (`TextField`, `ButtonField`, `ChoiceField`, `SignatureField`), `WidgetAnnotation`s that expose those fields on the page, actions (URI, JavaScript, GoTo, SubmitForm…), and the `AcroForm` that wires everything together.
+
+## Form widgets
+
+Text fields, checkboxes, combo boxes, and multiline notes — all wrapped in a single `AcroForm`. Setting `needAppearances = true` lets the viewer render the field appearances on the fly.
+
+<Example source="core/interactive/form-widgets.php" pdf="samples/core/interactive/form-widgets.pdf" />
+
+## Signature fields
+
+A signable PDF needs a `SignatureField` plus a placeholder `SignatureValue` plus an `AcroForm` with `sigFlags = 3`. A signing client patches the placeholder bytes; the structural graph below is what those bytes attach to.
+
+<Example source="core/interactive/signature-field.php" pdf="samples/core/interactive/signature-field.pdf" />
+
+## JavaScript actions
+
+`JavaScriptAction` can be wired to the catalog's `/OpenAction` to run on document load, or to a button widget's `/A` to run on click. The button below rolls a random number into a text field.
+
+<Example source="core/interactive/javascript-actions.php" pdf="samples/core/interactive/javascript-actions.pdf" />
+
+## Named destinations
+
+Named destinations decouple link targets from page positions — links reference a stable name like `"introduction"`, and the catalog's name tree resolves each name to a page rectangle.
+
+<Example source="core/interactive/named-destinations.php" pdf="samples/core/interactive/named-destinations.pdf" />
