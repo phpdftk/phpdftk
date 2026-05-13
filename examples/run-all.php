@@ -17,7 +17,18 @@ foreach ($it as $file) {
     $scripts[] = $file->getPathname();
 }
 
-sort($scripts);
+// Order by top-level directory so producer examples run before consumers:
+// writer outputs are consumed by reader/toolkit examples.
+$order = ['writer' => 0, 'core' => 1, 'toolkit' => 2, 'reader' => 3];
+usort($scripts, function (string $a, string $b) use ($root, $order): int {
+    $relA = substr($a, strlen($root) + 1);
+    $relB = substr($b, strlen($root) + 1);
+    $dirA = explode('/', $relA)[0];
+    $dirB = explode('/', $relB)[0];
+    $rankA = $order[$dirA] ?? PHP_INT_MAX;
+    $rankB = $order[$dirB] ?? PHP_INT_MAX;
+    return $rankA <=> $rankB ?: strcmp($relA, $relB);
+});
 
 $failed = [];
 foreach ($scripts as $script) {
