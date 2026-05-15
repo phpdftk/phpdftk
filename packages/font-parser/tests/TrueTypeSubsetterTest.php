@@ -224,4 +224,45 @@ class TrueTypeSubsetterTest extends TestCase
         $format = (ord($subsetBytes[$subtableOffset]) << 8) | ord($subsetBytes[$subtableOffset + 1]);
         self::assertSame(12, $format, 'cmap subtable format should be 12');
     }
+
+    public function testGetGidMapIsEmptyBeforeSubset(): void
+    {
+        $subsetter = new TrueTypeSubsetter();
+        self::assertSame([], $subsetter->getGidMap());
+    }
+
+    public function testGetGidMapAfterSubsetRenumbersToCompactRange(): void
+    {
+        $data = $this->getData();
+
+        $codepoints = [65, 66, 67]; // A, B, C
+        $oldGids = [];
+        foreach ($codepoints as $cp) {
+            if (isset($data->fullUnicodeToGid[$cp])) {
+                $oldGids[] = $data->fullUnicodeToGid[$cp];
+            }
+        }
+        self::assertNotEmpty($oldGids);
+
+        $subsetter = new TrueTypeSubsetter();
+        $subsetter->subset($data->fontBytes, $oldGids, $data->fullUnicodeToGid);
+
+        $map = $subsetter->getGidMap();
+
+        // GID 0 is always kept, so the map's value range starts at 0
+        // and runs without gaps up to count-1.
+        self::assertArrayHasKey(0, $map, 'GID 0 must always be in the subset');
+        self::assertSame(0, $map[0]);
+
+        $newGids = array_values($map);
+        sort($newGids);
+        self::assertSame(range(0, count($newGids) - 1), $newGids);
+
+        // Every requested glyph is in the map and points at a new GID
+        // strictly less than the subset glyph count.
+        foreach ($oldGids as $oldGid) {
+            self::assertArrayHasKey($oldGid, $map);
+            self::assertLessThan(count($map), $map[$oldGid]);
+        }
+    }
 }

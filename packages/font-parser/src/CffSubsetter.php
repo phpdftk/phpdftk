@@ -17,6 +17,16 @@ namespace Phpdftk\FontParser;
 final class CffSubsetter
 {
     /**
+     * Old GID → new GID map, populated by the most recent `subset()` call.
+     * Callers use this to translate pre-subset GIDs (e.g. from a parsed
+     * font's `fullUnicodeToGid`) into the renumbered GIDs that live in
+     * the emitted subset.
+     *
+     * @var array<int, int>
+     */
+    private array $gidMap = [];
+
+    /**
      * @param string $cffBytes Raw CFF table bytes
      * @param int[]  $glyphIds GIDs to keep (GID 0 is always included)
      * @return string Subset CFF bytes
@@ -41,10 +51,14 @@ final class CffSubsetter
             $subsetCharStrings[] = $cffData->charStrings[$oldGid];
         }
 
-        // Build subset charset (format 0: simple SID list)
+        // Build subset charset (format 0: simple SID list) and record
+        // the old → new GID map so callers can remap any pre-subset
+        // GIDs they hold.
         $subsetCharset = [];
+        $this->gidMap = [];
         foreach ($glyphIds as $newGid => $oldGid) {
             $subsetCharset[$newGid] = $cffData->charset[$oldGid] ?? $oldGid;
+            $this->gidMap[$oldGid] = $newGid;
         }
 
         // Build the output CFF
@@ -146,6 +160,17 @@ final class CffSubsetter
         return $header . $nameIndex . $topDictIndex . $stringIndex
             . $globalSubrIndex . $charsetData . $charStringsIndex
             . $privateDict . $localSubrIndex;
+    }
+
+    /**
+     * The old → new GID map from the most recent `subset()` call. Returns
+     * an empty array if `subset()` has not been called yet.
+     *
+     * @return array<int, int>
+     */
+    public function getGidMap(): array
+    {
+        return $this->gidMap;
     }
 
     /**

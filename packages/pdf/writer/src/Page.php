@@ -96,12 +96,20 @@ final class Page
             ->moveTextPosition($x, $y);
 
         $parsedData = $font->getParsedData();
-        if ($parsedData !== null && !empty($parsedData->fullUnicodeToGid)) {
+        // For composite fonts registered via addCompositeFont, the Font
+        // handle carries a post-subset Unicode → GID map; the pre-subset
+        // map on the parsed font data points at glyphs that no longer
+        // exist in the embedded subset.
+        $unicodeToGid = $font->getUnicodeToGidMap();
+        if ($unicodeToGid === [] && $parsedData !== null) {
+            $unicodeToGid = $parsedData->fullUnicodeToGid;
+        }
+        if ($parsedData !== null && !empty($unicodeToGid)) {
             // Unicode font — use hex encoding with optional shaping
             if ($parsedData->ligatures !== null && $parsedData->ligatures !== []) {
                 $cs->showUnicodeTextShaped(
                     $text,
-                    $parsedData->fullUnicodeToGid,
+                    $unicodeToGid,
                     $parsedData->ligatures,
                     $parsedData->kernPairs ?? [],
                     $parsedData->unitsPerEm,
@@ -109,12 +117,12 @@ final class Page
             } elseif ($parsedData->kernPairs !== null && $parsedData->kernPairs !== []) {
                 $cs->showUnicodeTextKerned(
                     $text,
-                    $parsedData->fullUnicodeToGid,
+                    $unicodeToGid,
                     $parsedData->kernPairs,
                     $parsedData->unitsPerEm,
                 );
             } else {
-                $cs->showUnicodeText($text, $parsedData->fullUnicodeToGid);
+                $cs->showUnicodeText($text, $unicodeToGid);
             }
         } else {
             // Standard font — WinAnsi encoding

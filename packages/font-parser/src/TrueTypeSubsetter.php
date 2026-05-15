@@ -22,6 +22,16 @@ class TrueTypeSubsetter
     private int $indexToLocFormat;
 
     /**
+     * Old GID → new GID map, populated by the most recent subset() call.
+     * Callers need this to translate any pre-subset GIDs they hold (Unicode
+     * → GID maps from the unsubset font, for instance) into the renumbered
+     * GIDs that actually live in the emitted subset.
+     *
+     * @var array<int, int>
+     */
+    private array $gidMap = [];
+
+    /**
      * @param string   $fontBytes Raw TTF file bytes
      * @param int[]    $glyphIds  GIDs to keep (GID 0 is always included)
      * @param array<int, int> $unicodeToGid Unicode codepoint => GID map (for rebuilding cmap)
@@ -39,11 +49,13 @@ class TrueTypeSubsetter
         $glyphIds = $this->resolveComposites($glyphIds);
         sort($glyphIds);
 
-        // Build old GID => new GID map
+        // Build old GID => new GID map (also kept on $this so callers can
+        // retrieve it after subset() via getGidMap()).
         $gidMap = [];
         foreach ($glyphIds as $newGid => $oldGid) {
             $gidMap[$oldGid] = $newGid;
         }
+        $this->gidMap = $gidMap;
 
         // Build subset tables
         $newGlyf = $this->buildGlyf($glyphIds, $gidMap);
@@ -73,6 +85,19 @@ class TrueTypeSubsetter
         ];
 
         return $this->assembleFont($tableDefs);
+    }
+
+    /**
+     * The old → new GID map from the most recent `subset()` call. Returns
+     * an empty array if `subset()` has not been called yet. Callers use this
+     * to translate any pre-subset GIDs they hold into the renumbered GIDs
+     * that live in the emitted subset font.
+     *
+     * @return array<int, int>
+     */
+    public function getGidMap(): array
+    {
+        return $this->gidMap;
     }
 
     private function parseTables(): void

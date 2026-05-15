@@ -38,6 +38,11 @@ $codepoints = array_values(array_unique(array_map('mb_ord', mb_str_split($allTex
 $dejavu = $writer->addCompositeFont($ttData, $codepoints);
 $dejavuName = $dejavu->getResourceName();
 
+// Post-subset Unicode → GID map from the font handle. Subsetting renumbers
+// the kept glyphs, so the original $ttData->fullUnicodeToGid points at
+// the wrong slots in the embedded font.
+$unicodeToGid = $dejavu->getUnicodeToGidMap();
+
 $encodeHex = static function (string $text, array $unicodeToGid): string {
     $hex = '';
     foreach (mb_str_split($text) as $char) {
@@ -54,7 +59,7 @@ $cs->beginText()->setFont($caption, 22)->moveTextPosition(72, 740)
 $y = 690;
 foreach ($samples as $line) {
     $cs->beginText()->setFont($dejavuName, 14)->moveTextPosition(72, $y)
-        ->showTextHex($encodeHex($line, $ttData->fullUnicodeToGid))->endText();
+        ->showTextHex($encodeHex($line, $unicodeToGid))->endText();
     $y -= 40;
 }
 

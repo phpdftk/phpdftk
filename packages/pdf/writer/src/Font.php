@@ -20,11 +20,19 @@ use Phpdftk\Pdf\Core\Font\RegisteredFont;
  */
 final class Font implements RegisteredFont
 {
+    /**
+     * @param array<int, int> $unicodeToGid Unicode codepoint → post-subset GID.
+     *        Only populated for composite (Type 0) fonts; empty for everything
+     *        else. Use this when emitting glyph IDs into a content stream
+     *        rather than the unsubset map on `TrueTypeData`, which points at
+     *        glyphs that no longer exist in the embedded subset.
+     */
     public function __construct(
         private readonly string $resourceName,
         private readonly string $family,
         private readonly TrueTypeData|OpenTypeData|null $parsedData = null,
         private readonly ?TextEncoder $encoder = null,
+        private readonly array $unicodeToGid = [],
     ) {}
 
     public function getFamily(): string
@@ -56,5 +64,19 @@ final class Font implements RegisteredFont
     public function getTextEncoder(): ?TextEncoder
     {
         return $this->encoder;
+    }
+
+    /**
+     * Unicode codepoint → post-subset GID map for composite (Type 0) fonts.
+     * Use this when building a hex glyph string for showTextHex; the map on
+     * the parsed font data points at pre-subset GIDs that no longer match
+     * the embedded subset. Returns an empty array for standard or simple
+     * TrueType fonts that don't go through subsetting.
+     *
+     * @return array<int, int>
+     */
+    public function getUnicodeToGidMap(): array
+    {
+        return $this->unicodeToGid;
     }
 }

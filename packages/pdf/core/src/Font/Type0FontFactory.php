@@ -33,31 +33,54 @@ class Type0FontFactory
     /**
      * Build the complete Type 0 font stack from parsed TrueType data.
      *
+     * The subsetter renumbers kept glyphs into a compact 0..N-1 range, so
+     * the returned `unicodeToGidSubset` map points at the *post-subset*
+     * GIDs that callers should emit in content streams. The /W widths and
+     * /ToUnicode CMap are likewise built against post-subset GIDs so the
+     * three views agree.
+     *
      * @param TrueTypeData $data           Parsed font data
      * @param int[]        $usedCodepoints Unicode codepoints used in the document
      * @param bool         $vertical       Use Identity-V encoding for vertical writing mode
-     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream}
+     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream, 6: array<int, int>}
      */
     public static function fromTrueTypeData(TrueTypeData $data, array $usedCodepoints, bool $vertical = false): array
     {
         $additionalObjects = [];
 
-        // Determine which GIDs we need
-        $usedGids = [];
-        $cidToUnicode = []; // GID => Unicode codepoint
+        // Resolve every requested codepoint to its pre-subset GID. We need
+        // the pre-subset GIDs to drive the subsetter; the post-subset
+        // numbering comes back via $subsetter->getGidMap().
+        $oldGidByCodepoint = [];
+        $usedOldGids = [];
         foreach ($usedCodepoints as $cp) {
             if (isset($data->fullUnicodeToGid[$cp])) {
-                $gid = $data->fullUnicodeToGid[$cp];
-                $usedGids[] = $gid;
-                $cidToUnicode[$gid] = $cp;
+                $oldGid = $data->fullUnicodeToGid[$cp];
+                $oldGidByCodepoint[$cp] = $oldGid;
+                $usedOldGids[] = $oldGid;
             }
         }
-        $usedGids = array_unique($usedGids);
-        sort($usedGids);
+        $usedOldGids = array_values(array_unique($usedOldGids));
+        sort($usedOldGids);
 
-        // Subset the font
+        // Subset the font.
         $subsetter = new TrueTypeSubsetter();
-        $subsetBytes = $subsetter->subset($data->fontBytes, $usedGids, $data->fullUnicodeToGid);
+        $subsetBytes = $subsetter->subset($data->fontBytes, $usedOldGids, $data->fullUnicodeToGid);
+        $gidMap = $subsetter->getGidMap();
+
+        // Translate everything from pre-subset to post-subset GIDs so the
+        // /W array, /ToUnicode CMap, and the caller-facing unicodeToGid all
+        // index into the renumbered glyph table.
+        $cidToUnicodeSubset = [];   // new GID => unicode
+        $unicodeToGidSubset = [];   // unicode => new GID
+        foreach ($oldGidByCodepoint as $cp => $oldGid) {
+            $newGid = $gidMap[$oldGid] ?? null;
+            if ($newGid === null) {
+                continue;
+            }
+            $unicodeToGidSubset[$cp] = $newGid;
+            $cidToUnicodeSubset[$newGid] = $cp;
+        }
 
         // 1. Font program stream
         $streamDict = new PdfDictionary(['Length1' => new PdfNumber(strlen($subsetBytes))]);
@@ -86,8 +109,9 @@ class Type0FontFactory
         $cidFont = new CIDFontType2Font($data->postScriptName, $cidSystemInfo);
         $cidFont->cidToGidMap = new PdfName('Identity');
 
-        // Build /W array (compact format)
-        $wArray = self::buildWidthsArray($usedGids, $data);
+        // Build /W array (compact format) — indexed by post-subset GID so
+        // the widths line up with what the content stream actually emits.
+        $wArray = self::buildWidthsArray($usedOldGids, $gidMap, $data);
         if ($wArray !== []) {
             $cidFont->w = new PdfArray($wArray);
         }
@@ -100,8 +124,9 @@ class Type0FontFactory
         $cidFont->dw = $defaultWidth;
         $additionalObjects[] = $cidFont;
 
-        // 4. ToUnicode CMap
-        $toUnicodeCmap = self::buildToUnicodeCMap($cidToUnicode);
+        // 4. ToUnicode CMap — keyed by post-subset GID so text extraction
+        // sees the same identifiers the viewer renders against.
+        $toUnicodeCmap = self::buildToUnicodeCMap($cidToUnicodeSubset);
         $toUnicodeStream = new PdfStream(new PdfDictionary(), $toUnicodeCmap);
         $additionalObjects[] = $toUnicodeStream;
 
@@ -112,44 +137,52 @@ class Type0FontFactory
             $vertical ? 'Identity-V' : 'Identity-H',
         );
 
-        return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream];
+        return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGidSubset];
     }
 
     /**
-     * Build the /W widths array in compact format.
+     * Build the /W widths array in compact format, indexed by post-subset
+     * CID (which equals the new GID under /CIDToGIDMap /Identity).
      *
      * Format: [cid [w1 w2 ...] cid [w1 w2 ...] ...]
      * Groups consecutive CIDs together.
      *
-     * @param int[] $gids
+     * @param int[]            $oldGids Pre-subset GIDs that survived subsetting.
+     * @param array<int, int>  $gidMap  Old GID → new GID, from the subsetter.
      * @return list<PdfNumber|PdfArray>
      */
-    private static function buildWidthsArray(array $gids, TrueTypeData $data): array
+    private static function buildWidthsArray(array $oldGids, array $gidMap, TrueTypeData $data): array
     {
-        if ($gids === []) {
+        if ($oldGids === []) {
             return [];
         }
 
         $scale = fn(int $v): int => (int) round($v * 1000 / $data->unitsPerEm);
 
-        // Build GID => scaled width
+        // Build new-GID → scaled width using the original glyphWidths,
+        // which are keyed by pre-subset GID.
         $widths = [];
-        foreach ($gids as $gid) {
-            $rawWidth = $data->glyphWidths[$gid] ?? 0;
-            $widths[$gid] = $scale($rawWidth);
+        foreach ($oldGids as $oldGid) {
+            $newGid = $gidMap[$oldGid] ?? null;
+            if ($newGid === null) {
+                continue;
+            }
+            $widths[$newGid] = $scale($data->glyphWidths[$oldGid] ?? 0);
         }
 
-        sort($gids);
+        $newGids = array_keys($widths);
+        sort($newGids);
         $result = [];
         $i = 0;
+        $count = count($newGids);
 
-        while ($i < count($gids)) {
-            $startGid = $gids[$i];
+        while ($i < $count) {
+            $startGid = $newGids[$i];
             $group = [new PdfNumber($widths[$startGid])];
 
-            while ($i + 1 < count($gids) && $gids[$i + 1] === $gids[$i] + 1) {
+            while ($i + 1 < $count && $newGids[$i + 1] === $newGids[$i] + 1) {
                 $i++;
-                $group[] = new PdfNumber($widths[$gids[$i]]);
+                $group[] = new PdfNumber($widths[$newGids[$i]]);
             }
 
             $result[] = new PdfNumber($startGid);

@@ -278,7 +278,7 @@ class PdfWriter
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
 
-        [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream] =
+        [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGid] =
             Type0FontFactory::fromTrueTypeData($data, $usedCodepoints);
 
         // Register all objects
@@ -307,7 +307,7 @@ class PdfWriter
             }
         }
 
-        return new Font($name, $data->postScriptName, $data);
+        return new Font($name, $data->postScriptName, $data, unicodeToGid: $unicodeToGid);
     }
 
     /**
@@ -345,15 +345,29 @@ class PdfWriter
         $descriptor->xHeight = $data->xHeight;
         $descriptor->stemV = $data->stemV;
 
-        // Subset CFF table to only include used glyphs
+        // Subset CFF table to only include used glyphs.
         $usedGids = [];
+        $codepointsByOldGid = [];
         foreach ($usedCodepoints as $cp) {
             $gid = $data->fullUnicodeToGid[$cp] ?? null;
             if ($gid !== null) {
                 $usedGids[] = $gid;
+                $codepointsByOldGid[$gid] = $cp;
             }
         }
-        $cffBytes = (new \Phpdftk\FontParser\CffSubsetter())->subset($data->cffBytes, $usedGids);
+        $cffSubsetter = new \Phpdftk\FontParser\CffSubsetter();
+        $cffBytes = $cffSubsetter->subset($data->cffBytes, $usedGids);
+        $cffGidMap = $cffSubsetter->getGidMap();
+
+        // Post-subset Unicode → new GID map. Drives the /W array, the
+        // ToUnicode CMap, and the Font handle accessor below.
+        $unicodeToGidSubset = [];
+        foreach ($codepointsByOldGid as $oldGid => $cp) {
+            $newGid = $cffGidMap[$oldGid] ?? null;
+            if ($newGid !== null) {
+                $unicodeToGidSubset[$cp] = $newGid;
+            }
+        }
 
         // CFF font program stream (embed subsetted CFF table bytes)
         $cffStream = new CFFFontFile($cffBytes, 'CIDFontType0C');
@@ -366,13 +380,13 @@ class PdfWriter
         $cidFont = new CIDFontType0Font($data->postScriptName, $cidSystemInfo);
         $cidFont->fontDescriptor = new PdfReference($descriptor->objectNumber);
 
-        // Build /W widths array
+        // Build /W widths array, indexed by post-subset CID/GID.
         $scale = fn(int $v): int => (int) round($v * 1000 / $data->unitsPerEm);
         $wEntries = [];
-        foreach ($usedCodepoints as $cp) {
-            $gid = $data->fullUnicodeToGid[$cp] ?? null;
-            if ($gid !== null && isset($data->glyphWidths[$gid])) {
-                $wEntries[$gid] = new PdfNumber($scale($data->glyphWidths[$gid]));
+        foreach ($codepointsByOldGid as $oldGid => $cp) {
+            $newGid = $cffGidMap[$oldGid] ?? null;
+            if ($newGid !== null && isset($data->glyphWidths[$oldGid])) {
+                $wEntries[$newGid] = new PdfNumber($scale($data->glyphWidths[$oldGid]));
             }
         }
         if (!empty($wEntries)) {
@@ -401,13 +415,11 @@ class PdfWriter
 
         $this->file->register($cidFont);
 
-        // ToUnicode CMap
+        // ToUnicode CMap — keyed by post-subset GID so text extraction
+        // sees the same identifiers the viewer renders against.
         $gidToUnicode = [];
-        foreach ($usedCodepoints as $cp) {
-            $gid = $data->fullUnicodeToGid[$cp] ?? null;
-            if ($gid !== null) {
-                $gidToUnicode[$gid] = $cp;
-            }
+        foreach ($unicodeToGidSubset as $cp => $newGid) {
+            $gidToUnicode[$newGid] = $cp;
         }
         ksort($gidToUnicode);
         $cmapEntries = [];
@@ -458,7 +470,7 @@ class PdfWriter
             }
         }
 
-        return new Font($name, $data->postScriptName, $data);
+        return new Font($name, $data->postScriptName, $data, unicodeToGid: $unicodeToGidSubset);
     }
 
     /**

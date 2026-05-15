@@ -31,9 +31,12 @@ $dejavu = $writer->addCompositeFont($ttData, $codepoints);
 $dejavuName = $dejavu->getResourceName();
 
 // CID fonts use hex glyph IDs in the content stream rather than literal text.
+// Use the post-subset Unicode → GID map from the font handle; the map on
+// the parsed font data points at glyphs that no longer exist in the subset.
+$unicodeToGid = $dejavu->getUnicodeToGidMap();
 $gidHex = '';
 foreach (mb_str_split($sample) as $char) {
-    $gid = $ttData->fullUnicodeToGid[mb_ord($char)] ?? 0;
+    $gid = $unicodeToGid[mb_ord($char)] ?? 0;
     $gidHex .= sprintf('%04X', $gid);
 }
 

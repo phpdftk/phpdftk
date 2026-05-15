@@ -38,12 +38,24 @@ class UnicodeFontTest extends TestCase
         $data = (new TrueTypeParser($this->findFont()))->parse();
         $codepoints = array_map('mb_ord', str_split('Hello World'));
 
-        [$type0Font, $objects, $fontStream, $descriptor, $cidFont, $toUnicode] =
+        [$type0Font, $objects, $fontStream, $descriptor, $cidFont, $toUnicode, $unicodeToGid] =
             Type0FontFactory::fromTrueTypeData($data, $codepoints);
 
         self::assertInstanceOf(Type0Font::class, $type0Font);
         self::assertNotNull($type0Font->encoding);
         self::assertNotEmpty($objects);
+
+        // Post-subset GIDs are renumbered into a compact 0..N-1 range.
+        self::assertNotEmpty($unicodeToGid);
+        $usedCount = count(array_unique($unicodeToGid)) + 1; // +1 for GID 0
+        foreach ($unicodeToGid as $cp => $newGid) {
+            self::assertGreaterThanOrEqual(0, $newGid);
+            self::assertLessThan(
+                $usedCount,
+                $newGid,
+                sprintf('Codepoint U+%04X mapped to GID %d outside subset range', $cp, $newGid),
+            );
+        }
     }
 
     public function testAddCompositeFontGeneratesValidPdf(): void
@@ -56,19 +68,22 @@ class UnicodeFontTest extends TestCase
 
         $text = 'Hello';
         $codepoints = [];
-        $hexString = '';
         for ($i = 0; $i < mb_strlen($text); $i++) {
-            $char = mb_substr($text, $i, 1);
-            $cp = mb_ord($char);
-            $codepoints[] = $cp;
-            $gid = $data->fullUnicodeToGid[$cp] ?? 0;
-            $hexString .= sprintf('%04X', $gid);
+            $codepoints[] = mb_ord(mb_substr($text, $i, 1));
         }
 
         $fontHandle = $writer->addCompositeFont($data, $codepoints);
         $fontName = $fontHandle->getResourceName();
+        $unicodeToGid = $fontHandle->getUnicodeToGidMap();
 
         self::assertStringStartsWith('F', $fontName);
+        self::assertNotEmpty($unicodeToGid);
+
+        $hexString = '';
+        for ($i = 0; $i < mb_strlen($text); $i++) {
+            $cp = mb_ord(mb_substr($text, $i, 1));
+            $hexString .= sprintf('%04X', $unicodeToGid[$cp] ?? 0);
+        }
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -94,16 +109,19 @@ class UnicodeFontTest extends TestCase
 
         $text = 'Unicode Test ABC 123';
         $codepoints = [];
-        $hexString = '';
         for ($i = 0; $i < mb_strlen($text); $i++) {
-            $cp = mb_ord(mb_substr($text, $i, 1));
-            $codepoints[] = $cp;
-            $gid = $data->fullUnicodeToGid[$cp] ?? 0;
-            $hexString .= sprintf('%04X', $gid);
+            $codepoints[] = mb_ord(mb_substr($text, $i, 1));
         }
 
         $fontHandle = $writer->addCompositeFont($data, $codepoints);
         $fontName = $fontHandle->getResourceName();
+        $unicodeToGid = $fontHandle->getUnicodeToGidMap();
+
+        $hexString = '';
+        for ($i = 0; $i < mb_strlen($text); $i++) {
+            $cp = mb_ord(mb_substr($text, $i, 1));
+            $hexString .= sprintf('%04X', $unicodeToGid[$cp] ?? 0);
+        }
 
         $cs = $writer->addContentStream($page);
         $cs->beginText()
@@ -121,6 +139,52 @@ class UnicodeFontTest extends TestCase
 
         self::assertFileExists($path);
         self::assertStringStartsWith('%PDF', file_get_contents($path));
+        $this->assertQpdfValid($path);
+    }
+
+    public function testCompositeFontRoundTripsThroughReader(): void
+    {
+        $fontPath = $this->findFont();
+        $data = (new TrueTypeParser($fontPath))->parse();
+
+        // Mix ASCII, em dash, accented Latin, middle dot, and a math sign
+        // so the test catches both the GID-renumbering bug and any encoding
+        // confusion in the ToUnicode CMap.
+        $text = "caf\u{00E9} \u{2014} r\u{00E9}sum\u{00E9} \u{00B7} 20\u{00D7} 20";
+        $codepoints = [];
+        for ($i = 0; $i < mb_strlen($text); $i++) {
+            $codepoints[] = mb_ord(mb_substr($text, $i, 1));
+        }
+        $codepoints = array_values(array_unique($codepoints));
+
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $font = $writer->addCompositeFont($data, $codepoints);
+        $unicodeToGid = $font->getUnicodeToGidMap();
+
+        $hex = '';
+        for ($i = 0; $i < mb_strlen($text); $i++) {
+            $cp = mb_ord(mb_substr($text, $i, 1));
+            $hex .= sprintf('%04X', $unicodeToGid[$cp] ?? 0);
+        }
+
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+           ->setFont($font->getResourceName(), 24)
+           ->moveTextPosition(72, 700)
+           ->showTextHex($hex)
+           ->endText();
+
+        $outputDir = dirname(__DIR__, 4) . '/core/tests/output';
+        if (!is_dir($outputDir)) {
+            mkdir($outputDir, 0755, true);
+        }
+        $path = $outputDir . '/unicode_font_roundtrip.pdf';
+        $writer->save($path);
+
+        $reader = \Phpdftk\Pdf\Reader\PdfReader::fromFile($path);
+        $extracted = $reader->extractText(0);
+        self::assertSame($text, trim($extracted));
         $this->assertQpdfValid($path);
     }
 
