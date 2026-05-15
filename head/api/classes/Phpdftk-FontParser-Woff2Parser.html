@@ -157,7 +157,7 @@
         <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/Woff2Parser.php"><a href="files/packages-font-parser-src-woff2parser.html"><abbr title="packages/font-parser/src/Woff2Parser.php">Woff2Parser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">27</span>
+    <span class="phpdocumentor-element-found-in__line">29</span>
 
     </aside>
 
@@ -172,12 +172,10 @@ OpenTypeParser::fromBytes().</p>
 (glyf/loca/hmtx). This implementation handles the basic decompression
 and skips table transforms (the transformed tables are stored as-is
 when the transform flag indicates no transformation).</p>
-<p>Brotli decompression strategies (tried in order):</p>
-<ol>
-<li>PHP ext-brotli (brotli_uncompress)</li>
-<li>CLI brotli tool (brotli -d)</li>
-<li>RuntimeException if neither is available</li>
-</ol>
+<p>Brotli decompression requires ext-brotli (PECL). This class deliberately
+does not shell out to external <code class="prettyprint">brotli</code> binaries — font input is treated
+as untrusted and the security cost of <code class="prettyprint">proc_open</code> outweighs the
+convenience. If ext-brotli is not installed, decompression throws.</p>
 </section>
 
 
@@ -276,7 +274,7 @@ when the transform flag indicates no transformation).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/Woff2Parser.php"><a href="files/packages-font-parser-src-woff2parser.html"><abbr title="packages/font-parser/src/Woff2Parser.php">Woff2Parser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">54</span>
+    <span class="phpdocumentor-element-found-in__line">56</span>
 
     </aside>
 
@@ -325,7 +323,7 @@ when the transform flag indicates no transformation).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/Woff2Parser.php"><a href="files/packages-font-parser-src-woff2parser.html"><abbr title="packages/font-parser/src/Woff2Parser.php">Woff2Parser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">66</span>
+    <span class="phpdocumentor-element-found-in__line">65</span>
 
     </aside>
 
@@ -374,7 +372,7 @@ when the transform flag indicates no transformation).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/Woff2Parser.php"><a href="files/packages-font-parser-src-woff2parser.html"><abbr title="packages/font-parser/src/Woff2Parser.php">Woff2Parser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">209</span>
+    <span class="phpdocumentor-element-found-in__line">208</span>
 
     </aside>
 
@@ -423,7 +421,7 @@ when the transform flag indicates no transformation).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/Woff2Parser.php"><a href="files/packages-font-parser-src-woff2parser.html"><abbr title="packages/font-parser/src/Woff2Parser.php">Woff2Parser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">201</span>
+    <span class="phpdocumentor-element-found-in__line">200</span>
 
     </aside>
 
