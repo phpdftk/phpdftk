@@ -192,6 +192,16 @@ only those glyphs (plus GID 0 / .notdef and any composite components).</p>
 </h4>
 <dl class="phpdocumentor-table-of-contents">
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_getGidMap">getGidMap()</a>
+    <span>
+                                &nbsp;: array&lt;int, int&gt;    </span>
+</dt>
+<dd>The old → new GID map from the most recent `subset()` call. Returns
+an empty array if `subset()` has not been called yet. Callers use this
+to translate any pre-subset GIDs they hold into the renumbered GIDs
+that live in the emitted subset font.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_subset">subset()</a>
     <span>
                                 &nbsp;: string    </span>
@@ -217,6 +227,48 @@ only those glyphs (plus GID 0 / .notdef and any composite components).</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_getGidMap">
+        getGidMap()
+        <a href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_getGidMap" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/TrueTypeSubsetter.php"><a href="files/packages-font-parser-src-truetypesubsetter.html"><abbr title="packages/font-parser/src/TrueTypeSubsetter.php">TrueTypeSubsetter.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">98</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">The old → new GID map from the most recent `subset()` call. Returns
+an empty array if `subset()` has not been called yet. Callers use this
+to translate any pre-subset GIDs they hold into the renumbered GIDs
+that live in the emitted subset font.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getGidMap</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, int&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, int&gt;</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_subset">
         subset()
         <a href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_subset" class="headerlink"><i class="fas fa-link"></i></a>
@@ -225,7 +277,7 @@ only those glyphs (plus GID 0 / .notdef and any composite components).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/TrueTypeSubsetter.php"><a href="files/packages-font-parser-src-truetypesubsetter.html"><abbr title="packages/font-parser/src/TrueTypeSubsetter.php">TrueTypeSubsetter.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">30</span>
+    <span class="phpdocumentor-element-found-in__line">40</span>
 
     </aside>
 
@@ -398,6 +450,7 @@ only those glyphs (plus GID 0 / .notdef and any composite components).</p>
                         <li class="phpdocumentor-on-this-page-section__title">Methods</li>
             <li>
                 <ul class="phpdocumentor-list -clean">
+                                            <li class=""><a href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_getGidMap">getGidMap()</a></li>
                                             <li class=""><a href="classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_subset">subset()</a></li>
                                     </ul>
             </li>

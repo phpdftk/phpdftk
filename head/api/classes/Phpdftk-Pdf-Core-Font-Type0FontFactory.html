@@ -205,7 +205,7 @@ Type0Font (top-level)
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Core-Font-Type0FontFactory.html#method_fromTrueTypeData">fromTrueTypeData()</a>
     <span>
-                                &nbsp;: <abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream}">PdfStream}</abbr>    </span>
+                                &nbsp;: <abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream, 6: array<int,int>}">PdfStream, 6: array<int,int>}</abbr>    </span>
 </dt>
 <dd>Build the complete Type 0 font stack from parsed TrueType data.</dd>
 
@@ -237,7 +237,7 @@ Type0Font (top-level)
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Font/Type0FontFactory.php"><a href="files/packages-pdf-core-src-font-type0fontfactory.html"><abbr title="packages/pdf/core/src/Font/Type0FontFactory.php">Type0FontFactory.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">41</span>
+    <span class="phpdocumentor-element-found-in__line">47</span>
 
     </aside>
 
@@ -245,12 +245,18 @@ Type0Font (top-level)
 
     <code class="phpdocumentor-code phpdocumentor-signature ">
     <span class="phpdocumentor-signature__visibility">public</span>
-            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromTrueTypeData</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-FontParser-TrueTypeData.html"><abbr title="\Phpdftk\FontParser\TrueTypeData">TrueTypeData</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$data</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;string|int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$usedCodepoints</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$vertical</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream}">PdfStream}</abbr></span></code>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">fromTrueTypeData</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-FontParser-TrueTypeData.html"><abbr title="\Phpdftk\FontParser\TrueTypeData">TrueTypeData</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$data</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;string|int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$usedCodepoints</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$vertical</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream, 6: array<int,int>}">PdfStream, 6: array<int,int>}</abbr></span></code>
 
     <div class="phpdocumentor-label-line">
         </div>
     
-    
+        <section class="phpdocumentor-description"><p>The subsetter renumbers kept glyphs into a compact 0..N-1 range, so
+the returned <code class="prettyprint">unicodeToGidSubset</code> map points at the <em>post-subset</em>
+GIDs that callers should emit in content streams. The /W widths and
+/ToUnicode CMap are likewise built against post-subset GIDs so the
+three views agree.</p>
+</section>
+
         <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
     <dl class="phpdocumentor-argument-list">
                     <dt class="phpdocumentor-argument-list__entry">
@@ -288,7 +294,7 @@ Type0Font (top-level)
     
             <section>
         <h5 class="phpdocumentor-return-value__heading">Return values</h5>
-        <span class="phpdocumentor-signature__response_type"><abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream}">PdfStream}</abbr></span>
+        <span class="phpdocumentor-signature__response_type"><abbr title="array{0: \Phpdftk\Pdf\Core\Font\Type0Font, 1: list<\Phpdftk\Pdf\Core\PdfObject>, 2: \Phpdftk\Pdf\Core\PdfStream, 3: \Phpdftk\Pdf\Core\Font\FontDescriptor, 4: \Phpdftk\Pdf\Core\Font\CIDFontType2Font, 5: \Phpdftk\Pdf\Core\PdfStream, 6: array<int,int>}">PdfStream, 6: array<int,int>}</abbr></span>
             </section>
 
 </article>

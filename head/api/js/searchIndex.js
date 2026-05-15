@@ -941,6 +941,11 @@ Search.appendIndex(
             "summary": "",
             "url": "classes/Phpdftk-FontParser-CffSubsetter.html#method_subset"
         },                {
+            "fqsen": "\\Phpdftk\\FontParser\\CffSubsetter\u003A\u003AgetGidMap\u0028\u0029",
+            "name": "getGidMap",
+            "summary": "The\u0020old\u0020\u2192\u0020new\u0020GID\u0020map\u0020from\u0020the\u0020most\u0020recent\u0020\u0060subset\u0028\u0029\u0060\u0020call.\u0020Returns\nan\u0020empty\u0020array\u0020if\u0020\u0060subset\u0028\u0029\u0060\u0020has\u0020not\u0020been\u0020called\u0020yet.",
+            "url": "classes/Phpdftk-FontParser-CffSubsetter.html#method_getGidMap"
+        },                {
             "fqsen": "\\Phpdftk\\FontParser\\GsubParser",
             "name": "GsubParser",
             "summary": "Parses\u0020GSUB\u0020\u0028Glyph\u0020Substitution\u0029\u0020table\u0020for\u0020ligature\u0020features.",
@@ -1255,6 +1260,11 @@ Search.appendIndex(
             "name": "subset",
             "summary": "",
             "url": "classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_subset"
+        },                {
+            "fqsen": "\\Phpdftk\\FontParser\\TrueTypeSubsetter\u003A\u003AgetGidMap\u0028\u0029",
+            "name": "getGidMap",
+            "summary": "The\u0020old\u0020\u2192\u0020new\u0020GID\u0020map\u0020from\u0020the\u0020most\u0020recent\u0020\u0060subset\u0028\u0029\u0060\u0020call.\u0020Returns\nan\u0020empty\u0020array\u0020if\u0020\u0060subset\u0028\u0029\u0060\u0020has\u0020not\u0020been\u0020called\u0020yet.\u0020Callers\u0020use\u0020this\nto\u0020translate\u0020any\u0020pre\u002Dsubset\u0020GIDs\u0020they\u0020hold\u0020into\u0020the\u0020renumbered\u0020GIDs\nthat\u0020live\u0020in\u0020the\u0020emitted\u0020subset\u0020font.",
+            "url": "classes/Phpdftk-FontParser-TrueTypeSubsetter.html#method_getGidMap"
         },                {
             "fqsen": "\\Phpdftk\\FontParser\\Type1Data",
             "name": "Type1Data",
@@ -16225,6 +16235,11 @@ Search.appendIndex(
             "name": "getTextEncoder",
             "summary": "The\u0020text\u0020encoder\u0020that\u0020converts\u0020UTF\u002D8\u0020input\u0020into\u0020the\u0020byte\u0020sequence\u0020the\nunderlying\u0020PDF\u0020font\u0020expects.\u0020Null\u0020for\u0020composite\/CID\u0020fonts,\u0020which\u0020use\nthe\u0020GID\u002Dhex\u0020path\u0020\u0028ContentStream\u003A\u003AshowTextHex\u0020\/\u0020showUnicodeText\u0029.",
             "url": "classes/Phpdftk-Pdf-Writer-Font.html#method_getTextEncoder"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\Font\u003A\u003AgetUnicodeToGidMap\u0028\u0029",
+            "name": "getUnicodeToGidMap",
+            "summary": "Unicode\u0020codepoint\u0020\u2192\u0020post\u002Dsubset\u0020GID\u0020map\u0020for\u0020composite\u0020\u0028Type\u00200\u0029\u0020fonts.",
+            "url": "classes/Phpdftk-Pdf-Writer-Font.html#method_getUnicodeToGidMap"
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\Page",
             "name": "Page",

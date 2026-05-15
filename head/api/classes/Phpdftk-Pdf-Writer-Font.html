@@ -230,6 +230,13 @@ showText() and have the encoder do the byte-level translation for them.</dd>    
 underlying PDF font expects. Null for composite/CID fonts, which use
 the GID-hex path (ContentStream::showTextHex / showUnicodeText).</dd>
 
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-Font.html#method_getUnicodeToGidMap">getUnicodeToGidMap()</a>
+    <span>
+                                &nbsp;: array&lt;int, int&gt;    </span>
+</dt>
+<dd>Unicode codepoint → post-subset GID map for composite (Type 0) fonts.</dd>
+
     </dl>
 
 
@@ -258,14 +265,14 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Font.php"><a href="files/packages-pdf-writer-src-font.html"><abbr title="packages/pdf/writer/src/Font.php">Font.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">23</span>
+    <span class="phpdocumentor-element-found-in__line">30</span>
 
     </aside>
 
     
     <code class="phpdocumentor-code phpdocumentor-signature ">
     <span class="phpdocumentor-signature__visibility">public</span>
-                    <span class="phpdocumentor-signature__name">__construct</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$resourceName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$family</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-FontParser-TrueTypeData.html"><abbr title="\Phpdftk\FontParser\TrueTypeData">TrueTypeData</abbr></a>|<a href="classes/Phpdftk-FontParser-OpenTypeData.html"><abbr title="\Phpdftk\FontParser\OpenTypeData">OpenTypeData</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$parsedData</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Encoding-TextEncoder.html"><abbr title="\Phpdftk\Encoding\TextEncoder">TextEncoder</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$encoder</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">mixed</span></code>
+                    <span class="phpdocumentor-signature__name">__construct</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$resourceName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$family</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-FontParser-TrueTypeData.html"><abbr title="\Phpdftk\FontParser\TrueTypeData">TrueTypeData</abbr></a>|<a href="classes/Phpdftk-FontParser-OpenTypeData.html"><abbr title="\Phpdftk\FontParser\OpenTypeData">OpenTypeData</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$parsedData</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Encoding-TextEncoder.html"><abbr title="\Phpdftk\Encoding\TextEncoder">TextEncoder</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$encoder</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$unicodeToGid</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">mixed</span></code>
 
     <div class="phpdocumentor-label-line">
         </div>
@@ -301,6 +308,19 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</dd>
             <dd class="phpdocumentor-argument-list__definition">
                 
             </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$unicodeToGid</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, int&gt;</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">[]</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Unicode codepoint → post-subset GID.
+Only populated for composite (Type 0) fonts; empty for everything
+else. Use this when emitting glyph IDs into a content stream
+rather than the unsubset map on <code class="prettyprint">TrueTypeData</code>, which points at
+glyphs that no longer exist in the embedded subset.</p>
+</section>
+
+            </dd>
             </dl>
 
     
@@ -323,7 +343,7 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Font.php"><a href="files/packages-pdf-writer-src-font.html"><abbr title="packages/pdf/writer/src/Font.php">Font.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">30</span>
+    <span class="phpdocumentor-element-found-in__line">38</span>
 
     </aside>
 
@@ -361,7 +381,7 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Font.php"><a href="files/packages-pdf-writer-src-font.html"><abbr title="packages/pdf/writer/src/Font.php">Font.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">56</span>
+    <span class="phpdocumentor-element-found-in__line">64</span>
 
     </aside>
 
@@ -385,6 +405,50 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</p>
             <section>
         <h5 class="phpdocumentor-return-value__heading">Return values</h5>
         <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Encoding-TextEncoder.html"><abbr title="\Phpdftk\Encoding\TextEncoder">TextEncoder</abbr></a>|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
+    <h4 class="phpdocumentor-element__name" id="method_getUnicodeToGidMap">
+        getUnicodeToGidMap()
+        <a href="classes/Phpdftk-Pdf-Writer-Font.html#method_getUnicodeToGidMap" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Font.php"><a href="files/packages-pdf-writer-src-font.html"><abbr title="packages/pdf/writer/src/Font.php">Font.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">78</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Unicode codepoint → post-subset GID map for composite (Type 0) fonts.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">getUnicodeToGidMap</span><span>(</span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array&lt;int, int&gt;</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Use this when building a hex glyph string for showTextHex; the map on
+the parsed font data points at pre-subset GIDs that no longer match
+the embedded subset. Returns an empty array for standard or simple
+TrueType fonts that don't go through subsetting.</p>
+</section>
+
+    
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array&lt;int, int&gt;</span>
             </section>
 
 </article>
@@ -506,6 +570,7 @@ the GID-hex path (ContentStream::showTextHex / showUnicodeText).</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Font.html#method___construct">__construct()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Font.html#method_getFamily">getFamily()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Font.html#method_getTextEncoder">getTextEncoder()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-Font.html#method_getUnicodeToGidMap">getUnicodeToGidMap()</a></li>
                                     </ul>
             </li>
                     </ul>

@@ -78,8 +78,8 @@
  <a href="File/IncrementalWriter.php.html#37"><circle cx="714.5" cy="206.4" r="13.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter — Coverage: 90.9% | Lines: 253 | Complexity: 87</title></circle></a>
  <a href="Security/PdfEncryptor.php.html#34"><circle cx="725.3" cy="262.6" r="12.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Security\PdfEncryptor — Coverage: 92.4% | Lines: 237 | Complexity: 53</title></circle></a>
  <a href="Interactive/Signature/TsaClient.php.html#28"><circle cx="651.6" cy="270.8" r="9.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\TsaClient — Coverage: 82.2% | Lines: 129 | Complexity: 48</title></circle></a>
+ <a href="Font/Type0FontFactory.php.html#31"><circle cx="759.6" cy="320.3" r="8.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory — Coverage: 97.2% | Lines: 106 | Complexity: 18</title></circle></a>
  <a href="Interactive/Signature/OcspClient.php.html#17"><circle cx="633.2" cy="298.9" r="8.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\OcspClient — Coverage: 79.6% | Lines: 103 | Complexity: 31</title></circle></a>
- <a href="Font/Type0FontFactory.php.html#31"><circle cx="772.3" cy="325.2" r="8.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory — Coverage: 98.9% | Lines: 93 | Complexity: 15</title></circle></a>
  <a href="Graphics/ExtGState.php.html#20"><circle cx="686.5" cy="287.3" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ExtGState — Coverage: 87.0% | Lines: 77 | Complexity: 38</title></circle></a>
  <a href="Interactive/Signature/Pkcs7Signer.php.html#23"><circle cx="571.6" cy="317.0" r="7.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer — Coverage: 71.1% | Lines: 76 | Complexity: 20</title></circle></a>
  <a href="Document/PageTree.php.html#20"><circle cx="727.1" cy="297.2" r="6.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\PageTree — Coverage: 92.6% | Lines: 68 | Complexity: 32</title></circle></a>
@@ -361,6 +361,7 @@
   <tr><td><a href="Annotation/Annotation.php.html#19">Phpdftk\Pdf\Core\Annotation\Annotation</a></td><td class="text-right">19.39</td><td class="text-right">89.7%</td></tr>
   <tr><td><a href="Document/DssBuilder.php.html#25">Phpdftk\Pdf\Core\Document\DssBuilder</a></td><td class="text-right">19</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Form/Field.php.html#19">Phpdftk\Pdf\Core\Interactive\Form\Field</a></td><td class="text-right">18.59</td><td class="text-right">82.4%</td></tr>
+  <tr><td><a href="Font/Type0FontFactory.php.html#31">Phpdftk\Pdf\Core\Font\Type0FontFactory</a></td><td class="text-right">18</td><td class="text-right">97.2%</td></tr>
   <tr><td><a href="Document/OCConfig.php.html#26">Phpdftk\Pdf\Core\Document\OCConfig</a></td><td class="text-right">17.33</td><td class="text-right">66.7%</td></tr>
   <tr><td><a href="Security/EncryptDictionary.php.html#33">Phpdftk\Pdf\Core\Security\EncryptDictionary</a></td><td class="text-right">17</td><td class="text-right">97.2%</td></tr>
   <tr><td><a href="ThreeD/ThreeDView.php.html#24">Phpdftk\Pdf\Core\ThreeD\ThreeDView</a></td><td class="text-right">16.76</td><td class="text-right">75.9%</td></tr>
@@ -368,7 +369,6 @@
   <tr><td><a href="PdfName.php.html#11">Phpdftk\Pdf\Core\PdfName</a></td><td class="text-right">16</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Form/SeedValueDictionary.php.html#28">Phpdftk\Pdf\Core\Interactive\Form\SeedValueDictionary</a></td><td class="text-right">15.74</td><td class="text-right">79.3%</td></tr>
   <tr><td><a href="Document/StructElem.php.html#29">Phpdftk\Pdf\Core\Document\StructElem</a></td><td class="text-right">15</td><td class="text-right">100.0%</td></tr>
-  <tr><td><a href="Font/Type0FontFactory.php.html#31">Phpdftk\Pdf\Core\Font\Type0FontFactory</a></td><td class="text-right">15</td><td class="text-right">98.9%</td></tr>
   <tr><td><a href="Document/NamesDictionary.php.html#20">Phpdftk\Pdf\Core\Document\NamesDictionary</a></td><td class="text-right">14.90</td><td class="text-right">68.2%</td></tr>
   <tr><td><a href="PdfString.php.html#10">Phpdftk\Pdf\Core\PdfString</a></td><td class="text-right">14.85</td><td class="text-right">77.8%</td></tr>
   <tr><td><a href="Document/OutlineItem.php.html#26">Phpdftk\Pdf\Core\Document\OutlineItem</a></td><td class="text-right">14</td><td class="text-right">96.2%</td></tr>
@@ -641,10 +641,10 @@
  <a href="Document/Page.php.html#64"><circle cx="694.0" cy="132.2" r="12.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\Page::toPdf — Coverage: 88.1% | Lines: 67 | Complexity: 33</title></circle></a>
  <a href="Document/Catalog.php.html#60"><circle cx="768.6" cy="145.4" r="11.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Catalog::toPdf — Coverage: 98.4% | Lines: 63 | Complexity: 31</title></circle></a>
  <a href="Interactive/Signature/CertificateUtils.php.html#29"><circle cx="663.9" cy="277.4" r="11.8" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils::extractCertsFromPkcs7Der — Coverage: 83.9% | Lines: 62 | Complexity: 11</title></circle></a>
+ <a href="Font/Type0FontFactory.php.html#47"><circle cx="767.8" cy="297.2" r="11.5" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::fromTrueTypeData — Coverage: 98.3% | Lines: 59 | Complexity: 8</title></circle></a>
  <a href="Interactive/Signature/CertificateUtils.php.html#281"><circle cx="603.2" cy="191.6" r="11.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils::buildChain — Coverage: 75.4% | Lines: 57 | Complexity: 24</title></circle></a>
  <a href="Interactive/Form/AppearanceGenerator.php.html#222"><circle cx="752.3" cy="264.2" r="10.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::textFieldMultiLine — Coverage: 96.2% | Lines: 52 | Complexity: 13</title></circle></a>
  <a href="Font/FontDescriptor.php.html#54"><circle cx="592.8" cy="198.2" r="10.6" class="bubble-warning"><title>Phpdftk\Pdf\Core\Font\FontDescriptor::toPdf — Coverage: 74.0% | Lines: 50 | Complexity: 23</title></circle></a>
- <a href="Font/Type0FontFactory.php.html#41"><circle cx="780.0" cy="310.4" r="10.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::fromTrueTypeData — Coverage: 100.0% | Lines: 50 | Complexity: 6</title></circle></a>
  <a href="Graphics/XObject/ImageXObject.php.html#67"><circle cx="618.4" cy="204.8" r="10.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::toPdf — Coverage: 77.6% | Lines: 49 | Complexity: 22</title></circle></a>
  <a href="Content/Resources.php.html#51"><circle cx="596.2" cy="244.4" r="10.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Content\Resources::toPdf — Coverage: 74.5% | Lines: 47 | Complexity: 16</title></circle></a>
  <a href="File/PdfFileWriter.php.html#1087"><circle cx="592.2" cy="303.8" r="10.1" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::applySignature — Coverage: 73.9% | Lines: 46 | Complexity: 7</title></circle></a>
@@ -691,9 +691,10 @@
  <a href="Document/CrossReferenceStream.php.html#86"><circle cx="780.0" cy="310.4" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::packAllEntries — Coverage: 100.0% | Lines: 24 | Complexity: 6</title></circle></a>
  <a href="Document/DssBuilder.php.html#119"><circle cx="780.0" cy="290.6" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\DssBuilder::build — Coverage: 100.0% | Lines: 24 | Complexity: 9</title></circle></a>
  <a href="Document/OCConfig.php.html#40"><circle cx="540.0" cy="270.8" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OCConfig::toPdf — Coverage: 66.7% | Lines: 24 | Complexity: 12</title></circle></a>
+ <a href="Font/Type0FontFactory.php.html#154"><circle cx="720.0" cy="303.8" r="7.3" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::buildWidthsArray — Coverage: 91.7% | Lines: 24 | Complexity: 7</title></circle></a>
  <a href="Interactive/Signature/OcspClient.php.html#168"><circle cx="660.0" cy="323.6" r="7.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\OcspClient::sendRequest — Coverage: 83.3% | Lines: 24 | Complexity: 4</title></circle></a>
  <a href="Content/ContentStream.php.html#185"><circle cx="780.0" cy="310.4" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Content\ContentStream::showUnicodeTextKerned — Coverage: 100.0% | Lines: 23 | Complexity: 6</title></circle></a>
- <a href="Font/Type0FontFactory.php.html#168"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::buildToUnicodeCMap — Coverage: 100.0% | Lines: 23 | Complexity: 3</title></circle></a>
+ <a href="Font/Type0FontFactory.php.html#201"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::buildToUnicodeCMap — Coverage: 100.0% | Lines: 23 | Complexity: 3</title></circle></a>
  <a href="Multimedia/MediaCriteria.php.html#41"><circle cx="592.2" cy="277.4" r="7.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Multimedia\MediaCriteria::toPdf — Coverage: 73.9% | Lines: 23 | Complexity: 11</title></circle></a>
  <a href="PdfDate.php.html#40"><circle cx="717.4" cy="310.4" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\PdfDate::parse — Coverage: 91.3% | Lines: 23 | Complexity: 6</title></circle></a>
  <a href="Annotation/MarkupAnnotation.php.html#42"><circle cx="747.3" cy="277.4" r="7.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Annotation\MarkupAnnotation::buildDictionary — Coverage: 95.5% | Lines: 22 | Complexity: 11</title></circle></a>
@@ -702,7 +703,6 @@
  <a href="Interactive/Signature/Pkcs7Signer.php.html#137"><circle cx="677.1" cy="323.6" r="6.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer::createSelfSignedTestCredentials — Coverage: 85.7% | Lines: 21 | Complexity: 4</title></circle></a>
  <a href="PdfName.php.html#19"><circle cx="780.0" cy="251.0" r="6.9" class="bubble-success"><title>Phpdftk\Pdf\Core\PdfName::toPdf — Coverage: 100.0% | Lines: 21 | Complexity: 15</title></circle></a>
  <a href="Document/Info.php.html#28"><circle cx="780.0" cy="284.0" r="6.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\Info::toPdf — Coverage: 100.0% | Lines: 20 | Complexity: 10</title></circle></a>
- <a href="Font/Type0FontFactory.php.html#127"><circle cx="744.0" cy="310.4" r="6.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Font\Type0FontFactory::buildWidthsArray — Coverage: 95.0% | Lines: 20 | Complexity: 6</title></circle></a>
  <a href="Annotation/FreeTextAnnotation.php.html#43"><circle cx="590.5" cy="290.6" r="6.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\Annotation\FreeTextAnnotation::toPdf — Coverage: 73.7% | Lines: 19 | Complexity: 9</title></circle></a>
  <a href="Document/CrossReferenceStream.php.html#155"><circle cx="742.1" cy="297.2" r="6.5" class="bubble-success"><title>Phpdftk\Pdf\Core\Document\CrossReferenceStream::toPdf — Coverage: 94.7% | Lines: 19 | Complexity: 8</title></circle></a>
  <a href="Document/OutputIntent.php.html#42"><circle cx="666.3" cy="297.2" r="6.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\Document\OutputIntent::toPdf — Coverage: 84.2% | Lines: 19 | Complexity: 8</title></circle></a>
@@ -1456,6 +1456,7 @@
   <tr><td><a href="Document/TransitionDict.php.html#43">Phpdftk\Pdf\Core\Document\TransitionDict::toPdf</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="File/PdfHydrator.php.html#363">Phpdftk\Pdf\Core\File\PdfHydrator::getKeyMap</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="File/VersionRequirementResolver.php.html#57">Phpdftk\Pdf\Core\File\VersionRequirementResolver::getEffectiveRequirement</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Font/Type0FontFactory.php.html#47">Phpdftk\Pdf\Core\Font\Type0FontFactory::fromTrueTypeData</a></td><td class="text-right">8</td><td class="text-right">98.3%</td></tr>
   <tr><td><a href="Interactive/Form/AppearanceGenerator.php.html#414">Phpdftk\Pdf\Core\Interactive\Form\AppearanceGenerator::signatureField</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Signature/CertificateUtils.php.html#243">Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils::getSerialNumberDer</a></td><td class="text-right">7.93</td><td class="text-right">73.3%</td></tr>
   <tr><td><a href="File/PdfFileWriter.php.html#1087">Phpdftk\Pdf\Core\File\PdfFileWriter::applySignature</a></td><td class="text-right">7.87</td><td class="text-right">73.9%</td></tr>
@@ -1464,6 +1465,7 @@
   <tr><td><a href="Interactive/Form/FdfReader.php.html#19">Phpdftk\Pdf\Core\Interactive\Form\FdfReader::parse</a></td><td class="text-right">7.10</td><td class="text-right">68.8%</td></tr>
   <tr><td><a href="Font/CIDFontType2Font.php.html#29">Phpdftk\Pdf\Core\Font\CIDFontType2Font::toPdf</a></td><td class="text-right">7.07</td><td class="text-right">88.9%</td></tr>
   <tr><td><a href="Multimedia/MediaClipData.php.html#41">Phpdftk\Pdf\Core\Multimedia\MediaClipData::toPdf</a></td><td class="text-right">7.05</td><td class="text-right">69.2%</td></tr>
+  <tr><td><a href="Font/Type0FontFactory.php.html#154">Phpdftk\Pdf\Core\Font\Type0FontFactory::buildWidthsArray</a></td><td class="text-right">7.03</td><td class="text-right">91.7%</td></tr>
   <tr><td><a href="Interactive/Signature/CertificateUtils.php.html#189">Phpdftk\Pdf\Core\Interactive\Signature\CertificateUtils::getCrlDistributionPointUrls</a></td><td class="text-right">7.02</td><td class="text-right">92.3%</td></tr>
   <tr><td><a href="Document/StructTreeRoot.php.html#38">Phpdftk\Pdf\Core\Document\StructTreeRoot::toPdf</a></td><td class="text-right">7.01</td><td class="text-right">93.3%</td></tr>
   <tr><td><a href="Graphics/Halftone/HalftoneType1.php.html#31">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1::toPdf</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
@@ -1490,8 +1492,6 @@
   <tr><td><a href="Document/CrossReferenceStream.php.html#86">Phpdftk\Pdf\Core\Document\CrossReferenceStream::packAllEntries</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="File/PdfHydrator.php.html#576">Phpdftk\Pdf\Core\File\PdfHydrator::registerDefaults</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="File/VersionRequirementResolver.php.html#30">Phpdftk\Pdf\Core\File\VersionRequirementResolver::getClassRequirement</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
-  <tr><td><a href="Font/Type0FontFactory.php.html#41">Phpdftk\Pdf\Core\Font\Type0FontFactory::fromTrueTypeData</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
-  <tr><td><a href="Font/Type0FontFactory.php.html#127">Phpdftk\Pdf\Core\Font\Type0FontFactory::buildWidthsArray</a></td><td class="text-right">6</td><td class="text-right">95.0%</td></tr>
   <tr><td><a href="Font/Type1Font.php.html#23">Phpdftk\Pdf\Core\Font\Type1Font::__construct</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Signature/Pkcs7Signer.php.html#172">Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer::certificateToPem</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
   <tr><td><a href="Security/PdfEncryptor.php.html#451">Phpdftk\Pdf\Core\Security\PdfEncryptor::encryptString</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
@@ -1611,7 +1611,7 @@
   <tr><td><a href="Filter/JPXDecodeParams.php.html#22">Phpdftk\Pdf\Core\Filter\JPXDecodeParams::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Font/Encoding.php.html#23">Phpdftk\Pdf\Core\Font\Encoding::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Font/Type0Font.php.html#42">Phpdftk\Pdf\Core\Font\Type0Font::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
-  <tr><td><a href="Font/Type0FontFactory.php.html#168">Phpdftk\Pdf\Core\Font\Type0FontFactory::buildToUnicodeCMap</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Font/Type0FontFactory.php.html#201">Phpdftk\Pdf\Core\Font\Type0FontFactory::buildToUnicodeCMap</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Form/FdfWriter.php.html#21">Phpdftk\Pdf\Core\Interactive\Form\FdfWriter::generate</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Form/SigFieldLock.php.html#38">Phpdftk\Pdf\Core\Interactive\Form\SigFieldLock::toPdf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
   <tr><td><a href="Interactive/Form/XfdfWriter.php.html#20">Phpdftk\Pdf\Core\Interactive\Form\XfdfWriter::generate</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
@@ -2139,7 +2139,7 @@
    <footer>
     <hr/>
     <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.1.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 13.1.8</a> at Wed May 13 19:00:45 UTC 2026.</small>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.1.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.21</a> and <a href="https://phpunit.de/">PHPUnit 13.1.8</a> at Fri May 15 2:12:26 UTC 2026.</small>
     </p>
    </footer>
   </div>
