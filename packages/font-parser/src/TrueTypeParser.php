@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 class TrueTypeParser
 {
     private string $data;
@@ -59,11 +61,7 @@ class TrueTypeParser
 
     public function parse(): TrueTypeData
     {
-        $data = file_get_contents($this->path);
-        if ($data === false) {
-            throw new \RuntimeException("Cannot read font file: {$this->path}");
-        }
-        $this->data = $data;
+        $this->data = LocalFilesystem::readFile($this->path, "font file");
 
         // Parse offset table
         $sfVersion = $this->readUint32(0);

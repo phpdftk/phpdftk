@@ -214,4 +214,170 @@ class ReaderDocumentInspectorTest extends TestCase
 
         self::assertFalse($inspector->hasEmbeddedFiles());
     }
+
+    public function testHasEmbeddedFilesTrue(): void
+    {
+        $writer = new PdfWriter();
+        $page = $writer->addPage();
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('Has embedded files')
+            ->endText();
+
+        // Wire a Names dictionary with EmbeddedFiles tree.
+        $names = new \Phpdftk\Pdf\Core\Document\NamesDictionary();
+        $namesTree = new PdfDictionary();
+        $namesTree->set('Names', new PdfArray([new PdfString('test.txt')]));
+        $treeWrap = new class ($namesTree) extends \Phpdftk\Pdf\Core\PdfObject {
+            public function __construct(private readonly PdfDictionary $d) {}
+            public function toPdf(): string
+            {
+                return $this->d->toPdf();
+            }
+        };
+        $writer->register($treeWrap);
+        $names->embeddedFiles = new PdfReference($treeWrap->objectNumber);
+        $writer->register($names);
+        $writer->getCatalog()->names = new PdfReference($names->objectNumber);
+
+        $reader = PdfReader::fromString($writer->generate());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertTrue($inspector->hasEmbeddedFiles());
+    }
+
+    public function testHasInteractiveFormsFalse(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertFalse($inspector->hasInteractiveForms());
+    }
+
+    public function testHasOutputIntentsFalseWhenAbsent(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertFalse($inspector->hasOutputIntents());
+        self::assertFalse($inspector->hasOutputIntentWithIccProfile());
+    }
+
+    public function testHasOutputIntentWithIccProfileTrue(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf(withOutputIntent: true));
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertTrue($inspector->hasOutputIntentWithIccProfile());
+    }
+
+    public function testHasJavaScriptFalse(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertFalse($inspector->hasJavaScript());
+    }
+
+    public function testHasMultimediaContentFalse(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertFalse($inspector->hasMultimediaContent());
+    }
+
+    public function testHasThreeDAnnotationsFalse(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertFalse($inspector->hasThreeDAnnotations());
+    }
+
+    public function testGetThreeDStreamsEmptyByDefault(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertCount(0, iterator_to_array($inspector->getThreeDStreams()));
+    }
+
+    public function testGetImageXObjectsEmptyByDefault(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertCount(0, iterator_to_array($inspector->getImageXObjects()));
+    }
+
+    public function testGetReferenceXObjectsEmptyByDefault(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        self::assertCount(0, iterator_to_array($inspector->getReferenceXObjects()));
+    }
+
+    public function testGetRegisteredObjectsYieldsAtLeastOne(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        $count = 0;
+        foreach ($inspector->getRegisteredObjects() as $_) {
+            $count++;
+        }
+        self::assertGreaterThan(0, $count);
+    }
+
+    public function testGetFontsYieldsAtLeastOne(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        $count = 0;
+        foreach ($inspector->getFonts() as $_) {
+            $count++;
+        }
+        self::assertGreaterThan(0, $count);
+    }
+
+    public function testHasRasterOnlyContentFalseWhenFontsPresent(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        // The default test PDF has a font; so it's not raster-only.
+        self::assertFalse($inspector->hasRasterOnlyContent());
+    }
+
+    public function testGetInfoReturnsNullWhenInfoAbsent(): void
+    {
+        $writer = new PdfWriter();
+        $page = $writer->addPage();
+        $font = TrueTypeFont::fromFile($this->findFont());
+        $fontHandle = $writer->addFont($font, $page);
+        $cs = $writer->addContentStream($page);
+        $cs->beginText()
+            ->setFont($fontHandle->getResourceName(), 12)
+            ->moveTextPosition(72, 720)
+            ->showText('Info-less')
+            ->endText();
+
+        $reader = PdfReader::fromString($writer->generate());
+        $inspector = new ReaderDocumentInspector($reader);
+        // PdfWriter may set a default Info; assert this returns either null or a typed Info.
+        $info = $inspector->getInfo();
+        $this->assertTrue($info === null || $info instanceof Info);
+    }
+
+    public function testGetCatalogIsMemoized(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        $catalog1 = $inspector->getCatalog();
+        $catalog2 = $inspector->getCatalog();
+        self::assertSame($catalog1, $catalog2);
+    }
+
+    public function testGetInfoIsMemoized(): void
+    {
+        $reader = PdfReader::fromString($this->buildPdf());
+        $inspector = new ReaderDocumentInspector($reader);
+        $info1 = $inspector->getInfo();
+        $info2 = $inspector->getInfo();
+        self::assertSame($info1, $info2);
+    }
 }

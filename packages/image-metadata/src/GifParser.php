@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parse GIF logical screen descriptor for dimensions and color info.
  *
@@ -14,10 +16,7 @@ final class GifParser
 {
     public static function parseFile(string $path): ImageInfo
     {
-        $fh = fopen($path, 'rb');
-        if ($fh === false) {
-            throw new \RuntimeException("Cannot open file: $path");
-        }
+        $fh = LocalFilesystem::openReadable($path, "image file");
         try {
             $data = fread($fh, 13);
         } finally {

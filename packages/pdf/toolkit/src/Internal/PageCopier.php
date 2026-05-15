@@ -6,7 +6,6 @@ namespace Phpdftk\Pdf\Toolkit\Internal;
 
 use Phpdftk\Pdf\Core\Content\Resources;
 use Phpdftk\Pdf\Core\Document\Page;
-use Phpdftk\Pdf\Core\Document\PageTree;
 use Phpdftk\Pdf\Core\File\PdfFileWriter;
 use Phpdftk\Pdf\Core\PdfArray;
 use Phpdftk\Pdf\Core\PdfDictionary;
@@ -215,34 +214,5 @@ final class PageCopier
         }
 
         return $resources;
-    }
-
-    private function copyResourceDict(PdfDictionary $res): PdfDictionary
-    {
-        $newRes = new PdfDictionary();
-
-        foreach (array_keys($res->entries) as $key) {
-            $val = $res->entries[$key];
-            if ($val instanceof PdfDictionary) {
-                $newSubDict = new PdfDictionary();
-                foreach (array_keys($val->entries) as $subKey) {
-                    $subVal = $val->entries[$subKey];
-                    if ($subVal instanceof PdfReference) {
-                        $newRef = $this->copyIndirectObject($subVal);
-                        $newSubDict->set($subKey, $newRef ?? $subVal);
-                    } else {
-                        $newSubDict->set($subKey, $subVal);
-                    }
-                }
-                $newRes->set($key, $newSubDict);
-            } elseif ($val instanceof PdfReference) {
-                $newRef = $this->copyIndirectObject($val);
-                $newRes->set($key, $newRef ?? $val);
-            } else {
-                $newRes->set($key, $val);
-            }
-        }
-
-        return $newRes;
     }
 }

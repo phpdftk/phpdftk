@@ -9,6 +9,14 @@ use PHPUnit\Framework\TestCase;
 
 class TsaClientTest extends TestCase
 {
+    public function testConstructorRejectsNonHttpUrl(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Only HTTP and HTTPS TSA URLs are allowed');
+
+        new TsaClient('file:///tmp/tsa-response.der');
+    }
+
     public function testBuildTimeStampReqIsValidDer(): void
     {
         $client = new TsaClient('http://example.com/tsa');

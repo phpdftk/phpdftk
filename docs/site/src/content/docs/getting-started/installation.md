@@ -42,6 +42,7 @@ composer require phpdftk/geometry      # Rectangle, Matrix, PageSize
 composer require phpdftk/color         # RGB, CMYK, Gray
 composer require phpdftk/filters       # FlateDecode, ASCII85, etc.
 composer require phpdftk/encoding      # WinAnsi, MacRoman, CMap
+composer require phpdftk/filesystem    # Local-file I/O guard (rejects php://, http://, ...)
 composer require phpdftk/font-metrics  # AFM data for 14 standard fonts
 composer require phpdftk/font-parser   # TrueType/OpenType parsing + subsetting
 composer require phpdftk/image-metadata # JPEG/PNG/GIF/TIFF/WebP headers

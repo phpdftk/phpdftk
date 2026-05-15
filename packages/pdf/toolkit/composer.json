@@ -23,6 +23,7 @@
     },
     "require": {
         "php": "^8.4",
+        "phpdftk/filesystem": "^1.0",
         "phpdftk/pdf-core": "^1.0",
         "phpdftk/pdf-reader": "^1.0",
         "phpdftk/xmp": "^1.0",

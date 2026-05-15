@@ -16,6 +16,7 @@ use Phpdftk\Pdf\Core\Document\OutlineItem;
 use Phpdftk\Pdf\Core\Document\Page as CorePage;
 use Phpdftk\Pdf\Core\Document\PageLabel;
 use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Pdf\Core\File\PdfFileWriter;
 use Phpdftk\Pdf\Core\Font\CIDFontType0Font;
 use Phpdftk\Pdf\Core\Font\CIDSystemInfo;
@@ -494,7 +495,7 @@ class PdfWriter
     {
         $corePage = $page instanceof Page ? $page->corePage() : $page;
         $info = ImageParser::parse($path);
-        $data = file_get_contents($path);
+        $data = LocalFilesystem::readFile($path);
 
         $this->imageCounter++;
         $name = 'Im' . $this->imageCounter;
@@ -890,11 +891,7 @@ class PdfWriter
     public function save(string $path): void
     {
         $pdf = $this->generate();
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $pdf);
+        LocalFilesystem::writeFile($path, $pdf, createDirectories: true);
     }
 
     /**

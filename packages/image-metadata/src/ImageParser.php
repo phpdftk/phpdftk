@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Detect image format from magic bytes and delegate to the format-specific parser.
  *
@@ -15,10 +17,7 @@ final class ImageParser
 {
     public static function parse(string $path): ImageInfo
     {
-        if (!is_file($path)) {
-            throw new \RuntimeException("File not found: $path");
-        }
-        $data = file_get_contents($path, false, null, 0, 32);  // read just enough for signature
+        $data = LocalFilesystem::readPrefix($path, 32, "image file");  // read just enough for signature
         return match (true) {
             str_starts_with($data, "\xFF\xD8\xFF") => JpegParser::parseFile($path),
             str_starts_with($data, "\x89PNG\r\n\x1A\n") => PngParser::parseFile($path),

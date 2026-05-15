@@ -33,7 +33,11 @@ class SignedPdfIntegrationTest extends TestCase
 {
     use QpdfValidationTrait;
 
-    private const OUTPUT_FILE = __DIR__ . '/../../../../../docs/sample-pdfs/signed_pdf.pdf';
+    // PKCS#7 signing embeds the current time and a freshly-generated
+    // self-signed test certificate, so each run produces different bytes.
+    // Keep the output in the gitignored tests/output/ dir rather than under
+    // docs/sample-pdfs/ so the file doesn't appear as a diff after testing.
+    private const OUTPUT_FILE = __DIR__ . '/../output/signed_pdf.pdf';
 
     protected function setUp(): void
     {

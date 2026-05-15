@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Encoding\GlyphList;
 use Phpdftk\Encoding\StandardEncodingTable;
 
@@ -32,10 +33,7 @@ class Type1Parser
 
     public function parse(): Type1Data
     {
-        $raw = file_get_contents($this->path);
-        if ($raw === false) {
-            throw new \RuntimeException("Cannot read font file: {$this->path}");
-        }
+        $raw = LocalFilesystem::readFile($this->path, "font file");
 
         // Detect format and extract segments
         if (strlen($raw) >= 2 && ord($raw[0]) === 0x80) {

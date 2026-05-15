@@ -6,7 +6,7 @@ Instructions for AI coding assistants (Claude Code, Cursor, GitHub Copilot, Clin
 
 phpdftk is a PHP 8.4 monorepo for generating, parsing, and validating PDFs against ISO 32000-2:2020. It maps every PDF spec object type to a PHP class with `/Field` ↔ camelCase property correspondence. Zero runtime dependencies beyond `zlib`, `openssl`, `simplexml`.
 
-The repo publishes 15 Composer packages under the `phpdftk/*` vendor and the `Phpdftk\` PSR-4 namespace root. For the canonical package list and per-package descriptions, see `README.md` and the `composer.json` files under `packages/`. Do not duplicate that table here.
+The repo publishes 16 Composer packages under the `phpdftk/*` vendor and the `Phpdftk\` PSR-4 namespace root. For the canonical package list and per-package descriptions, see `README.md` and the `composer.json` files under `packages/`. Do not duplicate that table here.
 
 ## Commands
 
@@ -64,7 +64,7 @@ Top-level layout under `packages/`:
 | `pdf/reader/` | `Phpdftk\Pdf\Reader\` — parse existing PDFs into the object model, extract text |
 | `pdf/toolkit/` | `Phpdftk\Pdf\Toolkit\` — high-level pipelines (FormFiller, PdfStamper, PageSlicer, PdfMerger, etc.) |
 | `pdf/conformance/` | `Phpdftk\Pdf\Conformance\` — ISO subset validation (PDF/A, UA, X, VT, E, R, ZUGFeRD, mail) |
-| `geometry/`, `color/`, `filters/`, `encoding/`, `font-metrics/`, `font-parser/`, `image-metadata/`, `xmp/`, `crypt/` | Standalone support packages — no PDF dependency |
+| `geometry/`, `color/`, `filters/`, `encoding/`, `filesystem/`, `font-metrics/`, `font-parser/`, `image-metadata/`, `xmp/`, `crypt/` | Standalone support packages — no PDF dependency |
 
 Inside `packages/pdf/core/src/`, sub-namespaces mirror PDF spec sections: `Document/`, `Annotation/`, `Action/`, `Graphics/` (with `ColorSpace/`, `XObject/`, `Function/`, `Shading/`, `Pattern/`), `Font/` (with `FontFile/`), `Interactive/Form/`, `Interactive/Signature/`, `Security/`, `Content/`, `File/`, `FileSpec/`, `Multimedia/`, `ThreeD/`, `Filter/`. To find a class, look there first or `grep -r "class Foo" packages/`.
 
@@ -87,6 +87,25 @@ Drop down to `Pdf::writer()` when you need the lower layer from the higher one.
 `Phpdftk\Pdf\Core\Content\ContentStream` extends `PdfStream` with a fluent API for all PDF content operators. Method names map 1:1 to PDF operators (`BT`/`ET` → `beginText()`/`endText()`, `Tf` → `setFont()`, `Tj` → `showText()`, etc.). For the full surface, read the class file directly.
 
 **Footgun:** `escapeString(string): string` returns the value **already wrapped in parens**. Do not wrap again when composing operator strings.
+
+## File I/O
+
+All local-file access goes through `Phpdftk\Filesystem\LocalFilesystem` (in `packages/filesystem/`). It's the only sanctioned place to call `fopen`, `file_get_contents`, `file_put_contents`, etc. on a user-supplied path. The wrapper:
+
+- rejects stream-wrapper paths (`php://`, `http://`, `data://`, `phar://`, …) via `assertLocalPath()`, blocking SSRF / arbitrary-stream reads through `fileNameLikeArgs`;
+- normalises failures into `RuntimeException` with a labelled message (e.g., `"Cannot read font file: /path"`);
+- centralises the `createDirectories: true` policy for `writeFile()`.
+
+API surface:
+
+- `LocalFilesystem::readFile(string $path, string $label = 'file'): string`
+- `LocalFilesystem::readPrefix(string $path, int $length, string $label = 'file'): string`
+- `LocalFilesystem::openReadable(string $path, string $label = 'file'): resource`
+- `LocalFilesystem::writeFile(string $path, string $bytes, bool $createDirectories = false): void`
+- `LocalFilesystem::assertReadableFile(string $path, string $label = 'file'): void`
+- `LocalFilesystem::assertLocalPath(string $path): void`
+
+**Rule:** when you add code that reads or writes a local file, use these helpers — do not call PHP's filesystem primitives directly. Every package that touches the filesystem (`pdf-core`, `pdf-reader`, `pdf-writer`, `pdf-toolkit`, `font-parser`, `image-metadata`) already depends on `phpdftk/filesystem`; add it to `composer.json` if you introduce a new package that needs disk I/O.
 
 ## Annotations
 

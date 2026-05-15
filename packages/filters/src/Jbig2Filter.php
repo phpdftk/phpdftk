@@ -161,12 +161,6 @@ final class Jbig2Filter implements FilterInterface
             return $pageBitmap;
         }
 
-        // Fallback: try jbig2dec CLI
-        $result = $this->tryJbig2dec($data);
-        if ($result !== null) {
-            return $result;
-        }
-
         // Cannot decode — return raw data (pass-through)
         return $data;
     }
@@ -285,99 +279,6 @@ final class Jbig2Filter implements FilterInterface
         );
 
         return $ccitt->decode($mmrData);
-    }
-
-    /**
-     * Try the jbig2dec CLI tool for complex JBIG2 streams.
-     */
-    private function tryJbig2dec(string $data): ?string
-    {
-        // Find jbig2dec
-        $paths = ['/opt/homebrew/bin/jbig2dec', '/usr/local/bin/jbig2dec', '/usr/bin/jbig2dec'];
-        $jbig2dec = null;
-        foreach ($paths as $path) {
-            if (file_exists($path) && is_executable($path)) {
-                $jbig2dec = $path;
-                break;
-            }
-        }
-        if ($jbig2dec === null) {
-            $which = trim(shell_exec('which jbig2dec 2>/dev/null') ?? '');
-            if ($which !== '' && file_exists($which)) {
-                $jbig2dec = $which;
-            }
-        }
-        if ($jbig2dec === null) {
-            return null;
-        }
-
-        // Write input to temp file
-        $tmpIn = tempnam(sys_get_temp_dir(), 'phpdftk_jbig2_');
-        $tmpOut = $tmpIn . '.pbm';
-
-        // Build complete JBIG2 file with header
-        $jbig2File = self::JBIG2_FILE_SIGNATURE;
-        $jbig2File .= "\x01"; // flags: sequential, known page count
-        $jbig2File .= pack('N', 1); // 1 page
-        if ($this->globals !== '') {
-            $jbig2File .= $this->globals;
-        }
-        $jbig2File .= $data;
-
-        file_put_contents($tmpIn, $jbig2File);
-
-        $cmd = escapeshellarg($jbig2dec) . ' -t pbm -o ' . escapeshellarg($tmpOut) . ' ' . escapeshellarg($tmpIn) . ' 2>/dev/null';
-        exec($cmd, $output, $exitCode);
-
-        @unlink($tmpIn);
-
-        if ($exitCode !== 0 || !file_exists($tmpOut)) {
-            @unlink($tmpOut);
-            return null;
-        }
-
-        $pbmData = file_get_contents($tmpOut);
-        @unlink($tmpOut);
-
-        if ($pbmData === false) {
-            return null;
-        }
-
-        // Convert PBM to raw bitmap
-        return $this->parsePbm($pbmData);
-    }
-
-    /**
-     * Parse a PBM (Portable Bitmap) file to raw pixel bytes.
-     */
-    private function parsePbm(string $data): ?string
-    {
-        // PBM format: P4\n width height\n binary-data
-        if (!str_starts_with($data, 'P4')) {
-            return null;
-        }
-
-        // Skip header
-        $pos = 2;
-        // Skip whitespace and comments
-        while ($pos < strlen($data)) {
-            if ($data[$pos] === '#') {
-                $pos = (int) strpos($data, "\n", $pos) + 1;
-            } elseif ($data[$pos] === ' ' || $data[$pos] === "\n" || $data[$pos] === "\r" || $data[$pos] === "\t") {
-                $pos++;
-            } else {
-                break;
-            }
-        }
-
-        // Read width and height
-        if (preg_match('/(\d+)\s+(\d+)\s/', $data, $m, 0, $pos)) {
-            $pos += strlen($m[0]);
-            // Raw binary data follows
-            return substr($data, $pos);
-        }
-
-        return null;
     }
 
     /**

@@ -49,4 +49,39 @@ class DisplayDocTitleConstraintTest extends TestCase
 
         self::assertEmpty($constraint->check($inspector, PdfUaProfile::UA1));
     }
+
+    public function testInlineDictWithDisplayDocTitleTruePasses(): void
+    {
+        // No ViewerPreferences object registered, but Catalog has inline /ViewerPreferences dict.
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $vpDict = new \Phpdftk\Pdf\Core\PdfDictionary();
+        $vpDict->set('DisplayDocTitle', new \Phpdftk\Pdf\Core\PdfBoolean(true));
+        $catalog->viewerPreferences = $vpDict;
+
+        $inspector = new MockDocumentInspector(catalog: $catalog);
+        $constraint = new DisplayDocTitleConstraint();
+        self::assertEmpty($constraint->check($inspector, PdfUaProfile::UA1));
+    }
+
+    public function testInlineDictWithDisplayDocTitleFalseFails(): void
+    {
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $vpDict = new \Phpdftk\Pdf\Core\PdfDictionary();
+        $vpDict->set('DisplayDocTitle', new \Phpdftk\Pdf\Core\PdfBoolean(false));
+        $catalog->viewerPreferences = $vpDict;
+
+        $inspector = new MockDocumentInspector(catalog: $catalog);
+        $constraint = new DisplayDocTitleConstraint();
+        self::assertCount(1, $constraint->check($inspector, PdfUaProfile::UA1));
+    }
+
+    public function testInlineDictWithoutDisplayDocTitleFails(): void
+    {
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $catalog->viewerPreferences = new \Phpdftk\Pdf\Core\PdfDictionary();
+
+        $inspector = new MockDocumentInspector(catalog: $catalog);
+        $constraint = new DisplayDocTitleConstraint();
+        self::assertCount(1, $constraint->check($inspector, PdfUaProfile::UA1));
+    }
 }

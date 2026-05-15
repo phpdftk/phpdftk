@@ -6,6 +6,7 @@ namespace Phpdftk\Pdf\Toolkit;
 
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\File\IncrementalWriter;
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Pdf\Core\PdfArray;
 use Phpdftk\Pdf\Core\PdfDictionary;
 use Phpdftk\Pdf\Core\PdfObject;
@@ -56,10 +57,7 @@ final class TextRedactor
 
     public static function open(string $path, string $password = ''): self
     {
-        $bytes = file_get_contents($path);
-        if ($bytes === false) {
-            throw new \RuntimeException("Cannot read file: $path");
-        }
+        $bytes = LocalFilesystem::readFile($path);
         return new self(PdfReader::fromString($bytes, $password), $bytes);
     }
 
@@ -186,11 +184,7 @@ final class TextRedactor
 
     public function save(string $path): void
     {
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $this->toBytes());
+        LocalFilesystem::writeFile($path, $this->toBytes(), createDirectories: true);
     }
 
     public function toBytes(): string

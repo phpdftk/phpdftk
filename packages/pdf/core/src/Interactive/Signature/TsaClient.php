@@ -59,6 +59,7 @@ final class TsaClient
         int $timeout = 30,
         bool $requestCert = true,
     ) {
+        self::assertHttpUrl($url);
         $this->url = $url;
         $this->hashAlgorithm = strtolower($hashAlgorithm);
         $this->username = $username;
@@ -231,6 +232,8 @@ final class TsaClient
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 3,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         ]);
 
         $response = curl_exec($ch);
@@ -247,6 +250,14 @@ final class TsaClient
         }
 
         return (string) $response;
+    }
+
+    private static function assertHttpUrl(string $url): void
+    {
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            throw new \InvalidArgumentException("Only HTTP and HTTPS TSA URLs are allowed: $url");
+        }
     }
 
     // ------------------------------------------------------------------

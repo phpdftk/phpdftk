@@ -50,6 +50,14 @@ class ImageParserTest extends TestCase
         $this->assertFalse($info->hasAlpha);
     }
 
+    public function testParseRejectsStreamWrapperPath(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Stream wrappers are not allowed');
+
+        ImageParser::parse('php://filter/read=convert.base64-encode/resource=/etc/passwd');
+    }
+
     public function testParsePng(): void
     {
         $data = $this->createMinimalPng();

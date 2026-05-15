@@ -167,6 +167,8 @@ final class OcspClient
      */
     private function sendRequest(string $url, string $requestBody): string
     {
+        self::assertHttpUrl($url);
+
         $ch = curl_init($url);
         if ($ch === false) {
             throw new \RuntimeException('Failed to initialize cURL for OCSP request');
@@ -183,6 +185,8 @@ final class OcspClient
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 3,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         ]);
 
         $response = curl_exec($ch);
@@ -199,6 +203,14 @@ final class OcspClient
         }
 
         return (string) $response;
+    }
+
+    private static function assertHttpUrl(string $url): void
+    {
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            throw new \InvalidArgumentException("Only HTTP and HTTPS OCSP URLs are allowed: $url");
+        }
     }
 
     // ------------------------------------------------------------------

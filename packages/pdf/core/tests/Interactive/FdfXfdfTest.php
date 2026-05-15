@@ -91,6 +91,38 @@ class FdfXfdfTest extends TestCase
         $this->assertSame([], $fields);
     }
 
+    public function testFdfReaderParsesVThenT(): void
+    {
+        // FDF with /V before /T to exercise the second regex.
+        $fdf = '%FDF-1.2' . "\n" . '1 0 obj << /V (Alice) /T (FullName) >> endobj';
+        $fields = FdfReader::parse($fdf);
+        $this->assertSame(['FullName' => 'Alice'], $fields);
+    }
+
+    public function testFdfReaderHandlesEscapedCharsAndBackslash(): void
+    {
+        // Field with escaped parens and backslash inside the value.
+        $fdf = '<< /T (Path) /V (C:\\\\Users\\\\Bob \\(Admin\\)) >>';
+        $fields = FdfReader::parse($fdf);
+        $this->assertSame(['Path' => 'C:\\Users\\Bob (Admin)'], $fields);
+    }
+
+    public function testFdfReaderDoesNotMatchMalformedDictionary(): void
+    {
+        // Missing /V should produce no results
+        $fdf = '<< /T (only-name) >>';
+        $fields = FdfReader::parse($fdf);
+        $this->assertSame([], $fields);
+    }
+
+    public function testFdfReaderTOverridesVOnDuplicateName(): void
+    {
+        // If the same field name appears via both regex passes, first match wins.
+        $fdf = '<< /T (X) /V (first) >> << /V (second) /T (X) >>';
+        $fields = FdfReader::parse($fdf);
+        $this->assertSame(['X' => 'first'], $fields);
+    }
+
     // -----------------------------------------------------------------------
     // XFDF
     // -----------------------------------------------------------------------

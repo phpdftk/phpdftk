@@ -87,4 +87,44 @@ class ActionConstraintTest extends TestCase
 
         self::assertEmpty($constraint->check($inspector, PdfAProfile::A1b));
     }
+
+    public function testSoundActionFailsForA1Only(): void
+    {
+        $sound = new \Phpdftk\Pdf\Core\Action\SoundAction(new \Phpdftk\Pdf\Core\PdfReference(99));
+        $sound->objectNumber = 1;
+
+        $inspector = new MockDocumentInspector(registeredObjects: [$sound]);
+        $constraint = new ActionConstraint();
+        $violations = $constraint->check($inspector, PdfAProfile::A1b);
+        self::assertNotEmpty($violations);
+
+        // Not restricted in A-2+
+        $this->assertEmpty($constraint->check($inspector, PdfAProfile::A2b));
+    }
+
+    public function testRenditionActionFailsForA1Only(): void
+    {
+        $rendition = new \Phpdftk\Pdf\Core\Action\RenditionAction(0);
+        $rendition->objectNumber = 1;
+
+        $inspector = new MockDocumentInspector(registeredObjects: [$rendition]);
+        $constraint = new ActionConstraint();
+        $violations = $constraint->check($inspector, PdfAProfile::A1b);
+        self::assertNotEmpty($violations);
+
+        $this->assertEmpty($constraint->check($inspector, PdfAProfile::A2b));
+    }
+
+    public function testRichMediaExecuteActionFailsForA1Only(): void
+    {
+        $rm = new \Phpdftk\Pdf\Core\Action\RichMediaExecuteAction();
+        $rm->objectNumber = 1;
+
+        $inspector = new MockDocumentInspector(registeredObjects: [$rm]);
+        $constraint = new ActionConstraint();
+        $violations = $constraint->check($inspector, PdfAProfile::A1b);
+        self::assertNotEmpty($violations);
+
+        $this->assertEmpty($constraint->check($inspector, PdfAProfile::A2b));
+    }
 }

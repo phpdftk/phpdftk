@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * WOFF 2.0 (Web Open Font Format 2.0) decompressor.
  *
@@ -17,10 +19,10 @@ namespace Phpdftk\FontParser;
  * and skips table transforms (the transformed tables are stored as-is
  * when the transform flag indicates no transformation).
  *
- * Brotli decompression strategies (tried in order):
- *   1. PHP ext-brotli (brotli_uncompress)
- *   2. CLI brotli tool (brotli -d)
- *   3. RuntimeException if neither is available
+ * Brotli decompression requires ext-brotli (PECL). This class deliberately
+ * does not shell out to external `brotli` binaries — font input is treated
+ * as untrusted and the security cost of `proc_open` outweighs the
+ * convenience. If ext-brotli is not installed, decompression throws.
  *
  * @see https://www.w3.org/TR/WOFF2/
  */
@@ -53,10 +55,7 @@ final class Woff2Parser
      */
     public static function decompress(string $woff2Path): string
     {
-        $data = file_get_contents($woff2Path);
-        if ($data === false) {
-            throw new \RuntimeException("Cannot read WOFF2 file: $woff2Path");
-        }
+        $data = LocalFilesystem::readFile($woff2Path, "font file");
         return self::decompressBytes($data);
     }
 
@@ -222,11 +221,11 @@ final class Woff2Parser
     /**
      * Decompress data using Brotli.
      *
-     * Tries ext-brotli first, then brotli CLI, then throws.
+     * Uses ext-brotli. Production code intentionally does not shell out
+     * to external Brotli binaries for untrusted font input.
      */
     private static function brotliDecompress(string $data): string
     {
-        // Strategy 1: PHP ext-brotli
         if (function_exists('brotli_uncompress')) {
             $result = brotli_uncompress($data);
             if ($result === false) {
@@ -235,57 +234,9 @@ final class Woff2Parser
             return $result;
         }
 
-        // Strategy 2: CLI brotli tool
-        $brotliPath = self::findBrotliCli();
-        if ($brotliPath !== null) {
-            $tmp = tempnam(sys_get_temp_dir(), 'phpdftk_br_');
-            file_put_contents($tmp, $data);
-
-            $outFile = $tmp . '.raw';
-            $cmd = escapeshellarg($brotliPath) . ' -d -f -o ' . escapeshellarg($outFile) . ' ' . escapeshellarg($tmp) . ' 2>&1';
-            exec($cmd, $output, $exitCode);
-
-            @unlink($tmp);
-
-            if ($exitCode !== 0 || !file_exists($outFile)) {
-                @unlink($outFile);
-                throw new \RuntimeException(
-                    'Brotli CLI decompression failed (exit code ' . $exitCode . '): ' . implode("\n", $output),
-                );
-            }
-
-            $result = file_get_contents($outFile);
-            @unlink($outFile);
-
-            if ($result === false) {
-                throw new \RuntimeException('Failed to read brotli decompressed output');
-            }
-            return $result;
-        }
-
         throw new \RuntimeException(
-            'WOFF2 requires Brotli decompression. Install ext-brotli or the brotli CLI tool.',
+            'WOFF2 requires Brotli decompression. Install ext-brotli.',
         );
-    }
-
-    /**
-     * Find the brotli CLI tool on the system.
-     */
-    private static function findBrotliCli(): ?string
-    {
-        foreach (['/opt/homebrew/bin/brotli', '/usr/local/bin/brotli', '/usr/bin/brotli'] as $path) {
-            if (file_exists($path) && is_executable($path)) {
-                return $path;
-            }
-        }
-
-        // Try PATH
-        $which = trim(shell_exec('which brotli 2>/dev/null') ?? '');
-        if ($which !== '' && file_exists($which)) {
-            return $which;
-        }
-
-        return null;
     }
 
     /**

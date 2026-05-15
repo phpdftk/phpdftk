@@ -47,7 +47,7 @@ All tasks are defined in `.mise.toml` and run via `mise run`:
 
 ```
 phpdftk/
-  packages/           # 15 Composer packages (see README for full list)
+  packages/           # 16 Composer packages (see README for full list)
     pdf/core/         #   PDF object model + file serialization
     pdf/writer/       #   Ergonomic builder facade
     pdf/reader/       #   PDF parser
@@ -57,6 +57,7 @@ phpdftk/
     geometry/         #   Rectangle, Matrix, PageSize, BezierCurve
     color/            #   RGB/CMYK/Gray color models
     encoding/         #   Encoding tables, Adobe Glyph List, CMap parser
+    filesystem/       #   Local-file I/O guard (rejects php://, http://, ... wrappers)
     filters/          #   FlateDecode, ASCII85, LZW, CCITTFax, JBIG2 codecs
     font-metrics/     #   AFM metrics for 14 standard PDF fonts
     font-parser/      #   TrueType/OpenType/Type1/WOFF/CFF font parsing

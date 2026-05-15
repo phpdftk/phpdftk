@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parse WebP container (RIFF/VP8/VP8L/VP8X) for dimensions and alpha.
  */
@@ -11,10 +13,7 @@ final class WebpParser
 {
     public static function parseFile(string $path): ImageInfo
     {
-        $data = file_get_contents($path);
-        if ($data === false) {
-            throw new \RuntimeException("Cannot open file: $path");
-        }
+        $data = LocalFilesystem::readFile($path, "image file");
         return self::parse($data);
     }
 

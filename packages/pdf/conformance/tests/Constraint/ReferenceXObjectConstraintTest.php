@@ -62,4 +62,25 @@ class ReferenceXObjectConstraintTest extends TestCase
         self::assertEmpty($constraint->check($inspector, PdfXProfile::X5pg));
         self::assertEmpty($constraint->check($inspector, PdfXProfile::X5n));
     }
+
+    public function testNullRefEmitsViolation(): void
+    {
+        // Defensive check: an inspector that yields a FormXObject with null /Ref
+        // (a corrupt or malformed inspector) should produce a violation.
+        $bbox = new PdfArray([
+            new PdfNumber(0), new PdfNumber(0),
+            new PdfNumber(10), new PdfNumber(10),
+        ]);
+        $formXObject = new FormXObject($bbox);
+        $formXObject->objectNumber = 1;
+        $formXObject->ref = null; // contradictory but exercises the defensive branch
+
+        $inspector = new MockDocumentInspector(referenceXObjects: [$formXObject]);
+        $constraint = new ReferenceXObjectConstraint();
+
+        $violations = $constraint->check($inspector, PdfXProfile::X5g);
+        self::assertCount(1, $violations);
+        self::assertSame('6.8', $violations[0]->clause);
+        self::assertStringContainsString('Reference XObject', $violations[0]->message);
+    }
 }

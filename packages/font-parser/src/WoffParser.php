@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * WOFF (Web Open Font Format 1.0) decompressor.
  *
@@ -27,10 +29,7 @@ final class WoffParser
      */
     public static function decompress(string $woffPath): string
     {
-        $data = file_get_contents($woffPath);
-        if ($data === false) {
-            throw new \RuntimeException("Cannot read WOFF file: $woffPath");
-        }
+        $data = LocalFilesystem::readFile($woffPath, "font file");
 
         return self::decompressBytes($data);
     }

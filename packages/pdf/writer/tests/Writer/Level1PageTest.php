@@ -316,6 +316,73 @@ class Level1PageTest extends TestCase
         $this->assertInstanceOf(\Phpdftk\Pdf\Core\File\PdfFileWriter::class, $fw);
     }
 
+    private function createPngFile(): string
+    {
+        $img = imagecreatetruecolor(20, 30);
+        $path = tempnam(sys_get_temp_dir(), 'phpdftk_img_') . '.png';
+        imagepng($img, $path);
+        imagedestroy($img);
+        return $path;
+    }
+
+    public function testDrawImageWithNaturalDimensions(): void
+    {
+        $path = $this->createPngFile();
+        try {
+            $writer = $this->createWriter();
+            [$page] = $this->addPageAndFont($writer);
+            $page->drawImage($path, 100, 200);
+            $pdf = $writer->generate();
+            $this->assertStringContainsString('20 0 0 30', $pdf); // natural width 20, height 30
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testDrawImageWithWidthOnly(): void
+    {
+        $path = $this->createPngFile();
+        try {
+            $writer = $this->createWriter();
+            [$page] = $this->addPageAndFont($writer);
+            $page->drawImage($path, 0, 0, width: 100);
+            $pdf = $writer->generate();
+            // Width 100 → height = 30 * (100/20) = 150
+            $this->assertStringContainsString('100 0 0 150', $pdf);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testDrawImageWithHeightOnly(): void
+    {
+        $path = $this->createPngFile();
+        try {
+            $writer = $this->createWriter();
+            [$page] = $this->addPageAndFont($writer);
+            $page->drawImage($path, 0, 0, height: 60);
+            $pdf = $writer->generate();
+            // Height 60 → width = 20 * (60/30) = 40
+            $this->assertStringContainsString('40 0 0 60', $pdf);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testDrawImageWithBothDimensionsExplicit(): void
+    {
+        $path = $this->createPngFile();
+        try {
+            $writer = $this->createWriter();
+            [$page] = $this->addPageAndFont($writer);
+            $page->drawImage($path, 10, 20, width: 200, height: 150);
+            $pdf = $writer->generate();
+            $this->assertStringContainsString('200 0 0 150 10 20', $pdf);
+        } finally {
+            @unlink($path);
+        }
+    }
+
     // -----------------------------------------------------------------------
     // End-to-end: readable by PdfReader
     // -----------------------------------------------------------------------

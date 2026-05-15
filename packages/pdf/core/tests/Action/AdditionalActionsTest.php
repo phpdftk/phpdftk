@@ -67,4 +67,41 @@ class AdditionalActionsTest extends TestCase
         self::assertStringContainsString('/Fo 32 0 R', $pdf);
         self::assertStringContainsString('/Bl 33 0 R', $pdf);
     }
+
+    public function testRemainingTriggersCoverAllHelpers(): void
+    {
+        // Cover the helpers not exercised by the other tests: onDidSave, onWillPrint,
+        // onPageClose, onMouseDown, onMouseUp, onPageVisible, onPageInvisible.
+        $aa = new AdditionalActions();
+        $aa->onDidSave(new PdfReference(50))
+           ->onWillPrint(new PdfReference(51))
+           ->onPageClose(new PdfReference(52))
+           ->onMouseDown(new PdfReference(53))
+           ->onMouseUp(new PdfReference(54))
+           ->onPageVisible(new PdfReference(55))
+           ->onPageInvisible(new PdfReference(56));
+        $pdf = $aa->toPdf();
+        self::assertStringContainsString('/DS 50 0 R', $pdf);
+        self::assertStringContainsString('/WP 51 0 R', $pdf);
+        self::assertStringContainsString('/C 52 0 R', $pdf);
+        self::assertStringContainsString('/D 53 0 R', $pdf);
+        self::assertStringContainsString('/U 54 0 R', $pdf);
+        self::assertStringContainsString('/PV 55 0 R', $pdf);
+        self::assertStringContainsString('/PI 56 0 R', $pdf);
+    }
+
+    public function testEmptyEmitsEmptyDict(): void
+    {
+        $aa = new AdditionalActions();
+        $pdf = $aa->toPdf();
+        self::assertSame('<<' . "\n" . '>>', trim($pdf));
+    }
+
+    public function testGenericSetIsFluent(): void
+    {
+        $aa = new AdditionalActions();
+        $result = $aa->set('FooBar', new PdfReference(99));
+        self::assertSame($aa, $result);
+        self::assertStringContainsString('/FooBar 99 0 R', $aa->toPdf());
+    }
 }

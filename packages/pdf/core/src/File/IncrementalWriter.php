@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Core\File;
 
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Filters\FlateFilter;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Document\CrossReferenceStream;
@@ -324,11 +325,13 @@ final class IncrementalWriter
             $newSize = max($newSize, $objNum + 1);
         }
 
-        // Updated /ID (first element preserved, second changes)
+        // Updated /ID — first element is preserved (permanent identifier),
+        // second element is recomputed from the incremental body bytes so
+        // identical updates produce identical output (ISO 32000-2 §14.4).
         $newIdArray = null;
         if ($this->idArray !== null) {
             $firstId = $this->idArray->items[0] ?? new PdfString('', hex: true);
-            $secondId = new PdfString(md5(microtime() . $offset, true), hex: true);
+            $secondId = new PdfString(md5(implode('', $chunks), true), hex: true);
             $newIdArray = new PdfArray([$firstId, $secondId]);
         }
 
@@ -435,11 +438,7 @@ final class IncrementalWriter
      */
     public function save(string $path): void
     {
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $this->generate());
+        LocalFilesystem::writeFile($path, $this->generate(), createDirectories: true);
     }
 
     /**

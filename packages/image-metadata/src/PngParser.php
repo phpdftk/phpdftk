@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parse PNG IHDR chunk for dimensions, bit depth, and color type.
  *
@@ -14,10 +16,7 @@ final class PngParser
 {
     public static function parseFile(string $path): ImageInfo
     {
-        $fh = fopen($path, 'rb');
-        if ($fh === false) {
-            throw new \RuntimeException("Cannot open file: $path");
-        }
+        $fh = LocalFilesystem::openReadable($path, "image file");
         try {
             $data = fread($fh, filesize($path));
         } finally {

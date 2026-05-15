@@ -21,7 +21,8 @@
         "issues": "https://github.com/phpdftk/phpdftk/issues"
     },
     "require": {
-        "php": "^8.4"
+        "php": "^8.4",
+        "phpdftk/filesystem": "^1.0"
     },
     "autoload": {
         "psr-4": {

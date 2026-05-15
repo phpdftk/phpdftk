@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a970365c1aade26974016f7427e536a2",
+    "content-hash": "788bab2569d384b548b659663e272f33",
     "packages": [],
     "packages-dev": [
         {
@@ -1719,6 +1719,56 @@
             }
         },
         {
+            "name": "phpdftk/filesystem",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/filesystem",
+                "reference": "86362a815d5ffed3b9e14e875edde4dd5c5de78d"
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Filesystem\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Filesystem\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Local filesystem utilities for phpdftk packages",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "filesystem",
+                "local-files",
+                "streams"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "phpdftk/filters",
             "version": "dev-main",
             "dist": {
@@ -1829,10 +1879,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/font-parser",
-                "reference": "e138a95debe401fad2979b4b76781078574d750f"
+                "reference": "75a448cfd5b21d38cfb8f587d1c412b223d1abab"
             },
             "require": {
-                "php": "^8.4"
+                "php": "^8.4",
+                "phpdftk/filesystem": "^1.0"
             },
             "type": "library",
             "extra": {
@@ -1934,10 +1985,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/image-metadata",
-                "reference": "fa3c5610cacea3fc266be73ae7a13007cb6361d6"
+                "reference": "6aeaa23285a15a59af56c6109c21de681046b8c5"
             },
             "require": {
-                "php": "^8.4"
+                "php": "^8.4",
+                "phpdftk/filesystem": "^1.0"
             },
             "type": "library",
             "extra": {
@@ -2087,13 +2139,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/core",
-                "reference": "48560d8f695c7d8f2d8669384f49c00b5a80ade1"
+                "reference": "5777b792e750b68832295186f678f6fd2e92b67e"
             },
             "require": {
                 "php": "^8.4",
                 "phpdftk/color": "^1.0",
                 "phpdftk/crypt": "^1.0",
                 "phpdftk/encoding": "^1.0",
+                "phpdftk/filesystem": "^1.0",
                 "phpdftk/filters": "^1.0",
                 "phpdftk/font-metrics": "^1.0",
                 "phpdftk/font-parser": "^1.0",
@@ -2148,10 +2201,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/reader",
-                "reference": "aa8b1d9e9073931d012f084b632763b30540bc49"
+                "reference": "67369f881d850a6dd34a721913174c0be7cc2ff9"
             },
             "require": {
                 "php": "^8.4",
+                "phpdftk/filesystem": "^1.0",
                 "phpdftk/filters": "^1.0",
                 "phpdftk/pdf-core": "^1.0"
             },
@@ -2200,12 +2254,13 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/toolkit",
-                "reference": "a2f07630e6563ce0678dcc77ad42aad492bb16dc"
+                "reference": "1315a820d7a1f4e3ce00ac3314c34abdbdef7769"
             },
             "require": {
                 "php": "^8.4",
                 "phpdftk/crypt": "^1.0",
                 "phpdftk/encoding": "^1.0",
+                "phpdftk/filesystem": "^1.0",
                 "phpdftk/filters": "^1.0",
                 "phpdftk/font-metrics": "^1.0",
                 "phpdftk/geometry": "^1.0",
@@ -2262,10 +2317,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/writer",
-                "reference": "09704c3a915f7c409103b6c825395f661c46d228"
+                "reference": "7a1dd6ee4c0c175cc691e05110dc093f34867bfb"
             },
             "require": {
                 "php": "^8.4",
+                "phpdftk/filesystem": "^1.0",
                 "phpdftk/pdf-conformance": "^1.0 || @dev",
                 "phpdftk/pdf-core": "^1.0"
             },
@@ -6812,6 +6868,7 @@
         "phpdftk/color": 20,
         "phpdftk/crypt": 20,
         "phpdftk/encoding": 20,
+        "phpdftk/filesystem": 20,
         "phpdftk/filters": 20,
         "phpdftk/font-metrics": 20,
         "phpdftk/font-parser": 20,

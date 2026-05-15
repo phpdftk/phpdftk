@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parse JBIG2 image headers.
  *
@@ -24,10 +26,7 @@ final class Jbig2Parser
 
     public static function parseFile(string $path): ImageInfo
     {
-        $fh = fopen($path, 'rb');
-        if ($fh === false) {
-            throw new \RuntimeException("Cannot open file: $path");
-        }
+        $fh = LocalFilesystem::openReadable($path, "image file");
         try {
             // Read enough for header + first few segments
             $data = fread($fh, min(filesize($path), 4096));

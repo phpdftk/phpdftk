@@ -147,6 +147,21 @@ class FilterTest extends TestCase
         $this->assertSame("\xAB\xCD", $f->decode("AB CD>"));
     }
 
+    public function testAsciiHexDecodeOddNumberPadsWithZero(): void
+    {
+        // "F" + padded "0" = 0xF0
+        $f = new AsciiHexFilter();
+        $this->assertSame("\xF0", $f->decode('F>'));
+    }
+
+    public function testAsciiHexDecodeInvalidHexThrows(): void
+    {
+        $f = new AsciiHexFilter();
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('invalid hex');
+        $f->decode('GG');
+    }
+
     // -----------------------------------------------------------------------
     // RunLengthFilter
     // -----------------------------------------------------------------------

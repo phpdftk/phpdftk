@@ -111,6 +111,7 @@ This monorepo contains independently usable packages under `packages/`:
 | [`phpdftk/geometry`](packages/geometry) | Point, Rectangle, Matrix, PageSize constants, BezierCurve |
 | [`phpdftk/color`](packages/color) | RGB, CMYK, and Gray color models with conversion utilities |
 | [`phpdftk/encoding`](packages/encoding) | WinAnsi/MacRoman tables, Adobe Glyph List, CMap parser |
+| [`phpdftk/filesystem`](packages/filesystem) | Local filesystem utilities shared by phpdftk packages |
 | [`phpdftk/font-metrics`](packages/font-metrics) | AFM data for the 14 standard PDF fonts |
 | [`phpdftk/font-parser`](packages/font-parser) | TrueType/OpenType/CFF/Type1/WOFF/WOFF2 parsing, subsetting, kerning, ligatures, variable fonts |
 | [`phpdftk/filters`](packages/filters) | FlateDecode, ASCII85, ASCIIHex, RunLength, LZW, CCITTFax, JBIG2, Predictor stream filters |
@@ -237,4 +238,3 @@ vendor/phpbench/phpbench/phpbench run --report=default
 ## License
 
 MIT
-

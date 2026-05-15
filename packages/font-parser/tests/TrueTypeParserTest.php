@@ -37,6 +37,14 @@ class TrueTypeParserTest extends TestCase
         self::assertInstanceOf(TrueTypeData::class, $data);
     }
 
+    public function testParseRejectsStreamWrapperPath(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Stream wrappers are not allowed');
+
+        (new TrueTypeParser('php://memory'))->parse();
+    }
+
     public function testUnitsPerEmIsPositive(): void
     {
         $data = $this->getData();

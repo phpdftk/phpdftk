@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parser for OpenType fonts with CFF outlines (sfVersion "OTTO").
  *
@@ -50,11 +52,7 @@ final class OpenTypeParser
 
     public function parse(): OpenTypeData
     {
-        $data = file_get_contents($this->path);
-        if ($data === false) {
-            throw new \RuntimeException("Cannot read font file: {$this->path}");
-        }
-        $this->data = $data;
+        $this->data = LocalFilesystem::readFile($this->path, "font file");
 
         // Validate OpenType CFF signature
         $sfVersion = $this->readUint32(0);

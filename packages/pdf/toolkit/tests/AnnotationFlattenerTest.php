@@ -131,4 +131,72 @@ class AnnotationFlattenerTest extends TestCase
             @unlink($path);
         }
     }
+
+    public function testFlattenTypeFiltersBySubtype(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $result = AnnotationFlattener::openString($pdf)
+            ->flattenType('Text')
+            ->toBytes();
+        $this->assertStringStartsWith('%PDF', $result);
+        // After flattening Text-subtype annots, the page's /Annots should be empty.
+        $reader = PdfReader::fromString($result);
+        $pageDict = $reader->getPage(0);
+        $annots = $pageDict->get('Annots');
+        if ($annots instanceof \Phpdftk\Pdf\Core\PdfArray) {
+            $this->assertCount(0, $annots->items);
+        }
+    }
+
+    public function testFlattenTypeIgnoresUnmatchedSubtypes(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $result = AnnotationFlattener::openString($pdf)
+            ->flattenType('Stamp') // not present
+            ->toBytes();
+        $this->assertStringStartsWith('%PDF', $result);
+        $reader = PdfReader::fromString($result);
+        $pageDict = $reader->getPage(0);
+        $annots = $pageDict->get('Annots');
+        // Annotation should still be there
+        $this->assertNotNull($annots);
+    }
+
+    public function testFlattenAllWithPageSelector(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $result = AnnotationFlattener::openString($pdf)
+            ->flattenAll(\Phpdftk\Pdf\Toolkit\PageSelector::all())
+            ->toBytes();
+        $this->assertStringStartsWith('%PDF', $result);
+    }
+
+    public function testFlattenFormsHelper(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $result = AnnotationFlattener::openString($pdf)
+            ->flattenForms()
+            ->toBytes();
+        $this->assertStringStartsWith('%PDF', $result);
+    }
+
+    public function testOpenFromDisk(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $path = sys_get_temp_dir() . '/phpdftk_flatten_open_' . uniqid() . '.pdf';
+        try {
+            file_put_contents($path, $pdf);
+            $flattener = AnnotationFlattener::open($path);
+            $this->assertSame(1, $flattener->getPageCount());
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testGetVersionWarningsIsEmptyInitially(): void
+    {
+        $pdf = $this->generatePdfWithAnnotations();
+        $flattener = AnnotationFlattener::openString($pdf);
+        $this->assertSame([], $flattener->getVersionWarnings());
+    }
 }

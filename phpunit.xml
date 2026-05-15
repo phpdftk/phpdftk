@@ -16,6 +16,9 @@
         <testsuite name="encoding">
             <directory>packages/encoding/tests</directory>
         </testsuite>
+        <testsuite name="filesystem">
+            <directory>packages/filesystem/tests</directory>
+        </testsuite>
         <testsuite name="font-metrics">
             <directory>packages/font-metrics/tests</directory>
         </testsuite>
@@ -63,6 +66,7 @@
             <directory>packages/pdf/toolkit/src</directory>
             <directory>packages/geometry/src</directory>
             <directory>packages/encoding/src</directory>
+            <directory>packages/filesystem/src</directory>
             <directory>packages/font-metrics/src</directory>
             <directory>packages/image-metadata/src</directory>
             <directory>packages/filters/src</directory>

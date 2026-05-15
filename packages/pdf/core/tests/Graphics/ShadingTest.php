@@ -104,4 +104,65 @@ class ShadingTest extends TestCase
         $pdf = $s->toIndirectObject();
         self::assertStringContainsString('/ShadingType 7', $pdf);
     }
+
+    public function testMeshShadingBackgroundAndBBoxAndAntiAlias(): void
+    {
+        $shading = new \Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4(
+            new DeviceRGB(),
+            bitsPerCoordinate: 16,
+            bitsPerComponent: 8,
+            bitsPerFlag: 8,
+            decode: $this->decode(),
+        );
+        $shading->background = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+        ]);
+        $shading->bbox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(100),
+            new \Phpdftk\Pdf\Core\PdfNumber(100),
+        ]);
+        $shading->antiAlias = false;
+        $shading->function = new \Phpdftk\Pdf\Core\PdfReference(99);
+        $shading->objectNumber = 1;
+        $pdf = $shading->toIndirectObject();
+        self::assertStringContainsString('/Background', $pdf);
+        self::assertStringContainsString('/BBox', $pdf);
+        self::assertStringContainsString('/AntiAlias false', $pdf);
+        self::assertStringContainsString('/Function 99 0 R', $pdf);
+    }
+
+    public function testShadingBackgroundAndBBoxAndAntiAlias(): void
+    {
+        $s = new \Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2(
+            new DeviceRGB(),
+            coords: new \Phpdftk\Pdf\Core\PdfArray([
+                new \Phpdftk\Pdf\Core\PdfNumber(0),
+                new \Phpdftk\Pdf\Core\PdfNumber(0),
+                new \Phpdftk\Pdf\Core\PdfNumber(100),
+                new \Phpdftk\Pdf\Core\PdfNumber(0),
+            ]),
+            function: new \Phpdftk\Pdf\Core\PdfReference(99),
+        );
+        $s->background = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(1),
+            new \Phpdftk\Pdf\Core\PdfNumber(1),
+            new \Phpdftk\Pdf\Core\PdfNumber(1),
+        ]);
+        $s->bbox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(100),
+            new \Phpdftk\Pdf\Core\PdfNumber(100),
+        ]);
+        $s->antiAlias = true;
+        $s->objectNumber = 1;
+        $pdf = $s->toIndirectObject();
+        self::assertStringContainsString('/Background', $pdf);
+        self::assertStringContainsString('/BBox', $pdf);
+        self::assertStringContainsString('/AntiAlias true', $pdf);
+    }
 }

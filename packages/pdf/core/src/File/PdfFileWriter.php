@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Core\File;
 
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Pdf\Core\Document\Catalog;
 use Phpdftk\Pdf\Core\Document\Info;
 use Phpdftk\Pdf\Core\Interactive\Signature\Pkcs7Signer;
@@ -481,10 +482,15 @@ class PdfFileWriter
             $offset += strlen($chunk);
         }
 
-        // Trailer — use encryptor's file ID if encrypting, else generate random
+        // Trailer — use encryptor's file ID if encrypting, otherwise derive
+        // the ID from the body bytes so identical content produces identical
+        // PDFs. ISO 32000-2 §14.4 specifies that the file identifier "shall
+        // be based on the contents of the file at the time it was originally
+        // created", so hashing the body satisfies the spec and removes a
+        // source of nondeterminism in test/build outputs.
         $id = $this->encryptor !== null
             ? $this->encryptor->getFileId()
-            : md5(microtime() . $offset, true);
+            : md5(implode('', $chunks), true);
 
         $idArray = new PdfArray([
             new PdfString($id, hex: true),
@@ -760,8 +766,9 @@ class PdfFileWriter
         $chunks[] = $mainXrefChunk;
         $offset += strlen($mainXrefChunk);
 
-        // File ID
-        $id = md5(microtime() . $offset, true);
+        // File ID — content-based (ISO 32000-2 §14.4) so identical linearized
+        // bodies produce identical PDFs.
+        $id = md5(implode('', $chunks), true);
         $idArray = new \Phpdftk\Pdf\Core\PdfArray([
             new PdfString($id, hex: true),
             new PdfString($id, hex: true),
@@ -1037,11 +1044,7 @@ class PdfFileWriter
     public function save(string $path): void
     {
         $pdf = $this->generate();
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $pdf);
+        LocalFilesystem::writeFile($path, $pdf, createDirectories: true);
     }
 
     /**

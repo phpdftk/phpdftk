@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\Pdf\Reader\Tokenizer;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 final class FileSource implements Source
 {
     private const BUFFER_SIZE = 8192;
@@ -19,9 +21,7 @@ final class FileSource implements Source
 
     public function __construct(string $path)
     {
-        if (!is_file($path) || !is_readable($path)) {
-            throw new \RuntimeException("Cannot read file: $path");
-        }
+        LocalFilesystem::assertReadableFile($path);
         $handle = fopen($path, 'rb');
         if ($handle === false) {
             throw new \RuntimeException("Failed to open file: $path");

@@ -6,6 +6,7 @@ namespace Phpdftk\Pdf\Toolkit;
 
 use Phpdftk\Pdf\Core\Document\Catalog;
 use Phpdftk\Pdf\Core\Document\PageTree;
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\Pdf\Core\File\PdfFileWriter;
 use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Reader\PdfReader;
@@ -43,10 +44,7 @@ final class PdfMerger
 
     public function addFile(string $path, string $password = ''): self
     {
-        $bytes = file_get_contents($path);
-        if ($bytes === false) {
-            throw new \RuntimeException("Cannot read file: $path");
-        }
+        $bytes = LocalFilesystem::readFile($path);
         $this->sources[] = ['reader' => PdfReader::fromString($bytes, $password), 'pages' => null];
         return $this;
     }
@@ -59,10 +57,7 @@ final class PdfMerger
 
     public function addPages(string $path, PageSelector $pages, string $password = ''): self
     {
-        $bytes = file_get_contents($path);
-        if ($bytes === false) {
-            throw new \RuntimeException("Cannot read file: $path");
-        }
+        $bytes = LocalFilesystem::readFile($path);
         $this->sources[] = ['reader' => PdfReader::fromString($bytes, $password), 'pages' => $pages];
         return $this;
     }
@@ -95,11 +90,7 @@ final class PdfMerger
 
     public function save(string $path): void
     {
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, $this->toBytes());
+        LocalFilesystem::writeFile($path, $this->toBytes(), createDirectories: true);
     }
 
     /**

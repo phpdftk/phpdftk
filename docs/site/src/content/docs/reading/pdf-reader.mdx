@@ -30,6 +30,10 @@ $pdf = PdfReader::fromFile('secured.pdf', password: 'secret');
 $pdf = PdfReader::fromFilePublicKey('secured.pdf', $certPem, $keyPem);
 ```
 
+:::note[Local-path safety]
+`fromFile()` (and every other path-accepting API in phpdftk) routes through `Phpdftk\Filesystem\LocalFilesystem`, which rejects stream-wrapper paths (`php://`, `http://`, `data://`, `phar://`, …). If you need to read from a non-local source, fetch the bytes yourself and use `fromString()` — that way the SSRF guard stays out of your way for trusted inputs while still protecting the file-path APIs from user-supplied stream URIs.
+:::
+
 ## Document info
 
 ```php

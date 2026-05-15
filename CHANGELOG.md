@@ -32,3 +32,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-reference streams and object streams (PDF 1.5+)
 - Incremental updates
 - Zero external dependencies — only PHP standard library extensions
+- `phpdftk/filesystem` package — central local-file I/O guard that rejects stream-wrapper paths (`php://`, `http://`, `data://`, `phar://`, …) and normalises filesystem errors. Every package that touches the disk (`pdf-core`, `pdf-reader`, `pdf-writer`, `pdf-toolkit`, `font-parser`, `image-metadata`) routes through it.

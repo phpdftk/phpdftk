@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\ImageMetadata;
 
+use Phpdftk\Filesystem\LocalFilesystem;
+
 /**
  * Parse JPEG 2000 (.jp2, .j2k, .j2c) image headers.
  *
@@ -27,10 +29,7 @@ final class Jpeg2000Parser
 
     public static function parseFile(string $path): ImageInfo
     {
-        $fh = fopen($path, 'rb');
-        if ($fh === false) {
-            throw new \RuntimeException("Cannot open file: $path");
-        }
+        $fh = LocalFilesystem::openReadable($path, "image file");
         try {
             // Read enough for JP2 box header + ihdr, or raw codestream SIZ
             $data = fread($fh, min(filesize($path), 4096));
