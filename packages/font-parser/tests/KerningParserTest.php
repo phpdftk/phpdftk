@@ -91,6 +91,72 @@ class KerningParserTest extends TestCase
         $this->assertNotEmpty($data->kernPairs);
     }
 
+    public function testParseLegacyKernTableFormat0(): void
+    {
+        // Build a synthetic legacy "kern" table in Microsoft format (version 0).
+        $kern = pack('n', 0) . pack('n', 1);
+        $pairData = '';
+        $pairData .= pack('n', 65) . pack('n', 86) . pack('n', -100 & 0xFFFF);
+        $pairData .= pack('n', 80) . pack('n', 65) . pack('n', -50 & 0xFFFF);
+        $format0 = pack('n', 2) . pack('n', 12) . pack('n', 1) . pack('n', 0) . $pairData;
+        $subtableLength = 6 + strlen($format0);
+        $subtable = pack('n', 0) . pack('n', $subtableLength) . pack('n', 0x0001) . $format0;
+        $kernBytes = $kern . $subtable;
+
+        $parser = new KerningParser();
+        $result = $parser->parse($kernBytes, [
+            'kern' => ['offset' => 0, 'length' => strlen($kernBytes)],
+        ]);
+
+        $this->assertSame(-100, $result[65][86]);
+        $this->assertSame(-50, $result[80][65]);
+    }
+
+    public function testParseLegacyKernTableSkipsNonFormat0(): void
+    {
+        $kern = pack('n', 0) . pack('n', 1);
+        // High byte (format) = 1, low byte = 0x01 (horizontal) — non-zero format is skipped
+        $subtableHeader = pack('n', 0) . pack('n', 6) . pack('n', 0x0101);
+        $parser = new KerningParser();
+        $result = $parser->parse($kern . $subtableHeader, [
+            'kern' => ['offset' => 0, 'length' => strlen($kern . $subtableHeader)],
+        ]);
+        $this->assertSame([], $result);
+    }
+
+    public function testParseLegacyKernTableSkipsVerticalCoverage(): void
+    {
+        // Coverage bit 0 = 0 means vertical kerning, which we skip.
+        $kern = pack('n', 0) . pack('n', 1);
+        $subtableHeader = pack('n', 0) . pack('n', 6) . pack('n', 0x0000);
+        $parser = new KerningParser();
+        $result = $parser->parse($kern . $subtableHeader, [
+            'kern' => ['offset' => 0, 'length' => strlen($kern . $subtableHeader)],
+        ]);
+        $this->assertSame([], $result);
+    }
+
+    public function testParseAppleKernTableVersion1(): void
+    {
+        // Apple's version-1 kern table uses uint32 nTables and 4-byte subtable lengths.
+        $kern = pack('n', 1) . pack('n', 0) . pack('N', 1);
+        $pairData = pack('n', 65) . pack('n', 86) . pack('n', -75 & 0xFFFF);
+        $format0 = pack('n', 1) . pack('n', 6) . pack('n', 1) . pack('n', 0) . $pairData;
+        $subtableLength = 8 + strlen($format0);
+        $subtable = pack('N', $subtableLength) . pack('n', 0x0000) . pack('n', 0) . $format0;
+        $parser = new KerningParser();
+        $result = $parser->parse($kern . $subtable, [
+            'kern' => ['offset' => 0, 'length' => strlen($kern . $subtable)],
+        ]);
+        $this->assertSame(-75, $result[65][86]);
+    }
+
+    public function testParseReturnsEmptyWhenNoTables(): void
+    {
+        $parser = new KerningParser();
+        $this->assertSame([], $parser->parse('', []));
+    }
+
     public function testKernValuesAreNonZero(): void
     {
         if (self::$ttfPath === null) {

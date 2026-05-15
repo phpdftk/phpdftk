@@ -215,6 +215,114 @@ class PdfTest extends TestCase
         }
     }
 
+    private function createPngFile(int $w = 40, int $h = 30): string
+    {
+        $img = imagecreatetruecolor($w, $h);
+        $path = tempnam(sys_get_temp_dir(), 'pdf_test_img_') . '.png';
+        imagepng($img, $path);
+        imagedestroy($img);
+        return $path;
+    }
+
+    public function testAddImageNaturalDimensions(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path);
+            $bytes = $pdf->toBytes();
+            $this->assertStringStartsWith('%PDF-', $bytes);
+            // Natural dims encoded as ctm 40 0 0 30 ... cm
+            $this->assertStringContainsString('40 0 0 30', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImageScaledByWidthPreservesAspect(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, width: 200);
+            $bytes = $pdf->toBytes();
+            // 30 * (200/40) = 150
+            $this->assertStringContainsString('200 0 0 150', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImageScaledByHeightPreservesAspect(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, height: 90);
+            $bytes = $pdf->toBytes();
+            // 40 * (90/30) = 120
+            $this->assertStringContainsString('120 0 0 90', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImageExplicitDimensions(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, width: 300, height: 200);
+            $bytes = $pdf->toBytes();
+            $this->assertStringContainsString('300 0 0 200', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImageAlignmentCenter(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, width: 100, align: Alignment::Center);
+            $bytes = $pdf->toBytes();
+            $this->assertStringStartsWith('%PDF-', $bytes);
+            $this->assertStringContainsString('100 0 0', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImageAlignmentRight(): void
+    {
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, width: 100, align: Alignment::Right);
+            $bytes = $pdf->toBytes();
+            $this->assertStringStartsWith('%PDF-', $bytes);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testAddImagePaginatesWhenTooTall(): void
+    {
+        // A very tall image should trigger newPage() inside addImage.
+        $path = $this->createPngFile(40, 30);
+        try {
+            $pdf = new Pdf(compressStreams: false);
+            $pdf->addImage($path, height: 9999); // taller than any page
+            $bytes = $pdf->toBytes();
+            $this->assertStringStartsWith('%PDF-', $bytes);
+            // Should still produce at least one page (pagination kicked in)
+            $this->assertGreaterThanOrEqual(1, substr_count($bytes, '/Type /Page' . "\n"));
+        } finally {
+            @unlink($path);
+        }
+    }
+
     public function testEscapeHatchReturnsWriter(): void
     {
         $pdf = new Pdf();

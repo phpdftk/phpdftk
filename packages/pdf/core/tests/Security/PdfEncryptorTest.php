@@ -201,9 +201,64 @@ class PdfEncryptorTest extends TestCase
         );
         $dict = $encryptor->getEncryptDictionary();
         $this->assertNotNull($dict->p);
-        // The low bits should contain the permission flags
         $this->assertTrue(($dict->p & PdfEncryptor::PERM_PRINT) !== 0);
         $this->assertTrue(($dict->p & PdfEncryptor::PERM_COPY) !== 0);
+    }
+
+    public function testEncryptedInfoDictRoundTripsStrings(): void
+    {
+        // Add Info dict with PdfString values to exercise encryptString().
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter();
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
+        $info->title = new \Phpdftk\Pdf\Core\PdfString('Secret Title');
+        $info->author = new \Phpdftk\Pdf\Core\PdfString('Alice');
+        $info->subject = new \Phpdftk\Pdf\Core\PdfString('Confidential Material');
+        $writer->register($info);
+        $writer->setInfo($info);
+
+        $fileId = md5('test-info', true);
+        $writer->setEncryption(\Phpdftk\Pdf\Core\Security\PdfEncryptor::aes128('user', 'owner', $fileId));
+
+        $bytes = $writer->generate();
+        // The plaintext should NOT appear in the encrypted bytes
+        $this->assertStringNotContainsString('Secret Title', $bytes);
+        $this->assertStringNotContainsString('Confidential', $bytes);
+
+        // After decryption we should get the strings back
+        $reader = \Phpdftk\Pdf\Reader\PdfReader::fromString($bytes, password: 'user');
+        $infoDict = $reader->getInfo();
+        $this->assertNotNull($infoDict);
+        $title = $infoDict->get('Title');
+        $this->assertInstanceOf(\Phpdftk\Pdf\Core\PdfString::class, $title);
+        $this->assertSame('Secret Title', $title->value);
+    }
+
+    public function testEncryptedEmptyStringIsReturnedUnchanged(): void
+    {
+        // Empty strings short-circuit in encryptString.
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter();
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+
+        $info = new \Phpdftk\Pdf\Core\Document\Info();
+        $info->title = new \Phpdftk\Pdf\Core\PdfString('');
+        $writer->register($info);
+        $writer->setInfo($info);
+
+        $fileId = md5('empty-string', true);
+        $writer->setEncryption(\Phpdftk\Pdf\Core\Security\PdfEncryptor::rc4128('u', 'o', $fileId));
+
+        $bytes = $writer->generate();
+        $this->assertStringStartsWith('%PDF-', $bytes);
     }
 
     private function generateEncryptedPdf(string $method, string $userPass, string $ownerPass): string

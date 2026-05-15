@@ -91,4 +91,44 @@ class PdfFileWriterTest extends TestCase
         $writer->register(new Type1Font(StandardFont::Courier));
         self::assertCount(2, $writer->getRegistry()->getAll());
     }
+
+    public function testToBytesEqualsGenerate(): void
+    {
+        $writer = new PdfFileWriter();
+        $writer->setCatalog(new Catalog());
+        self::assertSame($writer->generate(), $writer->toBytes());
+    }
+
+    public function testWriteToStreamWritesBytes(): void
+    {
+        $writer = new PdfFileWriter();
+        $writer->setCatalog(new Catalog());
+        $stream = fopen('php://memory', 'r+');
+        try {
+            $written = $writer->writeTo($stream);
+            self::assertGreaterThan(0, $written);
+            rewind($stream);
+            $bytes = stream_get_contents($stream);
+            self::assertStringStartsWith('%PDF-', $bytes);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    public function testWriteToRejectsNonResource(): void
+    {
+        $writer = new PdfFileWriter();
+        $writer->setCatalog(new Catalog());
+        $this->expectException(\InvalidArgumentException::class);
+        $writer->writeTo('not a resource');
+    }
+
+    public function testSetCompressStreamsToggle(): void
+    {
+        $writer = new PdfFileWriter();
+        $writer->setCompressStreams(true);
+        $writer->setCompressStreams(false);
+        $writer->setCatalog(new Catalog());
+        self::assertStringStartsWith('%PDF-', $writer->generate());
+    }
 }

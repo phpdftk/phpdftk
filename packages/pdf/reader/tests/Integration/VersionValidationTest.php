@@ -87,4 +87,62 @@ class VersionValidationTest extends TestCase
 
         $this->assertSame(PdfVersion::V2_0, $reader->getEffectiveVersion());
     }
+
+    public function testValidateVersionDetectsFeatureMismatchAfterDowngrade(): void
+    {
+        // Build PDF 2.0 with /OCProperties + /Collection + /AF, then rewrite
+        // the header to declare PDF 1.3 so validateVersion sees a mismatch.
+        $writer = new PdfFileWriter(version: PdfVersion::V2_0);
+        $catalog = new Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new PdfReference($pageTree->objectNumber);
+
+        $ocg = new OCG('Layer 1');
+        $writer->register($ocg);
+        $ocProps = new OCPropertiesDict(
+            new PdfArray([new PdfReference($ocg->objectNumber)]),
+            new PdfDictionary(),
+        );
+        $writer->register($ocProps);
+        $catalog->ocProperties = new PdfReference($ocProps->objectNumber);
+
+        $bytes = $writer->generate();
+        // Downgrade declared version
+        $bytes = preg_replace('/%PDF-2\.\d/', '%PDF-1.3', $bytes, 1) ?? $bytes;
+        // Also clear /Version from the catalog so getEffectiveVersion uses header
+        $bytes = preg_replace('|/Version /2\.\d|', '', $bytes) ?? $bytes;
+
+        $reader = PdfReader::fromString($bytes, strict: false);
+        $warnings = $reader->validateVersion();
+        $this->assertNotEmpty($warnings);
+        $found = false;
+        foreach ($warnings as $w) {
+            if (str_contains($w, 'OCProperties')) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found);
+    }
+
+    public function testValidateVersionWithEncryptedPdf(): void
+    {
+        // Build encrypted PDF — validateVersion should inspect /Encrypt and
+        // compute the required version against the declared version.
+        $writer = new PdfFileWriter(version: PdfVersion::V1_4);
+        $encryptor = \Phpdftk\Pdf\Core\Security\PdfEncryptor::aes128('user', 'owner', random_bytes(16));
+        $writer->setEncryption($encryptor);
+        $catalog = new Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new PdfReference($pageTree->objectNumber);
+
+        $bytes = $writer->generate();
+        $reader = PdfReader::fromString($bytes, password: 'user');
+        $warnings = $reader->validateVersion();
+        $this->assertIsArray($warnings);
+    }
 }

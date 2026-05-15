@@ -331,4 +331,13 @@ class LtvSignerTest extends TestCase
         self::assertSame($ltv, $ltv->addCrl(random_bytes(32)));
         self::assertSame($ltv, $ltv->forSignature('Signature1'));
     }
+
+    public function testSetOcspAndCrlClientsAreFluent(): void
+    {
+        $signed = $this->createSignedPdf();
+        $ltv = LtvSigner::openString($signed['pdf']);
+
+        self::assertSame($ltv, $ltv->setOcspClient(new \Phpdftk\Pdf\Core\Interactive\Signature\OcspClient()));
+        self::assertSame($ltv, $ltv->setCrlClient(new \Phpdftk\Pdf\Core\Interactive\Signature\CrlClient()));
+    }
 }

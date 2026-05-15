@@ -121,6 +121,39 @@ class Pkcs7SignerTest extends TestCase
         self::assertLessThan(8192, strlen($der));
     }
 
+    public function testSignAcceptsExtraCertsAsOpenSSLCertificateObjects(): void
+    {
+        // Build an extra OpenSSLCertificate (not a PEM string) so the signer
+        // routes through certificateToPem() instead of the str-passthrough.
+        $creds = Pkcs7Signer::createSelfSignedTestCredentials();
+        $extraCreds = Pkcs7Signer::createSelfSignedTestCredentials('extra-ca');
+        $extraCert = openssl_x509_read($extraCreds['cert']);
+        self::assertNotFalse($extraCert);
+
+        $signer = new Pkcs7Signer($creds['cert'], $creds['key'], extraCerts: [$extraCert]);
+        $der = $signer->sign('payload with extra cert chain');
+        self::assertNotEmpty($der);
+        self::assertSame("\x30", $der[0]);
+    }
+
+    public function testSignAcceptsExtraCertsAsMixedTypes(): void
+    {
+        // A mix of PEM string + OpenSSLCertificate exercises both branches in
+        // the foreach inside Pkcs7Signer::sign().
+        $creds = Pkcs7Signer::createSelfSignedTestCredentials();
+        $extra1 = Pkcs7Signer::createSelfSignedTestCredentials('extra1');
+        $extra2 = Pkcs7Signer::createSelfSignedTestCredentials('extra2');
+        $extra2Cert = openssl_x509_read($extra2['cert']);
+
+        $signer = new Pkcs7Signer(
+            $creds['cert'],
+            $creds['key'],
+            extraCerts: [$extra1['cert'], $extra2Cert],
+        );
+        $der = $signer->sign('payload');
+        self::assertNotEmpty($der);
+    }
+
     private function findOpensslBinary(): ?string
     {
         foreach (['/usr/bin/openssl', '/usr/local/bin/openssl', '/opt/homebrew/bin/openssl'] as $path) {

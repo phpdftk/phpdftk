@@ -210,4 +210,77 @@ class ReadSamplePdfsTest extends TestCase
         self::assertSame(1.0, $params['linearized']);
         self::assertSame(1, $params['pageCount']);
     }
+
+    public function testGetPageOffsetHintTableReturnsNullForNonLinearized(): void
+    {
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page = new \Phpdftk\Pdf\Core\Document\Page();
+        $writer->register($page);
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612), new \Phpdftk\Pdf\Core\PdfNumber(792),
+        ]);
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->count = 1;
+
+        $pdf = PdfReader::fromString($writer->generate());
+        self::assertNull($pdf->getPageOffsetHintTable());
+    }
+
+    public function testGetPageOffsetHintTableReturnsNullWhenHArrayMissing(): void
+    {
+        // Build a "linearized-looking" PDF without a /H array → should return null.
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $linDict = new \Phpdftk\Pdf\Core\Document\LinearizationParameters();
+        $linDict->n = 1;
+        $linDict->l = 1000;
+        $writer->register($linDict);
+
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page = new \Phpdftk\Pdf\Core\Document\Page();
+        $writer->register($page);
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612), new \Phpdftk\Pdf\Core\PdfNumber(792),
+        ]);
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->count = 1;
+
+        $pdf = PdfReader::fromString($writer->generate());
+        // Linearized but no /H array data → hint table parsing returns null
+        self::assertNull($pdf->getPageOffsetHintTable());
+    }
+
+    public function testGetPageByteRangeReturnsNullForNonLinearizedPdf(): void
+    {
+        $writer = new \Phpdftk\Pdf\Core\File\PdfFileWriter(compressStreams: false);
+        $catalog = new \Phpdftk\Pdf\Core\Document\Catalog();
+        $writer->setCatalog($catalog);
+        $pageTree = new \Phpdftk\Pdf\Core\Document\PageTree();
+        $writer->register($pageTree);
+        $catalog->pages = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page = new \Phpdftk\Pdf\Core\Document\Page();
+        $writer->register($page);
+        $page->parent = new \Phpdftk\Pdf\Core\PdfReference($pageTree->objectNumber);
+        $page->mediaBox = new \Phpdftk\Pdf\Core\PdfArray([
+            new \Phpdftk\Pdf\Core\PdfNumber(0), new \Phpdftk\Pdf\Core\PdfNumber(0),
+            new \Phpdftk\Pdf\Core\PdfNumber(612), new \Phpdftk\Pdf\Core\PdfNumber(792),
+        ]);
+        $pageTree->kids = [new \Phpdftk\Pdf\Core\PdfReference($page->objectNumber)];
+        $pageTree->count = 1;
+
+        $pdf = PdfReader::fromString($writer->generate());
+        self::assertNull($pdf->getPageByteRange(0));
+    }
 }

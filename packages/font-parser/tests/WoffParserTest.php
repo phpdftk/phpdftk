@@ -129,6 +129,20 @@ class WoffParserTest extends TestCase
         WoffParser::decompressBytes('abc');
     }
 
+    public function testDecompressFromFilePath(): void
+    {
+        // File-based decompress() reads the path then calls decompressBytes —
+        // verify it propagates byte-level errors.
+        $tmp = tempnam(sys_get_temp_dir(), 'phpdftk_woff_') . '.woff';
+        file_put_contents($tmp, "abc");
+        try {
+            $this->expectException(\RuntimeException::class);
+            WoffParser::decompress($tmp);
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
     public function testDecompressBytesWrongSignature(): void
     {
         $this->expectException(\RuntimeException::class);

@@ -147,6 +147,36 @@ class MetadataEditorTest extends TestCase
         $this->assertSame('Brand New Author', $editor->getAuthor());
     }
 
+    public function testSetCreatorProducerDatesAndTrappedRoundTrip(): void
+    {
+        $pdf = $this->generatePdfWithInfo();
+        $created = new \DateTimeImmutable('2026-01-15T10:30:00Z');
+        $modified = new \DateTimeImmutable('2026-05-15T18:45:00Z');
+
+        $updated = MetadataEditor::openString($pdf)
+            ->setCreator('Acme Word')
+            ->setProducer('Acme PDF Engine v3')
+            ->setCreationDate($created)
+            ->setModDate($modified)
+            ->setTrapped('False')
+            ->toBytes();
+
+        $this->assertStringStartsWith('%PDF', $updated);
+        $editor = MetadataEditor::openString($updated);
+        $this->assertSame('Acme Word', $editor->getCreator());
+        $this->assertSame('Acme PDF Engine v3', $editor->getProducer());
+        $this->assertNotEmpty($editor->getCreationDate());
+        $this->assertNotEmpty($editor->getModDate());
+        $this->assertSame('False', $editor->getTrapped());
+    }
+
+    public function testGetVersionWarningsIsArray(): void
+    {
+        $pdf = $this->generatePdfWithInfo();
+        $editor = MetadataEditor::openString($pdf);
+        $this->assertIsArray($editor->getVersionWarnings());
+    }
+
     public function testNoBytesChangedWithoutModifications(): void
     {
         $pdf = $this->generatePdfWithInfo();

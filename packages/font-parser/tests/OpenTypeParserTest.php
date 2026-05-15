@@ -168,6 +168,19 @@ class OpenTypeParserTest extends TestCase
         $this->assertIsBool($data->embeddingAllowed);
     }
 
+    public function testFromBytesParsesIdenticalResult(): void
+    {
+        $path = $this->requireFont();
+        $fileData = (new OpenTypeParser($path))->parse();
+
+        $fontBytes = file_get_contents($path);
+        $byteData = OpenTypeParser::fromBytes($fontBytes)->parse();
+
+        // Both entry points should produce the same parsed result
+        $this->assertSame($fileData->postScriptName, $byteData->postScriptName);
+        $this->assertSame($fileData->unitsPerEm, $byteData->unitsPerEm);
+    }
+
     public function testRejectsTrueTypeFont(): void
     {
         // Find a TrueType font

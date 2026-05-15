@@ -114,6 +114,20 @@ class Woff2ParserTest extends TestCase
         return $out;
     }
 
+    public function testDecompressFromFilePathDelegatesToDecompressBytes(): void
+    {
+        // The file-based decompress() reads the path then calls decompressBytes.
+        // Use a too-short file so decompressBytes' "too short" error surfaces.
+        $tmp = tempnam(sys_get_temp_dir(), 'phpdftk_woff2_') . '.woff2';
+        file_put_contents($tmp, "abc");
+        try {
+            $this->expectException(\RuntimeException::class);
+            Woff2Parser::decompress($tmp);
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
     public function testDecompressFailsWithoutBrotli(): void
     {
         // Build a valid-looking WOFF2 with one known tag, expect brotli throw.
