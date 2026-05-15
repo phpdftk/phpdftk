@@ -737,18 +737,29 @@ jobs:
           mkdir -p "$REF_NAME"
           cp -r ../docs/site/dist/. "$REF_NAME/"
 
-          if [[ "${{ steps.ref.outputs.stable }}" == "1" ]]; then
-            mkdir -p latest
-            cat > latest/index.html <<EOF
+          write_root_redirect() {
+            local target="$1"
+            cat > index.html <<EOF
           <!DOCTYPE html>
           <meta charset="utf-8">
           <title>Redirecting…</title>
-          <meta http-equiv="refresh" content="0; url=/$REF_NAME/">
-          <link rel="canonical" href="/$REF_NAME/">
-          <script>location.replace("/$REF_NAME/");</script>
-          <p>Redirecting to <a href="/$REF_NAME/">/$REF_NAME/</a>…</p>
+          <meta http-equiv="refresh" content="0; url=$target">
+          <link rel="canonical" href="$target">
+          <script>location.replace("$target");</script>
+          <p>Redirecting to <a href="$target">$target</a>…</p>
           EOF
-            cp latest/index.html index.html
+          }
+
+          if [[ "${{ steps.ref.outputs.stable }}" == "1" ]]; then
+            # Stable tags claim /latest/ and the bare root.
+            mkdir -p latest
+            write_root_redirect "/$REF_NAME/"
+            cp index.html latest/index.html
+          elif [[ ! -f index.html ]]; then
+            # No stable tag has ever published a root redirect yet; point
+            # the bare root at /head/ so visitors landing on phpdftk.dev
+            # see the latest main-branch docs instead of a 404.
+            write_root_redirect "/head/"
           fi
 
           git add .
