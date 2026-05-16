@@ -50,6 +50,14 @@ class CffSubsetterTest extends TestCase
             }
         }
 
+        // Final fallback: the bundled NotoSansMongolian.
+        if (self::$fontPath === null) {
+            $bundled = __DIR__ . '/fixtures/NotoSansMongolian-Regular.otf';
+            if (is_file($bundled)) {
+                self::$fontPath = $bundled;
+            }
+        }
+
         if (self::$fontPath !== null) {
             $data = (new OpenTypeParser(self::$fontPath))->parse();
             self::$cffBytes = $data->cffBytes;
@@ -155,5 +163,34 @@ class CffSubsetterTest extends TestCase
         $subsetData = (new CffParser())->parse($subset);
 
         $this->assertSame($originalData->stringIndexData, $subsetData->stringIndexData);
+    }
+
+    // ------------------------------------------------------------------
+    // Bundled-font tests for code paths that depend on font features.
+    // ------------------------------------------------------------------
+
+    public function testSubsetsMongolianWithFormat2Charset(): void
+    {
+        // Noto Sans Mongolian uses CFF charset format 2 (range-based).
+        // Subsetting it exercises the charset re-encoding path for large
+        // glyph counts.
+        $cff = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse()->cffBytes;
+        $subset = (new CffSubsetter())->subset($cff, [1, 2, 3, 10, 50, 100, 500, 1000]);
+        $this->assertNotEmpty($subset);
+        $this->assertSame("\x01\x00", substr($subset, 0, 2)); // CFF v1 header
+        // Subset should be reparseable and contain the requested glyphs.
+        $data = (new CffParser())->parse($subset);
+        $this->assertGreaterThanOrEqual(8, count($data->charStrings));
+    }
+
+    public function testSubsetsLargeGlyphSetFromMongolianFont(): void
+    {
+        // Subset that includes many glyphs to exercise the range-extension
+        // path in buildCharset.
+        $cff = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse()->cffBytes;
+        $glyphs = range(1, 200);
+        $subset = (new CffSubsetter())->subset($cff, $glyphs);
+        $data = (new CffParser())->parse($subset);
+        $this->assertGreaterThanOrEqual(200, count($data->charStrings));
     }
 }

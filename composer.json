@@ -54,6 +54,7 @@
     "autoload-dev": {
         "psr-4": {
             "Phpdftk\\Benchmarks\\": "benchmarks/",
+            "Phpdftk\\FontParser\\Tests\\": "packages/font-parser/tests/",
             "Phpdftk\\Pdf\\Conformance\\": "packages/pdf/conformance/src/",
             "Phpdftk\\Pdf\\Conformance\\Tests\\": "packages/pdf/conformance/tests/",
             "Phpdftk\\Tests\\Support\\": "tests/Support/"

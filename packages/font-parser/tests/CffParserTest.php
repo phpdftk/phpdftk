@@ -48,6 +48,15 @@ class CffParserTest extends TestCase
             }
         }
 
+        // Final fallback: the bundled NotoSansMongolian. This guarantees the
+        // suite has a real CFF font to parse even on minimal CI runners.
+        if (self::$fontPath === null) {
+            $bundled = __DIR__ . '/fixtures/NotoSansMongolian-Regular.otf';
+            if (is_file($bundled)) {
+                self::$fontPath = $bundled;
+            }
+        }
+
         if (self::$fontPath !== null) {
             $data = (new OpenTypeParser(self::$fontPath))->parse();
             self::$cffBytes = $data->cffBytes;
@@ -133,5 +142,26 @@ class CffParserTest extends TestCase
 
         $this->assertArrayHasKey(0, $data->charset);
         $this->assertSame(0, $data->charset[0]);
+    }
+
+    // ------------------------------------------------------------------
+    // Charset format coverage: bundled fonts pick specific formats so we
+    // exercise the parseCharset() branches deterministically.
+    // ------------------------------------------------------------------
+
+    public function testParsesCharsetFormat2FromMongolianFont(): void
+    {
+        // Noto Sans Mongolian's CFF uses charset format 2 (range-based with
+        // 2-byte nLeft) — 1598 glyphs spread over large SID ranges.
+        $otfBytes = file_get_contents(TestFonts::notoSansMongolianOtf());
+        $cff = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse()->cffBytes;
+        $data = (new CffParser())->parse($cff);
+
+        $this->assertCount(1598, $data->charset);
+        // GID 0 is .notdef, then SIDs jump to ~391 and increment.
+        $this->assertSame(0, $data->charset[0]);
+        $this->assertGreaterThan(100, $data->charset[1]);
+        // Sequential SID assignment confirms range-based charset.
+        $this->assertSame($data->charset[2], $data->charset[1] + 1);
     }
 }

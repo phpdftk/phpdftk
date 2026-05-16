@@ -14,7 +14,10 @@ class OpenTypeParserTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        // Find an OpenType CFF font on the system
+        // The legacy tests below assume basic Latin coverage (e.g. 'A' / 0x41),
+        // so prefer system fonts that have Latin. Newer feature-specific
+        // tests at the bottom of this file use the bundled
+        // NotoSansMongolian directly via TestFonts.
         $candidates = [
             '/System/Library/Fonts/Supplemental/STIXGeneral.otf',
             '/System/Library/Fonts/LastResort.otf',
@@ -23,7 +26,6 @@ class OpenTypeParserTest extends TestCase
 
         foreach ($candidates as $path) {
             if (file_exists($path)) {
-                // Verify it's actually CFF (sfVersion = OTTO)
                 $bytes = file_get_contents($path);
                 if ($bytes !== false && substr($bytes, 0, 4) === 'OTTO') {
                     self::$fontPath = $path;
@@ -203,5 +205,58 @@ class OpenTypeParserTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Not an OpenType CFF font');
         (new OpenTypeParser($ttfPath))->parse();
+    }
+
+    // ------------------------------------------------------------------
+    // Bundled-font coverage tests: features that not every system OTF has.
+    // These use NotoSansMongolian-Regular.otf which is committed under
+    // tests/fixtures/ and excluded from the published Composer artifact.
+    // ------------------------------------------------------------------
+
+    public function testParsesFormat12CmapFromMongolianFont(): void
+    {
+        // Noto Sans Mongolian's cmap has both format-4 and format-12
+        // subtables. Format-12 (full Unicode, 32-bit codepoints) is preferred
+        // when present and exercises parseCmapFormat12().
+        $data = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse();
+        // Mongolian script lives in U+1800-U+18AF — well inside BMP — but
+        // the format-12 subtable still ranges across it. Confirm we picked
+        // up a glyph for U+1820 (MONGOLIAN LETTER A).
+        $this->assertArrayHasKey(0x1820, $data->fullUnicodeToGid);
+        $this->assertGreaterThan(0, $data->fullUnicodeToGid[0x1820]);
+    }
+
+    public function testParsesVerticalMetricsFromMongolianFont(): void
+    {
+        // Noto Sans Mongolian carries vhea/vmtx (Mongolian is a vertical
+        // script). Verify the vertical-widths branch in parse() runs.
+        $data = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse();
+        $this->assertNotNull($data->verticalWidths);
+        $this->assertNotEmpty($data->verticalWidths);
+        foreach (array_slice($data->verticalWidths, 0, 5, preserve_keys: true) as $gid => $width) {
+            $this->assertIsInt($gid);
+            $this->assertIsInt($width);
+        }
+    }
+
+    public function testParsesLargeCffCharsetFromMongolianFont(): void
+    {
+        // The Mongolian font has >1500 glyphs, so its CFF charset is encoded
+        // in format 1 or 2 (range-based) rather than format 0 (flat array).
+        // This exercises CffParser::parseCharset's non-zero format branches.
+        // glyphWidths reflects the full numGlyphs (every glyph in the CFF),
+        // not just the codepoints reachable via cmap.
+        $data = (new OpenTypeParser(TestFonts::notoSansMongolianOtf()))->parse();
+        $this->assertGreaterThan(1000, count($data->glyphWidths));
+    }
+
+    public function testParsesFormat4CmapFromTifinaghFont(): void
+    {
+        // Noto Sans Tifinagh's cmap has only format-4 subtables (no format-12).
+        // The Mongolian font lets format-12 win the priority race; Tifinagh
+        // is the dedicated fixture that forces parseCmapFormat4().
+        $data = (new OpenTypeParser(TestFonts::notoSansTifinaghOtf()))->parse();
+        // Tifinagh letter YA (U+2D30) sits in the Tifinagh block.
+        $this->assertArrayHasKey(0x2D30, $data->fullUnicodeToGid);
     }
 }

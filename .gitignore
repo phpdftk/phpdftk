@@ -1,8 +1,12 @@
 # Dependencies
 /vendor/
+/packages/*/vendor/
+/packages/*/*/vendor/
 
 # Composer
 composer.phar
+/packages/*/composer.lock
+/packages/*/*/composer.lock
 
 # PHPUnit
 .phpunit.result.cache

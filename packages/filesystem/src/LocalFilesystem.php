@@ -11,9 +11,14 @@ final class LocalFilesystem
         self::assertReadableFile($path, $label);
 
         $bytes = file_get_contents($path);
+        // @codeCoverageIgnoreStart
+        // Defensive: assertReadableFile validated is_file + is_readable; this
+        // branch fires only on a race (file deleted/permissions revoked between
+        // the check and the read) or a transient I/O error.
         if ($bytes === false) {
             throw new \RuntimeException("Cannot read $label: $path");
         }
+        // @codeCoverageIgnoreEnd
 
         return $bytes;
     }
@@ -23,9 +28,12 @@ final class LocalFilesystem
         self::assertReadableFile($path, $label);
 
         $bytes = file_get_contents($path, false, null, 0, $length);
+        // @codeCoverageIgnoreStart
+        // Defensive: see readFile().
         if ($bytes === false) {
             throw new \RuntimeException("Cannot read $label: $path");
         }
+        // @codeCoverageIgnoreEnd
 
         return $bytes;
     }
@@ -36,9 +44,12 @@ final class LocalFilesystem
         self::assertReadableFile($path, $label);
 
         $handle = fopen($path, 'rb');
+        // @codeCoverageIgnoreStart
+        // Defensive: assertReadableFile validated is_file + is_readable.
         if ($handle === false) {
             throw new \RuntimeException("Cannot open $label: $path");
         }
+        // @codeCoverageIgnoreEnd
 
         return $handle;
     }

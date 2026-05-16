@@ -181,13 +181,23 @@ final class OpenTypeParser
             $encID = $this->readUint16($recBase + 2);
             $subtableOffset = $this->readUint32($recBase + 4);
 
+            // Prefer subtables that cover the full Unicode range (format-12,
+            // platform=3/enc=10 or platform=0/enc=4-6) over BMP-only subtables.
+            // Without this, fonts with supplementary-plane glyphs (anything
+            // above U+FFFF — historic scripts, emoji, math, CJK extensions)
+            // silently lose those codepoints because format-4 can only encode
+            // 16-bit code points.
             $priority = -1;
-            if ($platID === 3 && $encID === 1) {
-                $priority = 2;
+            if ($platID === 3 && $encID === 10) {
+                $priority = 4; // Windows full Unicode (UCS-4)
+            } elseif ($platID === 0 && ($encID === 4 || $encID === 6)) {
+                $priority = 3; // Unicode full repertoire
+            } elseif ($platID === 3 && $encID === 1) {
+                $priority = 2; // Windows BMP UCS-2
             } elseif ($platID === 0 && $encID === 3) {
-                $priority = 1;
+                $priority = 1; // Unicode BMP
             } elseif ($platID === 0 && $encID === 0) {
-                $priority = 0;
+                $priority = 0; // Unicode default semantics
             }
 
             if ($priority > $bestPriority) {
