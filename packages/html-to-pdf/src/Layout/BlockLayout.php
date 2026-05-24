@@ -63,6 +63,28 @@ final class BlockLayout
      */
     private ?array $currentColumnWidths = null;
 
+    /**
+     * Cell-occupancy grid for the active table — HTML 5 §4.9.11
+     * rowspan / colspan resolution. Keyed by `spl_object_id($cell)`;
+     * the value records the cell's resolved (row, col) plus declared
+     * (rowspan, colspan). Built once per TableBox by
+     * `precomputeTableCellGrid()`, consulted by `layoutTableRow()` so
+     * subsequent rows skip columns covered by prior rowspan cells.
+     *
+     * @var array<int, array{row: int, col: int, rowspan: int, colspan: int}>|null
+     */
+    private ?array $currentTableCellGrid = null;
+
+    /**
+     * Per-row height tally for the active table. Populated in
+     * `layoutTableRow` after each row's max-cell-height resolves, so
+     * the post-pass `finalizeRowspanHeights()` can sum heights for
+     * any cell that spans multiple rows.
+     *
+     * @var array<int, float>
+     */
+    private array $currentTableRowHeights = [];
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -101,13 +123,25 @@ final class BlockLayout
             // table-level concept).
             $prev = $this->currentTableColumns;
             $prevWidths = $this->currentColumnWidths;
-            $this->currentTableColumns = $this->maxColumnsIn($box);
+            $prevGrid = $this->currentTableCellGrid;
+            $prevRowHeights = $this->currentTableRowHeights;
+            $prevCellRefs = $this->resolvedCellReferences;
+            $this->currentTableCellGrid = $this->precomputeTableCellGrid($box);
+            $this->currentTableRowHeights = [];
+            // The cell grid drives the effective column count — rows
+            // with rowspan-pulled-from-prior-row cells contribute to
+            // the grid's max width.
+            $this->currentTableColumns = max(1, $this->maxColumnsFromGrid($this->currentTableCellGrid));
             // HTML 5 §4.9.4 — explicit column widths from `<col>` /
             // `<colgroup width="N">`. `null` entries fall through to
             // the auto-distribution path in `layoutTableRow`.
             $this->currentColumnWidths = $this->collectColumnWidths($box, $this->currentTableColumns);
             try {
                 $height = $this->layoutBlock($box, $context);
+                // CSS Tables 3 §11.1 — extend rowspan cells to cover
+                // every row they span. Done after rows are positioned
+                // so we know each row's height.
+                $this->finalizeRowspanHeights();
                 // CSS Tables 3 §11.2 `border-collapse: collapse` — Phase-1
                 // simplification: suppress every cell's right + bottom
                 // border edges except the last column / last row, so
@@ -119,6 +153,9 @@ final class BlockLayout
             } finally {
                 $this->currentTableColumns = $prev;
                 $this->currentColumnWidths = $prevWidths;
+                $this->currentTableCellGrid = $prevGrid;
+                $this->currentTableRowHeights = $prevRowHeights;
+                $this->resolvedCellReferences = $prevCellRefs;
             }
         }
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
@@ -178,16 +215,24 @@ final class BlockLayout
             $geo->width,
             $this->currentColumnWidths,
         );
+        // Precomputed running prefix-sum so each cell's X = left edge +
+        // sum of widths of preceding columns.
+        $colOffsets = [0.0];
+        foreach ($columnWidths as $w) {
+            $colOffsets[] = $colOffsets[count($colOffsets) - 1] + $w;
+        }
         $maxHeight = 0.0;
-        $cellX = $geo->x;
-        $colCursor = 0;
+        $rowIndex = $this->resolveRowIndex($row);
+        $cellCursorFallback = 0; // when no precomputed grid is present
         foreach ($cells as $i => $cell) {
             $span = $colspans[$i];
+            $col = $this->resolveCellColumn($cell, $cellCursorFallback);
+            $cellCursorFallback = max($cellCursorFallback, $col + $span);
+            $cellX = $geo->x + ($colOffsets[$col] ?? 0.0);
             $cellWidth = 0.0;
-            for ($k = 0; $k < $span && $colCursor + $k < $totalColumns; $k++) {
-                $cellWidth += $columnWidths[$colCursor + $k];
+            for ($k = 0; $k < $span && $col + $k < $totalColumns; $k++) {
+                $cellWidth += $columnWidths[$col + $k];
             }
-            $colCursor += $span;
             $cellCtx = $context
                 ->withContainingBlock($cellWidth, $context->containingBlockHeight)
                 ->withOrigin($cellX, $geo->y);
@@ -195,12 +240,18 @@ final class BlockLayout
             // block before recursing (mirrors `layoutBlock`'s pre-pass).
             $this->cascade->resolveLengths($cell->style, $cellCtx->lengthContext);
             $h = $this->layoutBlock($cell, $cellCtx);
-            if ($h > $maxHeight) {
+            // Cells that span multiple rows don't contribute their full
+            // height to *this* row's max — the rowspan post-pass extends
+            // them across the spanned rows after every row has resolved.
+            $rowspan = $this->resolveCellRowspan($cell);
+            if ($rowspan <= 1 && $h > $maxHeight) {
                 $maxHeight = $h;
             }
-            $cellX += $cellWidth;
         }
         $geo->height = $maxHeight;
+        if ($rowIndex >= 0) {
+            $this->currentTableRowHeights[$rowIndex] = $maxHeight;
+        }
         // Cells smaller than the row get stretched to the row height so
         // borders / backgrounds align flush at the bottom edge — CSS 2.1
         // §17.5.3 "cell percentage" simplification. CSS Tables 3 §6.2
@@ -1528,6 +1579,220 @@ final class BlockLayout
     }
 
     /**
+     * Pre-walk every `<tr>` descendant of a `<table>` to assign each
+     * cell its resolved (row, col) coordinate and (colspan, rowspan)
+     * extent, taking prior rows' rowspan-occupied columns into
+     * account. HTML 5 §11.1.4 has the full algorithm; this is a
+     * straightforward implementation of "growing a grid" — for each
+     * row, walk cells in order, find the first free column from the
+     * current cursor, claim the cells at (col..col+colspan-1) ×
+     * (row..row+rowspan-1).
+     *
+     * @return array<int, array{row: int, col: int, rowspan: int, colspan: int}>
+     */
+    private function precomputeTableCellGrid(\Phpdftk\HtmlToPdf\Box\TableBox $table): array
+    {
+        /** @var array<int, array{row: int, col: int, rowspan: int, colspan: int}> $grid */
+        $grid = [];
+        $this->resolvedCellReferences = [];
+        /** @var list<array<int, bool>> $occupancy occupancy[row][col] */
+        $occupancy = [];
+        $rowIndex = 0;
+        $rows = $this->collectTableRows($table);
+        foreach ($rows as $row) {
+            if (!isset($occupancy[$rowIndex])) {
+                $occupancy[$rowIndex] = [];
+            }
+            $col = 0;
+            foreach ($row->children as $cell) {
+                if (!($cell instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox)) {
+                    continue;
+                }
+                $colspan = max(1, $this->cellColspan($cell));
+                $rowspan = max(1, $this->resolveCellRowspan($cell));
+                // Advance cursor past any column already claimed by a
+                // prior row's rowspan.
+                while (!empty($occupancy[$rowIndex][$col])) {
+                    $col++;
+                }
+                $cellId = spl_object_id($cell);
+                $grid[$cellId] = [
+                    'row' => $rowIndex,
+                    'col' => $col,
+                    'rowspan' => $rowspan,
+                    'colspan' => $colspan,
+                ];
+                $this->resolvedCellReferences[$cellId] = $cell;
+                // Mark every covered (row, col) as occupied.
+                for ($r = 0; $r < $rowspan; $r++) {
+                    $absRow = $rowIndex + $r;
+                    if (!isset($occupancy[$absRow])) {
+                        $occupancy[$absRow] = [];
+                    }
+                    for ($c = 0; $c < $colspan; $c++) {
+                        $occupancy[$absRow][$col + $c] = true;
+                    }
+                }
+                $col += $colspan;
+            }
+            $rowIndex++;
+        }
+        return $grid;
+    }
+
+    /**
+     * Collect every TableRowBox descendant of `$table` in document
+     * order (handles implicit `<tbody>` / explicit `<thead>` /
+     * `<tfoot>` wrappers).
+     *
+     * @return list<\Phpdftk\HtmlToPdf\Box\TableRowBox>
+     */
+    private function collectTableRows(Box $table): array
+    {
+        $rows = [];
+        $stack = [$table];
+        $seenTable = false;
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
+                $rows[] = $node;
+                continue;
+            }
+            if ($seenTable && $node instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+                // Skip nested tables — their rows belong to themselves.
+                continue;
+            }
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+                $seenTable = true;
+            }
+            $children = $node->children;
+            foreach (array_reverse($children) as $c) {
+                array_unshift($stack, $c);
+            }
+        }
+        return $rows;
+    }
+
+    /** @param array<int, array{row: int, col: int, rowspan: int, colspan: int}> $grid */
+    private function maxColumnsFromGrid(array $grid): int
+    {
+        $max = 0;
+        foreach ($grid as $entry) {
+            $end = $entry['col'] + $entry['colspan'];
+            if ($end > $max) {
+                $max = $end;
+            }
+        }
+        return $max;
+    }
+
+    /**
+     * Look up a cell's resolved column index from the precomputed
+     * cell grid; falls back to `$cursorFallback` when no grid is
+     * available (test fixtures laying out a row in isolation).
+     */
+    private function resolveCellColumn(\Phpdftk\HtmlToPdf\Box\TableCellBox $cell, int $cursorFallback): int
+    {
+        $grid = $this->currentTableCellGrid;
+        if ($grid === null) {
+            return $cursorFallback;
+        }
+        $id = spl_object_id($cell);
+        return $grid[$id]['col'] ?? $cursorFallback;
+    }
+
+    private function resolveRowIndex(\Phpdftk\HtmlToPdf\Box\TableRowBox $row): int
+    {
+        $grid = $this->currentTableCellGrid;
+        if ($grid === null) {
+            return -1;
+        }
+        // Find the row index from any of the row's cells.
+        foreach ($row->children as $c) {
+            if ($c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox) {
+                $entry = $grid[spl_object_id($c)] ?? null;
+                if ($entry !== null) {
+                    return $entry['row'];
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * HTML 5 `<td rowspan="N">` / `<th rowspan="N">` — defaults to 1,
+     * clamps to ≥ 1 even when the attribute is missing / non-numeric.
+     */
+    private function resolveCellRowspan(\Phpdftk\HtmlToPdf\Box\TableCellBox $cell): int
+    {
+        if ($cell->element === null) {
+            return 1;
+        }
+        $raw = $cell->element->getAttribute('rowspan');
+        if ($raw === null || preg_match('/^\d+$/', trim($raw)) !== 1) {
+            return 1;
+        }
+        return max(1, (int) trim($raw));
+    }
+
+    /**
+     * Post-pass after every row in a table has been laid out — extend
+     * each rowspan-spanning cell's `geometry->height` to cover every
+     * row it spans, using `$currentTableRowHeights` populated in
+     * `layoutTableRow`. Subsequent rows have already positioned in
+     * their natural Y slots so the spanning cell just visually
+     * stretches downward.
+     */
+    private function finalizeRowspanHeights(): void
+    {
+        $grid = $this->currentTableCellGrid;
+        if ($grid === null) {
+            return;
+        }
+        // We need the cell object to mutate its geometry — keep a
+        // map of cellId → cell while walking via spl_object_id.
+        $byId = [];
+        $stack = [];
+        // Walk via the row-collection helper would require a table
+        // ref — instead iterate the grid + look up cells from a fresh
+        // walk. Simpler: walk the heights and mutate cells we have a
+        // reference to (we already have them through the table's
+        // child traversal).
+        // The grid only stored metadata; mutate by finding cells via
+        // the captured table reference. To avoid threading the table
+        // through, store cell references in the grid entries too —
+        // see below. For now the grid carries the metadata and we
+        // expect the caller to have refreshed currentTableCellGrid
+        // with cell references via storeCellReferences.
+        foreach ($this->resolvedCellReferences as $id => $cell) {
+            if (!isset($grid[$id])) {
+                continue;
+            }
+            $entry = $grid[$id];
+            if ($entry['rowspan'] <= 1) {
+                continue;
+            }
+            $sum = 0.0;
+            for ($r = 0; $r < $entry['rowspan']; $r++) {
+                $sum += $this->currentTableRowHeights[$entry['row'] + $r] ?? 0.0;
+            }
+            // Only extend; never shrink below content height.
+            if ($sum > $cell->geometry->height) {
+                $cell->geometry->height = $sum;
+            }
+        }
+    }
+
+    /**
+     * Resolved cell references keyed by `spl_object_id`. Populated by
+     * `precomputeTableCellGrid` so `finalizeRowspanHeights` can
+     * mutate cells without re-walking the tree.
+     *
+     * @var array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>
+     */
+    private array $resolvedCellReferences = [];
+
+    /**
      * Reorder a `<table>`'s direct children so that `<caption>` boxes
      * with `caption-side: bottom` sit AFTER the rest of the table
      * content. Top-side captions (the default) stay in their original
@@ -1610,34 +1875,6 @@ final class BlockLayout
                 }
             }
         }
-    }
-
-    /**
-     * Find the widest row in the table (by sum of colspans) so all rows
-     * share the same column grid. Walks every `TableRowBox` descendant
-     * — even ones nested inside an implicit `<tbody>` wrapper.
-     */
-    private function maxColumnsIn(Box $box): int
-    {
-        $max = 0;
-        $stack = [$box];
-        while ($stack !== []) {
-            $node = array_pop($stack);
-            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
-                $sum = 0;
-                foreach ($node->children as $c) {
-                    if ($c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox) {
-                        $sum += $this->cellColspan($c);
-                    }
-                }
-                $max = max($max, $sum);
-                continue;
-            }
-            foreach ($node->children as $c) {
-                $stack[] = $c;
-            }
-        }
-        return max(1, $max);
     }
 
     /**

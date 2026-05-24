@@ -900,6 +900,222 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->height);
     }
 
+    public function testRowspanCellExtendsAcrossRows(): void
+    {
+        // 2-row table; first row's first cell has rowspan="2". The
+        // cell's height should equal the sum of both row heights.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td rowspan="2" style="height: 20px">x</td>'
+                . '<td style="height: 30px">a</td></tr>'
+                . '<tr><td style="height: 40px">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $rowspanCell = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+                && $n->element !== null
+                && $n->element->getAttribute('rowspan') === '2'
+            ) {
+                $rowspanCell = $n;
+                break;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($rowspanCell);
+        // Row 0 height = max of (rowspan cell contributes nothing, a's
+        // 30) = 30. Row 1 height = 40. Cell extends to 30 + 40 = 70.
+        self::assertEqualsWithDelta(70.0, $rowspanCell->geometry->height, 0.001);
+    }
+
+    public function testRowspanShiftsNextRowCellsRight(): void
+    {
+        // With first row's first cell rowspan="2", the second row's
+        // ONLY declared cell sits in column 1 (not column 0).
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td rowspan="2" style="height: 20px">x</td>'
+                . '<td style="height: 30px">a</td></tr>'
+                . '<tr><td class="r2c2" style="height: 30px">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        // Find the r2c2 cell.
+        $r2c2 = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+                && $n->element !== null
+                && in_array('r2c2', $n->element->classes(), true)
+            ) {
+                $r2c2 = $n;
+                break;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($r2c2);
+        // 2-column table on a 600-wide table → each column ~300 wide.
+        // r2c2 sits in column 1 → x ≈ 300.
+        self::assertEqualsWithDelta($table->geometry->x + 300.0, $r2c2->geometry->x, 0.5);
+    }
+
+    public function testNoRowspanBaselinePreserved(): void
+    {
+        // Regression — tables without rowspan still position cells
+        // sequentially in document order, one per column.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td class="a">a</td><td class="b">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $a = null;
+        $b = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox && $n->element !== null) {
+                if (in_array('a', $n->element->classes(), true)) {
+                    $a = $n;
+                } elseif (in_array('b', $n->element->classes(), true)) {
+                    $b = $n;
+                }
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame($table->geometry->x, $a->geometry->x);
+        self::assertEqualsWithDelta($table->geometry->x + 300.0, $b->geometry->x, 0.5);
+    }
+
+    public function testInvalidRowspanAttributeTreatedAsOne(): void
+    {
+        // `rowspan="foo"` — non-numeric, treated as 1 (no span).
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td rowspan="foo" style="height: 20px">x</td>'
+                . '<td style="height: 30px">a</td></tr>'
+                . '<tr><td class="r2c1" style="height: 30px">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        // r2c1 should sit in COLUMN 0 (not column 1) because the
+        // invalid rowspan was treated as 1 — no occupancy from row 0.
+        $r2c1 = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+                && $n->element !== null
+                && in_array('r2c1', $n->element->classes(), true)
+            ) {
+                $r2c1 = $n;
+                break;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($r2c1);
+        self::assertSame($table->geometry->x, $r2c1->geometry->x);
+    }
+
+    public function testRowspanOneIsNoOp(): void
+    {
+        // Explicit `rowspan="1"` — same as no attribute. Cell sits in
+        // its row, doesn't span anything.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td rowspan="1" style="height: 20px">x</td></tr>'
+                . '<tr><td class="r2c1" style="height: 30px">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $r2c1 = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+                && $n->element !== null
+                && in_array('r2c1', $n->element->classes(), true)
+            ) {
+                $r2c1 = $n;
+                break;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($r2c1);
+        self::assertSame($table->geometry->x, $r2c1->geometry->x);
+    }
+
+    public function testRowspanCellDoesNotInflateOriginRowHeight(): void
+    {
+        // The rowspan cell's own height should NOT inflate its
+        // declaring row's height — that's what makes it possible to
+        // span multiple rows. With the rowspan cell having content
+        // height 100 but rowspan=2, row 0 height stays at the OTHER
+        // cell's 30, row 1 height = 40, total = 70.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td class="span" rowspan="2" style="height: 100px">x</td>'
+                . '<td class="r1" style="height: 30px">a</td></tr>'
+                . '<tr><td class="r2" style="height: 40px">b</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $r1 = null;
+        $r2 = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox && $n->element !== null) {
+                if (in_array('r1', $n->element->classes(), true)) {
+                    $r1 = $n;
+                } elseif (in_array('r2', $n->element->classes(), true)) {
+                    $r2 = $n;
+                }
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($r1);
+        self::assertNotNull($r2);
+        // r2's top edge should sit 30 below r1's top (= row 0 height).
+        self::assertEqualsWithDelta($r1->geometry->y + 30.0, $r2->geometry->y, 0.5);
+    }
+
     public function testColWidthAttributeSetsExplicitColumnWidth(): void
     {
         // Single `<col width="200">` on a 3-column table — that column
