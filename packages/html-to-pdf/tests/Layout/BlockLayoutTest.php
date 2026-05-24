@@ -778,6 +778,154 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testAbsolutePositionsBoxAtTopLeftOffsets(): void
+    {
+        // `position: absolute; top: 50px; left: 20px` puts the box at
+        // (parent.x + 20, parent.y + 50) regardless of in-flow position.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="abs" style="position: absolute; top: 50px; left: 20px; width: 100px; height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(20.0, $div->geometry->x);
+        self::assertSame(50.0, $div->geometry->y);
+    }
+
+    public function testAbsoluteRightAndBottomOffsets(): void
+    {
+        // `right: 30px` on a 100px-wide box in a 600-wide CB → margin
+        // edge at 600 - 30 - 100 = 470.
+        // `bottom: 20px` on a 40px-tall box in a 800-tall CB → margin
+        // edge at 800 - 20 - 40 = 740.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="abs" style="position: absolute; right: 30px; bottom: 20px; width: 100px; height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(470.0, $div->geometry->x);
+        self::assertSame(740.0, $div->geometry->y);
+    }
+
+    public function testAbsoluteRemovesBoxFromFlow(): void
+    {
+        // Two siblings; the second is absolute. The third (in-flow) sibling
+        // should stack right below the first (50 + 50 = 100), unaffected
+        // by the absolute box that sits in between.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="height: 50px"></div>'
+                . '<div class="abs" style="position: absolute; top: 200px; left: 0; height: 40px"></div>'
+                . '<div class="c" style="height: 50px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $body = $this->find($box, 'body');
+        self::assertNotNull($body);
+        $c = null;
+        foreach ($body->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(50.0, $c->geometry->y);
+    }
+
+    public function testAbsoluteAutoOffsetsKeepBoxAtStaticPosition(): void
+    {
+        // Without top/left/etc, the absolute box stays at its in-flow
+        // position (the "static position" per CSS 2.1 §10.3.7).
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="height: 50px"></div>'
+                . '<div class="abs" style="position: absolute; width: 100px; height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $abs = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('abs', $child->element->classes(), true)) {
+                $abs = $child;
+                break;
+            }
+        }
+        self::assertNotNull($abs);
+        // Static position = where it would have flowed = right after .a
+        // at y=50.
+        self::assertSame(50.0, $abs->geometry->y);
+        self::assertSame(0.0, $abs->geometry->x);
+    }
+
+    public function testPositionFixedBehavesLikeAbsoluteInPrint(): void
+    {
+        // No scroll viewport in print → `fixed` is identical to
+        // `absolute` for placement purposes.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="fixed" style="position: fixed; top: 80px; left: 40px; width: 100px; height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(40.0, $div->geometry->x);
+        self::assertSame(80.0, $div->geometry->y);
+    }
+
+    public function testAbsoluteTopBeatsBottom(): void
+    {
+        // When both top and bottom are set on an absolute box, top wins
+        // (matches my position: relative precedence).
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="abs" style="position: absolute; top: 30px; bottom: 200px; left: 10px; right: 200px; width: 50px; height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(10.0, $div->geometry->x);
+        self::assertSame(30.0, $div->geometry->y);
+    }
+
+    public function testAbsoluteAfterFlowSiblingsHonorsParentTop(): void
+    {
+        // Absolute box's `top: N` is measured from parent's content
+        // top, NOT from where the box would have flowed. So putting
+        // a 100-tall sibling before it then `top: 10px` should still
+        // place the abs box at y=10 (from body top, which is 0).
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div style="height: 100px"></div>'
+                . '<div class="abs" style="position: absolute; top: 10px; left: 0; width: 50px; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $abs = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('abs', $child->element->classes(), true)) {
+                $abs = $child;
+                break;
+            }
+        }
+        self::assertNotNull($abs);
+        self::assertSame(10.0, $abs->geometry->y);
+    }
+
     public function testPositionStaticDoesNotShift(): void
     {
         // Default `position: static` ignores `top`/`left`. Sanity check

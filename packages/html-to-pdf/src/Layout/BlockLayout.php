@@ -295,77 +295,11 @@ final class BlockLayout
         } elseif ($box->children !== [] && $this->allInlineLevel($box->children)) {
             $childTotal = $this->layoutInlineChildren($box, $childContext);
         } else {
-            $cursorY = $geo->y;
-            $prevBottomMargin = 0.0;
-            $hasPrev = false;
-            $pageHeight = $context->containingBlockHeight;
-            foreach ($box->children as $child) {
-                $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
-                // CSS Fragmentation 4 §3 + legacy `page-break-before`: when
-                // either declares a forced page break, advance the cursor
-                // to the next page boundary before laying the child out.
-                // The very-first-element-of-the-document case (no previous
-                // sibling AND cursorY == 0) skips — otherwise a leading
-                // `break-before: page` would synthesise an empty cover page.
-                if ($pageHeight > 0.0
-                    && $this->forcesPageBreakBefore($child)
-                    && ($hasPrev || $cursorY > 0.001)
-                ) {
-                    $aligned = $this->ceilToPage($cursorY, $pageHeight);
-                    if ($aligned > $cursorY) {
-                        $delta = $aligned - $cursorY;
-                        $cursorY = $aligned;
-                        $childTotal += $delta;
-                    }
-                }
-                $childOuterHeight = $this->layoutBox($child, $childContext->withOrigin($geo->x, $cursorY));
-                if ($hasPrev) {
-                    $collapse = min($prevBottomMargin, $child->geometry->marginTop);
-                    if ($collapse > 0.0) {
-                        $this->shiftSubtree($child, -$collapse);
-                        $cursorY -= $collapse;
-                        $childTotal -= $collapse;
-                    }
-                }
-                // CSS Fragmentation 4 §3.2 `break-inside: avoid` /
-                // legacy `page-break-inside: avoid`: when the child fits
-                // on a single page but currently straddles a page
-                // boundary, shift it down to start at the next boundary.
-                if ($pageHeight > 0.0
-                    && $childOuterHeight > 0.0
-                    && $childOuterHeight <= $pageHeight
-                    && $this->avoidsBreakInside($child)
-                ) {
-                    $childTop = $child->geometry->y;
-                    $childBottom = $childTop + $childOuterHeight;
-                    $startPage = (int) floor($childTop / $pageHeight);
-                    $endPage = (int) floor(($childBottom - 0.001) / $pageHeight);
-                    if ($endPage > $startPage) {
-                        $aligned = ($startPage + 1) * $pageHeight;
-                        $shift = $aligned - $childTop;
-                        if ($shift > 0.0) {
-                            $this->shiftSubtree($child, $shift);
-                            $cursorY += $shift;
-                            $childTotal += $shift;
-                        }
-                    }
-                }
-                $cursorY += $childOuterHeight;
-                $childTotal += $childOuterHeight;
-                // `page-break-after` / `break-after` on the child shoves the
-                // cursor to the next page so the following sibling starts
-                // there.
-                if ($pageHeight > 0.0 && $this->forcesPageBreakAfter($child)) {
-                    $aligned = $this->ceilToPage($cursorY, $pageHeight);
-                    if ($aligned > $cursorY) {
-                        $delta = $aligned - $cursorY;
-                        $cursorY = $aligned;
-                        $childTotal += $delta;
-                    }
-                }
-                $prevBottomMargin = $child->geometry->marginBottom;
-                $hasPrev = true;
-            }
+            // Defer to the shared list-iterator so out-of-flow children
+            // (`position: absolute` / `fixed`), page-break logic, margin
+            // collapse, and break-inside avoidance all run through one
+            // codepath — same one `layoutMultiColumn` reuses per segment.
+            $childTotal = $this->stackChildrenList($box->children, $childContext, $geo->x, $geo->y);
         }
 
         // Parent-child margin collapsing (CSS 2.1 §8.3.1).
@@ -485,6 +419,75 @@ final class BlockLayout
      *
      * @return array{0:float, 1:float} `[dx, dy]`
      */
+    /**
+     * `position: absolute` or `fixed` removes a box from normal flow.
+     * `fixed` is treated the same as `absolute` in the print context —
+     * there's no scrolling viewport so the difference vanishes.
+     */
+    private function isOutOfFlow(Box $box): bool
+    {
+        $value = $box->style->get('position');
+        if (!($value instanceof Keyword)) {
+            return false;
+        }
+        $lower = strtolower($value->name);
+        return $lower === 'absolute' || $lower === 'fixed';
+    }
+
+    /**
+     * Resolve the (dx, dy) shift needed to move a freshly-laid-out
+     * absolutely-positioned `$child` from its in-flow `cursorY` position
+     * to its absolute target position per CSS 2.1 §9.6.
+     *
+     *  - Phase-1: containing block = the immediate parent's content box
+     *    (proper spec: nearest positioned ancestor's padding box). For
+     *    most author usage this matches because positioned ancestors
+     *    are common.
+     *  - `top` wins over `bottom`; `left` wins over `right`.
+     *  - With both opposing sides `auto` (the default), the box keeps
+     *    its static in-flow position — no shift.
+     *  - `right` / `bottom` resolve to "containing block edge − offset
+     *    − box outer width / height" so the corresponding margin edge
+     *    sits the given distance from the right / bottom edge.
+     *
+     * @return array{0:float, 1:float} `[dx, dy]`
+     */
+    private function resolveAbsoluteOffsets(
+        Box $child,
+        LayoutContext $childContext,
+        float $originX,
+        float $originY,
+        float $cursorY,
+    ): array {
+        $style = $child->style;
+        $cbWidth = $childContext->containingBlockWidth;
+        $cbHeight = $childContext->containingBlockHeight;
+        $top = $style->get('top');
+        $bottom = $style->get('bottom');
+        $left = $style->get('left');
+        $right = $style->get('right');
+
+        $dy = 0.0;
+        if (!$this->isAuto($top)) {
+            $topOffset = $this->resolveLength($top, $cbHeight);
+            $dy = $originY + $topOffset - $cursorY;
+        } elseif (!$this->isAuto($bottom)) {
+            $bottomOffset = $this->resolveLength($bottom, $cbHeight);
+            $dy = $originY + $cbHeight - $bottomOffset
+                - $cursorY - $child->geometry->outerHeight();
+        }
+
+        $dx = 0.0;
+        if (!$this->isAuto($left)) {
+            $dx = $this->resolveLength($left, $cbWidth);
+        } elseif (!$this->isAuto($right)) {
+            $rightOffset = $this->resolveLength($right, $cbWidth);
+            $dx = $cbWidth - $rightOffset - $child->geometry->outerWidth();
+        }
+        return [$dx, $dy];
+    }
+
+    /** @return array{0:float, 1:float} `[dx, dy]` */
     private function resolveRelativeOffsets(CascadedValues $style, LayoutContext $context): array
     {
         $cbW = $context->containingBlockWidth;
@@ -828,6 +831,28 @@ final class BlockLayout
         $total = 0.0;
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
+            // CSS 2.1 §9.6 — `position: absolute` (and `fixed`, which
+            // behaves identically in a print context with no scrolling)
+            // removes the box from normal flow. Lay it out at the
+            // parent's content origin + (left, top) offsets, then skip
+            // the cursor advancement so siblings stack as if it weren't
+            // here.
+            if ($this->isOutOfFlow($child)) {
+                $absCtx = $childContext->withOrigin($originX, $cursorY);
+                $this->layoutBox($child, $absCtx);
+                [$dx, $dy] = $this->resolveAbsoluteOffsets(
+                    $child,
+                    $childContext,
+                    $originX,
+                    $originY,
+                    $cursorY,
+                );
+                if ($dx !== 0.0 || $dy !== 0.0) {
+                    $this->shiftSubtree($child, $dy, $dx);
+                }
+                $prevBottomMargin = 0.0;
+                continue;
+            }
             if ($pageHeight > 0.0
                 && $this->forcesPageBreakBefore($child)
                 && ($hasPrev || $cursorY > 0.001)
