@@ -420,11 +420,12 @@ final class Painter
 
         // Paint last shadow first so earlier-listed shadows sit on top.
         foreach (array_reverse($shadows) as $shadow) {
-            if ($shadow['inset']) {
-                continue; // Phase 2.
-            }
             $color = $shadow['color'] ?? $textColor;
             $spread = $shadow['spread'];
+            if ($shadow['inset']) {
+                $this->paintInsetShadow($geo, $shadow, $color, $stream);
+                continue;
+            }
             $x = $geo->x - $geo->paddingLeft - $geo->borderLeft + $shadow['offsetX'] - $spread;
             $top = $geo->y - $geo->paddingTop - $geo->borderTop + $shadow['offsetY'] - $spread;
             $width = $geo->paddingLeft + $geo->width + $geo->paddingRight
@@ -433,6 +434,61 @@ final class Painter
                 + $geo->borderTop + $geo->borderBottom + 2 * $spread;
             $this->emitRect($stream, $x, $top, $width, $height, fill: $color);
         }
+    }
+
+    /**
+     * Paint an inset box-shadow per CSS Backgrounds 3 §6. The shadow
+     * paints INSIDE the padding-box edge (not outside the border-box
+     * like the default outset case). Offsets are inverted in effect:
+     * a positive `offsetX` makes the shadow visible at the *left*
+     * edge of the inside (the shadow "comes from" the +X direction).
+     * Positive `spread` makes the visible inner shadow band thicker
+     * by shrinking the unshaded inner rect.
+     *
+     * Implementation: paint the padding-box outer rect plus the
+     * computed inner rect as two subpaths, then fill with the
+     * even-odd rule (`f*`) so PDF leaves the inner rect transparent
+     * and fills only the frame between them with the shadow colour.
+     *
+     * @param array{offsetX: float, offsetY: float, blur: float, spread: float, color: ?Color, inset: bool} $shadow
+     */
+    private function paintInsetShadow(\Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo, array $shadow, Color $color, ContentStream $stream): void
+    {
+        // Padding-box edge (one step inside the border edge).
+        $padX = $geo->x - $geo->paddingLeft;
+        $padTop = $geo->y - $geo->paddingTop;
+        $padWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+        $padHeight = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+        if ($padWidth <= 0.0 || $padHeight <= 0.0) {
+            return;
+        }
+        $spread = $shadow['spread'];
+        // Inner unshaded rect — inset from the padding-box by the
+        // offset on the corresponding side, then further by spread on
+        // every side. CSS 2 §6: a positive +X offset moves the shadow
+        // toward +X (visible at the OPPOSITE edge — the left), so the
+        // inner rect's left edge advances by offsetX.
+        $innerX = $padX + max(0.0, $shadow['offsetX']) + $spread;
+        $innerTop = $padTop + max(0.0, $shadow['offsetY']) + $spread;
+        $innerRight = $padX + $padWidth + min(0.0, $shadow['offsetX']) - $spread;
+        $innerBottom = $padTop + $padHeight + min(0.0, $shadow['offsetY']) - $spread;
+        $innerWidth = $innerRight - $innerX;
+        $innerHeight = $innerBottom - $innerTop;
+        if ($innerWidth <= 0.0 || $innerHeight <= 0.0) {
+            // Spread+offset consumes the whole padding box — fill it
+            // solid with the shadow colour.
+            $this->emitRect($stream, $padX, $padTop, $padWidth, $padHeight, fill: $color);
+            return;
+        }
+        // PDF Y axis is inverted vs layout. Flip both rects.
+        $padPdfY = $this->pageHeight - $padTop - $padHeight;
+        $innerPdfY = $this->pageHeight - $innerTop - $innerHeight;
+        $stream->saveGraphicsState();
+        $stream->setFillColorRGB($color->r, $color->g, $color->b);
+        $stream->rectangle($padX, $padPdfY, $padWidth, $padHeight);
+        $stream->rectangle($innerX, $innerPdfY, $innerWidth, $innerHeight);
+        $stream->fillEvenOdd();
+        $stream->restoreGraphicsState();
     }
 
     /**
@@ -481,6 +537,16 @@ final class Painter
             }
             if ($c instanceof \Phpdftk\Css\Value\Length) {
                 $lengths[] = $c->value;
+                continue;
+            }
+            // CSS Values 4 §6.2: a unitless `0` is a valid zero-length
+            // wherever a length is expected. Accept Integer/Number
+            // values as zero (and treat non-zero numerics as 0 — the
+            // grammar requires a unit otherwise).
+            if ($c instanceof \Phpdftk\Css\Value\Integer
+                || $c instanceof \Phpdftk\Css\Value\Number
+            ) {
+                $lengths[] = (float) $c->value;
             }
         }
         if (count($lengths) < 2) {

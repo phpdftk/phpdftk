@@ -190,6 +190,210 @@ final class PainterTest extends TestCase
         self::assertGreaterThanOrEqual(2, $rectCount, 'box-shadow + background → 2+ rects');
     }
 
+    public function testInsetBoxShadowEmitsEvenOddFill(): void
+    {
+        // `box-shadow: inset 5px 5px red` paints the shadow INSIDE the
+        // padding-box edge using the PDF even-odd fill rule (`f*`) so
+        // the inner rect stays clear and only the frame between the
+        // padding edge and the inset rect is filled.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px; box-shadow: inset 5px 5px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringContainsString('f*', $bytes, 'inset shadow uses even-odd fill rule');
+        // Shadow's red colour emitted as fill colour.
+        self::assertStringContainsString('1 0 0 rg', $bytes, 'shadow fills with declared color');
+    }
+
+    public function testInsetBoxShadowWithFullSpreadFillsPaddingBox(): void
+    {
+        // When spread + offsets exceed the padding box's dimensions,
+        // the inner rect collapses — the painter falls back to filling
+        // the whole padding box solid with the shadow color (no
+        // even-odd path needed).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 30px; width: 40px; box-shadow: inset 0 0 0 60px green; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Spread of 60 on a 40×30 box → inner collapses → solid fill,
+        // no even-odd path emitted from the shadow code.
+        self::assertStringNotContainsString('f*', $bytes, 'collapsed inner skips even-odd');
+        // Green emitted as a fill color.
+        self::assertStringContainsString('0 0.501961 0 rg', $bytes, 'green shadow color emitted');
+    }
+
+    public function testInsetBoxShadowZeroDimensionsIsNoOp(): void
+    {
+        // A box whose padding-box dimensions are zero (zero width AND
+        // zero height) has nowhere for the shadow to draw — painter
+        // early-outs without emitting an even-odd fill.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             body { width: 0; }
+             div { width: 0; height: 0; box-shadow: inset 5px 5px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(0, 0, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringNotContainsString('f*', $bytes, 'zero padding-box skips inset paint');
+    }
+
+    public function testInsetBoxShadowDefaultsToCurrentColor(): void
+    {
+        // `box-shadow: inset 5px 5px` (no color) uses the cascaded
+        // `color`. Set color: blue and verify the shadow paints blue.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { color: blue; background-color: white; height: 50px; box-shadow: inset 5px 5px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringContainsString('f*', $bytes, 'inset shadow path emitted');
+        self::assertStringContainsString('0 0 1 rg', $bytes, 'shadow uses cascaded blue currentColor');
+    }
+
+    public function testOutsetShadowDoesNotUseEvenOddFill(): void
+    {
+        // Sanity check: the regular (non-inset) shadow path uses the
+        // single-rect `f` fill, never `f*`. Confirms the inset code
+        // doesn't bleed into outset shadows.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px; box-shadow: 4px 4px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringNotContainsString('f*', $bytes, 'outset shadow must not emit even-odd fill');
+    }
+
+    public function testInsetShadowStyleNoneStillSuppresses(): void
+    {
+        // `box-shadow: none` (the keyword shorthand) on a box that
+        // otherwise has visible content should NOT emit any shadow
+        // path, even when other shadow-related declarations are set.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px; box-shadow: none; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertNotContains('f*', $opcodes);
+        // Only the background rect — exactly 1.
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(1, $rectCount);
+    }
+
+    public function testInsetShadowAcceptsUnitlessZeroOffsets(): void
+    {
+        // CSS Values 4 §6.2: `0` is a valid zero-length without a
+        // unit. The shadow parser must accept this in place of `0px`.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   box-shadow: inset 0 0 0 4px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringContainsString('f*', $bytes, 'unitless zero offsets still produce inset shadow');
+    }
+
     public function testBoxShadowNoneNoExtraOps(): void
     {
         $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
