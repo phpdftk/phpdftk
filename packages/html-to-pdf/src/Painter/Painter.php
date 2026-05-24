@@ -1040,6 +1040,17 @@ final class Painter
             $thickness = $font->underlineThickness !== null
                 ? max(0.5, ($font->underlineThickness / $unitsPerEm) * $fontSize)
                 : max(0.5, $fontSize / 14.0);
+            // CSS Text Decoration 4 §4 — `text-decoration-thickness`
+            // explicit Length / Percentage overrides the font metric.
+            // `auto` defers to the metric above.
+            $explicitThickness = $this->resolveDecorationThickness($box, $fontSize);
+            if ($explicitThickness !== null) {
+                $thickness = max(0.5, $explicitThickness);
+            }
+            // `text-underline-offset` shifts the underline ONLY (not
+            // overline or line-through). Positive values push the line
+            // further below the baseline.
+            $explicitUnderlineOffset = $this->resolveUnderlineOffset($box, $fontSize);
             $x = $box->geometry->x + $fragment->x;
             $width = $fragment->width;
             $baselineY = $box->geometry->y + $line->y + $ascent;
@@ -1055,7 +1066,7 @@ final class Painter
                 ?? $decoColor;
             foreach ($lines as $lineKind) {
                 $offsetY = match ($lineKind) {
-                    'underline' => $underlineOffset,
+                    'underline' => $underlineOffset + ($explicitUnderlineOffset ?? 0.0),
                     'overline' => -$ascent,
                     'line-through' => -0.3 * $fontSize,
                     default => 0.0,
@@ -1115,6 +1126,42 @@ final class Painter
                 $stream->fill();
         }
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Resolve CSS Text Decoration 4 §4 `text-decoration-thickness`.
+     * Returns the resolved pixel value when an explicit Length or
+     * Percentage is set (percentage is relative to the font size per
+     * CSS UI 4 §6); returns null when the value is `auto` so the font
+     * metric stays in effect.
+     */
+    private function resolveDecorationThickness(Box $box, float $fontSize): ?float
+    {
+        $value = $box->style->get('text-decoration-thickness');
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $fontSize;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve CSS Text Decoration 4 §4.2 `text-underline-offset`.
+     * Positive values push the underline further below the baseline;
+     * `auto` (null) defers to the font-metric default.
+     */
+    private function resolveUnderlineOffset(Box $box, float $fontSize): ?float
+    {
+        $value = $box->style->get('text-underline-offset');
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $fontSize;
+        }
+        return null;
     }
 
     private function textDecorationStyle(Box $box): string

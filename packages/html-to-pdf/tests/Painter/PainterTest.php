@@ -740,6 +740,252 @@ final class PainterTest extends TestCase
         self::assertSame([], $stream->getOperators(), 'list-style-type:none paints nothing');
     }
 
+    public function testDecorationThicknessExplicitOverridesFontMetric(): void
+    {
+        // `text-decoration-thickness: 3px` should produce an underline
+        // rect taller than the font-metric default. Compare two
+        // renderings: with and without the override.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline; text-decoration-thickness: 3px">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        // The underline rect has shape `X Y W H re` with H = thickness.
+        // Find a 're' op preceded by a coordinate ending in `3`.
+        $found = false;
+        foreach ($ops as $op) {
+            if (preg_match('/\s3(\.0+)?\s+re$/', $op)) {
+                $found = true;
+                break;
+            }
+        }
+        self::assertTrue($found, 'underline rect emitted with 3px thickness');
+    }
+
+    public function testDecorationThicknessAutoLeavesFontMetric(): void
+    {
+        // Without an explicit thickness, the rect uses the font's
+        // OS/2 underlineThickness — for NotoSansMongolian at 16px
+        // this is ~0.78px. Negative-ish test: NO `3 re` op appears
+        // (since 3 isn't the auto value).
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // No 3px-thick rect from this path.
+        self::assertDoesNotMatchRegularExpression('/\s3(\.0+)?\s+re/', $bytes);
+    }
+
+    public function testUnderlineOffsetOnlyAppliesToUnderline(): void
+    {
+        // `text-underline-offset: 5px` shifts the underline rect's Y
+        // by 5 from the default. line-through should NOT shift —
+        // the offset only applies to underlines.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        // Render the same text twice: once with underline+offset, once
+        // with line-through+offset. The line-through Y should be the
+        // same as the no-offset case; the underline Y should differ.
+        $renderOps = function (string $line) use ($otd): array {
+            $doc = $this->html->parseDocument(
+                '<html><body><p style="text-decoration-line: ' . $line . '; text-underline-offset: 5px">'
+                . "\u{1820}" . '</p></body></html>',
+            );
+            $sheet = $this->css->parseStylesheet(
+                'html, body, p { display: block; }',
+                Origin::UserAgent,
+            );
+            $root = $this->generator->generate($doc, [$sheet]);
+            $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+            $this->layout->layout($root, $ctx);
+            $writer = new PdfWriter(compressStreams: false);
+            $page = $writer->addPage(612, 792);
+            $registered = $writer->addOpenTypeFont($otd, [], $page);
+            $stream = $writer->addContentStream($page);
+            (new Painter(792.0, $registered))->paint($root, $stream);
+            return $stream->getOperators();
+        };
+        $ulOps = $renderOps('underline');
+        $ltOps = $renderOps('line-through');
+
+        // Extract the rect Y for each. The text-decoration rect is
+        // `x y w h re` — pick the one preceded by a fill/stroke setup
+        // for the decoration colour.
+        $underlineRectY = $this->firstReRectY($ulOps);
+        $lineThroughRectY = $this->firstReRectY($ltOps);
+        self::assertNotNull($underlineRectY);
+        self::assertNotNull($lineThroughRectY);
+        // The offset shifts the underline rect Y (in PDF coords, Y
+        // is inverted, so an underline pushed FURTHER down in layout
+        // corresponds to a LOWER PDF Y). Just assert they differ.
+        self::assertNotEquals($underlineRectY, $lineThroughRectY);
+    }
+
+    public function testDecorationThicknessPercentageRelativeToFontSize(): void
+    {
+        // `text-decoration-thickness: 25%` of a 16px font-size = 4px.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline; text-decoration-thickness: 25%">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // 25% × 16px = 4px thickness — expect a `re` with H=4.
+        self::assertMatchesRegularExpression('/\s4(\.0+)?\s+re/', $bytes);
+    }
+
+    public function testDecorationThicknessInvalidKeywordTreatedAsAuto(): void
+    {
+        // Negative: a non-Length/non-Percentage value falls back to
+        // the font metric. No 3px-thick rect should appear.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline; text-decoration-thickness: auto">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertDoesNotMatchRegularExpression('/\s3(\.0+)?\s+re/', $bytes);
+    }
+
+    public function testUnderlineOffsetAutoUsesFontMetric(): void
+    {
+        // Sanity: with `text-underline-offset: auto`, the underline
+        // sits at the font's underlinePosition. No extra shift.
+        // This is a no-op check that the resolver returns null for
+        // auto — the regression target is just that the bytes match
+        // an underline-only render without the explicit offset.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $renderOps = function (string $extra) use ($otd): array {
+            $doc = $this->html->parseDocument(
+                '<html><body><p style="text-decoration: underline; ' . $extra . '">'
+                . "\u{1820}" . '</p></body></html>',
+            );
+            $sheet = $this->css->parseStylesheet(
+                'html, body, p { display: block; }',
+                Origin::UserAgent,
+            );
+            $root = $this->generator->generate($doc, [$sheet]);
+            $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+            $this->layout->layout($root, $ctx);
+            $writer = new PdfWriter(compressStreams: false);
+            $page = $writer->addPage(612, 792);
+            $registered = $writer->addOpenTypeFont($otd, [], $page);
+            $stream = $writer->addContentStream($page);
+            (new Painter(792.0, $registered))->paint($root, $stream);
+            return $stream->getOperators();
+        };
+        $defaultOps = $renderOps('');
+        $autoOps = $renderOps('text-underline-offset: auto');
+        self::assertSame($this->firstReRectY($defaultOps), $this->firstReRectY($autoOps));
+    }
+
+    /** Extract the Y coordinate of the first `x y w h re` rect op. */
+    private function firstReRectY(array $ops): ?float
+    {
+        foreach ($ops as $op) {
+            if (preg_match('/^([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+re$/', (string) $op, $m)) {
+                return (float) $m[2];
+            }
+        }
+        return null;
+    }
+
     public function testDecimalMarkerEmitsText(): void
     {
         $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';

@@ -105,6 +105,11 @@ final class PropertyRegistry
         // even though `text-decoration-color` was never explicitly set.
         $r->register($initial('text-decoration-color', new Keyword('currentcolor')));
         $r->register($initial('text-decoration-style', new Keyword('solid')));
+        // CSS Text Decoration 4 §4 — `auto` defers to the font's
+        // OS/2 underline metrics; an explicit `<length>` (or
+        // `<percentage>` relative to the font size) overrides.
+        $r->register($initial('text-decoration-thickness', new Keyword('auto')));
+        $r->register($initial('text-underline-offset', new Keyword('auto')));
         $r->register($initial('text-shadow', new Keyword('none'), true));
         $r->register($initial('text-transform', new Keyword('none'), true));
         $r->register($initial('text-indent', $zero, true));
