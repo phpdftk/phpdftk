@@ -1002,6 +1002,157 @@ final class PainterTest extends TestCase
         self::assertSame([], $stream->getOperators(), 'list-style-type:none paints nothing');
     }
 
+    public function testOverflowHiddenEmitsClipPath(): void
+    {
+        // `overflow: hidden` on a box should add a `re` rect + `W` /
+        // `W*` clip + `n` end-path before the children paint. Pin
+        // by looking for a `W` op in the stream.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow: hidden; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes, 'overflow: hidden emits clip path');
+    }
+
+    public function testOverflowVisibleDoesNotClip(): void
+    {
+        // Default `overflow: visible` — no clip path emitted.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertNotContains('W', $opcodes, 'overflow: visible does not clip');
+    }
+
+    public function testOverflowScrollClipsLikeHiddenInPrint(): void
+    {
+        // CSS Overflow 3 §3 — print has no scroll viewport so
+        // `scroll` collapses onto `hidden` for our purposes.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow: scroll; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes);
+    }
+
+    public function testOverflowAutoClipsLikeHiddenInPrint(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow: auto; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes);
+    }
+
+    public function testOverflowSiblingsUnaffectedByClip(): void
+    {
+        // A clipped box's siblings paint normally — the clip should
+        // pop after the children, not bleed onto siblings.
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+                . '<div style="overflow: hidden; height: 30px; width: 50px"></div>'
+                . '<p style="background-color: blue; height: 50px"></p>'
+                . '</body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // The blue paragraph after the clipped div should still emit
+        // its `0 0 1 rg` fill (no clip cutting it off).
+        self::assertStringContainsString('0 0 1 rg', $bytes);
+    }
+
+    public function testOverflowInvalidKeywordIsNoClip(): void
+    {
+        // `overflow: nonsense` falls back to the initial `visible`
+        // (cascade-level) → no clip.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow: nonsense; height: 50px"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertNotContains('W', $opcodes);
+    }
+
     public function testWavyDecorationStrokesCubicBezierPath(): void
     {
         // CSS Text Decoration 4 §3 `text-decoration-style: wavy` —

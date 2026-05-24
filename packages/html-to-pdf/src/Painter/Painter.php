@@ -149,8 +149,22 @@ final class Painter
             $this->paintLineBoxes($box, $stream);
             $this->collectBlockLinkRect($box);
         }
+        // CSS Overflow 3 §3 — `overflow: hidden | clip | scroll | auto`
+        // clips descendants to the box's padding-edge. `visible` (the
+        // initial value) lets descendants render outside the box.
+        // Print medium can't scroll, so `scroll` / `auto` behave like
+        // `hidden` here. The clip is push/popped around the children
+        // loop so siblings of this box stay unaffected.
+        $overflowClip = $this->shouldOverflowClip($box);
+        if ($overflowClip) {
+            $stream->saveGraphicsState();
+            $this->emitOverflowClipPath($stream, $box);
+        }
         foreach ($box->children as $child) {
             $this->paintBox($child, $stream);
+        }
+        if ($overflowClip) {
+            $stream->restoreGraphicsState();
         }
         if ($opacityGsName !== null) {
             $stream->restoreGraphicsState();
@@ -386,6 +400,44 @@ final class Painter
         \Phpdftk\Filesystem\LocalFilesystem::writeFile($tempPath, $payload);
         $this->tempImagePaths[] = $tempPath;
         return $tempPath;
+    }
+
+    /**
+     * CSS Overflow 3 §3 — return true when this box should clip its
+     * descendants to its padding edge. `visible` (initial) → no clip;
+     * any of `hidden` / `clip` / `scroll` / `auto` → clip (print
+     * medium has no scrolling, so scroll / auto collapse to hidden).
+     */
+    private function shouldOverflowClip(Box $box): bool
+    {
+        $value = $box->style->get('overflow');
+        if (!($value instanceof Keyword)) {
+            return false;
+        }
+        $name = strtolower($value->name);
+        return $name === 'hidden' || $name === 'clip' || $name === 'scroll' || $name === 'auto';
+    }
+
+    /**
+     * Emit a clip rect at the box's padding-edge rectangle (CSS
+     * Overflow 3 §4) so descendants painted after this call are
+     * clipped to it. Caller is responsible for the `saveGraphicsState`
+     * / `restoreGraphicsState` envelope.
+     */
+    private function emitOverflowClipPath(ContentStream $stream, Box $box): void
+    {
+        $g = $box->geometry;
+        $padX = $g->x - $g->paddingLeft;
+        $padTop = $g->y - $g->paddingTop;
+        $padWidth = $g->paddingLeft + $g->width + $g->paddingRight;
+        $padHeight = $g->paddingTop + $g->height + $g->paddingBottom;
+        if ($padWidth <= 0.0 || $padHeight <= 0.0) {
+            return;
+        }
+        $pdfY = $this->pageHeight - $padTop - $padHeight;
+        $stream->rectangle($padX, $pdfY, $padWidth, $padHeight);
+        $stream->clip();
+        $stream->endPath();
     }
 
     private function isVisibilityHidden(Box $box): bool
