@@ -367,6 +367,10 @@ final readonly class RendererOptions
             s, strike, del { text-decoration: line-through; }
             abbr { text-decoration: underline; text-decoration-style: dotted; }
 
+            /* HTML 5 §4.5.6 — `<address>` carries contact info; the
+               typographic convention is italic. */
+            address { font-style: italic; }
+
             /* Definition lists. */
             dl { margin: 16px 0; }
             dt { font-weight: bold; }

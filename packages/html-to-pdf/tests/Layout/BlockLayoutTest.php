@@ -2130,6 +2130,51 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(200.0, $div->geometry->height);
     }
 
+    public function testAddressInheritsItalicFromUa(): void
+    {
+        // HTML 5 §4.5.6: `<address>` is rendered in italic by browser
+        // convention. The UA `address { font-style: italic }` rule
+        // should set it.
+        $box = $this->buildTreeWithUa(
+            '<html><body><address></address></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $address = $this->find($box, 'address');
+        self::assertNotNull($address);
+        $style = $address->style->get('font-style');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Keyword::class, $style);
+        self::assertSame('italic', strtolower($style->name));
+    }
+
+    public function testAuthorCssOverridesAddressItalic(): void
+    {
+        // Author CSS wins over the UA rule.
+        $box = $this->buildTreeWithUa(
+            '<html><body><address></address></body></html>',
+            'address { font-style: normal; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $address = $this->find($box, 'address');
+        self::assertNotNull($address);
+        $style = $address->style->get('font-style');
+        self::assertSame('normal', strtolower($style->name));
+    }
+
+    public function testNonAddressElementUnchanged(): void
+    {
+        // Negative: a `<div>` doesn't inherit the address italic.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div></div></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        $style = $div->style->get('font-style');
+        self::assertSame('normal', strtolower($style->name));
+    }
+
     public function testUaDefaultBreakInsideShiftsStraddlingRow(): void
     {
         // No author CSS for `break-inside` — the row should shift onto the
