@@ -117,6 +117,8 @@ final class OpenTypeParser
         $postBase = $this->tableOffset('post');
         $italicAngleFixed = $this->readInt32($postBase + 4);
         $italicAngle = $italicAngleFixed / 65536.0;
+        $underlinePosition = $this->readInt16($postBase + 8);
+        $underlineThickness = $this->readInt16($postBase + 10);
         $isFixedPitch = $this->readUint32($postBase + 12);
 
         // Parse name table
@@ -312,6 +314,8 @@ final class OpenTypeParser
             kernPairs: $kernPairs,
             ligatures: $ligatures,
             verticalWidths: $verticalWidths,
+            underlinePosition: $underlinePosition,
+            underlineThickness: $underlineThickness,
         );
     }
 

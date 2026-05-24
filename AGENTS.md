@@ -182,3 +182,17 @@ A feature is **not done** until all four exist:
 - PHPStan must pass at the configured level.
 - Run `composer lint:fix && composer analyse && composer test` before declaring a change done.
 - Commits must be DCO-signed (`git commit -s`) — see `CONTRIBUTING.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in Linear (`https://linear.app/phpdftk`), accessed via the Linear MCP server. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles map onto Linear workflow states (Triage / Backlog / Cancelled), not labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

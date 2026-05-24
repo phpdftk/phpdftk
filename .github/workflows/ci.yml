@@ -27,7 +27,7 @@ jobs:
           submodules: true
 
       - name: Initialize corpus submodules
-        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/arlington-pdf-model
+        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/arlington-pdf-model vendor-data/html5lib-tests
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -77,7 +77,7 @@ jobs:
           submodules: true
 
       - name: Initialize corpus submodules
-        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/arlington-pdf-model
+        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/arlington-pdf-model vendor-data/html5lib-tests
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -341,7 +341,7 @@ jobs:
           submodules: true
 
       - name: Initialize corpus submodules
-        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox
+        run: git submodule update --init --depth 1 vendor-data/poppler-test vendor-data/qpdf vendor-data/verapdf-corpus vendor-data/pdf20examples vendor-data/pdfium vendor-data/pdfbox vendor-data/html5lib-tests
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

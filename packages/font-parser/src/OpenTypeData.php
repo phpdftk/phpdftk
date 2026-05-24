@@ -34,6 +34,9 @@ readonly class OpenTypeData
      * @param ?array<int, array<int, int>> $kernPairs leftGid => [rightGid => xAdvanceAdjust] (design units)
      * @param ?array<int, list<array{components: int[], ligature: int}>> $ligatures firstGid => ligature rules
      * @param ?array<int, int> $verticalWidths GID => vertical advance width (design units)
+     * @param ?int $underlinePosition `post` table FWord — offset of the underline's top edge from
+     *        the baseline (design units; negative = below baseline). Null if the table is missing.
+     * @param ?int $underlineThickness `post` table FWord — underline stroke thickness in design units.
      */
     public function __construct(
         public string $postScriptName,
@@ -57,5 +60,7 @@ readonly class OpenTypeData
         public ?array $kernPairs = null,
         public ?array $ligatures = null,
         public ?array $verticalWidths = null,
+        public ?int $underlinePosition = null,
+        public ?int $underlineThickness = null,
     ) {}
 }

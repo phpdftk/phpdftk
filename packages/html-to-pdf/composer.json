@@ -1,0 +1,50 @@
+{
+    "name": "phpdftk/html-to-pdf",
+    "description": "Render HTML and CSS to PDF — full browser print-stylesheet parity, no JavaScript, no headless browser. Consumes phpdftk/html, phpdftk/css, phpdftk/text",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "html",
+        "css",
+        "pdf",
+        "renderer",
+        "html-to-pdf"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-intl": "*",
+        "ext-mbstring": "*",
+        "phpdftk/css": "^1.0",
+        "phpdftk/filesystem": "^1.0",
+        "phpdftk/font-parser": "^1.0",
+        "phpdftk/html": "^1.0",
+        "phpdftk/image-metadata": "^1.0",
+        "phpdftk/pdf-writer": "^1.0",
+        "phpdftk/text": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\HtmlToPdf\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\HtmlToPdf\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

@@ -1,0 +1,43 @@
+{
+    "name": "phpdftk/html",
+    "description": "Pure-PHP WHATWG HTML5 parser with DOM, declarative shadow DOM, and serializer — spec-conformant alternative to Masterminds/html5-php",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "html",
+        "html5",
+        "whatwg",
+        "parser",
+        "dom"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-mbstring": "*",
+        "phpdftk/css": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Html\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Html\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

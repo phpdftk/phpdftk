@@ -50,9 +50,9 @@ class CffSubsetterTest extends TestCase
             }
         }
 
-        // Final fallback: the bundled NotoSansMongolian.
+        // Final fallback: the bundled NotoSansMongolian (shared fixtures).
         if (self::$fontPath === null) {
-            $bundled = __DIR__ . '/fixtures/NotoSansMongolian-Regular.otf';
+            $bundled = TestFonts::notoSansMongolianOtf();
             if (is_file($bundled)) {
                 self::$fontPath = $bundled;
             }

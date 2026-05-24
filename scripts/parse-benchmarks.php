@@ -51,9 +51,26 @@ foreach ($tableLines as $line) {
 /**
  * Parse subject into [library, key, category].
  * category: 'scaling' (page-count key) or 'compat' (feature-name key).
+ *
+ * Writer-level benchmarks (`benchLevelN…`) use the level label as the
+ * "library" so each level shows on its own row of the table.
  */
 function parseSubject(string $subject): array
 {
+    // Writer-level subjects look like `benchLevel1PdfWriter10Pages` etc.
+    // Tables subjects look like `benchLevel3PdfTable100Rows`.
+    if (preg_match('/Level(\d)(Pdf|PdfDoc|PdfWriter)/', $subject, $lm)) {
+        $level = (int) $lm[1];
+        $labels = [
+            1 => 'PdfWriter (Level 1)',
+            2 => 'PdfDoc (Level 2)',
+            3 => 'Pdf (Level 3)',
+        ];
+        $name = $labels[$level] ?? "Level {$level}";
+        preg_match('/(\d+)(?:Pages?|Rows|Items)$/', $subject, $m);
+        return [$name, (int)($m[1] ?? 1), 'scaling'];
+    }
+
     $libraryMap = [
         'Phpdftk'  => 'phpdftk',
         'Tcpdf'    => 'TCPDF',
@@ -87,6 +104,7 @@ function parseSubject(string $subject): array
 }
 
 $libraries  = ['phpdftk', 'FPDF', 'TCPDF', 'mPDF', 'Dompdf'];
+$writerLevelLibraries = ['Pdf (Level 3)', 'PdfDoc (Level 2)', 'PdfWriter (Level 1)'];
 $readerLibraries = ['phpdftk', 'smalot/pdfparser', 'setasign/fpdi'];
 $compatFeatures = ['spec_xref', 'xref_stream'];
 $compatLabels = [
@@ -133,6 +151,48 @@ foreach (['GeneratePdfBench', 'MemoryBench'] as $bc) {
 ksort($presentPages);
 $presentPages = array_keys($presentPages);
 
+// Page counts present for the writer-level comparison.
+$writerLevelPages = [];
+if (isset($timeData['WriterLevelsBench'])) {
+    foreach ($timeData['WriterLevelsBench'] as $lib => $keyData) {
+        foreach (array_keys($keyData) as $p) {
+            if (is_int($p)) {
+                $writerLevelPages[$p] = true;
+            }
+        }
+    }
+}
+ksort($writerLevelPages);
+$writerLevelPages = array_keys($writerLevelPages);
+
+// Row counts present for the tables comparison.
+$tableRowCounts = [];
+if (isset($timeData['TablesBench'])) {
+    foreach ($timeData['TablesBench'] as $lib => $keyData) {
+        foreach (array_keys($keyData) as $r) {
+            if (is_int($r)) {
+                $tableRowCounts[$r] = true;
+            }
+        }
+    }
+}
+ksort($tableRowCounts);
+$tableRowCounts = array_keys($tableRowCounts);
+
+// Item counts present for the lists comparison.
+$listItemCounts = [];
+if (isset($timeData['ListsBench'])) {
+    foreach ($timeData['ListsBench'] as $lib => $keyData) {
+        foreach (array_keys($keyData) as $i) {
+            if (is_int($i)) {
+                $listItemCounts[$i] = true;
+            }
+        }
+    }
+}
+ksort($listItemCounts);
+$listItemCounts = array_keys($listItemCounts);
+
 // Reader page counts (may differ from writer page counts)
 $readerPages = [];
 if (isset($timeData['ReadPdfBench'])) {
@@ -148,23 +208,24 @@ ksort($readerPages);
 $readerPages = array_keys($readerPages);
 
 /**
- * Build a table with page-count columns.
+ * Build a table with numeric-key columns. `$unit` controls the column
+ * label suffix (e.g. "page" → "1 page / 10 pages"; "row" → "10 rows").
  */
-function buildTable(array $data, array $libraries, array $pages, string $benchClass): string
+function buildTable(array $data, array $libraries, array $keys, string $benchClass, string $unit = 'page'): string
 {
     if (empty($data[$benchClass])) {
         return "_No data_\n";
     }
-    $header = '| Library | ' . implode(' | ', array_map(fn($p) => "{$p} page" . ($p === 1 ? '' : 's'), $pages)) . ' |';
-    $sep    = '|---|' . implode('', array_map(fn($_) => '---|', $pages));
+    $header = '| Library | ' . implode(' | ', array_map(fn($k) => "{$k} {$unit}" . ($k === 1 ? '' : 's'), $keys)) . ' |';
+    $sep    = '|---|' . implode('', array_map(fn($_) => '---|', $keys));
     $rows   = [$header, $sep];
     foreach ($libraries as $lib) {
         if (!isset($data[$benchClass][$lib])) {
             continue;
         }
         $cells = [$lib];
-        foreach ($pages as $p) {
-            $cells[] = $data[$benchClass][$lib][$p] ?? '—';
+        foreach ($keys as $k) {
+            $cells[] = $data[$benchClass][$lib][$k] ?? '—';
         }
         $rows[] = '| ' . implode(' | ', $cells) . ' |';
     }
@@ -198,6 +259,12 @@ $timeTableMemory   = buildTable($timeData, $libraries, $presentPages, 'MemoryBen
 $memTableMemory    = buildTable($memData,  $libraries, $presentPages, 'MemoryBench');
 $timeTableReader   = buildTable($timeData, $readerLibraries, $readerPages, 'ReadPdfBench');
 $memTableReader    = buildTable($memData,  $readerLibraries, $readerPages, 'ReadPdfBench');
+$timeTableWriterLevels = buildTable($timeData, $writerLevelLibraries, $writerLevelPages, 'WriterLevelsBench');
+$memTableWriterLevels  = buildTable($memData,  $writerLevelLibraries, $writerLevelPages, 'WriterLevelsBench');
+$timeTableTables       = buildTable($timeData, $writerLevelLibraries, $tableRowCounts, 'TablesBench', 'row');
+$memTableTables        = buildTable($memData,  $writerLevelLibraries, $tableRowCounts, 'TablesBench', 'row');
+$timeTableLists        = buildTable($timeData, $writerLevelLibraries, $listItemCounts, 'ListsBench', 'item');
+$memTableLists         = buildTable($memData,  $writerLevelLibraries, $listItemCounts, 'ListsBench', 'item');
 // Known parser incompatibilities — these record a time but the parser
 // threw an exception and returned without actually parsing the PDF.
 $knownFails = [
@@ -250,6 +317,43 @@ Environment: no opcache, no xdebug
 ## Peak Memory — `MemoryBench`
 
 {$memTableMemory}
+## Writer Levels Comparison — `WriterLevelsBench`
+
+Same workload (N pages with heading + body text) rendered through each
+writer level, so the abstraction overhead is visible directly. Lower is
+better; the higher-level APIs (`Pdf` → `PdfDoc` → `PdfWriter`) trade
+some performance for ergonomics.
+
+### Generation Time
+
+{$timeTableWriterLevels}
+### Peak Memory
+
+{$memTableWriterLevels}
+## Tables — `TablesBench`
+
+Table rendering through `Pdf::addTable()` (Level 3, flow-paginated)
+and `Writer\\Page::drawTable()` (Level 2, positioned). Both share the
+same underlying `TableRenderer`; the delta isolates the cost of the
+flow-layout engine.
+
+### Generation Time
+
+{$timeTableTables}
+### Peak Memory
+
+{$memTableTables}
+## Lists — `ListsBench`
+
+Bullet-list rendering through `Pdf::addList()` (Level 3) and
+`Writer\\Page::drawList()` (Level 2). Both share `ListRenderer`.
+
+### Generation Time
+
+{$timeTableLists}
+### Peak Memory
+
+{$memTableLists}
 ## Parse Time — `ReadPdfBench`
 
 {$timeTableReader}
@@ -284,6 +388,12 @@ $json = [
     'GeneratePdfBench_mem'  => $memData['GeneratePdfBench']  ?? new stdClass(),
     'MemoryBench_time'      => $timeData['MemoryBench']      ?? new stdClass(),
     'MemoryBench_mem'       => $memData['MemoryBench']       ?? new stdClass(),
+    'WriterLevelsBench_time' => $timeData['WriterLevelsBench'] ?? new stdClass(),
+    'WriterLevelsBench_mem'  => $memData['WriterLevelsBench']  ?? new stdClass(),
+    'TablesBench_time'      => $timeData['TablesBench']      ?? new stdClass(),
+    'TablesBench_mem'       => $memData['TablesBench']       ?? new stdClass(),
+    'ListsBench_time'       => $timeData['ListsBench']       ?? new stdClass(),
+    'ListsBench_mem'        => $memData['ListsBench']        ?? new stdClass(),
     'ReadPdfBench_time'     => $timeData['ReadPdfBench']     ?? new stdClass(),
     'ReadPdfBench_mem'      => $memData['ReadPdfBench']      ?? new stdClass(),
     'compat_time'           => $compatTime,

@@ -1,17 +1,21 @@
 ---
 title: Choose Your API
-description: phpdftk's three-level writer architecture — pick the right abstraction for every task.
+description: phpdftk's four-level writer architecture — pick the right abstraction for every task.
 ---
 
 import Example from '../../../components/Example.astro';
 
-phpdftk organizes PDF generation into three levels. Each level removes a category of concerns. You can drop down a level at any time via **escape hatches** — methods that return the underlying object from the level below.
+phpdftk organizes PDF generation into four levels. Each level removes a category of concerns. You can drop down a level at any time via **escape hatches** — methods that return the underlying object from the level below.
 
 ```
-Level 2: Pdf (cursor-based, auto-layout, themes)
-  | escape hatch: $pdf->writer()
+Level 3: Pdf (cursor-based, auto-layout, headers/footers, themes)
+  | escape hatch: $pdf->doc()     — friendly catalog wrappers
+  | escape hatch: $pdf->writer()  — full PdfWriter
   v
-Level 1: PdfWriter + Page (spatial drawing, explicit coordinates)
+Level 2: PdfDoc (annotations, navigation, metadata, attachments, viewer prefs)
+  | escape hatch: $doc->writer()
+  v
+Level 1: PdfWriter + Page (spatial drawing, explicit coordinates, fonts, signing, encryption)
   | escape hatch: $page->contentStream() / $writer->fileWriter()
   v
 Level 0: PdfFileWriter + PdfObject tree (raw PDF spec objects)
@@ -21,34 +25,62 @@ Level 0: PdfFileWriter + PdfObject tree (raw PDF spec objects)
 
 | Transition | Knowledge eliminated |
 |---|---|
-| Level 0 to Level 1 | Object numbers, xref, trailer, resource naming, PdfReference wiring, content stream operators |
-| Level 1 to Level 2 | Coordinates, page breaks, font management, text measurement |
+| Level 0 → Level 1 | Object numbers, xref, trailer, resource naming, `PdfReference` wiring, content-stream operators |
+| Level 1 → Level 2 | Manual `Catalog` wiring, `register()` plumbing for annotations / navigation / metadata |
+| Level 2 → Level 3 | Coordinates, page breaks, font management, text measurement |
+
+## When to pick which level
+
+- **Level 3 — `Pdf`**: documents that are mostly text and images. You think in *content*, not coordinates. Headers, footers, watermarks, page numbering all work declaratively.
+- **Level 2 — `PdfDoc`**: explicit page positioning *plus* one-call wrappers for everything in the PDF catalog — link annotations, outlines, page labels, named destinations, metadata. Use when you want precise layout but don't want to assemble annotation objects by hand.
+- **Level 1 — `PdfWriter`**: full byte/resource control — custom TrueType fonts, image embedding with ICC profiles, encryption, signing, conformance profiles (PDF/A, PDF/UA, ZUGFeRD).
+- **Level 0 — `PdfFileWriter`**: libraries building on phpdftk, or features the higher levels don't yet expose.
 
 ## The same PDF, three ways
 
 The three snippets below all produce a Letter-sized page with the same heading. Skim them top to bottom to see how much each level frees you from.
 
-### Level 2: `Pdf` — high-level builder
+### Level 3: `Pdf` — high-level builder
 
 For documents that are mostly text and images. You think in terms of *content*, not coordinates:
 
 <Example source="writer/api-levels.php" region="high-level" pdf="samples/writer/api-levels-high.pdf" />
 
-**What you get:** auto page creation, word wrap, font metrics-based text measurement, heading hierarchy (h1–h6), themes, alignment, bold/italic font resolution.
+**What you get:** auto page creation, word wrap, font metrics-based text measurement, heading hierarchy (h1–h6), themes, alignment, bold/italic font resolution, headers / footers / watermarks via decorator closures.
 
-**What you give up:** precise positioning, custom graphics, non-standard fonts.
+**What you give up:** precise positioning, custom graphics, non-standard fonts (drop to Level 1 for those).
 
-**Escape hatch:** `$pdf->writer()` returns the underlying `PdfWriter`.
+**Escape hatches:** `$pdf->doc()` → `PdfDoc`, `$pdf->writer()` → `PdfWriter`.
+
+### Level 2: `PdfDoc` — friendly document API
+
+For documents with precise layout that still benefit from one-call wrappers for catalog features (annotations, navigation, metadata):
+
+```php
+use Phpdftk\Pdf\Writer\PdfDoc;
+use Phpdftk\Geometry\Rectangle;
+
+$doc = new PdfDoc();
+$page = $doc->addPage();
+
+$doc->setTitle('My Document')
+    ->setAuthor('phpdftk');
+
+$doc->addLink($page, new Rectangle(72.0, 700.0, 200.0, 14.0), 'https://example.com/');
+$doc->save('/out.pdf');
+```
+
+**What you get:** explicit page creation plus friendly builders for link annotations, outlines, page labels, named destinations, document metadata, file attachments (Phase 4), viewer preferences (Phase 4).
+
+**Escape hatch:** `$doc->writer()` → `PdfWriter`.
 
 ### Level 1: `PdfWriter` — object model
 
-For documents with precise layout — invoices, reports with charts, form overlays:
+For documents needing custom fonts, encryption, signing, or precise control over resources:
 
 <Example source="writer/api-levels.php" region="mid-level" pdf="samples/writer/api-levels-mid.pdf" />
 
-**What you get:** explicit page creation, font handles, content streams with the full PDF operator set, image embedding, automatic graphics state isolation.
-
-**What you give up:** nothing — you have full PDF capability at this level.
+**What you get:** explicit page creation, font handles (Type1, TrueType, composite, OpenType), content streams with the full PDF operator set, image embedding with ICC profiles, digital signatures, encryption, conformance enforcement.
 
 **Escape hatches:**
 - `$page->contentStream()` — raw `ContentStream` for PDF operators
@@ -64,3 +96,14 @@ For libraries building on top of phpdftk, or when you need something the higher 
 **What you get:** total control over every byte in the output. Every PDF spec object is a PHP class with typed properties.
 
 **What you give up:** convenience. You're responsible for object numbers, resource dictionaries, page tree wiring, and correct operator sequences.
+
+## Migration note (Phase 0)
+
+Several methods that used to live on `PdfWriter` now live on `PdfDoc`:
+
+- `setOutline`, `addOutlineItem`
+- `setPageLabels`
+- `setNamedDestinations`
+- `setInfo`, `setMetadata`, `syncInfoToMetadata`
+
+They remain on `PdfWriter` as `@deprecated` forwarders for one minor release. New code should prefer `$pdf->doc()->...` (or directly on a `PdfDoc` instance). See the [`PdfDoc` page](/writing/level-2-pdfdoc/) for details.

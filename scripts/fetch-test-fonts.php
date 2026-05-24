@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 
 $root = dirname(__DIR__);
-$fixturesDir = $root . '/packages/font-parser/tests/fixtures';
+$fixturesDir = $root . '/tests/fixtures/fonts';
 
 $fonts = [
     [
@@ -29,6 +29,14 @@ $fonts = [
         'licensePathInZip' => 'OFL.txt',
         'licenseFile' => 'NotoSansTifinagh-OFL.txt',
         'sha256' => '8396ced3cf679a82b5ac2f18639b8a5676b8cd25cfaa833adea8dacbd5a97052',
+    ],
+    [
+        'name' => 'NotoSans-Regular.otf',
+        'url' => 'https://github.com/notofonts/latin-greek-cyrillic/releases/download/NotoSans-v2.015/NotoSans-v2.015.zip',
+        'pathInZip' => 'NotoSans/unhinted/otf/NotoSans-Regular.otf',
+        'licensePathInZip' => 'OFL.txt',
+        'licenseFile' => 'NotoSans-OFL.txt',
+        'sha256' => 'bfb44de2c2031c391ff856943fe8f105ebb5d725cb9a04d493d211d5bbd5c21b',
     ],
 ];
 

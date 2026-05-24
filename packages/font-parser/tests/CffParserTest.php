@@ -48,10 +48,10 @@ class CffParserTest extends TestCase
             }
         }
 
-        // Final fallback: the bundled NotoSansMongolian. This guarantees the
-        // suite has a real CFF font to parse even on minimal CI runners.
+        // Final fallback: the bundled NotoSansMongolian (shared fixtures).
+        // Guarantees the suite has a real CFF font to parse even on minimal CI runners.
         if (self::$fontPath === null) {
-            $bundled = __DIR__ . '/fixtures/NotoSansMongolian-Regular.otf';
+            $bundled = TestFonts::notoSansMongolianOtf();
             if (is_file($bundled)) {
                 self::$fontPath = $bundled;
             }

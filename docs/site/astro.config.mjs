@@ -26,7 +26,8 @@ export default defineConfig({
 					label: 'Writing PDFs',
 					items: [
 						{ label: 'Choose Your API', slug: 'writing/api-levels' },
-						{ label: 'Pdf — High-Level Builder', slug: 'writing/level-2-pdf' },
+						{ label: 'Pdf — High-Level Builder', slug: 'writing/level-3-pdf' },
+						{ label: 'PdfDoc — Friendly Document API', slug: 'writing/level-2-pdfdoc' },
 						{ label: 'PdfWriter — Object Model', slug: 'writing/level-1-pdfwriter' },
 						{ label: 'PdfFileWriter — Byte-Level', slug: 'writing/level-0-core' },
 					],
@@ -35,6 +36,19 @@ export default defineConfig({
 					label: 'Reading PDFs',
 					items: [
 						{ label: 'PdfReader', slug: 'reading/pdf-reader' },
+					],
+				},
+				{
+					label: 'Rendering HTML & SVG',
+					collapsed: true,
+					items: [
+						{ label: 'Overview', slug: 'rendering/overview' },
+						{ label: 'HTML to PDF', slug: 'rendering/html-to-pdf' },
+						{ label: 'SVG to PDF', slug: 'rendering/svg-to-pdf' },
+						{ label: 'phpdftk/css', slug: 'rendering/css' },
+						{ label: 'phpdftk/text', slug: 'rendering/text' },
+						{ label: 'phpdftk/html', slug: 'rendering/html' },
+						{ label: 'phpdftk/svg', slug: 'rendering/svg' },
 					],
 				},
 				{

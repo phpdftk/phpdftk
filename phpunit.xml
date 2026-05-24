@@ -31,6 +31,9 @@
         <testsuite name="crypt">
             <directory>packages/crypt/tests</directory>
         </testsuite>
+        <testsuite name="barcode">
+            <directory>packages/barcode/tests</directory>
+        </testsuite>
         <testsuite name="font-parser">
             <directory>packages/font-parser/tests</directory>
         </testsuite>
@@ -48,6 +51,24 @@
         </testsuite>
         <testsuite name="toolkit">
             <directory>packages/pdf/toolkit/tests</directory>
+        </testsuite>
+        <testsuite name="css">
+            <directory>packages/css/tests</directory>
+        </testsuite>
+        <testsuite name="text">
+            <directory>packages/text/tests</directory>
+        </testsuite>
+        <testsuite name="html">
+            <directory>packages/html/tests</directory>
+        </testsuite>
+        <testsuite name="svg">
+            <directory>packages/svg/tests</directory>
+        </testsuite>
+        <testsuite name="html-to-pdf">
+            <directory>packages/html-to-pdf/tests</directory>
+        </testsuite>
+        <testsuite name="svg-to-pdf">
+            <directory>packages/svg-to-pdf/tests</directory>
         </testsuite>
     </testsuites>
     <coverage>
@@ -74,6 +95,12 @@
             <directory>packages/xmp/src</directory>
             <directory>packages/crypt/src</directory>
             <directory>packages/font-parser/src</directory>
+            <directory>packages/css/src</directory>
+            <directory>packages/text/src</directory>
+            <directory>packages/html/src</directory>
+            <directory>packages/svg/src</directory>
+            <directory>packages/html-to-pdf/src</directory>
+            <directory>packages/svg-to-pdf/src</directory>
         </include>
     </source>
 </phpunit>

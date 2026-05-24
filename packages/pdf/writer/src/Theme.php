@@ -43,6 +43,12 @@ final class Theme
             5 => ['size' => 12.0, 'bold' => true, 'spaceAbove' => 8.0,  'spaceBelow' => 4.0],
             6 => ['size' => 11.0, 'bold' => true, 'spaceAbove' => 6.0,  'spaceBelow' => 3.0],
         ],
+        public readonly float $headerHeight = 0.0,
+        public readonly float $footerHeight = 0.0,
+        public readonly float $quoteIndent = 18.0,
+        public readonly float $quoteBarWidth = 2.0,
+        /** @var array{float,float,float} */
+        public readonly array $quoteBarColor = [0.7, 0.7, 0.7],
     ) {}
 
     public function withFont(string $family, float $size): self
@@ -55,6 +61,11 @@ final class Theme
             lineHeight: $this->lineHeight,
             paragraphSpacing: $this->paragraphSpacing,
             headings: $this->headings,
+            headerHeight: $this->headerHeight,
+            footerHeight: $this->footerHeight,
+            quoteIndent: $this->quoteIndent,
+            quoteBarWidth: $this->quoteBarWidth,
+            quoteBarColor: $this->quoteBarColor,
         );
     }
 
@@ -69,6 +80,11 @@ final class Theme
             lineHeight: $this->lineHeight,
             paragraphSpacing: $this->paragraphSpacing,
             headings: $this->headings,
+            headerHeight: $this->headerHeight,
+            footerHeight: $this->footerHeight,
+            quoteIndent: $this->quoteIndent,
+            quoteBarWidth: $this->quoteBarWidth,
+            quoteBarColor: $this->quoteBarColor,
         );
     }
 
@@ -82,6 +98,11 @@ final class Theme
             lineHeight: $this->lineHeight,
             paragraphSpacing: $this->paragraphSpacing,
             headings: $this->headings,
+            headerHeight: $this->headerHeight,
+            footerHeight: $this->footerHeight,
+            quoteIndent: $this->quoteIndent,
+            quoteBarWidth: $this->quoteBarWidth,
+            quoteBarColor: $this->quoteBarColor,
         );
     }
 

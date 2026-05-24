@@ -1,0 +1,107 @@
+#data
+Hello
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     "Hello"
+
+#data
+<p>Hello</p>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       "Hello"
+
+#data
+<!DOCTYPE html><p>x
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       "x"
+
+#data
+<a href="/x">link</a>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|       href="/x"
+|       "link"
+
+#data
+<h1>Title</h1><p>body
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <h1>
+|       "Title"
+|     <p>
+|       "body"
+
+#data
+<b>1<i>2</i>3</b>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <b>
+|       "1"
+|       <i>
+|         "2"
+|       "3"
+
+#data
+<!DOCTYPE html><html><head><title>T</title></head><body></body></html>
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|     <title>
+|       "T"
+|   <body>
+
+#data
+<!-- a comment -->
+#errors
+#document
+| <!--  a comment  -->
+| <html>
+|   <head>
+|   <body>
+
+#data
+<br>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <br>
+
+#data
+<table><tr><td>cell</td></tr></table>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       <tbody>
+|         <tr>
+|           <td>
+|             "cell"

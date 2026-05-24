@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "788bab2569d384b548b659663e272f33",
+    "content-hash": "923027c6946ffe90df45df40aaa8bffe",
     "packages": [],
     "packages-dev": [
         {
@@ -603,6 +603,51 @@
             "time": "2026-01-02T16:01:13+00:00"
         },
         {
+            "name": "enshrined/svg-sanitize",
+            "version": "0.22.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/darylldoyle/svg-sanitizer.git",
+                "reference": "0afa95ea74be155a7bcd6c6fb60c276c39984500"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/darylldoyle/svg-sanitizer/zipball/0afa95ea74be155a7bcd6c6fb60c276c39984500",
+                "reference": "0afa95ea74be155a7bcd6c6fb60c276c39984500",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-libxml": "*",
+                "php": "^7.1 || ^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.5 || ^8.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "enshrined\\svgSanitize\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Daryll Doyle",
+                    "email": "daryll@enshrined.co.uk"
+                }
+            ],
+            "description": "An SVG sanitizer for PHP",
+            "support": {
+                "issues": "https://github.com/darylldoyle/svg-sanitizer/issues",
+                "source": "https://github.com/darylldoyle/svg-sanitizer/tree/0.22.0"
+            },
+            "time": "2025-08-12T10:13:48+00:00"
+        },
+        {
             "name": "ergebnis/agent-detector",
             "version": "1.1.1",
             "source": {
@@ -950,6 +995,60 @@
                 "source": "https://github.com/Masterminds/html5-php/tree/2.10.0"
             },
             "time": "2025-07-25T09:04:22+00:00"
+        },
+        {
+            "name": "meyfa/php-svg",
+            "version": "v0.16.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/meyfa/php-svg.git",
+                "reference": "a62c2b9842826e83ea51f9b9e6ed28d2bdb1033c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/meyfa/php-svg/zipball/a62c2b9842826e83ea51f9b9e6ed28d2bdb1033c",
+                "reference": "a62c2b9842826e83ea51f9b9e6ed28d2bdb1033c",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4.0"
+            },
+            "require-dev": {
+                "meyfa/phpunit-assert-gd": "^v3.0.0",
+                "phpmd/phpmd": "^2.15.0",
+                "phpunit/phpunit": "^9.6.16",
+                "rector/rector": "^1.0"
+            },
+            "suggest": {
+                "ext-gd": "Needed to rasterize images",
+                "ext-simplexml": "Needed to read SVG strings and files"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SVG\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabian Meyer",
+                    "homepage": "https://meyfa.net"
+                }
+            ],
+            "description": "Read, edit, write, and render SVG files with PHP",
+            "homepage": "https://github.com/meyfa/php-svg",
+            "keywords": [
+                "svg"
+            ],
+            "support": {
+                "issues": "https://github.com/meyfa/php-svg/issues",
+                "source": "https://github.com/meyfa/php-svg/tree/v0.16.1"
+            },
+            "time": "2025-03-10T22:28:37+00:00"
         },
         {
             "name": "mpdf/mpdf",
@@ -1562,6 +1661,52 @@
             "time": "2026-03-22T10:27:20+00:00"
         },
         {
+            "name": "phpdftk/barcode",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/barcode",
+                "reference": "37bcb038d877fe5c1a381416270be27613ccadcd"
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Barcode\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Barcode\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Barcode rendering — encoders that produce a 2D bit grid for any drawing target. Zero dependencies; the phpdftk/pdf-writer adapter consumes the bitmap to produce PDF graphics.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "barcode",
+                "code128",
+                "ean",
+                "qr"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "phpdftk/color",
             "version": "dev-main",
             "dist": {
@@ -1658,6 +1803,60 @@
                 "encryption",
                 "pdf",
                 "rc4"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/css",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/css",
+                "reference": "fddd7501bad7ff2a8855913eb49ea95db2fedbad"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/color": "^1.0",
+                "phpdftk/geometry": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Css\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Css\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Pure-PHP CSS implementation: Syntax Module 3 tokenizer, Values 4 parser, Selectors 4 engine, Cascade & Inheritance 5 — no external dependencies",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "cascade",
+                "css",
+                "parser",
+                "selectors",
+                "values"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -1971,6 +2170,119 @@
                 "matrix",
                 "page-size",
                 "rectangle"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/html",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/html",
+                "reference": "f895632249dff2c35828800c10f8e4f5dd4db368"
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Html\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Html\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Pure-PHP WHATWG HTML5 parser with DOM, declarative shadow DOM, and serializer — spec-conformant alternative to Masterminds/html5-php",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "dom",
+                "html",
+                "html5",
+                "parser",
+                "whatwg"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/html-to-pdf",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/html-to-pdf",
+                "reference": "43e4190685c5b2e5ec5398535489fd5a7e54a9ad"
+            },
+            "require": {
+                "ext-intl": "*",
+                "ext-mbstring": "*",
+                "php": "^8.4",
+                "phpdftk/css": "^1.0",
+                "phpdftk/filesystem": "^1.0",
+                "phpdftk/html": "^1.0",
+                "phpdftk/image-metadata": "^1.0",
+                "phpdftk/pdf-writer": "^1.0",
+                "phpdftk/text": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\HtmlToPdf\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\HtmlToPdf\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Render HTML and CSS to PDF — full browser print-stylesheet parity, no JavaScript, no headless browser. Consumes phpdftk/html, phpdftk/css, phpdftk/text",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "css",
+                "html",
+                "html-to-pdf",
+                "pdf",
+                "renderer"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -2317,10 +2629,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/writer",
-                "reference": "7a1dd6ee4c0c175cc691e05110dc093f34867bfb"
+                "reference": "c02e3c28dfbbf6a78312cf1e8c5dd8f90d3b4661"
             },
             "require": {
                 "php": "^8.4",
+                "phpdftk/barcode": "^1.0 || @dev",
                 "phpdftk/filesystem": "^1.0",
                 "phpdftk/pdf-conformance": "^1.0 || @dev",
                 "phpdftk/pdf-core": "^1.0"
@@ -2357,6 +2670,172 @@
                 "generator",
                 "pdf",
                 "writer"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/svg",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/svg",
+                "reference": "f2ceb9f6cb60458c0ae292b8cee0b41409f241db"
+            },
+            "require": {
+                "ext-simplexml": "*",
+                "php": "^8.4",
+                "phpdftk/css": "^1.0",
+                "phpdftk/geometry": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Svg\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Svg\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Pure-PHP SVG 2 parser: typed tree, full path-grammar, presentation-attribute resolution, optional CSS-inside-SVG via phpdftk/css",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "graphics",
+                "parser",
+                "svg",
+                "vector"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/svg-to-pdf",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/svg-to-pdf",
+                "reference": "cdc80d597430747d0574fb93776f141161f32400"
+            },
+            "require": {
+                "ext-intl": "*",
+                "php": "^8.4",
+                "phpdftk/css": "^1.0",
+                "phpdftk/filesystem": "^1.0",
+                "phpdftk/pdf-writer": "^1.0",
+                "phpdftk/svg": "^1.0",
+                "phpdftk/text": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\SvgToPdf\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\SvgToPdf\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Render SVG to PDF — geometric painter for vector content. Consumes phpdftk/svg, phpdftk/css, phpdftk/text",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "pdf",
+                "renderer",
+                "svg",
+                "svg-to-pdf",
+                "vector"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/text",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/text",
+                "reference": "827116e30704adca2a2963b71f18b34724e8a6d8"
+            },
+            "require": {
+                "ext-intl": "*",
+                "php": "^8.4",
+                "phpdftk/font-parser": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Text\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Text\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Text shaping primitives: UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping for layout engines",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "bidi",
+                "line-breaking",
+                "opentype",
+                "shaping",
+                "unicode"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -6865,14 +7344,18 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "phpdftk/barcode": 20,
         "phpdftk/color": 20,
         "phpdftk/crypt": 20,
+        "phpdftk/css": 20,
         "phpdftk/encoding": 20,
         "phpdftk/filesystem": 20,
         "phpdftk/filters": 20,
         "phpdftk/font-metrics": 20,
         "phpdftk/font-parser": 20,
         "phpdftk/geometry": 20,
+        "phpdftk/html": 20,
+        "phpdftk/html-to-pdf": 20,
         "phpdftk/image-metadata": 20,
         "phpdftk/pdf": 20,
         "phpdftk/pdf-conformance": 20,
@@ -6880,6 +7363,9 @@
         "phpdftk/pdf-reader": 20,
         "phpdftk/pdf-toolkit": 20,
         "phpdftk/pdf-writer": 20,
+        "phpdftk/svg": 20,
+        "phpdftk/svg-to-pdf": 20,
+        "phpdftk/text": 20,
         "phpdftk/xmp": 20
     },
     "prefer-stable": true,

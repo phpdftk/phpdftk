@@ -13,6 +13,7 @@ use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Core\PdfString;
 use Phpdftk\Pdf\Core\PdfVersion;
 use Phpdftk\Pdf\Core\RequiresPdfVersion;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * PDF Document Catalog (/Type /Catalog).
@@ -27,7 +28,12 @@ class Catalog extends PdfObject
     public ?PdfReference $outlines = null;           // /Outlines
     public ?PdfReference $names = null;              // /Names
     public ?PdfReference $dests = null;              // /Dests
-    public ?PdfDictionary $viewerPreferences = null; // /ViewerPreferences
+    /**
+     * /ViewerPreferences — accepts an inline `PdfDictionary`, a
+     * `PdfReference` to a registered {@see ViewerPreferences} object,
+     * or the value itself when caller writes inline.
+     */
+    public Serializable|null $viewerPreferences = null;
     public ?PdfName $pageLayout = null;              // /PageLayout
     public ?PdfName $pageMode = null;                // /PageMode
     public ?PdfReference $openAction = null;         // /OpenAction

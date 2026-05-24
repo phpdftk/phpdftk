@@ -26,6 +26,11 @@ final class Font implements RegisteredFont
      *        else. Use this when emitting glyph IDs into a content stream
      *        rather than the unsubset map on `TrueTypeData`, which points at
      *        glyphs that no longer exist in the embedded subset.
+     * @param array<int, int> $oldToNewGid Pre-subset GID → post-subset GID.
+     *        Used by external shapers (`phpdftk/text`) that produce GIDs
+     *        against the full font; translate through this map before
+     *        emitting into a content stream so the resulting hex string
+     *        points at the subset's renumbered glyphs.
      */
     public function __construct(
         private readonly string $resourceName,
@@ -33,6 +38,7 @@ final class Font implements RegisteredFont
         private readonly TrueTypeData|OpenTypeData|null $parsedData = null,
         private readonly ?TextEncoder $encoder = null,
         private readonly array $unicodeToGid = [],
+        private readonly array $oldToNewGid = [],
     ) {}
 
     public function getFamily(): string
@@ -78,5 +84,17 @@ final class Font implements RegisteredFont
     public function getUnicodeToGidMap(): array
     {
         return $this->unicodeToGid;
+    }
+
+    /**
+     * Pre-subset GID → post-subset GID map. Empty for non-subsetted fonts.
+     * External shapers that bind glyph IDs against the full
+     * `OpenTypeData::fullUnicodeToGid` translate through this when emitting.
+     *
+     * @return array<int, int>
+     */
+    public function getOldToNewGidMap(): array
+    {
+        return $this->oldToNewGid;
     }
 }

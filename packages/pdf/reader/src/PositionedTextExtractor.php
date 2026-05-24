@@ -197,7 +197,7 @@ final class PositionedTextExtractor
 
                 case 'Tf':
                     if (count($op->operands) >= 2) {
-                        $this->currentFont = ltrim($op->operands[0], '/');
+                        $this->currentFont = $this->decodeName(ltrim($op->operands[0], '/'));
                         $this->fontSize = (float) $op->operands[1];
                     }
                     break;
@@ -735,6 +735,19 @@ final class PositionedTextExtractor
     // -----------------------------------------------------------------------
     // Font data loading
     // -----------------------------------------------------------------------
+
+    /**
+     * Decode PDF name `#XX` hex escapes (PDF 1.2+) so a content-stream name
+     * like `/*Courier#20New` matches the literal-space resource key.
+     */
+    private function decodeName(string $name): string
+    {
+        return preg_replace_callback(
+            '/#([0-9A-Fa-f]{2})/',
+            static fn(array $m): string => chr((int) hexdec($m[1])),
+            $name,
+        );
+    }
 
     /**
      * Load font encoding maps AND width data from the page's resources.

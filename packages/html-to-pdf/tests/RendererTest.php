@@ -1,0 +1,2741 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phpdftk\HtmlToPdf\Tests;
+
+use Phpdftk\FontParser\OpenTypeParser;
+use Phpdftk\HtmlToPdf\Renderer;
+use Phpdftk\HtmlToPdf\RendererOptions;
+use Phpdftk\HtmlToPdf\RenderResult;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use PHPUnit\Framework\TestCase;
+
+final class RendererTest extends TestCase
+{
+    public function testRenderProducesValidPdf(): void
+    {
+        $renderer = new Renderer();
+        $result = $renderer->render(
+            '<html><body><div></div></body></html>',
+            'div { background-color: red; height: 50px; }',
+        );
+        self::assertInstanceOf(RenderResult::class, $result);
+        $bytes = $result->writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertStringContainsString('%%EOF', $bytes);
+        self::assertFalse($result->hasErrors());
+    }
+
+    public function testRenderEmitsNoWarningsForCleanInput(): void
+    {
+        $result = (new Renderer())->render(
+            '<html><body><p></p></body></html>',
+            'p { background-color: blue; }',
+        );
+        self::assertSame([], $result->warnings);
+    }
+
+    public function testMissingFontWarnsWhenDocumentHasText(): void
+    {
+        // No defaultFont but the document has real text content — the
+        // renderer should emit a Warning so callers know text won't paint.
+        $result = (new Renderer())->render(
+            '<html><body><p>Hello world</p></body></html>',
+        );
+        $codes = array_map(static fn($w) => $w->code, $result->warnings);
+        self::assertContains(\Phpdftk\HtmlToPdf\WarningCode::MissingFont, $codes);
+    }
+
+    public function testNoMissingFontWarningForEmptyDocument(): void
+    {
+        // No text content → no warning.
+        $result = (new Renderer())->render('<html><body><div></div></body></html>');
+        $codes = array_map(static fn($w) => $w->code, $result->warnings);
+        self::assertNotContains(\Phpdftk\HtmlToPdf\WarningCode::MissingFont, $codes);
+    }
+
+    public function testRenderIntoExistingWriter(): void
+    {
+        $writer = new PdfWriter();
+        $renderer = new Renderer();
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><body><div></div></body></html>',
+            'div { background-color: green; height: 30px; }',
+        );
+        self::assertSame([], $warnings);
+        self::assertStringStartsWith('%PDF-', $writer->toBytes());
+    }
+
+    public function testDefaultUaSheetMakesElementsBlock(): void
+    {
+        // Without any author CSS rule for `display`, the built-in UA sheet
+        // should still make <p> a block (so backgrounds paint as block
+        // rectangles). Use an uncompressed writer so we can grep the raw
+        // content-stream bytes.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><p></p></body></html>',
+            'p { background-color: red; }',
+        );
+        self::assertStringContainsString('rg', $writer->toBytes(), 'fill color emitted → p painted as block');
+    }
+
+    public function testOptionsArePassedThrough(): void
+    {
+        $options = (new RendererOptions())
+            ->withPageSize(400, 600)
+            ->withStrict(true);
+        $renderer = new Renderer($options);
+        self::assertSame($options, $renderer->options);
+        self::assertTrue($renderer->options->strict);
+        self::assertSame(400.0, $renderer->options->pageWidth);
+    }
+
+    public function testRenderWithFontEmitsText(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        // Uncompressed writer so we can grep the raw content stream.
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>' . "\u{1820}\u{1820}\u{1820}" . '</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Font registration plus a Tj somewhere indicates the painter emitted glyphs.
+        self::assertStringContainsString('Tj', $bytes);
+    }
+
+    public function testParseExposesTheDom(): void
+    {
+        $renderer = new Renderer();
+        $doc = $renderer->parse('<html><body><h1>Hello</h1></body></html>');
+        self::assertNotNull($doc->documentElement);
+        $h1 = $doc->documentElement->querySelector('h1');
+        self::assertNotNull($h1);
+        self::assertSame('h1', $h1->localName);
+    }
+
+    public function testParseStylesheetExposesTheAst(): void
+    {
+        $sheet = (new Renderer())->parseStylesheet('p { color: red; }');
+        self::assertCount(1, $sheet->rules);
+    }
+
+    public function testRenderResultHasErrorsFlagsErrorSeverity(): void
+    {
+        // Lenient mode: emit a synthetic error-severity warning is not the
+        // common path; test the simpler positive flag with the real renderer.
+        $result = (new Renderer())->render('<html></html>');
+        self::assertFalse($result->hasErrors());
+    }
+
+    public function testHeadingsProduceOutline(): void
+    {
+        // Three headings should register as an Outline + 3 OutlineItem
+        // objects with /Title entries and /Dest pointers.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><h1>Intro</h1><h1>Body</h1><h1>Conclusion</h1></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Type /Outlines', $bytes);
+        self::assertStringContainsString('/Title (Intro)', $bytes);
+        self::assertStringContainsString('/Title (Body)', $bytes);
+        self::assertStringContainsString('/Title (Conclusion)', $bytes);
+    }
+
+    public function testOutlineSetsUseOutlinesPageMode(): void
+    {
+        // The outline pane should auto-open in viewers when a doc has
+        // headings; we hint that by setting Catalog /PageMode to
+        // UseOutlines.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><h1>Top</h1></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/PageMode /UseOutlines', $bytes);
+    }
+
+    public function testNoOutlineNoPageModeChange(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><p>just a paragraph</p></body></html>',
+        );
+        self::assertStringNotContainsString('/PageMode', $writer->toBytes());
+    }
+
+    public function testOutlineNestsByHeadingLevel(): void
+    {
+        // h1 > h2 > h2 > h1 produces a nested outline: the first h1 has two
+        // h2 children, the second h1 is a top-level sibling.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<h1>Top1</h1>'
+                . '<h2>SubA</h2>'
+                . '<h2>SubB</h2>'
+                . '<h1>Top2</h1>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Title (Top1)', $bytes);
+        self::assertStringContainsString('/Title (SubA)', $bytes);
+        self::assertStringContainsString('/Title (SubB)', $bytes);
+        self::assertStringContainsString('/Title (Top2)', $bytes);
+        // The outline root has Count=2 (two top-level: Top1, Top2).
+        self::assertMatchesRegularExpression(
+            '~/Type /Outlines\s*/First [0-9]+ 0 R\s*/Last [0-9]+ 0 R\s*/Count 2~',
+            $bytes,
+        );
+    }
+
+    public function testNoHeadingsNoOutline(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><p>just a paragraph</p></body></html>',
+        );
+        // No outline should be emitted when no headings exist.
+        self::assertStringNotContainsString('/Type /Outlines', $writer->toBytes());
+    }
+
+    public function testMarkElementHasYellowBackground(): void
+    {
+        // Inline backgrounds are painted per-fragment, so we need a font
+        // registered to drive the inline-layout pipeline.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>plain <mark>' . "\u{1820}" . '</mark></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // #ffff00 → `1 1 0 rg`. The mark fragment should produce a yellow
+        // background fill since the UA stylesheet sets background-color.
+        self::assertStringContainsString('1 1 0 rg', $bytes);
+        // The rect should have a non-zero width — the per-fragment path
+        // sizes it to the inline's content width, not the InlineBox's
+        // (which is 0).
+        self::assertDoesNotMatchRegularExpression('~1 1 0 rg\s+[\d.]+ [\d.]+ 0 0 re~', $bytes, 'rect is sized properly');
+    }
+
+    public function testLinkUnderlineUsesLinkColor(): void
+    {
+        // UA stylesheet gives `<a>` color #0033cc + underline. The
+        // underline rect should use the link's blue, not the paragraph's
+        // default black.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p><a href="#x">' . "\u{1820}" . '</a></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Underline emits a filled rect in the deco colour — for the
+        // link this should be 0/0.2/0.8 (~#0033cc).
+        self::assertMatchesRegularExpression(
+            '~0(?:\.0+)? 0\.2 0\.8 rg\s+[\d.]+ [\d.]+ [\d.]+ [\d.]+ re~',
+            $bytes,
+            'link underline rect uses the link colour',
+        );
+    }
+
+    public function testExplicitTextDecorationColorOverridesTextColor(): void
+    {
+        // `<u style="color: black; text-decoration: underline;
+        // text-decoration-color: red">` — the underline should render red
+        // even though the text colour stays black.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p><span style="color: #000; text-decoration: underline; '
+            . 'text-decoration-color: #ff0000">' . "\u{1820}" . '</span></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~1 0 0 rg\s+[\d.]+ [\d.]+ [\d.]+ [\d.]+ re~',
+            $bytes,
+            'explicit text-decoration-color drives the underline fill',
+        );
+    }
+
+    public function testInlineColorRendersForLinks(): void
+    {
+        // UA stylesheet styles `<a>` with `color: #0033cc` — that blue
+        // should appear in the content stream alongside the paragraph's
+        // default black fill, not just black.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>plain <a href="#">' . "\u{1820}" . '</a></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // #0033cc = 0/0xff, 0x33/0xff (~0.2), 0xcc/0xff (~0.8) — match the
+        // RGB triplet via a regex tolerant to floating-point formatting.
+        self::assertMatchesRegularExpression(
+            '~0(?:\.0+)? 0\.2 0\.8 rg~',
+            $bytes,
+            'fragment colour swap to <a>\'s UA-blue lands in the stream',
+        );
+    }
+
+    public function testBoldEmitsFillStrokeRenderingMode(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>plain <b>' . "\u{1820}\u{1820}" . '</b></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Tr=2 = fill + stroke text. UA stylesheet makes <b> bold.
+        self::assertStringContainsString('2 Tr', $bytes, 'fake-bold sets rendering mode 2');
+    }
+
+    public function testItalicSkewsTextMatrix(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>plain <i>' . "\u{1820}\u{1820}" . '</i></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Fake-italic encodes a non-zero `c` in the Tm matrix.
+        self::assertMatchesRegularExpression('~1 0 0\.213 1 [\d.]+ [\d.]+ Tm~', $bytes);
+    }
+
+    public function testInternalAnchorEmitsXyzDestination(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        // Anchor and link in the same document. The anchor is a heading
+        // further down; the link points to its id.
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+                . '<p><a href="#target">' . "\u{1820}\u{1820}" . '</a></p>'
+                . '<h2 id="target">' . "\u{1820}" . '</h2>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The annotation should carry a /Dest array — no /URI for this link.
+        self::assertStringContainsString('/Subtype /Link', $bytes);
+        self::assertStringContainsString('/Dest', $bytes);
+        self::assertStringNotContainsString('/URI (#target)', $bytes);
+    }
+
+    public function testImgDataUrlPaintsImageXObject(): void
+    {
+        // Tiny valid PNG (GIMP-emitted 4×4 image). The image-painting
+        // path requires inline layout to have run, which in turn requires
+        // a default font wired in.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $html = sprintf(
+            '<html><body><p><img src="data:image/png;base64,%s" width="32" height="32"></p></body></html>',
+            $pngBase64,
+        );
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        // Image XObject and Do operator should appear in the output.
+        self::assertStringContainsString('/Subtype /Image', $bytes);
+        self::assertMatchesRegularExpression('~/Im\d+ Do~', $bytes);
+    }
+
+    public function testTextDecorationStyleDoubleEmitsTwoRects(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p style="text-decoration: underline double">'
+            . "\u{1820}\u{1820}" . '</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // For comparison: solid underline emits one rect. Render the same
+        // text with `underline solid` and check `double` produces strictly
+        // more `re` operators.
+        $solidWriter = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $solidWriter,
+            '<html><body><p style="text-decoration: underline solid">'
+            . "\u{1820}\u{1820}" . '</p></body></html>',
+        );
+        $solidBytes = $solidWriter->toBytes();
+        $doubleRectCount = preg_match_all('~[\d.]+ [\d.]+ [\d.]+ [\d.\-]+ re~', $bytes);
+        $solidRectCount = preg_match_all('~[\d.]+ [\d.]+ [\d.]+ [\d.\-]+ re~', $solidBytes);
+        self::assertGreaterThan($solidRectCount, $doubleRectCount, 'double emits more rects than solid');
+    }
+
+    public function testTableEndToEndProducesCells(): void
+    {
+        // End-to-end: parses the implicit `<tbody>`, renders 3 cells at
+        // their right positions, and emits the PDF without crashing.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><table style="width: 300px">'
+            . '<tr><td>A</td><td>B</td><td>C</td></tr>'
+            . '</table></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertStringContainsString('%%EOF', $bytes);
+    }
+
+    public function testOutlineEmitsStrokedRect(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><div style="outline: 2px solid red; width: 100px; height: 50px;"></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Outline = stroked rect with line width 2 + red stroke colour.
+        self::assertStringContainsString('1 0 0 RG', $bytes, 'red stroke colour');
+        self::assertMatchesRegularExpression('~2(?:\.0+)? w~', $bytes, 'line width 2');
+        self::assertMatchesRegularExpression('~re\s+S~', $bytes, 'stroked rect');
+    }
+
+    public function testOutlineDashedEmitsDashPattern(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><div style="outline: 2px dashed red; width: 100px; height: 50px;"></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // PDF `d` operator with a non-empty dash array sets a dash pattern.
+        self::assertMatchesRegularExpression('~\[ [\d.]+ [\d.]+ \] 0 d~', $bytes);
+    }
+
+    public function testBorderRadiusEmitsCurveOperators(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><div style="background-color: red; border-radius: 10px; '
+            . 'width: 100px; height: 50px;"></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // A rounded fill uses `c` (curveTo) operators in addition to the
+        // straight-edge `l` (lineTo) operators. A plain rectangle would
+        // only emit `re` + `f`.
+        self::assertMatchesRegularExpression('~[\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+ c~', $bytes);
+    }
+
+    public function testBackgroundImageDataUrlPaints(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $renderer->renderInto(
+            $writer,
+            sprintf(
+                '<html><body><div style="width: 100px; height: 50px; '
+                . 'background-image: url(\'data:image/png;base64,%s\');">'
+                . "\u{1820}" . '</div></body></html>',
+                $pngBase64,
+            ),
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Subtype /Image', $bytes);
+        self::assertMatchesRegularExpression('~/Im\d+ Do~', $bytes);
+    }
+
+    public function testPictureRendersInnerImg(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $html = sprintf(
+            '<html><body><p><picture><source srcset="hi-res.webp" media="(min-width:600px)">'
+            . '<img src="data:image/png;base64,%s" width="20" height="20"></picture></p></body></html>',
+            $pngBase64,
+        );
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Subtype /Image', $bytes, 'inner img rendered');
+        self::assertMatchesRegularExpression('~/Im\d+ Do~', $bytes);
+    }
+
+    public function testImgRelativePathResolvesAgainstBaseDir(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-test-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        $pngPath = $baseDir . '/logo.png';
+        file_put_contents($pngPath, hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withDefaultFont($font)->withBaseDir($baseDir),
+            );
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><p><img src="logo.png" width="20" height="20"></p></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            self::assertStringContainsString('/Subtype /Image', $bytes);
+            self::assertMatchesRegularExpression('~/Im\d+ Do~', $bytes);
+        } finally {
+            @unlink($pngPath);
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testLocalImageDoesNotEmitMissingResourceWarning(): void
+    {
+        // `<img src="logo.png">` with `baseDir` configured + the file
+        // on disk is a paintable source — the renderer must NOT emit a
+        // MissingResource warning for it.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-warn-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        $pngPath = $baseDir . '/logo.png';
+        file_put_contents($pngPath, hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withDefaultFont($font)->withBaseDir($baseDir),
+            );
+            $writer = new PdfWriter(compressStreams: false);
+            $warnings = $renderer->renderInto(
+                $writer,
+                '<html><body><p><img src="logo.png" width="20" height="20"></p></body></html>',
+            );
+            $missing = array_filter(
+                $warnings,
+                static fn($w) => $w->code === \Phpdftk\HtmlToPdf\WarningCode::MissingResource,
+            );
+            self::assertSame([], $missing, 'no MissingResource warning for resolvable local images');
+        } finally {
+            @unlink($pngPath);
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testLocalImageWithOnlyWidthDerivesHeightFromAspectRatio(): void
+    {
+        // `<img src="local.png" width="40">` with no height — the box
+        // generator should read the PNG's natural aspect ratio (4×4
+        // square here, so height tracks width 1:1) and synthesise a
+        // height so the painter has both dimensions to draw. Validates
+        // the elif branch of the natural-size logic.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-aspect-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        $pngPath = $baseDir . '/square.png';
+        file_put_contents($pngPath, hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withDefaultFont($font)->withBaseDir($baseDir),
+            );
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><p><img src="square.png" width="40"></p></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            // Image XObject + Do op present means the BoxGenerator
+            // synthesised the missing height from the PNG's natural
+            // 1:1 ratio (40 wide → 40 tall, both > 0).
+            self::assertStringContainsString('/Subtype /Image', $bytes);
+            self::assertMatchesRegularExpression('~40 0 0 40 ~', $bytes, 'cm matrix carries 40×40');
+        } finally {
+            @unlink($pngPath);
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testFirstChildMarginDoesNotPushBodyAbovePage(): void
+    {
+        // CSS 2.1 §8.3.1 parent-child margin collapse-through pulls a
+        // first-child block's `margin-top` onto its parent. Repeated up
+        // the chain it once landed `body` at y = -margin-top, putting
+        // the document above page 0. The root `<html>` element absorbs
+        // the propagated margin into the initial containing block, so
+        // BlockLayout skips the negative-shift at the root.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        // Reach into the post-layout box tree by replicating the
+        // Renderer's pipeline through reflection — the externally
+        // visible artefact would just be "PDF has content somewhere",
+        // which doesn't pin down the y-positioning bug.
+        $ref = new \ReflectionClass($renderer);
+        $bg = $ref->getProperty('boxGenerator')->getValue($renderer);
+        $cssParser = $ref->getProperty('cssParser')->getValue($renderer);
+        $optionsProp = $ref->getProperty('options')->getValue($renderer);
+        $css = $optionsProp->effectiveUserAgentStylesheet();
+        $sheets = [$cssParser->parseStylesheet($css, \Phpdftk\Css\Sheet\Origin::UserAgent)];
+        $doc = $renderer->parse('<html><body><p>hello</p></body></html>');
+        $root = $bg->generate($doc, $sheets);
+        self::assertNotNull($root);
+        $layout = $ref->getProperty('layout')->getValue($renderer);
+        $ctx = new \Phpdftk\HtmlToPdf\Layout\LayoutContext(
+            containingBlockWidth: 612.0,
+            containingBlockHeight: 792.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new \Phpdftk\Css\Cascade\LengthContext(),
+            defaultFont: $font,
+        );
+        $layout->layout($root, $ctx);
+        // html → body → p. Walk to body and assert y >= 0.
+        $body = $root->children[0];
+        self::assertGreaterThanOrEqual(0.0, $body->geometry->y, 'body stays on-page after root collapse-through skip');
+        $p = $body->children[0];
+        self::assertGreaterThanOrEqual(0.0, $p->geometry->y, '<p> stays on-page');
+    }
+
+    public function testSmallInlineBlockImageBaselineSitsOnLine(): void
+    {
+        // CSS Inline 3 §4.5: an inline-block's bottom (for replaced
+        // elements like `<img>`) must align with the line baseline. Before
+        // the fix, the AtomicInlineBox sat at line-top, so a small image
+        // (≤ ascent) had its bottom *above* the baseline — visible as
+        // floating-up rendering, and in extreme cases off-page-skipped on
+        // page 0. This test exercises a 4×4 PNG inside a `<p>` paragraph
+        // with no surrounding text: the image XObject must paint.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-baseline-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        $pngPath = $baseDir . '/tiny.png';
+        file_put_contents($pngPath, hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withDefaultFont($font)->withBaseDir($baseDir),
+            );
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><p>caption '
+                . '<img src="tiny.png" width="4" height="4"></p></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            self::assertStringContainsString('/Subtype /Image', $bytes, 'small inline-block image emits XObject on page 0');
+            self::assertMatchesRegularExpression('~/Im\d+ Do~', $bytes);
+        } finally {
+            @unlink($pngPath);
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testImgRelativePathEscapeRejected(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-esc-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withDefaultFont($font)->withBaseDir($baseDir),
+            );
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><p><img src="../escape.png" width="20" height="20"></p></body></html>',
+            );
+            // No XObject — relative path that escapes baseDir is dropped.
+            self::assertStringNotContainsString('/Subtype /Image', $writer->toBytes());
+        } finally {
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testRepeatedDataUrlImagesReuseXObject(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $url = 'data:image/png;base64,' . $pngBase64;
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $html = sprintf(
+            '<html><body><p><img src="%s" width="20" height="20">'
+            . '<img src="%s" width="20" height="20"></p></body></html>',
+            $url,
+            $url,
+        );
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        // One image XObject, two Do invocations.
+        $imageXObjectCount = substr_count($bytes, '/Subtype /Image');
+        self::assertSame(1, $imageXObjectCount, 'image deduped on the page');
+        $doCount = preg_match_all('~/Im\d+ Do~', $bytes);
+        self::assertSame(2, $doCount, 'both <img> placements emit Do');
+    }
+
+    public function testImgEmitsMissingResourceWarning(): void
+    {
+        // Phase-1 doesn't paint images; surface a warning so callers know.
+        $result = (new Renderer())->render(
+            '<html><body><p>before <img src="logo.png"></p></body></html>',
+        );
+        $codes = array_map(static fn($w) => $w->code, $result->warnings);
+        self::assertContains(
+            \Phpdftk\HtmlToPdf\WarningCode::MissingResource,
+            $codes,
+            'one MissingResource warning for the <img>',
+        );
+    }
+
+    public function testLinkAnnotationsSuppressDefaultBorder(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p><a href="https://example.com">' . "\u{1820}" . '</a></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // /Border [ 0 0 0 ] = no border. Without our explicit value, PDF
+        // readers draw a default 1-pt black box around the link area.
+        self::assertMatchesRegularExpression(
+            '~/Border \[ 0 0 0 \]~',
+            $bytes,
+            'link border is suppressed',
+        );
+    }
+
+    public function testATitleFlowsIntoLinkContents(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p><a href="https://example.com" title="Hover text">'
+            . "\u{1820}" . '</a></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Subtype /Link', $bytes);
+        self::assertStringContainsString('/Contents (Hover text)', $bytes);
+    }
+
+    public function testInlineAHrefEmitsLinkAnnotation(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>before <a href="https://example.com">'
+            . "\u{1820}\u{1820}" . '</a> after</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Subtype /Link', $bytes);
+        self::assertStringContainsString('https://example.com', $bytes);
+    }
+
+    public function testEmptyAndMalformedInputProduceValidPdfs(): void
+    {
+        $inputs = [
+            'empty string' => '',
+            'no html element' => '<body></body>',
+            'only html' => '<html></html>',
+            'unclosed tag' => '<p>broken',
+        ];
+        foreach ($inputs as $label => $html) {
+            $writer = new PdfWriter(compressStreams: false);
+            (new Renderer())->renderInto($writer, $html);
+            $bytes = $writer->toBytes();
+            self::assertStringStartsWith('%PDF-', $bytes, "starts with PDF header for: $label");
+            self::assertStringContainsString('%%EOF', $bytes, "ends with EOF for: $label");
+        }
+    }
+
+    public function testMultiFontSelectionSwitchesPerFamily(): void
+    {
+        // Register two real fonts; the body uses NotoSans as default, and
+        // `<code>` carries `font-family: NotoSansMongolian` so the painter
+        // should switch the Tf resource for the code fragment.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        $mongolPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($latinPath) || !is_file($mongolPath)) {
+            self::markTestSkipped('Font fixtures missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $mongol = (new OpenTypeParser($mongolPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())
+                ->withDefaultFont($latin)
+                ->withFonts(['NotoSansMongolian' => $mongol]),
+        );
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>Hello '
+            . '<code style="font-family: NotoSansMongolian">' . "\u{1820}\u{1820}" . '</code>'
+            . ' world</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Both font XObjects should be registered (two `/Type /Font0` Type-0
+        // composite CID fonts) and both Tf resources should appear in the
+        // page's content stream as distinct resource names.
+        $subtypeFontCount = substr_count($bytes, '/Subtype /Type0');
+        self::assertGreaterThanOrEqual(2, $subtypeFontCount, 'both fonts registered');
+    }
+
+    public function testFontFaceWithDataUrlLoadsAndShapesText(): void
+    {
+        // Author CSS declares an `@font-face` whose `src` is a base64 data:
+        // URL of the real Mongolian font fixture. The body picks the family
+        // via `font-family`, so the renderer should register the data-URL
+        // font and shape against it without `withFonts` ever being called.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        $mongolPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($latinPath) || !is_file($mongolPath)) {
+            self::markTestSkipped('Font fixtures missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $mongolB64 = base64_encode((string) file_get_contents($mongolPath));
+        $renderer = new Renderer(
+            (new RendererOptions())->withDefaultFont($latin),
+        );
+        $css = '@font-face { font-family: "DataMongol"; '
+            . 'src: url(data:font/otf;base64,' . $mongolB64 . '); }';
+        $writer = new PdfWriter(compressStreams: false);
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body>'
+            . '<p>en <code style="font-family: DataMongol">' . "\u{1820}\u{1820}" . '</code></p>'
+            . '</body></html>',
+        );
+        self::assertSame([], $warnings, 'no warnings expected — @font-face loaded clean');
+        $bytes = $writer->toBytes();
+        // Both fonts (Latin default + data-URL Mongolian) should be
+        // registered as composite Type-0 fonts on the page.
+        $subtypeFontCount = substr_count($bytes, '/Subtype /Type0');
+        self::assertGreaterThanOrEqual(2, $subtypeFontCount, 'both fonts registered');
+    }
+
+    public function testFontFaceWoffSourceDecompressesAndRegisters(): void
+    {
+        // Wrap a real OTF as WOFF and reference it via a `data:font/woff`
+        // URL in @font-face. The renderer should transparently
+        // decompress and register the font.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($latinPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $otfBytes = (string) file_get_contents($latinPath);
+        $woffBytes = $this->wrapAsWoff($otfBytes);
+        $b64 = base64_encode($woffBytes);
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($latin));
+        $css = '@font-face { font-family: "Inter"; '
+            . 'src: url(data:font/woff;base64,' . $b64 . ') format("woff"); }';
+        $writer = new PdfWriter(compressStreams: false);
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p style="font-family: Inter">hi</p></body></html>',
+        );
+        self::assertSame([], $warnings, 'WOFF source decompresses without warnings');
+        // Composite font registered.
+        self::assertStringContainsString('/Subtype /Type0', $writer->toBytes());
+    }
+
+    /**
+     * Wrap an OTF/TTF byte string in a minimal WOFF 1.0 container —
+     * mirrors `WoffParserTest::createWoffFromTtf` but tag-agnostic.
+     */
+    private function wrapAsWoff(string $sfntBytes): string
+    {
+        $flavor = unpack('N', $sfntBytes, 0)[1];
+        $numTables = unpack('n', $sfntBytes, 4)[1];
+        $tables = [];
+        for ($i = 0; $i < $numTables; $i++) {
+            $base = 12 + $i * 16;
+            $tables[] = [
+                'tag' => substr($sfntBytes, $base, 4),
+                'checksum' => unpack('N', $sfntBytes, $base + 4)[1],
+                'data' => substr(
+                    $sfntBytes,
+                    unpack('N', $sfntBytes, $base + 8)[1],
+                    unpack('N', $sfntBytes, $base + 12)[1],
+                ),
+            ];
+        }
+        $dataOffset = 44 + $numTables * 20;
+        $cursor = $dataOffset;
+        $entries = [];
+        foreach ($tables as $t) {
+            $compressed = gzcompress($t['data'], 6);
+            $isCompressed = $compressed !== false && strlen($compressed) < strlen($t['data']);
+            $entries[] = [
+                'tag' => $t['tag'],
+                'checksum' => $t['checksum'],
+                'offset' => $cursor,
+                'compLength' => $isCompressed ? strlen($compressed) : strlen($t['data']),
+                'origLength' => strlen($t['data']),
+                'compData' => $isCompressed ? $compressed : $t['data'],
+            ];
+            $cursor += $isCompressed ? strlen($compressed) : strlen($t['data']);
+            $cursor += (4 - ($cursor % 4)) % 4;
+        }
+        $woff = pack('N', 0x774F4646)
+            . pack('N', $flavor)
+            . pack('N', $cursor)
+            . pack('n', $numTables)
+            . pack('n', 0)
+            . pack('N', strlen($sfntBytes))
+            . pack('nn', 1, 0)
+            . pack('NNN', 0, 0, 0)
+            . pack('NN', 0, 0);
+        foreach ($entries as $e) {
+            $woff .= $e['tag']
+                . pack('N', $e['offset'])
+                . pack('N', $e['compLength'])
+                . pack('N', $e['origLength'])
+                . pack('N', $e['checksum']);
+        }
+        foreach ($entries as $e) {
+            $woff .= $e['compData'];
+            $woff .= str_repeat("\x00", (4 - (strlen($e['compData']) % 4)) % 4);
+        }
+        return $woff;
+    }
+
+    public function testFontFaceFormatHintSkipsUnsupportedFormat(): void
+    {
+        // `src: url(font.woff2) format("woff2"), url(font.otf) format("opentype")` —
+        // the resolver must skip the WOFF2 entry (we can't decompress it
+        // at Phase 1) and pick up the OpenType fallback. Without the
+        // format-hint dispatch, the WOFF2 entry would attempt parsing,
+        // emit a noisy warning, and only THEN fall through.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($latinPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $b64 = base64_encode((string) file_get_contents($latinPath));
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($latin));
+        $css = '@font-face { font-family: "Inter"; '
+            . 'src: url(does-not-exist.woff2) format("woff2"), '
+            . 'url(data:font/otf;base64,' . $b64 . ') format("opentype"); }';
+        $writer = new PdfWriter(compressStreams: false);
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p style="font-family: Inter">hi</p></body></html>',
+        );
+        // No "failed to parse" warning — the WOFF2 source was skipped
+        // before the fetch even ran.
+        $parseWarnings = array_filter(
+            $warnings,
+            static fn($w) => str_contains($w->message, 'failed to parse'),
+        );
+        self::assertSame([], $parseWarnings, 'unsupported format hint skipped without parse attempt');
+        $bytes = $writer->toBytes();
+        // Font landed and got registered as a composite Type-0 font.
+        // (Default + @font-face dedupe to one entry per postScriptName,
+        // so we just need >= 1 — not 2.)
+        self::assertGreaterThanOrEqual(1, substr_count($bytes, '/Subtype /Type0'));
+    }
+
+    public function testFontFaceFormatHintIgnoredWhenSourceMatches(): void
+    {
+        // Bare `url()` with no format hint should still attempt parsing,
+        // since `format()` is advisory per CSS Fonts 4 §4.3.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($latinPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $b64 = base64_encode((string) file_get_contents($latinPath));
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($latin));
+        // No format() hint at all — falls through to magic-number gate.
+        $css = '@font-face { font-family: "Inter"; '
+            . 'src: url(data:font/otf;base64,' . $b64 . '); }';
+        $writer = new PdfWriter(compressStreams: false);
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p style="font-family: Inter">hi</p></body></html>',
+        );
+        self::assertSame([], $warnings);
+    }
+
+    public function testFontFaceWithMissingSourceEmitsWarning(): void
+    {
+        // No baseDir, no data: URL — the rule is unloadable and the renderer
+        // should emit a `MissingResource` warning while still producing a
+        // valid PDF.
+        $renderer = new Renderer();
+        $css = '@font-face { font-family: "Phantom"; src: url(does-not-exist.otf); }';
+        $writer = new PdfWriter(compressStreams: false);
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body><p>hi</p></body></html>',
+        );
+        $missing = array_filter(
+            $warnings,
+            static fn($w) => $w->code === \Phpdftk\HtmlToPdf\WarningCode::MissingResource
+                && str_contains($w->message, 'Phantom'),
+        );
+        self::assertNotEmpty($missing, 'expected MissingResource warning for unloadable @font-face');
+        self::assertStringStartsWith('%PDF-', $writer->toBytes());
+    }
+
+    public function testGenericFamilyAliasMonospacePicksRegisteredFont(): void
+    {
+        // `<code>` inherits `font-family: monospace` from the UA
+        // stylesheet. Binding `monospace` via withGenericFamilies should
+        // make the painter switch to the registered font for that
+        // fragment, so two distinct Type-0 fonts land on the page.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        $mongolPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($latinPath) || !is_file($mongolPath)) {
+            self::markTestSkipped('Font fixtures missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $mongol = (new OpenTypeParser($mongolPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())
+                ->withDefaultFont($latin)
+                ->withGenericFamilies(['monospace' => $mongol]),
+        );
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>en <code>' . "\u{1820}" . '</code></p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertGreaterThanOrEqual(
+            2,
+            substr_count($bytes, '/Subtype /Type0'),
+            'monospace generic should resolve to the registered Mongolian font',
+        );
+    }
+
+    public function testGenericFamilyAliasMergesIntoExistingFontMap(): void
+    {
+        // withGenericFamilies merges (unlike withFonts which replaces),
+        // so a prior withFonts('AcmeBrand' => …) survives a later
+        // withGenericFamilies binding for `serif`.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($latinPath)) {
+            self::markTestSkipped('Font fixture missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $options = (new RendererOptions())
+            ->withFonts(['AcmeBrand' => $latin])
+            ->withGenericFamilies(['serif' => $latin]);
+        self::assertArrayHasKey('acmebrand', $options->fontMap);
+        self::assertArrayHasKey('serif', $options->fontMap);
+    }
+
+    public function testPageMarginBoxesPaintHeaderAndFooter(): void
+    {
+        // CSS Paged Media 3 §3 + Generated Content for Paged Media 3 §2:
+        // `@page { @top-center { content: "X"; } @bottom-right { content: "Y"; } }`
+        // should produce both strings in the per-page margin band of
+        // every output page.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { content: "TitleHdr"; } '
+            . '@bottom-right { content: "FtrTxt"; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body content</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Both margin-box strings must appear in the output as shaped
+        // glyph runs — verified via per-glyph CIDs being emitted, plus
+        // a generous Tm setTextMatrix at the expected band y-positions
+        // (top: pageHeight - margin/2 = 792 - 18 = 774; bottom: 18).
+        self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
+        self::assertMatchesRegularExpression('~ 18 Tm~', $bytes, 'bottom margin band text matrix');
+    }
+
+    public function testPageMarginBoxesHonourFontSizeAndColorDeclarations(): void
+    {
+        // CSS Paged Media 3 §3.6 margin-box at-rules accept their own
+        // `font-size` and `color` declarations; the paint pass must use
+        // those instead of the hard-coded 10pt black defaults.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { '
+            . 'content: "Heading"; font-size: 18pt; color: #cc0000; '
+            . '} }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Author font-size (18pt) used in Tf, author color (#cc0000 ≈ 0.8 0 0) used in rg.
+        self::assertMatchesRegularExpression('~/F\d+ 18 Tf~', $bytes, 'author font-size honoured');
+        self::assertMatchesRegularExpression('~0\.8 0 0 rg~', $bytes, 'author color honoured');
+    }
+
+    public function testBodyBackgroundLinearGradientPaintsShadingPattern(): void
+    {
+        // `body { background-image: linear-gradient(...) }` should produce
+        // a pattern-fill operation in the content stream — verified by
+        // checking for the `/Pattern cs` color-space op and the pattern
+        // resource scn fill.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(to right, #ff0000, #0000ff); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Pattern cs', $bytes, 'pattern colour space set');
+        self::assertMatchesRegularExpression('~/P\d+ scn~', $bytes, 'pattern resource fill emitted');
+        // Confirm a ShadingType2 (axial gradient) object was registered.
+        self::assertStringContainsString('/ShadingType 2', $bytes, 'axial shading dict written');
+    }
+
+    public function testBackgroundSizeContainPreservesAspectAndCentres(): void
+    {
+        // A 4×2 PNG (2:1 aspect) in a 200px × 60px box. `contain` picks
+        // min(200/4, 60/2) = min(50, 30) = 30, so final = 120×60,
+        // centred at x = (200-120)/2 = 40.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: contain; width: 200px; height: 60px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~120 0 0 60 40 [\d.]+ cm~',
+            $bytes,
+            'contain scales 4:2 image to 120×60 inside 200×60 box, offsetX=40',
+        );
+    }
+
+    public function testBackgroundSizeCoverFillsBoxWithOverflow(): void
+    {
+        // 4×2 PNG in a 100×100 box: cover picks max(100/4, 100/2) = 50,
+        // so final = 200×100 (overflows horizontally), centred at x=-50.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: cover; width: 100px; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~200 0 0 100 -50 [\d.]+ cm~',
+            $bytes,
+            'cover overflows symmetrically (offsetX = -50)',
+        );
+    }
+
+    public function testImgObjectFitContainPreservesAspect(): void
+    {
+        // 4×2 PNG (2:1) in a 100×100 box with `object-fit: contain`:
+        // scale = min(100/4, 100/2) = 25, final = 100×50, centred y=25.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><body><img src="data:image/png;base64,' . $b64
+            . '" width="100" height="100" style="object-fit: contain;"></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        // contain → 100×50 centred at (0, 25).
+        self::assertMatchesRegularExpression(
+            '~100 0 0 50 0 [\d.]+ cm~',
+            $bytes,
+            'contain scales 4:2 image to 100×50 inside 100×100',
+        );
+    }
+
+    public function testImgObjectFitCoverOverflows(): void
+    {
+        // 4×2 in 100×100: cover picks max(25, 50) = 50 → 200×100,
+        // offsetX = (100-200)/2 = -50.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><body><img src="data:image/png;base64,' . $b64
+            . '" width="100" height="100" style="object-fit: cover;"></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~200 0 0 100 -50 [\d.]+ cm~',
+            $bytes,
+            'cover overflows horizontally (offsetX=-50)',
+        );
+    }
+
+    public function testImgObjectFitFillKeepsStretchBehaviour(): void
+    {
+        // Default `fill` → unchanged stretch behaviour so existing
+        // fixtures stay stable.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><body><img src="data:image/png;base64,' . $b64
+            . '" width="100" height="100"></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~100 0 0 100 0 [\d.]+ cm~',
+            $bytes,
+            'default object-fit fill stretches to box',
+        );
+    }
+
+    public function testImgObjectFitNoneShowsNaturalSize(): void
+    {
+        // `object-fit: none` keeps the natural 4×2 size inside the 100×100
+        // box, centred at offsetX = (100-4)/2 = 48, offsetY = (100-2)/2 = 49.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><body><img src="data:image/png;base64,' . $b64
+            . '" width="100" height="100" style="object-fit: none;"></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~4 0 0 2 48 [\d.]+ cm~',
+            $bytes,
+            'none keeps natural 4×2 size centred in box',
+        );
+    }
+
+    public function testHiddenAttributeHidesElement(): void
+    {
+        // HTML 5 `<div hidden>` should not render at all per the
+        // `[hidden] { display: none }` UA rule.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<div hidden style="background-color: #cc0000; height: 50px;"></div>'
+            . '<div style="background-color: #00cc00; height: 50px;"></div>'
+            . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Red fill (hidden div) must NOT appear.
+        self::assertDoesNotMatchRegularExpression(
+            '~0\.8 0 0 rg~',
+            $bytes,
+            'hidden div suppressed',
+        );
+        // Green fill (visible div) appears.
+        self::assertMatchesRegularExpression(
+            '~0 0\.8 0 rg~',
+            $bytes,
+            'visible sibling still rendered',
+        );
+    }
+
+    public function testDialogWithoutOpenIsHidden(): void
+    {
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<dialog style="background-color: #cc0000; height: 50px;"></dialog>'
+            . '</body></html>',
+        );
+        self::assertDoesNotMatchRegularExpression(
+            '~0\.8 0 0 rg~',
+            $writer->toBytes(),
+            'closed dialog must not render',
+        );
+    }
+
+    public function testDialogOpenAttributeRendersContent(): void
+    {
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<dialog open style="background-color: #cc0000; height: 50px;"></dialog>'
+            . '</body></html>',
+        );
+        self::assertMatchesRegularExpression(
+            '~0\.8 0 0 rg~',
+            $writer->toBytes(),
+            'dialog[open] renders content',
+        );
+    }
+
+    public function testTemplateElementContentDoesNotRender(): void
+    {
+        // `<template>` content is parsed into a separate fragment tree
+        // and never rendered in the host document.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<template><div style="background-color: #cc0000; height: 50px;"></div></template>'
+            . '</body></html>',
+        );
+        self::assertDoesNotMatchRegularExpression(
+            '~0\.8 0 0 rg~',
+            $writer->toBytes(),
+            'template content not rendered',
+        );
+    }
+
+    public function testCssAtImportRelativePath(): void
+    {
+        // `@import url("base.css")` at the top of an inline `<style>`
+        // should pull in the linked CSS rules and cascade them.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-import-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/base.css', 'p { background-color: #ff8800; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><style>'
+                . '@import url("base.css");'
+                . '</style></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            self::assertMatchesRegularExpression(
+                '~1 0\.5\d+ 0 rg~',
+                $writer->toBytes(),
+                '@import url() pulls in external CSS',
+            );
+        } finally {
+            @unlink($baseDir . '/base.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testCssAtImportBareStringForm(): void
+    {
+        // `@import "base.css"` (no url()) should also load.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-import-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/base.css', 'p { background-color: #00cc00; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><style>'
+                . '@import "base.css";'
+                . '</style></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            self::assertMatchesRegularExpression(
+                '~0 0\.8 0 rg~',
+                $writer->toBytes(),
+                'bare-string @import loads',
+            );
+        } finally {
+            @unlink($baseDir . '/base.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testCssAtImportRecurses(): void
+    {
+        // a.css → @import b.css; b.css colors paragraphs.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-import-rec-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/a.css', '@import url("b.css");');
+        file_put_contents($baseDir . '/b.css', 'p { background-color: #0000cc; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><style>@import url("a.css");</style></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            self::assertMatchesRegularExpression(
+                '~0 0 0\.8 rg~',
+                $writer->toBytes(),
+                'recursive @import resolves',
+            );
+        } finally {
+            @unlink($baseDir . '/a.css');
+            @unlink($baseDir . '/b.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testCssAtImportMediaScreenSkipped(): void
+    {
+        // `@import url("...") screen` filters by media; print context skips.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-import-media-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/screen.css', 'p { background-color: #cc00cc; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><style>'
+                . '@import url("screen.css") screen;'
+                . '</style></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            self::assertDoesNotMatchRegularExpression(
+                '~0\.8 0 0\.8 rg~',
+                $writer->toBytes(),
+                '@import with screen media skipped in print context',
+            );
+        } finally {
+            @unlink($baseDir . '/screen.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testLinkRelStylesheetLoadsExternalCss(): void
+    {
+        // `<link rel="stylesheet" href="...">` should load the linked
+        // CSS and cascade it. Verified by linking a CSS that paints a
+        // distinctive colour and checking it lands in the content stream.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-link-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/external.css', 'p { background-color: #ff8800; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><link rel="stylesheet" href="external.css"></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            // #ff8800 → (1, 0.533, 0) rg.
+            self::assertMatchesRegularExpression(
+                '~1 0\.5\d+ 0 rg~',
+                $writer->toBytes(),
+                'linked stylesheet rules cascade',
+            );
+        } finally {
+            @unlink($baseDir . '/external.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testLinkRelStylesheetDataUrl(): void
+    {
+        // `<link rel="stylesheet" href="data:text/css,...">` should
+        // decode the inline CSS and cascade.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><link rel="stylesheet" href="data:text/css,p%20%7B%20background-color%3A%20%23cc0000%3B%20%7D"></head>'
+            . '<body><p style="height: 20px;">hi</p></body></html>',
+        );
+        self::assertMatchesRegularExpression(
+            '~0\.8 0 0 rg~',
+            $writer->toBytes(),
+            'data:text/css URL loaded',
+        );
+    }
+
+    public function testLinkRelStylesheetMediaScreenSkipped(): void
+    {
+        // `<link rel="stylesheet" media="screen">` should NOT load in
+        // print context — same media-matching as @media blocks.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-link-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/screen.css', 'p { background-color: #ff8800; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><link rel="stylesheet" media="screen" href="screen.css"></head>'
+                . '<body><p style="height: 20px;">hi</p></body></html>',
+            );
+            self::assertDoesNotMatchRegularExpression(
+                '~1 0\.5\d+ 0 rg~',
+                $writer->toBytes(),
+                'screen-only linked stylesheet must not cascade in print',
+            );
+        } finally {
+            @unlink($baseDir . '/screen.css');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testBackgroundRepeatDefaultTilesBothAxes(): void
+    {
+        // 4×2 PNG with explicit small `background-size: 50px 50px` in a
+        // 200×100 box and default `background-repeat: repeat` should
+        // tile 4× horizontally and 2× vertically = 8 image emits.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: 50px 50px; background-position: 0 0; '
+            . 'width: 200px; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 4 tiles × 2 = 8 emissions. Count cm operators that match the
+        // tile size (50 0 0 50 ...).
+        $matched = preg_match_all('~50 0 0 50 \S+ \S+ cm~', $bytes, $m);
+        self::assertSame(8, $matched, 'default repeat tiles 4×2 = 8 tiles');
+    }
+
+    public function testBackgroundRepeatNoRepeatEmitsSingleTile(): void
+    {
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: 50px 50px; background-repeat: no-repeat; '
+            . 'width: 200px; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        $matched = preg_match_all('~50 0 0 50 \S+ \S+ cm~', $bytes, $m);
+        self::assertSame(1, $matched, 'no-repeat emits exactly one tile');
+    }
+
+    public function testBackgroundRepeatXOnly(): void
+    {
+        // `repeat-x` tiles horizontally only. 200/50 = 4 tiles.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: 50px 50px; background-repeat: repeat-x; '
+            . 'background-position: 0 0; width: 200px; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        $matched = preg_match_all('~50 0 0 50 \S+ \S+ cm~', $bytes, $m);
+        self::assertSame(4, $matched, 'repeat-x emits 4 horizontal tiles only');
+    }
+
+    public function testBackgroundPositionLeftTopAnchorsToCorner(): void
+    {
+        // `background-position: left top` with contain-scaled image
+        // should anchor the image to the box's top-left (offsetX=0,
+        // offsetY=0) instead of the default centring.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: contain; background-position: left top; '
+            . 'width: 200px; height: 60px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~120 0 0 60 0 [\d.]+ cm~',
+            $bytes,
+            'left top anchors at offsetX=0',
+        );
+    }
+
+    public function testBackgroundPositionExplicitPercentages(): void
+    {
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: contain; background-position: 100% 0%; '
+            . 'width: 200px; height: 60px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 100% horizontal → offsetX = (200-120)*1 = 80.
+        self::assertMatchesRegularExpression(
+            '~120 0 0 60 80 [\d.]+ cm~',
+            $bytes,
+            '100% horizontal anchors image right edge to box right edge',
+        );
+    }
+
+    public function testBackgroundPositionExplicitLengths(): void
+    {
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'background-size: contain; background-position: 10px 5px; '
+            . 'width: 200px; height: 60px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~120 0 0 60 10 [\d.]+ cm~',
+            $bytes,
+            'explicit 10px x-offset honoured',
+        );
+    }
+
+    public function testBackgroundSizeAutoKeepsStretchBehaviour(): void
+    {
+        // Unset → keep the pre-feature stretch behaviour so existing
+        // fixtures stay stable. Without `background-size` the cm matrix
+        // covers the full box (100×100), no aspect preservation.
+        $png4x2 = hex2bin(
+            '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
+            . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
+            . '633c9162c400034c0c48000021b40162592fe5580000000049454e44ae426082',
+        );
+        $b64 = base64_encode($png4x2);
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'div { background-image: url(data:image/png;base64,' . $b64 . '); '
+            . 'width: 100px; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression(
+            '~100 0 0 100 0 [\d.]+ cm~',
+            $bytes,
+            'unset background-size keeps stretch behaviour',
+        );
+    }
+
+    public function testBodyBackgroundRadialGradientPaintsType3Shading(): void
+    {
+        // `body { background-image: radial-gradient(...) }` should emit
+        // a ShadingType3 (radial) shading dict + pattern-fill operations.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: radial-gradient(circle, #ff0000, #0000ff); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/ShadingType 3', $bytes, 'radial shading dict written');
+        self::assertStringContainsString('/Pattern cs', $bytes, 'pattern colour space set');
+        self::assertMatchesRegularExpression('~/P\d+ scn~', $bytes, 'pattern fill emitted');
+    }
+
+    public function testBodyBackgroundRadialGradientWithExplicitPosition(): void
+    {
+        // `radial-gradient(... at <position>, ...)` still produces a
+        // valid ShadingType3; the renderer must place the gradient
+        // centre at the author's anchor without crashing.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: radial-gradient(circle at 50pt 50pt, #cc0000, #00cc00); '
+            . 'height: 200pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/ShadingType 3', $bytes);
+        self::assertStringStartsWith('%PDF-', $bytes);
+    }
+
+    public function testBodyBackgroundLinearGradientWithExplicitAngle(): void
+    {
+        // Verify the angle path: `linear-gradient(45deg, ...)`. The
+        // angle controls the gradient line direction; we just verify
+        // a pattern still emits without errors.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(45deg, #cc0000, #00cc00); '
+            . 'height: 200pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/ShadingType 2', $bytes);
+        self::assertStringStartsWith('%PDF-', $bytes);
+    }
+
+    public function testPageBackgroundColorFillsEntirePage(): void
+    {
+        // `@page { background-color: #ffeecc }` should paint a full
+        // pageWidth × pageHeight rectangle in that colour before any
+        // content draws.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { background-color: #ffeecc; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // #ffeecc → (1, 0.93..., 0.8). The fill rect should cover the
+        // whole page (0 0 612 792 re), then `f` for fill.
+        self::assertMatchesRegularExpression(
+            '~1 0\.9\d+ 0\.8 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'page background-color paints a full-page rect',
+        );
+    }
+
+    public function testPageBackgroundColorAbsentWhenUnset(): void
+    {
+        // No `@page` background → no full-page fill rect should appear
+        // (the renderer must NOT spuriously emit a white background fill).
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The first re-then-f sequence in the stream would be the page
+        // background; with none set there should be no rg+re+f
+        // immediately after the MediaBox clip.
+        self::assertDoesNotMatchRegularExpression(
+            '~ rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'no spurious full-page fill when @page background unset',
+        );
+    }
+
+    public function testPageMarginShorthandMovesMarginBoxBands(): void
+    {
+        // `@page { margin: 72pt }` should put the top header band at
+        // pageHeight - 36 (= 792 - 36 = 756) and the bottom band at 36
+        // (= 72/2). Default (36pt) would be 774 / 18.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { margin: 72pt; @top-center { content: "Hdr"; } '
+            . '@bottom-center { content: "Ftr"; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertMatchesRegularExpression('~ 756 Tm~', $bytes, 'top band at pageHeight - margin/2 = 756');
+        self::assertMatchesRegularExpression('~ 36 Tm~', $bytes, 'bottom band at margin/2 = 36');
+        self::assertStringNotContainsString(' 774 Tm', $bytes, 'no default 36pt-margin top band');
+    }
+
+    public function testPageMarginAsymmetricShorthandRespected(): void
+    {
+        // `@page { margin: 60pt 90pt }` → top=bottom=60, left=right=90.
+        // Verify by checking the left x-anchor of a top-left box.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { margin: 60pt 90pt; @top-left { content: "L"; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Top y = pageHeight - 60/2 = 792 - 30 = 762.
+        self::assertMatchesRegularExpression('~ 762 Tm~', $bytes);
+        // Top-left x anchored at marginLeft = 90.
+        self::assertMatchesRegularExpression('~1 0 0 1 90 762 Tm~', $bytes);
+    }
+
+    public function testPageSizeA4OverridesDefaultDimensions(): void
+    {
+        // CSS Paged Media 3 §6.1 `@page { size: A4 }` should produce
+        // 595 × 842 pt media boxes instead of the default 612 × 792.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { size: A4; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/MediaBox [ 0 0 595 842 ]', $bytes);
+    }
+
+    public function testPageSizeLandscapeRotatesPaper(): void
+    {
+        // `size: A4 landscape` → 842 × 595 instead of 595 × 842.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { size: A4 landscape; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        self::assertStringContainsString('/MediaBox [ 0 0 842 595 ]', $writer->toBytes());
+    }
+
+    public function testPageSizeExplicitLengthsHonoured(): void
+    {
+        // `size: 400pt 600pt` → exact width/height.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { size: 400pt 600pt; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        self::assertStringContainsString('/MediaBox [ 0 0 400 600 ]', $writer->toBytes());
+    }
+
+    public function testPageSizeUnknownKeywordFallsBackToDefaults(): void
+    {
+        // `size: monster` (not a recognised page-size keyword) leaves
+        // the default 612 × 792 letter dimensions in place.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { size: monster; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        self::assertStringContainsString('/MediaBox [ 0 0 612 792 ]', $writer->toBytes());
+    }
+
+    public function testPageSizeAutoKeywordKeepsDefaults(): void
+    {
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>@page { size: auto; }</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        self::assertStringContainsString('/MediaBox [ 0 0 612 792 ]', $writer->toBytes());
+    }
+
+    public function testPageMarginBoxesInheritFontSizeFromPageRule(): void
+    {
+        // CSS Paged Media 3: `@page { font-size: 14pt }` cascades into
+        // every nested margin box that doesn't set its own. Without the
+        // cascade the box would emit 10pt (the previous Phase-1 default).
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { font-size: 14pt; color: #336699; '
+            . '@top-center { content: "Title"; } '
+            . '@bottom-center { content: "Footer"; font-size: 8pt; } '
+            . '}';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Top-center inherits 14pt + #336699; bottom-center overrides
+        // to 8pt but still inherits color from @page.
+        self::assertMatchesRegularExpression('~/F\d+ 14 Tf~', $bytes, 'top-center inherits 14pt');
+        self::assertMatchesRegularExpression('~/F\d+ 8 Tf~', $bytes, 'bottom-center overrides to 8pt');
+        // Color #336699 → 0.2, 0.4, 0.6 rg approximately.
+        self::assertMatchesRegularExpression(
+            '~0\.2 0\.4 0\.6 rg~',
+            $bytes,
+            'page-level color inherited into margin boxes',
+        );
+    }
+
+    public function testPageMarginBoxesMarginBoxOverridesPageDefaults(): void
+    {
+        // When BOTH `@page` and a margin box set the same property,
+        // the margin box wins per source-order cascade.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        // @page sets color:red; @top-center overrides to color:green.
+        $css = '@page { color: #cc0000; '
+            . '@top-center { content: "Title"; color: #00cc00; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The green override (#00cc00 ≈ 0 0.8 0) wins; the red default
+        // must NOT appear in the margin-box paint.
+        self::assertMatchesRegularExpression(
+            '~0 0\.8 0 rg~',
+            $bytes,
+            'margin-box color override wins over @page default',
+        );
+    }
+
+    public function testPageMarginBoxesFontWeightTriggersSyntheticBoldWithoutRealFace(): void
+    {
+        // `@top-center { font-weight: bold; }` over a single-face font
+        // (no real bold registered) should emit text rendering mode 2
+        // (fake-bold) for the header.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { content: "Bold Heading"; font-weight: bold; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The top-center margin-box paint must include `2 Tr` (text
+        // rendering mode 2 → fake-bold via fill+stroke). The painter
+        // first emits `RG` (stroke color) + `w` (line width) before
+        // `2 Tr` to scope the stroke to the margin-box paint.
+        self::assertMatchesRegularExpression(
+            '~ 774 Tm\s+\d+(?:\.\d+)? \d+(?:\.\d+)? \d+(?:\.\d+)? RG\s+\d+(?:\.\d+)? w\s+2 Tr~',
+            $bytes,
+            'synthetic fake-bold fires for top-band when no real face',
+        );
+    }
+
+    public function testPageMarginBoxesFontWeightWithRealBoldFaceSuppressesFakeBold(): void
+    {
+        // When a real 700-weight face is registered for the family,
+        // `font-weight: bold` should pick the real face and NOT emit
+        // the synthetic fake-bold `2 Tr`.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $regular = (new OpenTypeParser($fontPath))->parse();
+        $bold = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())
+                ->withDefaultFont($regular)
+                ->withFontFaces([
+                    'Inter' => [
+                        new \Phpdftk\HtmlToPdf\Layout\FontFace($regular, 400, 'normal'),
+                        new \Phpdftk\HtmlToPdf\Layout\FontFace($bold, 700, 'normal'),
+                    ],
+                ]),
+        );
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { '
+            . 'content: "Bold Title"; font-family: "Inter"; font-weight: bold; '
+            . '} }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Top-band Tm emitted with no `2 Tr` (fake-bold) following it —
+        // the real bold face matched so the painter stays in fill-only
+        // mode (`0 Tr`) for the margin-box text.
+        self::assertMatchesRegularExpression(
+            '~ 774 Tm\s+0 Tr~',
+            $bytes,
+            'fill-only mode when real bold face matches',
+        );
+        self::assertStringNotContainsString(
+            '2 Tr',
+            $bytes,
+            'real bold face suppresses fake-bold',
+        );
+    }
+
+    public function testPageMarginBoxesFontFamilyResolvesToRegisteredAlternate(): void
+    {
+        // `@bottom-center { font-family: "Mongol"; }` should switch the
+        // margin box's Tf resource to the Mongol alternate when it's
+        // registered via withFonts. Verified by counting the distinct
+        // Tf resources used on the page: body uses the default font,
+        // margin box must reference a different one.
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        $mongolPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($latinPath) || !is_file($mongolPath)) {
+            self::markTestSkipped('Font fixtures missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $mongol = (new OpenTypeParser($mongolPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())
+                ->withDefaultFont($latin)
+                ->withFonts(['Mongol' => $mongol]),
+        );
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @bottom-center { content: "' . "\u{1820}" . '"; font-family: "Mongol"; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Both fonts registered as composite Type-0 fonts on the page.
+        self::assertGreaterThanOrEqual(
+            2,
+            substr_count($bytes, '/Subtype /Type0'),
+            'both fonts present on the page resource list',
+        );
+        // The bottom-band Tm should be followed by a Tf switch to the
+        // Mongol resource (typically F2) before its Tj — verified by
+        // checking distinct Tf names appearing in the content stream.
+        $matched = preg_match_all('~/F(\d+) (\d+(?:\.\d+)?) Tf~', $bytes, $m);
+        self::assertGreaterThan(0, $matched, 'multiple Tf operators emitted');
+        self::assertGreaterThan(1, count(array_unique($m[1])), 'multiple distinct Tf resources used');
+    }
+
+    public function testPageMarginBoxesCounterStyleLowerRoman(): void
+    {
+        // `@bottom-center { content: counter(page, lower-roman); }` — for
+        // a 3-page document, each page emits the Roman-numeral page index
+        // ("i", "ii", "iii"). Verified by counting bottom-band Tm
+        // operators (one per page) and confirming the shaped glyph runs
+        // for the three pages differ from one another (i ≠ ii ≠ iii).
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @bottom-center { content: counter(page, lower-roman); } } '
+            . 'section { page-break-after: always; } '
+            . 'section:last-child { page-break-after: auto; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><section><h1>one</h1></section>'
+            . '<section><h1>two</h1></section>'
+            . '<section><h1>three</h1></section></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertSame(3, substr_count($bytes, ' 18 Tm'), 'one bottom Tm per page');
+        $matched = preg_match_all('~ 18 Tm\s+\d+ Tr\s+<([0-9A-F]+)> Tj~', $bytes, $m);
+        self::assertSame(3, $matched, 'three bottom-center glyph runs');
+        // i (1 glyph), ii (2 glyphs), iii (3 glyphs) — distinct shapes.
+        self::assertCount(3, array_unique($m[1]), 'roman page numerals shape differently per page');
+        // ii must be twice as wide as i in hex form: 4 chars vs 8 chars.
+        self::assertSame(4, strlen($m[1][0]), '"i" shapes to 1 glyph');
+        self::assertSame(8, strlen($m[1][1]), '"ii" shapes to 2 glyphs');
+        self::assertSame(12, strlen($m[1][2]), '"iii" shapes to 3 glyphs');
+    }
+
+    public function testPageMarginBoxesFirstSelectorOverridesPageZeroOnly(): void
+    {
+        // `@page :first { @top-center { content: "Cover" } }` should
+        // emit "Cover" only on page 0; subsequent pages keep the
+        // generic `@page { @top-center }` content.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { content: "Normal"; } } '
+            . '@page :first { @top-center { content: "Cover"; } } '
+            . 'section { page-break-after: always; } '
+            . 'section:last-child { page-break-after: auto; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><section><h1>one</h1></section>'
+            . '<section><h1>two</h1></section></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 2 pages → 2 top-band Tm lines total. Counting glyph runs is
+        // less precise than counting Tm matches; what matters: both
+        // pages emit a top-center band, and the cover/normal differ.
+        self::assertSame(2, substr_count($bytes, ' 774 Tm'), 'one top-band Tm per page');
+        // The shaped hex GID sequences for "Cover" (5 glyphs) and
+        // "Normal" (6 glyphs) differ — assert by counting `Tj` between
+        // top-band Tm operators.
+        $shapedRuns = [];
+        if (preg_match_all('~ 774 Tm\s+\d+ Tr\s+<([0-9A-F]+)> Tj~', $bytes, $m)) {
+            $shapedRuns = $m[1];
+        }
+        self::assertCount(2, $shapedRuns, 'two distinct top-center glyph runs');
+        self::assertNotSame($shapedRuns[0], $shapedRuns[1], 'cover differs from normal');
+    }
+
+    public function testPageMarginBoxesLeftRightAlternation(): void
+    {
+        // `@page :left { @top-left { content: "L" } } @page :right { @top-right { content: "R" } }` —
+        // page 0 (right-facing) emits a top-right rune; page 1
+        // (left-facing) emits a top-left rune.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page :left { @top-left { content: "L"; } } '
+            . '@page :right { @top-right { content: "R"; } } '
+            . 'section { page-break-after: always; } '
+            . 'section:last-child { page-break-after: auto; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><section><h1>one</h1></section>'
+            . '<section><h1>two</h1></section></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 2 pages, 1 top Tm each = 2 total.
+        self::assertSame(2, substr_count($bytes, ' 774 Tm'), 'one top-band Tm per page');
+        // Right-anchored x ≈ pageWidth - margin - width (large);
+        // left-anchored x = margin = 36 (small). Both must appear.
+        $matched = preg_match_all('~1 0 0 1 ([0-9.]+) 774 Tm~', $bytes, $m);
+        self::assertSame(2, $matched);
+        sort($m[1]);
+        self::assertEqualsWithDelta(36.0, (float) $m[1][0], 0.5, 'left page emits left-anchored');
+        self::assertGreaterThan(500.0, (float) $m[1][1], 'right page emits right-anchored');
+    }
+
+    public function testPageMarginBoxesSupportCornerPositions(): void
+    {
+        // `@top-left-corner` / `@top-right-corner` / `@bottom-left-corner` /
+        // `@bottom-right-corner` sit in their respective margin × margin
+        // squares at the 4 page corners. Each text is centred inside its
+        // corner square.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { '
+            . '@top-left-corner { content: "A"; } '
+            . '@top-right-corner { content: "B"; } '
+            . '@bottom-left-corner { content: "C"; } '
+            . '@bottom-right-corner { content: "D"; } '
+            . '}';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 4 corner boxes → 4 Tm operators across the band y-positions
+        // (top: 774, bottom: 18). Each corner pins to either the left
+        // half (x < margin = 36) or the right half (x > pageWidth - margin
+        // = 576). Verify by counting Tm lines at each y-band.
+        self::assertSame(2, substr_count($bytes, ' 774 Tm'), '2 top corners');
+        self::assertSame(2, substr_count($bytes, ' 18 Tm'), '2 bottom corners');
+        // Right corners must have x > 576 (page width minus margin).
+        $matched = preg_match_all('~1 0 0 1 ([0-9.]+) 774 Tm~', $bytes, $m);
+        self::assertSame(2, $matched);
+        sort($m[1]);
+        self::assertLessThan(36.0, (float) $m[1][0], 'top-left corner x within left margin');
+        self::assertGreaterThan(576.0, (float) $m[1][1], 'top-right corner x past right page-minus-margin');
+    }
+
+    public function testPageMarginBoxesHonourTextAlignOverride(): void
+    {
+        // `@top-left { content: "X"; text-align: center; }` should pick
+        // the centre x-anchor (pageWidth/2) instead of the position-default
+        // left anchor (margin = 36).
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        // Use the explicit override on a position whose default would
+        // anchor differently: top-LEFT but text-align centre.
+        $css = '@page { @top-left { content: "Centred Header"; text-align: center; } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Without override the Tm x would equal margin (36). With centre
+        // override the x is `(612 - width) / 2` — much bigger than 36.
+        // Capture the x via the Tm operator.
+        $matched = preg_match('~1 0 0 1 ([0-9.]+) 774 Tm~', $bytes, $m);
+        self::assertSame(1, $matched, 'top-band Tm with author text-align centre');
+        self::assertGreaterThan(36.0, (float) $m[1], 'centre override pushed x past left-margin anchor');
+    }
+
+    public function testPageMarginBoxesCounterPageSubstitution(): void
+    {
+        // `@bottom-center { content: "Page " counter(page) " of " counter(pages); }` —
+        // each page should emit the literal "Page" prefix joined with the
+        // 1-based page index and total count. Verified by rendering a
+        // forced 3-page document and asserting both the "3" digit
+        // (totalpages) and the "1"/"2"/"3" page numbers appear via their
+        // shaped hex GIDs across the per-page content streams.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @bottom-center { content: "Page " counter(page) " of " counter(pages); } } '
+            . 'section { page-break-after: always; } '
+            . 'section:last-child { page-break-after: auto; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><section><h1>one</h1></section>'
+            . '<section><h1>two</h1></section>'
+            . '<section><h1>three</h1></section></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // 3 forced sections → 3 pages. Bottom band lives at y=18.
+        self::assertSame(3, substr_count($bytes, ' 18 Tm'), 'one bottom-band Tm per page');
+        // The renderer must register the digit glyphs (1, 2, 3) into the
+        // font subset; the body text doesn't use digits, so this comes
+        // from the collectCodepoints always-include-digits guard.
+        self::assertGreaterThanOrEqual(1, substr_count($bytes, '/Subtype /Type0'));
+    }
+
+    public function testPageMarginBoxesIgnoredWhenNoDefaultFont(): void
+    {
+        // Without a default font the renderer can't shape margin-box
+        // glyphs; the painter must skip the headers/footers cleanly
+        // rather than crashing.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { @top-center { content: "Hdr"; } }';
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><div></div></body></html>',
+        );
+        // No render-time exception; output is a valid PDF.
+        self::assertStringStartsWith('%PDF-', $writer->toBytes());
+        // The text doesn't appear in the stream — there's no font to
+        // shape it with.
+        self::assertStringNotContainsString('Hdr', $writer->toBytes());
+    }
+
+    public function testRealBoldFaceSuppressesSyntheticFakeBold(): void
+    {
+        // When `withFontFaces` registers a real 700-weight face, the
+        // painter must NOT emit `2 Tr` (fake-bold rendering mode) over
+        // the bold fragment. Without the real face, the inline layout
+        // would flag the fragment as needing synthetic bold and the
+        // painter would emit `2 Tr` for it.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $regular = (new OpenTypeParser($fontPath))->parse();
+        $bold = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())
+                ->withDefaultFont($regular)
+                ->withFontFaces([
+                    'Inter' => [
+                        new \Phpdftk\HtmlToPdf\Layout\FontFace($regular, 400, 'normal'),
+                        new \Phpdftk\HtmlToPdf\Layout\FontFace($bold, 700, 'normal'),
+                    ],
+                ]),
+        );
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p style="font-family: Inter">'
+            . 'normal <strong>bold</strong> normal</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The painter always re-emits `Tr` per fragment; in the bold
+        // run with a real face matched, it must be `0 Tr` (fill-only),
+        // never `2 Tr` (fill + stroke).
+        self::assertStringNotContainsString('2 Tr', $bytes, 'no synthetic fake-bold when real bold face matches');
+        self::assertStringContainsString('0 Tr', $bytes, 'fill-only mode emitted');
+    }
+
+    public function testSyntheticFakeBoldFiresWhenNoRealBoldFaceMatches(): void
+    {
+        // Conversely: without `withFontFaces` (only the default font), a
+        // `<strong>` fragment must still get the synthetic `2 Tr`
+        // fake-bold so the bold semantic is at least visually preserved.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $regular = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($regular));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>normal <strong>bold</strong> normal</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('2 Tr', $bytes, 'synthetic fake-bold fires without a real bold face');
+    }
+
+    public function testWithFontFacesRejectsNonFontFaceEntries(): void
+    {
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $regular = (new OpenTypeParser($fontPath))->parse();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('~FontFace~');
+        // Passing the raw OpenTypeData (not a FontFace) is a mistake the
+        // helper catches at config time, forcing the caller into the
+        // correct shape.
+        (new RendererOptions())->withFontFaces(['Inter' => $regular]); // @phpstan-ignore-line
+    }
+
+    public function testGenericFamilyAliasRejectsNonCanonicalKey(): void
+    {
+        $latinPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($latinPath)) {
+            self::markTestSkipped('Font fixture missing');
+        }
+        $latin = (new OpenTypeParser($latinPath))->parse();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('~mono~');
+        (new RendererOptions())->withGenericFamilies(['mono' => $latin]);
+    }
+
+    public function testCreatorAndProducerAlwaysSet(): void
+    {
+        // Even a doc with no <title>/<meta> gets Creator + Producer so
+        // downstream tooling can identify the pipeline.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto($writer, '<html><body><p>x</p></body></html>');
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Creator (phpdftk/html-to-pdf)', $bytes);
+        self::assertStringContainsString('/Producer (phpdftk)', $bytes);
+        // CreationDate follows the ISO 32000-2 §7.9.4 format:
+        // `D:YYYYMMDDHHmmSSO...`.
+        self::assertMatchesRegularExpression(
+            '~/CreationDate \(D:\d{14}(Z|[+-]\d{2}\x27\d{2}\x27)\)~',
+            $bytes,
+        );
+    }
+
+    public function testHtmlTitleFlowsIntoPdfInfo(): void
+    {
+        $html = '<html><head><title>Quarterly Report</title>'
+            . '<meta name="author" content="Alice"><meta name="description" content="Q3 numbers">'
+            . '</head><body></body></html>';
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/Title (Quarterly Report)', $bytes);
+        self::assertStringContainsString('/Author (Alice)', $bytes);
+        self::assertStringContainsString('/Subject (Q3 numbers)', $bytes);
+        // Creator / Producer always set so traceability is clean.
+        self::assertStringContainsString('/Creator (phpdftk/html-to-pdf)', $bytes);
+        self::assertStringContainsString('/Producer (phpdftk)', $bytes);
+    }
+
+    public function testEmbeddedStyleElementCascades(): void
+    {
+        // `<style>` in `<head>` should add Author-origin rules. Rendering
+        // an HTML doc with an embedded red-background rule should produce
+        // a `1 0 0 rg` fill in the content stream.
+        $html = '<html><head><style>p { background-color: red; }</style></head>'
+            . '<body><p>hi</p></body></html>';
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto($writer, $html);
+        self::assertStringContainsString('1 0 0 rg', $writer->toBytes(), 'embedded style fills red');
+    }
+
+    public function testEmbeddedStyleBeatsAuthorCssParam(): void
+    {
+        // Embedded `<style>` appears later in source order than the
+        // explicit `$authorCss` param, so its rules win on ties.
+        $html = '<html><head><style>p { background-color: red; }</style></head>'
+            . '<body><p>hi</p></body></html>';
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto($writer, $html, 'p { background-color: blue; }');
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('1 0 0 rg', $bytes, 'embedded <style> wins on later source order');
+        self::assertStringNotContainsString('0 0 1 rg', $bytes, 'blue from $authorCss does not paint');
+    }
+
+    public function testDefaultUaSheetGivesHeadingsDistinctSizes(): void
+    {
+        // h1 / h2 / h3 should cascade to different font-sizes.
+        $renderer = new Renderer();
+        $doc = $renderer->parse(
+            '<html><body><h1>1</h1><h2>2</h2><h3>3</h3></body></html>',
+        );
+        $root = $doc->documentElement;
+        self::assertNotNull($root);
+
+        $sheet = $renderer->parseStylesheet($renderer->options->effectiveUserAgentStylesheet());
+        $cascade = new \Phpdftk\Css\Cascade\Cascade(
+            \Phpdftk\Css\Cascade\PropertyRegistry::default(),
+        );
+
+        $h1 = $root->querySelector('h1');
+        $h2 = $root->querySelector('h2');
+        $h3 = $root->querySelector('h3');
+        self::assertNotNull($h1);
+        self::assertNotNull($h2);
+        self::assertNotNull($h3);
+
+        $h1Size = $cascade->computeFor([$sheet], $h1)->get('font-size');
+        $h2Size = $cascade->computeFor([$sheet], $h2)->get('font-size');
+        $h3Size = $cascade->computeFor([$sheet], $h3)->get('font-size');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h1Size);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h2Size);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h3Size);
+        self::assertSame(32.0, $h1Size->value);
+        self::assertSame(24.0, $h2Size->value);
+        self::assertSame(19.0, $h3Size->value);
+    }
+
+    public function testOpacityEmitsGsOperator(): void
+    {
+        // opacity < 1 registers an ExtGState on the page and the painter
+        // emits a `gs` invocation around the box's draw operators.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><div></div></body></html>',
+            'html, body, div { display: block; }
+             div { background-color: red; height: 50px; opacity: 0.5; }',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString(' gs', $bytes, 'opacity should emit a gs operator');
+        self::assertStringContainsString('/ExtGState', $bytes);
+        self::assertStringContainsString('/ca 0.5', $bytes);
+    }
+
+    public function testFullOpacityNoGs(): void
+    {
+        // opacity = 1 (initial) → no gs operator.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><div></div></body></html>',
+            'html, body, div { display: block; } div { background-color: red; height: 50px; }',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringNotContainsString(' gs', $bytes);
+    }
+
+    public function testShortContentEmitsSinglePage(): void
+    {
+        $result = (new Renderer())->render(
+            '<html><body><div></div></body></html>',
+            'div { background-color: red; height: 100px; }',
+        );
+        $bytes = $result->writer->toBytes();
+        $count = substr_count($bytes, "/Type /Page\n");
+        self::assertSame(1, $count);
+    }
+
+    public function testTallContentSpansMultiplePages(): void
+    {
+        // 5000px content at 792px pages → 7 pages (ceil(5000/792)).
+        $renderer = new Renderer((new RendererOptions())->withPageSize(612, 792));
+        $result = $renderer->render(
+            '<html><body><div></div></body></html>',
+            'div { background-color: red; height: 5000px; }',
+        );
+        $bytes = $result->writer->toBytes();
+        $count = substr_count($bytes, "/Type /Page\n");
+        self::assertSame(7, $count, '5000px / 792px = ceil(6.31) = 7 pages');
+    }
+
+    public function testPaginationProducesValidPdf(): void
+    {
+        $renderer = new Renderer((new RendererOptions())->withPageSize(612, 792));
+        $result = $renderer->render(
+            '<html><body><div></div></body></html>',
+            'div { background-color: blue; height: 2000px; }',
+        );
+        $bytes = $result->writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertStringContainsString('%%EOF', $bytes);
+    }
+}

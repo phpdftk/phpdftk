@@ -7,14 +7,20 @@ namespace Phpdftk\Pdf\Core\Annotation;
 use Phpdftk\Pdf\Core\PdfArray;
 use Phpdftk\Pdf\Core\PdfDictionary;
 use Phpdftk\Pdf\Core\PdfName;
-use Phpdftk\Pdf\Core\PdfReference;
+use Phpdftk\Pdf\Core\Serializable;
 
 /**
  * Link annotation (/Subtype /Link).
  */
 class LinkAnnotation extends Annotation
 {
-    public ?PdfReference $dest = null;      // /Dest
+    /**
+     * /Dest — destination for this link. Accepts PdfReference (for
+     * named-tree references), Destination (inline explicit destination
+     * — ISO 32000-2 Table 148), PdfArray (raw inline destination), or
+     * PdfString (legacy named destination).
+     */
+    public ?Serializable $dest = null;      // /Dest
     public ?PdfDictionary $a = null;        // /A - action
     public ?PdfDictionary $pa = null;       // /PA
     public ?PdfArray $quadPoints = null;    // /QuadPoints

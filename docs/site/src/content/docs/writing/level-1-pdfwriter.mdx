@@ -120,6 +120,22 @@ $page->drawPath(
 );
 ```
 
+## Catalog conveniences moved to `PdfDoc`
+
+Methods that operate on the document catalog (`setOutline`, `addOutlineItem`, `setPageLabels`, `setNamedDestinations`, `setInfo`, `setMetadata`, `syncInfoToMetadata`) now live on the new [`PdfDoc`](/writing/level-2-pdfdoc/) class. They remain on `PdfWriter` as `@deprecated` forwarders for one minor release.
+
+New code should call them on a `PdfDoc`:
+
+```php
+use Phpdftk\Pdf\Writer\PdfDoc;
+
+$doc = PdfDoc::wrap($writer);   // or new PdfDoc() to start fresh
+$doc->setOutline($outline);
+$doc->setPageLabels($labels);
+```
+
+The examples below use the legacy `$writer->...` path (still functional during the deprecation window).
+
 ## Bookmarks
 
 `setOutline()` registers an `Outline` root and wires it to the catalog; `addOutlineItem()` registers each entry and returns a reference for cross-linking. Each item carries a `/Dest` array (or named destination) describing where the bookmark jumps to.

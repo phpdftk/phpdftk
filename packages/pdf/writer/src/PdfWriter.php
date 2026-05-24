@@ -9,8 +9,6 @@ use Phpdftk\Pdf\Core\Content\Resources;
 use Phpdftk\Pdf\Core\Document\Catalog;
 use Phpdftk\Pdf\Core\Document\Destination;
 use Phpdftk\Pdf\Core\Document\Info;
-use Phpdftk\Pdf\Core\Document\MetadataStream;
-use Phpdftk\Pdf\Core\Document\NameTree;
 use Phpdftk\Pdf\Core\Document\Outline;
 use Phpdftk\Pdf\Core\Document\OutlineItem;
 use Phpdftk\Pdf\Core\Document\Page as CorePage;
@@ -49,7 +47,6 @@ use Phpdftk\Pdf\Core\PdfNumber;
 use Phpdftk\Pdf\Core\PdfObject;
 use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Core\PdfStream;
-use Phpdftk\Pdf\Core\PdfString;
 use Phpdftk\Pdf\Core\PdfVersion;
 use Phpdftk\Geometry\Rectangle;
 use Phpdftk\ImageMetadata\ImageParser;
@@ -113,6 +110,12 @@ class PdfWriter
     /** @var list<ConformanceResult> */
     private array $conformanceResults = [];
 
+    /**
+     * Lazily-cached PdfDoc view of this writer, used by the deprecated
+     * forwarding stubs below.
+     */
+    private ?PdfDoc $cachedDoc = null;
+
     public function __construct(bool $compressStreams = true, PdfVersion|string $version = PdfFileWriter::DEFAULT_PDF_VERSION)
     {
         $this->file = new PdfFileWriter($compressStreams, version: $version);
@@ -160,9 +163,13 @@ class PdfWriter
         return $this->contentStreams;
     }
 
+    /**
+     * @deprecated Use {@see PdfDoc::setInfo()} instead. This forwarder is
+     *             retained for one minor release and will be removed.
+     */
     public function setInfo(Info $info): void
     {
-        $this->file->setInfo($info);
+        $this->doc()->setInfo($info);
     }
 
     /**
@@ -471,7 +478,13 @@ class PdfWriter
             }
         }
 
-        return new Font($name, $data->postScriptName, $data, unicodeToGid: $unicodeToGidSubset);
+        return new Font(
+            $name,
+            $data->postScriptName,
+            $data,
+            unicodeToGid: $unicodeToGidSubset,
+            oldToNewGid: $cffGidMap,
+        );
     }
 
     /**
@@ -548,76 +561,43 @@ class PdfWriter
     }
 
     /**
-     * Register an Outline root and wire it to the Catalog.
-     * Returns the Outline for further configuration (setting First/Last/Count).
+     * @deprecated Use {@see PdfDoc::setOutline()} instead. This forwarder
+     *             is retained for one minor release and will be removed.
      */
     public function setOutline(Outline $outline): Outline
     {
-        $this->file->register($outline);
-        $this->catalog->outlines = new PdfReference($outline->objectNumber);
-        return $outline;
+        return $this->doc()->setOutline($outline);
     }
 
     /**
-     * Register an OutlineItem and return a reference to it.
-     * Callers are responsible for linking Prev/Next/First/Last/Parent.
+     * @deprecated Use {@see PdfDoc::addOutlineItem()} instead. This
+     *             forwarder is retained for one minor release.
      */
     public function addOutlineItem(OutlineItem $item): PdfReference
     {
-        $this->file->register($item);
-        return new PdfReference($item->objectNumber);
+        return $this->doc()->addOutlineItem($item);
     }
 
     /**
-     * Set a simple flat page-labels number tree on the Catalog.
-     * Pass an associative array of zero-based page index => PageLabel.
-     *
-     * Example: [0 => $frontMatter, 4 => $mainContent]
+     * @deprecated Use {@see PdfDoc::setPageLabels()} instead. This
+     *             forwarder is retained for one minor release.
      *
      * @param array<int, PageLabel> $labels
      */
     public function setPageLabels(array $labels): void
     {
-        // Build an inline Nums array: [pageIdx1 labelDict1 pageIdx2 labelDict2 ...]
-        $nums = [];
-        ksort($labels);
-        foreach ($labels as $pageIndex => $label) {
-            $this->file->register($label);
-            $nums[] = new PdfNumber($pageIndex);
-            $nums[] = new PdfReference($label->objectNumber);
-        }
-
-        // Inline number tree (leaf node only — sufficient for most documents)
-        $tree = new PdfDictionary(['Nums' => new PdfArray($nums)]);
-        $treeStream = new PdfStream($tree, '');
-        $this->file->register($treeStream);
-        $this->catalog->pageLabels = new PdfReference($treeStream->objectNumber);
+        $this->doc()->setPageLabels($labels);
     }
 
     /**
-     * Set named destinations on the document.
-     * Pass an associative array of name => Destination.
+     * @deprecated Use {@see PdfDoc::setNamedDestinations()} instead. This
+     *             forwarder is retained for one minor release.
      *
      * @param array<string, Destination> $destinations
      */
     public function setNamedDestinations(array $destinations): void
     {
-        ksort($destinations);
-        $namesArray = [];
-        foreach ($destinations as $name => $dest) {
-            $namesArray[] = new PdfString($name);
-            $namesArray[] = $dest;
-        }
-
-        $nameTree = new NameTree();
-        $nameTree->names = new PdfArray($namesArray);
-        $this->file->register($nameTree);
-
-        // Build a names dictionary with /Dests pointing to the name tree
-        $namesDict = new PdfDictionary(['Dests' => new PdfReference($nameTree->objectNumber)]);
-        $namesDictObj = new PdfStream($namesDict, '');
-        $this->file->register($namesDictObj);
-        $this->catalog->names = new PdfReference($namesDictObj->objectNumber);
+        $this->doc()->setNamedDestinations($destinations);
     }
 
     /**
@@ -939,53 +919,31 @@ class PdfWriter
     }
 
     /**
-     * Attach an XMP metadata stream to the document catalog.
-     *
-     * @param string $xmpXml The raw XMP XML bytes (typically from XmpWriter::serialize())
+     * @deprecated Use {@see PdfDoc::setMetadata()} instead. This
+     *             forwarder is retained for one minor release.
      */
     public function setMetadata(string $xmpXml): void
     {
-        $metadataStream = new MetadataStream($xmpXml);
-        $this->file->register($metadataStream);
-        $this->catalog->metadata = new PdfReference($metadataStream->objectNumber);
+        $this->doc()->setMetadata($xmpXml);
     }
 
     /**
-     * Build and attach XMP metadata from the document's Info dictionary.
-     *
-     * Syncs Title, Author, Subject, Creator, Producer from the Info dict
-     * into XMP properties (dc:title, dc:creator, dc:description,
-     * xmp:CreatorTool, pdf:Producer) and attaches the result as a
-     * MetadataStream on the Catalog.
-     *
-     * Requires the Info dict to be set via {@see setInfo()} first.
+     * @deprecated Use {@see PdfDoc::syncInfoToMetadata()} instead. This
+     *             forwarder is retained for one minor release.
      */
     public function syncInfoToMetadata(): void
     {
-        $info = $this->file->getInfo();
-        if ($info === null) {
-            return;
-        }
+        $this->doc()->syncInfoToMetadata();
+    }
 
-        $packet = \Phpdftk\Xmp\XmpPacket::create();
-        if ($info->title !== null) {
-            $packet = $packet->set('dc:title', $info->title->value);
-        }
-        if ($info->author !== null) {
-            $packet = $packet->set('dc:creator', $info->author->value);
-        }
-        if ($info->subject !== null) {
-            $packet = $packet->set('dc:description', $info->subject->value);
-        }
-        if ($info->creator !== null) {
-            $packet = $packet->set('xmp:CreatorTool', $info->creator->value);
-        }
-        if ($info->producer !== null) {
-            $packet = $packet->set('pdf:Producer', $info->producer->value);
-        }
-
-        $xmpXml = (new \Phpdftk\Xmp\XmpWriter())->serialize($packet);
-        $this->setMetadata($xmpXml);
+    /**
+     * Lazily-constructed PdfDoc view over this writer, used by the
+     * deprecated forwarding stubs above. New code should use PdfDoc
+     * directly.
+     */
+    private function doc(): PdfDoc
+    {
+        return $this->cachedDoc ??= PdfDoc::wrap($this);
     }
 
     // -----------------------------------------------------------------------

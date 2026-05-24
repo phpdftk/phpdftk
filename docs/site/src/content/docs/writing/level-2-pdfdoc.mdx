@@ -1,0 +1,431 @@
+---
+title: "PdfDoc — Friendly Document API"
+description: Ergonomic wrappers over the PDF object model — annotations, navigation, metadata, file attachments — without dropping to PdfWriter.
+---
+
+import Example from '../../../components/Example.astro';
+
+`PdfDoc` sits between `PdfWriter` (Level 1, byte/resource concerns) and `Pdf` (Level 3, flow-layout builder). It provides one method per "thing a user wants to put in a document" — bookmarks, page labels, named destinations, link annotations, document metadata — wrapped over the underlying PDF object model so you never need `register()` or manual `Catalog` wiring for built-in PDF features.
+
+## End-to-end example
+
+A two-page document that uses every Phase 0 / Phase 1 `PdfDoc` API in one place: fluent metadata setters, XMP sync, a URI link annotation, and an internal-navigation link via an inline `Destination`.
+
+<Example source="writer/pdf-doc.php" pdf="samples/writer/pdf-doc.pdf" />
+
+## When to use which class
+
+| Class | Use when | Examples |
+|---|---|---|
+| `Pdf` (Level 3) | You want auto-layout, headings, paragraphs | reports, articles, letters |
+| `PdfDoc` (Level 2) | You want explicit page positioning *plus* friendly wrappers for catalog / annotation / form features | invoices with links, forms, attachments |
+| `PdfWriter` (Level 1) | You need precise byte/resource control — custom fonts, encryption, signing, conformance profiles | font subsetting, signed documents, PDF/A |
+
+You can always drop one level. `Pdf::doc()` returns the `PdfDoc`; `PdfDoc::writer()` returns the `PdfWriter`; `PdfWriter::fileWriter()` returns the `PdfFileWriter`.
+
+## Creating a document
+
+```php
+use Phpdftk\Pdf\Writer\PdfDoc;
+
+$doc = new PdfDoc();
+$page = $doc->addPage(); // returns a Writer\Page for explicit drawing
+```
+
+If you already have a configured `PdfWriter` (with a signer, encryption, or conformance profile), wrap it instead:
+
+```php
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Pdf\Conformance\Profile\PdfAProfile;
+
+$writer = new PdfWriter();
+$writer->setConformance(PdfAProfile::A2b);
+$doc = PdfDoc::wrap($writer);
+```
+
+## Document metadata
+
+Fluent setters lazily create an `Info` dict and populate fields. Each returns `$this` for chaining:
+
+```php
+$doc->setTitle('Annual Report 2026')
+    ->setAuthor('Finance Team')
+    ->setSubject('Year-end summary')
+    ->setKeywords('annual, report, 2026')
+    ->setCreator('phpdftk');
+```
+
+To mirror those values into XMP metadata (required for PDF/A and recommended for general use):
+
+```php
+$doc->syncInfoToMetadata();
+```
+
+For full control, pass a constructed `Info`:
+
+```php
+use Phpdftk\Pdf\Core\Document\Info;
+use Phpdftk\Pdf\Core\PdfString;
+
+$info = new Info();
+$info->title = new PdfString('Explicit Title');
+$info->producer = new PdfString('My App 1.2');
+$doc->setInfo($info);
+```
+
+Raw XMP:
+
+```php
+$doc->setMetadata($xmpXmlString);
+```
+
+## Link annotations
+
+`addLink()` accepts three target forms:
+
+```php
+use Phpdftk\Geometry\Rectangle;
+
+// URI link — builds an inline /A action dict
+$rect = new Rectangle(72.0, 700.0, 200.0, 14.0);
+$doc->addLink($page, $rect, 'https://example.com/');
+
+// Internal navigation — pass a Destination (fit, xyz, fitH, …)
+use Phpdftk\Pdf\Core\Document\Destination;
+use Phpdftk\Pdf\Core\PdfReference;
+
+$pageRef = new PdfReference($page->corePage()->objectNumber);
+$doc->addLink($page, $rect, Destination::fit($pageRef));
+
+// Named destination — pass a PdfReference into the name tree
+$doc->addLink($page, $rect, $namedDestinationRef);
+```
+
+Optional border:
+
+```php
+use Phpdftk\Pdf\Core\Annotation\BorderStyle;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+
+$border = new BorderStyle();
+$border->s = new PdfName('D'); // dashed
+$border->w = new PdfNumber(1.5);
+
+$doc->addLink($page, $rect, 'https://example.com/', $border);
+```
+
+## Bookmarks (outline)
+
+```php
+use Phpdftk\Pdf\Core\Document\Outline;
+use Phpdftk\Pdf\Core\Document\OutlineItem;
+
+$outline = new Outline();
+$doc->setOutline($outline);
+
+$intro = new OutlineItem('Introduction');
+$intro->parent = new PdfReference($outline->objectNumber);
+$ref = $doc->addOutlineItem($intro);
+
+$outline->first = $ref;
+$outline->last = $ref;
+$outline->count = 1;
+```
+
+## Page labels
+
+Override the page-number labels shown in the viewer's UI. Useful for front matter in lowercase roman, followed by arabic body pages:
+
+```php
+use Phpdftk\Pdf\Core\Document\PageLabel;
+use Phpdftk\Pdf\Core\PdfName;
+
+$front = new PageLabel();
+$front->s = new PdfName('r');  // lowercase roman: i, ii, iii…
+
+$main = new PageLabel();
+$main->s = new PdfName('D');   // decimal: 1, 2, 3…
+
+$doc->setPageLabels([
+    0 => $front,  // page index 0 starts roman labels
+    3 => $main,   // page index 3 starts arabic labels
+]);
+```
+
+## Named destinations
+
+Build a name → destination map for inter-page navigation. Other annotations can then reference these by name (or by `PdfReference` into the tree).
+
+```php
+$pageRef = new PdfReference($page->corePage()->objectNumber);
+$doc->setNamedDestinations([
+    'intro'    => Destination::fit($pageRef),
+    'chapter1' => Destination::xyz($pageRef, 72.0, 750.0, 1.0),
+]);
+```
+
+## Annotation builders
+
+Wrap PDF annotation types without `register()` plumbing. Every method
+attaches the annotation to the page's `/Annots` array, registers it as
+an indirect object, and returns the typed annotation for further
+customization.
+
+```php
+use Phpdftk\Geometry\Rectangle;
+
+// Sticky note + popup
+$doc->addStickyNote($page, 72, 720, 'Reviewer comment goes here');
+
+// Text-markup annotations operate over an array of quad Rectangles
+// (one per highlighted line):
+$doc->addHighlight($page, [
+    new Rectangle(72, 700, 200, 14),
+    new Rectangle(72, 680, 180, 14),
+]);
+
+// Shape annotations
+$doc->addSquare($page, new Rectangle(72, 500, 200, 80));
+$doc->addCircleAnnotation($page, new Rectangle(72, 400, 100, 100));
+
+// Line and free-form ink
+$doc->addLineAnnotation($page, 100, 200, 300, 250);
+$doc->addInk($page, [[100, 100, 150, 120, 200, 110]]);
+
+// Polygon / polyline take a list of [x, y] pairs
+$doc->addPolygon($page, [[100, 100], [200, 100], [150, 200]]);
+
+// Standard rubber-stamp
+$doc->addStamp($page, new Rectangle(72, 100, 180, 60), 'Approved');
+```
+
+Other annotation types: `addFreeText`, `addUnderlineAnnotation`,
+`addSquiggly`, `addStrikeout`, `addCaret`, `addPolyline`,
+`addWatermarkAnnotation`.
+
+## File attachments
+
+`attachFile()` embeds a file from disk; `attachFileBytes()` accepts
+in-memory bytes. Both register a `FileSpec` + `EmbeddedFile` and append
+the FileSpec reference to the catalog's `/AF` (Associated Files) array,
+which is what ZUGFeRD / Factur-X invoices expect for the embedded XML.
+
+```php
+$doc->attachFile(
+    '/path/to/data.csv',
+    description: 'Source spreadsheet',
+    mimeType: 'text/csv',
+);
+
+$doc->attachFileBytes(
+    'invoice.xml',
+    $xmlBytes,
+    relationship: 'Alternative',  // ZUGFeRD wiring
+);
+```
+
+## Viewer preferences
+
+Set how viewers should display the document (window flags, page mode,
+direction). Closure form gives you a fresh `ViewerPreferences` to
+mutate; pre-built form passes one in directly.
+
+```php
+use Phpdftk\Pdf\Core\Document\ViewerPreferences;
+
+$doc->setViewerPreferences(function (ViewerPreferences $vp): void {
+    $vp->displayDocTitle = true;
+    $vp->fitWindow = true;
+});
+```
+
+## Layers (optional content)
+
+`addLayer()` registers an OCG and adds it to the catalog's
+`/OCProperties`. Use `Writer\Page::inLayer()` to scope drawing
+operations to the layer — viewers will toggle the wrapped content on
+or off when the user shows / hides the layer in the bookmarks panel.
+
+```php
+$markup = $doc->addLayer('Reviewer markup', visible: true);
+
+$page->inLayer($markup, function ($p): void {
+    $p->drawLine(72, 200, 540, 200, color: new RgbColor(0.8, 0.2, 0.2));
+});
+```
+
+## Actions
+
+Use the `Action` factory to build action objects, then attach them via
+`setOpenAction()` (for document-open behavior) or directly on
+annotations.
+
+```php
+use Phpdftk\Pdf\Writer\Action;
+
+$doc->setOpenAction(Action::uri('https://example.com/'));
+// Other shortcuts: Action::goTo, Action::javascript, Action::launch,
+// Action::namedAction('NextPage'), Action::resetForm([...]).
+```
+
+## Writer\Page transforms, opacity, page boxes
+
+The page handle returned by `addPage()` exposes a fluent graphics-state
+API. `withTransform()` scopes any transforms or opacity changes inside
+a `q ... Q` save/restore pair so they don't leak into subsequent
+drawing.
+
+```php
+$page->withTransform(function ($p): void {
+    $p->translate(300, 300);
+    $p->rotate(15);
+    $p->setOpacity(0.4);
+    $p->drawRectangle(0, 0, 120, 60, fill: new RgbColor(0.2, 0.5, 0.9));
+});
+
+// Rotation, crop / bleed / trim / art boxes.
+$page->setRotation(90);
+$page->setTrimBox(new Rectangle(36, 36, 540, 720));
+```
+
+## Form fields
+
+`PdfDoc::addTextField`, `addCheckbox`, `addChoiceField`, and
+`addSignatureField` build an AcroForm lazily and attach a Widget
+annotation to the page. The AcroForm sets `/NeedAppearances` so
+viewers regenerate widget appearances at open time — no need to
+pre-build the `/AP` dict for each field.
+
+```php
+use Phpdftk\Pdf\Writer\Form\{TextFieldOptions, CheckboxOptions, ChoiceFieldOptions};
+
+$doc->addTextField('name', $page, new Rectangle(72, 700, 200, 22),
+    new TextFieldOptions(required: true, maxLength: 80));
+
+$doc->addCheckbox('agree', $page, new Rectangle(72, 670, 14, 14),
+    new CheckboxOptions(onValue: 'Yes', defaultChecked: false));
+
+$doc->addChoiceField('country', $page, new Rectangle(72, 640, 200, 22),
+    new ChoiceFieldOptions(
+        choices: [['us', 'United States'], ['ca', 'Canada']],
+        combo: true,
+        sort: true,
+    ));
+
+$doc->addSignatureField('signature', $page, new Rectangle(72, 100, 200, 50));
+```
+
+Push buttons and radio groups are planned but not in v1.
+
+## Gradients
+
+Build a `ShadingPattern` with `addLinearGradient` or
+`addRadialGradient`, then attach it to the page via
+`Writer\Page::useGradient()` to get the resource name. The content
+stream uses standard `cs`/`scn` operators:
+
+```php
+use Phpdftk\Geometry\Point;
+
+$g = $doc->addLinearGradient(
+    new Point(0, 0), new Point(200, 0),
+    [1, 0, 0], [0, 0, 1],
+);
+$name = $page->useGradient($g);
+$page->contentStream()
+    ->setFillColorSpace('Pattern')
+    ->setFillColor("/{$name} scn")
+    ->rectangle(72, 600, 200, 80)
+    ->fill();
+```
+
+`addRadialGradient` takes two circles (inner / outer) for the same
+two-stop pattern.
+
+## Spot colors
+
+`registerSpotColor` builds a `Separation` color space with the given
+CMYK approximation. The returned `SpotColor` handle attaches to a page
+via `Writer\Page::useSpotColor()`:
+
+```php
+$spot = $doc->registerSpotColor('Pantone 185 C', [0.0, 0.85, 0.6, 0.0]);
+$name = $page->useSpotColor($spot);
+$page->contentStream()
+    ->setFillColorSpace($name)
+    ->setFillColor(1.0)   // full tint
+    ->rectangle(72, 600, 200, 80)
+    ->fill();
+```
+
+## Form XObject templates
+
+`createTemplate` captures a closure's drawing into a reusable
+`FormXObject`. Place it on any page with `Writer\Page::drawTemplate()`,
+optionally scaling via `$w`/`$h` parameters. Repeated placements
+reuse a single page-level XObject resource.
+
+```php
+$badge = $doc->createTemplate(
+    new Rectangle(0, 0, 100, 30),
+    function ($cs): void {
+        $cs->setFillColorRGB(0.2, 0.6, 0.2)
+           ->rectangle(0, 0, 100, 30)
+           ->fill();
+    },
+);
+
+$page->drawTemplate($badge, 72, 500);
+$page->drawTemplate($badge, 240, 500);  // same template, different position
+```
+
+## Multimedia + 3D annotations (legacy)
+
+Sound and Movie annotations are deprecated in PDF 2.0 (replaced by
+Rich Media); the wrappers are provided for legacy workflows. The
+caller constructs the underlying `Sound` / `Movie` / `ThreeDStream`,
+and `PdfDoc` registers + attaches the annotation:
+
+```php
+$sound = new Sound(44100.0, $samples);
+$doc->addSoundAnnotation($page, $rect, $sound);
+
+$movie = new Movie(new FileSpec('clip.mp4'));
+$doc->addMovieAnnotation($page, $rect, $movie);
+
+$threeD = new ThreeDStream($u3dBytes);
+$doc->add3DAnnotation($page, $rect, $threeD);
+```
+
+## Phase 4 end-to-end examples
+
+<Example source="writer/phase4-overview.php" pdf="samples/writer/phase4-overview.pdf" />
+
+<Example source="writer/phase4-batch2.php" pdf="samples/writer/phase4-batch2.pdf" />
+
+## Escape hatches
+
+```php
+// Drop to Level 1 — full PdfWriter API: addFont, addImage, signing, encryption, conformance
+$writer = $doc->writer();
+
+// Drop to Level 0 — raw PdfFileWriter byte assembly
+$fileWriter = $doc->writer()->fileWriter();
+```
+
+## Migration from `PdfWriter`
+
+Several methods previously on `PdfWriter` now live on `PdfDoc`. They remain on `PdfWriter` as `@deprecated` forwarders for one minor release. Update call sites:
+
+| Before | After |
+|---|---|
+| `$writer->setOutline($outline)` | `$doc->setOutline($outline)` |
+| `$writer->addOutlineItem($item)` | `$doc->addOutlineItem($item)` |
+| `$writer->setPageLabels($labels)` | `$doc->setPageLabels($labels)` |
+| `$writer->setNamedDestinations($dests)` | `$doc->setNamedDestinations($dests)` |
+| `$writer->setInfo($info)` | `$doc->setInfo($info)` |
+| `$writer->setMetadata($xmp)` | `$doc->setMetadata($xmp)` |
+| `$writer->syncInfoToMetadata()` | `$doc->syncInfoToMetadata()` |
+
+From a `Pdf` instance, the new path is `$pdf->doc()->...` — the existing `$pdf->writer()->...` still works during the deprecation window.

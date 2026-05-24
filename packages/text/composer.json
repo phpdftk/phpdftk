@@ -1,0 +1,43 @@
+{
+    "name": "phpdftk/text",
+    "description": "Text shaping primitives: UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping for layout engines",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "unicode",
+        "line-breaking",
+        "bidi",
+        "shaping",
+        "opentype"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-intl": "*",
+        "phpdftk/font-parser": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Text\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Text\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

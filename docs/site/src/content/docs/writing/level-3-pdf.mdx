@@ -1,0 +1,297 @@
+---
+title: "Pdf — High-Level Builder"
+description: The highest-level API — auto-layout, word wrap, pagination, headers/footers, watermarks with zero PDF knowledge.
+---
+
+import Example from '../../../components/Example.astro';
+
+The `Pdf` class is a cursor-based document builder. You add content in order, and it handles page breaks, word wrap, margins, and font management automatically.
+
+## Basic usage
+
+<Example source="writer/pdf-high-level.php" pdf="samples/writer/pdf-high-level.pdf" />
+
+## Defaults
+
+| Setting | Default |
+|---|---|
+| Page size | Letter (612 x 792 pt) |
+| Margins | 72 pt (1 inch) all sides |
+| Font | Helvetica 11pt |
+| Line height | 1.4x font size |
+
+## Headings
+
+Six heading levels with decreasing font sizes:
+
+```php
+$pdf->addHeading('Title', 1);      // 24pt bold
+$pdf->addHeading('Section', 2);    // 20pt bold
+$pdf->addHeading('Subsection', 3); // 16pt bold
+// ... through level 6
+```
+
+### Auto-generated outline (bookmarks)
+
+`enableOutline()` turns headings into PDF bookmarks. Each `addHeading()`
+call registers an `OutlineItem` with a destination pointing at that
+heading's location; heading levels (1–6) drive parent/child nesting.
+Viewers display the result in their bookmarks panel.
+
+<Example source="writer/auto-outline.php" pdf="samples/writer/auto-outline.pdf" />
+
+Disable later in the document by calling `enableOutline(false)`. Only
+headings added between the on/off transitions are recorded.
+
+## Multi-column layout
+
+`setColumns(N, gutter)` splits the body region into `N` equal-width
+columns separated by `gutter` points. Flow content fills the current
+column from top to bottom, then advances to the next column;
+page breaks only occur after the last column on a page overflows.
+
+All existing flow methods (`addText`, `addHeading`, `addList`,
+`addTable`, `addQuote`, `addCallout`, `addImage`, `addRule`) honour
+the column geometry without code changes. Switch back to single-column
+flow with `setColumns(1)`.
+
+<Example source="writer/multi-column.php" pdf="samples/writer/multi-column.pdf" />
+
+Headers, footers, watermarks, and page numbering always span the full
+page — they're independent of the body's column configuration.
+
+## Barcodes
+
+`addBarcode(Symbology, $data, ?$options, $align)` renders a barcode at
+the current cursor. The `phpdftk/barcode` package implements the
+encoders; the writer wraps them in a flow / positioned / template
+adapter.
+
+Supported symbologies:
+
+| Symbology | Notes |
+|---|---|
+| `Code128` | Subset B — printable ASCII (32-127) |
+| `Code39` | Digits + uppercase + a few symbols, with `*` start/stop |
+| `Codabar` | Digits + `-$:/.+`, A-D start/stop sentinels |
+| `ITF` | Interleaved 2 of 5 — digit pairs, even length |
+| `EAN13` | 12 digits + computed checksum (or 13 with checksum verified) |
+| `EAN8` | 7 digits + checksum (or 8 verified) |
+| `UPCA` | 11 digits + checksum (or 12 verified) — North America |
+| `QR` | Versions 1-40, ECC levels L/M/Q/H, numeric/alphanumeric/byte modes |
+| `DataMatrix` | ECC 200, 24 square sizes (10×10 to 144×144), ASCII mode with digit-pair compression |
+| `PDF417` | ISO/IEC 15438. Byte Compaction mode (any 8-bit payload), auto-selected rows/columns (3–90 × 1–30), Reed-Solomon over GF(929) with auto ECC level. Full 2,787-entry codeword pattern table from the AIM USS-PDF417 specification. |
+| `Aztec` | ISO/IEC 24778, **Compact + Full formats with high-level encoding**. Compact (1–4 layers, 15×15 to 27×27) for ≤ 64 data codewords; Full (1–32 layers, 19×19 to 151×151, reference grid for L ≥ 5) for up to 2 048 data codewords. High-level encoder picks the optimal mix of Upper / Lower / Mixed / Punct / Digit sub-alphabets + Binary Shift via Dijkstra-style state search — typical ASCII payloads encode at ~30–40% smaller symbols than raw byte mode. Reed-Solomon over GF(64) (L ≤ 2), GF(256) (L ≤ 8), GF(1024) (L ≤ 22), or GF(4096) (L ≤ 32); mode message uses GF(16). Auto-selected format + layer count with ~23% ECC. |
+
+<Example source="writer/barcodes.php" pdf="samples/writer/barcodes.pdf" />
+
+For positioned placement, use `Writer\Page::drawBarcode($symbology, $data, $x, $y)`.
+For multi-document reuse, build a `FormXObject` template once with
+`PdfDoc::createBarcode()` and stamp it with `Writer\Page::drawTemplate()`.
+
+## Text alignment
+
+```php
+use Phpdftk\Pdf\Writer\Alignment;
+
+$pdf->addText('Left aligned (default)');
+$pdf->addText('Centered text', Alignment::Center);
+$pdf->addText('Right aligned', Alignment::Right);
+```
+
+## Inline links
+
+Pass a `TextStyle` with a `link` URI to make a paragraph clickable.
+Every wrapped line of the linked text gets its own link annotation, so
+multi-line linked paragraphs are fully clickable — including
+continuation lines after a page break.
+
+<Example source="writer/inline-links.php" pdf="samples/writer/inline-links.pdf" />
+
+## Text decoration
+
+`TextStyle` carries `underline` and `strikethrough` flags. Both render
+as graphics lines drawn in the same colour as the surrounding text;
+they apply per rendered line, so a wrapped paragraph gets one
+underline / strikethrough segment per line.
+
+<Example source="writer/text-decoration.php" pdf="samples/writer/text-decoration.pdf" />
+
+## Blockquotes
+
+`addQuote()` renders an italic, indented body with a coloured vertical
+bar down the left edge. Multi-line quotes wrap at the column width and
+auto-paginate; the bar is drawn once per page the quote occupies.
+
+<Example source="writer/blockquote.php" pdf="samples/writer/blockquote.pdf" />
+
+Override the indent, bar width, and bar colour on the `Theme` to give
+quotes a different visual identity:
+
+```php
+$pdf = new Pdf(theme: new Theme(
+    quoteIndent: 24.0,
+    quoteBarWidth: 4.0,
+    quoteBarColor: [0.1, 0.4, 0.8],
+));
+```
+
+## Callouts
+
+`addCallout()` renders a panel with a coloured left bar, a tinted
+background, and an optional title row. Pick a `CalloutType` —
+`Note`, `Tip`, `Warning`, or `Danger` — to get a sensible default
+palette, or pass a `CalloutStyle` to override any of the bar colour,
+background, label text, or title visibility.
+
+Callouts auto-advance to a new page if they would overflow the
+current one, but they don't split across pages — bodies longer than
+a page throw.
+
+<Example source="writer/callouts.php" pdf="samples/writer/callouts.pdf" />
+
+## Images
+
+```php
+$pdf->addImage('photo.jpg', width: 300);
+$pdf->addImage('logo.png', width: 150, alignment: Alignment::Center);
+```
+
+## Horizontal rules
+
+```php
+$pdf->addRule();            // default thin gray line
+$pdf->addSpacer(24);       // vertical whitespace
+```
+
+## Tables
+
+`addTable()` renders tabular data with optional header rows, explicit
+column widths, per-column alignment, and automatic row-by-row
+pagination. The header row repeats at the top of every page the table
+occupies. Cells longer than their column wrap onto multiple lines and
+the row grows to fit.
+
+<Example source="writer/tables.php" pdf="samples/writer/tables.pdf" />
+
+For positioned table rendering (no flow), drop to Level 2 with
+`$page->drawTable($table, $x, $y, $bodyFont, $headerFont)`.
+
+## Lists
+
+`addList()` produces a bullet list and `addNumberedList()` produces a
+running 1./2./3. list. Items are plain strings; long items wrap at the
+column width and the gap between items is controlled by
+`ListStyle::itemSpacing`. Lists paginate item-by-item.
+
+<Example source="writer/lists.php" pdf="samples/writer/lists.pdf" />
+
+For positioned list rendering, use Level 2's `$page->drawList()`.
+
+## Themes
+
+Customize fonts, colors, margins, and reserved header/footer regions:
+
+```php
+use Phpdftk\Pdf\Writer\Theme;
+
+$theme = new Theme(
+    margin: 36.0,           // half-inch margins
+    family: 'Courier',
+    headerHeight: 30.0,     // reserve top area for setHeader closures
+    footerHeight: 30.0,     // reserve bottom area for setFooter closures
+);
+
+$pdf = new Pdf(theme: $theme);
+```
+
+When `headerHeight` / `footerHeight` are non-zero, the body cursor starts below the reserved header and stops above the reserved footer — flow content never overlaps the decorator regions.
+
+## Document metadata
+
+Fluent chainable setters create the Info dict lazily and populate fields:
+
+```php
+$pdf->setTitle('My Report')
+    ->setAuthor('Finance Team')
+    ->setSubject('Q4 numbers')
+    ->setKeywords('quarterly, finance')
+    ->setCreator('phpdftk');
+```
+
+These forward to the underlying `PdfDoc`. For raw XMP control or `Info` object manipulation, drop to Level 2 via `$pdf->doc()`.
+
+## Headers, footers, watermarks
+
+Register closures invoked on every page during a deferred pass after all flow content is placed — `totalPages` is reliably set when the closure runs, so page numbering and any "X of Y" labels work without manual two-pass logic.
+
+<Example source="writer/headers-footers-watermark.php" pdf="samples/writer/headers-footers-watermark.pdf" />
+
+```php
+use Phpdftk\Pdf\Writer\PageContext;
+
+$pdf->setHeader(function (PageContext $ctx) use ($headerFont): void {
+    $ctx->page->drawText(
+        'CONFIDENTIAL',
+        72.0,
+        $ctx->pageHeight - 24.0,
+        $headerFont,
+        10.0,
+    );
+});
+
+$pdf->setFooter(function (PageContext $ctx) use ($footerFont): void {
+    $ctx->page->drawText(
+        "Page {$ctx->pageNumber} of {$ctx->totalPages}",
+        72.0,
+        24.0,
+        $footerFont,
+        10.0,
+    );
+});
+
+// Simple watermark: string form renders centered diagonal grey text.
+$pdf->setWatermark('DRAFT');
+
+// Or full control via closure receiving a PageContext.
+$pdf->setWatermark(function (PageContext $ctx): void {
+    // ... custom rendering
+});
+```
+
+The decorator pass runs exactly once per document — calling `toBytes()` / `save()` / `writeTo()` multiple times will not re-fire closures, and pages added after the first output are not retroactively decorated.
+
+### Page numbers shortcut
+
+For the common "Page X of Y" footer, use `showPageNumbers()` — it wraps `setFooter()` with a `sprintf`-formatted closure and uses the same deferred `totalPages` mechanism:
+
+```php
+$pdf->showPageNumbers();                          // "Page 1 of 5", centered
+$pdf->showPageNumbers('— %d / %d —', Alignment::Right);
+```
+
+Pair with `Theme(footerHeight: 30.0)` to reserve a strip below the body content for the number.
+
+## Escape hatches
+
+Drop to Level 2 (`PdfDoc`) for friendly wrappers over annotations, navigation, file attachments, and viewer preferences without leaving the flow-builder context:
+
+```php
+$doc = $pdf->doc();
+$doc->addLink($page, $rect, 'https://example.com/');
+```
+
+Drop to Level 1 (`PdfWriter`) when you need byte/resource control — custom fonts, encryption, signing, conformance profiles:
+
+```php
+$writer = $pdf->writer(); // equivalent to $pdf->doc()->writer()
+$writer->addFont(\Phpdftk\Pdf\Core\Font\TrueTypeFont::fromFile('/path/to/font.ttf'));
+```
+
+## Output modes
+
+```php
+$pdf->save('/path/to/file.pdf');     // Write to file
+$bytes = $pdf->toBytes();             // Get as string
+$pdf->writeTo($stream);              // Write to stream resource
+```

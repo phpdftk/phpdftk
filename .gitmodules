@@ -19,3 +19,6 @@
 [submodule "vendor-data/pdfbox"]
 	path = vendor-data/pdfbox
 	url = https://github.com/apache/pdfbox.git
+[submodule "vendor-data/html5lib-tests"]
+	path = vendor-data/html5lib-tests
+	url = https://github.com/html5lib/html5lib-tests

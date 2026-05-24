@@ -1,0 +1,525 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phpdftk\Css\Tests;
+
+use Phpdftk\Css\Selector\AnPlusB;
+use Phpdftk\Css\Selector\MatchableElement;
+use Phpdftk\Css\Selector\Matcher;
+use Phpdftk\Css\Selector\SelectorParser;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Tests for the Selectors-4 matcher using an in-process synthetic element
+ * tree (no html-package dependency, so the matcher's API surface is
+ * exercised in isolation).
+ */
+final class MatcherTest extends TestCase
+{
+    private Matcher $matcher;
+
+    protected function setUp(): void
+    {
+        $this->matcher = new Matcher();
+    }
+
+    public function testMatchesTypeSelector(): void
+    {
+        $el = new FakeElement('p');
+        $list = SelectorParser::parse('p');
+        self::assertTrue($this->matcher->listMatches($list, $el));
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('div'), $el),
+        );
+    }
+
+    public function testMatchesUniversal(): void
+    {
+        $el = new FakeElement('anything');
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('*'), $el),
+        );
+    }
+
+    public function testMatchesId(): void
+    {
+        $el = new FakeElement('p', id: 'main');
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('#main'), $el),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('#other'), $el),
+        );
+    }
+
+    public function testMatchesClass(): void
+    {
+        $el = new FakeElement('p', classes: ['intro', 'lead']);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('.intro'), $el),
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('.lead.intro'), $el),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('.missing'), $el),
+        );
+    }
+
+    public function testAttributeExists(): void
+    {
+        $el = new FakeElement('input', attributes: ['disabled' => '']);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[disabled]'), $el),
+        );
+    }
+
+    public function testAttributeEquals(): void
+    {
+        $el = new FakeElement('input', attributes: ['type' => 'email']);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[type="email"]'), $el),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('[type="password"]'), $el),
+        );
+    }
+
+    public function testAttributeAllOperators(): void
+    {
+        $el = new FakeElement('a', attributes: [
+            'class' => 'btn primary large',
+            'href' => 'https://example.com/page',
+            'lang' => 'en-US',
+        ]);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[class~="primary"]'), $el),
+            'includes',
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[lang|="en"]'), $el),
+            'dash match',
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[href^="https"]'), $el),
+            'prefix',
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[href$="/page"]'), $el),
+            'suffix',
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[href*="example"]'), $el),
+            'substring',
+        );
+    }
+
+    public function testAttributeCaseInsensitive(): void
+    {
+        $el = new FakeElement('input', attributes: ['type' => 'EMAIL']);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('[type="email" i]'), $el),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('[type="email"]'), $el),
+        );
+    }
+
+    public function testCompound(): void
+    {
+        $el = new FakeElement('p', id: 'foo', classes: ['intro']);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('p#foo.intro'), $el),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('div#foo'), $el),
+        );
+    }
+
+    public function testDescendantCombinator(): void
+    {
+        $root = new FakeElement('article');
+        $section = new FakeElement('section');
+        $p = new FakeElement('p');
+        $root->appendFake($section);
+        $section->appendFake($p);
+
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('article p'), $p),
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('section p'), $p),
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('div p'), $p),
+        );
+    }
+
+    public function testChildCombinator(): void
+    {
+        $root = new FakeElement('div');
+        $p = new FakeElement('p');
+        $root->appendFake($p);
+
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('div > p'), $p),
+        );
+        $section = new FakeElement('section');
+        $root->appendFake($section);
+        $deep = new FakeElement('p');
+        $section->appendFake($deep);
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('div > p'), $deep),
+            'child combinator only matches direct',
+        );
+    }
+
+    public function testSiblingCombinators(): void
+    {
+        $parent = new FakeElement('div');
+        $h1 = new FakeElement('h1');
+        $p = new FakeElement('p');
+        $section = new FakeElement('section');
+        $parent->appendFake($h1);
+        $parent->appendFake($p);
+        $parent->appendFake($section);
+
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('h1 + p'), $p),
+            'next sibling',
+        );
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('h1 + section'), $section),
+            'not directly after',
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('h1 ~ section'), $section),
+            'subsequent sibling',
+        );
+    }
+
+    public function testFirstChildLastChildOnlyChild(): void
+    {
+        $parent = new FakeElement('ul');
+        $a = new FakeElement('li');
+        $b = new FakeElement('li');
+        $c = new FakeElement('li');
+        $parent->appendFake($a);
+        $parent->appendFake($b);
+        $parent->appendFake($c);
+
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':first-child'), $a));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':first-child'), $b));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':last-child'), $c));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':only-child'), $a));
+
+        $solo = new FakeElement('ul');
+        $only = new FakeElement('li');
+        $solo->appendFake($only);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':only-child'), $only));
+    }
+
+    public function testNthChild(): void
+    {
+        $parent = new FakeElement('ol');
+        $items = [];
+        for ($i = 0; $i < 5; $i++) {
+            $item = new FakeElement('li');
+            $parent->appendFake($item);
+            $items[] = $item;
+        }
+        // 1-based indices: odd → 1, 3, 5
+        $odd = SelectorParser::parse(':nth-child(odd)');
+        self::assertTrue($this->matcher->listMatches($odd, $items[0]));
+        self::assertFalse($this->matcher->listMatches($odd, $items[1]));
+        self::assertTrue($this->matcher->listMatches($odd, $items[2]));
+
+        $even = SelectorParser::parse(':nth-child(even)');
+        self::assertTrue($this->matcher->listMatches($even, $items[1]));
+        self::assertTrue($this->matcher->listMatches($even, $items[3]));
+
+        $third = SelectorParser::parse(':nth-child(3)');
+        self::assertTrue($this->matcher->listMatches($third, $items[2]));
+        self::assertFalse($this->matcher->listMatches($third, $items[0]));
+    }
+
+    public function testNthLastChild(): void
+    {
+        $parent = new FakeElement('ol');
+        $items = [];
+        for ($i = 0; $i < 4; $i++) {
+            $li = new FakeElement('li');
+            $parent->appendFake($li);
+            $items[] = $li;
+        }
+        // last (index 4) is nth-last-child(1)
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse(':nth-last-child(1)'), $items[3]),
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse(':nth-last-child(2)'), $items[2]),
+        );
+    }
+
+    public function testNthOfType(): void
+    {
+        $parent = new FakeElement('div');
+        $p1 = new FakeElement('p');
+        $h2 = new FakeElement('h2');
+        $p2 = new FakeElement('p');
+        $h2b = new FakeElement('h2');
+        $p3 = new FakeElement('p');
+        $parent->appendFake($p1);
+        $parent->appendFake($h2);
+        $parent->appendFake($p2);
+        $parent->appendFake($h2b);
+        $parent->appendFake($p3);
+
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('p:first-of-type'), $p1),
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('p:nth-of-type(2)'), $p2),
+        );
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('p:last-of-type'), $p3),
+        );
+    }
+
+    public function testNotIsWhere(): void
+    {
+        $el = new FakeElement('p', classes: ['intro']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse('p:not(.bar)'), $el));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse('p:not(.intro)'), $el));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':is(p, div)'), $el));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':where(p, div)'), $el));
+    }
+
+    public function testHas(): void
+    {
+        $parent = new FakeElement('section');
+        $img = new FakeElement('img');
+        $parent->appendFake($img);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse('section:has(img)'), $parent),
+        );
+        $empty = new FakeElement('section');
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('section:has(img)'), $empty),
+        );
+    }
+
+    public function testEmpty(): void
+    {
+        $solo = new FakeElement('div');
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse(':empty'), $solo),
+        );
+        $parent = new FakeElement('div');
+        $parent->appendFake(new FakeElement('span'));
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse(':empty'), $parent),
+        );
+    }
+
+    public function testRoot(): void
+    {
+        $root = new FakeElement('html');
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':root'), $root));
+
+        $child = new FakeElement('div');
+        $root->appendFake($child);
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':root'), $child));
+    }
+
+    public function testLang(): void
+    {
+        $root = new FakeElement('html', attributes: ['lang' => 'en-US']);
+        $child = new FakeElement('p');
+        $root->appendFake($child);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':lang(en)'), $child));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':lang(en-US)'), $child));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':lang(fr)'), $child));
+    }
+
+    public function testUiStatePseudosReturnFalse(): void
+    {
+        $el = new FakeElement('input');
+        foreach (['hover', 'focus', 'active', 'checked', 'disabled', 'visited'] as $name) {
+            self::assertFalse(
+                $this->matcher->listMatches(SelectorParser::parse(":$name"), $el),
+                ":$name should be false under print medium",
+            );
+        }
+    }
+}
+
+final class FakeElement implements MatchableElement
+{
+    public ?FakeElement $parent = null;
+    /** @var list<FakeElement> */
+    public array $childrenList = [];
+
+    /**
+     * @param list<string> $classes
+     * @param array<string, string> $attributes
+     */
+    public function __construct(
+        public string $tag,
+        public ?string $id = null,
+        public array $classes = [],
+        public array $attributes = [],
+        public ?string $namespace = null,
+    ) {}
+
+    public function appendFake(FakeElement $child): void
+    {
+        $child->parent = $this;
+        $this->childrenList[] = $child;
+    }
+
+    public function localName(): string
+    {
+        return $this->tag;
+    }
+
+    public function namespaceUri(): ?string
+    {
+        return $this->namespace;
+    }
+
+    public function elementId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function classes(): array
+    {
+        return $this->classes;
+    }
+
+    public function hasAttribute(string $name): bool
+    {
+        return array_key_exists($name, $this->attributes);
+    }
+
+    public function getAttributeValue(string $name): ?string
+    {
+        return $this->attributes[$name] ?? null;
+    }
+
+    public function allAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    public function parentElement(): ?MatchableElement
+    {
+        return $this->parent;
+    }
+
+    public function previousElementSibling(): ?MatchableElement
+    {
+        if ($this->parent === null) {
+            return null;
+        }
+        $prev = null;
+        foreach ($this->parent->childrenList as $c) {
+            if ($c === $this) {
+                return $prev;
+            }
+            $prev = $c;
+        }
+        return null;
+    }
+
+    public function nextElementSibling(): ?MatchableElement
+    {
+        if ($this->parent === null) {
+            return null;
+        }
+        $found = false;
+        foreach ($this->parent->childrenList as $c) {
+            if ($found) {
+                return $c;
+            }
+            if ($c === $this) {
+                $found = true;
+            }
+        }
+        return null;
+    }
+
+    public function elementChildren(): array
+    {
+        return $this->childrenList;
+    }
+
+    public function indexAmongSiblings(): int
+    {
+        if ($this->parent === null) {
+            return 1;
+        }
+        foreach ($this->parent->childrenList as $i => $c) {
+            if ($c === $this) {
+                return $i + 1;
+            }
+        }
+        return 1;
+    }
+
+    public function indexAmongSiblingsFromEnd(): int
+    {
+        if ($this->parent === null) {
+            return 1;
+        }
+        $total = count($this->parent->childrenList);
+        foreach ($this->parent->childrenList as $i => $c) {
+            if ($c === $this) {
+                return $total - $i;
+            }
+        }
+        return 1;
+    }
+
+    public function indexAmongTypeSiblings(): int
+    {
+        if ($this->parent === null) {
+            return 1;
+        }
+        $i = 0;
+        foreach ($this->parent->childrenList as $c) {
+            if ($c->tag === $this->tag && $c->namespace === $this->namespace) {
+                $i++;
+            }
+            if ($c === $this) {
+                return $i;
+            }
+        }
+        return 1;
+    }
+
+    public function indexAmongTypeSiblingsFromEnd(): int
+    {
+        if ($this->parent === null) {
+            return 1;
+        }
+        $count = 0;
+        foreach ($this->parent->childrenList as $c) {
+            if ($c->tag === $this->tag && $c->namespace === $this->namespace) {
+                $count++;
+            }
+        }
+        $rank = 0;
+        foreach ($this->parent->childrenList as $c) {
+            if ($c->tag === $this->tag && $c->namespace === $this->namespace) {
+                $rank++;
+            }
+            if ($c === $this) {
+                return $count - $rank + 1;
+            }
+        }
+        return 1;
+    }
+}

@@ -149,6 +149,36 @@ class ContentStream extends PdfStream
     }
 
     /**
+     * TJ with a hex/kern array — emits `[ <hex> kern <hex> kern ... ] TJ`
+     * for a CID font where shaped glyphs need per-glyph kern adjustments
+     * (positive kern moves the text position backward in 1/1000 em units,
+     * negative kern moves forward). Each `$items` entry is either a hex
+     * GID string (without `< >` delimiters) or a numeric kern in
+     * 1/1000-em units.
+     *
+     * @param array<int, string|int|float> $items
+     */
+    public function showTextArrayHex(array $items): self
+    {
+        if ($items === []) {
+            return $this;
+        }
+        $parts = [];
+        foreach ($items as $item) {
+            if (is_string($item)) {
+                if ($item === '') {
+                    continue;
+                }
+                $parts[] = '<' . $item . '>';
+            } else {
+                $parts[] = $this->num($item);
+            }
+        }
+        $this->operators[] = '[ ' . implode(' ', $parts) . ' ] TJ';
+        return $this;
+    }
+
+    /**
      * Show Unicode text using a CID font's GID mapping.
      *
      * Converts UTF-8 text to hex-encoded 2-byte GID sequences and

@@ -19,6 +19,23 @@ class PdfTest extends TestCase
 {
     use QpdfValidationTrait;
 
+    public function testAddHtmlRendersIntoPdf(): void
+    {
+        // `Pdf::addHtml` lazily loads `phpdftk/html-to-pdf` and renders
+        // into the underlying writer as a sequence of fresh pages.
+        if (!class_exists('Phpdftk\\HtmlToPdf\\Renderer')) {
+            self::markTestSkipped('phpdftk/html-to-pdf not installed in this test context');
+        }
+        $pdf = new Pdf(compressStreams: false);
+        $pdf->addHtml('<html><body><h1>Hello</h1><p>via addHtml</p></body></html>');
+        $bytes = $pdf->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // The renderer's identification headers should land in /Info.
+        self::assertStringContainsString('/Creator (phpdftk/html-to-pdf)', $bytes);
+        // A page should have been added.
+        self::assertStringContainsString('/Type /Page', $bytes);
+    }
+
     public function testEmptyDocumentHasNoPages(): void
     {
         // An untouched Pdf should still produce a valid (empty) PDF file.

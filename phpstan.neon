@@ -12,6 +12,12 @@ parameters:
         - packages/color/src
         - packages/xmp/src
         - packages/crypt/src
+        - packages/css/src
+        - packages/text/src
+        - packages/html/src
+        - packages/svg/src
+        - packages/html-to-pdf/src
+        - packages/svg-to-pdf/src
     excludePaths:
         - packages/*/tests
         - packages/*/vendor

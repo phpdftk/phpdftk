@@ -153,6 +153,19 @@ class OpenTypeParserTest extends TestCase
         $this->assertTrue(($data->flags & 32) !== 0, 'Nonsymbolic flag should be set');
     }
 
+    public function testUnderlineMetricsParsed(): void
+    {
+        $path = $this->requireFont();
+        $data = (new OpenTypeParser($path))->parse();
+
+        // post-table FWord underline position/thickness — must be present
+        // for every well-formed font. Negative position = below baseline.
+        $this->assertNotNull($data->underlinePosition);
+        $this->assertLessThan(0, $data->underlinePosition);
+        $this->assertNotNull($data->underlineThickness);
+        $this->assertGreaterThan(0, $data->underlineThickness);
+    }
+
     public function testStemVInRange(): void
     {
         $path = $this->requireFont();
