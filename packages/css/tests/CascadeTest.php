@@ -465,4 +465,57 @@ final class CascadeTest extends TestCase
         // Initial color is black.
         self::assertSame(0.0, $color->r);
     }
+
+    public function testCaretColorRegisteredAndAcceptsAuthorValue(): void
+    {
+        // `caret-color` is print-irrelevant but registered so author
+        // CSS isn't silently dropped at cascade time.
+        $sheet = $this->parser->parseStylesheet('p { caret-color: blue; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $caret = $values->get('caret-color');
+        self::assertInstanceOf(Color::class, $caret);
+        self::assertSame(0.0, $caret->r);
+        self::assertSame(0.0, $caret->g);
+        self::assertSame(1.0, $caret->b);
+    }
+
+    public function testCaretColorDefaultsToAuto(): void
+    {
+        // Initial value is `auto` per CSS UI 4.
+        $values = $this->cascade->computeFor([], new FakeElement('p'));
+        $caret = $values->get('caret-color');
+        self::assertInstanceOf(Keyword::class, $caret);
+        self::assertSame('auto', strtolower($caret->name));
+    }
+
+    public function testAccentColorRegisteredAndDoesNotInherit(): void
+    {
+        // accent-color does NOT inherit per CSS UI 4 — child gets
+        // initial `auto` rather than parent's red.
+        $sheet = $this->parser->parseStylesheet('p { accent-color: red; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $childAccent = $childValues->get('accent-color');
+        self::assertInstanceOf(Keyword::class, $childAccent);
+        self::assertSame('auto', strtolower($childAccent->name));
+    }
+
+    public function testCaretColorInheritsToDescendants(): void
+    {
+        // Per CSS UI 4, `caret-color` IS an inheriting property.
+        $sheet = $this->parser->parseStylesheet('p { caret-color: green; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $childCaret = $childValues->get('caret-color');
+        self::assertInstanceOf(Color::class, $childCaret);
+        self::assertSame(0.0, $childCaret->r);
+    }
 }

@@ -126,6 +126,12 @@ final class PropertyRegistry
         $r->register($initial('cursor', new Keyword('auto'), true));
         $r->register($initial('user-select', new Keyword('auto')));
         $r->register($initial('pointer-events', new Keyword('auto'), true));
+        // CSS UI 4 — `caret-color` (text caret colour) and CSS UI 4
+        // `accent-color` (UA-widget accent). Both are runtime-only
+        // for print but register so author CSS isn't dropped at the
+        // cascade. `caret-color` inherits per spec.
+        $r->register($initial('caret-color', new Keyword('auto'), true));
+        $r->register($initial('accent-color', new Keyword('auto')));
 
         // Box model.
         $r->register($initial('display', new Keyword('inline')));
