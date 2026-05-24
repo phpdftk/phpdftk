@@ -2130,6 +2130,45 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(200.0, $div->geometry->height);
     }
 
+    public function testMeterIsInlineBlock(): void
+    {
+        // HTML 5 §4.10.13 — `<meter>` is inline-block per UA.
+        $box = $this->buildTreeWithUa(
+            '<html><body><meter value="0.5">50%</meter></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $meter = $this->find($box, 'meter');
+        self::assertNotNull($meter);
+        // Inline-block boxes are AtomicInlineBox in our box tree.
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $meter);
+    }
+
+    public function testProgressIsInlineBlock(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><progress value="0.3">30%</progress></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $progress = $this->find($box, 'progress');
+        self::assertNotNull($progress);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $progress);
+    }
+
+    public function testAuthorCanOverrideMeterDisplay(): void
+    {
+        // Negative: author override beats the UA inline-block.
+        $box = $this->buildTreeWithUa(
+            '<html><body><meter style="display: block; height: 20px">50%</meter></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $meter = $this->find($box, 'meter');
+        self::assertNotNull($meter);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\BlockBox::class, $meter);
+    }
+
     public function testDatalistHiddenByUa(): void
     {
         // HTML 5 §4.10.10 — `<datalist>` is a typeahead helper; UA

@@ -413,6 +413,13 @@ final readonly class RendererOptions
             /* HTML 5 §4.10.10 — `<datalist>` is a typeahead helper
                for `<input>` and never renders on its own. */
             datalist { display: none; }
+
+            /* HTML 5 §4.10.13 + §4.10.14 — `<meter>` and `<progress>`
+               are inline-block widgets. We don't paint the actual
+               bar / gauge (Phase 2 with proper widget rendering),
+               but the inline-block treatment ensures any text
+               children (the fallback value) flow inline. */
+            meter, progress { display: inline-block; }
             /* HTML 5 §4.5.21 — `<rp>` is the ruby-parenthesis
                fallback for browsers without ruby layout support; in
                browsers that DO support ruby it's `display: none`.
