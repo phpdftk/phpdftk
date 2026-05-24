@@ -1002,6 +1002,106 @@ final class PainterTest extends TestCase
         self::assertSame([], $stream->getOperators(), 'list-style-type:none paints nothing');
     }
 
+    public function testWavyDecorationStrokesCubicBezierPath(): void
+    {
+        // CSS Text Decoration 4 §3 `text-decoration-style: wavy` —
+        // the painter strokes a sine-wave path (cubic Beziers + S),
+        // never fills like solid / dashed / dotted.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline; text-decoration-style: wavy">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        // Wavy emits curveTo (`c`) operators and a stroke (`S`).
+        self::assertContains('c', $opcodes, 'wavy decoration uses cubic Beziers');
+        self::assertContains('S', $opcodes, 'wavy decoration strokes the path');
+    }
+
+    public function testWavyDecorationDoesNotFillRect(): void
+    {
+        // Negative: wavy must NOT emit the solid-style filled rect
+        // path used by dashed/dotted/solid/double.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline; text-decoration-style: wavy">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        // No `re` from the wavy path. (The fixture has no background
+        // either, so a `re` op would have to come from the wavy
+        // codepath.)
+        $reCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(0, $reCount);
+    }
+
+    public function testSolidDecorationUnaffectedByWavyPath(): void
+    {
+        // Regression: solid still uses the fill-rect path; no curveTo
+        // emitted for non-wavy decorations.
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="text-decoration: underline">'
+            . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertNotContains('c', $opcodes, 'no Bezier in solid decoration');
+    }
+
     public function testDecorationThicknessExplicitOverridesFontMetric(): void
     {
         // `text-decoration-thickness: 3px` should produce an underline

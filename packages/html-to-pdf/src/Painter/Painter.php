@@ -1080,9 +1080,9 @@ final class Painter
 
     /**
      * Emit one text-decoration line in the given style. `solid` is one
-     * rect; `double` is two parallel rects with a small gap; `dashed` and
-     * `dotted` emit a series of segment rects. Wavy is approximated as
-     * dashed for Phase 1 — a true sine-wave path lands later.
+     * rect; `double` is two parallel rects with a small gap; `dashed`
+     * and `dotted` emit a series of segment rects; `wavy` strokes a
+     * cubic-Bezier-approximated sine wave at the decoration position.
      */
     private function emitDecorationStyled(
         ContentStream $stream,
@@ -1093,6 +1093,10 @@ final class Painter
         Color $color,
         string $style,
     ): void {
+        if ($style === 'wavy') {
+            $this->emitWavyDecoration($stream, $x, $pdfY, $width, $thickness, $color);
+            return;
+        }
         $stream->saveGraphicsState();
         $stream->setFillColorRGB($color->r, $color->g, $color->b);
         switch ($style) {
@@ -1103,7 +1107,6 @@ final class Painter
                 $stream->fill();
                 break;
             case 'dashed':
-            case 'wavy': // Phase-1 fallback
                 $segment = max(2.0, $thickness * 3);
                 $gap = max(1.5, $thickness * 2);
                 for ($cx = $x; $cx < $x + $width; $cx += $segment + $gap) {
@@ -1125,6 +1128,60 @@ final class Painter
                 $stream->rectangle($x, $pdfY, $width, $thickness);
                 $stream->fill();
         }
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Stroke a sine-wave-shaped text decoration line, approximated by
+     * cubic Bezier curves. Two Beziers per period (one half-cycle up,
+     * one half-cycle down). The wave's period is `thickness × 6` and
+     * amplitude is `thickness × 0.7` — these tune the look to match
+     * the wavy spell-check underlines that browsers render.
+     */
+    private function emitWavyDecoration(
+        ContentStream $stream,
+        float $x,
+        float $pdfY,
+        float $width,
+        float $thickness,
+        Color $color,
+    ): void {
+        if ($width <= 0.0 || $thickness <= 0.0) {
+            return;
+        }
+        $period = max(4.0, $thickness * 6.0);
+        $amp = max(1.0, $thickness * 0.7);
+        $strokeWidth = max(0.5, $thickness * 0.7);
+        $stream->saveGraphicsState();
+        $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
+        $stream->setLineWidth($strokeWidth);
+        // Centerline of the wave sits at $pdfY + thickness/2 so the
+        // visible band stays within the decoration's allocated band.
+        $centerY = $pdfY + $thickness / 2.0;
+        $stream->moveTo($x, $centerY);
+        $halfPeriod = $period / 2.0;
+        // Bezier control offset for a sine half-cycle (well-known
+        // approximation: control points at 1/3 and 2/3 of the half).
+        $cx1Offset = $halfPeriod / 3.0;
+        $cx2Offset = ($halfPeriod * 2.0) / 3.0;
+        $end = $x + $width;
+        $curX = $x;
+        $up = true;
+        while ($curX < $end) {
+            $segmentEnd = min($curX + $halfPeriod, $end);
+            $controlY = $up ? $centerY + $amp : $centerY - $amp;
+            $stream->curveTo(
+                $curX + $cx1Offset,
+                $controlY,
+                $curX + $cx2Offset,
+                $controlY,
+                $segmentEnd,
+                $centerY,
+            );
+            $curX = $segmentEnd;
+            $up = !$up;
+        }
+        $stream->stroke();
         $stream->restoreGraphicsState();
     }
 
