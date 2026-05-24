@@ -420,6 +420,18 @@ final readonly class RendererOptions
                but the inline-block treatment ensures any text
                children (the fallback value) flow inline. */
             meter, progress { display: inline-block; }
+
+            /* HTML 5 §4.10.15 — `<fieldset>` is a labelled form
+               group with a thin border + small inset padding.
+               Legend positioning over the top border is Phase 2;
+               Phase 1 renders legend as a regular block child. */
+            fieldset { border: 1px solid #888; padding: 6pt 9pt 8pt; margin: 0 2pt; }
+            legend { display: block; padding: 0 2pt; }
+
+            /* HTML 5 §4.12.5 — `<canvas>` is a script-driven raster
+               surface. With no scripting it renders its fallback
+               children inline-block. */
+            canvas { display: inline-block; }
             /* HTML 5 §4.5.21 — `<rp>` is the ruby-parenthesis
                fallback for browsers without ruby layout support; in
                browsers that DO support ruby it's `display: none`.

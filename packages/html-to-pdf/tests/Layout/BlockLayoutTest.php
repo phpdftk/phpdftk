@@ -2130,6 +2130,62 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(200.0, $div->geometry->height);
     }
 
+    public function testFieldsetGetsBorderFromUa(): void
+    {
+        // HTML 5 §4.10.15 — fieldset has a 1px solid border by default.
+        $box = $this->buildTreeWithUa(
+            '<html><body><fieldset></fieldset></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $fieldset = $this->find($box, 'fieldset');
+        self::assertNotNull($fieldset);
+        self::assertSame(1.0, $fieldset->geometry->borderTop);
+        self::assertSame(1.0, $fieldset->geometry->borderRight);
+        self::assertSame(1.0, $fieldset->geometry->borderBottom);
+        self::assertSame(1.0, $fieldset->geometry->borderLeft);
+    }
+
+    public function testAuthorCanOverrideFieldsetBorder(): void
+    {
+        // Author override removes the UA border.
+        $box = $this->buildTreeWithUa(
+            '<html><body><fieldset style="border: none"></fieldset></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $fieldset = $this->find($box, 'fieldset');
+        self::assertNotNull($fieldset);
+        self::assertSame(0.0, $fieldset->geometry->borderTop);
+    }
+
+    public function testCanvasIsInlineBlock(): void
+    {
+        // HTML 5 §4.12.5 — canvas defaults to inline-block.
+        $box = $this->buildTreeWithUa(
+            '<html><body><canvas>fallback</canvas></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $canvas = $this->find($box, 'canvas');
+        self::assertNotNull($canvas);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $canvas);
+    }
+
+    public function testLegendGetsPaddingFromUa(): void
+    {
+        // HTML 5 §4.10.15 — legend gets small horizontal padding.
+        $box = $this->buildTreeWithUa(
+            '<html><body><fieldset><legend>x</legend></fieldset></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $legend = $this->find($box, 'legend');
+        self::assertNotNull($legend);
+        self::assertGreaterThan(0.0, $legend->geometry->paddingLeft);
+        self::assertGreaterThan(0.0, $legend->geometry->paddingRight);
+    }
+
     public function testMeterIsInlineBlock(): void
     {
         // HTML 5 §4.10.13 — `<meter>` is inline-block per UA.
