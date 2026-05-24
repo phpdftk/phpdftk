@@ -625,6 +625,88 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $first->x);
     }
 
+    public function testInlineLinesShortenAroundLeftFloat(): void
+    {
+        // 60 glyphs in a 200-wide container with a 100×60 left float at
+        // the top → the first lines (which sit in the float's Y range)
+        // start at x=100 instead of x=0. Lines below the float resume
+        // at x=0.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 60px"></div>'
+                . '<p>' . $letters . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; }
+             p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(200.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertNotSame([], $p->lineBoxes);
+        // Paragraph sits at y=0 (float is out-of-flow). First line at
+        // y=0..20 overlaps the float's y=0..60 range → first fragment
+        // starts at x=100 (the float's right edge).
+        self::assertEqualsWithDelta(100.0, $p->lineBoxes[0]->fragments[0]->x, 0.001);
+    }
+
+    public function testInlineLinesResumeAtLeftEdgeBelowFloat(): void
+    {
+        // Same setup but enough text that some lines sit below the
+        // 60-tall float (y >= 60). Those lines should restart at x=0.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 60px"></div>'
+                . '<p>' . $letters . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; }
+             p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(200.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Find the first line whose top sits at or past y=60.
+        $lineBelow = null;
+        foreach ($p->lineBoxes as $line) {
+            if ($line->y + 0.001 >= 60.0) {
+                $lineBelow = $line;
+                break;
+            }
+        }
+        if ($lineBelow === null) {
+            self::markTestSkipped('Test fixture produced too few lines to span past the float');
+        }
+        // Below the float, the first fragment resumes at x=0.
+        self::assertEqualsWithDelta(0.0, $lineBelow->fragments[0]->x, 0.001);
+    }
+
+    public function testInlineLinesShortenOnRightSideWithRightFloat(): void
+    {
+        // 100-wide right float in a 200-wide container → line's right
+        // edge sits at 100; the first wrap should fit fewer characters
+        // than the no-float case.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: right; width: 100px; height: 60px"></div>'
+                . '<p>' . $letters . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; }
+             p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(200.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // First line overlapping the float's y range fits within
+        // x = 0..100 (i.e. totalWidth <= 100 + small tolerance).
+        $first = $p->lineBoxes[0];
+        self::assertLessThanOrEqual(100.0 + 1.0, $first->totalWidth());
+    }
+
     public function testParagraphEntirelyOnOnePageIsNotShifted(): void
     {
         // 4 lines × 20px = 80px paragraph at body-top → fits cleanly inside

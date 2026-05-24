@@ -37,6 +37,13 @@ final readonly class LayoutContext
          * `defaultFont` when no `font-family` matches.
          */
         public ?FontResolver $fontResolver = null,
+        /**
+         * Tracks active floats per CSS 2.1 §9.5 for the current block
+         * formatting context. `InlineLayout` queries this to shorten
+         * line boxes that overlap a float's vertical extent. Null when
+         * no BFC has registered any floats yet.
+         */
+        public ?FloatContext $floatContext = null,
     ) {}
 
     public function withOrigin(float $x, float $y): self
@@ -49,6 +56,7 @@ final readonly class LayoutContext
             $this->lengthContext,
             $this->defaultFont,
             $this->fontResolver,
+            $this->floatContext,
         );
     }
 
@@ -62,6 +70,7 @@ final readonly class LayoutContext
             $this->lengthContext,
             $this->defaultFont,
             $this->fontResolver,
+            $this->floatContext,
         );
     }
 
@@ -75,6 +84,21 @@ final readonly class LayoutContext
             $ctx,
             $this->defaultFont,
             $this->fontResolver,
+            $this->floatContext,
+        );
+    }
+
+    public function withFloatContext(?FloatContext $ctx): self
+    {
+        return new self(
+            $this->containingBlockWidth,
+            $this->containingBlockHeight,
+            $this->originX,
+            $this->originY,
+            $this->lengthContext,
+            $this->defaultFont,
+            $this->fontResolver,
+            $ctx,
         );
     }
 }

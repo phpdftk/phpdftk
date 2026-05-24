@@ -778,6 +778,316 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testFloatLeftPlacesBoxAtLeftEdgeOfContainer(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 80px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->find($box, 'div');
+        self::assertNotNull($f);
+        self::assertSame(0.0, $f->geometry->x);
+    }
+
+    public function testFloatRightPlacesBoxAtRightEdgeOfContainer(): void
+    {
+        // Container is 600 wide; 100-wide right float lands at x=500.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: right; width: 100px; height: 80px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->find($box, 'div');
+        self::assertNotNull($f);
+        self::assertSame(500.0, $f->geometry->x);
+    }
+
+    public function testTwoLeftFloatsStackHorizontally(): void
+    {
+        // Two 100-wide left floats → first at 0, second at 100.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="float: left; width: 100px; height: 80px"></div>'
+                . '<div class="b" style="float: left; width: 100px; height: 80px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = null;
+        $b = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c->element === null) {
+                continue;
+            }
+            if (in_array('a', $c->element->classes(), true)) {
+                $a = $c;
+            } elseif (in_array('b', $c->element->classes(), true)) {
+                $b = $c;
+            }
+        }
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(100.0, $b->geometry->x);
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(0.0, $b->geometry->y);
+    }
+
+    public function testClearLeftAfterFloatShiftsBlockPastIt(): void
+    {
+        // 100-tall left float; next sibling has `clear: left` → shifts
+        // to y=100 (past the float).
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 100px"></div>'
+                . '<div class="c" style="clear: left; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(100.0, $c->geometry->y);
+    }
+
+    public function testFloatNoneDoesNotEngageFloatPath(): void
+    {
+        // Default `float: none` — the block stacks normally and advances
+        // the parent cursor. Two stacked 50-tall blocks → second at y=50.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="height: 50px"></div>'
+                . '<div class="b" style="height: 50px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('b', $child->element->classes(), true)) {
+                $b = $child;
+                break;
+            }
+        }
+        self::assertNotNull($b);
+        self::assertSame(50.0, $b->geometry->y);
+    }
+
+    public function testFloatDoesNotAdvanceParentCursor(): void
+    {
+        // The next in-flow sibling sits at the SAME Y as the float (not
+        // pushed below). Floats remove themselves from flow.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 80px"></div>'
+                . '<div class="next" style="height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $next = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('next', $child->element->classes(), true)) {
+                $next = $child;
+                break;
+            }
+        }
+        self::assertNotNull($next);
+        self::assertSame(0.0, $next->geometry->y);
+    }
+
+    public function testClearNoneIsNoOp(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 100px"></div>'
+                . '<div class="c" style="clear: none; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(0.0, $c->geometry->y);
+    }
+
+    public function testClearLeftWithOnlyRightFloatsIsNoOp(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: right; width: 100px; height: 100px"></div>'
+                . '<div class="c" style="clear: left; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(0.0, $c->geometry->y);
+    }
+
+    public function testClearRightWithOnlyLeftFloatsIsNoOp(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 100px"></div>'
+                . '<div class="c" style="clear: right; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(0.0, $c->geometry->y);
+    }
+
+    public function testClearBothWithNoFloatsIsNoOp(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="c" style="clear: both; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->find($box, 'div');
+        self::assertNotNull($c);
+        self::assertSame(0.0, $c->geometry->y);
+    }
+
+    public function testClearBothPastBothFloats(): void
+    {
+        // 80-tall left float + 120-tall right float, clear: both →
+        // shifts past the taller one (120).
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="l" style="float: left; width: 100px; height: 80px"></div>'
+                . '<div class="r" style="float: right; width: 100px; height: 120px"></div>'
+                . '<div class="c" style="clear: both; height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(120.0, $c->geometry->y);
+    }
+
+    public function testFloatInvalidKeywordTreatedAsNone(): void
+    {
+        // CSS Values 3 §9: invalid values fall back to the initial.
+        // For `float`, that's `none` — so the box flows as in-flow.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: nonsense; height: 50px"></div>'
+                . '<div class="n" style="height: 30px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $n = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('n', $child->element->classes(), true)) {
+                $n = $child;
+                break;
+            }
+        }
+        self::assertNotNull($n);
+        // Invalid float kept as in-flow → next sibling stacks at y=50.
+        self::assertSame(50.0, $n->geometry->y);
+    }
+
+    public function testTwoLeftFloatsWiderThanContainerDropToNextRow(): void
+    {
+        // Two 400-wide floats in a 600-wide container — first sits at
+        // x=0,y=0; second can't fit alongside (400+400 > 600) so it
+        // drops below to y=80 at x=0.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="float: left; width: 400px; height: 80px"></div>'
+                . '<div class="b" style="float: left; width: 400px; height: 80px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = null;
+        $b = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c->element === null) {
+                continue;
+            }
+            if (in_array('a', $c->element->classes(), true)) {
+                $a = $c;
+            } elseif (in_array('b', $c->element->classes(), true)) {
+                $b = $c;
+            }
+        }
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(80.0, $b->geometry->y);
+        self::assertSame(0.0, $b->geometry->x);
+    }
+
+    public function testFloatBelowFirstFloatBottomIsAtY0InNewSlot(): void
+    {
+        // Sanity: clear: both past the first float means we shift past
+        // it but don't go higher. With a 50-tall float, clear: both
+        // shifts the next block exactly to y=50.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="f" style="float: left; width: 100px; height: 50px"></div>'
+                . '<div class="c" style="clear: both"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('c', $child->element->classes(), true)) {
+                $c = $child;
+                break;
+            }
+        }
+        self::assertNotNull($c);
+        self::assertSame(50.0, $c->geometry->y);
+    }
+
     public function testAbsolutePositionsBoxAtTopLeftOffsets(): void
     {
         // `position: absolute; top: 50px; left: 20px` puts the box at

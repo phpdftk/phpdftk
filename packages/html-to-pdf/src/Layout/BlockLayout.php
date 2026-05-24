@@ -67,6 +67,13 @@ final class BlockLayout
     {
         // Ensure the root's style has lengths resolved against the context.
         $this->cascade->resolveLengths($root->style, $context->lengthContext);
+        // Phase 1 simplification: a single FloatContext for the whole
+        // document tree (CSS 2.1 §9.5 floats stay inside their BFC;
+        // proper BFC scoping is a follow-up). Lazily attach when the
+        // caller didn't supply one so floats register against something.
+        if ($context->floatContext === null) {
+            $context = $context->withFloatContext(new FloatContext());
+        }
         return $this->layoutBox($root, $context);
     }
 
@@ -419,6 +426,89 @@ final class BlockLayout
      *
      * @return array{0:float, 1:float} `[dx, dy]`
      */
+    /**
+     * Return `'left'` / `'right'` per CSS 2.1 §9.5 `float`, or `null`
+     * when the box is not floated.
+     */
+    private function floatSide(Box $box): ?string
+    {
+        $value = $box->style->get('float');
+        if (!($value instanceof Keyword)) {
+            return null;
+        }
+        $lower = strtolower($value->name);
+        return $lower === 'left' || $lower === 'right' ? $lower : null;
+    }
+
+    /**
+     * Return `'left'` / `'right'` / `'both'` per CSS 2.1 §9.5.2 `clear`,
+     * or `null` for `none` / `inherit` / unrecognised.
+     */
+    private function clearSide(Box $box): ?string
+    {
+        $value = $box->style->get('clear');
+        if (!($value instanceof Keyword)) {
+            return null;
+        }
+        $lower = strtolower($value->name);
+        return in_array($lower, ['left', 'right', 'both'], true) ? $lower : null;
+    }
+
+    /**
+     * Lay out a float child, register it in the containing block's
+     * FloatContext, and leave the parent's cursor untouched. The float
+     * gets its content width from the cascade (auto width becomes
+     * shrink-to-fit by reading the cascaded `width` value; Phase-1
+     * defaults to the full containing-block width when `width: auto`,
+     * which doesn't match the spec's shrink-to-fit but matches the
+     * common author pattern of `<img width=...>` or explicit width).
+     */
+    private function layoutFloat(
+        Box $child,
+        string $side,
+        LayoutContext $childContext,
+        float $originX,
+        float $cursorY,
+    ): void {
+        // Lay the float out in a virtual slot at `originX, cursorY` so
+        // its inner geometry resolves (width / margins / borders /
+        // padding / child block heights).
+        $floatCtx = $childContext->floatContext;
+        $virtual = $childContext->withOrigin($originX, $cursorY);
+        $this->layoutBox($child, $virtual);
+
+        // If no FloatContext exists yet, lazily attach one to the
+        // childContext so subsequent siblings see this float.
+        if ($floatCtx === null) {
+            // Caller's $childContext is readonly; the lazy creation
+            // happens at `layoutBlock` level — see `establishFloatContext`.
+            // Fallback: skip registration when no context is established.
+            return;
+        }
+
+        $cbLeft = $originX;
+        $cbRight = $originX + $childContext->containingBlockWidth;
+        $floatWidth = $child->geometry->outerWidth();
+        $floatHeight = $child->geometry->outerHeight();
+        $placement = $side === 'left'
+            ? $floatCtx->placeLeft($cursorY, $cbLeft, $cbRight, $floatWidth)
+            : $floatCtx->placeRight($cursorY, $cbLeft, $cbRight, $floatWidth);
+        $targetX = $placement['x'];
+        $targetY = $placement['y'];
+        // Shift the float's whole subtree from its virtual position
+        // (originX, cursorY) to its registered position.
+        $dx = $targetX - ($virtual->originX);
+        $dy = $targetY - $cursorY;
+        if ($dx !== 0.0 || $dy !== 0.0) {
+            $this->shiftSubtree($child, $dy, $dx);
+        }
+        if ($side === 'left') {
+            $floatCtx->addLeft($targetX, $targetY, $floatWidth, $floatHeight);
+        } else {
+            $floatCtx->addRight($targetX, $targetY, $floatWidth, $floatHeight);
+        }
+    }
+
     /**
      * `position: absolute` or `fixed` removes a box from normal flow.
      * `fixed` is treated the same as `absolute` in the print context —
@@ -851,6 +941,34 @@ final class BlockLayout
                     $this->shiftSubtree($child, $dy, $dx);
                 }
                 $prevBottomMargin = 0.0;
+                continue;
+            }
+            // CSS 2.1 §9.5.2 — `clear` shifts an in-flow block past
+            // floats on the specified side(s). Apply before laying the
+            // child out so its geometry reflects the cleared cursor.
+            $clearSide = $this->clearSide($child);
+            if ($clearSide !== null && $childContext->floatContext !== null) {
+                $cleared = $childContext->floatContext->clearTo($clearSide, $cursorY);
+                if ($cleared > $cursorY) {
+                    $delta = $cleared - $cursorY;
+                    $cursorY = $cleared;
+                    $total += $delta;
+                }
+            }
+            // CSS 2.1 §9.5.1 — floats are taken out of normal flow. Lay
+            // the float at the L/R edge of the containing block at the
+            // current cursor Y (or below, when prior floats consume the
+            // available width), register in FloatContext, then continue
+            // without advancing the cursor.
+            $floatSide = $this->floatSide($child);
+            if ($floatSide !== null) {
+                $this->layoutFloat(
+                    $child,
+                    $floatSide,
+                    $childContext,
+                    $originX,
+                    $cursorY,
+                );
                 continue;
             }
             if ($pageHeight > 0.0

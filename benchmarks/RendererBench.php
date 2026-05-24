@@ -116,6 +116,33 @@ class RendererBench
         );
     }
 
+    public function benchFloats(): void
+    {
+        // Exercises CSS 2.1 §9.5: a left float at the top of each
+        // section + a long paragraph wrapping around it. Stresses
+        // FloatContext queries inside InlineLayout's per-line bound
+        // computation across many lines.
+        $body = '';
+        for ($i = 0; $i < 40; $i++) {
+            $body .= sprintf(
+                '<section>'
+                . '<div class="thumb" style="float: left; width: 80pt; height: 60pt; background-color: #eef; margin: 0 12pt 6pt 0"></div>'
+                . '<p>Section %d body text — wraps around the floated thumbnail '
+                . 'on the left. Subsequent lines past the thumbnail bottom '
+                . 'resume at the container edge.</p>'
+                . '<div style="clear: both"></div>'
+                . '</section>',
+                $i,
+            );
+        }
+        $this->renderer->render(
+            '<!DOCTYPE html><html><head><style>'
+            . 'section { margin-bottom: 12pt; }'
+            . 'p { margin: 0; }'
+            . '</style></head><body>' . $body . '</body></html>',
+        );
+    }
+
     public function benchMultiColumn(): void
     {
         // Exercises the CSS Multi-column 1 path: two-pass layout (virtual

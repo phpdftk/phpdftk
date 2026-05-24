@@ -220,6 +220,10 @@ final class PropertyRegistry
         // CSS Backgrounds 3 §6 — `box-shadow` doesn't inherit.
         $r->register($initial('box-shadow', new Keyword('none')));
 
+        // CSS 2.1 §9.5 — floats. Neither inherits.
+        $r->register($initial('float', new Keyword('none')));
+        $r->register($initial('clear', new Keyword('none')));
+
         // CSS Multi-column 1 §2-3. None inherit. `column-gap` initial is
         // `normal`, which Multi-column 1 §3.1 resolves to `1em`.
         $r->register($initial('column-count', new Keyword('auto')));

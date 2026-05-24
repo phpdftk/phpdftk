@@ -110,9 +110,14 @@ final class InlineLayout
         // against the block's content width (our `$availableWidth`).
         $textIndent = $this->resolveTextIndent($parent, $availableWidth);
 
+        // CSS 2.1 §9.5.3 — line boxes shorten on the side(s) where a
+        // float is currently active. Compute the per-line (left, right)
+        // bounds against the float context each time we start a new line.
+        $bounds = $this->lineBounds($parent, $availableWidth, $context, 0.0);
         $lines = [];
         $currentFragments = [];
-        $currentX = $textIndent;
+        $currentX = $bounds['left'] + $textIndent;
+        $lineMaxRight = $bounds['right'];
         $atLineStart = true;
         $y = 0.0;
         foreach ($tokens as $token) {
@@ -124,7 +129,7 @@ final class InlineLayout
                 continue;
             }
             if ($allowSoftWrap
-                && $currentX + $width > $availableWidth
+                && $currentX + $width > $lineMaxRight
                 && $currentFragments !== []
             ) {
                 // Wrap before placing this token.
@@ -132,7 +137,9 @@ final class InlineLayout
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
-                $currentX = 0.0;
+                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y);
+                $currentX = $bounds['left'];
+                $lineMaxRight = $bounds['right'];
                 $atLineStart = true;
                 if ($collapseLeadingWhitespace && $token['isWhitespace']) {
                     // Drop whitespace at start of next line.
@@ -184,7 +191,9 @@ final class InlineLayout
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
-                $currentX = 0.0;
+                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y);
+                $currentX = $bounds['left'];
+                $lineMaxRight = $bounds['right'];
                 $atLineStart = true;
             }
         }
@@ -201,6 +210,39 @@ final class InlineLayout
 
         $lines = $this->applyTextAlign($lines, $availableWidth, $parent);
         return [$lines, $y];
+    }
+
+    /**
+     * Resolve the left and right inset of a line at relative-Y `$y`
+     * against the active {@see FloatContext}. Returns offsets relative
+     * to the parent's content-edge X — so `left` is the line's start X
+     * within the parent's box, and `right` is the line's max-end X.
+     *
+     * Without floats this is just `[0, $availableWidth]`. With a left
+     * float overlapping the line, `left` rises; with a right float,
+     * `right` falls.
+     *
+     * Phase-1 simplification: samples at the line's top edge only.
+     * Browsers conceptually sample across the full line range and take
+     * the most-constrained bounds.
+     *
+     * @return array{left: float, right: float}
+     */
+    private function lineBounds(Box $parent, float $availableWidth, LayoutContext $context, float $relY): array
+    {
+        $floatCtx = $context->floatContext;
+        if ($floatCtx === null) {
+            return ['left' => 0.0, 'right' => $availableWidth];
+        }
+        $parentX = $parent->geometry->x;
+        $parentY = $parent->geometry->y;
+        $absY = $parentY + $relY;
+        $absLeft = $floatCtx->leftEdgeAt($absY, $parentX);
+        $absRight = $floatCtx->rightEdgeAt($absY, $parentX + $availableWidth);
+        return [
+            'left' => max(0.0, $absLeft - $parentX),
+            'right' => max(0.0, $absRight - $parentX),
+        ];
     }
 
     /**
