@@ -604,8 +604,11 @@ final class BlockLayout
      *  - No mid-child fragmentation. A child taller than the balanced
      *    height stays whole in its column; the column simply overflows.
      *    Mid-child splitting lands with 1I.2.
-     *  - `break-before: column` / `break-after: column` and column-spanning
-     *    elements are not yet honoured.
+     *  - `column-span: all` carves the container into sequential
+     *    columnar segments separated by full-width spanners; the
+     *    column rule still paints across the full container height
+     *    (drawing through spanner backgrounds — a Phase-2 follow-up
+     *    will clip it per-segment).
      */
     private function layoutMultiColumn(Box $box, LayoutContext $childContext): float
     {
@@ -635,30 +638,120 @@ final class BlockLayout
             return $this->stackChildren($box, $childContext, $childContext->originX, $childContext->originY);
         }
 
-        // First pass: lay each child into a single virtual column of width
-        // `columnWidth` at the container's origin. We need each child's
-        // outer height to compute balance; cumulative cursor matters so
-        // margin-collapsing between siblings still applies before we
-        // redistribute.
+        // CSS Multi-column 1 §6.2 — `column-span: all` carves the
+        // container into vertical segments: columnar runs above and
+        // below a span-all child, with the spanner taking the full
+        // container width between them. Walk the children once and
+        // dispatch each segment to the appropriate layout path.
+        $segments = $this->splitByColumnSpan($box->children);
+        if (count($segments) > 1) {
+            $cursorY = $geo->y;
+            foreach ($segments as $segment) {
+                if ($segment['span']) {
+                    // Single column-span: all child — lay out full-width.
+                    $spanChild = $segment['children'][0];
+                    $spanCtx = $childContext
+                        ->withContainingBlock($geo->width, $childContext->containingBlockHeight)
+                        ->withOrigin($geo->x, $cursorY);
+                    $h = $this->layoutBox($spanChild, $spanCtx);
+                    $cursorY += $h;
+                } else {
+                    $cursorY += $this->layoutColumnarRun(
+                        $box,
+                        $segment['children'],
+                        $childContext,
+                        $columnWidth,
+                        $gap,
+                        $count,
+                        $cursorY,
+                    );
+                }
+            }
+            return $cursorY - $geo->y;
+        }
+
+        // No span-all children — fall through to the original two-pass
+        // codepath that operates on `$box->children` directly.
+        return $this->layoutColumnarRun($box, $box->children, $childContext, $columnWidth, $gap, $count, $geo->y);
+    }
+
+    /**
+     * Split a child list into vertical segments at `column-span: all`
+     * boundaries. Each segment is either a columnar run of regular
+     * children OR a single span-all child. Order is preserved.
+     *
+     * @param list<Box> $children
+     * @return list<array{span: bool, children: list<Box>}>
+     */
+    private function splitByColumnSpan(array $children): array
+    {
+        /** @var list<array{span: bool, children: list<Box>}> $segments */
+        $segments = [];
+        /** @var list<Box> $run */
+        $run = [];
+        foreach ($children as $child) {
+            if ($this->isColumnSpanAll($child)) {
+                if ($run !== []) {
+                    $segments[] = ['span' => false, 'children' => $run];
+                    $run = [];
+                }
+                $segments[] = ['span' => true, 'children' => [$child]];
+                continue;
+            }
+            $run[] = $child;
+        }
+        if ($run !== []) {
+            $segments[] = ['span' => false, 'children' => $run];
+        }
+        return $segments;
+    }
+
+    private function isColumnSpanAll(Box $child): bool
+    {
+        $value = $child->style->get('column-span');
+        return $value instanceof Keyword && strtolower($value->name) === 'all';
+    }
+
+    /**
+     * Two-pass columnar layout over a subset of `$box`'s children
+     * starting at `$originY`. Returns the total vertical space consumed
+     * (max of the column heights) so the caller can advance its cursor
+     * past the run. Pulled out of `layoutMultiColumn` so segmented runs
+     * (around `column-span: all` spanners) can reuse it.
+     *
+     * @param list<Box> $children
+     */
+    private function layoutColumnarRun(
+        Box $box,
+        array $children,
+        LayoutContext $childContext,
+        float $columnWidth,
+        float $gap,
+        int $count,
+        float $originY,
+    ): float {
+        $geo = $box->geometry;
+        if ($children === []) {
+            return 0.0;
+        }
         $columnCtx = $childContext->withContainingBlock(
             $columnWidth,
             $childContext->containingBlockHeight,
         );
-        $childTotal = $this->stackChildren($box, $columnCtx, $geo->x, $geo->y);
+        $childTotal = $this->stackChildrenList(
+            $children,
+            $columnCtx,
+            $geo->x,
+            $originY,
+        );
 
-        // Phase 1 balance: divide total height equally across N columns.
         $balanced = $count > 0 ? ceil($childTotal / $count) : $childTotal;
 
-        // Second pass: walk children in order, redistribute into columns.
-        // `colY` tracks the cursor inside the current column relative to
-        // `geo->y`; advance to the next column when the next child would
-        // overflow the balanced height (provided we're not on the last
-        // column — the final column absorbs whatever's left).
         $currentCol = 0;
         $colY = 0.0;
         $columnHeights = array_fill(0, $count, 0.0);
         $prevChild = null;
-        foreach ($box->children as $child) {
+        foreach ($children as $child) {
             $h = $child->geometry->outerHeight();
             // CSS Multi-column 1 §6.1 — author-controlled column breaks.
             // `break-before: column` on this child or `break-after: column`
@@ -681,7 +774,7 @@ final class BlockLayout
                 $colY = 0.0;
             }
             $targetX = $geo->x + $currentCol * ($columnWidth + $gap);
-            $targetY = $geo->y + $colY;
+            $targetY = $originY + $colY;
             // Reset the child's top margin so the first child in each
             // column doesn't carry collapsed-margin leftovers from the
             // first-pass stacking.
@@ -715,12 +808,25 @@ final class BlockLayout
      */
     private function stackChildren(Box $box, LayoutContext $childContext, float $originX, float $originY): float
     {
+        return $this->stackChildrenList($box->children, $childContext, $originX, $originY);
+    }
+
+    /**
+     * Same algorithm as `stackChildren` but iterating an explicit child
+     * list instead of `$box->children`. Used by `layoutColumnarRun` so
+     * a column-span: all segment can lay out just the columnar slice of
+     * a multi-column container's children.
+     *
+     * @param list<Box> $children
+     */
+    private function stackChildrenList(array $children, LayoutContext $childContext, float $originX, float $originY): float
+    {
         $cursorY = $originY;
         $prevBottomMargin = 0.0;
         $hasPrev = false;
         $pageHeight = $childContext->containingBlockHeight;
         $total = 0.0;
-        foreach ($box->children as $child) {
+        foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
             if ($pageHeight > 0.0
                 && $this->forcesPageBreakBefore($child)

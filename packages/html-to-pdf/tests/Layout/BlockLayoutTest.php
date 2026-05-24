@@ -1125,6 +1125,158 @@ final class BlockLayoutTest extends TestCase
         self::assertLessThan(800.0, $tr->geometry->y);
     }
 
+    public function testColumnSpanAllSpansFullContainerWidth(): void
+    {
+        // `column-span: all` on a child inside a multi-column container
+        // should give it the full container width (600px in our default
+        // ctx). Children before / after still flow into columns.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="span" style="column-span: all"></div>'
+                . '<div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $children = $section->children;
+        $spanner = null;
+        foreach ($children as $c) {
+            if ($c->element !== null && in_array('span', $c->element->classes(), true)) {
+                $spanner = $c;
+                break;
+            }
+        }
+        self::assertNotNull($spanner);
+        self::assertSame(600.0, $spanner->geometry->width);
+    }
+
+    public function testColumnSpanAllStartsSecondSegmentAfterIt(): void
+    {
+        // Before-segment child sits in column 0 of the first columnar
+        // run. The spanner sits below at full width. The after-segment
+        // child starts a fresh columnar run at column 0 below the
+        // spanner.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="span" style="column-span: all; height: 30px"></div>'
+                . '<div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $a = $section->children[0];
+        $spanner = $section->children[1];
+        $b = $section->children[2];
+        // a in column 0 of the first run, starting at section top.
+        self::assertEqualsWithDelta($section->geometry->x, $a->geometry->x, 0.001);
+        self::assertEqualsWithDelta($section->geometry->y, $a->geometry->y, 0.001);
+        // Spanner below the first run's tallest column (a is 50px high
+        // → first columnar segment ends at section.y + 50, since
+        // there's only one child to balance).
+        $expectedSpannerY = $section->geometry->y + 50.0;
+        self::assertEqualsWithDelta($expectedSpannerY, $spanner->geometry->y, 0.001);
+        // b in column 0 of the second columnar run, below the spanner.
+        self::assertEqualsWithDelta($section->geometry->x, $b->geometry->x, 0.001);
+        self::assertEqualsWithDelta($spanner->geometry->y + 30.0, $b->geometry->y, 0.001);
+    }
+
+    public function testColumnSpanAllAsFirstChildSkipsLeadingColumnarRun(): void
+    {
+        // First child is the spanner — no leading columnar segment.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="span" style="column-span: all; height: 40px"></div>'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $spanner = $section->children[0];
+        // Spanner sits at the section top, full width.
+        self::assertEqualsWithDelta($section->geometry->y, $spanner->geometry->y, 0.001);
+        self::assertSame(600.0, $spanner->geometry->width);
+    }
+
+    public function testColumnSpanAllAsLastChildSkipsTrailingColumnarRun(): void
+    {
+        // Last child is the spanner — no trailing columnar segment.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="span" style="column-span: all; height: 40px"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $spanner = $section->children[2];
+        self::assertSame(600.0, $spanner->geometry->width);
+        self::assertGreaterThan($section->children[0]->geometry->y, $spanner->geometry->y);
+    }
+
+    public function testColumnSpanNoneIsIgnored(): void
+    {
+        // `column-span: none` (initial value) — children all flow into
+        // the columnar layout, no spanner segment.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="column-span: none"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $b = $section->children[1];
+        // b sits in column 1 (balance: 50px = ceil(100/2)), not at full width.
+        self::assertSame(300.0, $b->geometry->width);
+    }
+
+    public function testColumnSpanAllOutsideMultiColumnIsIgnored(): void
+    {
+        // Outside a multi-column container, `column-span: all` is
+        // a no-op — the box stacks as a regular block.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="span" style="column-span: all; height: 30px"></div>'
+                . '<div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $spanner = $section->children[1];
+        // No column-* on section → not multi-column → spanner is a
+        // regular block at full body width with normal stacking.
+        self::assertSame(600.0, $spanner->geometry->width);
+        self::assertEqualsWithDelta(50.0, $spanner->geometry->y, 0.001);
+    }
+
     public function testBreakBeforeColumnStartsNewColumn(): void
     {
         // 4 × 50px-tall children in a column-count: 2 container. With
