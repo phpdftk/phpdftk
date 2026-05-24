@@ -778,6 +778,117 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testMaxWidthClampsExplicitlySizedBox(): void
+    {
+        // `max-width: 300px` should clamp a 500px-wide box.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 500px; max-width: 300px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(300.0, $div->geometry->width);
+    }
+
+    public function testMaxWidthCentersWithAutoMargins(): void
+    {
+        // The canonical "centered fixed-width container" pattern:
+        // `max-width: 400px; margin: 0 auto`. The 600-wide container
+        // has 200px slack which splits 100px on each side.
+        $box = $this->buildTree(
+            '<html><body><div style="max-width: 400px; margin: 0 auto"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(400.0, $div->geometry->width);
+        self::assertSame(100.0, $div->geometry->marginLeft);
+        self::assertSame(100.0, $div->geometry->marginRight);
+    }
+
+    public function testMinWidthExpandsTooSmallBox(): void
+    {
+        // `width: 100px; min-width: 250px` resolves to 250px.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; min-width: 250px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(250.0, $div->geometry->width);
+    }
+
+    public function testMinWidthBeatsMaxWidthWhenInConflict(): void
+    {
+        // CSS 2.1 §10.4: min-width takes precedence over max-width when
+        // min > max. So `min: 200px; max: 100px` resolves to 200px.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 50px; min-width: 200px; max-width: 100px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(200.0, $div->geometry->width);
+    }
+
+    public function testMaxWidthNoneIsNoClamp(): void
+    {
+        // The `none` keyword (initial value for max-width) leaves the
+        // upper bound unbounded — a 500px declared width stays 500px.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 500px; max-width: none"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(500.0, $div->geometry->width);
+    }
+
+    public function testWidthAutoNotClampedWithoutMaxWidth(): void
+    {
+        // No min/max declared — auto-width box still fills the
+        // containing block.
+        $box = $this->buildTree(
+            '<html><body><div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(600.0, $div->geometry->width);
+    }
+
+    public function testMinHeightExpandsAutoHeightBox(): void
+    {
+        // `<div>` with no children → height 0 by default. min-height
+        // expands it.
+        $box = $this->buildTree(
+            '<html><body><div style="min-height: 150px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(150.0, $div->geometry->height);
+    }
+
+    public function testMaxHeightClampsExplicitHeight(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div style="height: 500px; max-height: 200px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(200.0, $div->geometry->height);
+    }
+
     public function testUaDefaultBreakInsideShiftsStraddlingRow(): void
     {
         // No author CSS for `break-inside` — the row should shift onto the

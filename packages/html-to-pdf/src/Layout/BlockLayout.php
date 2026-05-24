@@ -229,6 +229,27 @@ final class BlockLayout
                     - $geo->paddingLeft - $geo->paddingRight,
             )
             : $this->resolveLength($widthValue, $cbWidth);
+        // CSS 2.1 §10.4 — clamp to [min-width, max-width]. min-width wins
+        // when min > max (so `min: 100px; max: 50px` resolves to 100px).
+        // `max-width: none` keyword leaves the upper bound unbounded;
+        // numeric `auto` on min-width resolves to 0.
+        $maxWidthValue = $style->get('max-width');
+        if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
+            $maxWidth = $this->resolveLength($maxWidthValue, $cbWidth);
+            if ($maxWidth > 0.0 && $contentWidth > $maxWidth) {
+                $contentWidth = $maxWidth;
+                // Width fell out of `auto` territory — treat it like an
+                // explicit length from here on so auto-margin slack
+                // distribution kicks in below.
+                $widthAuto = false;
+            }
+        }
+        $minWidthValue = $style->get('min-width');
+        $minWidth = $this->resolveLength($minWidthValue, $cbWidth);
+        if ($minWidth > 0.0 && $contentWidth < $minWidth) {
+            $contentWidth = $minWidth;
+            $widthAuto = false;
+        }
         $geo->width = $contentWidth;
 
         // CSS 2.1 §10.3.3 — `auto` margin redistribution. Only applies when
@@ -398,6 +419,20 @@ final class BlockLayout
             $geo->height = $childTotal;
         } else {
             $geo->height = $this->resolveLength($heightValue, $context->containingBlockHeight);
+        }
+        // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
+        // with the width clamps above; `max-height: none` leaves the
+        // upper bound unbounded.
+        $maxHeightValue = $style->get('max-height');
+        if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
+            $maxHeight = $this->resolveLength($maxHeightValue, $context->containingBlockHeight);
+            if ($maxHeight > 0.0 && $geo->height > $maxHeight) {
+                $geo->height = $maxHeight;
+            }
+        }
+        $minHeight = $this->resolveLength($style->get('min-height'), $context->containingBlockHeight);
+        if ($minHeight > 0.0 && $geo->height < $minHeight) {
+            $geo->height = $minHeight;
         }
 
         if ($heightIsAuto
