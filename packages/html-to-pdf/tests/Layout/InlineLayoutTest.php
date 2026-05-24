@@ -759,6 +759,57 @@ final class InlineLayoutTest extends TestCase
         );
     }
 
+    public function testTabSizeLengthApproximatesToSpaces(): void
+    {
+        // `tab-size: 64px` with default font-size 16px → space
+        // advance estimate = 16 × 0.25 = 4px. 64 / 4 = 16 spaces.
+        $this->skipIfNoFont();
+        $lengthBox = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; tab-size: 64px; }',
+        );
+        $this->layout->layout($lengthBox, $this->defaultContext(400.0));
+        $lengthPre = $this->find($lengthBox, 'pre');
+        $referenceBox = $this->buildTree(
+            '<html><body><pre>a' . str_repeat(' ', 16) . 'b</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($referenceBox, $this->defaultContext(400.0));
+        $refPre = $this->find($referenceBox, 'pre');
+        self::assertNotNull($lengthPre);
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $lengthPre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
+    public function testTabSizeZeroLengthMapsToZeroSpaces(): void
+    {
+        // Length of 0 (with explicit unit) → zero spaces → tab dropped.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; tab-size: 0px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $pre = $this->find($box, 'pre');
+        $reference = $this->buildTree(
+            '<html><body><pre>ab</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refPre = $this->find($reference, 'pre');
+        self::assertNotNull($pre);
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $pre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
     public function testTabSizeInvalidValueDefaultsToEight(): void
     {
         // Negative test: invalid keyword `tab-size: nonsense` keeps

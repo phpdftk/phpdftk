@@ -213,10 +213,15 @@ final class InlineLayout
     }
 
     /**
-     * Resolve CSS Text 3 §11.2 `tab-size`. Phase-1 honours integer
-     * values only; explicit lengths fall back to the spec default of
-     * 8 since the tab-stop alignment math isn't implemented. Returns
-     * the integer count of spaces a tab expands to (≥ 0).
+     * Resolve CSS Text 3 §11.2 `tab-size` to an integer space count.
+     *
+     * - `<integer>` / `<number>`: direct space count.
+     * - `<length>`: divide by a glyph-space advance estimate
+     *   (0.25 × font-size — a sane default for sans-serif) and round
+     *   to the nearest integer ≥ 0. This is an approximation since
+     *   tab-stop alignment isn't implemented, but converts a
+     *   length-based author intent to the closest N-space expansion.
+     * - Anything else (`auto`, unknown keywords): the spec default 8.
      */
     private function resolveTabSize(Box $box): int
     {
@@ -226,6 +231,17 @@ final class InlineLayout
         }
         if ($value instanceof \Phpdftk\Css\Value\Number) {
             return max(0, (int) round($value->value));
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            $fontSize = $this->dominantFontSize($box, new LayoutContext(
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                new \Phpdftk\Css\Cascade\LengthContext(),
+            ));
+            $spaceAdvance = max(0.1, $fontSize * 0.25);
+            return max(0, (int) round($value->value / $spaceAdvance));
         }
         return 8;
     }
