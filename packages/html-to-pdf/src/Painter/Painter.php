@@ -136,8 +136,11 @@ final class Painter
         // with their own `visibility` declaration can still be visible.
         $hidden = $this->isVisibilityHidden($box);
         if (!$hidden) {
-            $this->paintBoxShadow($box, $stream);
+            // CSS Backgrounds 3 §6.1.1 — paint stack from bottom up:
+            // outset shadows → background → inset shadows → border.
+            $this->paintBoxShadow($box, $stream, insetOnly: false);
             $this->paintBackground($box, $stream);
+            $this->paintBoxShadow($box, $stream, insetOnly: true);
             $this->paintBorders($box, $stream);
             $this->paintOutline($box, $stream);
             $this->paintColumnRules($box, $stream);
@@ -402,7 +405,7 @@ final class Painter
      * Multi-shadow comma lists are read; each shadow paints in reverse
      * order so the first listed sits on top — matching CSS stacking.
      */
-    private function paintBoxShadow(Box $box, ContentStream $stream): void
+    private function paintBoxShadow(Box $box, ContentStream $stream, bool $insetOnly): void
     {
         $value = $box->style->get('box-shadow');
         if ($value === null
@@ -420,6 +423,9 @@ final class Painter
 
         // Paint last shadow first so earlier-listed shadows sit on top.
         foreach (array_reverse($shadows) as $shadow) {
+            if ($shadow['inset'] !== $insetOnly) {
+                continue;
+            }
             $color = $shadow['color'] ?? $textColor;
             $spread = $shadow['spread'];
             if ($shadow['inset']) {

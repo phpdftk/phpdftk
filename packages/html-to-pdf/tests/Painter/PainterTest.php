@@ -366,6 +366,81 @@ final class PainterTest extends TestCase
         self::assertSame(1, $rectCount);
     }
 
+    public function testInsetShadowPaintsAboveBackground(): void
+    {
+        // CSS Backgrounds 3 §6.1.1 — paint order is: outset → bg →
+        // inset → border. So a non-transparent background must NOT
+        // cover an inset shadow. Verify by checking the operator
+        // stream: the inset shadow's even-odd fill (`f*`) must appear
+        // AFTER the background's solid fill (`f`).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   box-shadow: inset 5px 5px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $firstFill = array_search('f', $opcodes, true);
+        $insetFill = array_search('f*', $opcodes, true);
+        self::assertNotFalse($firstFill, 'background fill must be emitted');
+        self::assertNotFalse($insetFill, 'inset shadow fill must be emitted');
+        self::assertGreaterThan(
+            $firstFill,
+            $insetFill,
+            'inset shadow must paint above the background',
+        );
+    }
+
+    public function testOutsetShadowPaintsBelowBackground(): void
+    {
+        // Sanity check the symmetric case: outset shadow's solid fill
+        // (`f`) must come BEFORE the background's `f` in the stream.
+        // The first `f` is the outset shadow; the second is the bg.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   box-shadow: 4px 4px red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        // Find the first `setFillColorRGB` that sets red (the shadow)
+        // and confirm it comes BEFORE the `setFillColorRGB` that sets
+        // white (the bg).
+        $redIdx = null;
+        $whiteIdx = null;
+        foreach ($ops as $i => $op) {
+            if ($op === '1 0 0 rg' && $redIdx === null) {
+                $redIdx = $i;
+            }
+            if ($op === '1 1 1 rg' && $whiteIdx === null) {
+                $whiteIdx = $i;
+            }
+        }
+        self::assertNotNull($redIdx, 'shadow red colour emitted');
+        self::assertNotNull($whiteIdx, 'background white colour emitted');
+        self::assertLessThan($whiteIdx, $redIdx, 'outset shadow paints before background');
+    }
+
     public function testInsetShadowAcceptsUnitlessZeroOffsets(): void
     {
         // CSS Values 4 §6.2: `0` is a valid zero-length without a
