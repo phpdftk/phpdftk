@@ -345,6 +345,186 @@ final class PainterTest extends TestCase
         self::assertSame(3, $rectCount, 'three solid sides');
     }
 
+    public function testInsetBorderDarkensTopAndLeftSides(): void
+    {
+        // `border-style: inset` paints top + left with a darkened
+        // version of the base colour. Verify by checking that the
+        // operator stream contains BOTH the base colour AND a darker
+        // variant (channel × 0.5).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px inset rgb(200, 0, 0); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Base colour (200/255 ≈ 0.78431) and darkened (× 0.5 ≈ 0.39216).
+        self::assertStringContainsString('0.784314 0 0 rg', $bytes, 'base colour for bottom/right');
+        self::assertStringContainsString('0.392157 0 0 rg', $bytes, 'darkened colour for top/left');
+    }
+
+    public function testOutsetBorderDarkensBottomAndRightSides(): void
+    {
+        // `border-style: outset` is the inverse: bottom + right
+        // darken, top + left use the base colour.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px outset rgb(200, 0, 0); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Same pattern as inset, but inverted side assignment — both
+        // colours still appear in the stream.
+        self::assertStringContainsString('0.784314 0 0 rg', $bytes);
+        self::assertStringContainsString('0.392157 0 0 rg', $bytes);
+    }
+
+    public function testGrooveBorderProducesLightAndDarkSides(): void
+    {
+        // `groove` paints top + left darkened, bottom + right
+        // lightened. Verify both light and dark variants appear.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px groove rgb(128, 128, 128); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Darker: 128/255 × 0.5 ≈ 0.25098.
+        self::assertStringContainsString('0.25098 0.25098 0.25098 rg', $bytes, 'darker on top/left');
+        // Lighter: 0.501961 + (1 - 0.501961) × 0.3 ≈ 0.651373
+        self::assertStringContainsString('0.651373 0.651373 0.651373 rg', $bytes, 'lighter on bottom/right');
+    }
+
+    public function testRidgeBorderInvertsGroovePattern(): void
+    {
+        // `ridge` is the inverse of `groove` — light on top/left,
+        // dark on bottom/right.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px ridge rgb(128, 128, 128); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Both variants appear regardless of orientation.
+        self::assertStringContainsString('0.25098 0.25098 0.25098 rg', $bytes);
+        self::assertStringContainsString('0.651373 0.651373 0.651373 rg', $bytes);
+    }
+
+    public function testInsetOnSingleSideUsesDarkenedColor(): void
+    {
+        // Only `border-top: 4px inset blue`. Top is darkened; no
+        // other side paints. Verify only the darkened variant appears
+        // for the blue (0, 0, 1) channel.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border-top: 4px inset blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Darkened blue: 1 × 0.5 = 0.5.
+        self::assertStringContainsString('0 0 0.5 rg', $bytes, 'top side darkened');
+        // Base blue should NOT appear (no other side painted).
+        self::assertStringNotContainsString('0 0 1 rg', $bytes, 'no base blue without other sides');
+    }
+
+    public function testSolidBorderUnaffectedBy3dColorLogic(): void
+    {
+        // Regression: `solid` borders must continue to use the base
+        // colour without any darken/lighten — the 3D logic only
+        // applies to inset/outset/groove/ridge.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px solid rgb(200, 0, 0); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringContainsString('0.784314 0 0 rg', $bytes, 'base colour');
+        self::assertStringNotContainsString('0.392157 0 0 rg', $bytes, 'no darkened variant');
+    }
+
     public function testZeroThicknessDashedNoOp(): void
     {
         // Width 0 → don't try to stroke a zero-width line. The

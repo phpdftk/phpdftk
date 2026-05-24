@@ -2026,7 +2026,7 @@ final class Painter
                 $outerY,
                 $outerWidth,
                 $geo->borderTop,
-                axis: 'horizontal',
+                side: 'top',
             );
         }
         if ($geo->borderBottom > 0.0 && $this->borderIsVisible($box, 'bottom')) {
@@ -2038,7 +2038,7 @@ final class Painter
                 $outerY + $outerHeight - $geo->borderBottom,
                 $outerWidth,
                 $geo->borderBottom,
-                axis: 'horizontal',
+                side: 'bottom',
             );
         }
         if ($geo->borderLeft > 0.0 && $this->borderIsVisible($box, 'left')) {
@@ -2050,7 +2050,7 @@ final class Painter
                 $outerY,
                 $geo->borderLeft,
                 $outerHeight,
-                axis: 'vertical',
+                side: 'left',
             );
         }
         if ($geo->borderRight > 0.0 && $this->borderIsVisible($box, 'right')) {
@@ -2062,7 +2062,7 @@ final class Painter
                 $outerY,
                 $geo->borderRight,
                 $outerHeight,
-                axis: 'vertical',
+                side: 'right',
             );
         }
     }
@@ -2093,8 +2093,15 @@ final class Painter
         float $y,
         float $width,
         float $height,
-        string $axis,
+        string $side,
     ): void {
+        $axis = ($side === 'top' || $side === 'bottom') ? 'horizontal' : 'vertical';
+        // CSS Backgrounds 3 §5.2 — 3D-effect styles. `inset` darkens
+        // top + left; `outset` lightens them; `groove` and `ridge`
+        // split per side as if etched / raised.
+        if (in_array($styleName, ['inset', 'outset', 'groove', 'ridge'], true)) {
+            $color = $this->resolve3dBorderColor($styleName, $color, $side);
+        }
         if ($styleName === 'dashed' || $styleName === 'dotted') {
             $thickness = $axis === 'horizontal' ? $height : $width;
             $this->paintDashedDottedSide(
@@ -2174,6 +2181,42 @@ final class Painter
         }
         $stream->stroke();
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Resolve the per-side colour for CSS Backgrounds 3 §5.2 3D-style
+     * borders. The light source is conventionally top-left:
+     *
+     *  - `inset`  → top + left use a darker variant (carved-in look).
+     *  - `outset` → bottom + right use a darker variant (raised look).
+     *  - `groove` → top + left darker, bottom + right lighter (etched in).
+     *  - `ridge`  → top + left lighter, bottom + right darker (raised ridge).
+     *
+     * "Darker" multiplies each RGB channel by 0.5; "lighter" lightens
+     * toward white by 30%. These match common browser approximations.
+     */
+    private function resolve3dBorderColor(string $styleName, Color $base, string $side): Color
+    {
+        $isTopLeft = $side === 'top' || $side === 'left';
+        $darken = static function (Color $c): Color {
+            return new Color($c->r * 0.5, $c->g * 0.5, $c->b * 0.5, $c->a, $c->space);
+        };
+        $lighten = static function (Color $c): Color {
+            return new Color(
+                $c->r + (1.0 - $c->r) * 0.3,
+                $c->g + (1.0 - $c->g) * 0.3,
+                $c->b + (1.0 - $c->b) * 0.3,
+                $c->a,
+                $c->space,
+            );
+        };
+        return match ($styleName) {
+            'inset' => $isTopLeft ? $darken($base) : $base,
+            'outset' => $isTopLeft ? $base : $darken($base),
+            'groove' => $isTopLeft ? $darken($base) : $lighten($base),
+            'ridge' => $isTopLeft ? $lighten($base) : $darken($base),
+            default => $base,
+        };
     }
 
     private function borderStyleName(Box $box, string $side): string
