@@ -210,6 +210,10 @@ final class PropertyRegistry
         $r->register($initial('caption-side', new Keyword('top'), true));
         $r->register($initial('empty-cells', new Keyword('show'), true));
 
+        // CSS Text 3 §11.2 — `tab-size` integer (number of advance
+        // spaces) or length. Initial value 8, inheriting.
+        $r->register($initial('tab-size', new \Phpdftk\Css\Value\Integer(8), true));
+
         // CSS Text 3 §5 word-break / overflow-wrap.
         $r->register($initial('word-break', new Keyword('normal'), true));
         $r->register($initial('overflow-wrap', new Keyword('normal'), true));

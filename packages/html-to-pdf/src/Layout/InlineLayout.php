@@ -213,6 +213,24 @@ final class InlineLayout
     }
 
     /**
+     * Resolve CSS Text 3 §11.2 `tab-size`. Phase-1 honours integer
+     * values only; explicit lengths fall back to the spec default of
+     * 8 since the tab-stop alignment math isn't implemented. Returns
+     * the integer count of spaces a tab expands to (≥ 0).
+     */
+    private function resolveTabSize(Box $box): int
+    {
+        $value = $box->style->get('tab-size');
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return max(0, $value->value);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return max(0, (int) round($value->value));
+        }
+        return 8;
+    }
+
+    /**
      * Resolve the left and right inset of a line at relative-Y `$y`
      * against the active {@see FloatContext}. Returns offsets relative
      * to the parent's content-edge X — so `left` is the line's start X
@@ -588,6 +606,18 @@ final class InlineLayout
                 // whitespace collapse to a single space. Newlines collapse
                 // alongside spaces / tabs / form feeds.
                 $text = preg_replace('/[ \t\n\r\f]+/', ' ', $text) ?? $text;
+            } else {
+                // CSS Text 3 §11.2 — in white-space modes that preserve
+                // tabs (`pre`, `pre-wrap`), each U+0009 expands to N
+                // spaces. Phase-1 simplification: fixed expansion
+                // instead of tab-stop alignment (which would require
+                // tracking column position across mid-text breaks).
+                $tabSize = $this->resolveTabSize($box);
+                if ($tabSize > 0) {
+                    $text = str_replace("\t", str_repeat(' ', $tabSize), $text);
+                } else {
+                    $text = str_replace("\t", '', $text);
+                }
             }
             // CSS Text 3 §2: `text-transform` runs before shaping so the
             // shaper sees the transformed codepoints.

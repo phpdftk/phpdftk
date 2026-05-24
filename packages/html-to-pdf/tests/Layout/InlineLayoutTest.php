@@ -625,6 +625,166 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $first->x);
     }
 
+    public function testTabSizeDefaultExpandsTabToEightSpacesInPre(): void
+    {
+        // CSS Text 3 §11.2 initial value is 8 — a U+0009 in a
+        // `<pre>` should render as 8 spaces of advance.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $pre = $this->find($box, 'pre');
+        self::assertNotNull($pre);
+        // Render the same text with explicit "a" + 8 spaces + "b" to
+        // get a baseline width, then compare.
+        $reference = $this->buildTree(
+            '<html><body><pre>a' . str_repeat(' ', 8) . 'b</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refPre = $this->find($reference, 'pre');
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $pre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
+    public function testTabSizeFourShrinksTabWidth(): void
+    {
+        // Explicit `tab-size: 4` halves the default tab width.
+        $this->skipIfNoFont();
+        $defaultBox = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($defaultBox, $this->defaultContext(400.0));
+        $defaultPre = $this->find($defaultBox, 'pre');
+
+        $smallerBox = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; tab-size: 4; }',
+        );
+        $this->layout->layout($smallerBox, $this->defaultContext(400.0));
+        $smallerPre = $this->find($smallerBox, 'pre');
+        self::assertNotNull($defaultPre);
+        self::assertNotNull($smallerPre);
+        // Smaller tab → narrower line.
+        self::assertLessThan(
+            $defaultPre->lineBoxes[0]->totalWidth(),
+            $smallerPre->lineBoxes[0]->totalWidth(),
+        );
+    }
+
+    public function testTabSizeZeroDropsTabsEntirelyInPre(): void
+    {
+        // `tab-size: 0` — tabs vanish (zero advance). Useful when
+        // authors want to align with their own padding.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; tab-size: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $pre = $this->find($box, 'pre');
+        $reference = $this->buildTree(
+            '<html><body><pre>ab</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refPre = $this->find($reference, 'pre');
+        self::assertNotNull($pre);
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $pre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
+    public function testTabSizeIgnoredInNormalWhiteSpaceMode(): void
+    {
+        // Default `white-space: normal` collapses tabs to a single
+        // space regardless of tab-size — the existing collapse pass
+        // wins. Sanity check that tab-size: 20 doesn't widen lines
+        // in normal mode.
+        $this->skipIfNoFont();
+        $normal = $this->buildTree(
+            "<html><body><p>a\tb</p></body></html>",
+            'html, body, p { display: block; tab-size: 20; }',
+        );
+        $this->layout->layout($normal, $this->defaultContext(400.0));
+        $normalP = $this->find($normal, 'p');
+        $reference = $this->buildTree(
+            '<html><body><p>a b</p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refP = $this->find($reference, 'p');
+        self::assertNotNull($normalP);
+        self::assertNotNull($refP);
+        self::assertEqualsWithDelta(
+            $refP->lineBoxes[0]->totalWidth(),
+            $normalP->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
+    public function testTabSizeInheritsFromParent(): void
+    {
+        // `tab-size: 2` on the body should reach the inner `<pre>` via
+        // inheritance — `tab-size` is an inheriting property.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; } body { tab-size: 2; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $pre = $this->find($box, 'pre');
+        $reference = $this->buildTree(
+            '<html><body><pre>a' . str_repeat(' ', 2) . 'b</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refPre = $this->find($reference, 'pre');
+        self::assertNotNull($pre);
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $pre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
+    public function testTabSizeInvalidValueDefaultsToEight(): void
+    {
+        // Negative test: invalid keyword `tab-size: nonsense` keeps
+        // the initial 8-spaces default.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            "<html><body><pre>a\tb</pre></body></html>",
+            'html, body, pre { display: block; white-space: pre; tab-size: nonsense; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $pre = $this->find($box, 'pre');
+        $reference = $this->buildTree(
+            '<html><body><pre>a' . str_repeat(' ', 8) . 'b</pre></body></html>',
+            'html, body, pre { display: block; white-space: pre; }',
+        );
+        $this->layout->layout($reference, $this->defaultContext(400.0));
+        $refPre = $this->find($reference, 'pre');
+        self::assertNotNull($pre);
+        self::assertNotNull($refPre);
+        self::assertEqualsWithDelta(
+            $refPre->lineBoxes[0]->totalWidth(),
+            $pre->lineBoxes[0]->totalWidth(),
+            0.5,
+        );
+    }
+
     public function testTextAlignLastAutoLeavesJustifyLastStartAligned(): void
     {
         // Default `text-align-last: auto` keeps the last line of a
