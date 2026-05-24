@@ -53,6 +53,16 @@ final class BlockLayout
      */
     private ?int $currentTableColumns = null;
 
+    /**
+     * Per-column explicit widths declared via `<col>` / `<colgroup>`
+     * `width` attributes (HTML 5 §4.9.4). Each entry is the explicit
+     * pixel width for that column, or null when no `<col>` declared
+     * one — in which case the auto-distribution path fills it in.
+     *
+     * @var list<?float>|null
+     */
+    private ?array $currentColumnWidths = null;
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -90,7 +100,12 @@ final class BlockLayout
             // the same column-width grid (CSS Tables 3 §4: columns are a
             // table-level concept).
             $prev = $this->currentTableColumns;
+            $prevWidths = $this->currentColumnWidths;
             $this->currentTableColumns = $this->maxColumnsIn($box);
+            // HTML 5 §4.9.4 — explicit column widths from `<col>` /
+            // `<colgroup width="N">`. `null` entries fall through to
+            // the auto-distribution path in `layoutTableRow`.
+            $this->currentColumnWidths = $this->collectColumnWidths($box, $this->currentTableColumns);
             try {
                 $height = $this->layoutBlock($box, $context);
                 // CSS Tables 3 §11.2 `border-collapse: collapse` — Phase-1
@@ -103,6 +118,7 @@ final class BlockLayout
                 return $height;
             } finally {
                 $this->currentTableColumns = $prev;
+                $this->currentColumnWidths = $prevWidths;
             }
         }
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
@@ -153,11 +169,25 @@ final class BlockLayout
         $colspans = array_map(fn($c) => $this->cellColspan($c), $cells);
         $totalColumns = $this->currentTableColumns ?? max(1, array_sum($colspans));
         $totalColumns = max(1, $totalColumns);
-        $colWidth = $geo->width / $totalColumns;
+        // HTML 5 §4.9.4 — honour explicit `<col width>` declarations.
+        // Build a per-column width array: explicit widths from the col
+        // declarations are honoured directly; remaining slack divides
+        // evenly across the auto-width columns.
+        $columnWidths = $this->resolveColumnWidthGrid(
+            $totalColumns,
+            $geo->width,
+            $this->currentColumnWidths,
+        );
         $maxHeight = 0.0;
         $cellX = $geo->x;
+        $colCursor = 0;
         foreach ($cells as $i => $cell) {
-            $cellWidth = $colWidth * $colspans[$i];
+            $span = $colspans[$i];
+            $cellWidth = 0.0;
+            for ($k = 0; $k < $span && $colCursor + $k < $totalColumns; $k++) {
+                $cellWidth += $columnWidths[$colCursor + $k];
+            }
+            $colCursor += $span;
             $cellCtx = $context
                 ->withContainingBlock($cellWidth, $context->containingBlockHeight)
                 ->withOrigin($cellX, $geo->y);
@@ -1364,6 +1394,137 @@ final class BlockLayout
             return false;
         }
         return in_array(strtolower($value->name), ['column', 'always', 'all'], true);
+    }
+
+    /**
+     * Walk a `<table>`'s `<col>` and `<colgroup>` DOM children to
+     * extract explicit per-column widths (HTML 5 §4.9.4). The legacy
+     * `width="N"` attribute is honoured as pixel widths; CSS `width:`
+     * on `<col>` (Phase 2) and percentage / `*` proportional widths
+     * (Phase 2) are not yet supported.
+     *
+     * Returns a fixed-size array of length `$totalColumns` with `null`
+     * entries for columns that didn't get an explicit width.
+     *
+     * @return list<?float>
+     */
+    private function collectColumnWidths(\Phpdftk\HtmlToPdf\Box\TableBox $table, int $totalColumns): array
+    {
+        /** @var list<?float> $widths */
+        $widths = array_fill(0, $totalColumns, null);
+        if ($table->element === null || $totalColumns === 0) {
+            return $widths;
+        }
+        $col = 0;
+        foreach ($table->element->children() as $child) {
+            if ($col >= $totalColumns) {
+                break;
+            }
+            $tag = strtolower($child->localName);
+            if ($tag === 'col') {
+                $col = $this->applyColWidth($child, $widths, $col);
+            } elseif ($tag === 'colgroup') {
+                $inner = $child->children();
+                $hasNested = false;
+                foreach ($inner as $sub) {
+                    if (strtolower($sub->localName) === 'col') {
+                        $hasNested = true;
+                        $col = $this->applyColWidth($sub, $widths, $col);
+                        if ($col >= $totalColumns) {
+                            break;
+                        }
+                    }
+                }
+                if (!$hasNested) {
+                    // Group with no nested `<col>` applies its own
+                    // span (HTML 5 §4.9.3) — its width attribute (if
+                    // any) flows to each spanned column.
+                    $col = $this->applyColWidth($child, $widths, $col);
+                }
+            }
+        }
+        return $widths;
+    }
+
+    /**
+     * Apply one `<col>` / `<colgroup>` element's `width` and `span`
+     * attributes to the column-width array, starting at `$startCol`.
+     * Returns the new cursor position (= startCol + span, clamped).
+     *
+     * @param list<?float> $widths
+     */
+    private function applyColWidth(\Phpdftk\Html\Dom\Element $col, array &$widths, int $startCol): int
+    {
+        $spanAttr = $col->getAttribute('span');
+        $span = 1;
+        if ($spanAttr !== null && preg_match('/^\d+$/', trim($spanAttr)) === 1) {
+            $span = max(1, (int) trim($spanAttr));
+        }
+        $width = $this->parseLegacyWidth($col->getAttribute('width'));
+        $end = min($startCol + $span, count($widths));
+        for ($i = $startCol; $i < $end; $i++) {
+            if ($widths[$i] === null) {
+                $widths[$i] = $width;
+            }
+        }
+        return $end;
+    }
+
+    /**
+     * HTML 5 legacy `width="N"` attribute parsing: plain integer
+     * means pixels; trailing `%` (percentage) and `*` (proportional)
+     * forms are Phase 2.
+     */
+    private function parseLegacyWidth(?string $raw): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trim = trim($raw);
+        if (preg_match('/^(\d+)$/', $trim, $m) === 1) {
+            return (float) $m[1];
+        }
+        return null;
+    }
+
+    /**
+     * Build the per-column width array used by `layoutTableRow`. When
+     * `$explicit` is null (no `<col>` info) every column gets an equal
+     * share of the row width. Otherwise: explicit widths come through
+     * directly; the remaining slack divides evenly across the auto
+     * columns. When the explicit widths overflow the row width the
+     * auto columns get 0 and the overflow is absorbed (no negative
+     * widths).
+     *
+     * @param ?list<?float> $explicit
+     * @return list<float>
+     */
+    private function resolveColumnWidthGrid(int $totalColumns, float $rowWidth, ?array $explicit): array
+    {
+        if ($totalColumns <= 0) {
+            return [];
+        }
+        if ($explicit === null) {
+            $share = $rowWidth / $totalColumns;
+            return array_fill(0, $totalColumns, $share);
+        }
+        $explicitSum = 0.0;
+        $autoCount = 0;
+        foreach ($explicit as $w) {
+            if ($w === null) {
+                $autoCount++;
+                continue;
+            }
+            $explicitSum += $w;
+        }
+        $autoShare = $autoCount > 0
+            ? max(0.0, ($rowWidth - $explicitSum) / $autoCount)
+            : 0.0;
+        $out = [];
+        foreach ($explicit as $w) {
+            $out[] = $w ?? $autoShare;
+        }
+        return $out;
     }
 
     /**

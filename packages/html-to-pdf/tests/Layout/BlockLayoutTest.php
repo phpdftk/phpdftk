@@ -778,6 +778,187 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testColWidthAttributeSetsExplicitColumnWidth(): void
+    {
+        // Single `<col width="200">` on a 3-column table — that column
+        // takes 200, the other two share (600 - 200) / 2 = 200 each.
+        // (Equal coincidence here; we verify the explicit width
+        // controls the FIRST column.)
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col width="200">'
+                . '<tr><td class="a">a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertCount(3, $cells);
+        self::assertEqualsWithDelta(200.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $cells[2]->geometry->width, 0.001);
+    }
+
+    public function testColWidthDistributesAutoSlackToRemainingColumns(): void
+    {
+        // Explicit 100 + 100 → other column gets 600 - 200 = 400.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col width="100">'
+                . '<col width="100">'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(100.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(100.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(400.0, $cells[2]->geometry->width, 0.001);
+    }
+
+    public function testColSpanAttributeRepeatsWidthAcrossColumns(): void
+    {
+        // `<col span="2" width="150">` applies 150 to columns 0 and 1.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col span="2" width="150">'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(150.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(150.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(300.0, $cells[2]->geometry->width, 0.001);
+    }
+
+    public function testColgroupWithNestedColsHonored(): void
+    {
+        // `<colgroup>` wraps two `<col>` declarations — both should
+        // apply.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<colgroup><col width="80"><col width="120"></colgroup>'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(80.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(120.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(400.0, $cells[2]->geometry->width, 0.001);
+    }
+
+    public function testNoColDeclarationsKeepsEqualShare(): void
+    {
+        // Regression: without any `<col>`, each column gets an equal
+        // share of the row width.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(200.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $cells[2]->geometry->width, 0.001);
+    }
+
+    public function testColWidthInvalidValueIgnored(): void
+    {
+        // Non-numeric `width` attribute should leave the column as auto.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col width="auto">'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(200.0, $cells[0]->geometry->width, 0.001);
+    }
+
+    public function testColWidthPercentageIgnoredAtPhase1(): void
+    {
+        // Percentage widths are Phase 2; verified ignored for now so
+        // the % col falls back to the auto share.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col width="50%">'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(200.0, $cells[0]->geometry->width, 0.001);
+    }
+
+    public function testColWidthSumExceedingRowGivesZeroToAutoCells(): void
+    {
+        // Two cols with width 400 each on a 600-wide table → explicit
+        // sum 800 > 600. Third (auto) column gets 0.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col width="400">'
+                . '<col width="400">'
+                . '<tr><td>a</td><td>b</td><td>c</td></tr>'
+                . '</table></body></html>',
+            'td { padding: 0 }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        $cells = array_values(array_filter(
+            $tr->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        self::assertEqualsWithDelta(400.0, $cells[0]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(400.0, $cells[1]->geometry->width, 0.001);
+        self::assertEqualsWithDelta(0.0, $cells[2]->geometry->width, 0.001);
+    }
+
     public function testCaptionSideTopIsDefaultAndStaysAtTop(): void
     {
         // No explicit caption-side → default `top`. Caption renders
