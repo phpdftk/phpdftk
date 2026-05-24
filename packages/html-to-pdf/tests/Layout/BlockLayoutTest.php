@@ -778,6 +778,138 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testPositionStaticDoesNotShift(): void
+    {
+        // Default `position: static` ignores `top`/`left`. Sanity check
+        // the no-op so the offset logic doesn't bleed into normal flow.
+        $box = $this->buildTree(
+            '<html><body><div style="top: 20px; left: 30px; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(0.0, $div->geometry->x);
+        self::assertSame(0.0, $div->geometry->y);
+    }
+
+    public function testRelativeWithNoOffsetsIsNoOp(): void
+    {
+        // `position: relative` with all `auto` offsets — box paints at
+        // its flow position. Tests that the resolver returns (0,0)
+        // when nothing is set.
+        $box = $this->buildTree(
+            '<html><body><div style="position: relative; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(0.0, $div->geometry->x);
+        self::assertSame(0.0, $div->geometry->y);
+    }
+
+    public function testRelativeTopAndLeftShiftBox(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div style="position: relative; top: 10px; left: 20px; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(20.0, $div->geometry->x);
+        self::assertSame(10.0, $div->geometry->y);
+    }
+
+    public function testRelativeRightAndBottomShiftNegatively(): void
+    {
+        // `right: 15px` → -15 dx; `bottom: 8px` → -8 dy.
+        $box = $this->buildTree(
+            '<html><body><div style="position: relative; right: 15px; bottom: 8px; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(-15.0, $div->geometry->x);
+        self::assertSame(-8.0, $div->geometry->y);
+    }
+
+    public function testRelativeTopBeatsBottom(): void
+    {
+        // CSS 2.1 §9.4.3: when both `top` and `bottom` are set on a
+        // relative box, `top` wins. dx similarly: left wins over right.
+        $box = $this->buildTree(
+            '<html><body><div style="position: relative; top: 5px; bottom: 100px; left: 3px; right: 50px; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(3.0, $div->geometry->x);
+        self::assertSame(5.0, $div->geometry->y);
+    }
+
+    public function testRelativeDoesNotAffectSiblings(): void
+    {
+        // A relative box's shift is paint-only. The next sibling stacks
+        // at the box's original flow position, not the shifted one.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="a" style="position: relative; top: 30px; height: 40px"></div>'
+                . '<div class="b" style="height: 40px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c->element !== null && in_array('b', $c->element->classes(), true)) {
+                $b = $c;
+                break;
+            }
+        }
+        self::assertNotNull($b);
+        // Sibling sits at y=40 (right below `.a`'s flow position),
+        // unaffected by the relative shift.
+        self::assertSame(40.0, $b->geometry->y);
+    }
+
+    public function testRelativePercentageOffsetResolvesAgainstContainingBlock(): void
+    {
+        // `top: 10%` resolves against containing-block height (800),
+        // `left: 5%` resolves against containing-block width (600).
+        $box = $this->buildTree(
+            '<html><body><div style="position: relative; top: 10%; left: 5%; height: 40px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(30.0, $div->geometry->x);
+        self::assertSame(80.0, $div->geometry->y);
+    }
+
+    public function testRelativeShiftsDescendantsAlong(): void
+    {
+        // Descendants ride along with the relative shift — their
+        // geometry.y/x is updated so they paint relative to the new
+        // parent position.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div style="position: relative; top: 50px">'
+                . '<p style="height: 30px"></p>'
+                . '</div>'
+                . '</body></html>',
+            'html, body, div, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame(50.0, $p->geometry->y);
+    }
+
     public function testMaxWidthClampsExplicitlySizedBox(): void
     {
         // `max-width: 300px` should clamp a 500px-wide box.

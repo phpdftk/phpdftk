@@ -452,7 +452,60 @@ final class BlockLayout
             }
         }
 
+        // CSS 2.1 §9.4.3 — `position: relative`. The box and its
+        // descendants paint at their original layout position plus the
+        // resolved offsets; siblings continue to flow against the
+        // original position (this function returns `outerHeight()` from
+        // the pre-shift geometry, which is what stackChildren uses to
+        // advance its cursor — so siblings stay put).
+        $positionValue = $style->get('position');
+        if ($positionValue instanceof Keyword && strtolower($positionValue->name) === 'relative') {
+            $relativeOuterHeight = $geo->outerHeight();
+            [$dx, $dy] = $this->resolveRelativeOffsets($style, $context);
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($box, $dy, $dx);
+            }
+            return $relativeOuterHeight;
+        }
+
         return $geo->outerHeight();
+    }
+
+    /**
+     * CSS 2.1 §9.4.3 — resolve `top` / `right` / `bottom` / `left` to
+     * the (dx, dy) shift for a relative-positioned box.
+     *
+     *  - If both `top` and `bottom` are set, `top` wins (positive dy
+     *    moves the box down).
+     *  - If both `left` and `right` are set, `left` wins (positive dx
+     *    moves the box right).
+     *  - `right`/`bottom` produce a negative shift (move up / left).
+     *  - Percentages resolve against the containing block's width
+     *    (horizontal axis) or height (vertical axis).
+     *
+     * @return array{0:float, 1:float} `[dx, dy]`
+     */
+    private function resolveRelativeOffsets(CascadedValues $style, LayoutContext $context): array
+    {
+        $cbW = $context->containingBlockWidth;
+        $cbH = $context->containingBlockHeight;
+        $top = $style->get('top');
+        $bottom = $style->get('bottom');
+        $left = $style->get('left');
+        $right = $style->get('right');
+        $dy = 0.0;
+        if (!$this->isAuto($top)) {
+            $dy = $this->resolveLength($top, $cbH);
+        } elseif (!$this->isAuto($bottom)) {
+            $dy = -$this->resolveLength($bottom, $cbH);
+        }
+        $dx = 0.0;
+        if (!$this->isAuto($left)) {
+            $dx = $this->resolveLength($left, $cbW);
+        } elseif (!$this->isAuto($right)) {
+            $dx = -$this->resolveLength($right, $cbW);
+        }
+        return [$dx, $dy];
     }
 
     private function resolveLength(?\Phpdftk\Css\Value\Value $value, float $percentageBasis): float
