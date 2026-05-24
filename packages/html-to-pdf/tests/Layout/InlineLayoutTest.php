@@ -625,6 +625,161 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $first->x);
     }
 
+    public function testTextAlignLastAutoLeavesJustifyLastStartAligned(): void
+    {
+        // Default `text-align-last: auto` keeps the last line of a
+        // justified block start-aligned per CSS Text 3 §7.4. Verify by
+        // checking the last line's first fragment sits at x=0 (no shift
+        // applied) while a non-final line has been justified.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; } p { line-height: 20px; text-align: justify; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Need at least 2 lines for the test to be meaningful.
+        self::assertGreaterThanOrEqual(2, count($p->lineBoxes));
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // Last line's first fragment should sit at x=0.
+        self::assertEqualsWithDelta(0.0, $last->fragments[0]->x, 0.001);
+    }
+
+    public function testTextAlignLastJustifyAppliesToLastLine(): void
+    {
+        // With `text-align-last: justify` the last line gets the
+        // inter-fragment slack too. Verify by checking the last
+        // fragment's right edge is closer to availableWidth than it
+        // would be at start-aligned baseline.
+        $this->skipIfNoFont();
+        // Three short tokens fits comfortably in a narrow box —
+        // last line has visible slack to justify.
+        $letters = str_repeat("\u{1820} ", 20);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-align-last: justify; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // With multiple fragments, justify shifted the trailing
+        // fragment toward the right edge — its right edge sits past
+        // the un-justified position. We assert totalWidth ≈ availableWidth.
+        if (count($last->fragments) >= 2) {
+            self::assertGreaterThanOrEqual(70.0, $last->totalWidth());
+        } else {
+            self::markTestSkipped('Last line was single-fragment — justify is a no-op');
+        }
+    }
+
+    public function testTextAlignLastRightAlignsLastLineRight(): void
+    {
+        // `text-align: justify; text-align-last: right` → middle
+        // lines justify, last line shifts to the right edge.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-align-last: right; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // The last line's RIGHT edge should sit near availableWidth.
+        self::assertGreaterThan(40.0, $last->fragments[0]->x);
+    }
+
+    public function testTextAlignLastNoOpForSingleLine(): void
+    {
+        // A single-line paragraph has nothing to compare against the
+        // last-line rule — the line acts as both first and last.
+        // With text-align: justify text-align-last: auto, last is
+        // start-aligned which means no justify on this line.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            '<html><body><p>' . "\u{1820}\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(400.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertCount(1, $p->lineBoxes);
+        $line = $p->lineBoxes[0];
+        // First fragment at x=0 (no shift applied because it's the
+        // last line and auto defers to start-align for justify).
+        self::assertSame(0.0, $line->fragments[0]->x);
+    }
+
+    public function testTextAlignLastIgnoredOnNonJustifiedBlock(): void
+    {
+        // Default `text-align: start` (effectively left). `text-align-last`
+        // should match that for any line. Verify no extra shift on
+        // either first or last line.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 30);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Every line's first fragment at x=0.
+        foreach ($p->lineBoxes as $line) {
+            self::assertSame(0.0, $line->fragments[0]->x);
+        }
+    }
+
+    public function testTextAlignLastCenterAffectsOnlyLastLine(): void
+    {
+        // `text-align: left; text-align-last: center` — only the last
+        // line gets centred. First line stays at x=0.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: left; text-align-last: center; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertGreaterThanOrEqual(2, count($p->lineBoxes));
+        $first = $p->lineBoxes[0];
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // First line still starts at x=0.
+        self::assertSame(0.0, $first->fragments[0]->x);
+        // Last line shifted right (centered → first fragment past 0).
+        self::assertGreaterThan(0.0, $last->fragments[0]->x);
+    }
+
+    public function testTextAlignLastInvalidKeywordDefersToAuto(): void
+    {
+        // Invalid value should be dropped at parse; the cascade keeps
+        // the initial `auto`. The behaviour matches the auto-last
+        // case (which for text-align: justify keeps last as start).
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-align-last: nonsense; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // Last line stays start-aligned.
+        self::assertSame(0.0, $last->fragments[0]->x);
+    }
+
     public function testInlineLinesShortenAroundLeftFloat(): void
     {
         // 60 glyphs in a 200-wide container with a 100×60 left float at

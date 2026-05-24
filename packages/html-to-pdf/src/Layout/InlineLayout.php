@@ -322,8 +322,11 @@ final class InlineLayout
     private function applyTextAlign(array $lines, float $availableWidth, Box $parent): array
     {
         $align = $this->textAlignKeyword($parent);
+        $alignLast = $this->textAlignLastKeyword($parent, $align);
         if ($align === 'left' || $align === 'start') {
-            return $lines;
+            if ($alignLast === 'left' || $alignLast === 'start' || $alignLast === 'auto') {
+                return $lines;
+            }
         }
         $count = count($lines);
         $out = [];
@@ -334,17 +337,37 @@ final class InlineLayout
                 $out[] = $line;
                 continue;
             }
-            $newFragments = match ($align) {
+            $isLast = $i === $count - 1;
+            $effective = $isLast ? $alignLast : $align;
+            $newFragments = match ($effective) {
                 'center' => $this->shiftFragments($line->fragments, $slack / 2.0),
                 'right', 'end' => $this->shiftFragments($line->fragments, $slack),
-                'justify' => $i === $count - 1
-                    ? $line->fragments  // last line stays start-aligned
-                    : $this->justifyFragments($line->fragments, $slack),
+                'justify' => $this->justifyFragments($line->fragments, $slack),
                 default => $line->fragments,
             };
             $out[] = new LineBox($line->y, $line->height, $newFragments);
         }
         return $out;
+    }
+
+    /**
+     * Resolve CSS Text 3 §7.4 `text-align-last`. `auto` (initial)
+     * inherits the block-aligned behaviour: when text-align is
+     * `justify` the last line is start-aligned, otherwise it matches
+     * text-align. Explicit values override.
+     */
+    private function textAlignLastKeyword(Box $parent, string $align): string
+    {
+        $value = $parent->style->get('text-align-last');
+        if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
+            return 'auto';
+        }
+        $lower = strtolower($value->name);
+        if ($lower === 'auto') {
+            // text-align: justify → last line is start-aligned per spec.
+            return $align === 'justify' ? 'start' : $align;
+        }
+        return $lower;
     }
 
     private function textAlignKeyword(Box $parent): string

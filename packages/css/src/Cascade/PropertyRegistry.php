@@ -91,6 +91,12 @@ final class PropertyRegistry
         $r->register($initial('font-weight', new Keyword('normal'), true));
         $r->register($initial('line-height', new Keyword('normal'), true));
         $r->register($initial('text-align', new Keyword('start'), true));
+        // CSS Text 3 §7.4 — `text-align-last` controls the alignment of
+        // the last line in a justified block. `auto` (initial) defers
+        // to the spec's default: start-aligned when text-align: justify
+        // / start / end / left / right; matches text-align otherwise.
+        // Inherits per spec.
+        $r->register($initial('text-align-last', new Keyword('auto'), true));
         $r->register($initial('text-decoration', new Keyword('none')));
         $r->register($initial('text-decoration-line', new Keyword('none')));
         // CSS Text Decoration 4 §3: the initial value is `currentColor`.
