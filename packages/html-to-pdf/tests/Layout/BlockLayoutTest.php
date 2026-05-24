@@ -882,6 +882,178 @@ final class BlockLayoutTest extends TestCase
         self::assertLessThan(800.0, $tr->geometry->y);
     }
 
+    public function testBreakBeforeColumnStartsNewColumn(): void
+    {
+        // 4 × 50px-tall children in a column-count: 2 container. With
+        // balance = 100, the natural split is 0,1 in col 0 and 2,3 in
+        // col 1. Forcing `break-before: column` on child 1 should make
+        // child 1 start col 1 alone, with child 0 in col 0.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="break-before: column"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $children = $section->children;
+        // Child 0 → column 0. Children 1,2,3 → column 1 (forced + cascade).
+        self::assertEqualsWithDelta($section->geometry->x, $children[0]->geometry->x, 0.001);
+        $col1X = $section->geometry->x + 300.0;
+        self::assertEqualsWithDelta($col1X, $children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col1X, $children[2]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col1X, $children[3]->geometry->x, 0.001);
+    }
+
+    public function testBreakAfterColumnStartsNextChildInNewColumn(): void
+    {
+        // `break-after: column` on child 0 pushes child 1 into column 1
+        // even though child 0 alone wouldn't trigger a balance break.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a" style="break-after: column"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $children = $section->children;
+        $col0X = $section->geometry->x;
+        $col1X = $section->geometry->x + 300.0;
+        self::assertEqualsWithDelta($col0X, $children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col1X, $children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col1X, $children[2]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col1X, $children[3]->geometry->x, 0.001);
+    }
+
+    public function testBreakBeforeAlwaysIsTreatedAsColumnBreakInMultiColumn(): void
+    {
+        // `break-before: always` is the universal forced break — it
+        // honours whichever fragmentainer type the box lives in, so
+        // inside a multi-column container it should force a column
+        // break just like `break-before: column`.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="break-before: always"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $col1X = $section->geometry->x + 300.0;
+        self::assertEqualsWithDelta($col1X, $section->children[1]->geometry->x, 0.001);
+    }
+
+    public function testBreakBeforeColumnOnFirstChildIsNoOp(): void
+    {
+        // Forcing a column break before the very first child has no
+        // visible effect — col 0 is already empty at that point.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a" style="break-before: column"></div>'
+                . '<div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $col0X = $section->geometry->x;
+        self::assertEqualsWithDelta($col0X, $section->children[0]->geometry->x, 0.001);
+    }
+
+    public function testBreakBeforeColumnOutsideMultiColumnIsIgnored(): void
+    {
+        // Outside a multi-column container, `break-before: column` has
+        // no effect — the children stack as normal blocks.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="break-before: column"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $a = $section->children[0];
+        $b = $section->children[1];
+        self::assertEqualsWithDelta($a->geometry->y + 50.0, $b->geometry->y, 0.001);
+        self::assertEqualsWithDelta($a->geometry->x, $b->geometry->x, 0.001);
+    }
+
+    public function testBreakBeforePageInsideMultiColumnDoesNotForceColumnBreak(): void
+    {
+        // A `break-before: page` value should be page-only — it does
+        // NOT cascade into the column-break logic. Confirm child 1
+        // remains in col 0 with child 0 (no column shift).
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="break-before: page"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $col0X = $section->geometry->x;
+        self::assertEqualsWithDelta($col0X, $section->children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($col0X, $section->children[1]->geometry->x, 0.001);
+    }
+
+    public function testForcedColumnBreaksBeyondColumnCountFallThroughToLastColumn(): void
+    {
+        // Two forced `break-before: column` requests in a 2-column
+        // container — only the first can advance, the second falls
+        // through and overflows column 1.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div>'
+                . '<div class="b" style="break-before: column"></div>'
+                . '<div class="c" style="break-before: column"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 0; }
+             div { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $col1X = $section->geometry->x + 300.0;
+        // b is in column 1 (first forced advance worked).
+        self::assertEqualsWithDelta($col1X, $section->children[1]->geometry->x, 0.001);
+        // c is also in column 1 (second forced advance has nowhere left
+        // to go) — stacks below b.
+        self::assertEqualsWithDelta($col1X, $section->children[2]->geometry->x, 0.001);
+        self::assertEqualsWithDelta(
+            $section->children[1]->geometry->y + 50.0,
+            $section->children[2]->geometry->y,
+            0.001,
+        );
+    }
+
     private function trAtBoundary(string $authorCss): ?Box
     {
         $box = $this->buildTreeWithUa(

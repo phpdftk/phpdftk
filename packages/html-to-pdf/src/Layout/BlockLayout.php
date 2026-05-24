@@ -569,9 +569,23 @@ final class BlockLayout
         $currentCol = 0;
         $colY = 0.0;
         $columnHeights = array_fill(0, $count, 0.0);
+        $prevChild = null;
         foreach ($box->children as $child) {
             $h = $child->geometry->outerHeight();
-            if ($colY > 0.0
+            // CSS Multi-column 1 §6.1 — author-controlled column breaks.
+            // `break-before: column` on this child or `break-after: column`
+            // on the previous child forces a new column. Bounded at the
+            // last column: once we've consumed N-1 columns, additional
+            // forced breaks fall through to the existing overflow
+            // semantics on the final column.
+            $forceNewColumn = $colY > 0.0 && $currentCol < $count - 1 && (
+                $this->forcesColumnBreakBefore($child)
+                || ($prevChild !== null && $this->forcesColumnBreakAfter($prevChild))
+            );
+            if ($forceNewColumn) {
+                $currentCol++;
+                $colY = 0.0;
+            } elseif ($colY > 0.0
                 && $currentCol < $count - 1
                 && $colY + $h > $balanced + 0.001
             ) {
@@ -600,6 +614,7 @@ final class BlockLayout
             }
             $colY += $h;
             $columnHeights[$currentCol] = $colY;
+            $prevChild = $child;
         }
         return max($columnHeights);
     }
@@ -981,7 +996,31 @@ final class BlockLayout
         if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
             return false;
         }
-        return in_array(strtolower($value->name), ['page', 'always', 'left', 'right', 'recto', 'verso'], true);
+        return in_array(strtolower($value->name), ['page', 'always', 'all', 'left', 'right', 'recto', 'verso'], true);
+    }
+
+    private function forcesColumnBreakBefore(Box $box): bool
+    {
+        return $this->declaresForcedColumnBreak($box->style->get('break-before'));
+    }
+
+    private function forcesColumnBreakAfter(Box $box): bool
+    {
+        return $this->declaresForcedColumnBreak($box->style->get('break-after'));
+    }
+
+    /**
+     * CSS Fragmentation 4 §3.1 — `break-before/after: column` forces a
+     * column break. `always` / `all` force a break of any type, so they
+     * count too. There is no legacy `page-break-*` alias for `column`;
+     * authors use the modern `break-*` properties exclusively.
+     */
+    private function declaresForcedColumnBreak(?\Phpdftk\Css\Value\Value $value): bool
+    {
+        if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
+            return false;
+        }
+        return in_array(strtolower($value->name), ['column', 'always', 'all'], true);
     }
 
     private function isBorderCollapse(\Phpdftk\HtmlToPdf\Box\TableBox $table): bool
