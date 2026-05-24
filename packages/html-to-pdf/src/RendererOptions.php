@@ -410,6 +410,17 @@ final readonly class RendererOptions
             picture { display: inline; }
             source, track, param { display: none; }
 
+            /* HTML 5 §4.10.10 — `<datalist>` is a typeahead helper
+               for `<input>` and never renders on its own. */
+            datalist { display: none; }
+            /* HTML 5 §4.5.21 — `<rp>` is the ruby-parenthesis
+               fallback for browsers without ruby layout support; in
+               browsers that DO support ruby it's `display: none`.
+               Phase 1 doesn't paint ruby annotations yet, so we keep
+               `<rp>` hidden to match the spec convention rather than
+               showing it as visible parentheses. */
+            rp { display: none; }
+
             /* CSS Fragmentation 4 §3.2 — `break-inside: avoid` on
                atomic content so a single row / quote / heading / image
                that fits on a single page never straddles a page

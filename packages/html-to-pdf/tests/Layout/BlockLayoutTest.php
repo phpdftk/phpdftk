@@ -2130,6 +2130,46 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(200.0, $div->geometry->height);
     }
 
+    public function testDatalistHiddenByUa(): void
+    {
+        // HTML 5 §4.10.10 — `<datalist>` is a typeahead helper; UA
+        // sets `display: none` so it never renders.
+        $box = $this->buildTreeWithUa(
+            '<html><body><datalist><option value="x">x</option></datalist></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        // datalist should produce no visible box at all.
+        $datalist = $this->find($box, 'datalist');
+        self::assertNull($datalist);
+    }
+
+    public function testRpHiddenByUa(): void
+    {
+        // HTML 5 §4.5.21 — `<rp>` is hidden in ruby-aware browsers.
+        // We don't paint ruby yet so the fallback parens stay
+        // suppressed to match the spec.
+        $box = $this->buildTreeWithUa(
+            '<html><body><ruby>x<rp>(</rp><rt>y</rt><rp>)</rp></ruby></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $rp = $this->find($box, 'rp');
+        self::assertNull($rp);
+    }
+
+    public function testAuthorOverridesDatalistHidden(): void
+    {
+        // Author CSS can override the hidden default.
+        $box = $this->buildTreeWithUa(
+            '<html><body><datalist style="display: block; height: 20px"></datalist></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $datalist = $this->find($box, 'datalist');
+        self::assertNotNull($datalist);
+    }
+
     public function testBdoGetsBidiOverrideFromUa(): void
     {
         // HTML 5 §15.3 — `<bdo>` overrides the bidi algorithm for
