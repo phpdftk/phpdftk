@@ -1971,23 +1971,107 @@ final class Painter
         }
 
         if ($geo->borderTop > 0.0 && $this->borderIsVisible($box, 'top')) {
-            $color = $this->borderColor($box, 'top');
-            $this->emitRect($stream, $outerX, $outerY, $outerWidth, $geo->borderTop, fill: $color);
+            $this->paintBorderSide(
+                $stream,
+                $this->borderStyleName($box, 'top'),
+                $this->borderColor($box, 'top'),
+                $outerX,
+                $outerY,
+                $outerWidth,
+                $geo->borderTop,
+                axis: 'horizontal',
+            );
         }
         if ($geo->borderBottom > 0.0 && $this->borderIsVisible($box, 'bottom')) {
-            $color = $this->borderColor($box, 'bottom');
-            $y = $outerY + $outerHeight - $geo->borderBottom;
-            $this->emitRect($stream, $outerX, $y, $outerWidth, $geo->borderBottom, fill: $color);
+            $this->paintBorderSide(
+                $stream,
+                $this->borderStyleName($box, 'bottom'),
+                $this->borderColor($box, 'bottom'),
+                $outerX,
+                $outerY + $outerHeight - $geo->borderBottom,
+                $outerWidth,
+                $geo->borderBottom,
+                axis: 'horizontal',
+            );
         }
         if ($geo->borderLeft > 0.0 && $this->borderIsVisible($box, 'left')) {
-            $color = $this->borderColor($box, 'left');
-            $this->emitRect($stream, $outerX, $outerY, $geo->borderLeft, $outerHeight, fill: $color);
+            $this->paintBorderSide(
+                $stream,
+                $this->borderStyleName($box, 'left'),
+                $this->borderColor($box, 'left'),
+                $outerX,
+                $outerY,
+                $geo->borderLeft,
+                $outerHeight,
+                axis: 'vertical',
+            );
         }
         if ($geo->borderRight > 0.0 && $this->borderIsVisible($box, 'right')) {
-            $color = $this->borderColor($box, 'right');
-            $x = $outerX + $outerWidth - $geo->borderRight;
-            $this->emitRect($stream, $x, $outerY, $geo->borderRight, $outerHeight, fill: $color);
+            $this->paintBorderSide(
+                $stream,
+                $this->borderStyleName($box, 'right'),
+                $this->borderColor($box, 'right'),
+                $outerX + $outerWidth - $geo->borderRight,
+                $outerY,
+                $geo->borderRight,
+                $outerHeight,
+                axis: 'vertical',
+            );
         }
+    }
+
+    /**
+     * Paint one border side honouring `border-style`. `axis` flags
+     * whether the rect runs horizontally (top / bottom) or vertically
+     * (left / right) so the `double` decomposition knows which
+     * dimension to split into thirds.
+     *
+     *  - `solid`: one filled rect (the original behaviour).
+     *  - `double` (CSS Backgrounds 3 §5): two parallel bands each
+     *    `thickness/3` thick with a `thickness/3` gap. When the
+     *    thickness is too small to split (< 3 units), falls back to
+     *    solid so the border doesn't disappear into a hairline.
+     *  - Other style keywords (`dashed`, `dotted`, `groove`, `ridge`,
+     *    `inset`, `outset`): Phase-1 fallback to solid — proper
+     *    dash patterns on borders need stroked-rect rendering and
+     *    land in a follow-up.
+     */
+    private function paintBorderSide(
+        ContentStream $stream,
+        string $styleName,
+        Color $color,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        string $axis,
+    ): void {
+        if ($styleName === 'double') {
+            $thickness = $axis === 'horizontal' ? $height : $width;
+            if ($thickness >= 3.0) {
+                $third = $thickness / 3.0;
+                if ($axis === 'horizontal') {
+                    // Two horizontal bands stacked vertically.
+                    $this->emitRect($stream, $x, $y, $width, $third, fill: $color);
+                    $this->emitRect($stream, $x, $y + 2 * $third, $width, $third, fill: $color);
+                } else {
+                    // Two vertical bands stacked horizontally.
+                    $this->emitRect($stream, $x, $y, $third, $height, fill: $color);
+                    $this->emitRect($stream, $x + 2 * $third, $y, $third, $height, fill: $color);
+                }
+                return;
+            }
+        }
+        $this->emitRect($stream, $x, $y, $width, $height, fill: $color);
+    }
+
+    private function borderStyleName(Box $box, string $side): string
+    {
+        $value = $box->style->get("border-$side-style");
+        if (!$value instanceof Keyword) {
+            return 'none';
+        }
+        return strtolower($value->name);
     }
 
     /**
@@ -2139,8 +2223,35 @@ final class Painter
         $stream->saveGraphicsState();
         $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
         $stream->setLineWidth($width);
-        // CSS Outline 3 §5 dash patterns. `dashed` / `dotted` / `double`
-        // map onto PDF line-dash patterns; the rest fall back to solid.
+        // CSS Outline 3 §5 styles. `dashed` / `dotted` map onto PDF
+        // line-dash patterns; `double` paints two concentric strokes
+        // each `width/3` thick separated by a `width/3` gap; the rest
+        // (`groove` / `ridge` / `inset` / `outset`) fall back to solid.
+        if ($styleName === 'double' && $width >= 3.0) {
+            $third = $width / 3.0;
+            $stream->setLineWidth($third);
+            // Outer ring: path centred between the outline's outer
+            // edge and (outer edge + third). The stroke straddles the
+            // path by ±third/2, so the outer face sits on the outline
+            // outer edge.
+            $stream->rectangle(
+                $outerX + $third / 2,
+                $pdfY + $third / 2,
+                $outerWidth - $third,
+                $outerHeight - $third,
+            );
+            $stream->stroke();
+            // Inner ring: path centred two-thirds in from the outer.
+            $stream->rectangle(
+                $outerX + 2.5 * $third,
+                $pdfY + 2.5 * $third,
+                $outerWidth - 5 * $third,
+                $outerHeight - 5 * $third,
+            );
+            $stream->stroke();
+            $stream->restoreGraphicsState();
+            return;
+        }
         switch ($styleName) {
             case 'dashed':
                 $stream->setDashPattern([$width * 3, $width * 2], 0);
@@ -2148,7 +2259,7 @@ final class Painter
             case 'dotted':
                 $stream->setDashPattern([$width, $width * 1.5], 0);
                 break;
-                // 'double' / 'groove' / 'ridge' / 'inset' / 'outset' fall back
+                // 'groove' / 'ridge' / 'inset' / 'outset' fall back
                 // to solid for Phase 1.
         }
         $stream->rectangle($outerX, $pdfY, $outerWidth, $outerHeight);

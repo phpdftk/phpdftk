@@ -190,6 +190,180 @@ final class PainterTest extends TestCase
         self::assertGreaterThanOrEqual(2, $rectCount, 'box-shadow + background → 2+ rects');
     }
 
+    public function testSolidBorderEmitsOneRectPerSide(): void
+    {
+        // Regression — 4-sided solid border = 4 rects.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 2px solid red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(4, $rectCount, 'one rect per side');
+    }
+
+    public function testDoubleBorderEmitsTwoRectsPerSide(): void
+    {
+        // 9px double border on 4 sides → 2 rects per side × 4 sides = 8.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 9px double red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(8, $rectCount, 'double border = 2 thirds per side × 4 sides');
+    }
+
+    public function testDoubleBorderTooThinFallsBackToSolid(): void
+    {
+        // 2px double border can't split into a 3-tier band — falls
+        // back to one rect per side.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 2px double red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(4, $rectCount, 'hairline double falls back to solid');
+    }
+
+    public function testDashedBorderFallsBackToSolid(): void
+    {
+        // Phase 1 simplification: dashed/dotted borders fall back to
+        // solid (per-side rects). Pin so regressions are visible when
+        // proper stroked borders land.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 4px dashed red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(4, $rectCount, 'dashed border falls back to solid');
+        // No PDF dash pattern set anywhere (no `d` operator).
+        self::assertNotContains('d', $opcodes, 'no PDF dash pattern from border');
+    }
+
+    public function testDoubleBorderPerSideIndependence(): void
+    {
+        // Mixed-style border: top=double, others=solid. Expect 2 rects
+        // for the top side + 1 rect each for right/bottom/left = 5.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px;
+                   border-top: 9px double red;
+                   border-right: 2px solid red;
+                   border-bottom: 2px solid red;
+                   border-left: 2px solid red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(5, $rectCount, 'top double (2) + 3 solid sides (3) = 5');
+    }
+
+    public function testDoubleOutlineEmitsTwoStrokedRects(): void
+    {
+        // 9px double outline → two stroked concentric rectangles.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; outline: 9px double red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
+        self::assertSame(2, $rectCount, 'two concentric rect paths');
+        self::assertSame(2, $strokeCount, 'each rect stroked individually');
+    }
+
+    public function testDoubleOutlineTooThinFallsBackToSolid(): void
+    {
+        // 2px is < 3 — outline double can't split into thirds, fall
+        // back to single solid stroke.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; outline: 2px double red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
+        self::assertSame(1, $strokeCount, 'hairline double outline falls back to one stroked rect');
+    }
+
     public function testInsetBoxShadowEmitsEvenOddFill(): void
     {
         // `box-shadow: inset 5px 5px red` paints the shadow INSIDE the
