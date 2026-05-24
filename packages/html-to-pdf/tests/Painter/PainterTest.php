@@ -260,11 +260,10 @@ final class PainterTest extends TestCase
         self::assertSame(4, $rectCount, 'hairline double falls back to solid');
     }
 
-    public function testDashedBorderFallsBackToSolid(): void
+    public function testDashedBorderEmitsDashPatternStroke(): void
     {
-        // Phase 1 simplification: dashed/dotted borders fall back to
-        // solid (per-side rects). Pin so regressions are visible when
-        // proper stroked borders land.
+        // CSS Backgrounds 3 §5 + CSS UI 3 §5: dashed border strokes
+        // a centerline with a PDF dash pattern, NOT filled rects.
         $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
         $sheet = $this->css->parseStylesheet(
             'html, body, div { display: block; }
@@ -281,10 +280,93 @@ final class PainterTest extends TestCase
         $painter->paint($root, $stream);
 
         $opcodes = $this->operatorTokens($stream->getOperators());
+        // 4 strokes (one per side) — no filled rects.
+        $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
+        self::assertSame(4, $strokeCount, 'four dashed strokes — one per side');
         $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
-        self::assertSame(4, $rectCount, 'dashed border falls back to solid');
-        // No PDF dash pattern set anywhere (no `d` operator).
-        self::assertNotContains('d', $opcodes, 'no PDF dash pattern from border');
+        self::assertSame(0, $rectCount, 'dashed border does not emit filled rects');
+        // PDF dash pattern set via `d` operator.
+        self::assertContains('d', $opcodes, 'dash pattern set');
+    }
+
+    public function testDottedBorderEmitsDottedDashPattern(): void
+    {
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 2px dotted blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Dotted pattern is [thickness, thickness] = [2, 2].
+        self::assertMatchesRegularExpression('/\[ 2 2 \] 0 d/', $bytes);
+    }
+
+    public function testMixedDashedAndSolidSidesIndependent(): void
+    {
+        // border-top dashed, others solid → mix of strokes (1) and
+        // filled rects (3).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px;
+                   border-top: 4px dashed red;
+                   border-right: 4px solid red;
+                   border-bottom: 4px solid red;
+                   border-left: 4px solid red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
+        $rectCount = count(array_filter($opcodes, static fn($n) => $n === 're'));
+        self::assertSame(1, $strokeCount, 'one dashed top');
+        self::assertSame(3, $rectCount, 'three solid sides');
+    }
+
+    public function testZeroThicknessDashedNoOp(): void
+    {
+        // Width 0 → don't try to stroke a zero-width line. The
+        // border isn't visible anyway.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { height: 30px; border: 0px dashed red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
+        self::assertSame(0, $strokeCount);
     }
 
     public function testDoubleBorderPerSideIndependence(): void

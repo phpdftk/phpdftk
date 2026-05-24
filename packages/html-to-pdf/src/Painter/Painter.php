@@ -2078,10 +2078,12 @@ final class Painter
      *    `thickness/3` thick with a `thickness/3` gap. When the
      *    thickness is too small to split (< 3 units), falls back to
      *    solid so the border doesn't disappear into a hairline.
-     *  - Other style keywords (`dashed`, `dotted`, `groove`, `ridge`,
-     *    `inset`, `outset`): Phase-1 fallback to solid — proper
-     *    dash patterns on borders need stroked-rect rendering and
-     *    land in a follow-up.
+     *  - `dashed` / `dotted`: stroke a line at the centerline of the
+     *    side with a PDF dash pattern. Dashed uses 3w-on / 2w-off;
+     *    dotted uses 1w-on / 1w-off (PDF rounds dotted patterns to
+     *    square caps).
+     *  - Other style keywords (`groove`, `ridge`, `inset`, `outset`):
+     *    Phase-1 fallback to solid.
      */
     private function paintBorderSide(
         ContentStream $stream,
@@ -2093,6 +2095,21 @@ final class Painter
         float $height,
         string $axis,
     ): void {
+        if ($styleName === 'dashed' || $styleName === 'dotted') {
+            $thickness = $axis === 'horizontal' ? $height : $width;
+            $this->paintDashedDottedSide(
+                $stream,
+                $styleName,
+                $color,
+                $x,
+                $y,
+                $width,
+                $height,
+                $axis,
+                $thickness,
+            );
+            return;
+        }
         if ($styleName === 'double') {
             $thickness = $axis === 'horizontal' ? $height : $width;
             if ($thickness >= 3.0) {
@@ -2110,6 +2127,53 @@ final class Painter
             }
         }
         $this->emitRect($stream, $x, $y, $width, $height, fill: $color);
+    }
+
+    /**
+     * Stroke one side of a border as a dashed / dotted line at the
+     * centerline of the side, at line-width = thickness. PDF's `d`
+     * operator takes a `[on, off]` array + phase; we use:
+     *   - dashed: `[thickness*3, thickness*2]`
+     *   - dotted: `[thickness, thickness]` (PDF strokes with square
+     *     caps so dotted shows as squares the size of thickness;
+     *     close enough to CSS dotted in print rendering).
+     */
+    private function paintDashedDottedSide(
+        ContentStream $stream,
+        string $styleName,
+        Color $color,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        string $axis,
+        float $thickness,
+    ): void {
+        if ($thickness <= 0.0) {
+            return;
+        }
+        $stream->saveGraphicsState();
+        $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
+        $stream->setLineWidth($thickness);
+        $pattern = $styleName === 'dotted'
+            ? [$thickness, $thickness]
+            : [$thickness * 3, $thickness * 2];
+        $stream->setDashPattern($pattern, 0);
+        if ($axis === 'horizontal') {
+            // Stroke from (x, midY) to (x+width, midY). PDF Y is
+            // inverted; midY in PDF coords = pageHeight - (y + height/2).
+            $midPdfY = $this->pageHeight - ($y + $height / 2.0);
+            $stream->moveTo($x, $midPdfY);
+            $stream->lineTo($x + $width, $midPdfY);
+        } else {
+            $midX = $x + $width / 2.0;
+            $topPdfY = $this->pageHeight - $y;
+            $bottomPdfY = $this->pageHeight - ($y + $height);
+            $stream->moveTo($midX, $topPdfY);
+            $stream->lineTo($midX, $bottomPdfY);
+        }
+        $stream->stroke();
+        $stream->restoreGraphicsState();
     }
 
     private function borderStyleName(Box $box, string $side): string
