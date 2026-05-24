@@ -778,6 +778,142 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testUaDefaultBreakInsideShiftsStraddlingRow(): void
+    {
+        // No author CSS for `break-inside` — the row should shift onto the
+        // next page courtesy of the UA stylesheet's
+        // `tr { break-inside: avoid }`. Sanity-check with the same
+        // configuration but `break-inside: auto` overriding the UA below.
+        $tr = $this->trAtBoundary(authorCss: '');
+        self::assertNotNull($tr);
+        self::assertGreaterThanOrEqual(800.0 - 0.001, $tr->geometry->y, 'UA default tr break-inside did not shift the row');
+    }
+
+    public function testAuthorAutoOverridesUaBreakInsideAndAllowsStraddle(): void
+    {
+        // The author explicitly opts back in to splitting — the UA's
+        // `break-inside: avoid` must defer to `break-inside: auto`.
+        $tr = $this->trAtBoundary(authorCss: 'tr { break-inside: auto; }');
+        self::assertNotNull($tr);
+        self::assertLessThan(800.0, $tr->geometry->y, 'author auto did not override UA avoid');
+    }
+
+    public function testParagraphHasNoBreakInsideDefault(): void
+    {
+        // Negative: confirm we did NOT accidentally add `<p>` to the UA
+        // break-inside list. A straddling paragraph (without orphans/widows
+        // shifting whole lines) should not be pushed onto the next page —
+        // its block-box stays at its content position (after UA
+        // margin-top), straddling the boundary.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<p style="height: 80px; margin: 0"></p>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(760.0, $p->geometry->y, 0.001, '<p> should NOT have UA break-inside avoid');
+    }
+
+    public function testUaDefaultBreakInsideShiftsFigure(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<figure style="height: 120px"></figure>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $fig = $this->find($box, 'figure');
+        self::assertNotNull($fig);
+        self::assertGreaterThanOrEqual(800.0 - 0.001, $fig->geometry->y);
+    }
+
+    public function testUaDefaultBreakInsideShiftsBlockquote(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<blockquote style="height: 120px"></blockquote>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bq = $this->find($box, 'blockquote');
+        self::assertNotNull($bq);
+        self::assertGreaterThanOrEqual(800.0 - 0.001, $bq->geometry->y);
+    }
+
+    public function testUaDefaultBreakInsideShiftsHeading(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<h2 style="height: 120px"></h2>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $h2 = $this->find($box, 'h2');
+        self::assertNotNull($h2);
+        self::assertGreaterThanOrEqual(800.0 - 0.001, $h2->geometry->y);
+    }
+
+    public function testRowTallerThanPageStaysInPlace(): void
+    {
+        // Existing constraint: `$childOuterHeight <= $pageHeight` — a
+        // single tr taller than the page can't be shifted onto a fresh
+        // page (there's no page big enough). It stays at its layout
+        // position even with break-inside: avoid set.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<table><tr><td style="height: 900px">cell</td></tr></table>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $tr = $this->find($box, 'tr');
+        self::assertNotNull($tr);
+        self::assertLessThan(800.0, $tr->geometry->y);
+    }
+
+    private function trAtBoundary(string $authorCss): ?Box
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<table><tr><td style="height: 100px">cell</td></tr></table>'
+                . '</body></html>',
+            $authorCss,
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        return $this->find($box, 'tr');
+    }
+
+    /**
+     * Build a box tree using the renderer's real UA stylesheet plus any
+     * author-supplied overrides — needed for tests verifying UA-default
+     * behaviour (which `buildTree` skips since it only loads test CSS).
+     */
+    private function buildTreeWithUa(string $html, string $authorCss): Box
+    {
+        $doc = $this->html->parseDocument($html);
+        $opts = new \Phpdftk\HtmlToPdf\RendererOptions();
+        $ua = $this->css->parseStylesheet($opts->effectiveUserAgentStylesheet(), \Phpdftk\Css\Sheet\Origin::UserAgent);
+        $sheets = [$ua];
+        if ($authorCss !== '') {
+            $sheets[] = $this->css->parseStylesheet($authorCss, \Phpdftk\Css\Sheet\Origin::Author);
+        }
+        $box = $this->generator->generate($doc, $sheets);
+        self::assertNotNull($box);
+        return $box;
+    }
+
     private function find(Box $root, string $tag): ?Box
     {
         $stack = [$root];

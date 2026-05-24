@@ -391,6 +391,14 @@ final readonly class RendererOptions
                normally. */
             picture { display: inline; }
             source, track, param { display: none; }
+
+            /* CSS Fragmentation 4 §3.2 — `break-inside: avoid` on
+               atomic content so a single row / quote / heading / image
+               that fits on a single page never straddles a page
+               boundary. Authors override with `break-inside: auto` on
+               structurally tall content (e.g. a multi-page <pre> block). */
+            tr, figure, blockquote, pre, img,
+            h1, h2, h3, h4, h5, h6 { break-inside: avoid; }
         CSS;
     }
 }
