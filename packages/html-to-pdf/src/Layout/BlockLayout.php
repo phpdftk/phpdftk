@@ -80,6 +80,12 @@ final class BlockLayout
     private function layoutBox(Box $box, LayoutContext $context): float
     {
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+            // CSS 2.1 §17.4.1 — `caption-side: bottom` moves a
+            // `<caption>` child to render below the rows instead of
+            // above (the default). Reorder children once before the
+            // generic block stacker runs so layout sees the caption
+            // in the right slot.
+            $this->reorderTableCaptions($box);
             // Pre-walk to find the table's max columns so every row uses
             // the same column-width grid (CSS Tables 3 §4: columns are a
             // table-level concept).
@@ -1358,6 +1364,42 @@ final class BlockLayout
             return false;
         }
         return in_array(strtolower($value->name), ['column', 'always', 'all'], true);
+    }
+
+    /**
+     * Reorder a `<table>`'s direct children so that `<caption>` boxes
+     * with `caption-side: bottom` sit AFTER the rest of the table
+     * content. Top-side captions (the default) stay in their original
+     * relative position. Non-caption children keep document order
+     * among themselves. CSS 2.1 §17.4.1.
+     */
+    private function reorderTableCaptions(\Phpdftk\HtmlToPdf\Box\TableBox $table): void
+    {
+        $top = [];
+        $middle = [];
+        $bottom = [];
+        $hasBottomCaption = false;
+        foreach ($table->children as $child) {
+            if ($child->element !== null
+                && strtolower($child->element->localName) === 'caption'
+            ) {
+                $side = $child->style->get('caption-side');
+                if ($side instanceof Keyword && strtolower($side->name) === 'bottom') {
+                    $bottom[] = $child;
+                    $hasBottomCaption = true;
+                    continue;
+                }
+                $top[] = $child;
+                continue;
+            }
+            $middle[] = $child;
+        }
+        if (!$hasBottomCaption) {
+            // Default top-only or no captions — children already in
+            // the right order; skip the rebuild.
+            return;
+        }
+        $table->children = array_merge($top, $middle, $bottom);
     }
 
     private function isBorderCollapse(\Phpdftk\HtmlToPdf\Box\TableBox $table): bool

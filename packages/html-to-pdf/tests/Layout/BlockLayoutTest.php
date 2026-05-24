@@ -778,6 +778,138 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testCaptionSideTopIsDefaultAndStaysAtTop(): void
+    {
+        // No explicit caption-side → default `top`. Caption renders
+        // above the rows.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<caption style="height: 20px"></caption>'
+                . '<tr><td style="height: 40px">x</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $caption = $this->find($table, 'caption');
+        $tr = $this->find($table, 'tr');
+        self::assertNotNull($caption);
+        self::assertNotNull($tr);
+        self::assertLessThan($tr->geometry->y, $caption->geometry->y);
+    }
+
+    public function testCaptionSideBottomMovesCaptionAfterRows(): void
+    {
+        // `caption-side: bottom` should render the caption AFTER the
+        // table rows in document height even when it appears first in
+        // markup.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<caption style="caption-side: bottom; height: 20px"></caption>'
+                . '<tr><td style="height: 40px">x</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $caption = $this->find($table, 'caption');
+        $tr = $this->find($table, 'tr');
+        self::assertNotNull($caption);
+        self::assertNotNull($tr);
+        self::assertGreaterThan($tr->geometry->y, $caption->geometry->y);
+    }
+
+    public function testCaptionSideExplicitTopKeepsCaptionAtTop(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<caption style="caption-side: top; height: 20px"></caption>'
+                . '<tr><td style="height: 40px">x</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $caption = $this->find($table, 'caption');
+        $tr = $this->find($table, 'tr');
+        self::assertNotNull($caption);
+        self::assertNotNull($tr);
+        self::assertLessThan($tr->geometry->y, $caption->geometry->y);
+    }
+
+    public function testCaptionInvalidKeywordDefaultsToTop(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<caption style="caption-side: nonsense; height: 20px"></caption>'
+                . '<tr><td style="height: 40px">x</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $caption = $this->find($table, 'caption');
+        $tr = $this->find($table, 'tr');
+        self::assertNotNull($caption);
+        self::assertNotNull($tr);
+        self::assertLessThan($tr->geometry->y, $caption->geometry->y);
+    }
+
+    public function testTableWithNoCaptionIsNoOp(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr><td style="height: 40px">x</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $tr = $this->find($table, 'tr');
+        self::assertNotNull($tr);
+        self::assertEqualsWithDelta($table->geometry->y, $tr->geometry->y, 0.001);
+    }
+
+    public function testCaptionSideOnNonCaptionElementIgnored(): void
+    {
+        // `caption-side: bottom` on a `<tr>` (not `<caption>`) must
+        // not trigger the reorder — rows stay in document order.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tr class="r1" style="caption-side: bottom"><td style="height: 40px">a</td></tr>'
+                . '<tr class="r2"><td style="height: 40px">b</td></tr>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        $r1 = null;
+        $r2 = null;
+        $stack = [$table];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n->element !== null && $n->element->localName === 'tr') {
+                if (in_array('r1', $n->element->classes(), true)) {
+                    $r1 = $n;
+                } elseif (in_array('r2', $n->element->classes(), true)) {
+                    $r2 = $n;
+                }
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($r1);
+        self::assertNotNull($r2);
+        self::assertLessThan($r2->geometry->y, $r1->geometry->y);
+    }
+
     public function testFloatLeftPlacesBoxAtLeftEdgeOfContainer(): void
     {
         $box = $this->buildTree(
