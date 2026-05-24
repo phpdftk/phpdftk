@@ -2130,6 +2130,96 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(200.0, $div->geometry->height);
     }
 
+    public function testBdoGetsBidiOverrideFromUa(): void
+    {
+        // HTML 5 §15.3 — `<bdo>` overrides the bidi algorithm for
+        // its descendants. UA sets `unicode-bidi: bidi-override`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdo dir="rtl">x</bdo></p></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bdo = $this->find($box, 'bdo');
+        self::assertNotNull($bdo);
+        $bidi = $bdo->style->get('unicode-bidi');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Keyword::class, $bidi);
+        self::assertSame('bidi-override', strtolower($bidi->name));
+    }
+
+    public function testBdiGetsIsolateFromUa(): void
+    {
+        // HTML 5 §15.3 — `<bdi>` isolates its content from
+        // surrounding bidi context. UA sets `unicode-bidi: isolate`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdi>x</bdi></p></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bdi = $this->find($box, 'bdi');
+        self::assertNotNull($bdi);
+        $bidi = $bdi->style->get('unicode-bidi');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Keyword::class, $bidi);
+        self::assertSame('isolate', strtolower($bidi->name));
+    }
+
+    public function testAuthorOverridesBdoUnicodeBidi(): void
+    {
+        // Author override wins (specificity / source-order).
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdo>x</bdo></p></body></html>',
+            'bdo { unicode-bidi: normal; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bdo = $this->find($box, 'bdo');
+        self::assertNotNull($bdo);
+        $bidi = $bdo->style->get('unicode-bidi');
+        self::assertSame('normal', strtolower($bidi->name));
+    }
+
+    public function testNonBidiElementDefaultsToNormalUnicodeBidi(): void
+    {
+        // Negative: a `<span>` shouldn't pick up bidi-override /
+        // isolate from anywhere.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><span>x</span></p></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $span = $this->find($box, 'span');
+        self::assertNotNull($span);
+        $bidi = $span->style->get('unicode-bidi');
+        self::assertSame('normal', strtolower($bidi->name));
+    }
+
+    public function testUnicodeBidiDoesNotInherit(): void
+    {
+        // CSS Writing Modes 4: unicode-bidi is non-inheriting. A
+        // child element of bdo gets `normal`, not `bidi-override`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdo><span>x</span></bdo></p></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $span = $this->find($box, 'span');
+        self::assertNotNull($span);
+        $bidi = $span->style->get('unicode-bidi');
+        self::assertSame('normal', strtolower($bidi->name));
+    }
+
+    public function testAuthorOverridesBdiUnicodeBidi(): void
+    {
+        // Symmetric override test for `<bdi>`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdi>x</bdi></p></body></html>',
+            'bdi { unicode-bidi: normal; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bdi = $this->find($box, 'bdi');
+        self::assertNotNull($bdi);
+        $bidi = $bdi->style->get('unicode-bidi');
+        self::assertSame('normal', strtolower($bidi->name));
+    }
+
     public function testAddressInheritsItalicFromUa(): void
     {
         // HTML 5 §4.5.6: `<address>` is rendered in italic by browser

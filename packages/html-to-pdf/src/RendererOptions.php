@@ -371,6 +371,13 @@ final readonly class RendererOptions
                typographic convention is italic. */
             address { font-style: italic; }
 
+            /* HTML 5 §15.3 — bidi element UA defaults. `<bdo>`
+               overrides the bidi algorithm for its descendants;
+               `<bdi>` isolates them so surrounding text's bidi
+               doesn't bleed in / out. */
+            bdo { unicode-bidi: bidi-override; }
+            bdi { unicode-bidi: isolate; }
+
             /* Definition lists. */
             dl { margin: 16px 0; }
             dt { font-weight: bold; }
