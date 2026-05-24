@@ -69,6 +69,8 @@ final class ShorthandExpander
             'text-decoration' => $this->expandTextDecoration($value),
             'background' => $this->expandBackground($value),
             'list-style' => $this->expandListStyle($value),
+            'columns' => $this->expandColumns($value),
+            'column-rule' => $this->expandColumnRule($value),
             default => [$property => $value],
         };
     }
@@ -584,6 +586,87 @@ final class ShorthandExpander
         }
         if ($color !== null) {
             $out['text-decoration-color'] = $color;
+        }
+        return $out;
+    }
+
+    /**
+     * `columns: <'column-width'> || <'column-count'>` (CSS Multi-column 1
+     * §10.1). Either side may be omitted; `auto` may appear as either side
+     * and is assigned to whichever slot is still free (width first).
+     *
+     * @return array<string, Value>
+     */
+    private function expandColumns(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        $width = null;
+        $count = null;
+        foreach ($components as $c) {
+            if ($count === null && ($c instanceof Integer
+                || ($c instanceof Number && floor($c->value) === $c->value))
+            ) {
+                $count = $c;
+                continue;
+            }
+            if ($width === null && ($c instanceof Length || $c instanceof Percentage)) {
+                $width = $c;
+                continue;
+            }
+            if ($c instanceof Keyword && strtolower($c->name) === 'auto') {
+                if ($width === null) {
+                    $width = $c;
+                } elseif ($count === null) {
+                    $count = $c;
+                }
+            }
+        }
+        $out = [];
+        if ($width !== null) {
+            $out['column-width'] = $width;
+        }
+        if ($count !== null) {
+            $out['column-count'] = $count;
+        }
+        return $out;
+    }
+
+    /**
+     * `column-rule: <'column-rule-width'> || <'column-rule-style'> ||
+     * <'column-rule-color'>` (CSS Multi-column 1 §3.2). Free order; reuses
+     * the border-width / border-style / color classifiers because the value
+     * grammars match.
+     *
+     * @return array<string, Value>
+     */
+    private function expandColumnRule(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        $width = null;
+        $style = null;
+        $color = null;
+        foreach ($components as $c) {
+            if ($style === null && $this->looksLikeBorderStyle($c)) {
+                $style = $c;
+                continue;
+            }
+            if ($width === null && $this->looksLikeBorderWidth($c)) {
+                $width = $c;
+                continue;
+            }
+            if ($color === null && $this->looksLikeColor($c)) {
+                $color = $c;
+            }
+        }
+        $out = [];
+        if ($width !== null) {
+            $out['column-rule-width'] = $width;
+        }
+        if ($style !== null) {
+            $out['column-rule-style'] = $style;
+        }
+        if ($color !== null) {
+            $out['column-rule-color'] = $color;
         }
         return $out;
     }

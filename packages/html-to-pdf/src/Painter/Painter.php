@@ -140,6 +140,7 @@ final class Painter
             $this->paintBackground($box, $stream);
             $this->paintBorders($box, $stream);
             $this->paintOutline($box, $stream);
+            $this->paintColumnRules($box, $stream);
             $this->paintImage($box, $stream);
             $this->paintListMarker($box, $stream);
             $this->paintLineBoxes($box, $stream);
@@ -2080,6 +2081,62 @@ final class Painter
         }
         $stream->rectangle($outerX, $pdfY, $outerWidth, $outerHeight);
         $stream->stroke();
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Stroke `column-rule` between adjacent columns inside a multi-column
+     * container (CSS Multi-column 1 §3). Each rule is centred in its
+     * column-gap, spans the container's content-area height, and honours
+     * `column-rule-style` for `solid` / `dashed` / `dotted`. No-op when
+     * the box isn't a multi-column container, the rule has zero width, or
+     * the style is `none` / `hidden`.
+     */
+    private function paintColumnRules(Box $box, ContentStream $stream): void
+    {
+        $mc = $box->multiColumn;
+        if ($mc === null || $mc->columnCount < 2) {
+            return;
+        }
+        if ($mc->ruleWidth <= 0.0 || $mc->ruleColor === null) {
+            return;
+        }
+        $styleName = $mc->ruleStyle;
+        if ($styleName === 'none' || $styleName === 'hidden') {
+            return;
+        }
+        $geo = $box->geometry;
+        $top = $geo->y;
+        $height = $geo->height;
+        if ($height <= 0.0) {
+            return;
+        }
+        $pdfTop = $this->pageHeight - $top;
+        $pdfBottom = $this->pageHeight - ($top + $height);
+        $stream->saveGraphicsState();
+        $stream->setStrokeColorRGB($mc->ruleColor->r, $mc->ruleColor->g, $mc->ruleColor->b);
+        $stream->setLineWidth($mc->ruleWidth);
+        switch ($styleName) {
+            case 'dashed':
+                $stream->setDashPattern([$mc->ruleWidth * 3, $mc->ruleWidth * 2], 0);
+                break;
+            case 'dotted':
+                $stream->setDashPattern([$mc->ruleWidth, $mc->ruleWidth * 1.5], 0);
+                break;
+                // Other styles (double / groove / ridge / inset / outset)
+                // fall back to solid for Phase 1, mirroring the outline
+                // painter's approximation.
+        }
+        for ($i = 0; $i < $mc->columnCount - 1; $i++) {
+            // Centre line of the gap between column $i and $i+1.
+            $gapCentreX = $geo->x
+                + ($i + 1) * $mc->columnWidth
+                + $i * $mc->columnGap
+                + $mc->columnGap / 2.0;
+            $stream->moveTo($gapCentreX, $pdfBottom);
+            $stream->lineTo($gapCentreX, $pdfTop);
+            $stream->stroke();
+        }
         $stream->restoreGraphicsState();
     }
 

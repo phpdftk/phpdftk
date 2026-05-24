@@ -596,6 +596,188 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(35.0, $b->geometry->y);
     }
 
+    public function testMultiColumnSplitsChildrenAcrossColumns(): void
+    {
+        // Four 100-tall children in a `column-count: 2` container → with
+        // balance height = ceil(400/2) = 200, children 0+1 land in column 0
+        // (y=0 and y=100) and children 2+3 land in column 1 (also y=0 and
+        // y=100). Each column is half the available width (300px) with the
+        // initial `normal` gap (= 1em = 16px) shrinking each column by 8px:
+        // (600 - 16) / 2 = 292.
+        $box = $this->buildTree(
+            '<html><body><section>'
+                . '<div class="a"></div><div class="b"></div>'
+                . '<div class="c"></div><div class="d"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; }
+             div { height: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        $children = $section->children;
+        self::assertCount(4, $children);
+        self::assertEqualsWithDelta($section->geometry->x, $children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($section->geometry->x, $children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta(
+            $section->geometry->x + 292.0 + 16.0,
+            $children[2]->geometry->x,
+            0.001,
+        );
+        self::assertEqualsWithDelta(
+            $section->geometry->x + 292.0 + 16.0,
+            $children[3]->geometry->x,
+            0.001,
+        );
+        // First and third sit at column-top; second and fourth at column-top+100.
+        self::assertEqualsWithDelta($section->geometry->y, $children[0]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($section->geometry->y + 100.0, $children[1]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($section->geometry->y, $children[2]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($section->geometry->y + 100.0, $children[3]->geometry->y, 0.001);
+    }
+
+    public function testMultiColumnPopulatesMultiColumnStruct(): void
+    {
+        // `columns: 200px 3` shorthand → column-count: 3 + column-width: 200px
+        // (count wins at this width: (600 - 2*8) / 3 ≈ 194.67). The rule
+        // shorthand sets all three rule longhands.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 200px 3; column-gap: 8px;
+                       column-rule: 1px solid red; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame(3, $section->multiColumn->columnCount);
+        self::assertEqualsWithDelta(8.0, $section->multiColumn->columnGap, 0.001);
+        self::assertEqualsWithDelta(
+            (600.0 - 16.0) / 3.0,
+            $section->multiColumn->columnWidth,
+            0.001,
+        );
+        self::assertSame(1.0, $section->multiColumn->ruleWidth);
+        self::assertSame('solid', $section->multiColumn->ruleStyle);
+        self::assertNotNull($section->multiColumn->ruleColor);
+    }
+
+    public function testColumnCountZeroClampsToSingleColumn(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 0; }
+             div { height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame(1, $section->multiColumn->columnCount);
+        // Degenerate single-column → child takes the container's full width.
+        self::assertEqualsWithDelta($section->geometry->width, $section->multiColumn->columnWidth, 0.001);
+    }
+
+    public function testBothColumnCountAndWidthAutoIsNotMultiColumn(): void
+    {
+        // Initial values for both → container behaves as a regular block.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; } div { height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNull($section->multiColumn);
+    }
+
+    public function testMultiColumnIgnoredOnInlineOnlyChildren(): void
+    {
+        // `<section>` has only an inline child — multi-column doesn't
+        // apply because there are no block-level fragmentainers to split.
+        $box = $this->buildTree(
+            '<html><body><section>inline text</section></body></html>',
+            'html, body, section { display: block; }
+             section { column-count: 2; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNull($section->multiColumn);
+    }
+
+    public function testMultiColumnIgnoredOnTable(): void
+    {
+        // Tables have their own layout — column-count is a no-op here.
+        $box = $this->buildTree(
+            '<html><body><table><tr><td>cell</td></tr></table></body></html>',
+            'html, body { display: block; }
+             table { display: table; column-count: 2; }
+             tr { display: table-row; } td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        self::assertNull($table->multiColumn);
+    }
+
+    public function testMultiColumnWithNoChildrenDoesNotCrash(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><section></section></body></html>',
+            'html, body, section { display: block; }
+             section { column-count: 3; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        // No children → isMultiColumnContainer returns false (empty children
+        // list); the box renders as a normal empty block.
+        self::assertNull($section->multiColumn);
+        self::assertSame(0.0, $section->geometry->height);
+    }
+
+    public function testColumnWidthOnlyComputesUsedCount(): void
+    {
+        // `column-width: 200px` in a 600px-wide container with `column-gap:
+        // 0` → exactly 3 columns of 200px. With non-zero gap the floor
+        // calc would round down, but zero gap keeps the math clean.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-width: 200px; column-gap: 0; }
+             div { height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame(3, $section->multiColumn->columnCount);
+        self::assertEqualsWithDelta(200.0, $section->multiColumn->columnWidth, 0.001);
+    }
+
+    public function testColumnRuleStyleNoneSuppressesPainting(): void
+    {
+        // `column-rule-style: none` → painter early-outs. The layout
+        // records the rule as having width 0 (style gates width via
+        // `resolveColumnRuleWidth`) and style `none`.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-rule: 5px none red; }
+             div { height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame('none', $section->multiColumn->ruleStyle);
+        self::assertSame(0.0, $section->multiColumn->ruleWidth);
+    }
+
     private function find(Box $root, string $tag): ?Box
     {
         $stack = [$root];

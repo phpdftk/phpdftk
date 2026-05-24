@@ -8,6 +8,7 @@ use Phpdftk\Css\Cascade\CascadedValues;
 use Phpdftk\Html\Dom\Element;
 use Phpdftk\HtmlToPdf\Layout\BoxGeometry;
 use Phpdftk\HtmlToPdf\Layout\LineBox;
+use Phpdftk\HtmlToPdf\Layout\MultiColumnLayout;
 
 /**
  * Base of the box tree produced by {@see BoxGenerator}.
@@ -41,6 +42,14 @@ abstract class Box
      * @var list<LineBox>
      */
     public array $lineBoxes = [];
+
+    /**
+     * Set by {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout} when this box's
+     * cascade declares a multi-column container (CSS Multi-column 1).
+     * Null on every other box. The painter reads this to stroke
+     * `column-rule` between adjacent columns.
+     */
+    public ?MultiColumnLayout $multiColumn = null;
 
     public function __construct(
         public readonly ?Element $element,

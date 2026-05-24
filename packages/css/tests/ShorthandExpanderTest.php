@@ -286,6 +286,55 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-decoration-color']);
     }
 
+    public function testColumnsShorthandSplitsWidthAndCount(): void
+    {
+        $out = $this->expander->expand('columns', $this->value('200px 3'));
+        self::assertInstanceOf(Length::class, $out['column-width']);
+        self::assertSame(200.0, $out['column-width']->value);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Integer::class, $out['column-count']);
+        self::assertSame(3, $out['column-count']->value);
+    }
+
+    public function testColumnsShorthandWithOnlyAutoOnlyExpandsWidth(): void
+    {
+        // `columns: auto` — auto assigns to whichever slot is still free
+        // (width first), and column-count stays unset so the registry's
+        // initial keeps the cascade defaulting to single-column.
+        $out = $this->expander->expand('columns', $this->value('auto'));
+        self::assertArrayHasKey('column-width', $out);
+        self::assertInstanceOf(Keyword::class, $out['column-width']);
+        self::assertSame('auto', $out['column-width']->name);
+        self::assertArrayNotHasKey('column-count', $out);
+    }
+
+    public function testColumnRuleShorthandExpandsAllThreeLonghands(): void
+    {
+        $out = $this->expander->expand('column-rule', $this->value('2px dashed red'));
+        self::assertInstanceOf(Length::class, $out['column-rule-width']);
+        self::assertSame(2.0, $out['column-rule-width']->value);
+        self::assertSame('dashed', $out['column-rule-style']->name);
+        self::assertInstanceOf(Color::class, $out['column-rule-color']);
+    }
+
+    public function testColumnRuleShorthandStyleOnly(): void
+    {
+        // Only the style is recognisable — width and color stay unset so
+        // the registry's `medium` (3px) and `currentcolor` apply.
+        $out = $this->expander->expand('column-rule', $this->value('solid'));
+        self::assertArrayHasKey('column-rule-style', $out);
+        self::assertSame('solid', $out['column-rule-style']->name);
+        self::assertArrayNotHasKey('column-rule-width', $out);
+        self::assertArrayNotHasKey('column-rule-color', $out);
+    }
+
+    public function testColumnRuleShorthandUnknownTokensProduceEmpty(): void
+    {
+        // None of the classifiers (border-style / border-width / color)
+        // accept `foobar`, so nothing lands in the output map.
+        $out = $this->expander->expand('column-rule', $this->value('foobar'));
+        self::assertSame([], $out);
+    }
+
     public function testCascadeAppliesShorthand(): void
     {
         // End-to-end: a margin shorthand in a stylesheet should land as

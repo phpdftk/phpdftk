@@ -206,6 +206,11 @@ final class PropertyRegistry
         $r->register($initial('page-break-before', new Keyword('auto')));
         $r->register($initial('page-break-after', new Keyword('auto')));
         $r->register($initial('page-break-inside', new Keyword('auto')));
+        // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
+        // inherit; layout uses them to gate where a paragraph may split
+        // across a page boundary.
+        $r->register($initial('orphans', new \Phpdftk\Css\Value\Integer(2), true));
+        $r->register($initial('widows', new \Phpdftk\Css\Value\Integer(2), true));
 
         // Lists. All three inherit per CSS Lists 3 §1.
         $r->register($initial('list-style-type', new Keyword('disc'), true));
@@ -214,6 +219,17 @@ final class PropertyRegistry
 
         // CSS Backgrounds 3 §6 — `box-shadow` doesn't inherit.
         $r->register($initial('box-shadow', new Keyword('none')));
+
+        // CSS Multi-column 1 §2-3. None inherit. `column-gap` initial is
+        // `normal`, which Multi-column 1 §3.1 resolves to `1em`.
+        $r->register($initial('column-count', new Keyword('auto')));
+        $r->register($initial('column-width', new Keyword('auto')));
+        $r->register($initial('column-gap', new Keyword('normal')));
+        $r->register($initial('column-rule-width', new Length(3.0, LengthUnit::Px))); // medium
+        $r->register($initial('column-rule-style', new Keyword('none')));
+        $r->register($initial('column-rule-color', new Keyword('currentcolor')));
+        $r->register($initial('column-fill', new Keyword('balance')));
+        $r->register($initial('column-span', new Keyword('none')));
 
         return $r;
     }

@@ -16,6 +16,7 @@ use Phpdftk\HtmlToPdf\Box\AnonymousBlockBox;
 use Phpdftk\HtmlToPdf\Box\AtomicInlineBox;
 use Phpdftk\HtmlToPdf\Box\InlineBox;
 use Phpdftk\HtmlToPdf\Box\TextBox;
+use Phpdftk\HtmlToPdf\Layout\MultiColumnLayout;
 
 /**
  * Block formatting context layout — Phase 1F.1 (vertical block stacking).
@@ -268,7 +269,9 @@ final class BlockLayout
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
         $childTotal = 0.0;
-        if ($box->children !== [] && $this->allInlineLevel($box->children)) {
+        if ($box->children !== [] && $this->isMultiColumnContainer($box)) {
+            $childTotal = $this->layoutMultiColumn($box, $childContext);
+        } elseif ($box->children !== [] && $this->allInlineLevel($box->children)) {
             $childTotal = $this->layoutInlineChildren($box, $childContext);
         } else {
             $cursorY = $geo->y;
@@ -459,16 +462,317 @@ final class BlockLayout
     }
 
     /**
-     * Shift `$box` and every descendant's geometry by `$dy` along Y. Used by
-     * margin collapsing to drag an already-placed child upward so its top
-     * margin overlaps with its predecessor's bottom margin.
+     * Shift `$box` and every descendant's geometry by `$dy` along Y, and
+     * optionally `$dx` along X. Used by margin collapsing (Y only) and
+     * by multi-column re-distribution (both axes).
+     *
+     * Line boxes and inline fragments are positioned relative to their
+     * containing block's geometry, so they ride along automatically when
+     * the parent's geometry shifts — no extra walk required.
      */
-    private function shiftSubtree(Box $box, float $dy): void
+    private function shiftSubtree(Box $box, float $dy, float $dx = 0.0): void
     {
         $box->geometry->y += $dy;
+        $box->geometry->x += $dx;
         foreach ($box->children as $child) {
-            $this->shiftSubtree($child, $dy);
+            $this->shiftSubtree($child, $dy, $dx);
         }
+    }
+
+    /**
+     * `column-count` or `column-width` (or both) non-`auto` → this box
+     * establishes a multi-column formatting context (CSS Multi-column 1 §2).
+     * Honoured only on block-container parents whose children are all
+     * block-level: tables, inline-only blocks, and replaced elements are
+     * skipped at Phase 1.
+     */
+    private function isMultiColumnContainer(Box $box): bool
+    {
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableBox
+            || $box instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox
+            || $box instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+        ) {
+            return false;
+        }
+        if ($this->allInlineLevel($box->children)) {
+            return false;
+        }
+        $count = $box->style->get('column-count');
+        $width = $box->style->get('column-width');
+        $countSet = !$this->isAuto($count);
+        $widthSet = $width instanceof Length;
+        return $countSet || $widthSet;
+    }
+
+    /**
+     * Resolve the used column-count + column-width per CSS Multi-column 1
+     * §7.1, then stack children into N fragmentainers side-by-side.
+     *
+     * Phase-1 simplifications:
+     *  - `column-fill: balance` only (initial value). Heights are equalised
+     *    using `ceil(totalChildOuterHeight / N)`; the true browser
+     *    algorithm iterates to minimise stragglers but the ceil
+     *    approximation matches within one line for typical content.
+     *  - No mid-child fragmentation. A child taller than the balanced
+     *    height stays whole in its column; the column simply overflows.
+     *    Mid-child splitting lands with 1I.2.
+     *  - `break-before: column` / `break-after: column` and column-spanning
+     *    elements are not yet honoured.
+     */
+    private function layoutMultiColumn(Box $box, LayoutContext $childContext): float
+    {
+        $geo = $box->geometry;
+        $available = $geo->width;
+        if ($available <= 0.0) {
+            $box->multiColumn = null;
+            return 0.0;
+        }
+
+        $gap = $this->resolveColumnGap($box->style, $childContext->lengthContext);
+        [$count, $columnWidth] = $this->resolveColumns($box->style, $available, $gap);
+        if ($count < 1) {
+            $count = 1;
+        }
+        $box->multiColumn = new MultiColumnLayout(
+            columnCount: $count,
+            columnWidth: $columnWidth,
+            columnGap: $gap,
+            ruleWidth: $this->resolveColumnRuleWidth($box->style),
+            ruleStyle: $this->resolveColumnRuleStyle($box->style),
+            ruleColor: $this->resolveColumnRuleColor($box->style),
+        );
+
+        // Single-column degenerate case — fall back to normal block stacking.
+        if ($count === 1) {
+            return $this->stackChildren($box, $childContext, $childContext->originX, $childContext->originY);
+        }
+
+        // First pass: lay each child into a single virtual column of width
+        // `columnWidth` at the container's origin. We need each child's
+        // outer height to compute balance; cumulative cursor matters so
+        // margin-collapsing between siblings still applies before we
+        // redistribute.
+        $columnCtx = $childContext->withContainingBlock(
+            $columnWidth,
+            $childContext->containingBlockHeight,
+        );
+        $childTotal = $this->stackChildren($box, $columnCtx, $geo->x, $geo->y);
+
+        // Phase 1 balance: divide total height equally across N columns.
+        $balanced = $count > 0 ? ceil($childTotal / $count) : $childTotal;
+
+        // Second pass: walk children in order, redistribute into columns.
+        // `colY` tracks the cursor inside the current column relative to
+        // `geo->y`; advance to the next column when the next child would
+        // overflow the balanced height (provided we're not on the last
+        // column — the final column absorbs whatever's left).
+        $currentCol = 0;
+        $colY = 0.0;
+        $columnHeights = array_fill(0, $count, 0.0);
+        foreach ($box->children as $child) {
+            $h = $child->geometry->outerHeight();
+            if ($colY > 0.0
+                && $currentCol < $count - 1
+                && $colY + $h > $balanced + 0.001
+            ) {
+                $currentCol++;
+                $colY = 0.0;
+            }
+            $targetX = $geo->x + $currentCol * ($columnWidth + $gap);
+            $targetY = $geo->y + $colY;
+            // Reset the child's top margin so the first child in each
+            // column doesn't carry collapsed-margin leftovers from the
+            // first-pass stacking.
+            if ($colY === 0.0) {
+                $existingMargin = $child->geometry->marginTop;
+                if ($existingMargin !== 0.0) {
+                    // Pull the child up by its margin so it sits flush at
+                    // the column's top edge.
+                    $child->geometry->marginTop = 0.0;
+                    $targetY -= $existingMargin;
+                    $h = $child->geometry->outerHeight();
+                }
+            }
+            $dx = $targetX - $child->geometry->x;
+            $dy = $targetY - $child->geometry->y;
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+            $colY += $h;
+            $columnHeights[$currentCol] = $colY;
+        }
+        return max($columnHeights);
+    }
+
+    /**
+     * Standard block-stacking pass extracted so `layoutMultiColumn`'s first
+     * pass can reuse it. Lays out every child at the supplied origin in
+     * `$context`'s containing block, applying margin collapsing and the
+     * existing page-break logic.
+     */
+    private function stackChildren(Box $box, LayoutContext $childContext, float $originX, float $originY): float
+    {
+        $cursorY = $originY;
+        $prevBottomMargin = 0.0;
+        $hasPrev = false;
+        $pageHeight = $childContext->containingBlockHeight;
+        $total = 0.0;
+        foreach ($box->children as $child) {
+            $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
+            if ($pageHeight > 0.0
+                && $this->forcesPageBreakBefore($child)
+                && ($hasPrev || $cursorY > 0.001)
+            ) {
+                $aligned = $this->ceilToPage($cursorY, $pageHeight);
+                if ($aligned > $cursorY) {
+                    $delta = $aligned - $cursorY;
+                    $cursorY = $aligned;
+                    $total += $delta;
+                }
+            }
+            $childOuterHeight = $this->layoutBox($child, $childContext->withOrigin($originX, $cursorY));
+            if ($hasPrev) {
+                $collapse = min($prevBottomMargin, $child->geometry->marginTop);
+                if ($collapse > 0.0) {
+                    $this->shiftSubtree($child, -$collapse);
+                    $cursorY -= $collapse;
+                    $total -= $collapse;
+                }
+            }
+            if ($pageHeight > 0.0
+                && $childOuterHeight > 0.0
+                && $childOuterHeight <= $pageHeight
+                && $this->avoidsBreakInside($child)
+            ) {
+                $childTop = $child->geometry->y;
+                $childBottom = $childTop + $childOuterHeight;
+                $startPage = (int) floor($childTop / $pageHeight);
+                $endPage = (int) floor(($childBottom - 0.001) / $pageHeight);
+                if ($endPage > $startPage) {
+                    $aligned = ($startPage + 1) * $pageHeight;
+                    $shift = $aligned - $childTop;
+                    if ($shift > 0.0) {
+                        $this->shiftSubtree($child, $shift);
+                        $cursorY += $shift;
+                        $total += $shift;
+                    }
+                }
+            }
+            $cursorY += $childOuterHeight;
+            $total += $childOuterHeight;
+            if ($pageHeight > 0.0 && $this->forcesPageBreakAfter($child)) {
+                $aligned = $this->ceilToPage($cursorY, $pageHeight);
+                if ($aligned > $cursorY) {
+                    $delta = $aligned - $cursorY;
+                    $cursorY = $aligned;
+                    $total += $delta;
+                }
+            }
+            $prevBottomMargin = $child->geometry->marginBottom;
+            $hasPrev = true;
+        }
+        return $total;
+    }
+
+    /**
+     * @return array{0:int, 1:float} `[columnCount, columnWidth]`
+     */
+    private function resolveColumns(CascadedValues $style, float $available, float $gap): array
+    {
+        $countValue = $style->get('column-count');
+        $widthValue = $style->get('column-width');
+        $countSet = !$this->isAuto($countValue);
+        $widthSet = $widthValue instanceof Length;
+
+        // Pull the integer count from `Integer` / `Number` (cascade may store
+        // either). Clamp ≥ 1 — `column-count: 0` is invalid per spec.
+        $count = 1;
+        if ($countSet) {
+            if ($countValue instanceof \Phpdftk\Css\Value\Integer) {
+                $count = max(1, $countValue->value);
+            } elseif ($countValue instanceof \Phpdftk\Css\Value\Number) {
+                $count = max(1, (int) round($countValue->value));
+            }
+        }
+        $width = $widthSet ? max(0.0, $widthValue->value) : 0.0;
+
+        if ($countSet && !$widthSet) {
+            $usedWidth = max(0.0, ($available - ($count - 1) * $gap) / $count);
+            return [$count, $usedWidth];
+        }
+        if (!$countSet && $widthSet && $width > 0.0) {
+            // CSS Multi-column 1 §7.1 step 4: N = max(1, floor((available + gap) / (width + gap))).
+            $usedCount = max(1, (int) floor(($available + $gap) / ($width + $gap)));
+            $usedWidth = max(0.0, ($available - ($usedCount - 1) * $gap) / $usedCount);
+            return [$usedCount, $usedWidth];
+        }
+        if ($countSet && $widthSet) {
+            // Both set: column-count wins; column-width becomes a minimum
+            // (Phase 1 just uses count's distribution).
+            $usedWidth = max(0.0, ($available - ($count - 1) * $gap) / $count);
+            return [$count, $usedWidth];
+        }
+        return [1, $available];
+    }
+
+    /**
+     * `column-gap: normal` resolves to `1em` per CSS Multi-column 1 §3.1.
+     * CSS Values 4 §6.2 lets `0` appear as a unitless length, so accept
+     * `Integer` / `Number` whose value is zero too.
+     */
+    private function resolveColumnGap(CascadedValues $style, LengthContext $lc): float
+    {
+        $value = $style->get('column-gap');
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        if ($value instanceof Percentage) {
+            return 0.0; // Phase 1: no percentage basis defined.
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return max(0.0, (float) $value->value);
+        }
+        return max(0.0, $lc->currentFontSize);
+    }
+
+    private function resolveColumnRuleWidth(CascadedValues $style): float
+    {
+        $styleValue = $style->get('column-rule-style');
+        if ($styleValue instanceof Keyword
+            && in_array(strtolower($styleValue->name), ['none', 'hidden'], true)
+        ) {
+            return 0.0;
+        }
+        $width = $style->get('column-rule-width');
+        if ($width instanceof Length) {
+            return max(0.0, $width->value);
+        }
+        return 0.0;
+    }
+
+    private function resolveColumnRuleStyle(CascadedValues $style): string
+    {
+        $value = $style->get('column-rule-style');
+        if ($value instanceof Keyword) {
+            return strtolower($value->name);
+        }
+        return 'none';
+    }
+
+    private function resolveColumnRuleColor(CascadedValues $style): ?\Phpdftk\Css\Value\Color
+    {
+        $value = $style->get('column-rule-color');
+        if ($value instanceof \Phpdftk\Css\Value\Color) {
+            return $value;
+        }
+        // `currentcolor` resolves against the cascaded `color` per CSS Color 3.
+        if ($value instanceof Keyword && strtolower($value->name) === 'currentcolor') {
+            $color = $style->get('color');
+            return $color instanceof \Phpdftk\Css\Value\Color ? $color : null;
+        }
+        return null;
     }
 
     /** @param list<Box> $children */
@@ -491,6 +795,11 @@ final class BlockLayout
      * Hand the inline children to {@see InlineLayout}, record the
      * resulting line boxes on the parent, and return the total height
      * consumed.
+     *
+     * After laying the lines out, run a fragmentation pass that shifts
+     * any line straddling a page boundary down to the next page —
+     * orphans/widows aware. Without this, viewers would render the
+     * straddling line cut horizontally through the glyph mid-stroke.
      */
     private function layoutInlineChildren(Box $parent, LayoutContext $childContext): float
     {
@@ -503,8 +812,118 @@ final class BlockLayout
             $parent->geometry->width,
             $childContext,
         );
+        $height = $this->avoidLineSplitsAcrossPages(
+            $lines,
+            $parent,
+            $childContext->containingBlockHeight,
+            $height,
+        );
         $parent->lineBoxes = $lines;
         return $height;
+    }
+
+    /**
+     * CSS Fragmentation 4 §4.1 — line boxes must not be split between
+     * pages. When a line's vertical extent crosses a page boundary, push
+     * the line down to start exactly at the next boundary; subsequent
+     * lines shift by the same amount so they keep their relative spacing.
+     *
+     * Also honours `orphans` / `widows` (default 2 each): when a paragraph
+     * splits across pages, hold back enough trailing lines to fill the
+     * widow count, and pull enough leading lines forward to satisfy the
+     * orphan count. If the paragraph is too short to honour both (e.g.
+     * 3 lines with orphans=2 widows=2), shift the whole paragraph to the
+     * next page so it stays together.
+     *
+     * The `$lines` array is mutated in place; the parent's content height
+     * is returned so the caller can record the new (possibly larger) box
+     * height accounting for the inserted gaps.
+     *
+     * @param list<LineBox> $lines
+     */
+    private function avoidLineSplitsAcrossPages(
+        array $lines,
+        Box $parent,
+        float $pageHeight,
+        float $initialHeight,
+    ): float {
+        if ($pageHeight <= 0.0 || $lines === []) {
+            return $initialHeight;
+        }
+        $orphans = max(1, $this->intStyle($parent->style, 'orphans', 2));
+        $widows = max(1, $this->intStyle($parent->style, 'widows', 2));
+        $parentTop = $parent->geometry->y;
+        $count = count($lines);
+        // Walk the lines in document order. The fragment boundary is the
+        // first line whose page index differs from the previous line's, OR
+        // a line that straddles the page boundary mid-glyph. At either
+        // event, decide an actual `breakAt` index honouring orphans /
+        // widows, then shift `[$breakAt..$count)` down by enough to start
+        // the chosen line at the next page boundary.
+        $prevStartPage = -1;
+        for ($i = 0; $i < $count; $i++) {
+            $line = $lines[$i];
+            $absTop = $parentTop + $line->y;
+            $absBot = $absTop + $line->height;
+            $startPage = (int) floor($absTop / $pageHeight);
+            $endPage = (int) floor(($absBot - 0.001) / $pageHeight);
+            $straddles = $endPage > $startPage;
+            $crossesBoundary = $prevStartPage >= 0 && $startPage > $prevStartPage;
+            if (!$straddles && !$crossesBoundary) {
+                $prevStartPage = $startPage;
+                continue;
+            }
+            // Tentative break: at this line.
+            $breakAt = $i;
+            // Widows: hold back enough trailing lines so $count - $breakAt
+            // ≥ $widows. Pull earlier lines forward into the next page.
+            $remaining = $count - $breakAt;
+            if ($remaining < $widows) {
+                $breakAt = max(0, $count - $widows);
+            }
+            // Orphans: ensure at least $orphans lines stay on the previous
+            // page (i.e. $breakAt ≥ $orphans). If we can't, push the
+            // entire paragraph onto the next page.
+            if ($breakAt > 0 && $breakAt < $orphans) {
+                $breakAt = 0;
+            }
+            // The target page for $lines[$breakAt] is the page that the
+            // *current* line should land on. For a straddling line, that's
+            // (startPage + 1); for a clean cross, it's startPage. Compute
+            // the boundary at the top of that page and shift breakAt to
+            // sit on it. Lines pulled back by widows / orphans already
+            // sit on an earlier page and get shifted onto the new page;
+            // breakAt == i lines already on the new page get delta=0.
+            $targetPage = $straddles ? $startPage + 1 : $startPage;
+            $targetBoundary = $targetPage * $pageHeight;
+            $absBreakTop = $parentTop + $lines[$breakAt]->y;
+            $delta = $targetBoundary - $absBreakTop;
+            if ($delta <= 0.0) {
+                $prevStartPage = $startPage;
+                continue;
+            }
+            for ($j = $breakAt; $j < $count; $j++) {
+                $lines[$j]->y += $delta;
+            }
+            // Re-read $line's post-shift page so the next iteration
+            // sees the correct previous-page state.
+            $absTopShifted = $parentTop + $lines[$i]->y;
+            $prevStartPage = (int) floor($absTopShifted / $pageHeight);
+        }
+        $last = $lines[$count - 1];
+        return $last->y + $last->height;
+    }
+
+    private function intStyle(CascadedValues $style, string $name, int $default): int
+    {
+        $v = $style->get($name);
+        if ($v instanceof \Phpdftk\Css\Value\Integer) {
+            return $v->value;
+        }
+        if ($v instanceof \Phpdftk\Css\Value\Number) {
+            return (int) round($v->value);
+        }
+        return $default;
     }
 
     /**

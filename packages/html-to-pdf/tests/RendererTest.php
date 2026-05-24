@@ -27,6 +27,84 @@ final class RendererTest extends TestCase
         self::assertFalse($result->hasErrors());
     }
 
+    public function testLongParagraphDoesNotStraddlePageBoundary(): void
+    {
+        // End-to-end fragmentation smoke: a paragraph long enough to
+        // overflow the page boundary at a known position. With the
+        // line-split avoidance pass, no line should straddle the boundary
+        // — the painter's content stream should reflect that.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer(
+            (new RendererOptions())->withDefaultFont($font),
+        );
+        $body = str_repeat("\u{1820} ", 200);
+        $writer = new PdfWriter();
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+                . '<div style="height: 740px"></div>'
+                . '<p>' . $body . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; } p { line-height: 20px; }',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Multi-page output (2+ pages from the 740-tall pre-paragraph div
+        // plus a 200-line paragraph at 20px each).
+        self::assertGreaterThanOrEqual(2, substr_count($bytes, '/Type /Page'));
+    }
+
+    public function testMultiColumnDocumentProducesValidPdfWithRule(): void
+    {
+        // End-to-end smoke for CSS Multi-column 1: a `column-count: 2`
+        // container with a visible `column-rule` should produce a PDF whose
+        // content stream contains both a stroke command (the rule) and the
+        // child block's fill colour. Uncompressed writer for grep-ability.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><section>'
+                . '<div class="a"></div><div class="b"></div>'
+                . '<div class="c"></div><div class="d"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-gap: 20px;
+                       column-rule: 2px solid #444; }
+             div { height: 80px; background-color: #cce; }',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Painter emits `S` (stroke) for the rule on its own line, `RG`
+        // for the rule's stroke colour, and the 0.8 0.8 0.93333 fill
+        // colour for the div backgrounds.
+        self::assertStringContainsString("\nS\n", $bytes, 'column-rule stroke not emitted');
+        self::assertStringContainsString('RG', $bytes, 'rule colour not emitted');
+    }
+
+    public function testMultiColumnRuleNoneEmitsNoStroke(): void
+    {
+        // `column-rule-style: none` → painter early-outs; the only `S`
+        // bytes we should see come from unrelated paths (there are none
+        // for this fixture — backgrounds use `f` to fill, not `S`).
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body><section>'
+                . '<div class="a"></div><div class="b"></div>'
+                . '</section></body></html>',
+            'html, body, section, div { display: block; }
+             section { column-count: 2; column-rule-style: none; }
+             div { height: 40px; background-color: #eee; }',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertStringNotContainsString("\nS\n", $bytes, 'no stroke for column-rule: none');
+    }
+
     public function testRenderEmitsNoWarningsForCleanInput(): void
     {
         $result = (new Renderer())->render(

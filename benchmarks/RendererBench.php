@@ -116,6 +116,30 @@ class RendererBench
         );
     }
 
+    public function benchMultiColumn(): void
+    {
+        // Exercises the CSS Multi-column 1 path: two-pass layout (virtual
+        // single-column → balance → redistribute) plus the painter's
+        // per-rule stroke pass. ~80 paragraphs feeds the balance
+        // algorithm enough children to make the redistribute pass
+        // meaningful.
+        $body = '';
+        for ($i = 0; $i < 80; $i++) {
+            $body .= sprintf(
+                '<p>Section %d — column content with <strong>emphasis</strong> '
+                . 'and <em>variety</em>. Multi-column layout balances heights '
+                . 'and strokes a rule between columns.</p>',
+                $i,
+            );
+        }
+        $this->renderer->render(
+            '<!DOCTYPE html><html><head><style>'
+            . 'section { columns: 3; column-gap: 16pt; column-rule: 1pt solid #888; }'
+            . 'p { margin: 0 0 8pt 0; }'
+            . '</style></head><body><section>' . $body . '</section></body></html>',
+        );
+    }
+
     public function benchRichTypography(): void
     {
         // Exercises inline-layout paths: text-transform, letter-spacing,

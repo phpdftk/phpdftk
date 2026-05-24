@@ -625,6 +625,180 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $first->x);
     }
 
+    public function testParagraphEntirelyOnOnePageIsNotShifted(): void
+    {
+        // 4 lines × 20px = 80px paragraph at body-top → fits cleanly inside
+        // the 800px page. No line should get pushed.
+        $this->skipIfNoFont();
+        $body = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body><p>' . $body . '</p></body></html>',
+            'html, body, p { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(120.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $first = $p->lineBoxes[0];
+        $expectedY = 0.0;
+        foreach ($p->lineBoxes as $line) {
+            self::assertEqualsWithDelta($expectedY, $line->y, 0.001);
+            $expectedY += $line->height;
+        }
+    }
+
+    public function testZeroPageHeightDoesNotShiftLines(): void
+    {
+        // pageHeight = 0 in the layout context means no pagination is
+        // active — the fragmentation pass must early-out, leaving lines
+        // contiguous.
+        $this->skipIfNoFont();
+        $body = str_repeat("\u{1820} ", 30);
+        $box = $this->buildTree(
+            '<html><body><p>' . $body . '</p></body></html>',
+            'html, body, p { display: block; } p { line-height: 20px; }',
+        );
+        $ctx = new LayoutContext(
+            containingBlockWidth: 80.0,
+            containingBlockHeight: 0.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new LengthContext(),
+            defaultFont: $this->font,
+        );
+        $this->layout->layout($box, $ctx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $expectedY = 0.0;
+        foreach ($p->lineBoxes as $line) {
+            self::assertEqualsWithDelta($expectedY, $line->y, 0.001);
+            $expectedY += $line->height;
+        }
+    }
+
+    public function testStraddlingLinePushedToNextPageBoundary(): void
+    {
+        // Paragraph at layout-Y=785, line-height=20. Line 0's abs range
+        // is 785..805 — straddles the 800 boundary. With orphans/widows=1
+        // the algorithm should shift line 0 to start at exactly 800.
+        $this->skipIfNoFont();
+        $body = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div style="height: 785px"></div>'
+                . '<p style="orphans: 1; widows: 1">' . $body . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(120.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(785.0, $p->geometry->y, 0.001);
+        $firstAbs = $p->geometry->y + $p->lineBoxes[0]->y;
+        self::assertEqualsWithDelta(800.0, $firstAbs, 0.001, 'straddler should land on the page boundary');
+    }
+
+    public function testEveryLineLandsWithinAPageAfterFragmentationPass(): void
+    {
+        // The hard invariant — for any paragraph, no line ends up
+        // straddling a page boundary. Test with a multi-page-spanning
+        // paragraph (50 lines × ~20px = ~1000px, spanning the 800-tall
+        // page) to confirm at least one boundary is exercised.
+        $this->skipIfNoFont();
+        $body = str_repeat("\u{1820} ", 350);
+        $box = $this->buildTree(
+            '<html><body><p style="orphans: 1; widows: 1">' . $body . '</p></body></html>',
+            'html, body, p { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $pageHeight = 800.0;
+        foreach ($p->lineBoxes as $i => $line) {
+            $absTop = $p->geometry->y + $line->y;
+            $absBot = $absTop + $line->height;
+            $startPage = (int) floor($absTop / $pageHeight);
+            $endPage = (int) floor(($absBot - 0.001) / $pageHeight);
+            self::assertSame(
+                $startPage,
+                $endPage,
+                sprintf('line %d straddles page boundary (absTop=%.2f, absBot=%.2f)', $i, $absTop, $absBot),
+            );
+        }
+    }
+
+    public function testWidowsHoldsBackTrailingLinesToTheNextPage(): void
+    {
+        // Paragraph at Y=740, line-height 20, 4 lines. Without widows
+        // logic: lines at 740/760/780/800 → 3 lines on page 0, 1 line on
+        // page 1 (widow). Default widows=2 pulls one more line forward,
+        // leaving 2 on page 0 and 2 on page 1.
+        $this->skipIfNoFont();
+        // 8 letters @ 60px usually shapes to exactly 4 short lines.
+        $body = str_repeat("\u{1820} ", 8);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div style="height: 740px"></div>'
+                . '<p>' . $body . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(60.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Count widows (lines that start on or after the page boundary).
+        $widows = 0;
+        foreach ($p->lineBoxes as $line) {
+            if ($p->geometry->y + $line->y + 0.001 >= 800.0) {
+                $widows++;
+            }
+        }
+        self::assertGreaterThanOrEqual(2, $widows, 'default widows=2 must be honoured');
+    }
+
+    public function testCustomOrphansForcesShiftWhenViolated(): void
+    {
+        // 6 lines, paragraph positioned so a normal split lands line 0+1
+        // on page 1 and lines 2..5 on page 2. With orphans=3 the engine
+        // must instead shift the whole paragraph (orphans require ≥3
+        // lines on the previous page; we only have 2 → can't satisfy →
+        // shift all).
+        $this->skipIfNoFont();
+        $body = str_repeat("\u{1820} ", 30);
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div style="height: 760px"></div>'
+                . '<p style="orphans: 3; widows: 1">' . $body . '</p>'
+                . '</body></html>',
+            'html, body, p, div { display: block; } p { line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(60.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        foreach ($p->lineBoxes as $line) {
+            self::assertGreaterThanOrEqual(
+                800.0 - 0.001,
+                $p->geometry->y + $line->y,
+                'with orphans=3 and only 2 lines fit on page 1, whole paragraph should shift',
+            );
+        }
+    }
+
+    public function testEmptyParagraphProducesNoLineBoxes(): void
+    {
+        // The fragmentation pass must early-out cleanly when there are no
+        // lines to walk.
+        $this->skipIfNoFont();
+        $box = $this->buildTree(
+            '<html><body><p></p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(120.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame([], $p->lineBoxes);
+        self::assertSame(0.0, $p->geometry->height);
+    }
+
     private function skipIfNoFont(): void
     {
         if ($this->font === null) {
