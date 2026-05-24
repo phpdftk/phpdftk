@@ -778,6 +778,128 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $section->multiColumn->ruleWidth);
     }
 
+    public function testDetailsClosedByDefaultHidesNonSummaryContent(): void
+    {
+        // HTML 5 §4.11.1: without `[open]`, only the summary should
+        // render; child paragraphs are display:none.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details>'
+                . '<summary style="height: 20px">Click me</summary>'
+                . '<p class="body" style="height: 50px"></p>'
+                . '</details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        if ($p !== null) {
+            self::assertSame(0.0, $p->geometry->height, 'closed details hides body');
+        }
+        $summary = $this->find($box, 'summary');
+        self::assertNotNull($summary);
+        self::assertSame(20.0, $summary->geometry->height, 'summary still visible');
+    }
+
+    public function testDetailsOpenShowsNonSummaryContent(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details open>'
+                . '<summary>Click me</summary>'
+                . '<p class="body" style="height: 50px"></p>'
+                . '</details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame(50.0, $p->geometry->height, 'open details exposes body');
+    }
+
+    public function testAuthorCssCanForceDetailsAlwaysOpen(): void
+    {
+        // Negative test: author overrides the UA `details > * { none }`
+        // rule by explicitly setting `display: block` on the child.
+        // The override should win via higher specificity (or simply
+        // source-order being later).
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details>'
+                . '<summary>Click me</summary>'
+                . '<p class="body" style="height: 50px"></p>'
+                . '</details>'
+                . '</body></html>',
+            'details > p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame(50.0, $p->geometry->height, 'author override wins over UA hide');
+    }
+
+    public function testSummaryRendersWhenDetailsIsOpenAndClosed(): void
+    {
+        // Symmetric check: summary is visible regardless of [open]
+        // state. Cover both branches in one assertion.
+        foreach (['', 'open'] as $attr) {
+            $box = $this->buildTreeWithUa(
+                '<html><body>'
+                    . '<details ' . $attr . '>'
+                    . '<summary style="height: 20px">S</summary>'
+                    . '</details>'
+                    . '</body></html>',
+                '',
+            );
+            $this->layout->layout($box, $this->defaultCtx);
+            $summary = $this->find($box, 'summary');
+            self::assertNotNull($summary, "details $attr: summary present");
+            self::assertSame(20.0, $summary->geometry->height, "details $attr: summary visible");
+        }
+    }
+
+    public function testDetailsWithoutSummaryStillHidesChildren(): void
+    {
+        // No summary at all — every child gets display: none. The
+        // browser would show an implicit "Details" marker, but our
+        // text-only Phase-1 just renders nothing for the body and a
+        // blank box for the details container.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details>'
+                . '<p class="body" style="height: 50px"></p>'
+                . '</details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        if ($p !== null) {
+            self::assertSame(0.0, $p->geometry->height);
+        }
+    }
+
+    public function testDetailsOpenAttributeBlankValueStillCounts(): void
+    {
+        // HTML boolean attributes: `<details open>` / `<details open="">`
+        // / `<details open="open">` all count as set. The attribute
+        // selector `[open]` matches presence regardless of value.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details open="">'
+                . '<summary>S</summary>'
+                . '<p class="body" style="height: 50px"></p>'
+                . '</details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame(50.0, $p->geometry->height);
+    }
+
     public function testColWidthAttributeSetsExplicitColumnWidth(): void
     {
         // Single `<col width="200">` on a 3-column table — that column

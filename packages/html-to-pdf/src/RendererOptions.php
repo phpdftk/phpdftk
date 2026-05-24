@@ -376,9 +376,16 @@ final readonly class RendererOptions
             figure { margin: 16px 40px; }
             figcaption { font-size: 0.9em; }
 
-            /* Details / summary — content always visible (no JS to hide). */
+            /* Details / summary (HTML 5 §4.11.1). Closed by default —
+               only the summary renders — until the [open] attribute
+               flips the visibility. Print authors who want a permanent
+               open disclosure either set [open] on the tag or override
+               with their own CSS. */
             details, summary { display: block; }
             summary { font-weight: bold; }
+            details > * { display: none; }
+            details > summary { display: block; }
+            details[open] > * { display: block; }
 
             /* `<q>` inline quotes — wrap content in straight double quotes
                per the open-quote / close-quote Phase-1 simplification. */
