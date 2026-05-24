@@ -189,6 +189,11 @@ final class PropertyRegistry
         $r->register($initial('content', new Keyword('normal')));
         $r->register($initial('counter-reset', new Keyword('none')));
         $r->register($initial('counter-increment', new Keyword('none')));
+        // CSS Generated Content 3 §3.1: `quotes` controls the strings
+        // emitted by `open-quote` / `close-quote` in `content`.
+        // Initial `auto` — UA picks typographic defaults; explicit value
+        // is a space-separated list of paired strings. Inherits.
+        $r->register($initial('quotes', new Keyword('auto'), true));
 
         // CSS UI 3 §6.2 text-overflow — when the content overflows the
         // single-line box, replace the visible tail with U+2026 HORIZONTAL

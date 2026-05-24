@@ -211,7 +211,7 @@ final class BoxGenerator
     ): ?Box {
         $pseudoValues = $this->cascade->computeFor($sheets, $element, $hostValues, $pseudoName);
         $content = $pseudoValues->get('content');
-        $text = $this->resolvePseudoContent($content, $element);
+        $text = $this->resolvePseudoContent($content, $element, $pseudoValues);
         if ($text === null) {
             return null;
         }
@@ -233,7 +233,7 @@ final class BoxGenerator
      *
      * Supports `<string>`, `attr(name)`, and any space-joined list of those.
      */
-    private function resolvePseudoContent(?\Phpdftk\Css\Value\Value $value, Element $host): ?string
+    private function resolvePseudoContent(?\Phpdftk\Css\Value\Value $value, Element $host, CascadedValues $values): ?string
     {
         if ($value === null) {
             return null;
@@ -247,14 +247,14 @@ final class BoxGenerator
             // no-close-quote / etc.) fall through to `contentItemAsString`
             // which produces the right glyph.
         }
-        $item = $this->contentItemAsString($value, $host);
+        $item = $this->contentItemAsString($value, $host, $values);
         if ($item !== null) {
             return $item;
         }
         if ($value instanceof \Phpdftk\Css\Value\ValueList) {
             $out = '';
             foreach ($value->values as $v) {
-                $piece = $this->contentItemAsString($v, $host);
+                $piece = $this->contentItemAsString($v, $host, $values);
                 if ($piece === null) {
                     // Unsupported component (counter/url/etc.) — bail.
                     return null;
@@ -273,14 +273,50 @@ final class BoxGenerator
      * keywords. Phase-1 emits an ASCII double quote for both — full
      * `quotes` property + nesting depth tracking lands in a follow-up.
      */
-    private function contentItemAsString(\Phpdftk\Css\Value\Value $value, Element $host): ?string
+    /**
+     * Resolve CSS Generated Content 3 §3.1 `quotes` to the
+     * `[openQuote, closeQuote]` pair for `open-quote` / `close-quote`
+     * content keywords. `auto` (initial value) defers to the
+     * typographic default U+201C / U+201D ("smart quotes"). An
+     * explicit value is a list of strings paired open/close — Phase-1
+     * uses the first pair only; nested quote depth tracking lands
+     * later.
+     *
+     * @return array{0:string, 1:string}
+     */
+    private function resolveQuotePair(CascadedValues $values): array
+    {
+        $value = $values->get('quotes');
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $strings = [];
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\StringValue) {
+                    $strings[] = $v->value;
+                }
+            }
+            if (count($strings) >= 2) {
+                return [$strings[0], $strings[1]];
+            }
+        }
+        // U+201C LEFT DOUBLE QUOTATION MARK + U+201D RIGHT DOUBLE
+        // QUOTATION MARK — the typographic default for English. Other
+        // locales (German „..." / French «...») are Phase 2 once the
+        // cascade tracks `:lang()`-driven UA stylesheets.
+        return ["\u{201C}", "\u{201D}"];
+    }
+
+    private function contentItemAsString(\Phpdftk\Css\Value\Value $value, Element $host, CascadedValues $values): ?string
     {
         if ($value instanceof \Phpdftk\Css\Value\StringValue) {
             return $value->value;
         }
         if ($value instanceof Keyword) {
-            return match (strtolower($value->name)) {
-                'open-quote', 'close-quote' => '"',
+            $kw = strtolower($value->name);
+            if ($kw === 'open-quote' || $kw === 'close-quote') {
+                $pair = $this->resolveQuotePair($values);
+                return $kw === 'open-quote' ? $pair[0] : $pair[1];
+            }
+            return match ($kw) {
                 'no-open-quote', 'no-close-quote' => '',
                 default => null,
             };

@@ -506,15 +506,95 @@ final class BoxGeneratorTest extends TestCase
         $box = $this->generator->generate($doc, [$sheet]);
         $q = $this->findFirstByTag($box, 'q');
         self::assertNotNull($q);
-        // q's children: [pseudoBefore(InlineBox > TextBox('"')), TextBox('hi'), pseudoAfter(InlineBox > TextBox('"'))]
+        // CSS Generated Content 3 §3.1 default `quotes: auto` produces
+        // the typographic pair U+201C / U+201D.
+        // q's children: [pseudoBefore(InlineBox > TextBox(open)), TextBox('hi'), pseudoAfter(InlineBox > TextBox(close))]
         self::assertCount(3, $q->children);
         $before = $q->children[0];
         $after = $q->children[2];
         self::assertInstanceOf(InlineBox::class, $before);
         self::assertInstanceOf(InlineBox::class, $after);
-        self::assertSame('"', $before->children[0]->text);
-        self::assertSame('"', $after->children[0]->text);
+        self::assertSame("\u{201C}", $before->children[0]->text);
+        self::assertSame("\u{201D}", $after->children[0]->text);
     }
+
+    public function testQuotesPropertyOverridesDefaultPair(): void
+    {
+        // Author override: `quotes: '«' '»'` should swap in French
+        // guillemets instead of the typographic English defaults.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: "\u{00AB}" "\u{00BB}"; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>hi</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $q = $this->findFirstByTag($box, 'q');
+        self::assertNotNull($q);
+        $before = $q->children[0];
+        $after = $q->children[2];
+        self::assertSame("\u{00AB}", $before->children[0]->text);
+        self::assertSame("\u{00BB}", $after->children[0]->text);
+    }
+
+    public function testQuotesAutoLeavesCurlyDefaults(): void
+    {
+        // Explicit `quotes: auto` is the same as no declaration —
+        // the typographic default pair wins.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: auto; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>hi</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $q = $this->findFirstByTag($box, 'q');
+        self::assertNotNull($q);
+        $before = $q->children[0];
+        self::assertSame("\u{201C}", $before->children[0]->text);
+    }
+
+    public function testQuotesValueWithSingleStringDefaultsBack(): void
+    {
+        // CSS Generated Content 3 §3.1 requires PAIRS of strings; a
+        // single string is malformed at Phase 1, so we fall back to
+        // the typographic default instead of using the half-pair.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: "X"; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>hi</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $q = $this->findFirstByTag($box, 'q');
+        self::assertNotNull($q);
+        $before = $q->children[0];
+        self::assertSame("\u{201C}", $before->children[0]->text);
+    }
+
+    public function testNoOpenQuoteProducesEmptyString(): void
+    {
+        // `no-open-quote` / `no-close-quote` produce empty strings
+        // (the pseudo box still generates).
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; }
+            q::before { content: no-open-quote; }
+            q::after { content: no-close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>hi</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $q = $this->findFirstByTag($box, 'q');
+        self::assertNotNull($q);
+        // Pseudo box still exists but with empty text — no TextBox child.
+        $before = $q->children[0];
+        self::assertInstanceOf(InlineBox::class, $before);
+        self::assertCount(0, $before->children);
+    }
+
 
     public function testPseudoAttrMissingProducesEmptyString(): void
     {
