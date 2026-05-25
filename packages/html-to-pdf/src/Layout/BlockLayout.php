@@ -342,10 +342,16 @@ final class BlockLayout
         // CSS 2.1 §10.4 — clamp to [min-width, max-width]. min-width wins
         // when min > max (so `min: 100px; max: 50px` resolves to 100px).
         // `max-width: none` keyword leaves the upper bound unbounded;
-        // numeric `auto` on min-width resolves to 0.
+        // numeric `auto` on min-width resolves to 0. Under
+        // `box-sizing: border-box` the min/max values include border +
+        // padding too, so we subtract them to compare against the
+        // content-box width.
+        $horizontalInset = $borderBox
+            ? $geo->borderLeft + $geo->borderRight + $geo->paddingLeft + $geo->paddingRight
+            : 0.0;
         $maxWidthValue = $style->get('max-width');
         if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
-            $maxWidth = $this->resolveLength($maxWidthValue, $cbWidth);
+            $maxWidth = max(0.0, $this->resolveLength($maxWidthValue, $cbWidth) - $horizontalInset);
             if ($maxWidth > 0.0 && $contentWidth > $maxWidth) {
                 $contentWidth = $maxWidth;
                 // Width fell out of `auto` territory — treat it like an
@@ -355,7 +361,7 @@ final class BlockLayout
             }
         }
         $minWidthValue = $style->get('min-width');
-        $minWidth = $this->resolveLength($minWidthValue, $cbWidth);
+        $minWidth = max(0.0, $this->resolveLength($minWidthValue, $cbWidth) - $horizontalInset);
         if ($minWidth > 0.0 && $contentWidth < $minWidth) {
             $contentWidth = $minWidth;
             $widthAuto = false;
@@ -487,15 +493,20 @@ final class BlockLayout
         }
         // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
         // with the width clamps above; `max-height: none` leaves the
-        // upper bound unbounded.
+        // upper bound unbounded. border-box-sized min/max include
+        // padding + border, so subtract them off to compare against
+        // the content-box height.
+        $verticalInset = $borderBox
+            ? $geo->borderTop + $geo->borderBottom + $geo->paddingTop + $geo->paddingBottom
+            : 0.0;
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
-            $maxHeight = $this->resolveLength($maxHeightValue, $context->containingBlockHeight);
+            $maxHeight = max(0.0, $this->resolveLength($maxHeightValue, $context->containingBlockHeight) - $verticalInset);
             if ($maxHeight > 0.0 && $geo->height > $maxHeight) {
                 $geo->height = $maxHeight;
             }
         }
-        $minHeight = $this->resolveLength($style->get('min-height'), $context->containingBlockHeight);
+        $minHeight = max(0.0, $this->resolveLength($style->get('min-height'), $context->containingBlockHeight) - $verticalInset);
         if ($minHeight > 0.0 && $geo->height < $minHeight) {
             $geo->height = $minHeight;
         }
