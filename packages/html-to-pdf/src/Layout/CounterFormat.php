@@ -27,8 +27,40 @@ final class CounterFormat
             'lower-roman' => strtolower(self::toRoman($value)),
             'upper-roman' => self::toRoman($value),
             'lower-greek' => self::toGreek($value),
+            'cjk-decimal' => self::toCjkDecimal($value),
             default => (string) $value,
         };
+    }
+
+    /**
+     * CSS Counter Styles 3 §7.1.5 `cjk-decimal` — the digital style
+     * using Chinese ideographic digits 〇 一 二 三 四 五 六 七 八 九.
+     * Multi-digit numbers concatenate (e.g. 23 → 二三). Negative
+     * values fall back to the decimal string per the spec's
+     * fixed-system fallback.
+     */
+    public static function toCjkDecimal(int $n): string
+    {
+        if ($n < 0) {
+            return (string) $n;
+        }
+        $digits = [
+            '0' => "\u{3007}",
+            '1' => "\u{4E00}",
+            '2' => "\u{4E8C}",
+            '3' => "\u{4E09}",
+            '4' => "\u{56DB}",
+            '5' => "\u{4E94}",
+            '6' => "\u{516D}",
+            '7' => "\u{4E03}",
+            '8' => "\u{516B}",
+            '9' => "\u{4E5D}",
+        ];
+        $out = '';
+        foreach (str_split((string) $n) as $d) {
+            $out .= $digits[$d];
+        }
+        return $out;
     }
 
     /**

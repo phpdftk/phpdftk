@@ -91,4 +91,33 @@ final class CounterFormatTest extends TestCase
         self::assertSame('0', CounterFormat::format(0, 'lower-greek'));
         self::assertSame('-3', CounterFormat::format(-3, 'lower-greek'));
     }
+
+    public function testCjkDecimalSingleDigit(): void
+    {
+        self::assertSame("\u{4E00}", CounterFormat::format(1, 'cjk-decimal'));
+        self::assertSame("\u{4E5D}", CounterFormat::format(9, 'cjk-decimal'));
+    }
+
+    public function testCjkDecimalZeroUsesIdeographicZero(): void
+    {
+        // U+3007 (〇), the ideographic zero — distinct from U+96F6
+        // (零) which is the formal zero.
+        self::assertSame("\u{3007}", CounterFormat::format(0, 'cjk-decimal'));
+    }
+
+    public function testCjkDecimalConcatenatesMultiDigit(): void
+    {
+        // 23 → 二三 (just concatenated digits — no place-value
+        // markers like 十 / 百, that's `simp-chinese-formal`).
+        self::assertSame("\u{4E8C}\u{4E09}", CounterFormat::format(23, 'cjk-decimal'));
+        // 100 → 一〇〇.
+        self::assertSame("\u{4E00}\u{3007}\u{3007}", CounterFormat::format(100, 'cjk-decimal'));
+    }
+
+    public function testCjkDecimalNegativeFallsBackToDecimal(): void
+    {
+        // Negative: negative ordinals fall back to plain decimal for
+        // safety (spec's "fixed system fallback" behaviour).
+        self::assertSame('-5', CounterFormat::format(-5, 'cjk-decimal'));
+    }
 }
