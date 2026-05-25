@@ -799,6 +799,36 @@ final class BlockLayout
         $totalGap = $gap * max(0, count($children) - 1);
         $usedWidth = array_sum($itemWidths) + $totalGap;
         $slack = max(0.0, $geo->width - $usedWidth);
+
+        // CSS Flexbox 1 §9.7: distribute positive free space across
+        // flex items proportional to their `flex-grow` factors. Items
+        // with grow > 0 absorb the slack; their width inflates so
+        // justify-content sees zero remaining space when grow consumes
+        // everything (the typical `flex: 1` "fill" pattern).
+        if ($slack > 0.0) {
+            $totalGrow = 0.0;
+            $growValues = [];
+            foreach ($children as $i => $child) {
+                $g = $this->resolveFlexGrow($child->style);
+                $growValues[$i] = $g;
+                $totalGrow += $g;
+            }
+            if ($totalGrow > 0.0) {
+                $consumed = 0.0;
+                foreach ($children as $i => $child) {
+                    if ($growValues[$i] <= 0.0) {
+                        continue;
+                    }
+                    $extra = $slack * ($growValues[$i] / $totalGrow);
+                    $consumed += $extra;
+                    $child->geometry->width += $extra;
+                    $itemWidths[$i] = $child->geometry->outerWidth();
+                }
+                $usedWidth += $consumed;
+                $slack = max(0.0, $geo->width - $usedWidth);
+            }
+        }
+
         $maxItemHeight = max($itemHeights);
 
         // Second pass: distribute slack per justify-content + align
@@ -947,6 +977,22 @@ final class BlockLayout
             return (int) $value->value;
         }
         return 0;
+    }
+
+    /**
+     * Resolve `flex-grow` per CSS Flexbox 1 §7.1: a non-negative
+     * `<number>`. Negative values are invalid and treated as 0.
+     */
+    private function resolveFlexGrow(CascadedValues $style): float
+    {
+        $value = $style->get('flex-grow');
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return max(0.0, (float) $value->value);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return max(0.0, (float) $value->value);
+        }
+        return 0.0;
     }
 
     private function flexKeyword(CascadedValues $style, string $prop, string $default): string

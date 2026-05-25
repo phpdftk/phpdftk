@@ -2516,14 +2516,181 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $this->flexItemX($flex, 'b'));
     }
 
+    public function testFlexGrowSingleItemFillsContainer(): void
+    {
+        // `flex: 1` (grow:1, basis declared 100 wide) → the lone item
+        // absorbs all 500pt of slack, ending up 600pt wide.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { width: 100px; height: 50px; flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(600.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexGrowProportionalDistribution(): void
+    {
+        // Two items 100 wide each in 600 container = 400 slack;
+        // grow factors 1 and 2 share it 1/3 and 2/3 → 133.33 and
+        // 266.67 extra; widths 233.33 and 366.67.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a { flex-grow: 1; }
+             .b { flex-grow: 2; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertEqualsWithDelta(233.333, $this->flexItemWidth($flex, 'a'), 0.01);
+        self::assertEqualsWithDelta(366.667, $this->flexItemWidth($flex, 'b'), 0.01);
+    }
+
+    public function testFlexGrowZeroLeavesWidthsAlone(): void
+    {
+        // Negative: initial flex-grow: 0 → items keep their declared
+        // widths, justify-content distributes the slack as usual.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexGrowNoOpWhenNoSlack(): void
+    {
+        // Negative: when items already fill the container, grow has
+        // no positive free space to distribute.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; }
+             .flex > div { width: 100px; height: 50px; flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexGrowSkipsZeroGrowItem(): void
+    {
+        // Mixed grow: one item with grow:0 keeps its width; the other
+        // with grow:1 absorbs ALL the slack.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .b { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(500.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexGrowAccountsForColumnGap(): void
+    {
+        // 600 container, 2 items × 100 + 20 gap = 220 used → 380
+        // slack. grow:1 on a single item adds 380 → a width 480.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; column-gap: 20px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(480.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexGrowNegativeValueTreatedAsZero(): void
+    {
+        // Negative: per CSS Flexbox 1 §7.1, `flex-grow` is
+        // non-negative — a negative value falls back to 0.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; flex-grow: -2; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexGrowShiftsSiblingPositions(): void
+    {
+        // Regression: when grow inflates item a's width, item b's
+        // x position shifts right by the same amount.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 400px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // a: 100 + 200 slack = 300 wide → b starts at x=300.
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(300.0, $this->flexItemX($flex, 'b'));
+    }
+
     /**
      * Helper: return the layout x of a flex item picked by class name.
      */
     private function flexItemX(Box $flex, string $className): float
     {
+        return $this->flexItem($flex, $className)->geometry->x;
+    }
+
+    private function flexItemWidth(Box $flex, string $className): float
+    {
+        return $this->flexItem($flex, $className)->geometry->width;
+    }
+
+    private function flexItem(Box $flex, string $className): Box
+    {
         foreach ($flex->children as $child) {
             if ($child->element !== null && in_array($className, $child->element->classes(), true)) {
-                return $child->geometry->x;
+                return $child;
             }
         }
         self::fail("flex item with class .{$className} not found");
