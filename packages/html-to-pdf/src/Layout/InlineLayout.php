@@ -357,6 +357,16 @@ final class InlineLayout
     {
         $align = $this->textAlignKeyword($parent);
         $alignLast = $this->textAlignLastKeyword($parent, $align);
+        // CSS Text 3 §7.5: `text-justify: none` disables justification.
+        // A `justify` text-align falls through to start-alignment.
+        if ($this->isTextJustifyNone($parent)) {
+            if ($align === 'justify') {
+                $align = 'start';
+            }
+            if ($alignLast === 'justify') {
+                $alignLast = 'start';
+            }
+        }
         if ($align === 'left' || $align === 'start') {
             if ($alignLast === 'left' || $alignLast === 'start' || $alignLast === 'auto') {
                 return $lines;
@@ -382,6 +392,20 @@ final class InlineLayout
             $out[] = new LineBox($line->y, $line->height, $newFragments);
         }
         return $out;
+    }
+
+    /**
+     * CSS Text 3 §7.5 — `true` when the parent declares
+     * `text-justify: none`, in which case the justify branches of
+     * `text-align` and `text-align-last` collapse to start-alignment.
+     */
+    private function isTextJustifyNone(Box $parent): bool
+    {
+        $value = $parent->style->get('text-justify');
+        if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
+            return false;
+        }
+        return strtolower($value->name) === 'none';
     }
 
     /**

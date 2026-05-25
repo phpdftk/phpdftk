@@ -120,6 +120,13 @@ final class PropertyRegistry
         $r->register($initial('text-underline-offset', new Keyword('auto')));
         $r->register($initial('text-shadow', new Keyword('none'), true));
         $r->register($initial('text-transform', new Keyword('none'), true));
+        // CSS Text 3 §7.5: `text-justify` controls the justification
+        // algorithm used when `text-align: justify`. `auto` (initial)
+        // lets the UA pick a reasonable default; `none` disables
+        // justification entirely (the line falls back to its declared
+        // text-align direction). `inter-word` / `inter-character`
+        // accepted but resolve as `auto` at Phase 1.
+        $r->register($initial('text-justify', new Keyword('auto'), true));
         $r->register($initial('text-indent', $zero, true));
         $r->register($initial('letter-spacing', new Keyword('normal'), true));
         $r->register($initial('word-spacing', new Keyword('normal'), true));

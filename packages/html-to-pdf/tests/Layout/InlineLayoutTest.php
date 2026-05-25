@@ -991,6 +991,139 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $last->fragments[0]->x);
     }
 
+    public function testTextJustifyNoneDisablesJustification(): void
+    {
+        // CSS Text 3 §7.5: `text-justify: none` disables justification
+        // even when text-align: justify. Non-final lines fall back to
+        // start-aligned (the natural shape of the line) instead of
+        // having inter-fragment slack distributed.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $unjustified = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-justify: none; }',
+        );
+        $justified = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; }',
+        );
+        $this->layout->layout($unjustified, $this->defaultContext(80.0));
+        $this->layout->layout($justified, $this->defaultContext(80.0));
+        $pNone = $this->find($unjustified, 'p');
+        $pAuto = $this->find($justified, 'p');
+        self::assertNotNull($pNone);
+        self::assertNotNull($pAuto);
+        // Pick a non-final line (index 0 if there are ≥ 2 lines).
+        self::assertGreaterThanOrEqual(2, count($pAuto->lineBoxes));
+        self::assertGreaterThanOrEqual(2, count($pNone->lineBoxes));
+        $autoLineWidth = $pAuto->lineBoxes[0]->totalWidth();
+        $noneLineWidth = $pNone->lineBoxes[0]->totalWidth();
+        // Justified line gets wider (slack distributed); unjustified
+        // line keeps its natural width.
+        self::assertGreaterThan($noneLineWidth, $autoLineWidth);
+    }
+
+    public function testTextJustifyAutoIsDefaultJustify(): void
+    {
+        // Positive: explicit `text-justify: auto` matches the default
+        // (no behaviour change vs. unset).
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $boxAuto = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-justify: auto; }',
+        );
+        $boxDefault = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; }',
+        );
+        $this->layout->layout($boxAuto, $this->defaultContext(80.0));
+        $this->layout->layout($boxDefault, $this->defaultContext(80.0));
+        $pAuto = $this->find($boxAuto, 'p');
+        $pDefault = $this->find($boxDefault, 'p');
+        self::assertNotNull($pAuto);
+        self::assertNotNull($pDefault);
+        self::assertSame(
+            $pAuto->lineBoxes[0]->totalWidth(),
+            $pDefault->lineBoxes[0]->totalWidth(),
+        );
+    }
+
+    public function testTextJustifyNoneIgnoredOnNonJustifiedBlock(): void
+    {
+        // Negative: `text-justify` only kicks in when `text-align: justify`.
+        // On a left-aligned paragraph the property is a no-op.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 30);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-justify: none; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Default text-align: left → every line starts at x=0 regardless.
+        foreach ($p->lineBoxes as $line) {
+            self::assertSame(0.0, $line->fragments[0]->x);
+        }
+    }
+
+    public function testTextJustifyInvalidKeywordTreatedAsAuto(): void
+    {
+        // Negative: an unrecognised keyword should fall through to the
+        // initial `auto`, leaving justification active. Compare against
+        // the explicit-auto baseline.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $boxBad = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-justify: nonsense; }',
+        );
+        $boxAuto = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-justify: auto; }',
+        );
+        $this->layout->layout($boxBad, $this->defaultContext(80.0));
+        $this->layout->layout($boxAuto, $this->defaultContext(80.0));
+        $pBad = $this->find($boxBad, 'p');
+        $pAuto = $this->find($boxAuto, 'p');
+        self::assertNotNull($pBad);
+        self::assertNotNull($pAuto);
+        self::assertSame(
+            $pBad->lineBoxes[0]->totalWidth(),
+            $pAuto->lineBoxes[0]->totalWidth(),
+        );
+    }
+
+    public function testTextJustifyNoneAlsoSuppressesAlignLastJustify(): void
+    {
+        // Negative: when `text-align-last: justify` is set but
+        // `text-justify: none` overrides, the last line also falls
+        // back to start-alignment.
+        $this->skipIfNoFont();
+        $letters = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { line-height: 20px; text-align: justify; text-align-last: justify;
+                 text-justify: none; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $last = $p->lineBoxes[count($p->lineBoxes) - 1];
+        // Last line should NOT be expanded to fill the line width
+        // (no justify shift applied).
+        self::assertLessThan(70.0, $last->totalWidth());
+    }
+
     public function testInlineLinesShortenAroundLeftFloat(): void
     {
         // 60 glyphs in a 200-wide container with a 100×60 left float at
