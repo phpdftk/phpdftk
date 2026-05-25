@@ -293,6 +293,11 @@ final class PropertyRegistry
         $r->register($initial('column-count', new Keyword('auto')));
         $r->register($initial('column-width', new Keyword('auto')));
         $r->register($initial('column-gap', new Keyword('normal')));
+        // CSS Box Alignment 3 §8.3 — `row-gap` for flex / grid /
+        // multi-column rows. Initial `normal`, non-inheriting. The
+        // `gap` shorthand sets both row-gap and column-gap (handled
+        // in ShorthandExpander).
+        $r->register($initial('row-gap', new Keyword('normal')));
         $r->register($initial('column-rule-width', new Length(3.0, LengthUnit::Px))); // medium
         $r->register($initial('column-rule-style', new Keyword('none')));
         $r->register($initial('column-rule-color', new Keyword('currentcolor')));

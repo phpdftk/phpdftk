@@ -335,6 +335,30 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame([], $out);
     }
 
+    public function testGapShorthandOneValueAppliesToBoth(): void
+    {
+        $out = $this->expander->expand('gap', $this->value('10px'));
+        self::assertInstanceOf(Length::class, $out['row-gap']);
+        self::assertInstanceOf(Length::class, $out['column-gap']);
+        self::assertSame(10.0, $out['row-gap']->value);
+        self::assertSame(10.0, $out['column-gap']->value);
+    }
+
+    public function testGapShorthandTwoValuesRowFirst(): void
+    {
+        $out = $this->expander->expand('gap', $this->value('10px 20px'));
+        self::assertSame(10.0, $out['row-gap']->value);
+        self::assertSame(20.0, $out['column-gap']->value);
+    }
+
+    public function testGapShorthandAcceptsNormalKeyword(): void
+    {
+        // `gap: normal` keeps both gaps at the initial value.
+        $out = $this->expander->expand('gap', $this->value('normal'));
+        self::assertSame('normal', $out['row-gap']->name);
+        self::assertSame('normal', $out['column-gap']->name);
+    }
+
     public function testCascadeAppliesShorthand(): void
     {
         // End-to-end: a margin shorthand in a stylesheet should land as

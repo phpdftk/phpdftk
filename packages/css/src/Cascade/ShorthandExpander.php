@@ -71,6 +71,7 @@ final class ShorthandExpander
             'list-style' => $this->expandListStyle($value),
             'columns' => $this->expandColumns($value),
             'column-rule' => $this->expandColumnRule($value),
+            'gap' => $this->expandGap($value),
             default => [$property => $value],
         };
     }
@@ -588,6 +589,29 @@ final class ShorthandExpander
             $out['text-decoration-color'] = $color;
         }
         return $out;
+    }
+
+    /**
+     * `gap: <row-gap> [<column-gap>]?` (CSS Box Alignment 3 §8.3).
+     * One value: applies to both axes; two values: row first, column
+     * second.
+     *
+     * @return array<string, Value>
+     */
+    private function expandGap(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        [$row, $col] = match (count($components)) {
+            1 => [$components[0], $components[0]],
+            default => [$components[0], $components[1]],
+        };
+        return [
+            'row-gap' => $row,
+            'column-gap' => $col,
+        ];
     }
 
     /**
