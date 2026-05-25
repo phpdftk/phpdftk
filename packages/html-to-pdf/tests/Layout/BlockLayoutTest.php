@@ -2203,6 +2203,166 @@ final class BlockLayoutTest extends TestCase
         self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\BlockBox::class, $div);
     }
 
+    public function testFlexOrderMovesItemToFront(): void
+    {
+        // `order: -1` on the third item moves it to layout position 0.
+        // Item identities walked by class name to keep the assertion
+        // tight on the reorder behaviour vs. the geometry.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .c { order: -1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'c'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(200.0, $this->flexItemX($flex, 'b'));
+    }
+
+    public function testFlexOrderMovesItemToBack(): void
+    {
+        // `order: 1` on the first item moves it to the end.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a { order: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'c'));
+        self::assertSame(200.0, $this->flexItemX($flex, 'a'));
+    }
+
+    public function testFlexOrderDefaultPreservesDomOrder(): void
+    {
+        // Negative: every item has the initial order (0) → no sort,
+        // DOM order honoured.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(200.0, $this->flexItemX($flex, 'c'));
+    }
+
+    public function testFlexOrderEqualValuesAreStable(): void
+    {
+        // Negative: two items share order: 2; ties resolve by DOM
+        // order, not by selector iteration.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a, .c { order: 2; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // b (order 0) first; then a then c (tied at 2, DOM order).
+        self::assertSame(0.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(200.0, $this->flexItemX($flex, 'c'));
+    }
+
+    public function testFlexOrderInvalidKeywordTreatedAsZero(): void
+    {
+        // Negative: a non-integer keyword for `order` falls back to 0
+        // (the initial value). Sort sees all-zero values and short
+        // circuits to DOM order.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 400px; }
+             .flex > div { width: 100px; height: 50px; }
+             .a { order: nonsense; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+    }
+
+    public function testFlexOrderSingleItemIsNoOp(): void
+    {
+        // Negative: a single-item flex container with order set still
+        // lays out at x=0 — there's nothing to reorder against.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; }
+             .a { width: 80px; height: 30px; order: 99; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+    }
+
+    public function testFlexOrderDoesNotReorderInBlockContainer(): void
+    {
+        // Negative: `order` is a flex-item-only property — it must NOT
+        // reorder children of a non-flex block. The first DOM child
+        // wins x=0 regardless of order value.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="b">'
+                . '<div class="a" style="height: 20px"></div>'
+                . '<div class="z" style="height: 20px; order: -1"></div>'
+                . '</div></body></html>',
+            '.b { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $container = $this->find($box, 'div');
+        self::assertNotNull($container);
+        // Block stacking: first child at y=0, second at y=20.
+        // If `order` were honoured, .z would be at y=0.
+        self::assertSame(0.0, $container->children[0]->geometry->y);
+        self::assertSame(20.0, $container->children[1]->geometry->y);
+    }
+
+    /**
+     * Helper: return the layout x of a flex item picked by class name.
+     */
+    private function flexItemX(Box $flex, string $className): float
+    {
+        foreach ($flex->children as $child) {
+            if ($child->element !== null && in_array($className, $child->element->classes(), true)) {
+                return $child->geometry->x;
+            }
+        }
+        self::fail("flex item with class .{$className} not found");
+    }
+
     public function testAspectRatioConstrainsHeightFromWidth(): void
     {
         // `aspect-ratio: 16/9` with width 320 → height = 320/16*9 = 180.

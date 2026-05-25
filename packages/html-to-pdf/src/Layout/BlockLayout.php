@@ -761,6 +761,10 @@ final class BlockLayout
             return $geo->outerHeight();
         }
 
+        // CSS Flexbox 1 §5.4: `order` reorders items for layout.
+        // Sort is stable on document order for equal `order` values.
+        $children = $this->sortFlexItemsByOrder($children);
+
         // First pass: lay each item out at the container's origin
         // with its declared (or content-derived) size. We use the
         // existing layoutBlock so block-style sizing (margins /
@@ -876,6 +880,55 @@ final class BlockLayout
         $this->clampMinMax($style, $geo, $cbWidth, $context->containingBlockHeight);
 
         return $geo->outerHeight();
+    }
+
+    /**
+     * Stable sort of flex items by their `order` value (CSS Flexbox 1
+     * §5.4). PHP's `usort` isn't guaranteed stable, so we attach the
+     * document index as a tie-breaker.
+     *
+     * @param list<\Phpdftk\HtmlToPdf\Box\Box> $children
+     * @return list<\Phpdftk\HtmlToPdf\Box\Box>
+     */
+    private function sortFlexItemsByOrder(array $children): array
+    {
+        $indexed = [];
+        foreach ($children as $i => $child) {
+            $indexed[] = [$this->resolveFlexOrder($child->style), $i, $child];
+        }
+        $needsSort = false;
+        foreach ($indexed as $entry) {
+            if ($entry[0] !== 0) {
+                $needsSort = true;
+                break;
+            }
+        }
+        if (!$needsSort) {
+            return $children;
+        }
+        usort($indexed, static function (array $a, array $b): int {
+            if ($a[0] !== $b[0]) {
+                return $a[0] <=> $b[0];
+            }
+            return $a[1] <=> $b[1];
+        });
+        $sorted = [];
+        foreach ($indexed as $entry) {
+            $sorted[] = $entry[2];
+        }
+        return $sorted;
+    }
+
+    private function resolveFlexOrder(CascadedValues $style): int
+    {
+        $value = $style->get('order');
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return (int) $value->value;
+        }
+        return 0;
     }
 
     private function flexKeyword(CascadedValues $style, string $prop, string $default): string
