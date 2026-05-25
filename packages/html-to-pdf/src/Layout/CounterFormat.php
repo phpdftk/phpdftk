@@ -26,8 +26,36 @@ final class CounterFormat
             'upper-alpha', 'upper-latin' => self::toAlpha($value, lower: false),
             'lower-roman' => strtolower(self::toRoman($value)),
             'upper-roman' => self::toRoman($value),
+            'lower-greek' => self::toGreek($value),
             default => (string) $value,
         };
+    }
+
+    /**
+     * CSS Counter Styles 3 §7.1.4 `lower-greek` — alphabetic over the
+     * 24-letter Greek lowercase set α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π
+     * ρ σ τ υ φ χ ψ ω (note: σ, not the final-sigma ς, per spec).
+     */
+    public static function toGreek(int $n): string
+    {
+        if ($n < 1) {
+            return (string) $n;
+        }
+        // 24 lowercase Greek letters — Unicode U+03B1..U+03C9 skipping
+        // U+03C2 (final sigma).
+        static $letters = [
+            "α", "β", "γ", "δ", "ε", "ζ", "η", "θ",
+            "ι", "κ", "λ", "μ", "ν", "ξ", "ο", "π",
+            "ρ", "σ", "τ", "υ", "φ", "χ", "ψ", "ω",
+        ];
+        $base = count($letters);
+        $out = '';
+        while ($n > 0) {
+            $n--;
+            $out = $letters[$n % $base] . $out;
+            $n = intdiv($n, $base);
+        }
+        return $out;
     }
 
     /**

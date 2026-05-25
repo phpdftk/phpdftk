@@ -55,4 +55,40 @@ final class CounterFormatTest extends TestCase
         self::assertSame('7', CounterFormat::format(7, 'mongolian'));
         self::assertSame('7', CounterFormat::format(7, 'georgian'));
     }
+
+    public function testLowerGreekFirstLetter(): void
+    {
+        self::assertSame("\u{03B1}", CounterFormat::format(1, 'lower-greek')); // α
+    }
+
+    public function testLowerGreekLastSingleLetter(): void
+    {
+        // 24 = ω (omega, last letter).
+        self::assertSame("\u{03C9}", CounterFormat::format(24, 'lower-greek'));
+    }
+
+    public function testLowerGreekUsesSigmaNotFinalSigma(): void
+    {
+        // CSS Counter Styles 3 explicitly uses U+03C3 (σ), not U+03C2 (ς).
+        // 18th letter = sigma.
+        self::assertSame("\u{03C3}", CounterFormat::format(18, 'lower-greek'));
+    }
+
+    public function testLowerGreekBijectiveBeyondAlphabet(): void
+    {
+        // After 24, the alphabetic system bijectively recurses: 25 = αα.
+        self::assertSame("\u{03B1}\u{03B1}", CounterFormat::format(25, 'lower-greek'));
+        // 48 = αω.
+        self::assertSame("\u{03B1}\u{03C9}", CounterFormat::format(48, 'lower-greek'));
+        // 49 = βα.
+        self::assertSame("\u{03B2}\u{03B1}", CounterFormat::format(49, 'lower-greek'));
+    }
+
+    public function testLowerGreekBelowOneFallsBackToDecimal(): void
+    {
+        // Negative: invalid (zero or negative) ordinals fall back to
+        // the raw decimal string for safety.
+        self::assertSame('0', CounterFormat::format(0, 'lower-greek'));
+        self::assertSame('-3', CounterFormat::format(-3, 'lower-greek'));
+    }
 }
