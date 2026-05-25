@@ -491,6 +491,86 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(['I. ', 'II. ', 'III. ', 'IV. '], $texts);
     }
 
+    public function testSubmitInputRendersValueAsLabel(): void
+    {
+        // `<input type="submit" value="Send">` renders the label
+        // inline.
+        $doc = $this->html->parseDocument('<html><body><input type="submit" value="Send"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertCount(1, $input->children);
+        self::assertSame('Send', $input->children[0]->text);
+    }
+
+    public function testSubmitInputWithoutValueUsesSubmitDefault(): void
+    {
+        // HTML 5 default for `type="submit"` without value: "Submit".
+        $doc = $this->html->parseDocument('<html><body><input type="submit"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertCount(1, $input->children);
+        self::assertSame('Submit', $input->children[0]->text);
+    }
+
+    public function testResetInputDefaultLabel(): void
+    {
+        $doc = $this->html->parseDocument('<html><body><input type="reset"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertSame('Reset', $input->children[0]->text);
+    }
+
+    public function testButtonInputWithoutValueProducesEmptyLabel(): void
+    {
+        // Negative: `type="button"` has no spec default label
+        // (unlike submit/reset). Empty value → no TextBox child.
+        $doc = $this->html->parseDocument('<html><body><input type="button"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertCount(0, $input->children);
+    }
+
+    public function testCheckboxRendersAsciiIndicator(): void
+    {
+        $doc = $this->html->parseDocument('<html><body><input type="checkbox"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertSame('[ ] ', $input->children[0]->text);
+    }
+
+    public function testCheckedCheckboxRendersXIndicator(): void
+    {
+        $doc = $this->html->parseDocument('<html><body><input type="checkbox" checked></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertSame('[x] ', $input->children[0]->text);
+    }
+
+    public function testRadioRendersDifferentIndicator(): void
+    {
+        // Radio uses parens; verify uncheckedstate.
+        $doc = $this->html->parseDocument('<html><body><input type="radio"></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertSame('( ) ', $input->children[0]->text);
+    }
+
+    public function testCheckedRadioRendersFilledIndicator(): void
+    {
+        $doc = $this->html->parseDocument('<html><body><input type="radio" checked></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        self::assertSame('(o) ', $input->children[0]->text);
+    }
+
     public function testPictureSourcePrintOverridesImgSrc(): void
     {
         // HTML 5 §4.8.4.2 — when `<img>` is inside `<picture>` and

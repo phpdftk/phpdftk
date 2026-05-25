@@ -141,6 +141,39 @@ final class BoxGenerator
                 }
                 return $inline;
             }
+            // HTML 5 §4.10.5.1.18: button-type inputs render the
+            // `value` as the button label. Phase 2 will paint them as
+            // proper PDF widget annotations; for now we just emit the
+            // label text inline.
+            $buttonTypes = ['button', 'submit', 'reset'];
+            if (in_array($type, $buttonTypes, true)) {
+                $inline = new InlineBox($element, $values);
+                $label = $element->getAttribute('value');
+                if ($label === null || $label === '') {
+                    // HTML 5 default labels when `value` is missing.
+                    $label = match ($type) {
+                        'submit' => 'Submit',
+                        'reset' => 'Reset',
+                        default => '',
+                    };
+                }
+                if ($label !== '') {
+                    $inline->addChild(new TextBox($element, $values, $label));
+                }
+                return $inline;
+            }
+            // Checkbox / radio — render an ASCII visual indicator so
+            // form-print output stays informative without depending on
+            // ☐/☑ glyphs in the user's font.
+            if ($type === 'checkbox' || $type === 'radio') {
+                $checked = $element->getAttribute('checked') !== null;
+                $marker = $type === 'checkbox'
+                    ? ($checked ? '[x] ' : '[ ] ')
+                    : ($checked ? '(o) ' : '( ) ');
+                $inline = new InlineBox($element, $values);
+                $inline->addChild(new TextBox($element, $values, $marker));
+                return $inline;
+            }
         }
 
         $box = $this->makeBox($element, $values, $display);
