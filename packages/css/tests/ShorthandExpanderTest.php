@@ -335,6 +335,46 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame([], $out);
     }
 
+    public function testInsetOneValueExpandsToAllFour(): void
+    {
+        $out = $this->expander->expand('inset', $this->value('10px'));
+        self::assertArrayHasKey('top', $out);
+        self::assertArrayHasKey('right', $out);
+        self::assertArrayHasKey('bottom', $out);
+        self::assertArrayHasKey('left', $out);
+        foreach ($out as $v) {
+            self::assertSame(10.0, $v->value);
+        }
+    }
+
+    public function testInsetTwoValuesExpandsTopBottomAndLeftRight(): void
+    {
+        $out = $this->expander->expand('inset', $this->value('5px 10px'));
+        self::assertSame(5.0, $out['top']->value);
+        self::assertSame(10.0, $out['right']->value);
+        self::assertSame(5.0, $out['bottom']->value);
+        self::assertSame(10.0, $out['left']->value);
+    }
+
+    public function testInsetFourValuesClockwise(): void
+    {
+        $out = $this->expander->expand('inset', $this->value('1px 2px 3px 4px'));
+        self::assertSame(1.0, $out['top']->value);
+        self::assertSame(2.0, $out['right']->value);
+        self::assertSame(3.0, $out['bottom']->value);
+        self::assertSame(4.0, $out['left']->value);
+    }
+
+    public function testInsetAutoKeywordExpands(): void
+    {
+        // `inset: auto` → all four sides auto.
+        $out = $this->expander->expand('inset', $this->value('auto'));
+        foreach ($out as $v) {
+            self::assertInstanceOf(Keyword::class, $v);
+            self::assertSame('auto', strtolower($v->name));
+        }
+    }
+
     public function testGapShorthandOneValueAppliesToBoth(): void
     {
         $out = $this->expander->expand('gap', $this->value('10px'));

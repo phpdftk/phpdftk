@@ -72,6 +72,7 @@ final class ShorthandExpander
             'columns' => $this->expandColumns($value),
             'column-rule' => $this->expandColumnRule($value),
             'gap' => $this->expandGap($value),
+            'inset' => $this->expandInset($value),
             default => [$property => $value],
         };
     }
@@ -589,6 +590,34 @@ final class ShorthandExpander
             $out['text-decoration-color'] = $color;
         }
         return $out;
+    }
+
+    /**
+     * `inset: <length> [<length>{1,3}]?` (CSS Position 3 §3.3).
+     * Shorthand for `top` / `right` / `bottom` / `left` using the
+     * standard 1-to-4-value clockwise pattern (TRBL).
+     *
+     * @return array<string, Value>
+     */
+    private function expandInset(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        $count = count($components);
+        if ($count === 0) {
+            return [];
+        }
+        [$top, $right, $bottom, $left] = match ($count) {
+            1 => [$components[0], $components[0], $components[0], $components[0]],
+            2 => [$components[0], $components[1], $components[0], $components[1]],
+            3 => [$components[0], $components[1], $components[2], $components[1]],
+            default => [$components[0], $components[1], $components[2], $components[3]],
+        };
+        return [
+            'top' => $top,
+            'right' => $right,
+            'bottom' => $bottom,
+            'left' => $left,
+        ];
     }
 
     /**
