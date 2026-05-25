@@ -491,6 +491,113 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(['I. ', 'II. ', 'III. ', 'IV. '], $texts);
     }
 
+    public function testPictureSourcePrintOverridesImgSrc(): void
+    {
+        // HTML 5 §4.8.4.2 — when `<img>` is inside `<picture>` and
+        // a `<source media="print" srcset="...">` exists, the source's
+        // URL replaces the img's src for print rendering.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source media="print" srcset="print.png">'
+            . '<img src="screen.png" alt="fallback">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('print.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureSourceAllMediaAlsoOverrides(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source media="all" srcset="all.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('all.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureSourceWithoutMediaAttributeOverrides(): void
+    {
+        // `<source>` without `media` is treated as `media="all"`.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="any.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('any.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureSourceScreenOnlyIsIgnored(): void
+    {
+        // Negative: `media="screen"` doesn't match print → fallback
+        // img's original src wins.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source media="screen" srcset="screen.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('fallback.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureFirstMatchingSourceWins(): void
+    {
+        // When multiple sources match, the FIRST one wins (document
+        // order). Browsers walk top-to-bottom and pick the first
+        // match.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source media="print" srcset="first.png">'
+            . '<source media="print" srcset="second.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('first.png', $img->element->getAttribute('src'));
+    }
+
+    public function testStandaloneImgUnaffected(): void
+    {
+        // Negative: img NOT inside picture — src stays untouched.
+        $doc = $this->html->parseDocument(
+            '<html><body><img src="original.png" alt="x"></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('original.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetMultipleUrlsPicksFirst(): void
+    {
+        // `srcset="u1 1x, u2 2x"` → first URL `u1` wins.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="lo.png 1x, hi.png 2x">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('lo.png', $img->element->getAttribute('src'));
+    }
+
     public function testQElementWrapsWithQuotes(): void
     {
         // The UA stylesheet's `q::before/after { content: open-quote /

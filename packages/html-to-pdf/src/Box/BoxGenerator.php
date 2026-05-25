@@ -112,6 +112,12 @@ final class BoxGenerator
         // is intentional "decorative image, hide from a11y" — leave as
         // the regular atomic inline.
         if (strtolower($element->localName) === 'img') {
+            // HTML 5 §4.8.4.2 — when the `<img>` is wrapped in a
+            // `<picture>`, walk the preceding `<source>` siblings to
+            // pick the best one for the print medium. Phase-1 honours
+            // a `media` attribute containing `print` or `all` (or an
+            // absent media attribute, which means "all media").
+            $this->applyPictureSourceOverride($element);
             $alt = $element->getAttribute('alt');
             if ($alt !== null && $alt !== '') {
                 $inline = new InlineBox($element, $values);
@@ -193,6 +199,71 @@ final class BoxGenerator
         }
         $this->flushInlineGroup($box, $values, $inlineGroup);
         return $box;
+    }
+
+    /**
+     * HTML 5 §4.8.4.2 — when an `<img>` is the fallback inside a
+     * `<picture>`, the browser walks the `<source>` siblings and
+     * picks the first one whose `media` attribute matches. For
+     * print rendering: pick the first `<source>` with
+     * `media="print"` (or `media="all"` or no media attribute) and
+     * use the first URL of its `srcset` as the effective `src`.
+     *
+     * Mutates the element's `src` attribute in place — feels
+     * intrusive but means the existing painter code that reads
+     * `$element->getAttribute('src')` Just Works without any
+     * extra plumbing through the box tree.
+     */
+    private function applyPictureSourceOverride(Element $img): void
+    {
+        $parent = $img->parentNode;
+        if (!($parent instanceof Element)
+            || strtolower($parent->localName) !== 'picture'
+        ) {
+            return;
+        }
+        foreach ($parent->children() as $sibling) {
+            if ($sibling === $img) {
+                continue;
+            }
+            if (strtolower($sibling->localName) !== 'source') {
+                continue;
+            }
+            $media = $sibling->getAttribute('media');
+            if ($media !== null && $media !== '') {
+                $lower = strtolower(trim($media));
+                if ($lower !== 'all' && !str_contains($lower, 'print')) {
+                    continue;
+                }
+            }
+            $srcset = $sibling->getAttribute('srcset');
+            if ($srcset === null || trim($srcset) === '') {
+                continue;
+            }
+            $url = $this->firstSrcsetUrl($srcset);
+            if ($url !== null && $url !== '') {
+                $img->setAttribute('src', $url);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Extract the first URL from a `srcset` value. Per HTML 5
+     * §4.8.4.2.4 the syntax is `url1 [descriptor], url2 [descriptor]`.
+     * Take everything before the first comma OR first whitespace
+     * (whichever comes first) as the URL.
+     */
+    private function firstSrcsetUrl(string $srcset): ?string
+    {
+        $first = trim(explode(',', $srcset, 2)[0] ?? '');
+        if ($first === '') {
+            return null;
+        }
+        // URL may be followed by a descriptor (e.g. `image.png 2x`);
+        // strip everything from the first whitespace.
+        $parts = preg_split('/\s+/', $first, 2);
+        return $parts[0] ?? null;
     }
 
     /**
