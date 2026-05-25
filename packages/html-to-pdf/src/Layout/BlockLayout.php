@@ -448,6 +448,16 @@ final class BlockLayout
         } else {
             $geo->height = $this->resolveLength($heightValue, $context->containingBlockHeight);
         }
+        // CSS Sizing 4 §4.2 — `aspect-ratio` constrains height (or
+        // width) when the other dimension is determined. Phase-1:
+        // when height was auto AND a numeric ratio is set, override
+        // the children-derived height with `width / ratio`. This
+        // covers the common case (image / video wrapper sized by
+        // explicit width with the ratio dictating the height).
+        $ratio = $this->resolveAspectRatio($style);
+        if ($ratio !== null && $heightIsAuto && $geo->width > 0.0 && $ratio > 0.0) {
+            $geo->height = $geo->width / $ratio;
+        }
         // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
         // with the width clamps above; `max-height: none` leaves the
         // upper bound unbounded.
@@ -722,6 +732,45 @@ final class BlockLayout
             return $parent->withCurrentFontSize($fontSize->value);
         }
         return $parent;
+    }
+
+    /**
+     * Resolve CSS Sizing 4 §4.2 `aspect-ratio` to a width/height
+     * ratio. Accepts:
+     *  - `<number>` (e.g. `1.5`) → ratio.
+     *  - `<number> / <number>` (e.g. `16/9`) → first divided by
+     *    second (parses as ValueList with Slash separator).
+     * Returns null on `auto` / unknown / zero denominator.
+     */
+    private function resolveAspectRatio(CascadedValues $style): ?float
+    {
+        $value = $style->get('aspect-ratio');
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Slash
+            && count($value->values) >= 2
+        ) {
+            $w = $this->numericValue($value->values[0]);
+            $h = $this->numericValue($value->values[1]);
+            if ($w !== null && $h !== null && $h > 0.0) {
+                return $w / $h;
+            }
+        }
+        $direct = $this->numericValue($value);
+        if ($direct !== null && $direct > 0.0) {
+            return $direct;
+        }
+        return null;
+    }
+
+    private function numericValue(?\Phpdftk\Css\Value\Value $v): ?float
+    {
+        if ($v instanceof \Phpdftk\Css\Value\Integer) {
+            return (float) $v->value;
+        }
+        if ($v instanceof \Phpdftk\Css\Value\Number) {
+            return $v->value;
+        }
+        return null;
     }
 
     private function isAuto(?\Phpdftk\Css\Value\Value $value): bool

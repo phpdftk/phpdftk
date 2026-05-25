@@ -2019,6 +2019,90 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->y);
     }
 
+    public function testAspectRatioConstrainsHeightFromWidth(): void
+    {
+        // `aspect-ratio: 16/9` with width 320 → height = 320/16*9 = 180.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 320px; aspect-ratio: 16/9"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(180.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioAcceptsSingleNumber(): void
+    {
+        // `aspect-ratio: 1.5` (no slash) → ratio of 1.5:1.
+        // width 300 → height = 200.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 300px; aspect-ratio: 1.5"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(200.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioAutoIsNoOp(): void
+    {
+        // Default `aspect-ratio: auto` doesn't change height — empty
+        // div has height 0 from children.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(0.0, $div->geometry->height);
+    }
+
+    public function testAspectRatioIgnoredWhenHeightExplicit(): void
+    {
+        // Explicit height wins over aspect-ratio — width 200,
+        // aspect-ratio 1, but height 50px → height stays 50.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 200px; height: 50px; aspect-ratio: 1"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(50.0, $div->geometry->height);
+    }
+
+    public function testAspectRatioZeroDenominatorTreatedAsAuto(): void
+    {
+        // Negative: zero denominator (division-by-zero guard) →
+        // ratio invalid, height stays at default.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; aspect-ratio: 16/0"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(0.0, $div->geometry->height);
+    }
+
+    public function testAspectRatioWithAutoWidthDoesNotApply(): void
+    {
+        // Width: auto (fills container 600) + aspect-ratio: 2 →
+        // height = 300 (since auto width fills the containing block).
+        $box = $this->buildTree(
+            '<html><body><div style="aspect-ratio: 2"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        // 600 / 2 = 300.
+        self::assertEqualsWithDelta(300.0, $div->geometry->height, 0.001);
+    }
+
     public function testMaxWidthClampsExplicitlySizedBox(): void
     {
         // `max-width: 300px` should clamp a 500px-wide box.

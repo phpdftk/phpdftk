@@ -190,6 +190,11 @@ final class PropertyRegistry
         $r->register($initial('outline-width', new Length(3.0, LengthUnit::Px)));
         $r->register($initial('outline-offset', $zero));
         $r->register($initial('box-sizing', new Keyword('content-box')));
+        // CSS Sizing 4 §4.2 — `aspect-ratio` constrains the box's
+        // width-to-height ratio. `auto` (initial, non-inheriting)
+        // means no constraint; `<ratio>` form is honoured by
+        // BlockLayout when width OR height is auto.
+        $r->register($initial('aspect-ratio', new Keyword('auto')));
         $r->register($initial('overflow', new Keyword('visible')));
         $r->register($initial('visibility', new Keyword('visible'), true));
         // CSS Images 3 §5.4 — `image-rendering` controls how the UA
