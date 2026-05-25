@@ -48,6 +48,34 @@ $html = <<<'HTML'
            <code>align-items: center</code> places both on the cross-axis midline.</p>
       </div>
     </div>
+
+    <h2>Column direction (flex-direction: column)</h2>
+    <p class="caption">Items stack vertically; align-items applies on the
+       horizontal cross-axis. Useful for sidebars or any vertical menu.</p>
+    <div class="sidebar">
+      <div class="nav-item">Overview</div>
+      <div class="nav-item">Installation</div>
+      <div class="nav-item">Examples</div>
+      <div class="nav-item active">Flex Reference</div>
+      <div class="nav-item">FAQ</div>
+    </div>
+
+    <h2>Multi-line wrap (flex-wrap: wrap + row-gap)</h2>
+    <p class="caption">Items overflow onto subsequent lines once the
+       container width is exhausted. <code>row-gap</code> spaces the lines
+       vertically; <code>column-gap</code> spaces items horizontally.</p>
+    <div class="tags">
+      <span class="tag">CSS 2.1</span>
+      <span class="tag">CSS Flexible Box 1</span>
+      <span class="tag">CSS Multi-column 1</span>
+      <span class="tag">CSS Fragmentation 4</span>
+      <span class="tag">CSS Backgrounds 3</span>
+      <span class="tag">CSS Text 3</span>
+      <span class="tag">CSS Text Decoration 4</span>
+      <span class="tag">CSS Paged Media 3</span>
+      <span class="tag">CSS Generated Content 3</span>
+      <span class="tag">CSS Sizing 4</span>
+    </div>
   </body>
 </html>
 HTML;
@@ -74,6 +102,17 @@ p.lead { font-size: 12pt; color: #444; margin-bottom: 18pt; }
 .hero-art { width: 60pt; height: 60pt; font-size: 32pt; text-align: center;
             background-color: #ffe082; color: #663c00; padding: 12pt; }
 .hero-copy p { margin: 0; }
+
+.caption { font-size: 10pt; color: #666; margin: 0 0 8pt; }
+.sidebar { display: flex; flex-direction: column; row-gap: 4pt;
+           width: 180pt; padding: 8pt; background-color: #f4f6fa; }
+.nav-item { padding: 4pt 8pt; font-size: 10pt; }
+.nav-item.active { background-color: #1a5490; color: #fff; font-weight: bold; }
+
+.tags { display: flex; flex-wrap: wrap; column-gap: 6pt; row-gap: 6pt;
+        margin-bottom: 12pt; }
+.tag { padding: 3pt 8pt; background-color: #eef; color: #1a5490;
+       font-size: 9pt; border-radius: 8pt; }
 code { background-color: #eef; padding: 0 2pt; }
 CSS;
 
