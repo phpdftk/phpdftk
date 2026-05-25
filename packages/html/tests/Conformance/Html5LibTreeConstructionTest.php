@@ -33,7 +33,7 @@ final class Html5LibTreeConstructionTest extends TestCase
 
     private static function smokeFixturePath(): string
     {
-        return __DIR__ . '/../conformance/smoke.dat';
+        return __DIR__ . '/smoke.dat';
     }
 
     private static function upstreamCorpusPath(): string
@@ -192,7 +192,7 @@ final class Html5LibTreeConstructionTest extends TestCase
      */
     private function loadIgnoredLedger(): array
     {
-        $path = __DIR__ . '/../conformance/ignored.txt';
+        $path = __DIR__ . '/ignored.txt';
         if (!is_file($path)) {
             return [];
         }
