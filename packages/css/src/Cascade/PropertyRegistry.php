@@ -206,6 +206,16 @@ final class PropertyRegistry
         // so cascade keeps the value.
         $r->register($initial('isolation', new Keyword('auto')));
         $r->register($initial('mix-blend-mode', new Keyword('normal')));
+        // CSS Color Adjustment 1 — `print-color-adjust` (initial `economy`)
+        // tells the UA whether it may adjust colours for print
+        // (downsampling, removing bg). `color-scheme` hints
+        // light / dark preference. `forced-color-adjust` opts out of
+        // forced-colors (high contrast) on Windows. All print-irrelevant
+        // for our default-economy output but registered so author CSS
+        // isn't dropped. All inherit per spec.
+        $r->register($initial('print-color-adjust', new Keyword('economy'), true));
+        $r->register($initial('color-scheme', new Keyword('normal'), true));
+        $r->register($initial('forced-color-adjust', new Keyword('auto'), true));
 
         // CSS Images 3 §5: `object-fit` controls how a replaced element
         // (currently `<img>`) scales within its declared width × height.

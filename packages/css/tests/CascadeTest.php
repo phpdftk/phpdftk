@@ -580,4 +580,43 @@ final class CascadeTest extends TestCase
         self::assertInstanceOf(Keyword::class, $blend);
         self::assertSame('normal', strtolower($blend->name));
     }
+
+    public function testPrintColorAdjustInheritsToDescendants(): void
+    {
+        // CSS Color Adjustment 1: print-color-adjust inherits.
+        $sheet = $this->parser->parseStylesheet('p { print-color-adjust: exact; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $value = $childValues->get('print-color-adjust');
+        self::assertInstanceOf(Keyword::class, $value);
+        self::assertSame('exact', strtolower($value->name));
+    }
+
+    public function testColorSchemeRegistered(): void
+    {
+        $sheet = $this->parser->parseStylesheet('p { color-scheme: light dark; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $value = $values->get('color-scheme');
+        self::assertNotNull($value);
+    }
+
+    public function testForcedColorAdjustDefaultsToAuto(): void
+    {
+        $values = $this->cascade->computeFor([], new FakeElement('div'));
+        $value = $values->get('forced-color-adjust');
+        self::assertInstanceOf(Keyword::class, $value);
+        self::assertSame('auto', strtolower($value->name));
+    }
+
+    public function testPrintColorAdjustDefaultEconomy(): void
+    {
+        $values = $this->cascade->computeFor([], new FakeElement('div'));
+        $value = $values->get('print-color-adjust');
+        self::assertInstanceOf(Keyword::class, $value);
+        self::assertSame('economy', strtolower($value->name));
+    }
 }
