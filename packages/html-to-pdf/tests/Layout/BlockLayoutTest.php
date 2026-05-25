@@ -2774,6 +2774,152 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(90.0, $this->flexItemWidth($flex, 'a'));
     }
 
+    public function testFlexShrinkEvenlyReducesOverflowingItems(): void
+    {
+        // Two items 400 wide each = 800 in a 600 container → 200
+        // overflow; default flex-shrink: 1 → each loses 100 → both
+        // end up 300 wide.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 400px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexShrinkZeroProtectsItemFromShrinking(): void
+    {
+        // Three items × 250 wide = 750 in 600 container → 150
+        // overflow. The `protected` item has flex-shrink: 0 so the
+        // other two absorb the entire 150 (75 each → 175 wide).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b protected"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 250px; height: 50px; }
+             .protected { flex-shrink: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(175.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(250.0, $this->flexItemWidth($flex, 'b'));
+        self::assertSame(175.0, $this->flexItemWidth($flex, 'c'));
+    }
+
+    public function testFlexShrinkNoOpWhenNoOverflow(): void
+    {
+        // Negative: when items already fit, shrink has nothing to do.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexShrinkAllZeroPreservesOverflow(): void
+    {
+        // Negative: when every item has shrink:0, overflow stays —
+        // widths don't change. (Painter overflow clipping is a
+        // separate concern.)
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; }
+             .flex > div { width: 400px; height: 50px; flex-shrink: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(400.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(400.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexShrinkNegativeValueTreatedAsZero(): void
+    {
+        // Negative: per CSS Flexbox 1 §7.1, `flex-shrink` is
+        // non-negative — a negative value falls back to 0.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 400px; }
+             .flex > div { width: 300px; height: 50px; flex-shrink: -1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexShrinkWeightedByFactor(): void
+    {
+        // Negative: shrink factors 1 and 3 share 200pt of overflow
+        // 1/4 and 3/4 → 50 and 150 reductions on the two 300-wide
+        // items → final widths 250 and 150.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 400px; }
+             .flex > div { width: 300px; height: 50px; }
+             .a { flex-shrink: 1; }
+             .b { flex-shrink: 3; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(250.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(150.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexShrinkClampsAtZero(): void
+    {
+        // Negative: the proportional share would push width below 0;
+        // implementation clamps so the item just becomes 0 wide
+        // rather than going negative. Setup: heavily-weighted shrink
+        // on a tiny item (a=10, shrink 99) splits the 60pt overflow
+        // 99:1 with b, so a's share of 59.4 exceeds a's 10pt width.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 50px; }
+             .a { width: 10px; height: 50px; flex-shrink: 99; }
+             .b { width: 100px; height: 50px; flex-shrink: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemWidth($flex, 'a'));
+        // b takes its proportional 0.6pt reduction → 99.4 wide.
+        self::assertEqualsWithDelta(99.4, $this->flexItemWidth($flex, 'b'), 0.001);
+    }
+
     public function testFlexShorthandOneFillsContainer(): void
     {
         // End-to-end: `flex: 1` expands to grow:1 / shrink:1 /

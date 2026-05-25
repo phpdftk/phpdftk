@@ -808,6 +808,38 @@ final class BlockLayout
         $usedWidth = array_sum($itemWidths) + $totalGap;
         $slack = max(0.0, $geo->width - $usedWidth);
 
+        // CSS Flexbox 1 §9.7: when items overflow the container,
+        // shrink each by its `flex-shrink` factor's share of the
+        // negative free space. Phase-1 simplification: weight by
+        // shrink only (spec weights by `shrink × basis-size`). Width
+        // never goes below 0.
+        $negativeSlack = $usedWidth - $geo->width;
+        if ($negativeSlack > 0.0) {
+            $totalShrink = 0.0;
+            $shrinkValues = [];
+            foreach ($children as $i => $child) {
+                $s = $this->resolveFlexShrink($child->style);
+                $shrinkValues[$i] = $s;
+                $totalShrink += $s;
+            }
+            if ($totalShrink > 0.0) {
+                $reduced = 0.0;
+                foreach ($children as $i => $child) {
+                    if ($shrinkValues[$i] <= 0.0) {
+                        continue;
+                    }
+                    $reduction = $negativeSlack * ($shrinkValues[$i] / $totalShrink);
+                    $newWidth = max(0.0, $child->geometry->width - $reduction);
+                    $actualReduction = $child->geometry->width - $newWidth;
+                    $child->geometry->width = $newWidth;
+                    $reduced += $actualReduction;
+                    $itemWidths[$i] = $child->geometry->outerWidth();
+                }
+                $usedWidth -= $reduced;
+                $slack = max(0.0, $geo->width - $usedWidth);
+            }
+        }
+
         // CSS Flexbox 1 §9.7: distribute positive free space across
         // flex items proportional to their `flex-grow` factors. Items
         // with grow > 0 absorb the slack; their width inflates so
@@ -1033,6 +1065,23 @@ final class BlockLayout
             return max(0.0, (float) $value->value);
         }
         return 0.0;
+    }
+
+    /**
+     * Resolve `flex-shrink` per CSS Flexbox 1 §7.1: a non-negative
+     * `<number>` (initial value `1`). Negative values are invalid
+     * and treated as 0 (no shrink).
+     */
+    private function resolveFlexShrink(CascadedValues $style): float
+    {
+        $value = $style->get('flex-shrink');
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return max(0.0, (float) $value->value);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return max(0.0, (float) $value->value);
+        }
+        return 1.0;
     }
 
     private function flexKeyword(CascadedValues $style, string $prop, string $default): string
