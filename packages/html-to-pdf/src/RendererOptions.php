@@ -313,6 +313,15 @@ final readonly class RendererOptions
                 padding: 2pt 4pt;
                 font-family: monospace;
             }
+            /* HTML 5 §4.10.11: `<textarea>` preserves its whitespace
+               (including line breaks) and renders as a multi-line text
+               area. `pre-wrap` preserves runs of whitespace and wraps
+               long lines at the element's content edge. */
+            textarea { white-space: pre-wrap; }
+            /* HTML 5 §4.10.7: `<option>` content is rendered by the
+               `<select>` host (BoxGenerator picks the selected one);
+               options never paint on their own. */
+            option { display: none; }
             button {
                 border: 1px solid #888;
                 background-color: #eee;

@@ -571,6 +571,108 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame('(o) ', $input->children[0]->text);
     }
 
+    public function testSelectRendersSelectedOptionOnly(): void
+    {
+        // `<select>` with an explicit selected attribute renders that
+        // option's text and skips the others.
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . '<option>Apple</option>'
+            . '<option selected>Banana</option>'
+            . '<option>Cherry</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        self::assertCount(1, $select->children);
+        self::assertSame('Banana', $select->children[0]->text);
+    }
+
+    public function testSelectFallsBackToFirstOption(): void
+    {
+        // When no option has `selected`, HTML 5 §4.10.7 says the first
+        // option is implicitly selected.
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . '<option>Alpha</option>'
+            . '<option>Beta</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        self::assertCount(1, $select->children);
+        self::assertSame('Alpha', $select->children[0]->text);
+    }
+
+    public function testSelectEmptyRendersNoText(): void
+    {
+        // Negative: empty <select> has no options → nothing to render
+        // (the InlineBox itself is still emitted as the cascade may
+        // give it a border, but no text child appears).
+        $doc = $this->html->parseDocument('<html><body><select></select></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        self::assertSame([], $select->children);
+    }
+
+    public function testSelectSkipsNonOptionChildren(): void
+    {
+        // Negative: non-<option> children (rare) are ignored by the
+        // selection picker — the first option still wins.
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . 'stray text'
+            . '<option>Real Option</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        self::assertCount(1, $select->children);
+        self::assertSame('Real Option', $select->children[0]->text);
+    }
+
+    public function testSelectFirstSelectedWinsWhenMultiple(): void
+    {
+        // Negative: if multiple options have `selected` (HTML 5 spec
+        // says only the LAST one counts at parse time for non-multiple
+        // selects, but our simpler Phase-1 picker takes the first
+        // encountered — document the behaviour).
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . '<option>A</option>'
+            . '<option selected>B</option>'
+            . '<option selected>C</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        self::assertSame('B', $select->children[0]->text);
+    }
+
+    public function testOptionElementDoesNotRenderStandalone(): void
+    {
+        // Negative: a stray <option> outside a <select> has
+        // `display: none` via UA → no box generated.
+        $doc = $this->html->parseDocument(
+            '<html><body><div><option>stray</option></div></body></html>',
+        );
+        $opts = new \Phpdftk\HtmlToPdf\RendererOptions();
+        $ua = $this->css->parseStylesheet(
+            $opts->effectiveUserAgentStylesheet(),
+            \Phpdftk\Css\Sheet\Origin::UserAgent,
+        );
+        $box = $this->generator->generate($doc, [$ua]);
+        self::assertNotNull($box);
+        // The <div> exists, but no <option> child should be present.
+        $stray = $this->findFirstByTag($box, 'option');
+        self::assertNull($stray);
+    }
+
     public function testPictureSourcePrintOverridesImgSrc(): void
     {
         // HTML 5 §4.8.4.2 — when `<img>` is inside `<picture>` and

@@ -176,6 +176,39 @@ final class BoxGenerator
             }
         }
 
+        // HTML 5 §4.10.7: `<select>` renders only its currently-selected
+        // `<option>` in static print output (no dropdown widget). When
+        // no option has the `selected` attribute, the first option is
+        // implicitly selected per spec. Subsequent options are skipped
+        // so the print form just shows the chosen value.
+        if (strtolower($element->localName) === 'select') {
+            $selectedOption = null;
+            $firstOption = null;
+            foreach ($element->children() as $child) {
+                if (!$child instanceof Element) {
+                    continue;
+                }
+                if (strtolower($child->localName) !== 'option') {
+                    continue;
+                }
+                if ($firstOption === null) {
+                    $firstOption = $child;
+                }
+                if ($selectedOption === null && $child->getAttribute('selected') !== null) {
+                    $selectedOption = $child;
+                }
+            }
+            $picked = $selectedOption ?? $firstOption;
+            $inline = new InlineBox($element, $values);
+            if ($picked !== null) {
+                $text = $picked->textContent();
+                if ($text !== '') {
+                    $inline->addChild(new TextBox($element, $values, $text));
+                }
+            }
+            return $inline;
+        }
+
         $box = $this->makeBox($element, $values, $display);
 
         // Walk children, building child boxes. Text nodes become TextBoxes.
