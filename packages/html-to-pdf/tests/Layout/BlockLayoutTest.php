@@ -2673,6 +2673,125 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(300.0, $this->flexItemX($flex, 'b'));
     }
 
+    public function testFlexBasisZeroPlusGrowFillsContainer(): void
+    {
+        // The canonical `flex: 1` pattern: basis 0 + grow 1 → item
+        // starts at width 0, absorbs the full 400pt container.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 400px; }
+             .a { height: 50px; flex-grow: 1; flex-basis: 0px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(400.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexBasisExplicitLengthOverridesWidth(): void
+    {
+        // `width: 100px; flex-basis: 200px` → item starts at 200pt
+        // before grow/justify. Without grow, the width stays 200.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { width: 100px; height: 50px; flex-basis: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(200.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexBasisAutoKeepsDeclaredWidth(): void
+    {
+        // Negative: `flex-basis: auto` (the initial value) keeps the
+        // item at its declared width.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { width: 150px; height: 50px; flex-basis: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(150.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexBasisPercentageResolvesAgainstContainer(): void
+    {
+        // 25% of a 600pt flex container → 150pt basis.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { height: 50px; flex-basis: 25%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(150.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexBasisContentKeptAsAuto(): void
+    {
+        // Negative: `content` is a Phase-2 value — Phase 1 treats it
+        // like `auto`, keeping the layoutBox-derived width.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { width: 120px; height: 50px; flex-basis: content; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(120.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexBasisInvalidKeywordIgnored(): void
+    {
+        // Negative: an unrecognised keyword falls back to `auto`
+        // semantics (declared width preserved).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .a { width: 90px; height: 50px; flex-basis: nonsense; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(90.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexShorthandOneFillsContainer(): void
+    {
+        // End-to-end: `flex: 1` expands to grow:1 / shrink:1 /
+        // basis:0 — combined with the new basis handling, the item
+        // fills the container even without `width: 0`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 500px; }
+             .a { height: 50px; flex: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(500.0, $this->flexItemWidth($flex, 'a'));
+    }
+
     /**
      * Helper: return the layout x of a flex item picked by class name.
      */

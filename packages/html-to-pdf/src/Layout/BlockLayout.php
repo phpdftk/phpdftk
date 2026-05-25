@@ -789,6 +789,14 @@ final class BlockLayout
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $itemCtx->lengthContext);
             $h = $this->layoutBox($child, $itemCtx);
+            // CSS Flexbox 1 §7.2: `flex-basis` overrides the item's
+            // hypothetical main size. `auto` / `content` keep the
+            // layoutBox-derived width; explicit lengths / percentages
+            // / unitless 0 replace it.
+            $basis = $this->resolveFlexBasis($child->style, $geo->width);
+            if ($basis !== null) {
+                $child->geometry->width = $basis;
+            }
             $itemHeights[] = $h;
             $itemWidths[] = $child->geometry->outerWidth();
         }
@@ -977,6 +985,38 @@ final class BlockLayout
             return (int) $value->value;
         }
         return 0;
+    }
+
+    /**
+     * Resolve `flex-basis` per CSS Flexbox 1 §7.2. Returns `null` for
+     * `auto` / `content` / unrecognised values (the caller keeps the
+     * layoutBox-derived width); a non-negative float for explicit
+     * lengths, percentages (against `$cbWidth`), and unitless zero.
+     */
+    private function resolveFlexBasis(CascadedValues $style, float $cbWidth): ?float
+    {
+        $value = $style->get('flex-basis');
+        if ($value === null) {
+            return null;
+        }
+        if ($value instanceof Keyword) {
+            return null;
+        }
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        if ($value instanceof Percentage) {
+            return max(0.0, $value->value / 100.0 * $cbWidth);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            // Unitless zero per CSS Values 4 §6.2.
+            if ((float) $value->value === 0.0) {
+                return 0.0;
+            }
+        }
+        return null;
     }
 
     /**
