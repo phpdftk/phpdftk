@@ -377,6 +377,14 @@ final readonly class RendererOptions
                doesn't bleed in / out. */
             bdo { unicode-bidi: bidi-override; }
             bdi { unicode-bidi: isolate; }
+            /* HTML 5 §15.3 maps the `dir` attribute to CSS
+               direction + bidi isolation. `:where(...)` keeps the
+               attribute-selector specificity at 0 so the bdo rule
+               above still wins for `<bdo>`. */
+            [dir="ltr"] { direction: ltr; }
+            [dir="rtl"] { direction: rtl; }
+            :where([dir="ltr"], [dir="rtl"]) { unicode-bidi: isolate; }
+            :where([dir="auto"]) { unicode-bidi: plaintext; }
 
             /* Definition lists. */
             dl { margin: 16px 0; }

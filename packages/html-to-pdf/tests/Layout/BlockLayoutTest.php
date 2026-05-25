@@ -2265,6 +2265,73 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($datalist);
     }
 
+    public function testDirRtlMapsToDirectionRtlAndIsolate(): void
+    {
+        // HTML 5 §15.3 — `<div dir="rtl">` should get
+        // direction: rtl AND unicode-bidi: isolate via the UA
+        // attribute selector.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div dir="rtl"></div></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        $dir = $div->style->get('direction');
+        $bidi = $div->style->get('unicode-bidi');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Keyword::class, $dir);
+        self::assertSame('rtl', strtolower($dir->name));
+        self::assertSame('isolate', strtolower($bidi->name));
+    }
+
+    public function testDirLtrMapsToDirectionLtrAndIsolate(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><div dir="ltr"></div></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        $dir = $div->style->get('direction');
+        $bidi = $div->style->get('unicode-bidi');
+        self::assertSame('ltr', strtolower($dir->name));
+        self::assertSame('isolate', strtolower($bidi->name));
+    }
+
+    public function testDirAttributeDoesNotOverrideBdoBidiOverride(): void
+    {
+        // Critical: `<bdo dir="rtl">` should keep
+        // unicode-bidi: bidi-override (from the bdo element selector)
+        // NOT lose to the `[dir="rtl"]` attribute selector's
+        // `isolate`. The `:where()` wrapper drops the attribute
+        // selector's specificity to 0.
+        $box = $this->buildTreeWithUa(
+            '<html><body><p><bdo dir="rtl">x</bdo></p></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $bdo = $this->find($box, 'bdo');
+        self::assertNotNull($bdo);
+        $bidi = $bdo->style->get('unicode-bidi');
+        self::assertSame('bidi-override', strtolower($bidi->name));
+    }
+
+    public function testNoDirAttributeKeepsDefaultDirection(): void
+    {
+        // Negative: no `dir` attribute → direction defaults to `ltr`
+        // (the initial value), unicode-bidi to `normal`.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div></div></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame('ltr', strtolower($div->style->get('direction')->name));
+        self::assertSame('normal', strtolower($div->style->get('unicode-bidi')->name));
+    }
+
     public function testBdoGetsBidiOverrideFromUa(): void
     {
         // HTML 5 §15.3 — `<bdo>` overrides the bidi algorithm for
