@@ -772,9 +772,12 @@ final class BlockLayout
             return $geo->outerHeight();
         }
 
-        // Container main / cross box dimensions.
+        // Container main / cross box dimensions. `$crossDefinite`
+        // tracks whether the cross size is author-given (so a single
+        // line can grow to match per CSS Flexbox 1 §9.6).
         $containerMain = $isColumn ? ($declaredHeight ?? -1.0) : $geo->width;
         $containerCross = $isColumn ? $geo->width : ($declaredHeight ?? -1.0);
+        $crossDefinite = $isColumn ? true : ($declaredHeight !== null);
 
         // CSS Flexbox 1 §5.4: `order` reorders items for layout. Sort
         // is stable on document order for equal `order` values. After
@@ -818,96 +821,36 @@ final class BlockLayout
         }
 
         // CSS Box Alignment 3 §8.1: `normal` resolves to `0px` for
-        // flex layout. Column direction reads `row-gap` for the
-        // between-items gap; row direction reads `column-gap`.
+        // flex layout. The main-axis gap reads `column-gap` for row
+        // direction, `row-gap` for column direction; the cross-axis
+        // gap (between flex lines under `flex-wrap: wrap`) reads the
+        // opposite.
         $gap = $this->resolveFlexMainGap($style, $itemCtx->lengthContext, $isColumn);
-        $totalGap = $gap * max(0, count($children) - 1);
-        $usedMain = array_sum($itemMains) + $totalGap;
+        $crossGap = $this->resolveFlexGapProperty($style, $isColumn ? 'column-gap' : 'row-gap');
 
-        // If the container's main size is auto (column with no
-        // declared height), shrink-to-fit around items.
+        // CSS Flexbox 1 §6.3: `flex-wrap` controls multi-line flow.
+        // `nowrap` (default) keeps everything on one line. `wrap` and
+        // `wrap-reverse` partition into multiple lines when items
+        // would overflow. Per §9.3 step 5, wrap requires a definite
+        // main size — auto main (column with no declared height)
+        // falls back to single-line.
+        $wrap = $this->flexKeyword($style, 'flex-wrap', 'nowrap');
+        $canWrap = ($wrap === 'wrap' || $wrap === 'wrap-reverse') && $containerMain >= 0.0;
+
+        if ($canWrap) {
+            $lines = $this->partitionFlexLines($itemMains, $gap, $containerMain);
+        } else {
+            $lines = [array_keys($itemMains)];
+        }
+
+        // If the container's main size is still auto (single-line
+        // column with no declared height), shrink-to-fit around items.
         if ($containerMain < 0.0) {
-            $containerMain = $usedMain;
-        }
-        $slack = max(0.0, $containerMain - $usedMain);
-
-        // CSS Flexbox 1 §9.7: when items overflow the container,
-        // shrink each by its `flex-shrink` factor's share of the
-        // negative free space. Phase-1 simplification: weight by
-        // shrink only (spec weights by `shrink × basis-size`). Main
-        // size never goes below 0.
-        $negativeSlack = $usedMain - $containerMain;
-        if ($negativeSlack > 0.0) {
-            $totalShrink = 0.0;
-            $shrinkValues = [];
-            foreach ($children as $i => $child) {
-                $s = $this->resolveFlexShrink($child->style);
-                $shrinkValues[$i] = $s;
-                $totalShrink += $s;
-            }
-            if ($totalShrink > 0.0) {
-                $reduced = 0.0;
-                foreach ($children as $i => $child) {
-                    if ($shrinkValues[$i] <= 0.0) {
-                        continue;
-                    }
-                    $reduction = $negativeSlack * ($shrinkValues[$i] / $totalShrink);
-                    $currentMain = $isColumn ? $child->geometry->height : $child->geometry->width;
-                    $newMain = max(0.0, $currentMain - $reduction);
-                    $actualReduction = $currentMain - $newMain;
-                    if ($isColumn) {
-                        $child->geometry->height = $newMain;
-                    } else {
-                        $child->geometry->width = $newMain;
-                    }
-                    $reduced += $actualReduction;
-                    $itemMains[$i] = $isColumn ? $child->geometry->outerHeight() : $child->geometry->outerWidth();
-                }
-                $usedMain -= $reduced;
-                $slack = max(0.0, $containerMain - $usedMain);
-            }
+            $singleLineMain = array_sum($itemMains) + $gap * max(0, count($children) - 1);
+            $containerMain = $singleLineMain;
         }
 
-        // CSS Flexbox 1 §9.7: distribute positive free space across
-        // flex items proportional to their `flex-grow` factors. Items
-        // with grow > 0 absorb the slack; their main size inflates so
-        // justify-content sees zero remaining space when grow consumes
-        // everything (the typical `flex: 1` "fill" pattern).
-        if ($slack > 0.0) {
-            $totalGrow = 0.0;
-            $growValues = [];
-            foreach ($children as $i => $child) {
-                $g = $this->resolveFlexGrow($child->style);
-                $growValues[$i] = $g;
-                $totalGrow += $g;
-            }
-            if ($totalGrow > 0.0) {
-                $consumed = 0.0;
-                foreach ($children as $i => $child) {
-                    if ($growValues[$i] <= 0.0) {
-                        continue;
-                    }
-                    $extra = $slack * ($growValues[$i] / $totalGrow);
-                    $consumed += $extra;
-                    if ($isColumn) {
-                        $child->geometry->height += $extra;
-                    } else {
-                        $child->geometry->width += $extra;
-                    }
-                    $itemMains[$i] = $isColumn ? $child->geometry->outerHeight() : $child->geometry->outerWidth();
-                }
-                $usedMain += $consumed;
-                $slack = max(0.0, $containerMain - $usedMain);
-            }
-        }
-
-        $maxItemCross = max($itemCrosses);
-        if ($containerCross < 0.0) {
-            $containerCross = $maxItemCross;
-        }
-
-        // Second pass: distribute slack per justify-content + align
-        // each item on the cross axis per align-items.
+        $alignItems = $this->flexKeyword($style, 'align-items', 'stretch');
         $justify = $this->flexKeyword($style, 'justify-content', 'flex-start');
         if ($reverseDirection) {
             $justify = match ($justify) {
@@ -916,117 +859,269 @@ final class BlockLayout
                 default => $justify,
             };
         }
-        $alignItems = $this->flexKeyword($style, 'align-items', 'stretch');
 
-        $count = count($children);
-        $leadingSpace = 0.0;
-        $itemSpace = $gap; // additional space between adjacent items.
-        switch ($justify) {
-            case 'center':
-                $leadingSpace = $slack / 2.0;
-                break;
-            case 'flex-end':
-            case 'end':
-            case 'right':
-                $leadingSpace = $slack;
-                break;
-            case 'space-between':
-                if ($count > 1) {
-                    $itemSpace = $gap + $slack / ($count - 1);
+        // For each line, run the per-line slack/shrink/grow algorithm.
+        $lineSlacks = [];
+        foreach ($lines as $lineIdx => $indices) {
+            $lineUsed = 0.0;
+            foreach ($indices as $i) {
+                $lineUsed += $itemMains[$i];
+            }
+            $lineUsed += $gap * max(0, count($indices) - 1);
+
+            // Shrink overflowing line.
+            $negSlack = $lineUsed - $containerMain;
+            if ($negSlack > 0.0) {
+                $totalShrink = 0.0;
+                $shrinkVals = [];
+                foreach ($indices as $i) {
+                    $s = $this->resolveFlexShrink($children[$i]->style);
+                    $shrinkVals[$i] = $s;
+                    $totalShrink += $s;
                 }
-                break;
-            case 'space-around':
-                if ($count > 0) {
-                    $itemSpace = $gap + $slack / $count;
-                    $leadingSpace = $itemSpace / 2.0 - $gap / 2.0;
+                if ($totalShrink > 0.0) {
+                    $reduced = 0.0;
+                    foreach ($indices as $i) {
+                        if ($shrinkVals[$i] <= 0.0) {
+                            continue;
+                        }
+                        $reduction = $negSlack * ($shrinkVals[$i] / $totalShrink);
+                        $cur = $isColumn ? $children[$i]->geometry->height : $children[$i]->geometry->width;
+                        $new = max(0.0, $cur - $reduction);
+                        $actual = $cur - $new;
+                        if ($isColumn) {
+                            $children[$i]->geometry->height = $new;
+                        } else {
+                            $children[$i]->geometry->width = $new;
+                        }
+                        $reduced += $actual;
+                        $itemMains[$i] = $isColumn ? $children[$i]->geometry->outerHeight() : $children[$i]->geometry->outerWidth();
+                    }
+                    $lineUsed -= $reduced;
                 }
-                break;
-            case 'space-evenly':
-                if ($count > 0) {
-                    $itemSpace = $gap + $slack / ($count + 1);
-                    $leadingSpace = $itemSpace - $gap;
+            }
+
+            $lineSlack = max(0.0, $containerMain - $lineUsed);
+
+            // Grow into positive slack.
+            if ($lineSlack > 0.0) {
+                $totalGrow = 0.0;
+                $growVals = [];
+                foreach ($indices as $i) {
+                    $g = $this->resolveFlexGrow($children[$i]->style);
+                    $growVals[$i] = $g;
+                    $totalGrow += $g;
                 }
-                break;
-                // 'flex-start' / 'start' / 'left' → no leading space.
+                if ($totalGrow > 0.0) {
+                    $consumed = 0.0;
+                    foreach ($indices as $i) {
+                        if ($growVals[$i] <= 0.0) {
+                            continue;
+                        }
+                        $extra = $lineSlack * ($growVals[$i] / $totalGrow);
+                        if ($isColumn) {
+                            $children[$i]->geometry->height += $extra;
+                        } else {
+                            $children[$i]->geometry->width += $extra;
+                        }
+                        $consumed += $extra;
+                        $itemMains[$i] = $isColumn ? $children[$i]->geometry->outerHeight() : $children[$i]->geometry->outerWidth();
+                    }
+                    $lineUsed += $consumed;
+                    $lineSlack = max(0.0, $containerMain - $lineUsed);
+                }
+            }
+
+            $lineSlacks[$lineIdx] = $lineSlack;
         }
 
-        $cursor = ($isColumn ? $geo->y : $geo->x) + $leadingSpace;
-        foreach ($children as $i => $child) {
-            $childGeo = $child->geometry;
-            $itemMain = $itemMains[$i];
-            $itemCross = $itemCrosses[$i];
-
-            // The item was laid out at the container's content-edge
-            // origin; compute its current main-axis edge (including
-            // its own margin/border/padding inset) so we shift by the
-            // delta to the cursor.
-            if ($isColumn) {
-                $currentMainEdge = $childGeo->y - $childGeo->paddingTop - $childGeo->borderTop - $childGeo->marginTop;
-            } else {
-                $currentMainEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
+        // Per-line cross extents (max of item cross sizes within line).
+        $lineCrosses = [];
+        foreach ($lines as $lineIdx => $indices) {
+            $maxCross = 0.0;
+            foreach ($indices as $i) {
+                $maxCross = max($maxCross, $itemCrosses[$i]);
             }
-            $mainShift = $cursor - $currentMainEdge;
+            $lineCrosses[$lineIdx] = $maxCross;
+        }
 
-            // align-items cross-axis placement.
-            $alignSelf = $this->flexKeyword($child->style, 'align-self', 'auto');
-            $effectiveAlign = $alignSelf === 'auto' ? $alignItems : $alignSelf;
-            $crossSlack = $containerCross - $itemCross;
-            $crossShift = 0.0;
-            switch ($effectiveAlign) {
+        // Container cross size: declared if available; otherwise sum
+        // of line cross extents plus inter-line cross gaps.
+        $totalLineCross = array_sum($lineCrosses) + $crossGap * max(0, count($lines) - 1);
+        if (!$crossDefinite) {
+            $containerCross = $totalLineCross;
+        }
+
+        // CSS Flexbox 1 §9.6: a container with a definite cross size
+        // and a single flex line grows that line to fill the container's
+        // cross extent (so align-items on the only line aligns against
+        // the full container, not just the items' natural extent).
+        if (count($lines) === 1 && $crossDefinite && $containerCross > $lineCrosses[0]) {
+            $lineCrosses[0] = $containerCross;
+        }
+
+        // `wrap-reverse` reverses the cross-axis order of lines.
+        if ($wrap === 'wrap-reverse') {
+            $lines = array_reverse($lines, true);
+            $lineCrosses = array_reverse($lineCrosses, true);
+            $lineSlacks = array_reverse($lineSlacks, true);
+        }
+
+        // Place items: per line, run justify-content on main, place
+        // at line's cross offset + per-item alignment within line.
+        $mainOrigin = $isColumn ? $geo->y : $geo->x;
+        $crossOrigin = $isColumn ? $geo->x : $geo->y;
+        $lineCrossOffset = 0.0;
+        foreach ($lines as $lineIdx => $indices) {
+            $lineSlack = $lineSlacks[$lineIdx];
+            $lineCross = $lineCrosses[$lineIdx];
+            $count = count($indices);
+
+            $leadingSpace = 0.0;
+            $itemSpace = $gap;
+            switch ($justify) {
                 case 'center':
-                    $crossShift = $crossSlack / 2.0;
+                    $leadingSpace = $lineSlack / 2.0;
                     break;
                 case 'flex-end':
                 case 'end':
-                    $crossShift = $crossSlack;
+                case 'right':
+                    $leadingSpace = $lineSlack;
                     break;
-                case 'stretch':
-                    // Item gets the cross-axis full size when its
-                    // cross dimension is auto. Phase-1 simplification:
-                    // just extend the geometry; doesn't re-flow child
-                    // content.
-                    $crossProp = $isColumn ? 'width' : 'height';
-                    if ($this->isAuto($child->style->get($crossProp)) && $crossSlack > 0.0) {
-                        if ($isColumn) {
-                            $childGeo->width = $containerCross - $childGeo->marginLeft - $childGeo->marginRight
-                                - $childGeo->borderLeft - $childGeo->borderRight
-                                - $childGeo->paddingLeft - $childGeo->paddingRight;
-                        } else {
-                            $childGeo->height = $containerCross - $childGeo->marginTop - $childGeo->marginBottom
-                                - $childGeo->borderTop - $childGeo->borderBottom
-                                - $childGeo->paddingTop - $childGeo->paddingBottom;
-                        }
+                case 'space-between':
+                    if ($count > 1) {
+                        $itemSpace = $gap + $lineSlack / ($count - 1);
                     }
                     break;
-                    // 'flex-start' / 'start' → no shift.
+                case 'space-around':
+                    if ($count > 0) {
+                        $itemSpace = $gap + $lineSlack / $count;
+                        $leadingSpace = $itemSpace / 2.0 - $gap / 2.0;
+                    }
+                    break;
+                case 'space-evenly':
+                    if ($count > 0) {
+                        $itemSpace = $gap + $lineSlack / ($count + 1);
+                        $leadingSpace = $itemSpace - $gap;
+                    }
+                    break;
+                    // 'flex-start' / 'start' / 'left' → no leading space.
             }
-            // shiftSubtree takes (dy, dx).
-            if ($isColumn) {
-                if ($mainShift !== 0.0 || $crossShift !== 0.0) {
-                    $this->shiftSubtree($child, $mainShift, $crossShift);
+
+            $cursor = $mainOrigin + $leadingSpace;
+            foreach ($indices as $i) {
+                $child = $children[$i];
+                $childGeo = $child->geometry;
+                $itemMain = $itemMains[$i];
+                $itemCross = $itemCrosses[$i];
+
+                // Current main / cross edges (the layoutBox call placed
+                // the item at the container's content-edge origin).
+                if ($isColumn) {
+                    $currentMainEdge = $childGeo->y - $childGeo->paddingTop - $childGeo->borderTop - $childGeo->marginTop;
+                    $currentCrossEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
+                } else {
+                    $currentMainEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
+                    $currentCrossEdge = $childGeo->y - $childGeo->paddingTop - $childGeo->borderTop - $childGeo->marginTop;
                 }
-            } else {
-                if ($mainShift !== 0.0 || $crossShift !== 0.0) {
-                    $this->shiftSubtree($child, $crossShift, $mainShift);
+                $mainShift = $cursor - $currentMainEdge;
+
+                // align-items / align-self cross placement *within
+                // this line* (not the whole container).
+                $alignSelf = $this->flexKeyword($child->style, 'align-self', 'auto');
+                $effectiveAlign = $alignSelf === 'auto' ? $alignItems : $alignSelf;
+                $crossSlack = $lineCross - $itemCross;
+                $alignedCrossInLine = 0.0;
+                switch ($effectiveAlign) {
+                    case 'center':
+                        $alignedCrossInLine = $crossSlack / 2.0;
+                        break;
+                    case 'flex-end':
+                    case 'end':
+                        $alignedCrossInLine = $crossSlack;
+                        break;
+                    case 'stretch':
+                        // Stretch to fill the *line's* cross extent
+                        // when the item's cross dimension is auto.
+                        $crossProp = $isColumn ? 'width' : 'height';
+                        if ($this->isAuto($child->style->get($crossProp)) && $crossSlack > 0.0) {
+                            if ($isColumn) {
+                                $childGeo->width = $lineCross - $childGeo->marginLeft - $childGeo->marginRight
+                                    - $childGeo->borderLeft - $childGeo->borderRight
+                                    - $childGeo->paddingLeft - $childGeo->paddingRight;
+                            } else {
+                                $childGeo->height = $lineCross - $childGeo->marginTop - $childGeo->marginBottom
+                                    - $childGeo->borderTop - $childGeo->borderBottom
+                                    - $childGeo->paddingTop - $childGeo->paddingBottom;
+                            }
+                        }
+                        break;
+                        // 'flex-start' / 'start' → no in-line shift.
                 }
+
+                $targetCrossEdge = $crossOrigin + $lineCrossOffset + $alignedCrossInLine;
+                $crossShift = $targetCrossEdge - $currentCrossEdge;
+
+                // shiftSubtree takes (dy, dx). Map main/cross → y/x
+                // per direction.
+                if ($mainShift !== 0.0 || $crossShift !== 0.0) {
+                    if ($isColumn) {
+                        $this->shiftSubtree($child, $mainShift, $crossShift);
+                    } else {
+                        $this->shiftSubtree($child, $crossShift, $mainShift);
+                    }
+                }
+                $cursor += $itemMain + $itemSpace;
             }
-            $cursor += $itemMain + $itemSpace;
+
+            $lineCrossOffset += $lineCross + $crossGap;
         }
 
         // Container final dimensions. The main-axis size is the
         // declared value (or shrink-to-fit); the cross-axis size is
-        // the declared value (or max of item cross sizes).
+        // the declared value (or sum of line cross extents).
         if ($isColumn) {
             $geo->height = $declaredHeight ?? $containerMain;
             // Container width was already set above.
         } else {
-            $geo->height = $declaredHeight ?? $maxItemCross;
+            $geo->height = $declaredHeight ?? $totalLineCross;
         }
 
         // Min/max-width and -height clamping (same as layoutBlock).
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
 
         return $geo->outerHeight();
+    }
+
+    /**
+     * Partition flex items into lines per CSS Flexbox 1 §9.3 step 5:
+     * each line packs as many consecutive items as fit in the
+     * container's main size; if a single item alone doesn't fit it
+     * still lives on its own line (so `flex-shrink` can handle it).
+     *
+     * @param list<float> $itemMains  item main-axis outer sizes.
+     * @return list<list<int>>        per-line lists of item indices.
+     */
+    private function partitionFlexLines(array $itemMains, float $gap, float $containerMain): array
+    {
+        $lines = [];
+        $current = [];
+        $currentUsed = 0.0;
+        foreach ($itemMains as $i => $main) {
+            $needed = $main + ($current === [] ? 0.0 : $gap);
+            if ($current !== [] && $currentUsed + $needed > $containerMain) {
+                $lines[] = $current;
+                $current = [];
+                $currentUsed = 0.0;
+                $needed = $main;
+            }
+            $current[] = $i;
+            $currentUsed += $needed;
+        }
+        if ($current !== []) {
+            $lines[] = $current;
+        }
+        return $lines;
     }
 
     /**

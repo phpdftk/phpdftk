@@ -3137,6 +3137,226 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(500.0, $this->flexItemWidth($flex, 'a'));
     }
 
+    public function testFlexWrapBreaksItemsAcrossLines(): void
+    {
+        // 4 items × 200pt wide in a 500pt container → only 2 fit per
+        // line. With flex-wrap: wrap, items 3 and 4 spill onto a
+        // second line.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; width: 500px; }
+             .flex > div { width: 200px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        $a = $this->flexItem($flex, 'a');
+        $b = $this->flexItem($flex, 'b');
+        $c = $this->flexItem($flex, 'c');
+        $d = $this->flexItem($flex, 'd');
+        // First line: a (x=0,y=0), b (x=200,y=0).
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(200.0, $b->geometry->x);
+        self::assertSame(0.0, $b->geometry->y);
+        // Second line: c (x=0,y=50), d (x=200,y=50).
+        self::assertSame(0.0, $c->geometry->x);
+        self::assertSame(50.0, $c->geometry->y);
+        self::assertSame(200.0, $d->geometry->x);
+        self::assertSame(50.0, $d->geometry->y);
+    }
+
+    public function testFlexWrapContainerHeightAccumulatesLineHeights(): void
+    {
+        // Wrapped container shrinks-to-fit on the cross axis: 2 lines
+        // × max 50pt each = 100pt total height.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; width: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // 2 items fit on line 1, third spills onto line 2 → 2 × 50.
+        self::assertSame(100.0, $flex->geometry->height);
+    }
+
+    public function testFlexWrapRowGapBetweenLines(): void
+    {
+        // row-gap inserts vertical spacing between flex lines under
+        // row+wrap: line 1 at y=0 (50 tall), gap 12, line 2 at y=62.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; row-gap: 12px; width: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(0.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(62.0, $this->flexItem($flex, 'c')->geometry->y);
+        // Container height includes the inter-line gap.
+        self::assertSame(112.0, $flex->geometry->height);
+    }
+
+    public function testFlexWrapReverseStacksLinesBottomUp(): void
+    {
+        // wrap-reverse flips cross-axis: line containing item c is
+        // now visually FIRST (y=0), original first line goes to y=50.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap-reverse; width: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // c was on line 2 originally → now y=0.
+        self::assertSame(0.0, $this->flexItem($flex, 'c')->geometry->y);
+        // a + b were on line 1 originally → now y=50.
+        self::assertSame(50.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(50.0, $this->flexItem($flex, 'b')->geometry->y);
+    }
+
+    public function testFlexNoWrapDefaultKeepsItemsOnOneLine(): void
+    {
+        // Negative: default flex-wrap: nowrap → items stay on one
+        // line even when they overflow / get shrunk; container height
+        // stays at single-line maximum.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; }
+             .flex > div { width: 100px; height: 50px; flex-shrink: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // All 3 share y=0 (no wrapping happened).
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(0.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(0.0, $this->flexItem($flex, 'c')->geometry->y);
+        self::assertSame(50.0, $flex->geometry->height);
+    }
+
+    public function testFlexWrapPerLineGrowDistributesIndependently(): void
+    {
+        // Negative: flex-grow inside a wrapped line distributes only
+        // THAT line's slack — not the whole container's. Two items
+        // per line, each width 100, grow:1 in a 600 container →
+        // each item grows to 300pt.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; width: 600px; }
+             .flex > div { width: 250px; height: 50px; flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // 2 items × 250 = 500 → 100 slack per line → each item 300.
+        self::assertSame(300.0, $this->flexItem($flex, 'a')->geometry->width);
+        self::assertSame(300.0, $this->flexItem($flex, 'b')->geometry->width);
+        self::assertSame(300.0, $this->flexItem($flex, 'c')->geometry->width);
+        self::assertSame(300.0, $this->flexItem($flex, 'd')->geometry->width);
+    }
+
+    public function testFlexWrapColumnPartitionsByHeight(): void
+    {
+        // Negative: column-direction wrap partitions by HEIGHT
+        // overflow. Container 100pt tall, items 50pt each → 2 fit
+        // per column, third spills to next column at x=100.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; flex-wrap: wrap;
+                     width: 300px; height: 100px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(50.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(0.0, $this->flexItem($flex, 'c')->geometry->y);
+        // Cross-axis x: first column at 0, second at 100 (one column
+        // wide).
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->x);
+        self::assertSame(100.0, $this->flexItem($flex, 'c')->geometry->x);
+    }
+
+    public function testFlexWrapSingleItemOverflowingFitsAlone(): void
+    {
+        // Negative: an item too wide for the container still ends up
+        // on its own line (CSS Flexbox 1 §9.3 step 5). 1 item 500pt
+        // wide in a 100pt container → 1 line, overflow stays.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; width: 100px; }
+             .a { width: 500px; height: 30px; flex-shrink: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->x);
+    }
+
+    public function testFlexWrapColumnAutoHeightFallsBackToNowrap(): void
+    {
+        // Negative: column direction with auto height → main-axis
+        // size is indefinite, so wrap can't partition. Spec §9.3
+        // step 5 falls back to single-line behaviour.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; flex-wrap: wrap; width: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // All items stacked vertically (single column).
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(50.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(100.0, $this->flexItem($flex, 'c')->geometry->y);
+        self::assertSame(150.0, $flex->geometry->height);
+    }
+
     /**
      * Helper: return the layout x of a flex item picked by class name.
      */
