@@ -967,11 +967,55 @@ final class BlockLayout
             $lineSlacks = array_reverse($lineSlacks, true);
         }
 
+        // CSS Flexbox 1 §8.3: `align-content` distributes cross-axis
+        // slack across multiple flex lines. Single-line containers
+        // ignore it (§8.3 explicit). `stretch` (initial) grows each
+        // line's cross extent to consume the slack; positional values
+        // shift the leading/inter-line cross spacing.
+        $alignContent = $this->flexKeyword($style, 'align-content', 'stretch');
+        $lineCount = count($lines);
+        $crossSlackTotal = max(0.0, $containerCross - $totalLineCross);
+        $leadingCrossSpace = 0.0;
+        $interLineCrossSpace = $crossGap;
+        if ($lineCount > 1 && $crossSlackTotal > 0.0) {
+            switch ($alignContent) {
+                case 'stretch':
+                    // Distribute the slack evenly to each line's
+                    // cross extent. Items inside still align within
+                    // their (now larger) line via align-items.
+                    $bonus = $crossSlackTotal / $lineCount;
+                    foreach ($lineCrosses as $idx => $cross) {
+                        $lineCrosses[$idx] = $cross + $bonus;
+                    }
+                    break;
+                case 'center':
+                    $leadingCrossSpace = $crossSlackTotal / 2.0;
+                    break;
+                case 'flex-end':
+                case 'end':
+                    $leadingCrossSpace = $crossSlackTotal;
+                    break;
+                case 'space-between':
+                    // Outer guard already proved $lineCount >= 2.
+                    $interLineCrossSpace = $crossGap + $crossSlackTotal / ($lineCount - 1);
+                    break;
+                case 'space-around':
+                    $interLineCrossSpace = $crossGap + $crossSlackTotal / $lineCount;
+                    $leadingCrossSpace = $interLineCrossSpace / 2.0 - $crossGap / 2.0;
+                    break;
+                case 'space-evenly':
+                    $interLineCrossSpace = $crossGap + $crossSlackTotal / ($lineCount + 1);
+                    $leadingCrossSpace = $interLineCrossSpace - $crossGap;
+                    break;
+                    // 'flex-start' / 'start' / 'normal' → no shift.
+            }
+        }
+
         // Place items: per line, run justify-content on main, place
         // at line's cross offset + per-item alignment within line.
         $mainOrigin = $isColumn ? $geo->y : $geo->x;
         $crossOrigin = $isColumn ? $geo->x : $geo->y;
-        $lineCrossOffset = 0.0;
+        $lineCrossOffset = $leadingCrossSpace;
         foreach ($lines as $lineIdx => $indices) {
             $lineSlack = $lineSlacks[$lineIdx];
             $lineCross = $lineCrosses[$lineIdx];
@@ -1074,7 +1118,7 @@ final class BlockLayout
                 $cursor += $itemMain + $itemSpace;
             }
 
-            $lineCrossOffset += $lineCross + $crossGap;
+            $lineCrossOffset += $lineCross + $interLineCrossSpace;
         }
 
         // Container final dimensions. The main-axis size is the

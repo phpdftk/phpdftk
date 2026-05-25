@@ -3292,6 +3292,9 @@ final class BlockLayoutTest extends TestCase
         // Negative: column-direction wrap partitions by HEIGHT
         // overflow. Container 100pt tall, items 50pt each → 2 fit
         // per column, third spills to next column at x=100.
+        // `align-content: flex-start` keeps lines flush so the
+        // cross-axis position is purely a function of line cross
+        // extents (without it, default `stretch` grows each line).
         $box = $this->buildTreeWithUa(
             '<html><body><div class="flex">'
                 . '<div class="a"></div>'
@@ -3299,6 +3302,7 @@ final class BlockLayoutTest extends TestCase
                 . '<div class="c"></div>'
                 . '</div></body></html>',
             '.flex { display: flex; flex-direction: column; flex-wrap: wrap;
+                     align-content: flex-start;
                      width: 300px; height: 100px; }
              .flex > div { width: 100px; height: 50px; }',
         );
@@ -3331,6 +3335,167 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($flex);
         self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
         self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->x);
+    }
+
+    public function testFlexAlignContentStretchExpandsLines(): void
+    {
+        // Default `align-content: stretch` with multi-line wrap and
+        // cross-axis slack: 3 items × 100w in a 600w container that
+        // fits 6 per line → fits all 3 on one line. So force 2 lines:
+        // 4 items × 100w in 200w container, height 200pt. 2 lines
+        // each 50pt natural; container 200pt → 100pt cross slack
+        // split across 2 lines = 50pt bonus per line → 100pt each.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; width: 200px; height: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Line 1 stretched to 100pt → line 2 starts at y=100.
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(100.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexAlignContentCenterCentersLineStack(): void
+    {
+        // align-content: center centers the line stack on the cross
+        // axis. 2 lines × 50pt natural = 100pt; container 200pt →
+        // 100pt slack / 2 = 50pt leading offset.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: center;
+                     width: 200px; height: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(50.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(100.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexAlignContentSpaceBetweenSpacesLines(): void
+    {
+        // 2 lines × 50pt = 100pt; container 300pt → 200pt slack. With
+        // 2 lines, space-between puts line 1 at y=0 and line 2 at
+        // y=250 (50 + 200 gap).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: space-between;
+                     width: 200px; height: 300px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(250.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexAlignContentFlexEndStacksLinesAtBottom(): void
+    {
+        // align-content: flex-end packs lines at the cross-end edge.
+        // 2 lines × 50pt = 100pt; container 300pt → leading 200pt
+        // before line 1 → line 1 at y=200, line 2 at y=250.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: flex-end;
+                     width: 200px; height: 300px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(200.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(250.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexAlignContentIgnoredOnSingleLine(): void
+    {
+        // Negative: spec §8.3 — align-content has no effect on a
+        // container with only one flex line. The single line still
+        // sits at y=0 regardless of value.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: flex-end;
+                     width: 600px; height: 300px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+    }
+
+    public function testFlexAlignContentIgnoredWithoutCrossSlack(): void
+    {
+        // Negative: when line cross extents already fill the
+        // container, align-content has nothing to distribute.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: space-between;
+                     width: 200px; height: 100px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(50.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexAlignContentInvalidKeywordIgnored(): void
+    {
+        // Negative: an unrecognised keyword skips the switch and
+        // leaves the lines flush (Phase-1 simplification — the spec
+        // would fall back to the initial value `stretch`, but Phase 1
+        // just no-ops). Line 2 sits at y=50 (line 1's cross extent),
+        // not at y=100 (the stretch result).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '<div class="d"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-wrap: wrap; align-content: nonsense;
+                     width: 200px; height: 200px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(50.0, $this->flexItem($flex, 'c')->geometry->y);
     }
 
     public function testFlexWrapColumnAutoHeightFallsBackToNowrap(): void
