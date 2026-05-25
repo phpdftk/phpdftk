@@ -1649,6 +1649,224 @@ final class PainterTest extends TestCase
         return null;
     }
 
+    /**
+     * Extract the (x, y, w, h) tuple of the first `re` rectangle.
+     *
+     * @param array<int, string> $ops
+     * @return ?array{float, float, float, float}
+     */
+    private function firstReRect(array $ops): ?array
+    {
+        foreach ($ops as $op) {
+            if (preg_match('/^([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+re$/', (string) $op, $m)) {
+                return [(float) $m[1], (float) $m[2], (float) $m[3], (float) $m[4]];
+            }
+        }
+        return null;
+    }
+
+    public function testBoxDecorationBreakSliceDefaultUnchanged(): void
+    {
+        // Default `slice`: the painter emits the box's full extent
+        // even when it straddles the page boundary — PDF clipping
+        // handles the visual split.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        // Page 1 covers layout-Y [0..100); the box at layout-Y 40..120
+        // straddles. Painter constant = 100 (pageHeight).
+        $painter = new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, $y, , $h] = $rect;
+        // Slice: full extent → PDF Y of the box's lower-left = 100 -
+        // (40 + 80) = -20, height = 80.
+        self::assertEqualsWithDelta(-20.0, $y, 0.001);
+        self::assertEqualsWithDelta(80.0, $h, 0.001);
+    }
+
+    public function testBoxDecorationBreakCloneClampsBottomOnFirstPage(): void
+    {
+        // Clone-mode box at layout-Y 40..120 straddles the page 1/2
+        // boundary at Y=100. On page 1, the bottom clamps to 100 →
+        // visible content height is 60 (from y=40 to y=100).
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', 'clone');
+        $painter = new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, $y, , $h] = $rect;
+        // Clamped: PDF Y = 100 - (40 + 60) = 0, height = 60.
+        self::assertEqualsWithDelta(0.0, $y, 0.001);
+        self::assertEqualsWithDelta(60.0, $h, 0.001);
+    }
+
+    public function testBoxDecorationBreakCloneClampsTopOnSecondPage(): void
+    {
+        // Same box on page 2 (layout-Y [100..200)): the top clamps
+        // up to 100, content y becomes 100, content height = 20.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', 'clone');
+        // Painter for page 2: constant = (1+1)*100 = 200.
+        $painter = new Painter(200.0, pageRangeStart: 100.0, pageRangeEnd: 200.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, $y, , $h] = $rect;
+        // PDF Y = 200 - (100 + 20) = 80, height = 20.
+        self::assertEqualsWithDelta(80.0, $y, 0.001);
+        self::assertEqualsWithDelta(20.0, $h, 0.001);
+    }
+
+    public function testBoxDecorationBreakCloneNoOpWhenFitsOnPage(): void
+    {
+        // Negative: clone-mode box that fits entirely on one page
+        // paints identically to slice — no clamping.
+        $root = $this->buildStraddlingBox(20.0, 40.0, 'red', 'clone');
+        $painter = new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, $y, , $h] = $rect;
+        // Full extent: PDF Y = 100 - (20 + 40) = 40, height = 40.
+        self::assertEqualsWithDelta(40.0, $y, 0.001);
+        self::assertEqualsWithDelta(40.0, $h, 0.001);
+    }
+
+    public function testBoxDecorationBreakInvalidKeywordTreatedAsSlice(): void
+    {
+        // Negative: an unrecognised keyword falls back to slice
+        // (clone-treatment doesn't fire) — straddling box renders
+        // full extent.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', 'nonsense');
+        $painter = new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, , , $h] = $rect;
+        self::assertEqualsWithDelta(80.0, $h, 0.001, 'invalid keyword → full extent');
+    }
+
+    public function testBoxDecorationBreakCloneNoOpWithoutPageRange(): void
+    {
+        // Negative: single-page renders construct the painter without
+        // pageRangeStart / pageRangeEnd — clone-treatment can't apply
+        // (no seams to clamp to).
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', 'clone');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $rect = $this->firstReRect($stream->getOperators());
+        self::assertNotNull($rect);
+        [, , , $h] = $rect;
+        self::assertEqualsWithDelta(80.0, $h, 0.001, 'no page range → no clamp');
+    }
+
+    public function testBoxDecorationBreakSliceExplicitMatchesDefault(): void
+    {
+        // Negative: explicit `slice` matches the default behaviour.
+        $explicitOps = $this->paintAndGetStream(
+            $this->buildStraddlingBox(40.0, 80.0, 'red', 'slice'),
+            new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0),
+        )->getOperators();
+        $defaultOps = $this->paintAndGetStream(
+            $this->buildStraddlingBox(40.0, 80.0, 'red', null),
+            new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0),
+        )->getOperators();
+        self::assertSame($this->firstReRect($defaultOps), $this->firstReRect($explicitOps));
+    }
+
+    public function testBoxDecorationBreakCloneClampsBorders(): void
+    {
+        // Clone-mode box with borders → borders draw at the clamped
+        // extent, so the bottom border appears at the page seam (not
+        // off-page).
+        $root = $this->buildStraddlingBoxWithBorder(40.0, 80.0, 'red', 'clone');
+        $painter = new Painter(100.0, pageRangeStart: 0.0, pageRangeEnd: 100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        // Bottom border rect: layout content from y=40+60-2 to y=40+60
+        // (bottom border of 2pt at the synthetic seam). One of the
+        // border rects should sit with its lower-left at PDF Y > 0
+        // (visible on this page).
+        $borderRects = [];
+        foreach ($ops as $op) {
+            if (preg_match('/^([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+re$/', (string) $op, $m)) {
+                $borderRects[] = [(float) $m[2], (float) $m[4]];
+            }
+        }
+        // At least one rect should have lower-left y >= 0 (visible
+        // on page) — the synthetic bottom border at the seam.
+        $hasVisibleBottom = false;
+        foreach ($borderRects as [$y, $h]) {
+            if ($y >= 0.0 && $h <= 5.0) {
+                $hasVisibleBottom = true;
+                break;
+            }
+        }
+        self::assertTrue($hasVisibleBottom, 'expected a thin border rect visible on page (the synthetic clamped bottom)');
+    }
+
+    /**
+     * Build a single block box at layout Y `$y` with `$height` and a
+     * background color. `$decorationBreak` sets the
+     * `box-decoration-break` property (or null to leave it unset).
+     */
+    private function buildStraddlingBox(float $y, float $height, string $color, ?string $decorationBreak): \Phpdftk\HtmlToPdf\Box\Box
+    {
+        $doc = $this->html->parseDocument('<html><body><div class="straddle"></div></body></html>');
+        $extra = $decorationBreak !== null ? "; box-decoration-break: {$decorationBreak}" : '';
+        // padding-top on body (not margin-top on div) so margin collapse
+        // doesn't pull the div back to y=0.
+        $css = sprintf(
+            'html, body, div { display: block; }
+             body { margin: 0; padding-top: %fpx; }
+             .straddle { width: 100px; height: %fpx; background-color: %s%s; }',
+            $y,
+            $height,
+            $color,
+            $extra,
+        );
+        $sheet = $this->css->parseStylesheet($css, Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 100, 0, 0, new LengthContext()),
+        );
+        return $root;
+    }
+
+    private function buildStraddlingBoxWithBorder(float $y, float $height, string $color, ?string $decorationBreak): \Phpdftk\HtmlToPdf\Box\Box
+    {
+        $doc = $this->html->parseDocument('<html><body><div class="straddle"></div></body></html>');
+        $extra = $decorationBreak !== null ? "; box-decoration-break: {$decorationBreak}" : '';
+        $css = sprintf(
+            'html, body, div { display: block; }
+             body { margin: 0; padding-top: %fpx; }
+             .straddle { width: 100px; height: %fpx; background-color: %s;
+                         border: 2px solid blue%s; }',
+            $y,
+            $height,
+            $color,
+            $extra,
+        );
+        $sheet = $this->css->parseStylesheet($css, Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 100, 0, 0, new LengthContext()),
+        );
+        return $root;
+    }
+
+    private function paintAndGetStream(\Phpdftk\HtmlToPdf\Box\Box $root, Painter $painter): \Phpdftk\Pdf\Core\Content\ContentStream
+    {
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter->paint($root, $stream);
+        return $stream;
+    }
+
     public function testDecimalMarkerEmitsText(): void
     {
         $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';

@@ -275,6 +275,13 @@ final class PropertyRegistry
         $r->register($initial('page-break-before', new Keyword('auto')));
         $r->register($initial('page-break-after', new Keyword('auto')));
         $r->register($initial('page-break-inside', new Keyword('auto')));
+        // CSS Fragmentation 4 §5.5: `box-decoration-break` controls
+        // how a box's borders / padding / backgrounds / box-shadow
+        // render across fragments. `slice` (initial) treats the box as
+        // one rectangle clipped by the fragmentainer — only the
+        // outermost edges paint at fragment seams. `clone` paints full
+        // decorations on every fragment. Non-inherited per spec.
+        $r->register($initial('box-decoration-break', new Keyword('slice')));
         // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
         // inherit; layout uses them to gate where a paragraph may split
         // across a page boundary.

@@ -7,6 +7,7 @@ namespace Phpdftk\HtmlToPdf\Painter;
 use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\HtmlToPdf\Box\Box;
+use Phpdftk\HtmlToPdf\Layout\BoxGeometry;
 use Phpdftk\HtmlToPdf\Layout\InlineFragment;
 use Phpdftk\HtmlToPdf\Layout\LineBox;
 use Phpdftk\Pdf\Core\Content\ContentStream;
@@ -136,12 +137,26 @@ final class Painter
         // with their own `visibility` declaration can still be visible.
         $hidden = $this->isVisibilityHidden($box);
         if (!$hidden) {
+            // CSS Fragmentation 4 §5.5: `box-decoration-break: clone`
+            // makes each fragment paint full decorations as if it were
+            // a standalone box. For a straddling box we temporarily
+            // swap in a geometry clamped to this page's visible
+            // extent, so background/border/shadow draw at the page
+            // seam as a synthetic edge.
+            $originalGeo = null;
+            if ($this->shouldClampDecorationsToPage($box)) {
+                $originalGeo = $box->geometry;
+                $box->geometry = $this->clampGeometryToPage($originalGeo);
+            }
             // CSS Backgrounds 3 §6.1.1 — paint stack from bottom up:
             // outset shadows → background → inset shadows → border.
             $this->paintBoxShadow($box, $stream, insetOnly: false);
             $this->paintBackground($box, $stream);
             $this->paintBoxShadow($box, $stream, insetOnly: true);
             $this->paintBorders($box, $stream);
+            if ($originalGeo !== null) {
+                $box->geometry = $originalGeo;
+            }
             $this->paintOutline($box, $stream);
             $this->paintColumnRules($box, $stream);
             $this->paintImage($box, $stream);
@@ -192,6 +207,61 @@ final class Painter
             return false;
         }
         return $bottom <= $this->pageRangeStart || $top >= $this->pageRangeEnd;
+    }
+
+    /**
+     * `true` when this box (a) declares `box-decoration-break: clone`
+     * AND (b) actually straddles the current page boundary. Boxes that
+     * fit entirely on one page don't need the clamp — slice and clone
+     * paint identically in that case.
+     */
+    private function shouldClampDecorationsToPage(Box $box): bool
+    {
+        if ($this->pageRangeStart === null || $this->pageRangeEnd === null) {
+            return false;
+        }
+        if (!$this->isCloneDecorationBreak($box)) {
+            return false;
+        }
+        $g = $box->geometry;
+        $outerTop = $g->y - $g->paddingTop - $g->borderTop - $g->marginTop;
+        $outerBottom = $g->y + $g->height + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+        return $outerTop < $this->pageRangeStart || $outerBottom > $this->pageRangeEnd;
+    }
+
+    private function isCloneDecorationBreak(Box $box): bool
+    {
+        $value = $box->style->get('box-decoration-break');
+        if (!($value instanceof Keyword)) {
+            return false;
+        }
+        return strtolower($value->name) === 'clone';
+    }
+
+    /**
+     * Return a clone of `$g` with content y / height clamped so the
+     * box's outer margin-box sits entirely inside the painter's
+     * current page range. Used by `box-decoration-break: clone` to
+     * make each fragment paint full borders at its visible extent.
+     */
+    private function clampGeometryToPage(BoxGeometry $g): BoxGeometry
+    {
+        $clone = clone $g;
+        if ($this->pageRangeStart === null || $this->pageRangeEnd === null) {
+            return $clone;
+        }
+        $outerTop = $g->y - $g->paddingTop - $g->borderTop - $g->marginTop;
+        $outerBottom = $g->y + $g->height + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+        if ($outerTop < $this->pageRangeStart) {
+            $delta = $this->pageRangeStart - $outerTop;
+            $clone->y += $delta;
+            $clone->height = max(0.0, $clone->height - $delta);
+        }
+        if ($outerBottom > $this->pageRangeEnd) {
+            $delta = $outerBottom - $this->pageRangeEnd;
+            $clone->height = max(0.0, $clone->height - $delta);
+        }
+        return $clone;
     }
 
     /**
