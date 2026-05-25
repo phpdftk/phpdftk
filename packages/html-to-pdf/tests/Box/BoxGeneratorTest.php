@@ -673,6 +673,88 @@ final class BoxGeneratorTest extends TestCase
         self::assertNull($stray);
     }
 
+    public function testWbrEmitsZeroWidthSpaceCharacter(): void
+    {
+        // HTML 5 §4.5.27: `<wbr>` is a Word Break Opportunity — a void
+        // inline element that just permits a line break at its position.
+        // BoxGenerator emits a U+200B zero-width space so the line
+        // breaker sees the opportunity.
+        $doc = $this->html->parseDocument('<html><body><wbr></body></html>');
+        $box = $this->generator->generate($doc, []);
+        $wbr = $this->findFirstByTag($box, 'wbr');
+        self::assertNotNull($wbr);
+        self::assertCount(1, $wbr->children);
+        self::assertSame("\u{200B}", $wbr->children[0]->text);
+    }
+
+    public function testAreaElementHidesViaUaStylesheet(): void
+    {
+        // HTML 5 §4.8.14: `<area>` defines image-map hotspots. Static
+        // print has no interactive areas, so the UA rule
+        // `area { display: none }` suppresses any box for it.
+        $doc = $this->html->parseDocument(
+            '<html><body><map><area shape="rect" alt="x"></map></body></html>',
+        );
+        $opts = new \Phpdftk\HtmlToPdf\RendererOptions();
+        $ua = $this->css->parseStylesheet(
+            $opts->effectiveUserAgentStylesheet(),
+            \Phpdftk\Css\Sheet\Origin::UserAgent,
+        );
+        $box = $this->generator->generate($doc, [$ua]);
+        self::assertNotNull($box);
+        $area = $this->findFirstByTag($box, 'area');
+        self::assertNull($area);
+    }
+
+    public function testMapElementStaysInlineFlow(): void
+    {
+        // Negative: `<map>` itself should still produce an inline box
+        // even though its `<area>` children are hidden.
+        $doc = $this->html->parseDocument(
+            '<html><body><map name="m"></map></body></html>',
+        );
+        $opts = new \Phpdftk\HtmlToPdf\RendererOptions();
+        $ua = $this->css->parseStylesheet(
+            $opts->effectiveUserAgentStylesheet(),
+            \Phpdftk\Css\Sheet\Origin::UserAgent,
+        );
+        $box = $this->generator->generate($doc, [$ua]);
+        self::assertNotNull($box);
+        $map = $this->findFirstByTag($box, 'map');
+        self::assertNotNull($map);
+    }
+
+    public function testWbrWithoutUaStylesheetStillEmitsZwsp(): void
+    {
+        // Negative: the BoxGenerator's `<wbr>` handling runs in code,
+        // not via the UA stylesheet — so even without UA rules the
+        // ZWSP child appears.
+        $doc = $this->html->parseDocument('<html><body>x<wbr>y</body></html>');
+        $box = $this->generator->generate($doc, []);
+        $wbr = $this->findFirstByTag($box, 'wbr');
+        self::assertNotNull($wbr);
+        self::assertSame("\u{200B}", $wbr->children[0]->text);
+    }
+
+    public function testWbrInsideTextHasZeroWidth(): void
+    {
+        // Negative: a `<wbr>` between two text runs doesn't visibly
+        // widen the inline content — its only effect is a break
+        // opportunity.
+        $doc = $this->html->parseDocument(
+            '<html><body><p>foo<wbr>bar</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+        // The `<wbr>` produces its own box, but child[0]=foo,
+        // child[1]=<wbr>, child[2]=bar.
+        self::assertCount(3, $p->children);
+        $wbr = $p->children[1];
+        self::assertSame('wbr', $wbr->element->localName);
+        self::assertSame("\u{200B}", $wbr->children[0]->text);
+    }
+
     public function testPictureSourcePrintOverridesImgSrc(): void
     {
         // HTML 5 §4.8.4.2 — when `<img>` is inside `<picture>` and

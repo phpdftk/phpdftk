@@ -176,6 +176,18 @@ final class BoxGenerator
             }
         }
 
+        // HTML 5 §4.5.27: `<wbr>` (Word Break Opportunity) is a void
+        // inline element that just marks a permissible line break.
+        // Emit a U+200B (zero-width space) text child — it has zero
+        // advance width but the line breaker recognises it as a break
+        // opportunity, so a long unbroken token wrapping a `<wbr>`
+        // can split at that point.
+        if (strtolower($element->localName) === 'wbr') {
+            $inline = new InlineBox($element, $values);
+            $inline->addChild(new TextBox($element, $values, "\u{200B}"));
+            return $inline;
+        }
+
         // HTML 5 §4.10.7: `<select>` renders only its currently-selected
         // `<option>` in static print output (no dropdown widget). When
         // no option has the `selected` attribute, the first option is

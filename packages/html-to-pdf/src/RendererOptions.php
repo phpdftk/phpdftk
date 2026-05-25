@@ -335,6 +335,23 @@ final readonly class RendererOptions
             thead, tbody, tfoot, caption { display: block; }
             colgroup, col { display: none; }
             head, script, style, title, meta, link, base { display: none; }
+            /* HTML 5 §4.5.27 — `<wbr>` (Word Break Opportunity) is a
+               zero-width inline that just marks a permissible line
+               break. Rendering it as `inline` with zero content keeps
+               the inline flow intact; the U+200B zero-width-space
+               line-break opportunity emitted by the BoxGenerator does
+               the actual break. */
+            wbr { display: inline; }
+            /* HTML 5 §4.8.13 — `<map>` defines image-clickable regions
+               via nested `<area>` children. The map itself is an
+               inline container; the area elements never render in
+               print (interactive hotspots are display-time concerns). */
+            map { display: inline; }
+            area { display: none; }
+            /* HTML 5 §4.12.1 — `<noscript>` content is meant for UAs
+               with scripting disabled. Static print is effectively
+               script-less, so the children render as inline content. */
+            noscript { display: inline; }
 
             /* Headings — sizes / margins per browsers' html.css. */
             h1 { font-size: 32px; font-weight: bold; margin: 21px 0; }
