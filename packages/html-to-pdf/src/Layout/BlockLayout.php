@@ -765,6 +765,17 @@ final class BlockLayout
         // Sort is stable on document order for equal `order` values.
         $children = $this->sortFlexItemsByOrder($children);
 
+        // CSS Flexbox 1 §5.1: `flex-direction: row-reverse` reverses
+        // the main axis. After the order sort, reverse the array so
+        // items appear in reverse layout order; the justify-content
+        // swap below mirrors `flex-start` ↔ `flex-end` so packing at
+        // main-start still hugs the (now right) edge.
+        $direction = $this->flexKeyword($style, 'flex-direction', 'row');
+        $reverseDirection = $direction === 'row-reverse';
+        if ($reverseDirection) {
+            $children = array_reverse($children);
+        }
+
         // First pass: lay each item out at the container's origin
         // with its declared (or content-derived) size. We use the
         // existing layoutBlock so block-style sizing (margins /
@@ -793,6 +804,13 @@ final class BlockLayout
         // Second pass: distribute slack per justify-content + align
         // each item vertically per align-items.
         $justify = $this->flexKeyword($style, 'justify-content', 'flex-start');
+        if ($reverseDirection) {
+            $justify = match ($justify) {
+                'flex-start', 'start' => 'flex-end',
+                'flex-end', 'end' => 'flex-start',
+                default => $justify,
+            };
+        }
         $alignItems = $this->flexKeyword($style, 'align-items', 'stretch');
 
         $count = count($children);

@@ -2350,6 +2350,172 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(20.0, $container->children[1]->geometry->y);
     }
 
+    public function testFlexDirectionRowReverseLaysOutItemsBackwards(): void
+    {
+        // row-reverse with default flex-start: pack against main-start
+        // (right edge). 3 items × 100 in 600 container → first DOM
+        // item (a) at far right (500), then b (400), then c (300).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row-reverse; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(500.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(400.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(300.0, $this->flexItemX($flex, 'c'));
+    }
+
+    public function testFlexDirectionRowReverseFlexEndPacksLeft(): void
+    {
+        // row-reverse + flex-end: main-end is the left edge, so items
+        // pack from the left. First DOM item (a) at left (0), then b
+        // (100), then c (200).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row-reverse; justify-content: flex-end; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(200.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(0.0, $this->flexItemX($flex, 'c'));
+    }
+
+    public function testFlexDirectionRowReverseSpaceBetweenPlacesEndpoints(): void
+    {
+        // row-reverse + space-between (symmetric, no swap): reversed
+        // [c, b, a] placed evenly. c at 0, b at 250, a at 500.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row-reverse; justify-content: space-between; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'c'));
+        self::assertSame(250.0, $this->flexItemX($flex, 'b'));
+        self::assertSame(500.0, $this->flexItemX($flex, 'a'));
+    }
+
+    public function testFlexDirectionRowExplicitMatchesDefault(): void
+    {
+        // Negative: explicit `row` is identical to the unset default.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row; width: 400px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+    }
+
+    public function testFlexDirectionColumnFallsBackToRow(): void
+    {
+        // Negative: Phase-1 doesn't implement column / column-reverse
+        // yet — they silently fall back to row layout. Document the
+        // current behaviour so the change to column lands with a
+        // failing-then-passing test.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; width: 400px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Items still tile horizontally under the Phase-1 fallback.
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+    }
+
+    public function testFlexDirectionRowReverseSingleItemSimplePack(): void
+    {
+        // Negative: single item with row-reverse + flex-start packs
+        // at the right edge of the container.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row-reverse; width: 400px; }
+             .a { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(300.0, $this->flexItemX($flex, 'a'));
+    }
+
+    public function testFlexDirectionRowReverseWithOrderCombines(): void
+    {
+        // Negative: order sort runs FIRST, then row-reverse reverses
+        // the sorted array. .c has order:-1 so it sorts to the front
+        // of the main-axis order [c, a, b]; row-reverse places that
+        // sequence starting at main-start (= right edge) →
+        // c at 500 (right), a at 400, b at 300.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: row-reverse; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }
+             .c { order: -1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(500.0, $this->flexItemX($flex, 'c'));
+        self::assertSame(400.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(300.0, $this->flexItemX($flex, 'b'));
+    }
+
+    public function testFlexDirectionInvalidKeywordFallsBackToRow(): void
+    {
+        // Negative: unrecognised flex-direction keyword falls back to
+        // the initial `row` value rather than crashing.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: nonsense; width: 400px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
+        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+    }
+
     /**
      * Helper: return the layout x of a flex item picked by class name.
      */
