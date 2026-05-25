@@ -1773,6 +1773,125 @@ final class PainterTest extends TestCase
         self::assertSame($this->firstReRect($defaultOps), $this->firstReRect($explicitOps));
     }
 
+    public function testTransformTranslateEmitsCmMatrix(): void
+    {
+        // `translate(10px, 20px)` should produce a `cm` operator
+        // with the translation in PDF coords (Y negated).
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'translate(10px, 20px)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        // Expect a cm operator with the translation: PDF cm
+        // `(1 0 0 1 10 -20)` from the translate(10, 20) → +10 right,
+        // -20 in PDF Y (visually down).
+        $found = $this->findCmOp($ops, '/^1 0 0 1 10 -20 cm$/');
+        self::assertNotNull($found, 'expected translate cm operator in ' . implode(' | ', $ops));
+    }
+
+    public function testTransformRotateEmitsRotationMatrix(): void
+    {
+        // `rotate(90deg)` → cm matrix [0, -1, 1, 0, 0, 0] (with
+        // float rounding to handle cos/sin precision).
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'rotate(90deg)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $found = $this->findCmOp($ops, '/^[\d.eE\-+]+ -1 1 [\d.eE\-+]+ 0 0 cm$/');
+        self::assertNotNull($found, 'expected rotate cm operator in ' . implode(' | ', $ops));
+    }
+
+    public function testTransformScaleEmitsScaleMatrix(): void
+    {
+        // `scale(2)` → cm [2, 0, 0, 2, 0, 0].
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'scale(2)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $found = $this->findCmOp($ops, '/^2 0 0 2 0 0 cm$/');
+        self::assertNotNull($found);
+    }
+
+    public function testTransformOriginShiftsAppliedAround(): void
+    {
+        // With `transform: translate(...)` and a non-default origin,
+        // there should be THREE cm calls: T(origin), M, T(-origin).
+        // For translate alone the origin doesn't change visual
+        // result, but the emission proves the wrap-around fired.
+        $root = $this->buildStraddlingBoxWithOrigin(40.0, 80.0, 'translate(5px, 5px)', '0 0');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $cmCount = 0;
+        foreach ($ops as $op) {
+            if (preg_match('/cm$/', (string) $op)) {
+                $cmCount++;
+            }
+        }
+        // origin = "0 0" (top-left of box) is non-zero in PDF coords
+        // because the box sits at y > 0 → cy = pageHeight - boxY ≠ 0.
+        // So three cm calls fire: outer-T, M, inner-T.
+        self::assertGreaterThanOrEqual(3, $cmCount);
+    }
+
+    public function testTransformNoneDoesNotEmitCm(): void
+    {
+        // Negative: `transform: none` (initial) → no cm operator.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        foreach ($ops as $op) {
+            self::assertDoesNotMatchRegularExpression('/cm$/', (string) $op);
+        }
+    }
+
+    public function testTransformInvalidValueDoesNotEmitCm(): void
+    {
+        // Negative: an unrecognised function falls back to the raw
+        // value (Transform parsing aborts) — no cm.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'matrix3d(1, 0, 0, 0)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        foreach ($ops as $op) {
+            self::assertDoesNotMatchRegularExpression('/cm$/', (string) $op);
+        }
+    }
+
+    public function testTransformRotateXFlattensToIdentity(): void
+    {
+        // Negative: a 3D-only rotation (around the X axis) is
+        // flattened to identity at Phase 2 — no cm should appear.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'rotateX(45deg)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        foreach ($ops as $op) {
+            self::assertDoesNotMatchRegularExpression('/cm$/', (string) $op);
+        }
+    }
+
+    public function testTransformComposesMultipleFunctions(): void
+    {
+        // Composing translate + scale: matrix [2, 0, 0, 2, 10, -20]
+        // (the scaled translation comes from multiplication order).
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'translate(10px, 20px) scale(2)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        // Expect ONE composed cm op for the actual transform (plus
+        // optional origin translation wrappers). Find a cm whose
+        // matrix has the [2, 0, 0, 2] scale factor.
+        $found = $this->findCmOp($ops, '/^2 0 0 2 [\d.eE\-+]+ [\d.eE\-+]+ cm$/');
+        self::assertNotNull($found);
+    }
+
     public function testBoxDecorationBreakCloneClampsBorders(): void
     {
         // Clone-mode box with borders → borders draw at the clamped
@@ -1865,6 +1984,65 @@ final class PainterTest extends TestCase
         $stream = $writer->addContentStream($page);
         $painter->paint($root, $stream);
         return $stream;
+    }
+
+    /**
+     * Find the first `cm` operator matching the given regex; returns
+     * the full operator string or null.
+     *
+     * @param array<int, string> $ops
+     */
+    private function findCmOp(array $ops, string $regex): ?string
+    {
+        foreach ($ops as $op) {
+            if (preg_match($regex, (string) $op)) {
+                return (string) $op;
+            }
+        }
+        return null;
+    }
+
+    private function applyTransformToFirstBox(\Phpdftk\HtmlToPdf\Box\Box $root, string $transformCss): void
+    {
+        $div = null;
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node->element !== null && $node->element->localName === 'div') {
+                $div = $node;
+                break;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($div);
+        $parser = new \Phpdftk\Css\ValueParser();
+        $value = $parser->parseTransform($transformCss);
+        $div->style->set('transform', $value);
+    }
+
+    private function buildStraddlingBoxWithOrigin(float $y, float $height, string $transform, string $originCss): \Phpdftk\HtmlToPdf\Box\Box
+    {
+        $doc = $this->html->parseDocument('<html><body><div class="t"></div></body></html>');
+        $css = sprintf(
+            'html, body, div { display: block; }
+             body { margin: 0; padding-top: %fpx; }
+             .t { width: 100px; height: %fpx; background-color: red;
+                  transform: %s; transform-origin: %s; }',
+            $y,
+            $height,
+            $transform,
+            $originCss,
+        );
+        $sheet = $this->css->parseStylesheet($css, Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 100, 0, 0, new LengthContext()),
+        );
+        return $root;
     }
 
     public function testDecimalMarkerEmitsText(): void

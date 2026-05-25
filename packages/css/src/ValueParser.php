@@ -251,13 +251,26 @@ final class ValueParser
      */
     public function parseTransform(string $css): Value
     {
-        $value = $this->parseFromString($css);
+        return $this->postProcessTransform($this->parseFromString($css));
+    }
+
+    /**
+     * Convert an already-parsed generic value (`CssFunction` or
+     * `ValueList` of `CssFunction`s) into a typed `Transform` value.
+     * Falls back to the original value when a function isn't a
+     * recognised transform — preserves `none` and any future
+     * additions that aren't yet handled.
+     */
+    public function postProcessTransform(Value $value): Value
+    {
+        if ($value instanceof Transform) {
+            return $value;
+        }
         $items = $value instanceof ValueList ? $value->values : [$value];
         $fns = [];
         foreach ($items as $v) {
             $fn = $this->valueToTransformFunction($v);
             if ($fn === null) {
-                // Not a recognised transform function — abort and return the raw value.
                 return $value;
             }
             $fns[] = $fn;

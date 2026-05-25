@@ -11,6 +11,7 @@ use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\LengthUnit;
 use Phpdftk\Css\Value\ListSeparator;
 use Phpdftk\Css\Value\Number;
+use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Css\Value\StringValue;
 use Phpdftk\Css\Value\Value;
 use Phpdftk\Css\Value\ValueList;
@@ -295,6 +296,16 @@ final class PropertyRegistry
         // that page picks up the named rule's margins / background /
         // margin-boxes. Non-inherited per spec.
         $r->register($initial('page', new Keyword('auto')));
+        // CSS Transforms 2 §6 — `transform` accepts a list of
+        // transform functions (translate / rotate / scale / skew /
+        // matrix and 3D variants); `transform-origin` picks the
+        // pivot point. Both are non-inherited per spec. Phase-2
+        // implementation honours the 2D subset.
+        $r->register($initial('transform', new Keyword('none')));
+        $r->register($initial('transform-origin', new ValueList(
+            [new Percentage(50.0), new Percentage(50.0)],
+            ListSeparator::Space,
+        )));
         // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
         // inherit; layout uses them to gate where a paragraph may split
         // across a page boundary.

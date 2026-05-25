@@ -132,6 +132,11 @@ final class Painter
             $stream->saveGraphicsState();
             $stream->setGraphicsState($opacityGsName);
         }
+        // CSS Transforms 2 §6: apply the box's transform (if any)
+        // before any drawing. The graphics state save/restore wraps
+        // the entire paint (background + content + children) so the
+        // transform affects every nested operation.
+        $hasTransform = $this->applyBoxTransform($box, $stream);
         // CSS Visual Formatting Model 9.5: `visibility: hidden` boxes
         // occupy layout space but paint nothing themselves; descendants
         // with their own `visibility` declaration can still be visible.
@@ -181,6 +186,9 @@ final class Painter
         if ($overflowClip) {
             $stream->restoreGraphicsState();
         }
+        if ($hasTransform) {
+            $stream->restoreGraphicsState();
+        }
         if ($opacityGsName !== null) {
             $stream->restoreGraphicsState();
         }
@@ -207,6 +215,191 @@ final class Painter
             return false;
         }
         return $bottom <= $this->pageRangeStart || $top >= $this->pageRangeEnd;
+    }
+
+    /**
+     * Apply the box's CSS `transform` (if any) via the PDF `cm`
+     * operator. Returns `true` if a graphics-state save was emitted
+     * (the caller must restoreGraphicsState after painting); `false`
+     * if no transform applied. The transform is composed as
+     *   T(origin) × M_css→pdf × T(-origin)
+     * where M is the composition of all transform functions and the
+     * origin sits at the box's `transform-origin` in PDF coordinates.
+     */
+    private function applyBoxTransform(Box $box, ContentStream $stream): bool
+    {
+        $value = $box->style->get('transform');
+        if (!$value instanceof \Phpdftk\Css\Value\Transform || $value->functions === []) {
+            return false;
+        }
+        $matrix = $this->composeTransformMatrix($value, $box);
+        if ($matrix === null) {
+            return false;
+        }
+        [$ox, $oy] = $this->resolveTransformOrigin($box);
+        // T(ox, oy) × M × T(-ox, -oy). PDF cm composes
+        // CTM_new = CTM_old × M_provided, so submit in
+        // outer-to-inner order: translate(+), matrix, translate(-).
+        $stream->saveGraphicsState();
+        if ($ox !== 0.0 || $oy !== 0.0) {
+            $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $ox, $oy);
+        }
+        $stream->concatMatrix($matrix[0], $matrix[1], $matrix[2], $matrix[3], $matrix[4], $matrix[5]);
+        if ($ox !== 0.0 || $oy !== 0.0) {
+            $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, -$ox, -$oy);
+        }
+        return true;
+    }
+
+    /**
+     * Compose the box's transform-function list into a single 2D
+     * matrix [a, b, c, d, e, f] in PDF coordinate space (Y-up).
+     * Returns `null` if no function produced output (3D-only
+     * transforms flatten to identity at Phase 2).
+     *
+     * @return ?array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}
+     */
+    private function composeTransformMatrix(\Phpdftk\Css\Value\Transform $transform, Box $box): ?array
+    {
+        $result = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]; // identity
+        $any = false;
+        foreach ($transform->functions as $fn) {
+            $m = $this->transformFunctionToPdfMatrix($fn, $box);
+            if ($m === null) {
+                continue;
+            }
+            $result = $this->multiplyMatrices($result, $m);
+            $any = true;
+        }
+        return $any ? $result : null;
+    }
+
+    /**
+     * Convert a single CSS transform-function to a 2D PDF matrix
+     * (Y-up). The conversion negates the (b, c, f) entries — that's
+     * the matrix-form of conjugating by a Y-axis flip, which maps
+     * CSS's Y-down coords to PDF's Y-up.
+     *
+     * @return ?array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}
+     */
+    private function transformFunctionToPdfMatrix(
+        \Phpdftk\Css\Value\TransformFunction $fn,
+        Box $box,
+    ): ?array {
+        if ($fn instanceof \Phpdftk\Css\Value\TranslateTransform) {
+            $tx = $this->lengthOrPercentageToFloat($fn->x, $box->geometry->width);
+            $ty = $this->lengthOrPercentageToFloat($fn->y, $box->geometry->height);
+            return [1.0, 0.0, 0.0, 1.0, $tx, -$ty];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\RotateTransform) {
+            // 3D rotations around the X or Y axis flatten to identity
+            // at Phase 2 (we don't render in perspective); only the Z
+            // axis rotation produces a 2D effect.
+            if (($fn->ax !== 0.0 || $fn->ay !== 0.0) && $fn->az === 0.0) {
+                return null;
+            }
+            $rad = deg2rad($fn->angleDeg);
+            $cos = cos($rad);
+            $sin = sin($rad);
+            return [$cos, -$sin, $sin, $cos, 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\ScaleTransform) {
+            return [$fn->sx, 0.0, 0.0, $fn->sy, 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\SkewTransform) {
+            $tanX = tan(deg2rad($fn->xDeg));
+            $tanY = tan(deg2rad($fn->yDeg));
+            // CSS skewX: [1, 0, tan(x), 1]; PDF flips b+c → [1, 0, -tan(x), 1]
+            // CSS skewY: [1, tan(y), 0, 1]; PDF flips → [1, -tan(y), 0, 1]
+            return [1.0, -$tanY, -$tanX, 1.0, 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\MatrixTransform) {
+            return [$fn->a, -$fn->b, -$fn->c, $fn->d, $fn->e, -$fn->f];
+        }
+        return null;
+    }
+
+    /**
+     * Multiply two 2D affine matrices in [a, b, c, d, e, f] form:
+     *   M = [a c e]    M' = [a' c' e']    M × M' = [...]
+     *       [b d f]         [b' d' f']
+     *       [0 0 1]         [0  0  1]
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float} $m1
+     * @param array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float} $m2
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}
+     */
+    private function multiplyMatrices(array $m1, array $m2): array
+    {
+        [$a1, $b1, $c1, $d1, $e1, $f1] = $m1;
+        [$a2, $b2, $c2, $d2, $e2, $f2] = $m2;
+        return [
+            $a1 * $a2 + $c1 * $b2,
+            $b1 * $a2 + $d1 * $b2,
+            $a1 * $c2 + $c1 * $d2,
+            $b1 * $c2 + $d1 * $d2,
+            $a1 * $e2 + $c1 * $f2 + $e1,
+            $b1 * $e2 + $d1 * $f2 + $f1,
+        ];
+    }
+
+    /**
+     * Resolve `transform-origin` to a PDF coordinate point. Default
+     * `50% 50%` puts the pivot at the box's centre. Lengths and
+     * percentages compose; percentages resolve against the box's
+     * border-box dimension on each axis.
+     *
+     * @return array{0: float, 1: float} (px, py) in PDF coords.
+     */
+    private function resolveTransformOrigin(Box $box): array
+    {
+        $g = $box->geometry;
+        $width = $g->width + $g->paddingLeft + $g->paddingRight + $g->borderLeft + $g->borderRight;
+        $height = $g->height + $g->paddingTop + $g->paddingBottom + $g->borderTop + $g->borderBottom;
+        $boxX = $g->x - $g->paddingLeft - $g->borderLeft;
+        $boxY = $g->y - $g->paddingTop - $g->borderTop;
+
+        $value = $box->style->get('transform-origin');
+        $offX = $width / 2.0;
+        $offY = $height / 2.0;
+        if ($value instanceof \Phpdftk\Css\Value\ValueList && count($value->values) >= 2) {
+            $offX = $this->resolveOriginComponent($value->values[0], $width, $offX);
+            $offY = $this->resolveOriginComponent($value->values[1], $height, $offY);
+        }
+        $cssY = $boxY + $offY;
+        return [$boxX + $offX, $this->pageHeight - $cssY];
+    }
+
+    private function resolveOriginComponent(
+        \Phpdftk\Css\Value\Value $value,
+        float $extent,
+        float $fallback,
+    ): float {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $extent;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Keyword) {
+            return match (strtolower($value->name)) {
+                'left', 'top' => 0.0,
+                'right', 'bottom' => $extent,
+                'center' => $extent / 2.0,
+                default => $fallback,
+            };
+        }
+        return $fallback;
+    }
+
+    private function lengthOrPercentageToFloat(
+        \Phpdftk\Css\Value\Length|\Phpdftk\Css\Value\Percentage $value,
+        float $basis,
+    ): float {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        return $value->value / 100.0 * $basis;
     }
 
     /**

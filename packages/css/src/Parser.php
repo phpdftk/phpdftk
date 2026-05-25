@@ -336,6 +336,13 @@ final class Parser
             }
         }
         $value = $this->valueParser->parse($valueTokens);
+        // CSS Transforms 2 §6: the `transform` property's value is a
+        // list of transform-functions. Post-process the generic
+        // `CssFunction`/`ValueList` into a typed `Transform` so the
+        // painter can consume it directly without re-parsing.
+        if ($property === 'transform') {
+            $value = $this->valueParser->postProcessTransform($value);
+        }
         return new Declaration($property, $value, $important);
     }
 
