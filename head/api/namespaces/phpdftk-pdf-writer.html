@@ -143,6 +143,14 @@
 </h3>
 
 
+<h4 id="namespaces">
+    Namespaces
+    <a href="namespaces/phpdftk-pdf-writer.html#namespaces" class="headerlink"><i class="fas fa-link"></i></a>
+
+</h4>
+<dl class="phpdocumentor-table-of-contents">
+            <dt class="phpdocumentor-table-of-contents__entry -namespace"><a href="namespaces/phpdftk-pdf-writer-form.html"><abbr title="\Phpdftk\Pdf\Writer\Form">Form</abbr></a></dt>
+    </dl>
 
 
     <h4 id="toc-classes">
@@ -151,8 +159,27 @@
 
     </h4>
     <dl class="phpdocumentor-table-of-contents">
-                    <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-DashPattern.html"><abbr title="\Phpdftk\Pdf\Writer\DashPattern">DashPattern</abbr></a></dt><dd>Dash pattern for stroked paths.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Font.html"><abbr title="\Phpdftk\Pdf\Writer\Font">Font</abbr></a></dt><dd>Opaque font handle returned by PdfWriter::addFont().</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Page.html"><abbr title="\Phpdftk\Pdf\Writer\Page">Page</abbr></a></dt><dd>Level 1 Page — spatial drawing surface with explicit coordinates.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PathBuilder.html"><abbr title="\Phpdftk\Pdf\Writer\PathBuilder">PathBuilder</abbr></a></dt><dd>Fluent builder for custom PDF paths.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Pdf.html"><abbr title="\Phpdftk\Pdf\Writer\Pdf">Pdf</abbr></a></dt><dd>High-level PDF document builder — **zero PDF object-model knowledge
-required**.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PdfWriter.html"><abbr title="\Phpdftk\Pdf\Writer\PdfWriter">PdfWriter</abbr></a></dt><dd>Ergonomic PDF document builder.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TextStyle.html"><abbr title="\Phpdftk\Pdf\Writer\TextStyle">TextStyle</abbr></a></dt><dd>Per-call text styling override for {@see Pdf::addText()}.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Theme.html"><abbr title="\Phpdftk\Pdf\Writer\Theme">Theme</abbr></a></dt><dd>Document-wide styling defaults for the high-level {@see Pdf} builder.</dd>    </dl>
+                    <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Action.html"><abbr title="\Phpdftk\Pdf\Writer\Action">Action</abbr></a></dt><dd>Static factory for the most common PDF action types. Each method
+returns an `Action` subclass ready to be assigned to
+`Catalog::$openAction`, an annotation&#039;s `/A` entry, or a form
+field&#039;s `/AA` (additional actions) dict.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-CalloutStyle.html"><abbr title="\Phpdftk\Pdf\Writer\CalloutStyle">CalloutStyle</abbr></a></dt><dd>Per-call style overrides for {@see Pdf::addCallout()} /
+{@see Writer\Page::drawCallout()}.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-DashPattern.html"><abbr title="\Phpdftk\Pdf\Writer\DashPattern">DashPattern</abbr></a></dt><dd>Dash pattern for stroked paths.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Font.html"><abbr title="\Phpdftk\Pdf\Writer\Font">Font</abbr></a></dt><dd>Opaque font handle returned by PdfWriter::addFont().</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-ListBlock.html"><abbr title="\Phpdftk\Pdf\Writer\ListBlock">ListBlock</abbr></a></dt><dd>Bullet or numbered list of plain strings. Each item is rendered as
+one marker (bullet glyph or running number) followed by the wrapped
+item text.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-ListRenderer.html"><abbr title="\Phpdftk\Pdf\Writer\ListRenderer">ListRenderer</abbr></a></dt><dd>Renders {@see ListBlock} content into a {@see ContentStream}.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-ListStyle.html"><abbr title="\Phpdftk\Pdf\Writer\ListStyle">ListStyle</abbr></a></dt><dd>Styling for {@see ListBlock} rendering.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Page.html"><abbr title="\Phpdftk\Pdf\Writer\Page">Page</abbr></a></dt><dd>Level 1 Page — spatial drawing surface with explicit coordinates.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PageContext.html"><abbr title="\Phpdftk\Pdf\Writer\PageContext">PageContext</abbr></a></dt><dd>Context passed to per-page render hooks (header / footer / watermark).</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PageDecorator.html"><abbr title="\Phpdftk\Pdf\Writer\PageDecorator">PageDecorator</abbr></a></dt><dd>Holds the optional per-page render hooks registered on a {@see Pdf}
+document: header, footer, and watermark closures.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PathBuilder.html"><abbr title="\Phpdftk\Pdf\Writer\PathBuilder">PathBuilder</abbr></a></dt><dd>Fluent builder for custom PDF paths.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Pdf.html"><abbr title="\Phpdftk\Pdf\Writer\Pdf">Pdf</abbr></a></dt><dd>High-level PDF document builder — **zero PDF object-model knowledge
+required**.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html"><abbr title="\Phpdftk\Pdf\Writer\PdfDoc">PdfDoc</abbr></a></dt><dd>Level 2 — friendly API over the PDF document object model.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-PdfWriter.html"><abbr title="\Phpdftk\Pdf\Writer\PdfWriter">PdfWriter</abbr></a></dt><dd>Ergonomic PDF document builder.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-SpotColor.html"><abbr title="\Phpdftk\Pdf\Writer\SpotColor">SpotColor</abbr></a></dt><dd>Handle for a registered spot color. Bundles the colorant name with
+the {@see Separation} value object so {@see Writer\Page::useSpotColor()}
+can register it on a page under a stable resource name.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Table.html"><abbr title="\Phpdftk\Pdf\Writer\Table">Table</abbr></a></dt><dd>Tabular data placed via `Pdf::addTable()` (flow) or
+`Writer\Page::drawTable()` (positioned).</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TableRenderContext.html"><abbr title="\Phpdftk\Pdf\Writer\TableRenderContext">TableRenderContext</abbr></a></dt><dd>Rendering context passed to {@see TableRenderer}. Bundles the body /
+header font handles plus their metrics so the renderer doesn&#039;t need
+to know how the caller resolved fonts.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TableRenderer.html"><abbr title="\Phpdftk\Pdf\Writer\TableRenderer">TableRenderer</abbr></a></dt><dd>Renders {@see Table} content into a {@see ContentStream}. The
+renderer is stateless and reusable; pagination logic lives at the
+call site (`Pdf::addTable` measures each row and starts a new page
+when needed).</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TableStyle.html"><abbr title="\Phpdftk\Pdf\Writer\TableStyle">TableStyle</abbr></a></dt><dd>Styling for {@see Table} rendering. All fields have sensible defaults
+so `new TableStyle()` produces a readable table.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TextLayout.html"><abbr title="\Phpdftk\Pdf\Writer\TextLayout">TextLayout</abbr></a></dt><dd>Shared text-layout primitives — greedy word wrapping and width
+measurement against AFM metrics. Used by `Pdf` and by the shared
+primitive renderers (`TableRenderer`, `ListRenderer`, etc.) so flow
+layout and explicit placement agree on geometry.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-TextStyle.html"><abbr title="\Phpdftk\Pdf\Writer\TextStyle">TextStyle</abbr></a></dt><dd>Per-call text styling override for {@see Pdf::addText()}.</dd>            <dt class="phpdocumentor-table-of-contents__entry -class"><a href="classes/Phpdftk-Pdf-Writer-Theme.html"><abbr title="\Phpdftk\Pdf\Writer\Theme">Theme</abbr></a></dt><dd>Document-wide styling defaults for the high-level {@see Pdf} builder.</dd>    </dl>
 
 
     <h4 id="toc-enums">
@@ -161,7 +188,7 @@ required**.</dd>            <dt class="phpdocumentor-table-of-contents__entry -c
 
     </h4>
     <dl class="phpdocumentor-table-of-contents">
-            <dt class="phpdocumentor-table-of-contents__entry -enum"><a href="classes/Phpdftk-Pdf-Writer-Alignment.html"><abbr title="\Phpdftk\Pdf\Writer\Alignment">Alignment</abbr></a></dt><dd>Horizontal text alignment within the content column.</dd>        <dt class="phpdocumentor-table-of-contents__entry -enum"><a href="classes/Phpdftk-Pdf-Writer-PageSize.html"><abbr title="\Phpdftk\Pdf\Writer\PageSize">PageSize</abbr></a></dt><dd>Standard page sizes, expressed in PDF user units (points, 1/72 inch).</dd></dl>
+            <dt class="phpdocumentor-table-of-contents__entry -enum"><a href="classes/Phpdftk-Pdf-Writer-Alignment.html"><abbr title="\Phpdftk\Pdf\Writer\Alignment">Alignment</abbr></a></dt><dd>Horizontal text alignment within the content column.</dd>        <dt class="phpdocumentor-table-of-contents__entry -enum"><a href="classes/Phpdftk-Pdf-Writer-CalloutType.html"><abbr title="\Phpdftk\Pdf\Writer\CalloutType">CalloutType</abbr></a></dt><dd>Built-in callout types for {@see Pdf::addCallout()} / {@see Writer\Page::drawCallout()}.</dd>        <dt class="phpdocumentor-table-of-contents__entry -enum"><a href="classes/Phpdftk-Pdf-Writer-PageSize.html"><abbr title="\Phpdftk\Pdf\Writer\PageSize">PageSize</abbr></a></dt><dd>Standard page sizes, expressed in PDF user units (points, 1/72 inch).</dd></dl>
 
 
 

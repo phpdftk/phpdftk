@@ -788,6 +788,18 @@ $this-&gt;data directly instead of regenerating from operators.</dd>
 <dd>TJ - Show text with individual character positioning</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextArrayHex">showTextArrayHex()</a>
+    <span>
+                                &nbsp;: self    </span>
+</dt>
+<dd>TJ with a hex/kern array — emits `[ &lt;hex&gt; kern &lt;hex&gt; kern ... ] TJ`
+for a CID font where shaped glyphs need per-glyph kern adjustments
+(positive kern moves the text position backward in 1/1000 em units,
+negative kern moves forward). Each `$items` entry is either a hex
+GID string (without `&lt; &gt;` delimiters) or a numeric kern in
+1/1000-em units.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextHex">showTextHex()</a>
     <span>
                                 &nbsp;: self    </span>
@@ -1056,7 +1068,7 @@ $this-&gt;data directly instead of regenerating from operators.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">929</span>
+    <span class="phpdocumentor-element-found-in__line">959</span>
 
     </aside>
 
@@ -1095,7 +1107,7 @@ $this-&gt;data directly instead of regenerating from operators.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">901</span>
+    <span class="phpdocumentor-element-found-in__line">931</span>
 
     </aside>
 
@@ -1144,7 +1156,7 @@ $this-&gt;data directly instead of regenerating from operators.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">911</span>
+    <span class="phpdocumentor-element-found-in__line">941</span>
 
     </aside>
 
@@ -1277,7 +1289,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">619</span>
+    <span class="phpdocumentor-element-found-in__line">649</span>
 
     </aside>
 
@@ -1316,7 +1328,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">626</span>
+    <span class="phpdocumentor-element-found-in__line">656</span>
 
     </aside>
 
@@ -1355,7 +1367,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">563</span>
+    <span class="phpdocumentor-element-found-in__line">593</span>
 
     </aside>
 
@@ -1394,7 +1406,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">598</span>
+    <span class="phpdocumentor-element-found-in__line">628</span>
 
     </aside>
 
@@ -1433,7 +1445,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">605</span>
+    <span class="phpdocumentor-element-found-in__line">635</span>
 
     </aside>
 
@@ -1472,7 +1484,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">532</span>
+    <span class="phpdocumentor-element-found-in__line">562</span>
 
     </aside>
 
@@ -1511,7 +1523,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">458</span>
+    <span class="phpdocumentor-element-found-in__line">488</span>
 
     </aside>
 
@@ -1595,7 +1607,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">805</span>
+    <span class="phpdocumentor-element-found-in__line">835</span>
 
     </aside>
 
@@ -1644,7 +1656,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">491</span>
+    <span class="phpdocumentor-element-found-in__line">521</span>
 
     </aside>
 
@@ -1728,7 +1740,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">506</span>
+    <span class="phpdocumentor-element-found-in__line">536</span>
 
     </aside>
 
@@ -1798,7 +1810,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">519</span>
+    <span class="phpdocumentor-element-found-in__line">549</span>
 
     </aside>
 
@@ -1868,7 +1880,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">725</span>
+    <span class="phpdocumentor-element-found-in__line">755</span>
 
     </aside>
 
@@ -1917,7 +1929,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">936</span>
+    <span class="phpdocumentor-element-found-in__line">966</span>
 
     </aside>
 
@@ -1956,7 +1968,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">918</span>
+    <span class="phpdocumentor-element-found-in__line">948</span>
 
     </aside>
 
@@ -1995,7 +2007,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">612</span>
+    <span class="phpdocumentor-element-found-in__line">642</span>
 
     </aside>
 
@@ -2073,7 +2085,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">570</span>
+    <span class="phpdocumentor-element-found-in__line">600</span>
 
     </aside>
 
@@ -2112,7 +2124,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">584</span>
+    <span class="phpdocumentor-element-found-in__line">614</span>
 
     </aside>
 
@@ -2151,7 +2163,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">591</span>
+    <span class="phpdocumentor-element-found-in__line">621</span>
 
     </aside>
 
@@ -2190,7 +2202,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">577</span>
+    <span class="phpdocumentor-element-found-in__line">607</span>
 
     </aside>
 
@@ -2267,7 +2279,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">741</span>
+    <span class="phpdocumentor-element-found-in__line">771</span>
 
     </aside>
 
@@ -2327,7 +2339,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">484</span>
+    <span class="phpdocumentor-element-found-in__line">514</span>
 
     </aside>
 
@@ -2383,7 +2395,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">884</span>
+    <span class="phpdocumentor-element-found-in__line">914</span>
 
     </aside>
 
@@ -2432,7 +2444,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">894</span>
+    <span class="phpdocumentor-element-found-in__line">924</span>
 
     </aside>
 
@@ -2602,7 +2614,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">477</span>
+    <span class="phpdocumentor-element-found-in__line">507</span>
 
     </aside>
 
@@ -2658,7 +2670,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">815</span>
+    <span class="phpdocumentor-element-found-in__line">845</span>
 
     </aside>
 
@@ -2707,7 +2719,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">317</span>
+    <span class="phpdocumentor-element-found-in__line">347</span>
 
     </aside>
 
@@ -2746,7 +2758,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">841</span>
+    <span class="phpdocumentor-element-found-in__line">871</span>
 
     </aside>
 
@@ -2795,7 +2807,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">947</span>
+    <span class="phpdocumentor-element-found-in__line">977</span>
 
     </aside>
 
@@ -2844,7 +2856,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">539</span>
+    <span class="phpdocumentor-element-found-in__line">569</span>
 
     </aside>
 
@@ -2914,7 +2926,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">799</span>
+    <span class="phpdocumentor-element-found-in__line">829</span>
 
     </aside>
 
@@ -2963,7 +2975,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">392</span>
+    <span class="phpdocumentor-element-found-in__line">422</span>
 
     </aside>
 
@@ -3002,7 +3014,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">385</span>
+    <span class="phpdocumentor-element-found-in__line">415</span>
 
     </aside>
 
@@ -3041,7 +3053,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">339</span>
+    <span class="phpdocumentor-element-found-in__line">369</span>
 
     </aside>
 
@@ -3090,7 +3102,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">429</span>
+    <span class="phpdocumentor-element-found-in__line">459</span>
 
     </aside>
 
@@ -3146,7 +3158,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">771</span>
+    <span class="phpdocumentor-element-found-in__line">801</span>
 
     </aside>
 
@@ -3195,7 +3207,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">713</span>
+    <span class="phpdocumentor-element-found-in__line">743</span>
 
     </aside>
 
@@ -3244,7 +3256,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">664</span>
+    <span class="phpdocumentor-element-found-in__line">694</span>
 
     </aside>
 
@@ -3314,7 +3326,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">684</span>
+    <span class="phpdocumentor-element-found-in__line">714</span>
 
     </aside>
 
@@ -3363,7 +3375,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">644</span>
+    <span class="phpdocumentor-element-found-in__line">674</span>
 
     </aside>
 
@@ -3426,7 +3438,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">698</span>
+    <span class="phpdocumentor-element-found-in__line">728</span>
 
     </aside>
 
@@ -3475,7 +3487,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">783</span>
+    <span class="phpdocumentor-element-found-in__line">813</span>
 
     </aside>
 
@@ -3524,7 +3536,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">759</span>
+    <span class="phpdocumentor-element-found-in__line">789</span>
 
     </aside>
 
@@ -3629,7 +3641,7 @@ $this-&gt;data directly instead of regenerating from operators.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">444</span>
+    <span class="phpdocumentor-element-found-in__line">474</span>
 
     </aside>
 
@@ -3740,7 +3752,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">852</span>
+    <span class="phpdocumentor-element-found-in__line">882</span>
 
     </aside>
 
@@ -3796,7 +3808,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">859</span>
+    <span class="phpdocumentor-element-found-in__line">889</span>
 
     </aside>
 
@@ -3880,7 +3892,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">451</span>
+    <span class="phpdocumentor-element-found-in__line">481</span>
 
     </aside>
 
@@ -3929,7 +3941,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">353</span>
+    <span class="phpdocumentor-element-found-in__line">383</span>
 
     </aside>
 
@@ -3978,7 +3990,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">406</span>
+    <span class="phpdocumentor-element-found-in__line">436</span>
 
     </aside>
 
@@ -4027,7 +4039,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">413</span>
+    <span class="phpdocumentor-element-found-in__line">443</span>
 
     </aside>
 
@@ -4076,7 +4088,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">399</span>
+    <span class="phpdocumentor-element-found-in__line">429</span>
 
     </aside>
 
@@ -4125,7 +4137,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">420</span>
+    <span class="phpdocumentor-element-found-in__line">450</span>
 
     </aside>
 
@@ -4174,7 +4186,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">437</span>
+    <span class="phpdocumentor-element-found-in__line">467</span>
 
     </aside>
 
@@ -4223,7 +4235,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">825</span>
+    <span class="phpdocumentor-element-found-in__line">855</span>
 
     </aside>
 
@@ -4287,7 +4299,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">777</span>
+    <span class="phpdocumentor-element-found-in__line">807</span>
 
     </aside>
 
@@ -4336,7 +4348,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">705</span>
+    <span class="phpdocumentor-element-found-in__line">735</span>
 
     </aside>
 
@@ -4385,7 +4397,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">651</span>
+    <span class="phpdocumentor-element-found-in__line">681</span>
 
     </aside>
 
@@ -4455,7 +4467,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">677</span>
+    <span class="phpdocumentor-element-found-in__line">707</span>
 
     </aside>
 
@@ -4504,7 +4516,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">637</span>
+    <span class="phpdocumentor-element-found-in__line">667</span>
 
     </aside>
 
@@ -4567,7 +4579,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">691</span>
+    <span class="phpdocumentor-element-found-in__line">721</span>
 
     </aside>
 
@@ -4616,7 +4628,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">789</span>
+    <span class="phpdocumentor-element-found-in__line">819</span>
 
     </aside>
 
@@ -4665,7 +4677,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">765</span>
+    <span class="phpdocumentor-element-found-in__line">795</span>
 
     </aside>
 
@@ -4714,7 +4726,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">360</span>
+    <span class="phpdocumentor-element-found-in__line">390</span>
 
     </aside>
 
@@ -4763,7 +4775,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">324</span>
+    <span class="phpdocumentor-element-found-in__line">354</span>
 
     </aside>
 
@@ -4847,7 +4859,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">367</span>
+    <span class="phpdocumentor-element-found-in__line">397</span>
 
     </aside>
 
@@ -4896,7 +4908,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">374</span>
+    <span class="phpdocumentor-element-found-in__line">404</span>
 
     </aside>
 
@@ -4945,7 +4957,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">346</span>
+    <span class="phpdocumentor-element-found-in__line">376</span>
 
     </aside>
 
@@ -5084,6 +5096,60 @@ showText/showTextArray calls accept UTF-8 directly.</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_showTextArrayHex">
+        showTextArrayHex()
+        <a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextArrayHex" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">161</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">TJ with a hex/kern array — emits `[ &lt;hex&gt; kern &lt;hex&gt; kern ... ] TJ`
+for a CID font where shaped glyphs need per-glyph kern adjustments
+(positive kern moves the text position backward in 1/1000 em units,
+negative kern moves forward). Each `$items` entry is either a hex
+GID string (without `&lt; &gt;` delimiters) or a numeric kern in
+1/1000-em units.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">showTextArrayHex</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">array&lt;int, string|int|float&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$items</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">self</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$items</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, string|int|float&gt;</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">self</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_showTextHex">
         showTextHex()
         <a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextHex" class="headerlink"><i class="fas fa-link"></i></a>
@@ -5141,7 +5207,7 @@ showText/showTextArray calls accept UTF-8 directly.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">161</span>
+    <span class="phpdocumentor-element-found-in__line">191</span>
 
     </aside>
 
@@ -5205,7 +5271,7 @@ from TrueTypeData::$fullUnicodeToGid or OpenTypeData::$fullUnicodeToGid).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">185</span>
+    <span class="phpdocumentor-element-found-in__line">215</span>
 
     </aside>
 
@@ -5287,7 +5353,7 @@ plain Tj when no kerning pairs apply.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">253</span>
+    <span class="phpdocumentor-element-found-in__line">283</span>
 
     </aside>
 
@@ -5379,7 +5445,7 @@ glyphs using TJ; otherwise a plain Tj is emitted.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">556</span>
+    <span class="phpdocumentor-element-found-in__line">586</span>
 
     </aside>
 
@@ -5460,7 +5526,7 @@ glyphs using TJ; otherwise a plain Tj is emitted.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/Content/ContentStream.php"><a href="files/packages-pdf-core-src-content-contentstream.html"><abbr title="packages/pdf/core/src/Content/ContentStream.php">ContentStream.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">957</span>
+    <span class="phpdocumentor-element-found-in__line">987</span>
 
     </aside>
 
@@ -5693,6 +5759,7 @@ If a filter is set, the data is encoded before writing.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_setWordSpacing">setWordSpacing()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showText">showText()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextArray">showTextArray()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextArrayHex">showTextArrayHex()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showTextHex">showTextHex()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showUnicodeText">showUnicodeText()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html#method_showUnicodeTextKerned">showUnicodeTextKerned()</a></li>
