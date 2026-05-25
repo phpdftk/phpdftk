@@ -120,4 +120,26 @@ final class CounterFormatTest extends TestCase
         // safety (spec's "fixed system fallback" behaviour).
         self::assertSame('-5', CounterFormat::format(-5, 'cjk-decimal'));
     }
+
+    public function testDisclosureOpenAlwaysReturnsDownTriangle(): void
+    {
+        // CSS Counter Styles 3 §7.2: disclosure-open is the symbol
+        // when the disclosure is open — U+25BC BLACK DOWN-POINTING
+        // TRIANGLE. The ordinal is ignored (fixed-symbol style).
+        self::assertSame("\u{25BC}", CounterFormat::format(1, 'disclosure-open'));
+        self::assertSame("\u{25BC}", CounterFormat::format(42, 'disclosure-open'));
+    }
+
+    public function testDisclosureClosedAlwaysReturnsRightTriangle(): void
+    {
+        // U+25B6 BLACK RIGHT-POINTING TRIANGLE for the closed state.
+        self::assertSame("\u{25B6}", CounterFormat::format(1, 'disclosure-closed'));
+    }
+
+    public function testDisclosureStylesIgnoreNegativeOrdinals(): void
+    {
+        // Negative: even with a negative value, the symbol style
+        // returns the symbol (not a decimal fallback).
+        self::assertSame("\u{25BC}", CounterFormat::format(-1, 'disclosure-open'));
+    }
 }

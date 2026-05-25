@@ -28,6 +28,11 @@ final class CounterFormat
             'upper-roman' => self::toRoman($value),
             'lower-greek' => self::toGreek($value),
             'cjk-decimal' => self::toCjkDecimal($value),
+            // CSS Counter Styles 3 §7.2 — disclosure triangles for
+            // `<summary>::marker`. The value is ignored (these are
+            // fixed-symbol systems).
+            'disclosure-open' => "\u{25BC}",
+            'disclosure-closed' => "\u{25B6}",
             default => (string) $value,
         };
     }
