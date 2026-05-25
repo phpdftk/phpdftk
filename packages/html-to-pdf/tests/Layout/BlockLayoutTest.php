@@ -2019,6 +2019,190 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->y);
     }
 
+    public function testFlexRowLaysOutItemsHorizontally(): void
+    {
+        // Three 100-wide items in a 600-wide flex container with
+        // flex-start (default) → items at x=0, x=100, x=200.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertCount(3, $flex->children);
+        self::assertSame(0.0, $flex->children[0]->geometry->x);
+        self::assertSame(100.0, $flex->children[1]->geometry->x);
+        self::assertSame(200.0, $flex->children[2]->geometry->x);
+    }
+
+    public function testFlexJustifyContentCenter(): void
+    {
+        // 3 × 100-wide = 300; container 600 → 300 slack → center at
+        // x = 150, 250, 350.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; justify-content: center; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(150.0, $flex->children[0]->geometry->x);
+        self::assertSame(250.0, $flex->children[1]->geometry->x);
+        self::assertSame(350.0, $flex->children[2]->geometry->x);
+    }
+
+    public function testFlexJustifyContentFlexEnd(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; justify-content: flex-end; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // 300 slack → first at 300, then 400, 500.
+        self::assertSame(300.0, $flex->children[0]->geometry->x);
+        self::assertSame(500.0, $flex->children[2]->geometry->x);
+    }
+
+    public function testFlexJustifyContentSpaceBetween(): void
+    {
+        // 300 slack split across 2 gaps = 150 each. Items at
+        // 0, 100 + 150 = 250, 250 + 100 + 150 = 500.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; justify-content: space-between; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $flex->children[0]->geometry->x);
+        self::assertSame(250.0, $flex->children[1]->geometry->x);
+        self::assertSame(500.0, $flex->children[2]->geometry->x);
+    }
+
+    public function testFlexColumnGapInsertedBetweenItems(): void
+    {
+        // 3 items × 100 wide + 2 gaps × 20 = 340 used; remaining
+        // 260 slack with flex-start → items at 0, 120, 240.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; column-gap: 20px; }
+             .flex > div { width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $flex->children[0]->geometry->x);
+        self::assertSame(120.0, $flex->children[1]->geometry->x);
+        self::assertSame(240.0, $flex->children[2]->geometry->x);
+    }
+
+    public function testFlexAlignItemsCenter(): void
+    {
+        // Tallest item is 100; smaller items center vertically.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="tall"></div>'
+                . '<div class="short"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; align-items: center; width: 400px; }
+             .tall { width: 100px; height: 100px; }
+             .short { width: 100px; height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        $tall = $flex->children[0];
+        $short = $flex->children[1];
+        // 60 slack / 2 = 30 → short centered at y = tall.y + 30.
+        self::assertEqualsWithDelta($tall->geometry->y + 30.0, $short->geometry->y, 0.001);
+    }
+
+    public function testFlexEmptyContainerHasNoChildren(): void
+    {
+        // Negative: empty flex container produces a box with zero
+        // height (no children to size from).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex"></div></body></html>',
+            '.flex { display: flex; width: 400px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $flex->geometry->height);
+    }
+
+    public function testFlexAlignSelfOverridesAlignItems(): void
+    {
+        // align-self on a single item overrides the container's
+        // align-items.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="tall"></div>'
+                . '<div class="short"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; align-items: flex-start; width: 400px; }
+             .tall { width: 100px; height: 100px; }
+             .short { width: 100px; height: 40px; align-self: flex-end; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        $short = $flex->children[1];
+        // align-self: flex-end → short sits at bottom of tallest
+        // (100 - 40 = 60 below the top).
+        self::assertEqualsWithDelta($flex->geometry->y + 60.0, $short->geometry->y, 0.001);
+    }
+
+    public function testFlexExplicitWidthHonored(): void
+    {
+        // Container with explicit width 200 + 2 items 100 each →
+        // total fits exactly, no slack.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(200.0, $flex->geometry->width);
+        self::assertSame(100.0, $flex->children[1]->geometry->x);
+    }
+
+    public function testFlexNonFlexBlockUnaffected(): void
+    {
+        // Regression: regular block layout unchanged.
+        $box = $this->buildTree(
+            '<html><body><div class="b1" style="height: 30px"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\BlockBox::class, $div);
+    }
+
     public function testAspectRatioConstrainsHeightFromWidth(): void
     {
         // `aspect-ratio: 16/9` with width 320 → height = 320/16*9 = 180.

@@ -161,6 +161,9 @@ final class BlockLayout
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
             return $this->layoutTableRow($box, $context);
         }
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox) {
+            return $this->layoutFlexBox($box, $context);
+        }
         if ($box instanceof BlockBox
             || $box instanceof AnonymousBlockBox
             || $box instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
@@ -698,6 +701,232 @@ final class BlockLayout
         return [$dx, $dy];
     }
 
+    /**
+     * Lay out a `display: flex` container per CSS Flexible Box
+     * Layout 1. Phase-1 subset:
+     *
+     *  - `flex-direction: row` only (column / reverse → Phase 2).
+     *  - Single-line only (`flex-wrap: nowrap`; wrap → Phase 2).
+     *  - Items keep their declared `width` (no `flex-grow` /
+     *    `flex-shrink` slack distribution yet).
+     *  - `justify-content`: `flex-start` (default), `flex-end`,
+     *    `center`, `space-between`, `space-around`, `space-evenly`.
+     *  - `align-items`: `stretch` (default), `flex-start`,
+     *    `flex-end`, `center`.
+     *  - `column-gap` (via the existing `column-gap` longhand)
+     *    inserts gaps between items.
+     *
+     * Returns the container's outer height.
+     */
+    private function layoutFlexBox(\Phpdftk\HtmlToPdf\Box\FlexBox $box, LayoutContext $context): float
+    {
+        $style = $box->style;
+        $cbWidth = $context->containingBlockWidth;
+        $geo = $box->geometry;
+
+        // Resolve container's margins / padding / border / width
+        // exactly the same way layoutBlock does (we don't need the
+        // auto-margin centring math because flex containers
+        // typically have explicit dimensions).
+        $geo->marginTop = $this->resolveLength($style->get('margin-top'), $cbWidth);
+        $geo->marginRight = $this->resolveLength($style->get('margin-right'), $cbWidth);
+        $geo->marginBottom = $this->resolveLength($style->get('margin-bottom'), $cbWidth);
+        $geo->marginLeft = $this->resolveLength($style->get('margin-left'), $cbWidth);
+        $geo->paddingTop = $this->resolveLength($style->get('padding-top'), $cbWidth);
+        $geo->paddingRight = $this->resolveLength($style->get('padding-right'), $cbWidth);
+        $geo->paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbWidth);
+        $geo->paddingLeft = $this->resolveLength($style->get('padding-left'), $cbWidth);
+        $geo->borderTop = $this->resolveBorderWidth($style, 'top');
+        $geo->borderRight = $this->resolveBorderWidth($style, 'right');
+        $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
+        $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
+
+        $widthValue = $style->get('width');
+        $widthAuto = $this->isAuto($widthValue);
+        $geo->width = $widthAuto
+            ? max(
+                0.0,
+                $cbWidth - $geo->marginLeft - $geo->marginRight
+                    - $geo->borderLeft - $geo->borderRight
+                    - $geo->paddingLeft - $geo->paddingRight,
+            )
+            : $this->resolveLength($widthValue, $cbWidth);
+
+        $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
+        $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
+
+        $children = $box->children;
+        if ($children === []) {
+            $geo->height = $this->resolveExplicitHeight($style, $context->containingBlockHeight, 0.0);
+            return $geo->outerHeight();
+        }
+
+        // First pass: lay each item out at the container's origin
+        // with its declared (or content-derived) size. We use the
+        // existing layoutBlock so block-style sizing (margins /
+        // padding / borders) works inside items.
+        $itemCtx = $context
+            ->withContainingBlock($geo->width, $context->containingBlockHeight)
+            ->withOrigin($geo->x, $geo->y)
+            ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
+        $itemHeights = [];
+        $itemWidths = [];
+        foreach ($children as $child) {
+            $this->cascade->resolveLengths($child->style, $itemCtx->lengthContext);
+            $h = $this->layoutBox($child, $itemCtx);
+            $itemHeights[] = $h;
+            $itemWidths[] = $child->geometry->outerWidth();
+        }
+
+        // CSS Box Alignment 3 §8.1: `normal` resolves to `0px` for
+        // flex layout (only multi-column treats it as `1em`).
+        $gap = $this->resolveFlexGap($style, $itemCtx->lengthContext);
+        $totalGap = $gap * max(0, count($children) - 1);
+        $usedWidth = array_sum($itemWidths) + $totalGap;
+        $slack = max(0.0, $geo->width - $usedWidth);
+        $maxItemHeight = max($itemHeights);
+
+        // Second pass: distribute slack per justify-content + align
+        // each item vertically per align-items.
+        $justify = $this->flexKeyword($style, 'justify-content', 'flex-start');
+        $alignItems = $this->flexKeyword($style, 'align-items', 'stretch');
+
+        $count = count($children);
+        $leadingSpace = 0.0;
+        $itemSpace = $gap; // additional space between adjacent items.
+        switch ($justify) {
+            case 'center':
+                $leadingSpace = $slack / 2.0;
+                break;
+            case 'flex-end':
+            case 'end':
+            case 'right':
+                $leadingSpace = $slack;
+                break;
+            case 'space-between':
+                if ($count > 1) {
+                    $itemSpace = $gap + $slack / ($count - 1);
+                }
+                break;
+            case 'space-around':
+                if ($count > 0) {
+                    $itemSpace = $gap + $slack / $count;
+                    $leadingSpace = $itemSpace / 2.0 - $gap / 2.0;
+                }
+                break;
+            case 'space-evenly':
+                if ($count > 0) {
+                    $itemSpace = $gap + $slack / ($count + 1);
+                    $leadingSpace = $itemSpace - $gap;
+                }
+                break;
+                // 'flex-start' / 'start' / 'left' → no leading space.
+        }
+
+        $cursorX = $geo->x + $leadingSpace;
+        foreach ($children as $i => $child) {
+            $childGeo = $child->geometry;
+            $itemWidth = $itemWidths[$i];
+            $itemHeight = $itemHeights[$i];
+            // The item was laid out at $geo->x (the container's
+            // content-edge); compute its current X (which includes
+            // its own margin-left + border-left + padding-left) so
+            // we shift by the delta to the target X.
+            $currentLeftEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
+            $targetLeftEdge = $cursorX;
+            $dx = $targetLeftEdge - $currentLeftEdge;
+
+            // align-items vertical placement.
+            $alignSelf = $this->flexKeyword($child->style, 'align-self', 'auto');
+            $effectiveAlign = $alignSelf === 'auto' ? $alignItems : $alignSelf;
+            $crossSlack = $maxItemHeight - $itemHeight;
+            $dy = 0.0;
+            switch ($effectiveAlign) {
+                case 'center':
+                    $dy = $crossSlack / 2.0;
+                    break;
+                case 'flex-end':
+                case 'end':
+                    $dy = $crossSlack;
+                    break;
+                case 'stretch':
+                    // Item gets the cross-axis full size when its
+                    // height is auto. Phase-1 simplification: just
+                    // extend the geometry height; doesn't re-flow
+                    // child content.
+                    if ($this->isAuto($child->style->get('height')) && $crossSlack > 0.0) {
+                        $childGeo->height = $maxItemHeight - $childGeo->marginTop - $childGeo->marginBottom
+                            - $childGeo->borderTop - $childGeo->borderBottom
+                            - $childGeo->paddingTop - $childGeo->paddingBottom;
+                    }
+                    break;
+                    // 'flex-start' / 'start' → no shift.
+            }
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+            $cursorX += $itemWidth + $itemSpace;
+        }
+
+        // Container height = max(items) unless explicit.
+        $explicitHeight = $this->resolveExplicitHeight($style, $context->containingBlockHeight, $maxItemHeight);
+        $geo->height = $explicitHeight;
+
+        // Min/max-width and -height clamping (same as layoutBlock).
+        $this->clampMinMax($style, $geo, $cbWidth, $context->containingBlockHeight);
+
+        return $geo->outerHeight();
+    }
+
+    private function flexKeyword(CascadedValues $style, string $prop, string $default): string
+    {
+        $value = $style->get($prop);
+        if ($value instanceof Keyword) {
+            return strtolower($value->name);
+        }
+        return $default;
+    }
+
+    private function resolveExplicitHeight(CascadedValues $style, float $cbHeight, float $auto): float
+    {
+        $value = $style->get('height');
+        if ($this->isAuto($value)) {
+            return $auto;
+        }
+        return $this->resolveLength($value, $cbHeight);
+    }
+
+    /**
+     * Apply min/max-width and min/max-height clamping to `$geo`
+     * mirroring `layoutBlock`'s clamp pass — extracted so flex
+     * containers honour the same constraints.
+     */
+    private function clampMinMax(CascadedValues $style, \Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo, float $cbWidth, float $cbHeight): void
+    {
+        $maxWidthValue = $style->get('max-width');
+        if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
+            $maxWidth = $this->resolveLength($maxWidthValue, $cbWidth);
+            if ($maxWidth > 0.0 && $geo->width > $maxWidth) {
+                $geo->width = $maxWidth;
+            }
+        }
+        $minWidth = $this->resolveLength($style->get('min-width'), $cbWidth);
+        if ($minWidth > 0.0 && $geo->width < $minWidth) {
+            $geo->width = $minWidth;
+        }
+        $maxHeightValue = $style->get('max-height');
+        if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
+            $maxHeight = $this->resolveLength($maxHeightValue, $cbHeight);
+            if ($maxHeight > 0.0 && $geo->height > $maxHeight) {
+                $geo->height = $maxHeight;
+            }
+        }
+        $minHeight = $this->resolveLength($style->get('min-height'), $cbHeight);
+        if ($minHeight > 0.0 && $geo->height < $minHeight) {
+            $geo->height = $minHeight;
+        }
+    }
+
     private function resolveLength(?\Phpdftk\Css\Value\Value $value, float $percentageBasis): float
     {
         if ($value === null) {
@@ -1223,6 +1452,28 @@ final class BlockLayout
             return max(0.0, (float) $value->value);
         }
         return max(0.0, $lc->currentFontSize);
+    }
+
+    /**
+     * Resolve `column-gap` for a flex container. CSS Box Alignment 3
+     * §8.1 differs from multi-column here: `normal` resolves to `0px`
+     * for flex (multi-column gets `1em`).
+     */
+    private function resolveFlexGap(CascadedValues $style, LengthContext $lc): float
+    {
+        $value = $style->get('column-gap');
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        if ($value instanceof Percentage) {
+            return 0.0;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return max(0.0, (float) $value->value);
+        }
+        return 0.0;
     }
 
     private function resolveColumnRuleWidth(CascadedValues $style): float

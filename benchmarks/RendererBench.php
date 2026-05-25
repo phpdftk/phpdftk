@@ -167,6 +167,30 @@ class RendererBench
         );
     }
 
+    public function benchFlex(): void
+    {
+        // Exercises CSS Flexible Box Layout 1 §9: container measures
+        // each item (first pass), then redistributes per
+        // justify-content and aligns vertically per align-items.
+        // 40 flex rows × 4 items each pushes the per-item second pass
+        // through enough iterations to make the bench meaningful.
+        $body = '';
+        for ($i = 0; $i < 40; $i++) {
+            $body .= '<div class="row">'
+                . '<div class="card">A</div>'
+                . '<div class="card">B</div>'
+                . '<div class="card">C</div>'
+                . '<div class="card">D</div>'
+                . '</div>';
+        }
+        $this->renderer->render(
+            '<!DOCTYPE html><html><head><style>'
+            . '.row { display: flex; justify-content: space-between; column-gap: 8pt; margin-bottom: 8pt; }'
+            . '.card { width: 100pt; height: 40pt; background-color: #eef; padding: 4pt; }'
+            . '</style></head><body>' . $body . '</body></html>',
+        );
+    }
+
     public function benchRichTypography(): void
     {
         // Exercises inline-layout paths: text-transform, letter-spacing,

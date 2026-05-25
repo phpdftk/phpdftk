@@ -293,6 +293,19 @@ final class PropertyRegistry
         $r->register($initial('float', new Keyword('none')));
         $r->register($initial('clear', new Keyword('none')));
 
+        // CSS Flexible Box Layout 1 — flex container + item
+        // properties. None inherit per spec.
+        $r->register($initial('flex-direction', new Keyword('row')));
+        $r->register($initial('flex-wrap', new Keyword('nowrap')));
+        $r->register($initial('justify-content', new Keyword('flex-start')));
+        $r->register($initial('align-items', new Keyword('stretch')));
+        $r->register($initial('align-self', new Keyword('auto')));
+        $r->register($initial('align-content', new Keyword('stretch')));
+        $r->register($initial('flex-grow', new Number(0)));
+        $r->register($initial('flex-shrink', new Number(1)));
+        $r->register($initial('flex-basis', new Keyword('auto')));
+        $r->register($initial('order', new \Phpdftk\Css\Value\Integer(0)));
+
         // CSS Multi-column 1 §2-3. None inherit. `column-gap` initial is
         // `normal`, which Multi-column 1 §3.1 resolves to `1em`.
         $r->register($initial('column-count', new Keyword('auto')));

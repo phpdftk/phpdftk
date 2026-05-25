@@ -594,6 +594,7 @@ final class BoxGenerator
             'table' => new TableBox($element, $values),
             'table-row' => new TableRowBox($element, $values),
             'table-cell' => new TableCellBox($element, $values),
+            'flex' => new FlexBox($element, $values),
             default => new BlockBox($element, $values),
         };
     }

@@ -74,6 +74,8 @@ final class ShorthandExpander
             'gap' => $this->expandGap($value),
             'inset' => $this->expandInset($value),
             'overflow' => $this->expandOverflow($value),
+            'flex' => $this->expandFlex($value),
+            'flex-flow' => $this->expandFlexFlow($value),
             default => [$property => $value],
         };
     }
@@ -589,6 +591,105 @@ final class ShorthandExpander
         }
         if ($color !== null) {
             $out['text-decoration-color'] = $color;
+        }
+        return $out;
+    }
+
+    /**
+     * `flex: <flex-grow> <flex-shrink>? <flex-basis>?` (CSS Flex 1
+     * §7.2). Common forms:
+     *  - `flex: <number>` → grow with shrink=1, basis=0%.
+     *  - `flex: <number> <number>` → grow + shrink, basis=0%.
+     *  - `flex: <number> <number> <length>` → all three explicit.
+     *  - `flex: none` → 0 0 auto.
+     *  - `flex: auto` → 1 1 auto.
+     *  - `flex: initial` → 0 1 auto (the spec initial).
+     *
+     * @return array<string, Value>
+     */
+    private function expandFlex(Value $value): array
+    {
+        if ($value instanceof Keyword) {
+            return match (strtolower($value->name)) {
+                'none' => [
+                    'flex-grow' => new Number(0),
+                    'flex-shrink' => new Number(0),
+                    'flex-basis' => new Keyword('auto'),
+                ],
+                'auto' => [
+                    'flex-grow' => new Number(1),
+                    'flex-shrink' => new Number(1),
+                    'flex-basis' => new Keyword('auto'),
+                ],
+                'initial' => [
+                    'flex-grow' => new Number(0),
+                    'flex-shrink' => new Number(1),
+                    'flex-basis' => new Keyword('auto'),
+                ],
+                default => [],
+            };
+        }
+        $components = $this->toComponents($value);
+        $grow = null;
+        $shrink = null;
+        $basis = null;
+        $numericCount = 0;
+        foreach ($components as $c) {
+            if (($c instanceof Number || $c instanceof Integer) && $numericCount < 2) {
+                if ($numericCount === 0) {
+                    $grow = new Number($c instanceof Number ? $c->value : (float) $c->value);
+                } else {
+                    $shrink = new Number($c instanceof Number ? $c->value : (float) $c->value);
+                }
+                $numericCount++;
+            } elseif ($basis === null) {
+                $basis = $c;
+            }
+        }
+        $out = [];
+        if ($grow !== null) {
+            $out['flex-grow'] = $grow;
+        }
+        if ($shrink !== null) {
+            $out['flex-shrink'] = $shrink;
+        }
+        if ($basis !== null) {
+            $out['flex-basis'] = $basis;
+        }
+        // Per spec, omitted basis defaults to 0% when grow is set
+        // (so `flex: 2` → grow:2, shrink:1, basis:0%). Use Length 0
+        // as the closest approximation.
+        if ($grow !== null && $basis === null) {
+            $out['flex-basis'] = new \Phpdftk\Css\Value\Length(0.0, \Phpdftk\Css\Value\LengthUnit::Px);
+        }
+        // Omitted shrink defaults to 1.
+        if ($grow !== null && $shrink === null) {
+            $out['flex-shrink'] = new Number(1.0);
+        }
+        return $out;
+    }
+
+    /**
+     * `flex-flow: <flex-direction> || <flex-wrap>` (CSS Flex 1 §6.2).
+     *
+     * @return array<string, Value>
+     */
+    private function expandFlexFlow(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        $directions = ['row', 'row-reverse', 'column', 'column-reverse'];
+        $wraps = ['nowrap', 'wrap', 'wrap-reverse'];
+        $out = [];
+        foreach ($components as $c) {
+            if (!($c instanceof Keyword)) {
+                continue;
+            }
+            $name = strtolower($c->name);
+            if (in_array($name, $directions, true) && !isset($out['flex-direction'])) {
+                $out['flex-direction'] = $c;
+            } elseif (in_array($name, $wraps, true) && !isset($out['flex-wrap'])) {
+                $out['flex-wrap'] = $c;
+            }
         }
         return $out;
     }
