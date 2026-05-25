@@ -2433,12 +2433,11 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $this->flexItemX($flex, 'b'));
     }
 
-    public function testFlexDirectionColumnFallsBackToRow(): void
+    public function testFlexDirectionColumnStacksItemsVertically(): void
     {
-        // Negative: Phase-1 doesn't implement column / column-reverse
-        // yet — they silently fall back to row layout. Document the
-        // current behaviour so the change to column lands with a
-        // failing-then-passing test.
+        // `flex-direction: column` swaps the main axis to Y. Items
+        // stack: a at y=0, b at y=50 (each 50pt tall). Both stay at
+        // x=0 (cross-axis flex-start anchor with align-items stretch).
         $box = $this->buildTreeWithUa(
             '<html><body><div class="flex">'
                 . '<div class="a"></div>'
@@ -2450,9 +2449,209 @@ final class BlockLayoutTest extends TestCase
         $this->layout->layout($box, $this->defaultCtx);
         $flex = $this->find($box, 'div');
         self::assertNotNull($flex);
-        // Items still tile horizontally under the Phase-1 fallback.
-        self::assertSame(0.0, $this->flexItemX($flex, 'a'));
-        self::assertSame(100.0, $this->flexItemX($flex, 'b'));
+        $a = $this->flexItem($flex, 'a');
+        $b = $this->flexItem($flex, 'b');
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(50.0, $b->geometry->y);
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(0.0, $b->geometry->x);
+    }
+
+    public function testFlexDirectionColumnRowGapBetweenItems(): void
+    {
+        // Column direction reads `row-gap` (NOT `column-gap`) for the
+        // main-axis between-items gap per CSS Box Alignment 3 §8.1.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; row-gap: 12px; width: 200px; height: 400px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(42.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(84.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexDirectionColumnJustifyContentCenter(): void
+    {
+        // Column direction with justify-content: center → items pack
+        // toward the vertical centre of the container's main axis.
+        // 3 items × 30pt = 90 in a 300pt-tall container → 210 slack;
+        // center → leading 105 → items at y=105, 135, 165.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; justify-content: center;
+                     width: 200px; height: 300px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(105.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(135.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(165.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexDirectionColumnAlignItemsCenter(): void
+    {
+        // Cross-axis is X for column direction. align-items: center
+        // centers each item horizontally inside the container.
+        // Container 400 wide, items 100 wide → 300 cross-slack → 150.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; align-items: center;
+                     width: 400px; height: 200px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(150.0, $this->flexItem($flex, 'a')->geometry->x);
+        self::assertSame(150.0, $this->flexItem($flex, 'b')->geometry->x);
+    }
+
+    public function testFlexDirectionColumnFlexGrowFillsHeight(): void
+    {
+        // `flex: 1` in column direction expands the item to consume
+        // the container's vertical slack — vertical version of the
+        // canonical fill pattern.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column;
+                     width: 200px; height: 400px; }
+             .a { height: 50px; }
+             .b { flex: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(50.0, $this->flexItem($flex, 'a')->geometry->height);
+        // b: basis 0 + grow 1 → consumes all 350pt of slack.
+        self::assertSame(350.0, $this->flexItem($flex, 'b')->geometry->height);
+    }
+
+    public function testFlexDirectionColumnReverseReversesStackOrder(): void
+    {
+        // column-reverse: items in reverse layout order, packing at
+        // main-start (= bottom edge in spec terms; the first DOM item
+        // sits at the bottom). With 3 items × 30 in a 400-tall
+        // container and default flex-start (→ swapped to flex-end):
+        // a at y=370 (bottom), b at y=340, c at y=310.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column-reverse;
+                     width: 200px; height: 400px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(370.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(340.0, $this->flexItem($flex, 'b')->geometry->y);
+        self::assertSame(310.0, $this->flexItem($flex, 'c')->geometry->y);
+    }
+
+    public function testFlexDirectionColumnShrinksToFitWithoutHeight(): void
+    {
+        // Negative: column with no declared height → container is
+        // shrink-to-fit around its items. 3 × 30 items + no gap → 90.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column; width: 200px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(90.0, $flex->geometry->height);
+    }
+
+    public function testFlexDirectionColumnShrinkOverflowingItems(): void
+    {
+        // Negative: column-direction overflow triggers flex-shrink on
+        // heights instead of widths. 3 × 200 tall items in a 300pt
+        // container → 300 overflow split 1:1:1 → each shrinks to 100.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '<div class="c"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column;
+                     width: 200px; height: 300px; }
+             .flex > div { width: 100px; height: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $this->flexItem($flex, 'a')->geometry->height);
+        self::assertSame(100.0, $this->flexItem($flex, 'b')->geometry->height);
+        self::assertSame(100.0, $this->flexItem($flex, 'c')->geometry->height);
+    }
+
+    public function testFlexDirectionColumnStretchExpandsItemWidth(): void
+    {
+        // Negative: align-items: stretch (default) in column direction
+        // stretches each item's WIDTH (the cross axis) to fill the
+        // container — not the height.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column;
+                     width: 400px; height: 200px; }
+             .a { height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        $a = $this->flexItem($flex, 'a');
+        self::assertSame(400.0, $a->geometry->width);
+        self::assertSame(50.0, $a->geometry->height);
+    }
+
+    public function testFlexDirectionColumnIgnoresColumnGap(): void
+    {
+        // Negative: column-gap doesn't apply in column direction
+        // (which reads row-gap instead). Items stack with no gap.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; flex-direction: column;
+                     column-gap: 50px; width: 200px; height: 400px; }
+             .flex > div { width: 100px; height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItem($flex, 'a')->geometry->y);
+        self::assertSame(30.0, $this->flexItem($flex, 'b')->geometry->y);
     }
 
     public function testFlexDirectionRowReverseSingleItemSimplePack(): void

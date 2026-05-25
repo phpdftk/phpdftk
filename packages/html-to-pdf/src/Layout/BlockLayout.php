@@ -722,6 +722,7 @@ final class BlockLayout
     {
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
+        $cbHeight = $context->containingBlockHeight;
         $geo = $box->geometry;
 
         // Resolve container's margins / padding / border / width
@@ -755,23 +756,33 @@ final class BlockLayout
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
+        // CSS Flexbox 1 §5.1: `flex-direction` picks the main axis.
+        // `row` / `row-reverse` use the inline axis (x); `column` /
+        // `column-reverse` use the block axis (y). The `*-reverse`
+        // variants flip main-start ↔ main-end.
+        $direction = $this->flexKeyword($style, 'flex-direction', 'row');
+        $isColumn = $direction === 'column' || $direction === 'column-reverse';
+        $reverseDirection = $direction === 'row-reverse' || $direction === 'column-reverse';
+
+        $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+
         $children = $box->children;
         if ($children === []) {
-            $geo->height = $this->resolveExplicitHeight($style, $context->containingBlockHeight, 0.0);
+            $geo->height = $declaredHeight ?? 0.0;
             return $geo->outerHeight();
         }
 
-        // CSS Flexbox 1 §5.4: `order` reorders items for layout.
-        // Sort is stable on document order for equal `order` values.
-        $children = $this->sortFlexItemsByOrder($children);
+        // Container main / cross box dimensions.
+        $containerMain = $isColumn ? ($declaredHeight ?? -1.0) : $geo->width;
+        $containerCross = $isColumn ? $geo->width : ($declaredHeight ?? -1.0);
 
-        // CSS Flexbox 1 §5.1: `flex-direction: row-reverse` reverses
-        // the main axis. After the order sort, reverse the array so
-        // items appear in reverse layout order; the justify-content
-        // swap below mirrors `flex-start` ↔ `flex-end` so packing at
-        // main-start still hugs the (now right) edge.
-        $direction = $this->flexKeyword($style, 'flex-direction', 'row');
-        $reverseDirection = $direction === 'row-reverse';
+        // CSS Flexbox 1 §5.4: `order` reorders items for layout. Sort
+        // is stable on document order for equal `order` values. After
+        // the sort, `*-reverse` reverses the array so items appear in
+        // reverse layout order; the justify-content swap below mirrors
+        // `flex-start` ↔ `flex-end` so packing at main-start still
+        // hugs the (now end) edge.
+        $children = $this->sortFlexItemsByOrder($children);
         if ($reverseDirection) {
             $children = array_reverse($children);
         }
@@ -781,39 +792,51 @@ final class BlockLayout
         // existing layoutBlock so block-style sizing (margins /
         // padding / borders) works inside items.
         $itemCtx = $context
-            ->withContainingBlock($geo->width, $context->containingBlockHeight)
+            ->withContainingBlock($geo->width, $cbHeight)
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
-        $itemHeights = [];
-        $itemWidths = [];
+        $itemMains = [];
+        $itemCrosses = [];
+        $basisCbMain = $isColumn ? $cbHeight : $geo->width;
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $itemCtx->lengthContext);
-            $h = $this->layoutBox($child, $itemCtx);
+            $this->layoutBox($child, $itemCtx);
             // CSS Flexbox 1 §7.2: `flex-basis` overrides the item's
-            // hypothetical main size. `auto` / `content` keep the
-            // layoutBox-derived width; explicit lengths / percentages
-            // / unitless 0 replace it.
-            $basis = $this->resolveFlexBasis($child->style, $geo->width);
+            // hypothetical main size (width for row, height for
+            // column). `auto` / `content` keep the layoutBox value;
+            // explicit lengths / percentages / unitless 0 replace it.
+            $basis = $this->resolveFlexBasis($child->style, $basisCbMain);
             if ($basis !== null) {
-                $child->geometry->width = $basis;
+                if ($isColumn) {
+                    $child->geometry->height = $basis;
+                } else {
+                    $child->geometry->width = $basis;
+                }
             }
-            $itemHeights[] = $h;
-            $itemWidths[] = $child->geometry->outerWidth();
+            $itemMains[] = $isColumn ? $child->geometry->outerHeight() : $child->geometry->outerWidth();
+            $itemCrosses[] = $isColumn ? $child->geometry->outerWidth() : $child->geometry->outerHeight();
         }
 
         // CSS Box Alignment 3 §8.1: `normal` resolves to `0px` for
-        // flex layout (only multi-column treats it as `1em`).
-        $gap = $this->resolveFlexGap($style, $itemCtx->lengthContext);
+        // flex layout. Column direction reads `row-gap` for the
+        // between-items gap; row direction reads `column-gap`.
+        $gap = $this->resolveFlexMainGap($style, $itemCtx->lengthContext, $isColumn);
         $totalGap = $gap * max(0, count($children) - 1);
-        $usedWidth = array_sum($itemWidths) + $totalGap;
-        $slack = max(0.0, $geo->width - $usedWidth);
+        $usedMain = array_sum($itemMains) + $totalGap;
+
+        // If the container's main size is auto (column with no
+        // declared height), shrink-to-fit around items.
+        if ($containerMain < 0.0) {
+            $containerMain = $usedMain;
+        }
+        $slack = max(0.0, $containerMain - $usedMain);
 
         // CSS Flexbox 1 §9.7: when items overflow the container,
         // shrink each by its `flex-shrink` factor's share of the
         // negative free space. Phase-1 simplification: weight by
-        // shrink only (spec weights by `shrink × basis-size`). Width
-        // never goes below 0.
-        $negativeSlack = $usedWidth - $geo->width;
+        // shrink only (spec weights by `shrink × basis-size`). Main
+        // size never goes below 0.
+        $negativeSlack = $usedMain - $containerMain;
         if ($negativeSlack > 0.0) {
             $totalShrink = 0.0;
             $shrinkValues = [];
@@ -829,20 +852,25 @@ final class BlockLayout
                         continue;
                     }
                     $reduction = $negativeSlack * ($shrinkValues[$i] / $totalShrink);
-                    $newWidth = max(0.0, $child->geometry->width - $reduction);
-                    $actualReduction = $child->geometry->width - $newWidth;
-                    $child->geometry->width = $newWidth;
+                    $currentMain = $isColumn ? $child->geometry->height : $child->geometry->width;
+                    $newMain = max(0.0, $currentMain - $reduction);
+                    $actualReduction = $currentMain - $newMain;
+                    if ($isColumn) {
+                        $child->geometry->height = $newMain;
+                    } else {
+                        $child->geometry->width = $newMain;
+                    }
                     $reduced += $actualReduction;
-                    $itemWidths[$i] = $child->geometry->outerWidth();
+                    $itemMains[$i] = $isColumn ? $child->geometry->outerHeight() : $child->geometry->outerWidth();
                 }
-                $usedWidth -= $reduced;
-                $slack = max(0.0, $geo->width - $usedWidth);
+                $usedMain -= $reduced;
+                $slack = max(0.0, $containerMain - $usedMain);
             }
         }
 
         // CSS Flexbox 1 §9.7: distribute positive free space across
         // flex items proportional to their `flex-grow` factors. Items
-        // with grow > 0 absorb the slack; their width inflates so
+        // with grow > 0 absorb the slack; their main size inflates so
         // justify-content sees zero remaining space when grow consumes
         // everything (the typical `flex: 1` "fill" pattern).
         if ($slack > 0.0) {
@@ -861,18 +889,25 @@ final class BlockLayout
                     }
                     $extra = $slack * ($growValues[$i] / $totalGrow);
                     $consumed += $extra;
-                    $child->geometry->width += $extra;
-                    $itemWidths[$i] = $child->geometry->outerWidth();
+                    if ($isColumn) {
+                        $child->geometry->height += $extra;
+                    } else {
+                        $child->geometry->width += $extra;
+                    }
+                    $itemMains[$i] = $isColumn ? $child->geometry->outerHeight() : $child->geometry->outerWidth();
                 }
-                $usedWidth += $consumed;
-                $slack = max(0.0, $geo->width - $usedWidth);
+                $usedMain += $consumed;
+                $slack = max(0.0, $containerMain - $usedMain);
             }
         }
 
-        $maxItemHeight = max($itemHeights);
+        $maxItemCross = max($itemCrosses);
+        if ($containerCross < 0.0) {
+            $containerCross = $maxItemCross;
+        }
 
         // Second pass: distribute slack per justify-content + align
-        // each item vertically per align-items.
+        // each item on the cross axis per align-items.
         $justify = $this->flexKeyword($style, 'justify-content', 'flex-start');
         if ($reverseDirection) {
             $justify = match ($justify) {
@@ -915,57 +950,81 @@ final class BlockLayout
                 // 'flex-start' / 'start' / 'left' → no leading space.
         }
 
-        $cursorX = $geo->x + $leadingSpace;
+        $cursor = ($isColumn ? $geo->y : $geo->x) + $leadingSpace;
         foreach ($children as $i => $child) {
             $childGeo = $child->geometry;
-            $itemWidth = $itemWidths[$i];
-            $itemHeight = $itemHeights[$i];
-            // The item was laid out at $geo->x (the container's
-            // content-edge); compute its current X (which includes
-            // its own margin-left + border-left + padding-left) so
-            // we shift by the delta to the target X.
-            $currentLeftEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
-            $targetLeftEdge = $cursorX;
-            $dx = $targetLeftEdge - $currentLeftEdge;
+            $itemMain = $itemMains[$i];
+            $itemCross = $itemCrosses[$i];
 
-            // align-items vertical placement.
+            // The item was laid out at the container's content-edge
+            // origin; compute its current main-axis edge (including
+            // its own margin/border/padding inset) so we shift by the
+            // delta to the cursor.
+            if ($isColumn) {
+                $currentMainEdge = $childGeo->y - $childGeo->paddingTop - $childGeo->borderTop - $childGeo->marginTop;
+            } else {
+                $currentMainEdge = $childGeo->x - $childGeo->paddingLeft - $childGeo->borderLeft - $childGeo->marginLeft;
+            }
+            $mainShift = $cursor - $currentMainEdge;
+
+            // align-items cross-axis placement.
             $alignSelf = $this->flexKeyword($child->style, 'align-self', 'auto');
             $effectiveAlign = $alignSelf === 'auto' ? $alignItems : $alignSelf;
-            $crossSlack = $maxItemHeight - $itemHeight;
-            $dy = 0.0;
+            $crossSlack = $containerCross - $itemCross;
+            $crossShift = 0.0;
             switch ($effectiveAlign) {
                 case 'center':
-                    $dy = $crossSlack / 2.0;
+                    $crossShift = $crossSlack / 2.0;
                     break;
                 case 'flex-end':
                 case 'end':
-                    $dy = $crossSlack;
+                    $crossShift = $crossSlack;
                     break;
                 case 'stretch':
                     // Item gets the cross-axis full size when its
-                    // height is auto. Phase-1 simplification: just
-                    // extend the geometry height; doesn't re-flow
-                    // child content.
-                    if ($this->isAuto($child->style->get('height')) && $crossSlack > 0.0) {
-                        $childGeo->height = $maxItemHeight - $childGeo->marginTop - $childGeo->marginBottom
-                            - $childGeo->borderTop - $childGeo->borderBottom
-                            - $childGeo->paddingTop - $childGeo->paddingBottom;
+                    // cross dimension is auto. Phase-1 simplification:
+                    // just extend the geometry; doesn't re-flow child
+                    // content.
+                    $crossProp = $isColumn ? 'width' : 'height';
+                    if ($this->isAuto($child->style->get($crossProp)) && $crossSlack > 0.0) {
+                        if ($isColumn) {
+                            $childGeo->width = $containerCross - $childGeo->marginLeft - $childGeo->marginRight
+                                - $childGeo->borderLeft - $childGeo->borderRight
+                                - $childGeo->paddingLeft - $childGeo->paddingRight;
+                        } else {
+                            $childGeo->height = $containerCross - $childGeo->marginTop - $childGeo->marginBottom
+                                - $childGeo->borderTop - $childGeo->borderBottom
+                                - $childGeo->paddingTop - $childGeo->paddingBottom;
+                        }
                     }
                     break;
                     // 'flex-start' / 'start' → no shift.
             }
-            if ($dx !== 0.0 || $dy !== 0.0) {
-                $this->shiftSubtree($child, $dy, $dx);
+            // shiftSubtree takes (dy, dx).
+            if ($isColumn) {
+                if ($mainShift !== 0.0 || $crossShift !== 0.0) {
+                    $this->shiftSubtree($child, $mainShift, $crossShift);
+                }
+            } else {
+                if ($mainShift !== 0.0 || $crossShift !== 0.0) {
+                    $this->shiftSubtree($child, $crossShift, $mainShift);
+                }
             }
-            $cursorX += $itemWidth + $itemSpace;
+            $cursor += $itemMain + $itemSpace;
         }
 
-        // Container height = max(items) unless explicit.
-        $explicitHeight = $this->resolveExplicitHeight($style, $context->containingBlockHeight, $maxItemHeight);
-        $geo->height = $explicitHeight;
+        // Container final dimensions. The main-axis size is the
+        // declared value (or shrink-to-fit); the cross-axis size is
+        // the declared value (or max of item cross sizes).
+        if ($isColumn) {
+            $geo->height = $declaredHeight ?? $containerMain;
+            // Container width was already set above.
+        } else {
+            $geo->height = $declaredHeight ?? $maxItemCross;
+        }
 
         // Min/max-width and -height clamping (same as layoutBlock).
-        $this->clampMinMax($style, $geo, $cbWidth, $context->containingBlockHeight);
+        $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
 
         return $geo->outerHeight();
     }
@@ -1093,11 +1152,15 @@ final class BlockLayout
         return $default;
     }
 
-    private function resolveExplicitHeight(CascadedValues $style, float $cbHeight, float $auto): float
+    /**
+     * Resolve the `height` property. Returns `null` for `auto` so
+     * callers can distinguish "explicitly sized" from "size-to-fit".
+     */
+    private function resolveExplicitHeightOrNull(CascadedValues $style, float $cbHeight): ?float
     {
         $value = $style->get('height');
         if ($this->isAuto($value)) {
-            return $auto;
+            return null;
         }
         return $this->resolveLength($value, $cbHeight);
     }
@@ -1661,13 +1724,19 @@ final class BlockLayout
     }
 
     /**
-     * Resolve `column-gap` for a flex container. CSS Box Alignment 3
-     * §8.1 differs from multi-column here: `normal` resolves to `0px`
-     * for flex (multi-column gets `1em`).
+     * Resolve the main-axis gap for a flex container: `column-gap`
+     * for row direction, `row-gap` for column direction. Both fall
+     * back to `0px` for flex per CSS Box Alignment 3 §8.1 (only
+     * multi-column resolves `normal` to `1em`).
      */
-    private function resolveFlexGap(CascadedValues $style, LengthContext $lc): float
+    private function resolveFlexMainGap(CascadedValues $style, LengthContext $lc, bool $isColumn): float
     {
-        $value = $style->get('column-gap');
+        return $this->resolveFlexGapProperty($style, $isColumn ? 'row-gap' : 'column-gap');
+    }
+
+    private function resolveFlexGapProperty(CascadedValues $style, string $prop): float
+    {
+        $value = $style->get($prop);
         if ($value instanceof Length) {
             return max(0.0, $value->value);
         }
