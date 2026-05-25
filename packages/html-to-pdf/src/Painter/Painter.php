@@ -403,6 +403,24 @@ final class Painter
     }
 
     /**
+     * Resolve CSS Backgrounds 3 §3.5 `background-clip` to one of
+     * `border-box` / `padding-box` / `content-box`. Unknown
+     * keywords fall back to the initial `border-box`.
+     */
+    private function resolveBackgroundClip(Box $box): string
+    {
+        $value = $box->style->get('background-clip');
+        if (!($value instanceof Keyword)) {
+            return 'border-box';
+        }
+        $name = strtolower($value->name);
+        if (in_array($name, ['border-box', 'padding-box', 'content-box'], true)) {
+            return $name;
+        }
+        return 'border-box';
+    }
+
+    /**
      * CSS Overflow 3 §3 — return true when this box should clip its
      * descendants to its padding edge. `visible` (initial) → no clip;
      * any of `hidden` / `clip` / `scroll` / `auto` → clip (print
@@ -1496,15 +1514,33 @@ final class Painter
             return;
         }
         $geo = $box->geometry;
-        // Background extends to the padding edge (CSS Backgrounds 3 §3.5
-        // default `background-clip: border-box` actually goes to the border
-        // edge; we use border-box too).
-        $x = $geo->x - $geo->paddingLeft - $geo->borderLeft;
-        $top = $geo->y - $geo->paddingTop - $geo->borderTop;
-        $width = $geo->paddingLeft + $geo->width + $geo->paddingRight
-            + $geo->borderLeft + $geo->borderRight;
-        $height = $geo->paddingTop + $geo->height + $geo->paddingBottom
-            + $geo->borderTop + $geo->borderBottom;
+        // CSS Backgrounds 3 §3.5 — `background-clip` controls which
+        // box edge the background paint extends to. `border-box`
+        // (initial) reaches the outer border edge; `padding-box`
+        // stops at the inner border edge; `content-box` stays inside
+        // padding. We honour all three keywords.
+        $clip = $this->resolveBackgroundClip($box);
+        switch ($clip) {
+            case 'content-box':
+                $x = $geo->x;
+                $top = $geo->y;
+                $width = $geo->width;
+                $height = $geo->height;
+                break;
+            case 'padding-box':
+                $x = $geo->x - $geo->paddingLeft;
+                $top = $geo->y - $geo->paddingTop;
+                $width = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+                $height = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+                break;
+            default: // 'border-box'
+                $x = $geo->x - $geo->paddingLeft - $geo->borderLeft;
+                $top = $geo->y - $geo->paddingTop - $geo->borderTop;
+                $width = $geo->paddingLeft + $geo->width + $geo->paddingRight
+                    + $geo->borderLeft + $geo->borderRight;
+                $height = $geo->paddingTop + $geo->height + $geo->paddingBottom
+                    + $geo->borderTop + $geo->borderBottom;
+        }
         if ($hasColor) {
             $radii = $this->borderRadii($box);
             if (array_sum($radii) > 0.0) {

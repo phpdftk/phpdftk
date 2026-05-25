@@ -82,6 +82,14 @@ final class PropertyRegistry
         $r->register($initial('background-repeat', new Keyword('repeat')));
         $r->register($initial('background-position', new ValueList([], ListSeparator::Space)));
         $r->register($initial('background-size', new Keyword('auto')));
+        // CSS Backgrounds 3 §3.5 — `background-clip` & `background-origin`.
+        // `clip` controls the painted area; `origin` controls the
+        // positioning reference. Both initial to `border-box` and
+        // `padding-box` respectively per spec. Neither inherits.
+        $r->register($initial('background-clip', new Keyword('border-box')));
+        $r->register($initial('background-origin', new Keyword('padding-box')));
+        // Print-irrelevant but registered so author CSS isn't dropped.
+        $r->register($initial('background-attachment', new Keyword('scroll')));
         $r->register($initial('opacity', new Number(1.0)));
 
         // Font & text.

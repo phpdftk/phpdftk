@@ -1002,6 +1002,109 @@ final class PainterTest extends TestCase
         self::assertSame([], $stream->getOperators(), 'list-style-type:none paints nothing');
     }
 
+    public function testBackgroundClipBorderBoxIsDefault(): void
+    {
+        // Default `background-clip: border-box` paints to the outer
+        // border edge: width = content + padding + border * 2.
+        // Verify by extracting the `re` rect's width.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: red; width: 100px; height: 50px;
+                   padding: 10px; border: 5px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        // Find the red bg rect: `x y w h re` where x,y are coords and
+        // the colour set just before is `1 0 0 rg`.
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        // Width = 100 + 10*2 + 5*2 = 130.
+        self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 130(\.0+)? \d/', $bytes);
+    }
+
+    public function testBackgroundClipPaddingBoxStopsAtBorderInnerEdge(): void
+    {
+        // `background-clip: padding-box` paints to inner border edge:
+        // width = content + padding * 2 = 100 + 20 = 120.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: red; background-clip: padding-box;
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 5px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 120(\.0+)? \d/', $bytes);
+    }
+
+    public function testBackgroundClipContentBoxStopsAtPaddingInnerEdge(): void
+    {
+        // `background-clip: content-box`: width = content only = 100.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: red; background-clip: content-box;
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 5px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 100(\.0+)? \d/', $bytes);
+    }
+
+    public function testBackgroundClipInvalidValueFallsBackToBorderBox(): void
+    {
+        // Negative: an unrecognised keyword falls back to the
+        // initial `border-box`.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: red; background-clip: nonsense;
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 5px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        // Width = 130 (border-box).
+        self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 130(\.0+)? \d/', $bytes);
+    }
+
     public function testOverflowHiddenEmitsClipPath(): void
     {
         // `overflow: hidden` on a box should add a `re` rect + `W` /
