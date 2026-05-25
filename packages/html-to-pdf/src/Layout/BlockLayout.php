@@ -2058,7 +2058,21 @@ final class BlockLayout
     private function forcesPageBreakBefore(Box $box): bool
     {
         return $this->declaresForcedBreak($box->style->get('break-before'))
-            || $this->declaresForcedBreak($box->style->get('page-break-before'));
+            || $this->declaresForcedBreak($box->style->get('page-break-before'))
+            || $this->declaresNamedPage($box->style->get('page'));
+    }
+
+    /**
+     * CSS Paged Media 3 §3.4: when `page` is a non-auto identifier,
+     * it implicitly forces a page break before the box so the
+     * declared page type can apply to a fresh page.
+     */
+    private function declaresNamedPage(?\Phpdftk\Css\Value\Value $value): bool
+    {
+        if (!($value instanceof \Phpdftk\Css\Value\Keyword)) {
+            return false;
+        }
+        return strtolower($value->name) !== 'auto';
     }
 
     private function forcesPageBreakAfter(Box $box): bool

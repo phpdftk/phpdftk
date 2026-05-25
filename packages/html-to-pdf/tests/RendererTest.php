@@ -2050,6 +2050,114 @@ final class RendererTest extends TestCase
         );
     }
 
+    public function testNamedPageOverridesBackgroundOnTaggedPages(): void
+    {
+        // `@page cover { background-color: ... }` applies ONLY to a
+        // page whose contents include a block with `page: cover`.
+        // Forced page-break before that block ensures it lands on its
+        // own page.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page cover { background-color: #ffeecc; } '
+            . '.cover { page: cover; height: 400pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>front matter</p><div class="cover">cover content</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The cover page (second one) should have the #ffeecc fill.
+        self::assertMatchesRegularExpression(
+            '~1 0\.9\d+ 0\.8 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'named @page background should appear on the cover page',
+        );
+    }
+
+    public function testNamedPageDoesNotApplyToUntaggedPages(): void
+    {
+        // Negative: a `@page foo` rule with no element declaring
+        // `page: foo` should not apply anywhere.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@page cover { background-color: #ffeecc; }'
+            . '</style></head><body><p>nothing</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertDoesNotMatchRegularExpression(
+            '~1 0\.9\d+ 0\.8 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'unused @page cover should not paint',
+        );
+    }
+
+    public function testNamedPageOverlaysOnDefaultPageBackground(): void
+    {
+        // Default `@page { background: red }` plus
+        // `@page cover { background: #ffeecc }`. The default applies
+        // everywhere; the named overlay wins on the tagged page.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = '@page { background-color: red; } '
+            . '@page cover { background-color: #00ff00; } '
+            . '.cover { page: cover; height: 400pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><p>page 1</p><div class="cover">cover</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Page 1 should fill red; page 2 should fill green.
+        self::assertMatchesRegularExpression(
+            '~1 0 0 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'page 1 keeps default red bg',
+        );
+        self::assertMatchesRegularExpression(
+            '~0 1 0 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'cover page picks up green overlay',
+        );
+    }
+
+    public function testNamedPageForcesPageBreakBefore(): void
+    {
+        // `page: foo` implicitly forces a page break before the box
+        // even without explicit `break-before: page`. The named bg
+        // appears on its own page (proving the second page exists).
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@page chapter { background-color: #00ff00; } '
+            . '.chap { page: chapter; height: 50pt; }'
+            . '</style></head>'
+            . '<body><p>x</p><div class="chap">y</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The .chap div was tiny (50pt) but forced its own page →
+        // the green bg appears, proving the page break fired.
+        self::assertMatchesRegularExpression(
+            '~0 1 0 rg\s+0 0 612 792 re\s+f~',
+            $bytes,
+            'page: chapter forces a break and the chapter page gets its bg',
+        );
+    }
+
     public function testPageMarginShorthandMovesMarginBoxBands(): void
     {
         // `@page { margin: 72pt }` should put the top header band at

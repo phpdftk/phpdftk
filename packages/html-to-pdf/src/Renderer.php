@@ -107,11 +107,6 @@ final class Renderer
         // running headers/footers — the body still gets its layout origin
         // from `body { margin }` so existing fixtures stay stable.
         $pageMargins = $this->resolvePageMargins($sheets);
-        // CSS Paged Media 3 §3 + Backgrounds 3 §3.1: `@page` accepts a
-        // `background-color` (and `background-image`) declaration that
-        // fills the full page sheet behind every content layer. Phase-1
-        // supports just `background-color`; image bgs land later.
-        $pageBackground = $this->resolvePageBackground($sheets);
         $root = $this->boxGenerator->generate($document, $sheets);
         if ($root === null) {
             $warnings[] = new Warning(
@@ -171,6 +166,14 @@ final class Renderer
 
         $totalHeight = max($pageHeight, $root->geometry->outerHeight());
         $pageCount = (int) max(1, ceil($totalHeight / $pageHeight));
+
+        // CSS Paged Media 3 §3.4: when a block declares `page: foo`,
+        // the page containing its first fragment is tagged "foo" and
+        // picks up `@page foo` overrides (background / margins /
+        // margin-boxes). Walk the laid-out box tree once to build
+        // `pageIndex → name`; later, per-page resolvers overlay the
+        // named rules on top of the defaults.
+        $pageNames = $this->resolvePageNames($root, $pageHeight, $pageCount);
 
         // Build an `id → layoutY` map so `<a href="#anchor">` links can
         // resolve to PDF named destinations. Walk the post-layout box tree
@@ -260,13 +263,16 @@ final class Renderer
             // CSS Paged Media 3 §3.1: `@page { background-color }`
             // fills the entire page sheet before any content paints.
             // Sits inside the clip so the colour stays on this page
-            // even when later content draws over it.
-            if ($pageBackground !== null) {
+            // even when later content draws over it. When this page
+            // is tagged with a name (via a `page: foo` block on it),
+            // overlay `@page foo` onto the default rule.
+            $pageBgForThis = $this->resolvePageBackground($sheets, $pageNames[$i] ?? null);
+            if ($pageBgForThis !== null) {
                 $stream->saveGraphicsState();
                 $stream->setFillColorRGB(
-                    $pageBackground->r,
-                    $pageBackground->g,
-                    $pageBackground->b,
+                    $pageBgForThis->r,
+                    $pageBgForThis->g,
+                    $pageBgForThis->b,
                 );
                 $stream->rectangle(0, 0, $pageWidth, $pageHeight);
                 $stream->fill();
@@ -309,7 +315,7 @@ final class Renderer
             // selector resolution happens here so `@page :first` only
             // applies to page 0 and `@page :left`/`:right` alternate.
             if ($pageMarginBoxes !== [] && $registeredFont !== null && $this->options->defaultFont !== null) {
-                $resolved = $this->resolvePageMarginBoxes($pageMarginBoxes, $i);
+                $resolved = $this->resolvePageMarginBoxes($pageMarginBoxes, $i, $pageNames[$i] ?? null);
                 if ($resolved !== []) {
                     $this->paintPageMarginBoxes(
                         $stream,
@@ -1691,9 +1697,14 @@ final class Renderer
      * background-image painter once a shared image-paint path is in
      * place.
      *
+     * `$pageName` (optional) selects an `@page <name>` overlay on top
+     * of the default unnamed rule. CSS Paged Media 3 §3.4: when the
+     * page being painted is tagged with a name, the named rule wins
+     * for any property it sets.
+     *
      * @param list<\Phpdftk\Css\Sheet\Stylesheet> $sheets
      */
-    private function resolvePageBackground(array $sheets): ?\Phpdftk\Css\Value\Color
+    private function resolvePageBackground(array $sheets, ?string $pageName = null): ?\Phpdftk\Css\Value\Color
     {
         $expander = new \Phpdftk\Css\Cascade\ShorthandExpander();
         $color = null;
@@ -1703,6 +1714,10 @@ final class Renderer
                     || strtolower($rule->name) !== 'page'
                     || $rule->block === null
                 ) {
+                    continue;
+                }
+                $sel = $this->normalisePageSelector($rule->prelude);
+                if (!$this->pageSelectorAppliesTo($sel, $pageName)) {
                     continue;
                 }
                 foreach ($rule->block->contents as $decl) {
@@ -1724,6 +1739,64 @@ final class Renderer
             }
         }
         return $color;
+    }
+
+    /**
+     * `true` when an `@page` rule with the given normalised selector
+     * applies to a page tagged `$pageName`. Default (no selector)
+     * always applies; named selectors apply only when their name
+     * matches the page tag.
+     */
+    private function pageSelectorAppliesTo(?string $selector, ?string $pageName): bool
+    {
+        if ($selector === null) {
+            return false;
+        }
+        if ($selector === '' || $selector === ':first' || $selector === ':left' || $selector === ':right') {
+            // Phase-1: ignore parity / first overlays here. The
+            // resolvePageMarginBoxes pipeline still honours them
+            // separately via its own selector overlay.
+            return $selector === '';
+        }
+        if (str_starts_with($selector, 'name:')) {
+            return $pageName !== null && substr($selector, 5) === $pageName;
+        }
+        return false;
+    }
+
+    /**
+     * Walk the laid-out box tree once, building a per-page-index map of
+     * the named page type that applies. A block with `page: foo`
+     * tags the page containing its top edge as "foo" (CSS Paged Media
+     * 3 §3.4 — the first fragment determines the page type).
+     *
+     * @return array<int, string>
+     */
+    private function resolvePageNames(\Phpdftk\HtmlToPdf\Box\Box $root, float $pageHeight, int $pageCount): array
+    {
+        $map = [];
+        if ($pageHeight <= 0.0) {
+            return $map;
+        }
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            $value = $node->style->get('page');
+            if ($value instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($value->name) !== 'auto'
+            ) {
+                $pageIndex = (int) floor($node->geometry->y / $pageHeight);
+                if ($pageIndex >= 0 && $pageIndex < $pageCount && !isset($map[$pageIndex])) {
+                    $map[$pageIndex] = strtolower($value->name);
+                }
+            }
+            // Push children in reverse order so document-order walk
+            // processes the first child first.
+            for ($i = count($node->children) - 1; $i >= 0; $i--) {
+                $stack[] = $node->children[$i];
+            }
+        }
+        return $map;
     }
 
     /**
@@ -1899,6 +1972,13 @@ final class Renderer
         if (in_array($lc, [':first', ':left', ':right'], true)) {
             return $lc;
         }
+        // CSS Paged Media 3 §3.4: `@page <ident>` names a page type.
+        // The prelude is an identifier (possibly followed by a
+        // pseudo-class — Phase 1 ignores combined `<ident>:first`
+        // forms and just keys on the bare name).
+        if (preg_match('/^([a-z_][a-z0-9_-]*)$/', $lc, $m) === 1) {
+            return 'name:' . $m[1];
+        }
         return null;
     }
 
@@ -1929,7 +2009,7 @@ final class Renderer
      *     fontStyle: string,
      * }>
      */
-    private function resolvePageMarginBoxes(array $marginBoxes, int $pageIndex): array
+    private function resolvePageMarginBoxes(array $marginBoxes, int $pageIndex, ?string $pageName = null): array
     {
         $resolved = $marginBoxes[''] ?? [];
         // Even-numbered (0-indexed) pages are right-facing per the CSS
@@ -1941,6 +2021,12 @@ final class Renderer
         }
         if ($pageIndex === 0 && isset($marginBoxes[':first'])) {
             $resolved = array_merge($resolved, $marginBoxes[':first']);
+        }
+        // CSS Paged Media 3 §3.4: named selectors overlay on top of
+        // the parity/first selectors when the page is tagged with a
+        // matching name.
+        if ($pageName !== null && isset($marginBoxes['name:' . $pageName])) {
+            $resolved = array_merge($resolved, $marginBoxes['name:' . $pageName]);
         }
         return $resolved;
     }

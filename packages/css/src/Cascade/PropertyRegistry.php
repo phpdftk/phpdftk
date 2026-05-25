@@ -282,6 +282,12 @@ final class PropertyRegistry
         // outermost edges paint at fragment seams. `clone` paints full
         // decorations on every fragment. Non-inherited per spec.
         $r->register($initial('box-decoration-break', new Keyword('slice')));
+        // CSS Paged Media 3 §3.4: `page` names a page type defined by
+        // an `@page <name>` at-rule. When a block has a non-`auto`
+        // `page` value, its first fragment forces a page break and
+        // that page picks up the named rule's margins / background /
+        // margin-boxes. Non-inherited per spec.
+        $r->register($initial('page', new Keyword('auto')));
         // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
         // inherit; layout uses them to gate where a paragraph may split
         // across a page boundary.
