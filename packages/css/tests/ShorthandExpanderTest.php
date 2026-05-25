@@ -335,6 +335,29 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame([], $out);
     }
 
+    public function testOverflowOneValueAppliesToBothAxes(): void
+    {
+        $out = $this->expander->expand('overflow', $this->value('hidden'));
+        self::assertSame('hidden', $out['overflow-x']->name);
+        self::assertSame('hidden', $out['overflow-y']->name);
+    }
+
+    public function testOverflowTwoValuesXThenY(): void
+    {
+        $out = $this->expander->expand('overflow', $this->value('hidden auto'));
+        self::assertSame('hidden', $out['overflow-x']->name);
+        self::assertSame('auto', $out['overflow-y']->name);
+    }
+
+    public function testOverflowKeepsLegacyOverflowKey(): void
+    {
+        // Existing painter code might still read `overflow` directly;
+        // keep it set to the X-axis value so behavior doesn't regress.
+        $out = $this->expander->expand('overflow', $this->value('hidden auto'));
+        self::assertArrayHasKey('overflow', $out);
+        self::assertSame('hidden', $out['overflow']->name);
+    }
+
     public function testInsetOneValueExpandsToAllFour(): void
     {
         $out = $this->expander->expand('inset', $this->value('10px'));

@@ -73,6 +73,7 @@ final class ShorthandExpander
             'column-rule' => $this->expandColumnRule($value),
             'gap' => $this->expandGap($value),
             'inset' => $this->expandInset($value),
+            'overflow' => $this->expandOverflow($value),
             default => [$property => $value],
         };
     }
@@ -590,6 +591,34 @@ final class ShorthandExpander
             $out['text-decoration-color'] = $color;
         }
         return $out;
+    }
+
+    /**
+     * `overflow: <visible|hidden|clip|scroll|auto>{1,2}` (CSS
+     * Overflow 3 §3.2). Single value applies to both axes;
+     * two values are `overflow-x overflow-y`. Also keeps the legacy
+     * `overflow` longhand so existing painter code keeps reading
+     * the un-prefixed value.
+     *
+     * @return array<string, Value>
+     */
+    private function expandOverflow(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        [$x, $y] = count($components) === 1
+            ? [$components[0], $components[0]]
+            : [$components[0], $components[1]];
+        return [
+            'overflow-x' => $x,
+            'overflow-y' => $y,
+            // Keep the legacy direct property in sync so any reader
+            // that still reaches for `overflow` sees a sensible value
+            // (the X axis for asymmetric splits).
+            'overflow' => $x,
+        ];
     }
 
     /**

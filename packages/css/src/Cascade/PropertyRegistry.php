@@ -196,6 +196,11 @@ final class PropertyRegistry
         // BlockLayout when width OR height is auto.
         $r->register($initial('aspect-ratio', new Keyword('auto')));
         $r->register($initial('overflow', new Keyword('visible')));
+        // CSS Overflow 3 §3.1 — per-axis longhands. `overflow` is
+        // the shorthand (CSS Overflow 3 §3.2). Painter clips if
+        // EITHER axis is non-visible.
+        $r->register($initial('overflow-x', new Keyword('visible')));
+        $r->register($initial('overflow-y', new Keyword('visible')));
         $r->register($initial('visibility', new Keyword('visible'), true));
         // CSS Images 3 §5.4 — `image-rendering` controls how the UA
         // scales raster images. Print rendering treats them as `auto`

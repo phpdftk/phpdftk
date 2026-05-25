@@ -1105,6 +1105,53 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 130(\.0+)? \d/', $bytes);
     }
 
+    public function testOverflowXHiddenClipsBothAxesInPrint(): void
+    {
+        // PDF can't clip a single axis without a rectangle; per-axis
+        // overflow collapses to clip-both for our purposes.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow-x: hidden; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes, 'overflow-x clips both axes');
+    }
+
+    public function testOverflowYAutoTriggersClip(): void
+    {
+        // overflow-y: auto → clip in print (no scroll viewport).
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow-y: auto; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes);
+    }
+
     public function testOverflowHiddenEmitsClipPath(): void
     {
         // `overflow: hidden` on a box should add a `re` rect + `W` /

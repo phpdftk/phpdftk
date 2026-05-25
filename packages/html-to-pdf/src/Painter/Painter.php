@@ -423,17 +423,25 @@ final class Painter
     /**
      * CSS Overflow 3 §3 — return true when this box should clip its
      * descendants to its padding edge. `visible` (initial) → no clip;
-     * any of `hidden` / `clip` / `scroll` / `auto` → clip (print
-     * medium has no scrolling, so scroll / auto collapse to hidden).
+     * any of `hidden` / `clip` / `scroll` / `auto` → clip. PDF
+     * clipping is rectangular (both axes), so when EITHER `overflow-x`
+     * or `overflow-y` is non-visible we clip both axes — over-clipping
+     * relative to spec but visually correct for print where there's
+     * no scroll viewport.
      */
     private function shouldOverflowClip(Box $box): bool
     {
-        $value = $box->style->get('overflow');
-        if (!($value instanceof Keyword)) {
-            return false;
+        foreach (['overflow', 'overflow-x', 'overflow-y'] as $prop) {
+            $value = $box->style->get($prop);
+            if (!($value instanceof Keyword)) {
+                continue;
+            }
+            $name = strtolower($value->name);
+            if ($name === 'hidden' || $name === 'clip' || $name === 'scroll' || $name === 'auto') {
+                return true;
+            }
         }
-        $name = strtolower($value->name);
-        return $name === 'hidden' || $name === 'clip' || $name === 'scroll' || $name === 'auto';
+        return false;
     }
 
     /**
