@@ -315,17 +315,30 @@ final class BlockLayout
         $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
 
         // Resolve content width: `auto` fills the containing block minus
-        // margins / borders / padding.
+        // margins / borders / padding. CSS Sizing 3 §6.2: with
+        // `box-sizing: border-box`, the declared `width` includes
+        // border + padding, so subtract them to get the content width.
         $widthValue = $style->get('width');
         $widthAuto = $this->isAuto($widthValue);
-        $contentWidth = $widthAuto
-            ? max(
+        $borderBox = $this->isBorderBoxSizing($style);
+        if ($widthAuto) {
+            $contentWidth = max(
                 0.0,
                 $cbWidth - $geo->marginLeft - $geo->marginRight
                     - $geo->borderLeft - $geo->borderRight
                     - $geo->paddingLeft - $geo->paddingRight,
-            )
-            : $this->resolveLength($widthValue, $cbWidth);
+            );
+        } else {
+            $contentWidth = $this->resolveLength($widthValue, $cbWidth);
+            if ($borderBox) {
+                $contentWidth = max(
+                    0.0,
+                    $contentWidth
+                        - $geo->borderLeft - $geo->borderRight
+                        - $geo->paddingLeft - $geo->paddingRight,
+                );
+            }
+        }
         // CSS 2.1 §10.4 — clamp to [min-width, max-width]. min-width wins
         // when min > max (so `min: 100px; max: 50px` resolves to 100px).
         // `max-width: none` keyword leaves the upper bound unbounded;
@@ -443,13 +456,24 @@ final class BlockLayout
             }
         }
 
-        // Resolve content height: explicit, percentage of containing block, or auto = children.
+        // Resolve content height: explicit, percentage of containing
+        // block, or auto = children. With `box-sizing: border-box`,
+        // the declared height includes border + padding, so subtract
+        // them to get the content height.
         $heightValue = $style->get('height');
         $heightIsAuto = $this->isAuto($heightValue);
         if ($heightIsAuto) {
             $geo->height = $childTotal;
         } else {
             $geo->height = $this->resolveLength($heightValue, $context->containingBlockHeight);
+            if ($borderBox) {
+                $geo->height = max(
+                    0.0,
+                    $geo->height
+                        - $geo->borderTop - $geo->borderBottom
+                        - $geo->paddingTop - $geo->paddingBottom,
+                );
+            }
         }
         // CSS Sizing 4 §4.2 — `aspect-ratio` constrains height (or
         // width) when the other dimension is determined. Phase-1:
@@ -1289,6 +1313,19 @@ final class BlockLayout
             return strtolower($value->name);
         }
         return $default;
+    }
+
+    /**
+     * CSS Sizing 3 §6.2 — `true` when `box-sizing` is `border-box`.
+     * Under border-box, the declared `width` / `height` (and the
+     * min/max variants) include the border + padding so the caller
+     * subtracts them to get the content-box dimension.
+     */
+    private function isBorderBoxSizing(CascadedValues $style): bool
+    {
+        $value = $style->get('box-sizing');
+        return $value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === 'border-box';
     }
 
     /**

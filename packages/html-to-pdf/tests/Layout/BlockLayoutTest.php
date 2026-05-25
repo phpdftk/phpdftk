@@ -3714,6 +3714,104 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(600.0, $div->geometry->width);
     }
 
+    public function testBoxSizingBorderBoxSubtractsBorderAndPaddingFromWidth(): void
+    {
+        // CSS Sizing 3 §6.2: with `box-sizing: border-box`, the
+        // declared `width: 200px` includes the 10pt borders on each
+        // side (20pt total) and 5pt padding on each side (10pt total).
+        // Content width becomes 200 - 20 - 10 = 170.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 200px; padding: 5px; border: 10px solid;
+                                       box-sizing: border-box"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(170.0, $div->geometry->width);
+        // outerWidth (the visible box edge) equals the declared 200pt.
+        self::assertSame(200.0, $div->geometry->outerWidth());
+    }
+
+    public function testBoxSizingBorderBoxSubtractsFromHeight(): void
+    {
+        // Same rule for height: declared 100pt - top/bottom padding
+        // 20pt - top/bottom border 10pt = 70pt content height.
+        $box = $this->buildTree(
+            '<html><body><div style="height: 100px; padding: 10px; border: 5px solid;
+                                       box-sizing: border-box"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        // 100 - 2*10 - 2*5 = 70.
+        self::assertSame(70.0, $div->geometry->height);
+    }
+
+    public function testBoxSizingContentBoxDefaultIgnoresBorderInWidth(): void
+    {
+        // Negative: default `content-box` — declared width is the
+        // content width; border + padding stack outside, so the
+        // outer box is wider than the declared width.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 200px; padding: 5px; border: 10px solid"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        // Content stays at 200, outerWidth = 200 + 30 = 230.
+        self::assertSame(200.0, $div->geometry->width);
+        self::assertSame(230.0, $div->geometry->outerWidth());
+    }
+
+    public function testBoxSizingBorderBoxWithoutBorderOrPadding(): void
+    {
+        // Negative: border-box with no border + padding declared →
+        // content width matches declared width (no subtraction needed).
+        $box = $this->buildTree(
+            '<html><body><div style="width: 200px; box-sizing: border-box"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertSame(200.0, $div->geometry->width);
+    }
+
+    public function testBoxSizingBorderBoxAutoWidthIgnored(): void
+    {
+        // Negative: with `width: auto`, box-sizing has no effect — the
+        // auto computation already produces the content width directly.
+        $box = $this->buildTree(
+            '<html><body><div style="padding: 10px; border: 5px solid;
+                                       box-sizing: border-box"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        // Auto width: cbWidth(600) - 2*10 (padding) - 2*5 (border) = 570.
+        self::assertSame(570.0, $div->geometry->width);
+    }
+
+    public function testBoxSizingBorderBoxClampsAtZero(): void
+    {
+        // Negative: when border + padding exceed the declared width,
+        // content width clamps at 0 rather than going negative.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 20px; padding: 30px; border: 5px solid;
+                                       box-sizing: border-box"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        // 20 - 60 - 10 = -50 → clamped to 0.
+        self::assertSame(0.0, $div->geometry->width);
+    }
+
     public function testMinHeightExpandsAutoHeightBox(): void
     {
         // `<div>` with no children → height 0 by default. min-height
