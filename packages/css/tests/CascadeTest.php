@@ -518,4 +518,66 @@ final class CascadeTest extends TestCase
         self::assertInstanceOf(Color::class, $childCaret);
         self::assertSame(0.0, $childCaret->r);
     }
+
+    public function testImageRenderingRegisteredAndAcceptsAuthorValue(): void
+    {
+        $sheet = $this->parser->parseStylesheet('img { image-rendering: pixelated; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('img'));
+        $r = $values->get('image-rendering');
+        self::assertInstanceOf(Keyword::class, $r);
+        self::assertSame('pixelated', strtolower($r->name));
+    }
+
+    public function testFontKerningInheritsToDescendants(): void
+    {
+        // CSS Fonts 4 §6.5: font-kerning inherits.
+        $sheet = $this->parser->parseStylesheet('p { font-kerning: none; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $kerning = $childValues->get('font-kerning');
+        self::assertInstanceOf(Keyword::class, $kerning);
+        self::assertSame('none', strtolower($kerning->name));
+    }
+
+    public function testIsolationDoesNotInherit(): void
+    {
+        // CSS Compositing 1: isolation does NOT inherit.
+        $sheet = $this->parser->parseStylesheet('div { isolation: isolate; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('div'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $isolation = $childValues->get('isolation');
+        self::assertInstanceOf(Keyword::class, $isolation);
+        self::assertSame('auto', strtolower($isolation->name));
+    }
+
+    public function testFontFeatureSettingsRegisteredAndInherits(): void
+    {
+        // font-feature-settings inherits per CSS Fonts 4.
+        $sheet = $this->parser->parseStylesheet('p { font-feature-settings: "smcp"; }');
+        $parentValues = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $childValues = $this->cascade->computeFor(
+            [$sheet],
+            new FakeElement('span'),
+            $parentValues,
+        );
+        $value = $childValues->get('font-feature-settings');
+        self::assertNotNull($value);
+    }
+
+    public function testMixBlendModeDefaultsToNormal(): void
+    {
+        // Default value.
+        $values = $this->cascade->computeFor([], new FakeElement('div'));
+        $blend = $values->get('mix-blend-mode');
+        self::assertInstanceOf(Keyword::class, $blend);
+        self::assertSame('normal', strtolower($blend->name));
+    }
 }

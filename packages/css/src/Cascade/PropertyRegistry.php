@@ -192,6 +192,21 @@ final class PropertyRegistry
         $r->register($initial('box-sizing', new Keyword('content-box')));
         $r->register($initial('overflow', new Keyword('visible')));
         $r->register($initial('visibility', new Keyword('visible'), true));
+        // CSS Images 3 §5.4 — `image-rendering` controls how the UA
+        // scales raster images. Print rendering treats them as `auto`
+        // regardless, but register so author CSS isn't dropped.
+        $r->register($initial('image-rendering', new Keyword('auto')));
+        // CSS Fonts 4 §6.5 — `font-kerning` toggles OpenType kern.
+        // `auto` (initial) means the UA decides; inherits.
+        $r->register($initial('font-kerning', new Keyword('auto'), true));
+        $r->register($initial('font-feature-settings', new Keyword('normal'), true));
+        $r->register($initial('font-variation-settings', new Keyword('normal'), true));
+        // CSS Compositing 1 — `isolation` controls stacking context;
+        // print medium has no blending compositing layers but register
+        // so cascade keeps the value.
+        $r->register($initial('isolation', new Keyword('auto')));
+        $r->register($initial('mix-blend-mode', new Keyword('normal')));
+
         // CSS Images 3 §5: `object-fit` controls how a replaced element
         // (currently `<img>`) scales within its declared width × height.
         // Initial `fill` matches the legacy "stretch to box" behaviour.
