@@ -360,6 +360,21 @@ final class PropertyRegistry
         $r->register($initial('column-fill', new Keyword('balance')));
         $r->register($initial('column-span', new Keyword('none')));
 
+        // CSS Grid Layout 2 — initial values per §7 / §8 / §9.
+        // Phase-2 MVP supports explicit-placement layout with
+        // `<length>` track lists; `fr` units, `repeat()`, `auto`
+        // track sizing, and template-areas land in follow-ups.
+        $r->register($initial('grid-template-columns', new Keyword('none')));
+        $r->register($initial('grid-template-rows', new Keyword('none')));
+        $r->register($initial('grid-template-areas', new Keyword('none')));
+        $r->register($initial('grid-auto-columns', new Keyword('auto')));
+        $r->register($initial('grid-auto-rows', new Keyword('auto')));
+        $r->register($initial('grid-auto-flow', new Keyword('row')));
+        $r->register($initial('grid-column-start', new Keyword('auto')));
+        $r->register($initial('grid-column-end', new Keyword('auto')));
+        $r->register($initial('grid-row-start', new Keyword('auto')));
+        $r->register($initial('grid-row-end', new Keyword('auto')));
+
         return $r;
     }
 }

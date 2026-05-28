@@ -836,6 +836,7 @@ final class BoxGenerator
             'table-row' => new TableRowBox($element, $values),
             'table-cell' => new TableCellBox($element, $values),
             'flex' => new FlexBox($element, $values),
+            'grid' => new GridBox($element, $values),
             default => new BlockBox($element, $values),
         };
     }

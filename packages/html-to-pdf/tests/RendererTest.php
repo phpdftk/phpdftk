@@ -2313,6 +2313,44 @@ final class RendererTest extends TestCase
         self::assertStringStartsWith('%PDF-', $bytes);
     }
 
+    public function testGridLayoutEndToEndProducesValidPdf(): void
+    {
+        // Integration: render a 3-column × 2-row grid with explicit
+        // placement + auto-flow + gap. Verify the PDF is well-formed
+        // and contains the expected cell content for each item.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: 60pt 60pt 60pt; '
+            . '        grid-template-rows: 40pt 40pt; '
+            . '        column-gap: 8pt; row-gap: 4pt; }'
+            . '.cell { background-color: #cccccc; }'
+            . '.span { grid-column: 1 / 3; background-color: #aabbcc; }'
+            . '</style></head><body>'
+            . '<div class="grid">'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="span"></div>'
+            . '<div class="cell"></div>'
+            . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Two distinct background colours emitted (the cell grey at
+        // #cccccc = 0.8 0.8 0.8, and the span colour #aabbcc).
+        self::assertMatchesRegularExpression(
+            '~0\.8 0\.8 0\.8 rg~',
+            $bytes,
+            'cell background colour painted',
+        );
+        // 5 background rects total (4 cells + 1 spanned). Just count
+        // the colour-fill operator occurrences as a sanity check.
+        $rgCount = preg_match_all('~ rg(\s|\n)~', $bytes);
+        self::assertGreaterThanOrEqual(5, $rgCount, 'multiple rg operators present');
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

@@ -76,8 +76,39 @@ final class ShorthandExpander
             'overflow' => $this->expandOverflow($value),
             'flex' => $this->expandFlex($value),
             'flex-flow' => $this->expandFlexFlow($value),
+            'grid-column' => $this->expandGridLine($value, 'column'),
+            'grid-row' => $this->expandGridLine($value, 'row'),
             default => [$property => $value],
         };
+    }
+
+    /**
+     * CSS Grid Layout 2 §8.3.1 — `grid-column` / `grid-row` shorthand.
+     * Accepts `<start>` (end omitted, defaults to auto) or
+     * `<start> / <end>`. Numeric start/end are kept as `Integer`;
+     * `auto` falls through as a Keyword. The `span N` syntax is
+     * deferred (Phase-2 follow-up — span support requires the layout
+     * to grow the implicit grid).
+     *
+     * @return array<string, Value>
+     */
+    private function expandGridLine(Value $value, string $axis): array
+    {
+        $startKey = "grid-{$axis}-start";
+        $endKey = "grid-{$axis}-end";
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Slash
+            && count($value->values) >= 2
+        ) {
+            return [
+                $startKey => $value->values[0],
+                $endKey => $value->values[1],
+            ];
+        }
+        return [
+            $startKey => $value,
+            $endKey => new \Phpdftk\Css\Value\Keyword('auto'),
+        ];
     }
 
     /**

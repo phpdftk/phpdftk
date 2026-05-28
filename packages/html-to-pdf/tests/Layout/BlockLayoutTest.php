@@ -2408,6 +2408,300 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(30.0, $b->geometry->y, 'sibling stacks at pre-shift cursor');
     }
 
+    public function testGridEmptyContainerProducesNoChildren(): void
+    {
+        // Negative: `display: grid` with no children must layout cleanly.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 300px; height: 100px;"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $grid = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
+                $grid = $c;
+            }
+        }
+        self::assertNotNull($grid);
+        self::assertSame(300.0, $grid->geometry->width);
+        self::assertSame(100.0, $grid->geometry->height);
+    }
+
+    public function testGridMissingTemplateColumnsFallsBackToSingleColumn(): void
+    {
+        // Negative: without `grid-template-columns`, all items land
+        // in the same (single) column at the container's full width.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 300px; height: 100px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $item = $this->find($box, 'div.a');
+        // The single column fills the container width.
+        self::assertEqualsWithDelta(300.0, $item->geometry->width, 0.001);
+    }
+
+    public function testGridUnknownPlacementKeywordFallsBackToAuto(): void
+    {
+        // Negative: a non-numeric placement keyword that isn't `auto`
+        // falls through to the auto path. The item still places at
+        // the first free cell.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="a" style="grid-column-start: nonsense;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // First free cell = (0, 0); X offset == 0 from grid origin.
+        self::assertSame(0.0, $a->geometry->x);
+    }
+
+    public function testGridItemBeyondExplicitTracksIsSilentlyDropped(): void
+    {
+        // Negative: an item placed at column 99 in a 2-column grid
+        // has no track and silently doesn't render (implicit-track
+        // growth is a deferred follow-up). Other items still place.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="a" style="grid-column: 99;"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // 'b' auto-places at the first free cell (0, 0).
+        self::assertSame(0.0, $b->geometry->x);
+    }
+
+    public function testGridEndBeforeStartSwapsToOneCellSpan(): void
+    {
+        // Negative: `grid-column: 3 / 1` — end before start should
+        // still place the item, not crash or skip.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="a" style="grid-column-start: 3; grid-column-end: 1;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // The placement is satisfied somewhere in the grid (exact
+        // column doesn't matter for the negative — the assertion is
+        // "doesn't crash and child got placed with positive width").
+        self::assertGreaterThan(0.0, $a->geometry->width);
+    }
+
+    public function testGridChildWithoutPlacementAutoFlowsToFirstFreeCell(): void
+    {
+        // Negative: a child with no placement at all should land at
+        // the first free cell (auto-flow row direction).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="placed" style="grid-column: 2;"></div>'
+            . '<div class="auto"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $placed = $this->find($box, 'div.placed');
+        $auto = $this->find($box, 'div.auto');
+        // `placed` at col=1 (1-based "2" = 0-based 1) → x = 100.
+        self::assertSame(100.0, $placed->geometry->x);
+        // `auto` at col=0 → x = 0 (first free cell).
+        self::assertSame(0.0, $auto->geometry->x);
+    }
+
+    public function testGridNegativeIndexCountsFromEnd(): void
+    {
+        // Negative-encoded positive: `grid-column: -1` resolves to
+        // the last line (= the right edge), so a 1-cell span ending
+        // at -1 means the rightmost cell.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 50px 50px 50px; grid-template-rows: 50px;">'
+            . '<div class="a" style="grid-column-end: -1;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // end = -1 = last line (line 4 = index 3). start = auto → 1-cell
+        // ending at 3 means start at 2 (the rightmost cell).
+        self::assertSame(100.0, $a->geometry->x);
+    }
+
+    public function testGridInlineChildrenAreSkipped(): void
+    {
+        // Negative: text and inline children of a grid container are
+        // skipped at MVP (Phase-2 doesn't synthesize anonymous blocks
+        // for inline-level grid items). The grid still lays out OK.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; grid-template-rows: 50px;">'
+            . 'raw text'
+            . '<div class="block"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $block = $this->find($box, 'div.block');
+        // The block lands at the only cell (0, 0).
+        self::assertSame(0.0, $block->geometry->x);
+        self::assertSame(0.0, $block->geometry->y);
+    }
+
+    public function testGridGapNormalResolvesToZero(): void
+    {
+        // Negative: `column-gap: normal` (initial) is zero for grid,
+        // matching flexbox. Two adjacent 100px columns put item 2
+        // at x = 100, not at x = 100 + some gap.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        self::assertSame(100.0, $b->geometry->x);
+    }
+
+    public function testGridInvalidTrackValueDroppedFromTemplate(): void
+    {
+        // Negative: non-`<length>` track values aren't honoured at
+        // Phase-2 (no `fr`, no `auto`). The track list parses with
+        // only the valid lengths kept.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 1fr 100px; grid-template-rows: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // Only 2 of the 3 declared columns are honoured (1fr dropped).
+        // First column = 100px → 'a' at x=0; second column = 100px →
+        // 'b' at x=100.
+        self::assertSame(100.0, $b->geometry->x);
+    }
+
+    public function testGridExplicitPlacementHonoursColumnAndRow(): void
+    {
+        // Positive: explicit `grid-column: 2; grid-row: 2` places at
+        // the (1, 1) 0-based cell.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px 80px; '
+            . 'grid-template-rows: 40px 40px;">'
+            . '<div class="a" style="grid-column: 2; grid-row: 2;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertSame(80.0, $a->geometry->x, 'x at second column');
+        self::assertSame(40.0, $a->geometry->y, 'y at second row');
+    }
+
+    public function testGridAutoFlowFillsRowMajor(): void
+    {
+        // Positive: three items in a 2-column grid auto-flow into
+        // (0,0), (0,1), (1,0) row-by-row.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px; '
+            . 'grid-template-rows: 40px 40px;">'
+            . '<div class="a"></div><div class="b"></div><div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(80.0, $b->geometry->x);
+        self::assertSame(0.0, $b->geometry->y);
+        self::assertSame(0.0, $c->geometry->x);
+        self::assertSame(40.0, $c->geometry->y);
+    }
+
+    public function testGridGapInsertsSpaceBetweenTracks(): void
+    {
+        // Positive: `column-gap: 10px` shifts the second-column
+        // item right by 10. `row-gap: 8px` shifts the second-row
+        // item down by 8.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px; '
+            . 'grid-template-rows: 40px 40px; '
+            . 'column-gap: 10px; row-gap: 8px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '<div class="d"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        $d = $this->find($box, 'div.d');
+        self::assertSame(90.0, $b->geometry->x, 'col-gap applied');
+        self::assertSame(48.0, $c->geometry->y, 'row-gap applied');
+        self::assertSame(90.0, $d->geometry->x);
+        self::assertSame(48.0, $d->geometry->y);
+    }
+
+    public function testGridMultiColumnSpanWidensChild(): void
+    {
+        // Positive: `grid-column: 1 / 3` makes the item span 2
+        // columns. Width = sum of column widths + the gap between.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px; '
+            . 'grid-template-rows: 40px; column-gap: 10px;">'
+            . '<div class="a" style="grid-column: 1 / 3;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // Spans both 80px columns plus one 10px gap = 170.
+        self::assertEqualsWithDelta(170.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridChildSizesToCellWidth(): void
+    {
+        // Positive: a 1-cell child stretches to fill its column
+        // track width (= grid's default "stretch" behaviour for
+        // both justify-self and align-self at MVP).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 120px; grid-template-rows: 40px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(120.0, $a->geometry->width, 0.001);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with
@@ -5106,11 +5400,20 @@ final class BlockLayoutTest extends TestCase
 
     private function find(Box $root, string $tag): ?Box
     {
+        // Accept the `tag.class` form so tests can disambiguate
+        // siblings of the same tag. Class match is presence-of, not
+        // a full Selectors-4 implementation — sufficient for tests.
+        $class = null;
+        if (str_contains($tag, '.')) {
+            [$tag, $class] = explode('.', $tag, 2);
+        }
         $stack = [$root];
         while ($stack !== []) {
             $node = array_shift($stack);
             if ($node->element !== null && $node->element->localName === $tag) {
-                return $node;
+                if ($class === null || in_array($class, $node->element->classes(), true)) {
+                    return $node;
+                }
             }
             foreach ($node->children as $c) {
                 $stack[] = $c;

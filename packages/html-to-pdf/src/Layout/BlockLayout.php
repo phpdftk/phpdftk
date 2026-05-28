@@ -164,6 +164,9 @@ final class BlockLayout
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox) {
             return $this->layoutFlexBox($box, $context);
         }
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
+            return $this->layoutGridBox($box, $context);
+        }
         if ($box instanceof BlockBox
             || $box instanceof AnonymousBlockBox
             || $box instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
@@ -1188,6 +1191,479 @@ final class BlockLayout
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
 
         return $geo->outerHeight();
+    }
+
+    /**
+     * CSS Grid Layout 2 §3 — `display: grid`. Phase-2 MVP:
+     *  - `grid-template-columns: <length>+` / `grid-template-rows:
+     *    <length>+` define explicit track sizes. The `<length>` list
+     *    becomes a per-track size array.
+     *  - Item placement via `grid-column-start` / `grid-column-end`
+     *    / `grid-row-start` / `grid-row-end` (and the `grid-column`
+     *    / `grid-row` shorthands). 1-based line numbers; negative
+     *    indices count from the end (`-1` = last line). `auto` on
+     *    either end means "auto-flow into the next free cell".
+     *  - Auto-flow walks items in document order, placing un-placed
+     *    items at the next free cell row-by-row (CSS Grid Layout 2
+     *    §6.3 — `grid-auto-flow: row`). Items with at least one
+     *    explicit placement value are placed first; un-placed items
+     *    fill the remaining slots.
+     *  - Each cell's box gets `width = columnTrack[c]`, `height =
+     *    rowTrack[r]`. Multi-cell items sum their spanned tracks +
+     *    the gaps between.
+     *  - `column-gap` / `row-gap` insert spacing between tracks
+     *    (consistent with flexbox + multi-column).
+     *
+     * Deferred (Phase-2 follow-ups): `fr` unit (intrinsic flex
+     * sizing), `auto` track sizing (needs min/max-content), `span
+     * N`, `repeat()` / `auto-fill` / `auto-fit`, `grid-template-
+     * areas`, `grid-auto-{columns,rows}` implicit tracks beyond the
+     * declared template, `justify-self` / `align-self`, subgrid.
+     */
+    private function layoutGridBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
+    {
+        $style = $box->style;
+        $cbWidth = $context->containingBlockWidth;
+        $cbHeight = $context->containingBlockHeight;
+        $geo = $box->geometry;
+
+        // Container box-frame resolution mirrors layoutFlexBox.
+        $geo->marginTop = $this->resolveLength($style->get('margin-top'), $cbWidth);
+        $geo->marginRight = $this->resolveLength($style->get('margin-right'), $cbWidth);
+        $geo->marginBottom = $this->resolveLength($style->get('margin-bottom'), $cbWidth);
+        $geo->marginLeft = $this->resolveLength($style->get('margin-left'), $cbWidth);
+        $geo->paddingTop = $this->resolveLength($style->get('padding-top'), $cbWidth);
+        $geo->paddingRight = $this->resolveLength($style->get('padding-right'), $cbWidth);
+        $geo->paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbWidth);
+        $geo->paddingLeft = $this->resolveLength($style->get('padding-left'), $cbWidth);
+        $geo->borderTop = $this->resolveBorderWidth($style, 'top');
+        $geo->borderRight = $this->resolveBorderWidth($style, 'right');
+        $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
+        $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
+
+        $widthValue = $style->get('width');
+        $widthAuto = $this->isAuto($widthValue);
+        $geo->width = $widthAuto
+            ? max(
+                0.0,
+                $cbWidth - $geo->marginLeft - $geo->marginRight
+                    - $geo->borderLeft - $geo->borderRight
+                    - $geo->paddingLeft - $geo->paddingRight,
+            )
+            : $this->resolveLength($widthValue, $cbWidth);
+
+        $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
+        $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
+
+        $columnTracks = $this->parseGridTrackList($style->get('grid-template-columns'));
+        $rowTracks = $this->parseGridTrackList($style->get('grid-template-rows'));
+        $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
+        $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
+
+        if ($box->children === []) {
+            $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+            $geo->height = $declaredHeight ?? $this->gridTotalExtent($rowTracks, $rowGap);
+            $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
+            return $geo->outerHeight();
+        }
+
+        // Default to a single column / row when no template is given
+        // so author CSS with placement still has a sensible grid.
+        if ($columnTracks === []) {
+            $columnTracks = [max(0.0, $geo->width)];
+        }
+        if ($rowTracks === []) {
+            // Implicit row sizing falls back to one row of "auto"
+            // height — but auto track sizing isn't shipped yet, so
+            // we use the container's declared height or 0.
+            $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+            $rowTracks = [$declaredHeight ?? 0.0];
+        }
+
+        // Resolve each child's grid placement.
+        /** @var list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements */
+        $placements = [];
+        foreach ($box->children as $child) {
+            if ($child instanceof \Phpdftk\HtmlToPdf\Box\TextBox
+                || $child instanceof \Phpdftk\HtmlToPdf\Box\InlineBox
+            ) {
+                // Inline / text children of a grid container produce
+                // anonymous boxes per CSS Display 3 §3.4; Phase-2
+                // skips them rather than synthesising blocks. Author
+                // grids virtually always wrap items in block-level
+                // children, so this matches the common case.
+                continue;
+            }
+            $placements[] = $this->resolveGridPlacement(
+                $child,
+                count($columnTracks),
+                count($rowTracks),
+            );
+        }
+
+        // Pass 1: mark cells occupied for items with both axes
+        // explicitly placed. Skip items whose explicit position falls
+        // outside the declared track counts — those silently drop.
+        /** @var array<int, array<int, true>> $occupied  occupied[row][col] = true */
+        $occupied = [];
+        $rowCount = count($rowTracks);
+        $colCount = count($columnTracks);
+        foreach ($placements as &$p) {
+            if (!$p['autoRow'] && !$p['autoCol']) {
+                if ($p['row'] >= $rowCount || $p['col'] >= $colCount) {
+                    // Mark "couldn't place" by leaving row/col as
+                    // their explicit (possibly out-of-range) values
+                    // — pass 3 skips items with row/col ≥ track count.
+                    continue;
+                }
+                $this->markGridOccupied($occupied, $p['row'], $p['col'], $p['rowSpan'], $p['colSpan']);
+            }
+        }
+        unset($p);
+
+        // Pass 2: auto-flow the remaining items (CSS Grid Layout 2
+        // §6.3 — `grid-auto-flow: row`). Three sub-cases:
+        //   (a) Fully auto on both axes → walk row-major from the
+        //       cursor, advancing the cursor past each placement.
+        //   (b) Auto row only → search down the fixed column.
+        //   (c) Auto col only → search across the fixed row.
+        $cursorRow = 0;
+        $cursorCol = 0;
+        foreach ($placements as &$p) {
+            if (!$p['autoRow'] && !$p['autoCol']) {
+                continue;
+            }
+            if ($p['autoRow'] && $p['autoCol']) {
+                // Fully auto — row-major walk.
+                while ($cursorRow < $rowCount) {
+                    if ($cursorCol + $p['colSpan'] > $colCount) {
+                        $cursorRow++;
+                        $cursorCol = 0;
+                        continue;
+                    }
+                    if (!$this->isGridRangeOccupied($occupied, $cursorRow, $cursorCol, $p['rowSpan'], $p['colSpan'])) {
+                        $p['row'] = $cursorRow;
+                        $p['col'] = $cursorCol;
+                        $this->markGridOccupied($occupied, $cursorRow, $cursorCol, $p['rowSpan'], $p['colSpan']);
+                        $cursorCol += $p['colSpan'];
+                        break;
+                    }
+                    $cursorCol++;
+                }
+                continue;
+            }
+            if ($p['autoRow']) {
+                // Fixed col, search rows from the top.
+                $c = $p['col'];
+                if ($c < 0 || $c >= $colCount) {
+                    continue;
+                }
+                for ($r = 0; $r + $p['rowSpan'] <= $rowCount; $r++) {
+                    if (!$this->isGridRangeOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan'])) {
+                        $p['row'] = $r;
+                        $this->markGridOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan']);
+                        break;
+                    }
+                }
+                continue;
+            }
+            // Auto col only — fixed row, search columns left-to-right.
+            $r = $p['row'];
+            if ($r < 0 || $r >= $rowCount) {
+                continue;
+            }
+            for ($c = 0; $c + $p['colSpan'] <= $colCount; $c++) {
+                if (!$this->isGridRangeOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan'])) {
+                    $p['col'] = $c;
+                    $this->markGridOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan']);
+                    break;
+                }
+            }
+        }
+        unset($p);
+
+        // Pass 3: lay out each child inside its assigned cell.
+        // Track-prefix sums let us cheaply compute (x, y, width,
+        // height) per cell range.
+        $colOffsets = $this->gridTrackOffsets($columnTracks, $columnGap);
+        $rowOffsets = $this->gridTrackOffsets($rowTracks, $rowGap);
+        foreach ($placements as $p) {
+            // Skip items that didn't successfully place.
+            if ($p['row'] < 0 || $p['col'] < 0) {
+                continue;
+            }
+            if ($p['row'] >= count($rowTracks) || $p['col'] >= count($columnTracks)) {
+                continue;
+            }
+            $cellX = $geo->x + $colOffsets[$p['col']];
+            $cellY = $geo->y + $rowOffsets[$p['row']];
+            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGap);
+            $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowGap);
+            $childCtx = $context
+                ->withContainingBlock($cellWidth, $cellHeight)
+                ->withOrigin($cellX, $cellY);
+            $this->cascade->resolveLengths($p['box']->style, $childCtx->lengthContext);
+            $this->layoutBox($p['box'], $childCtx);
+            // Stretch the child to fill its cell — Phase-2 default,
+            // matching `align/justify-self: stretch`. Author override
+            // via `width` / `height` already short-circuits since the
+            // child's layout uses the cell's containing-block dims.
+            $p['box']->geometry->width = $cellWidth
+                - $p['box']->geometry->marginLeft
+                - $p['box']->geometry->marginRight
+                - $p['box']->geometry->borderLeft
+                - $p['box']->geometry->borderRight
+                - $p['box']->geometry->paddingLeft
+                - $p['box']->geometry->paddingRight;
+            if ($p['box']->geometry->height < $cellHeight) {
+                $p['box']->geometry->height = $cellHeight
+                    - $p['box']->geometry->marginTop
+                    - $p['box']->geometry->marginBottom
+                    - $p['box']->geometry->borderTop
+                    - $p['box']->geometry->borderBottom
+                    - $p['box']->geometry->paddingTop
+                    - $p['box']->geometry->paddingBottom;
+            }
+        }
+
+        $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        $geo->height = $declaredHeight ?? $this->gridTotalExtent($rowTracks, $rowGap);
+        $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
+
+        return $geo->outerHeight();
+    }
+
+    /**
+     * Parse a `grid-template-columns` / `grid-template-rows` value
+     * into a list of `<length>` track sizes. Returns `[]` for `none`
+     * (initial), unknown keywords, or empty values. Phase-2 honours
+     * only `<length>` tracks; `fr`, `auto`, `repeat()`, `min-content`,
+     * `max-content`, `minmax()` are deferred.
+     *
+     * @return list<float>
+     */
+    private function parseGridTrackList(?\Phpdftk\Css\Value\Value $value): array
+    {
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'none')
+        ) {
+            return [];
+        }
+        if ($value instanceof Length) {
+            return [$value->value];
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $tracks = [];
+            foreach ($value->values as $v) {
+                if ($v instanceof Length) {
+                    $tracks[] = $v->value;
+                }
+            }
+            return $tracks;
+        }
+        return [];
+    }
+
+    /**
+     * Resolve a `column-gap` / `row-gap` value to user-space units.
+     * `normal` (the initial value per CSS Box Alignment 3 §8.1)
+     * resolves to 0 for grids — symmetric with flexbox.
+     */
+    private function resolveGridGap(?\Phpdftk\Css\Value\Value $value, float $containingExtent): float
+    {
+        if ($value instanceof Keyword && strtolower($value->name) === 'normal') {
+            return 0.0;
+        }
+        return $this->resolveLength($value, $containingExtent);
+    }
+
+    /**
+     * Resolve a single child's grid placement to `(row, col, rowSpan,
+     * colSpan)` in 0-based indices. Returns auto-flags so the
+     * auto-flow pass can fill in missing axes.
+     *
+     * @return array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}
+     */
+    private function resolveGridPlacement(Box $child, int $columnCount, int $rowCount): array
+    {
+        [$colStart, $colEnd, $autoCol] = $this->resolveGridLine(
+            $child->style->get('grid-column-start'),
+            $child->style->get('grid-column-end'),
+            $columnCount,
+        );
+        [$rowStart, $rowEnd, $autoRow] = $this->resolveGridLine(
+            $child->style->get('grid-row-start'),
+            $child->style->get('grid-row-end'),
+            $rowCount,
+        );
+        return [
+            'box' => $child,
+            'row' => $rowStart,
+            'rowSpan' => max(1, $rowEnd - $rowStart),
+            'col' => $colStart,
+            'colSpan' => max(1, $colEnd - $colStart),
+            'autoRow' => $autoRow,
+            'autoCol' => $autoCol,
+        ];
+    }
+
+    /**
+     * Resolve a single axis's start / end. Returns `[startIdx,
+     * endIdx, isAuto]` — 0-based, exclusive end (so a 1-cell item
+     * at line 1 returns `[0, 1, false]`). When both are `auto`, the
+     * `isAuto` flag is true so the auto-flow pass picks the slot.
+     * Negative indices count from the end of the explicit grid.
+     *
+     * @return array{0: int, 1: int, 2: bool}
+     */
+    private function resolveGridLine(
+        ?\Phpdftk\Css\Value\Value $startVal,
+        ?\Phpdftk\Css\Value\Value $endVal,
+        int $trackCount,
+    ): array {
+        $totalLines = max(1, $trackCount) + 1; // line N+1 = end of grid
+        $start = $this->gridLineToIndex($startVal, $totalLines);
+        $end = $this->gridLineToIndex($endVal, $totalLines);
+        $auto = $start === null && $end === null;
+        if ($start === null && $end === null) {
+            return [-1, -1, true];
+        }
+        if ($start === null) {
+            // `auto / N` → 1-cell span ending at end.
+            $endIdx = max(1, $end);
+            return [max(0, $endIdx - 1), $endIdx, $auto];
+        }
+        if ($end === null) {
+            // `N / auto` → 1-cell span starting at start.
+            $startIdx = max(0, $start);
+            return [$startIdx, $startIdx + 1, $auto];
+        }
+        if ($end <= $start) {
+            // CSS Grid Layout 2 §8.3.1 — when end ≤ start, swap them
+            // so the span is at least 1 cell. Spec actually says the
+            // span is treated as 1; swap matches the visual intent.
+            [$start, $end] = [$end, $start + 1];
+        }
+        $start = max(0, $start);
+        $end = min(max($start + 1, $end), $trackCount);
+        return [$start, $end, false];
+    }
+
+    /**
+     * Convert a single grid-line value to a 0-based line index, or
+     * null when the value is `auto`. Negative ints count from the
+     * end of the explicit grid (line `-1` = last edge = `totalLines
+     * - 1` in 0-based, `-2` = one before that, etc.).
+     */
+    private function gridLineToIndex(?\Phpdftk\Css\Value\Value $value, int $totalLines): ?int
+    {
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'auto')
+        ) {
+            return null;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            $n = $value->value;
+            if ($n > 0) {
+                return $n - 1; // 1-based to 0-based.
+            }
+            if ($n < 0) {
+                // -1 → last edge index = totalLines - 1
+                // -2 → totalLines - 2, …
+                return max(0, $totalLines + $n);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Mark a (row, col, rowSpan, colSpan) range as occupied.
+     *
+     * @param array<int, array<int, true>> $occupied  Mutated in place.
+     */
+    private function markGridOccupied(array &$occupied, int $row, int $col, int $rowSpan, int $colSpan): void
+    {
+        for ($r = $row; $r < $row + $rowSpan; $r++) {
+            for ($c = $col; $c < $col + $colSpan; $c++) {
+                $occupied[$r][$c] = true;
+            }
+        }
+    }
+
+    /**
+     * Return true when any cell in the (row, col, rowSpan, colSpan)
+     * range is already occupied.
+     *
+     * @param array<int, array<int, true>> $occupied
+     */
+    private function isGridRangeOccupied(array $occupied, int $row, int $col, int $rowSpan, int $colSpan): bool
+    {
+        for ($r = $row; $r < $row + $rowSpan; $r++) {
+            for ($c = $col; $c < $col + $colSpan; $c++) {
+                if (isset($occupied[$r][$c])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Prefix-sum offsets for a track list — `result[i]` = position
+     * of track `i`'s start edge, taking gaps into account.
+     *
+     * @param list<float> $tracks
+     * @return list<float>
+     */
+    private function gridTrackOffsets(array $tracks, float $gap): array
+    {
+        $offsets = [0.0];
+        $running = 0.0;
+        for ($i = 0; $i < count($tracks); $i++) {
+            $running += $tracks[$i];
+            if ($i < count($tracks) - 1) {
+                $running += $gap;
+            }
+            $offsets[] = $running;
+        }
+        return $offsets;
+    }
+
+    /**
+     * Sum the span from `start` for `count` tracks, including the
+     * gaps between them but excluding any trailing gap.
+     *
+     * @param list<float> $tracks
+     */
+    private function gridSpanExtent(array $tracks, int $start, int $count, float $gap): float
+    {
+        $total = 0.0;
+        for ($i = 0; $i < $count; $i++) {
+            $idx = $start + $i;
+            if (!isset($tracks[$idx])) {
+                break;
+            }
+            $total += $tracks[$idx];
+            if ($i < $count - 1) {
+                $total += $gap;
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Total extent of the track list including inter-track gaps.
+     *
+     * @param list<float> $tracks
+     */
+    private function gridTotalExtent(array $tracks, float $gap): float
+    {
+        if ($tracks === []) {
+            return 0.0;
+        }
+        $total = array_sum($tracks);
+        $total += $gap * max(0, count($tracks) - 1);
+        return $total;
     }
 
     /**

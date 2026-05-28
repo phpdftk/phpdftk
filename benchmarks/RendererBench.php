@@ -212,6 +212,25 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2Grid(): void
+    {
+        // Phase-2 Grid MVP: 50 explicit-placement cells in a 5-col
+        // grid exercises the placement resolver + auto-flow loop +
+        // per-cell layout pass.
+        $items = '';
+        for ($i = 0; $i < 50; $i++) {
+            $items .= '<div class="cell"></div>';
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: 40pt 40pt 40pt 40pt 40pt; '
+            . '        grid-template-rows: 30pt 30pt 30pt 30pt 30pt 30pt 30pt 30pt 30pt 30pt; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ccc; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2Gradients(): void
     {
         // Phase-2: N-stop gradients route through a Type-3 stitching
