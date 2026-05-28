@@ -276,6 +276,28 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2GridAutoFlow(): void
+    {
+        // Phase-2 Grid auto-flow column + dense — 60 items in a
+        // sparse column-major grid with one tall spanner forcing
+        // dense backfill on each render exercises both modes.
+        $items = '<div class="tall"></div>';
+        for ($i = 0; $i < 59; $i++) {
+            $items .= '<div class="cell"></div>';
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: repeat(6, 40pt); '
+            . '        grid-template-rows: 20pt 20pt 20pt; '
+            . '        grid-auto-flow: row dense; '
+            . '        grid-auto-rows: 20pt; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ccc; }'
+            . '.tall { grid-row: 1 / span 2; background-color: #999; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2GridImplicitRows(): void
     {
         // Phase-2 Grid implicit-row growth — 100 cells in a 4-column

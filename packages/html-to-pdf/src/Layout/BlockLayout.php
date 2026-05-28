@@ -1299,6 +1299,14 @@ final class BlockLayout
         // (for auto-flow that runs past the last row).
         $autoRowSize = $this->resolveGridAutoTrackSize($style->get('grid-auto-rows'));
         $autoColSize = $this->resolveGridAutoTrackSize($style->get('grid-auto-columns'));
+        // CSS Grid Layout 2 §6.3 — `grid-auto-flow` direction +
+        // `dense` modifier. `row` flows row-major (grow rows for
+        // overflow); `column` flows column-major (grow columns).
+        // `dense` resets the per-item cursor to 0 before each
+        // placement so smaller items can backfill earlier gaps.
+        [$flowDirection, $isDense] = $this->resolveGridAutoFlow(
+            $style->get('grid-auto-flow'),
+        );
 
         if ($box->children === []) {
             $geo->height = $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap);
@@ -1341,22 +1349,31 @@ final class BlockLayout
         }
 
         // Pass 1: mark cells occupied for items with both axes
-        // explicitly placed. Items whose row position exceeds the
-        // declared grid grow the implicit rows (CSS Grid Layout 2
-        // §7.4 — `grid-auto-rows` sizes new tracks). Items whose
-        // column position exceeds the declared columns still drop
-        // silently for `grid-auto-flow: row` since rows are the
-        // implicit-growth axis by spec.
+        // explicitly placed. The flow direction picks which axis
+        // grows for out-of-range placements: `row` grows implicit
+        // rows when the row position overflows; `column` grows
+        // implicit columns when the column position overflows.
+        // Overflow on the OTHER axis still drops silently (matches
+        // browser behaviour — `grid-auto-flow: row` doesn't grow
+        // the explicit-column count).
         /** @var array<int, array<int, true>> $occupied  occupied[row][col] = true */
         $occupied = [];
-        $colCount = count($columnTracks);
         foreach ($placements as &$p) {
             if (!$p['autoRow'] && !$p['autoCol']) {
-                if ($p['col'] >= $colCount) {
-                    continue;
-                }
-                if ($p['row'] + $p['rowSpan'] > count($rowTracks)) {
-                    $this->growGridRows($rowTracks, $p['row'] + $p['rowSpan'], $autoRowSize);
+                if ($flowDirection === 'column') {
+                    if ($p['row'] >= count($rowTracks)) {
+                        continue;
+                    }
+                    if ($p['col'] + $p['colSpan'] > count($columnTracks)) {
+                        $this->growGridRows($columnTracks, $p['col'] + $p['colSpan'], $autoColSize);
+                    }
+                } else {
+                    if ($p['col'] >= count($columnTracks)) {
+                        continue;
+                    }
+                    if ($p['row'] + $p['rowSpan'] > count($rowTracks)) {
+                        $this->growGridRows($rowTracks, $p['row'] + $p['rowSpan'], $autoRowSize);
+                    }
                 }
                 $this->markGridOccupied($occupied, $p['row'], $p['col'], $p['rowSpan'], $p['colSpan']);
             }
@@ -1364,48 +1381,57 @@ final class BlockLayout
         unset($p);
 
         // Pass 2: auto-flow the remaining items (CSS Grid Layout 2
-        // §6.3 — `grid-auto-flow: row`). Three sub-cases:
-        //   (a) Fully auto on both axes → walk row-major from the
-        //       cursor, advancing the cursor past each placement.
-        //   (b) Auto row only → search down the fixed column.
-        //   (c) Auto col only → search across the fixed row.
-        // The grid grows implicit rows when the cursor or fixed
-        // placement runs past the current row count.
+        // §6.3). The flow direction picks the iteration order:
+        //   `row` → row-major (outer = row, inner = column)
+        //   `column` → column-major (outer = column, inner = row)
+        // `dense` resets the cursor before EACH item so a smaller
+        // later item can backfill an earlier gap (default sparse
+        // mode advances the cursor monotonically). The grid grows
+        // implicit tracks on the OUTER axis as needed.
         $cursorRow = 0;
         $cursorCol = 0;
-        // Cap the grow loop so a degenerate template can't lock us up.
-        $maxImplicitRows = 1024;
+        $maxImplicitTracks = 1024;
         foreach ($placements as &$p) {
             if (!$p['autoRow'] && !$p['autoCol']) {
                 continue;
             }
+            if ($isDense) {
+                // Dense mode resets the cursor for every placement
+                // so earlier gaps get backfilled.
+                $cursorRow = 0;
+                $cursorCol = 0;
+            }
             if ($p['autoRow'] && $p['autoCol']) {
-                // Fully auto — row-major walk; grow rows as needed.
-                // The iteration cap below bounds pathological cases
-                // (zero-tall implicit rows still make row-count
-                // progress on each cursor advance, so termination
-                // is guaranteed by the cap).
-                $iter = 0;
-                while ($iter++ < $maxImplicitRows) {
-                    if ($cursorRow >= count($rowTracks)) {
-                        $this->growGridRows($rowTracks, $cursorRow + 1, $autoRowSize);
-                    }
-                    if ($cursorCol + $p['colSpan'] > $colCount) {
-                        $cursorRow++;
-                        $cursorCol = 0;
-                        continue;
-                    }
-                    if ($cursorRow + $p['rowSpan'] > count($rowTracks)) {
-                        $this->growGridRows($rowTracks, $cursorRow + $p['rowSpan'], $autoRowSize);
-                    }
-                    if (!$this->isGridRangeOccupied($occupied, $cursorRow, $cursorCol, $p['rowSpan'], $p['colSpan'])) {
-                        $p['row'] = $cursorRow;
-                        $p['col'] = $cursorCol;
-                        $this->markGridOccupied($occupied, $cursorRow, $cursorCol, $p['rowSpan'], $p['colSpan']);
-                        $cursorCol += $p['colSpan'];
-                        break;
-                    }
-                    $cursorCol++;
+                // Fully auto — walk in the flow's outer direction.
+                if ($flowDirection === 'column') {
+                    [$placedRow, $placedCol] = $this->placeFullyAutoColumnMajor(
+                        $p['rowSpan'],
+                        $p['colSpan'],
+                        $occupied,
+                        $rowTracks,
+                        $columnTracks,
+                        $autoColSize,
+                        $cursorRow,
+                        $cursorCol,
+                        $maxImplicitTracks,
+                    );
+                } else {
+                    [$placedRow, $placedCol] = $this->placeFullyAutoRowMajor(
+                        $p['rowSpan'],
+                        $p['colSpan'],
+                        $occupied,
+                        $rowTracks,
+                        $columnTracks,
+                        $autoRowSize,
+                        $cursorRow,
+                        $cursorCol,
+                        $maxImplicitTracks,
+                    );
+                }
+                if ($placedRow !== null) {
+                    $p['row'] = $placedRow;
+                    $p['col'] = $placedCol;
+                    $this->markGridOccupied($occupied, $placedRow, $placedCol, $p['rowSpan'], $p['colSpan']);
                 }
                 continue;
             }
@@ -1413,12 +1439,12 @@ final class BlockLayout
                 // Fixed col, search rows from the top — growing
                 // implicit rows when none of the explicit ones fit.
                 $c = $p['col'];
-                if ($c < 0 || $c >= $colCount) {
+                if ($c < 0 || $c >= count($columnTracks)) {
                     continue;
                 }
                 $r = 0;
                 $iter = 0;
-                while ($iter++ < $maxImplicitRows) {
+                while ($iter++ < $maxImplicitTracks) {
                     if ($r + $p['rowSpan'] > count($rowTracks)) {
                         $this->growGridRows($rowTracks, $r + $p['rowSpan'], $autoRowSize);
                     }
@@ -1439,18 +1465,25 @@ final class BlockLayout
             if ($r >= count($rowTracks)) {
                 $this->growGridRows($rowTracks, $r + 1, $autoRowSize);
             }
-            for ($c = 0; $c + $p['colSpan'] <= $colCount; $c++) {
+            $c = 0;
+            $iter = 0;
+            while ($iter++ < $maxImplicitTracks) {
+                if ($c + $p['colSpan'] > count($columnTracks)) {
+                    if ($flowDirection === 'column') {
+                        $this->growGridRows($columnTracks, $c + $p['colSpan'], $autoColSize);
+                    } else {
+                        break;
+                    }
+                }
                 if (!$this->isGridRangeOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan'])) {
                     $p['col'] = $c;
                     $this->markGridOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan']);
                     break;
                 }
+                $c++;
             }
         }
         unset($p);
-        // Silence the unused-variable analyser — autoColSize is
-        // reserved for `grid-auto-flow: column` (Phase-2 follow-up).
-        unset($autoColSize);
 
         // Pass 3: lay out each child inside its assigned cell.
         // Track-prefix sums let us cheaply compute (x, y, width,
@@ -1628,6 +1661,141 @@ final class BlockLayout
             return (float) $v->value;
         }
         return null;
+    }
+
+    /**
+     * Resolve `grid-auto-flow` to a `[direction, isDense]` pair.
+     *   - `row` (initial) → `['row', false]`
+     *   - `column` → `['column', false]`
+     *   - `dense` alone → `['row', true]` (per spec, bare `dense`
+     *     keeps the default direction)
+     *   - `row dense` / `dense row` → `['row', true]`
+     *   - `column dense` / `dense column` → `['column', true]`
+     *
+     * @return array{0: string, 1: bool}
+     */
+    private function resolveGridAutoFlow(?\Phpdftk\Css\Value\Value $value): array
+    {
+        $direction = 'row';
+        $dense = false;
+        if ($value instanceof Keyword) {
+            $name = strtolower($value->name);
+            if ($name === 'column') {
+                $direction = 'column';
+            } elseif ($name === 'dense') {
+                $dense = true;
+            }
+            return [$direction, $dense];
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $v) {
+                if (!$v instanceof Keyword) {
+                    continue;
+                }
+                $name = strtolower($v->name);
+                if ($name === 'column') {
+                    $direction = 'column';
+                } elseif ($name === 'row') {
+                    $direction = 'row';
+                } elseif ($name === 'dense') {
+                    $dense = true;
+                }
+            }
+        }
+        return [$direction, $dense];
+    }
+
+    /**
+     * Row-major auto-placement walker. Iterates row-by-row, then
+     * column-by-column within each row, growing implicit rows as
+     * needed. Returns `[row, col]` of the placement or `[null, null]`
+     * when the iteration cap is hit before finding a free slot.
+     *
+     * @param array<int, array<int, true>> $occupied
+     * @param list<float> $rowTracks  Mutated when implicit rows grow.
+     * @param list<float> $columnTracks
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function placeFullyAutoRowMajor(
+        int $rowSpan,
+        int $colSpan,
+        array $occupied,
+        array &$rowTracks,
+        array $columnTracks,
+        float $autoRowSize,
+        int &$cursorRow,
+        int &$cursorCol,
+        int $maxIter,
+    ): array {
+        $colCount = count($columnTracks);
+        $iter = 0;
+        while ($iter++ < $maxIter) {
+            if ($cursorRow >= count($rowTracks)) {
+                $this->growGridRows($rowTracks, $cursorRow + 1, $autoRowSize);
+            }
+            if ($cursorCol + $colSpan > $colCount) {
+                $cursorRow++;
+                $cursorCol = 0;
+                continue;
+            }
+            if ($cursorRow + $rowSpan > count($rowTracks)) {
+                $this->growGridRows($rowTracks, $cursorRow + $rowSpan, $autoRowSize);
+            }
+            if (!$this->isGridRangeOccupied($occupied, $cursorRow, $cursorCol, $rowSpan, $colSpan)) {
+                $row = $cursorRow;
+                $col = $cursorCol;
+                $cursorCol += $colSpan;
+                return [$row, $col];
+            }
+            $cursorCol++;
+        }
+        return [null, null];
+    }
+
+    /**
+     * Column-major auto-placement walker, symmetric to the row-major
+     * variant. Iterates column-by-column, then row-by-row within
+     * each column, growing implicit columns as needed.
+     *
+     * @param array<int, array<int, true>> $occupied
+     * @param list<float> $rowTracks
+     * @param list<float> $columnTracks  Mutated when implicit cols grow.
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function placeFullyAutoColumnMajor(
+        int $rowSpan,
+        int $colSpan,
+        array $occupied,
+        array $rowTracks,
+        array &$columnTracks,
+        float $autoColSize,
+        int &$cursorRow,
+        int &$cursorCol,
+        int $maxIter,
+    ): array {
+        $rowCount = count($rowTracks);
+        $iter = 0;
+        while ($iter++ < $maxIter) {
+            if ($cursorCol >= count($columnTracks)) {
+                $this->growGridRows($columnTracks, $cursorCol + 1, $autoColSize);
+            }
+            if ($cursorRow + $rowSpan > $rowCount) {
+                $cursorCol++;
+                $cursorRow = 0;
+                continue;
+            }
+            if ($cursorCol + $colSpan > count($columnTracks)) {
+                $this->growGridRows($columnTracks, $cursorCol + $colSpan, $autoColSize);
+            }
+            if (!$this->isGridRangeOccupied($occupied, $cursorRow, $cursorCol, $rowSpan, $colSpan)) {
+                $row = $cursorRow;
+                $col = $cursorCol;
+                $cursorRow += $rowSpan;
+                return [$row, $col];
+            }
+            $cursorRow++;
+        }
+        return [null, null];
     }
 
     /**

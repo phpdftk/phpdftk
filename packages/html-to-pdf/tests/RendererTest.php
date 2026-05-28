@@ -2479,6 +2479,39 @@ final class RendererTest extends TestCase
         self::assertGreaterThanOrEqual(12, $rgCount);
     }
 
+    public function testGridAutoFlowColumnAndDenseEndToEndProducesValidPdf(): void
+    {
+        // Integration: column-major flow + dense packing in one
+        // fixture. 5 items in a 2-row grid; one 2-row-spanning item
+        // forces dense to backfill the gap.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: 60pt 60pt 60pt; '
+            . '        grid-template-rows: 30pt 30pt; '
+            . '        grid-auto-flow: dense; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #def; }'
+            . '.tall { grid-row: 1 / span 2; background-color: #336699; }'
+            . '</style></head><body>'
+            . '<div class="grid">'
+            . '<div class="tall"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Tall blue card emitted (≈ 0.2 0.4 0.6).
+        self::assertMatchesRegularExpression('~0\.2 0\.4 0\.6 rg~', $bytes);
+        // 4 cells in light blue (#def).
+        $rgCount = preg_match_all('~0\.8\d+ 0\.9\d+ 1 rg~', $bytes);
+        self::assertGreaterThanOrEqual(4, $rgCount);
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

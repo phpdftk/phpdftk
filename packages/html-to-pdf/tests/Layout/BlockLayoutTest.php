@@ -3397,6 +3397,156 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(90.0, $grid->geometry->height, 0.001);
     }
 
+    public function testGridAutoFlowColumnWalksColumnMajor(): void
+    {
+        // Positive: `grid-auto-flow: column` flows items column-by-
+        // column. Three items in a 2×3 grid land at (0,0), (1,0),
+        // (0,1).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 60px 60px 60px; '
+            . 'grid-template-rows: 30px 30px; '
+            . 'grid-auto-flow: column;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(0.0, $a->geometry->y);
+        // b at (row=1, col=0) → y = 30
+        self::assertSame(0.0, $b->geometry->x);
+        self::assertSame(30.0, $b->geometry->y);
+        // c at (row=0, col=1) → x = 60, y = 0
+        self::assertSame(60.0, $c->geometry->x);
+        self::assertSame(0.0, $c->geometry->y);
+    }
+
+    public function testGridAutoFlowColumnGrowsImplicitColumns(): void
+    {
+        // Positive: `column` flow grows implicit columns via
+        // `grid-auto-columns`. 3 items in a 2-row × 1-explicit-col
+        // grid → 2 items fill the explicit column, the 3rd grows
+        // an implicit column.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 40px; '
+            . 'grid-template-rows: 30px 30px; '
+            . 'grid-auto-flow: column; '
+            . 'grid-auto-columns: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->find($box, 'div.c');
+        // c lands at the implicit column → x = 40, y = 0
+        self::assertSame(40.0, $c->geometry->x);
+        self::assertSame(0.0, $c->geometry->y);
+        self::assertEqualsWithDelta(50.0, $c->geometry->width, 0.001);
+    }
+
+    public function testGridAutoFlowDenseBackfillsEarlierGaps(): void
+    {
+        // Positive: `dense` mode lets later, smaller items backfill
+        // earlier gaps. A 2-cell span (`grid-column: 1 / 3`) on
+        // item 1 leaves no room on row 0 for the explicit-placed
+        // item 3 at col 3. Without dense, item 4 (1-cell) lands
+        // after item 3; WITH dense, item 4 backfills the col-3 gap
+        // on row 0.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 40px 40px 40px; '
+            . 'grid-template-rows: 30px 30px; '
+            . 'grid-auto-flow: dense;">'
+            . '<div class="big" style="grid-column: 1 / 3;"></div>'
+            . '<div class="placed" style="grid-row: 2;"></div>'
+            . '<div class="filler"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $filler = $this->find($box, 'div.filler');
+        // With dense: filler backfills (row 0, col 2).
+        self::assertSame(80.0, $filler->geometry->x);
+        self::assertSame(0.0, $filler->geometry->y);
+    }
+
+    public function testGridAutoFlowDenseWithoutGapsSameAsSparse(): void
+    {
+        // Negative-ish: when there are NO earlier gaps to backfill,
+        // dense behaves identically to sparse. Three items in a
+        // 3×1 grid land at (0,0), (0,1), (0,2).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 40px 40px 40px; '
+            . 'grid-template-rows: 30px; '
+            . 'grid-auto-flow: dense;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(40.0, $b->geometry->x);
+        self::assertSame(80.0, $c->geometry->x);
+    }
+
+    public function testGridAutoFlowUnknownKeywordFallsBackToRow(): void
+    {
+        // Negative: an unrecognised keyword defaults to `row` (the
+        // initial value). 2 items land row-major.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 40px 40px; '
+            . 'grid-template-rows: 30px; '
+            . 'grid-auto-flow: nonsense;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        // Row-major placement: a at (0,0), b at (0,1).
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(40.0, $b->geometry->x);
+        self::assertSame(0.0, $b->geometry->y);
+    }
+
+    public function testGridAutoFlowBareDenseKeepsRowDirection(): void
+    {
+        // Negative: bare `dense` (without `row`/`column`) keeps the
+        // initial `row` direction per spec. 2 items lay out
+        // row-major with dense packing.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 40px 40px; '
+            . 'grid-template-rows: 30px; '
+            . 'grid-auto-flow: dense;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // Row-major: b at (row=0, col=1) → x = 40.
+        self::assertSame(40.0, $b->geometry->x);
+        self::assertSame(0.0, $b->geometry->y);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with
