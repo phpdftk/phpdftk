@@ -313,6 +313,12 @@ final class PropertyRegistry
         // `grayscale`, `brightness`, etc.) parse but no-op since they
         // require raster pre-painting.
         $r->register($initial('filter', new Keyword('none')));
+        // CSS Transforms 2 §15 — `backface-visibility: hidden`
+        // suppresses paint when the cumulative 3D rotation flips the
+        // box past 90° on the X or Y axis (cos(θ) < 0). Print
+        // approximates this by checking if the composed rotation
+        // would result in a negative scale factor.
+        $r->register($initial('backface-visibility', new Keyword('visible')));
         // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
         // inherit; layout uses them to gate where a paragraph may split
         // across a page boundary.

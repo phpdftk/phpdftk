@@ -253,6 +253,29 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2Transform3d(): void
+    {
+        // Phase-2 3D transforms — exercises rotateX/Y/Z flattening,
+        // matrix3d entry extraction, and backface-visibility check
+        // across many cards.
+        $body = '';
+        for ($i = 0; $i < 30; $i++) {
+            $rotX = ($i * 13) % 180;
+            $rotY = ($i * 17) % 180;
+            $body .= sprintf(
+                '<div class="card" style="transform: rotateX(%ddeg) rotateY(%ddeg); '
+                . 'backface-visibility: hidden;"></div>',
+                $rotX,
+                $rotY,
+            );
+        }
+        $html = '<html><head><style>'
+            . '.card { display: inline-block; width: 40pt; height: 30pt; '
+            . '        background-color: #336699; margin: 4pt; }'
+            . '</style></head><body>' . $body . '</body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2GridTemplateAreas(): void
     {
         // Phase-2 Grid template-areas — exercises the area parser

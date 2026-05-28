@@ -145,10 +145,14 @@ final class Painter
         // the entire paint (background + content + children) so the
         // transform affects every nested operation.
         $hasTransform = $this->applyBoxTransform($box, $stream);
-        // CSS Visual Formatting Model 9.5: `visibility: hidden` boxes
-        // occupy layout space but paint nothing themselves; descendants
-        // with their own `visibility` declaration can still be visible.
-        $hidden = $this->isVisibilityHidden($box);
+        // CSS Transforms 2 §15 — `backface-visibility: hidden`
+        // suppresses paint when the cumulative 3D rotation around
+        // the X / Y axis flips the box past 90° (cos(θ) < 0). The
+        // 2D-projected matrix already has the cos-flatten baked in,
+        // so we approximate by checking whether ANY X/Y rotation in
+        // the transform list exceeds 90°.
+        $hidden = $this->isVisibilityHidden($box)
+            || $this->isBackfaceHidden($box);
         if (!$hidden) {
             // CSS Fragmentation 4 §5.5: `box-decoration-break: clone`
             // makes each fragment paint full decorations as if it were
@@ -306,16 +310,38 @@ final class Painter
             return [1.0, 0.0, 0.0, 1.0, $tx, -$ty];
         }
         if ($fn instanceof \Phpdftk\Css\Value\RotateTransform) {
-            // 3D rotations around the X or Y axis flatten to identity
-            // at Phase 2 (we don't render in perspective); only the Z
-            // axis rotation produces a 2D effect.
-            if (($fn->ax !== 0.0 || $fn->ay !== 0.0) && $fn->az === 0.0) {
-                return null;
-            }
+            // CSS Transforms 2 §13 — rotateX / rotateY collapse onto
+            // a 2D plane in print. Approximation: rotateX(θ) scales
+            // the box vertically by |cos(θ)| (mirroring past 90°),
+            // rotateY(θ) scales horizontally. Visually correct at
+            // canonical angles (0° = unchanged, 90° = edge-on,
+            // 180° = mirrored). Z rotation keeps the 2D rotation
+            // matrix.
             $rad = deg2rad($fn->angleDeg);
             $cos = cos($rad);
             $sin = sin($rad);
-            return [$cos, -$sin, $sin, $cos, 0.0, 0.0];
+            $axisLen = sqrt($fn->ax * $fn->ax + $fn->ay * $fn->ay + $fn->az * $fn->az);
+            if ($axisLen <= 0.0) {
+                return null;
+            }
+            $nx = $fn->ax / $axisLen;
+            $ny = $fn->ay / $axisLen;
+            $nz = $fn->az / $axisLen;
+            // Decompose rotate3d into axis projections. For an axis
+            // that's purely Z (nx=ny=0, nz=±1), keep the planar
+            // rotation; for X/Y components, flatten via cos-scaling.
+            if (abs($nz) > 0.9999) {
+                // Z rotation (or close to it).
+                $sign = $nz > 0 ? 1.0 : -1.0;
+                return [$cos, -$sign * $sin, $sign * $sin, $cos, 0.0, 0.0];
+            }
+            // X / Y rotation (or a tilt): use cos-flatten. For mixed
+            // axes, weight by the axis components. Pure rotateX
+            // (nx=1) → sy = cos, sx = 1. Pure rotateY (ny=1) → sx
+            // = cos, sy = 1.
+            $sy = 1.0 - abs($nx) + abs($nx) * $cos;
+            $sx = 1.0 - abs($ny) + abs($ny) * $cos;
+            return [$sx, 0.0, 0.0, $sy, 0.0, 0.0];
         }
         if ($fn instanceof \Phpdftk\Css\Value\ScaleTransform) {
             return [$fn->sx, 0.0, 0.0, $fn->sy, 0.0, 0.0];
@@ -815,6 +841,44 @@ final class Painter
         $stream->rectangle($rectX, $pdfY, $rectWidth, $rectHeight);
         $stream->clip();
         $stream->endPath();
+    }
+
+    /**
+     * Return true when the box's cumulative `transform` rotates the
+     * backface forward AND `backface-visibility: hidden` is set.
+     * We walk the box's rotate functions, summing the (signed) X /
+     * Y rotations; the backface is forward-facing when either total
+     * exceeds 90° (mod 360°) on the canonical face.
+     */
+    private function isBackfaceHidden(Box $box): bool
+    {
+        $visibility = $box->style->get('backface-visibility');
+        if (!$visibility instanceof Keyword
+            || strtolower($visibility->name) !== 'hidden'
+        ) {
+            return false;
+        }
+        $transform = $box->style->get('transform');
+        if (!$transform instanceof \Phpdftk\Css\Value\Transform) {
+            return false;
+        }
+        $cumX = 0.0;
+        $cumY = 0.0;
+        foreach ($transform->functions as $fn) {
+            if (!$fn instanceof \Phpdftk\Css\Value\RotateTransform) {
+                continue;
+            }
+            $axisLen = sqrt($fn->ax * $fn->ax + $fn->ay * $fn->ay + $fn->az * $fn->az);
+            if ($axisLen <= 0.0) {
+                continue;
+            }
+            // Distribute the rotation across X / Y by axis component.
+            $cumX += $fn->angleDeg * ($fn->ax / $axisLen);
+            $cumY += $fn->angleDeg * ($fn->ay / $axisLen);
+        }
+        $isFlippedX = cos(deg2rad($cumX)) < 0;
+        $isFlippedY = cos(deg2rad($cumY)) < 0;
+        return $isFlippedX || $isFlippedY;
     }
 
     private function isVisibilityHidden(Box $box): bool

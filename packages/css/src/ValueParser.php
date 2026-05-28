@@ -312,6 +312,29 @@ final class ValueParser
                 $this->toFloat($args[4]),
                 $this->toFloat($args[5]),
             ) : null,
+            // CSS Transforms 2 §6.6 — `matrix3d(a1..a16)` in column-
+            // major order. Print is 2D, so we extract the affine
+            // (a, b, c, d, e, f) entries by projecting the 4×4 onto
+            // the X / Y plane: the 2D matrix `matrix(m11, m12, m21,
+            // m22, m41, m42)` corresponds to input indices 0, 1, 4,
+            // 5, 12, 13. The 3D rotation / perspective components
+            // collapse out, which is the same flattening other 3D
+            // transforms get.
+            'matrix3d' => count($args) === 16 ? new MatrixTransform(
+                $this->toFloat($args[0]),
+                $this->toFloat($args[1]),
+                $this->toFloat($args[4]),
+                $this->toFloat($args[5]),
+                $this->toFloat($args[12]),
+                $this->toFloat($args[13]),
+            ) : null,
+            // `perspective(<length>)` accepts the syntax but the
+            // print medium has no depth, so the function flattens
+            // to identity. Authors typically combine `perspective`
+            // with `rotateX` / `rotateY`; in print only the
+            // rotation portion contributes visually (via the
+            // cos-flatten in the painter).
+            'perspective' => new MatrixTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
             default => null,
         };
     }

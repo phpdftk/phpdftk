@@ -2422,6 +2422,36 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~0\.9\d+ 0\.9\d+ 1 rg~', $bytes, 'main lavender');
     }
 
+    public function testTransform3dEndToEndProducesValidPdf(): void
+    {
+        // Integration: render a small grid of boxes each with a
+        // different 3D-transform primitive — rotateX, rotateY,
+        // rotateZ, matrix3d. Verify the PDF starts with %PDF- and
+        // emits cm operators for each.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.card { display: inline-block; width: 80pt; height: 60pt; '
+            . '        background-color: #336699; }'
+            . '.flipX { transform: rotateX(60deg); }'
+            . '.flipY { transform: rotateY(60deg); }'
+            . '.spin { transform: rotateZ(45deg); }'
+            . '.m3d { transform: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 1); }'
+            . '</style></head><body>'
+            . '<div class="card flipX"></div>'
+            . '<div class="card flipY"></div>'
+            . '<div class="card spin"></div>'
+            . '<div class="card m3d"></div>'
+            . '</body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Look for the Y-scale matrix from rotateX(60deg).
+        self::assertMatchesRegularExpression('~1 0 0 0\.5 ~', $bytes, 'rotateX(60deg) Y-scale');
+        // Look for the X-scale matrix from rotateY(60deg).
+        self::assertMatchesRegularExpression('~0\.5 0 0 1 ~', $bytes, 'rotateY(60deg) X-scale');
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

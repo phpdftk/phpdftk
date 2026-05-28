@@ -2037,18 +2037,154 @@ final class PainterTest extends TestCase
         }
     }
 
-    public function testTransformRotateXFlattensToIdentity(): void
+    public function testTransformRotateXFlattensToScaleY(): void
     {
-        // Negative: a 3D-only rotation (around the X axis) is
-        // flattened to identity at Phase 2 — no cm should appear.
+        // Phase-2 upgrade (was: flatten to identity in Phase-1).
+        // `rotateX(60deg)` collapses to a vertical scale of
+        // cos(60°) = 0.5 — visually correct in a print medium with
+        // no perspective. The matrix is `1 0 0 0.5 0 0`.
         $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
-        $this->applyTransformToFirstBox($root, 'rotateX(45deg)');
+        $this->applyTransformToFirstBox($root, 'rotateX(60deg)');
         $painter = new Painter(100.0);
         $stream = $this->paintAndGetStream($root, $painter);
         $ops = $stream->getOperators();
+        $found = false;
         foreach ($ops as $op) {
-            self::assertDoesNotMatchRegularExpression('/cm$/', (string) $op);
+            if (preg_match('/^1 0 0 0\.5 [\-0-9.]+ [\-0-9.]+ cm$/', (string) $op)) {
+                $found = true;
+                break;
+            }
         }
+        self::assertTrue($found, 'rotateX(60deg) emits a Y-scale matrix');
+    }
+
+    public function testTransformRotateYFlattensToScaleX(): void
+    {
+        // Phase-2: `rotateY(60deg)` collapses to a horizontal scale
+        // of cos(60°) = 0.5 — visually correct for print.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'rotateY(60deg)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $found = false;
+        foreach ($ops as $op) {
+            if (preg_match('/^0\.5 0 0 1 [\-0-9.]+ [\-0-9.]+ cm$/', (string) $op)) {
+                $found = true;
+                break;
+            }
+        }
+        self::assertTrue($found, 'rotateY(60deg) emits an X-scale matrix');
+    }
+
+    public function testTransformRotateZBehavesLikeRotate(): void
+    {
+        // Negative: `rotateZ(90deg)` is identical to `rotate(90deg)`
+        // — emits a 90° planar rotation matrix.
+        $rootZ = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($rootZ, 'rotateZ(90deg)');
+        $paintZ = new Painter(100.0);
+        $stream = $this->paintAndGetStream($rootZ, $paintZ);
+        $ops = $stream->getOperators();
+        // 90° → [cos, -sin, sin, cos] ≈ [0, -1, 1, 0]
+        $found = $this->findCmOp(
+            $ops,
+            '/^\d?(\.\d+)?e?[\-+]?\d* -1 1 \d?(\.\d+)?e?[\-+]?\d* /',
+        );
+        // Easier: look for "0 -1 1 0" allowing scientific notation noise.
+        $foundAny = false;
+        foreach ($ops as $op) {
+            if (preg_match('/-1 1 /', (string) $op)) {
+                $foundAny = true;
+                break;
+            }
+        }
+        self::assertTrue($foundAny, 'rotateZ(90deg) emits the Z-axis rotation matrix');
+    }
+
+    public function testTransformMatrix3dExtractsAffineEntries(): void
+    {
+        // Positive: `matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
+        // 10, 20, 0, 1)` is the 3D form of `matrix(1, 0, 0, 1, 10,
+        // 20)` — a pure translation. The painter should emit a
+        // matrix with the translate entries.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox(
+            $root,
+            'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 0, 1)',
+        );
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $found = $this->findCmOp($ops, '/^1 0 0 1 10 [\-0-9.]+ cm$/');
+        self::assertNotNull($found, 'matrix3d extracts the 2D translate');
+    }
+
+    public function testTransformPerspectiveIsTreatedAsIdentity(): void
+    {
+        // Negative: `perspective(500px)` accepts syntax but emits an
+        // identity matrix at Phase 2 (print has no depth). The cm
+        // operator should still appear (for the wrapper) but with
+        // the identity matrix.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'perspective(500px)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        // Identity matrix has form `1 0 0 1 0 0`. Search for it.
+        $foundIdentity = false;
+        foreach ($ops as $op) {
+            if (preg_match('/^1 0 0 1 [\-0-9.]+ [\-0-9.]+ cm$/', (string) $op)) {
+                $foundIdentity = true;
+                break;
+            }
+        }
+        self::assertTrue($foundIdentity, 'perspective() flattens to identity');
+    }
+
+    public function testTransformBackfaceVisibilityHiddenSuppressesPaint(): void
+    {
+        // Negative: `backface-visibility: hidden` with `rotateY(180deg)`
+        // (which flips cos(θ) to -1) means the back face faces us
+        // and shouldn't paint. No background rect should appear.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox(
+            $root,
+            'rotateY(180deg)',
+            'backface-visibility: hidden;',
+        );
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        // No fill operators (`f` or `rg`) should appear.
+        $hasFill = false;
+        foreach ($ops as $op) {
+            if (preg_match('/(^|\s)(f|rg)(\s|$)/', (string) $op)) {
+                $hasFill = true;
+                break;
+            }
+        }
+        self::assertFalse($hasFill, 'backface-hidden + 180deg rotateY suppresses paint');
+    }
+
+    public function testTransformBackfaceVisibilityVisibleStillPaints(): void
+    {
+        // Negative against the suppression path: `backface-visibility:
+        // visible` (the initial value) keeps the box painted at any
+        // rotation.
+        $root = $this->buildStraddlingBox(40.0, 80.0, 'red', null);
+        $this->applyTransformToFirstBox($root, 'rotateY(180deg)');
+        $painter = new Painter(100.0);
+        $stream = $this->paintAndGetStream($root, $painter);
+        $ops = $stream->getOperators();
+        $hasFill = false;
+        foreach ($ops as $op) {
+            if (preg_match('/(^|\s)f(\s|$)/', (string) $op)) {
+                $hasFill = true;
+                break;
+            }
+        }
+        self::assertTrue($hasFill, 'visible backface still paints');
     }
 
     public function testTransformComposesMultipleFunctions(): void
@@ -2177,8 +2313,11 @@ final class PainterTest extends TestCase
         return null;
     }
 
-    private function applyTransformToFirstBox(\Phpdftk\HtmlToPdf\Box\Box $root, string $transformCss): void
-    {
+    private function applyTransformToFirstBox(
+        \Phpdftk\HtmlToPdf\Box\Box $root,
+        string $transformCss,
+        string $extraCss = '',
+    ): void {
         $div = null;
         $stack = [$root];
         while ($stack !== []) {
@@ -2195,6 +2334,21 @@ final class PainterTest extends TestCase
         $parser = new \Phpdftk\Css\ValueParser();
         $value = $parser->parseTransform($transformCss);
         $div->style->set('transform', $value);
+        // Optional extra declarations parsed and applied to the same
+        // box — used for properties like `backface-visibility` that
+        // need to coexist with the transform in tests.
+        if ($extraCss !== '') {
+            $cssParser = new \Phpdftk\Css\Parser();
+            $sheet = $cssParser->parseStylesheet('.x { ' . $extraCss . ' }');
+            foreach ($sheet->rules as $rule) {
+                if (!$rule instanceof \Phpdftk\Css\Sheet\StyleRule) {
+                    continue;
+                }
+                foreach ($rule->declarations as $d) {
+                    $div->style->set($d->property, $d->value);
+                }
+            }
+        }
     }
 
     private function buildStraddlingBoxWithOrigin(float $y, float $height, string $transform, string $originCss): \Phpdftk\HtmlToPdf\Box\Box
