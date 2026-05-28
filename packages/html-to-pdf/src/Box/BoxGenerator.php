@@ -189,31 +189,29 @@ final class BoxGenerator
         }
 
         // HTML 5 §4.10.7: `<select>` renders only its currently-selected
-        // `<option>` in static print output (no dropdown widget). When
-        // no option has the `selected` attribute, the first option is
-        // implicitly selected per spec. Subsequent options are skipped
-        // so the print form just shows the chosen value.
+        // `<option>` in static print output (no dropdown widget).
+        //  - Single-select (default): one option, the first one with
+        //    `selected` (else the first option).
+        //  - `<select multiple>`: every option with `selected` (else
+        //    the empty selection), each on its own line.
+        // `<optgroup label="...">` labels the contained options with
+        // an inline-level "label: " prefix so the print form keeps
+        // the grouping visible.
         if (strtolower($element->localName) === 'select') {
-            $selectedOption = null;
-            $firstOption = null;
-            foreach ($element->children() as $child) {
-                if (!$child instanceof Element) {
-                    continue;
-                }
-                if (strtolower($child->localName) !== 'option') {
-                    continue;
-                }
-                if ($firstOption === null) {
-                    $firstOption = $child;
-                }
-                if ($selectedOption === null && $child->getAttribute('selected') !== null) {
-                    $selectedOption = $child;
-                }
-            }
-            $picked = $selectedOption ?? $firstOption;
+            $isMultiple = $element->getAttribute('multiple') !== null;
+            /** @var list<array{label: ?string, option: Element}> $renderedOptions */
+            $renderedOptions = $this->collectSelectOptions($element, $isMultiple);
             $inline = new InlineBox($element, $values);
-            if ($picked !== null) {
-                $text = $picked->textContent();
+            foreach ($renderedOptions as $i => $entry) {
+                if ($i > 0) {
+                    // Separate multi-select entries with a newline so
+                    // they stack across lines instead of running on.
+                    $inline->addChild(new TextBox($element, $values, "\n"));
+                }
+                if ($entry['label'] !== null) {
+                    $inline->addChild(new TextBox($element, $values, $entry['label'] . ': '));
+                }
+                $text = $entry['option']->textContent();
                 if ($text !== '') {
                     $inline->addChild(new TextBox($element, $values, $text));
                 }
@@ -314,6 +312,14 @@ final class BoxGenerator
                     continue;
                 }
             }
+            // HTML 5 §4.8.4.2.4 — `<source type="image/...">` lets the
+            // author flag a format hint. Skip a source whose declared
+            // MIME isn't a format the painter can decode (currently
+            // PNG + JPEG via the image-metadata pipeline).
+            $type = $sibling->getAttribute('type');
+            if ($type !== null && $type !== '' && !$this->sourceTypeAcceptable($type)) {
+                continue;
+            }
             $srcset = $sibling->getAttribute('srcset');
             if ($srcset === null || trim($srcset) === '') {
                 continue;
@@ -327,21 +333,86 @@ final class BoxGenerator
     }
 
     /**
-     * Extract the first URL from a `srcset` value. Per HTML 5
-     * §4.8.4.2.4 the syntax is `url1 [descriptor], url2 [descriptor]`.
-     * Take everything before the first comma OR first whitespace
-     * (whichever comes first) as the URL.
+     * Return true when the `<source type="...">` MIME indicates a
+     * format the painter can render. Print PDF supports raster PNG
+     * and JPEG today; anything else (AVIF, WebP, HEIF, SVG-as-image)
+     * gets skipped so the next `<source>` or the `<img>` fallback
+     * wins.
+     */
+    private function sourceTypeAcceptable(string $type): bool
+    {
+        $lower = strtolower(trim($type));
+        $supported = ['image/png', 'image/jpeg', 'image/jpg'];
+        return in_array($lower, $supported, true);
+    }
+
+    /**
+     * Pick the best `srcset` candidate for print. HTML 5 §4.8.4.2.4
+     * syntax: comma-separated `url [descriptor]` pairs where the
+     * descriptor is `Nx` (density) or `Nw` (width). When no
+     * descriptor is given, defaults to `1x`.
+     *
+     * Print rendering targets high resolution (300+ DPI) so the
+     * algorithm picks the candidate with the highest density. Width
+     * descriptors are converted to "approximate density" using a
+     * reference width of 100 (so a 200w candidate counts as 2x,
+     * 400w as 4x). Bare candidates count as 1x. On ties the first
+     * declared candidate wins.
      */
     private function firstSrcsetUrl(string $srcset): ?string
     {
-        $first = trim(explode(',', $srcset, 2)[0] ?? '');
-        if ($first === '') {
+        $candidates = $this->parseSrcsetCandidates($srcset);
+        if ($candidates === []) {
             return null;
         }
-        // URL may be followed by a descriptor (e.g. `image.png 2x`);
-        // strip everything from the first whitespace.
-        $parts = preg_split('/\s+/', $first, 2);
-        return $parts[0] ?? null;
+        $best = null;
+        $bestDensity = -INF;
+        foreach ($candidates as $cand) {
+            if ($cand['density'] > $bestDensity) {
+                $best = $cand['url'];
+                $bestDensity = $cand['density'];
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Parse a `srcset` value into a list of `{url, density}` candidates.
+     * Descriptor parsing:
+     *  - `Nx` → density = N
+     *  - `Nw` → density ≈ N / 100 (matches typical author intent)
+     *  - missing → density = 1
+     *  - unrecognised descriptor → candidate is dropped
+     *
+     * @return list<array{url: string, density: float}>
+     */
+    private function parseSrcsetCandidates(string $srcset): array
+    {
+        $out = [];
+        foreach (explode(',', $srcset) as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            $tokens = preg_split('/\s+/', $part, 2) ?: [];
+            $url = $tokens[0] ?? '';
+            if ($url === '') {
+                continue;
+            }
+            $descriptor = trim($tokens[1] ?? '');
+            if ($descriptor === '') {
+                $out[] = ['url' => $url, 'density' => 1.0];
+                continue;
+            }
+            if (preg_match('/^([0-9]*\.?[0-9]+)([xw])$/i', $descriptor, $m) !== 1) {
+                continue;
+            }
+            $value = (float) $m[1];
+            $unit = strtolower($m[2]);
+            $density = $unit === 'x' ? $value : $value / 100.0;
+            $out[] = ['url' => $url, 'density' => $density];
+        }
+        return $out;
     }
 
     /**
@@ -371,6 +442,62 @@ final class BoxGenerator
             $pseudo->addChild(new TextBox($element, $pseudoValues, $text));
         }
         return $pseudo;
+    }
+
+    /**
+     * Walk a `<select>`'s children (and one level of `<optgroup>`)
+     * collecting the `<option>` elements to render. For single-select,
+     * returns at most one entry — the first option with `selected`
+     * else the first option overall. For `<select multiple>`, returns
+     * every option carrying `selected`. Each entry pairs the option
+     * with the optgroup label that contains it (or null).
+     *
+     * @return list<array{label: ?string, option: Element}>
+     */
+    private function collectSelectOptions(Element $select, bool $multiple): array
+    {
+        /** @var list<array{label: ?string, option: Element}> $available */
+        $available = [];
+        /** @var list<array{label: ?string, option: Element}> $selectedEntries */
+        $selectedEntries = [];
+        foreach ($select->children() as $child) {
+            if (!$child instanceof Element) {
+                continue;
+            }
+            $tag = strtolower($child->localName);
+            if ($tag === 'option') {
+                $entry = ['label' => null, 'option' => $child];
+                $available[] = $entry;
+                if ($child->getAttribute('selected') !== null) {
+                    $selectedEntries[] = $entry;
+                }
+            } elseif ($tag === 'optgroup') {
+                $label = $child->getAttribute('label');
+                foreach ($child->children() as $grand) {
+                    if (!$grand instanceof Element) {
+                        continue;
+                    }
+                    if (strtolower($grand->localName) !== 'option') {
+                        continue;
+                    }
+                    $entry = ['label' => $label, 'option' => $grand];
+                    $available[] = $entry;
+                    if ($grand->getAttribute('selected') !== null) {
+                        $selectedEntries[] = $entry;
+                    }
+                }
+            }
+        }
+        if ($multiple) {
+            return $selectedEntries;
+        }
+        if ($selectedEntries !== []) {
+            return [$selectedEntries[0]];
+        }
+        if ($available !== []) {
+            return [$available[0]];
+        }
+        return [];
     }
 
     /**

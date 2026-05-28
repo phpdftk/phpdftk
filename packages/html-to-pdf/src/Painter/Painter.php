@@ -1957,7 +1957,6 @@ final class Painter
         if ($this->writer === null || $gradient->stops === []) {
             return;
         }
-        $stopList = $this->resolveGradientStops($gradient->stops);
         $pdfY = $this->pageHeight - $top - $height;
         // Centre: default to the box centre when no `at <position>` is
         // supplied. Author-supplied length values resolve relative to
@@ -1969,6 +1968,9 @@ final class Painter
         // assumes a single outer radius; we use the larger axis).
         $rx = $gradient->sizeX !== null ? $gradient->sizeX->value : $width / 2;
         $ry = $gradient->sizeY !== null ? $gradient->sizeY->value : $height / 2;
+        // For radial, the gradient line is from centre to the ending
+        // shape — its length is the outer radius (the larger axis).
+        $stopList = $this->resolveGradientStops($gradient->stops, max($rx, $ry));
         // ShadingType3 takes inner+outer concentric circles. Phase-1 has
         // a single outer radius (inner = 0); scale the user-space matrix
         // for elliptical aspect when sizeX != sizeY.
@@ -2018,21 +2020,30 @@ final class Painter
      * monotonically non-decreasing in [0, 1].
      *
      * @param list<\Phpdftk\Css\Value\GradientStop> $stops
+     * @param float $gradientLineLength Length of the gradient line in
+     *   user units. Used to convert `<length>` stop positions to
+     *   fractional [0, 1] offsets. Pass 0 to skip length-position
+     *   resolution (degrades length-positioned stops to "no authored
+     *   position" — the spec's interpolation algorithm fills them in).
      * @return list<array{offset: float, rgb: array{float, float, float}}>
      */
-    private function resolveGradientStops(array $stops): array
+    private function resolveGradientStops(array $stops, float $gradientLineLength = 0.0): array
     {
         $count = count($stops);
         if ($count === 0) {
             return [];
         }
         // Step 1: pull positions where authored. `<percentage>` →
-        // [0,1] fraction; `<length>` is not yet honoured (a Phase-3
-        // follow-up — would require the gradient line's length).
+        // [0,1] fraction directly. `<length>` divides by the gradient
+        // line length to get a fraction; when the line length is
+        // unknown (0), length-positioned stops fall through to the
+        // interpolation step like unset positions.
         $offsets = array_fill(0, $count, null);
         foreach ($stops as $i => $s) {
             if ($s->position instanceof \Phpdftk\Css\Value\Percentage) {
                 $offsets[$i] = max(0.0, min(1.0, $s->position->value / 100.0));
+            } elseif ($s->position instanceof \Phpdftk\Css\Value\Length && $gradientLineLength > 0.0) {
+                $offsets[$i] = max(0.0, min(1.0, $s->position->value / $gradientLineLength));
             }
         }
         // Step 2: anchor unset endpoints at 0/1.
@@ -2104,7 +2115,6 @@ final class Painter
         if ($this->writer === null || $gradient->stops === []) {
             return;
         }
-        $stopList = $this->resolveGradientStops($gradient->stops);
         $pdfY = $this->pageHeight - $top - $height;
         // CSS angle convention: 0deg points up, increases clockwise. The
         // gradient line passes through the centre. Compute its start
@@ -2121,6 +2131,9 @@ final class Painter
         $sin = sin($rad);
         $cos = cos($rad);
         $halfLen = (abs($width * $sin) + abs($height * $cos)) / 2;
+        // Full line length is twice the half — what `<length>` stops
+        // resolve against (CSS Images 3 §3.5.1).
+        $stopList = $this->resolveGradientStops($gradient->stops, $halfLen * 2);
         // The CSS convention rotates the gradient line such that 0deg
         // points UP (towards the box top). In PDF space the y-axis
         // grows upward already (after our flip), so "up" is +y.

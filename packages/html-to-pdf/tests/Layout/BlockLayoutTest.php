@@ -3920,6 +3920,51 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(300.0, $div->geometry->height, 0.001);
     }
 
+    public function testAspectRatioWidthFromExplicitHeight(): void
+    {
+        // CSS Sizing 4 §4.2 inverse direction: `width: auto;
+        // height: 200px; aspect-ratio: 2` → width = 200 × 2 = 400.
+        $box = $this->buildTree(
+            '<html><body><div style="height: 200px; aspect-ratio: 2"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(400.0, $div->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioBothExplicitIgnoresRatio(): void
+    {
+        // Negative: when BOTH width and height are explicit, the
+        // ratio must be ignored — declared dimensions win even when
+        // they don't match the ratio.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; height: 50px; aspect-ratio: 5"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(100.0, $div->geometry->width, 0.001);
+        self::assertEqualsWithDelta(50.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioInverseWithSlashRatio(): void
+    {
+        // Positive: slash form (`<num> / <num>`) works for inverse
+        // direction too. height: 90; ratio 16/9 → width = 160.
+        $box = $this->buildTree(
+            '<html><body><div style="height: 90px; aspect-ratio: 16/9"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(160.0, $div->geometry->width, 0.001);
+    }
+
     public function testMaxWidthClampsExplicitlySizedBox(): void
     {
         // `max-width: 300px` should clamp a 500px-wide box.

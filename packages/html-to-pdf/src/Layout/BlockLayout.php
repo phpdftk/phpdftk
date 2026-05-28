@@ -482,14 +482,25 @@ final class BlockLayout
             }
         }
         // CSS Sizing 4 §4.2 — `aspect-ratio` constrains height (or
-        // width) when the other dimension is determined. Phase-1:
-        // when height was auto AND a numeric ratio is set, override
-        // the children-derived height with `width / ratio`. This
-        // covers the common case (image / video wrapper sized by
-        // explicit width with the ratio dictating the height).
+        // width) when the other dimension is determined.
+        //  - `width: auto; height: explicit` → compute width from
+        //    height × ratio (the inverse direction).
+        //  - `height: auto; width: explicit` → compute height from
+        //    width / ratio.
+        // When both are auto, the children-derived height wins and
+        // the ratio is ignored. When both are explicit, the ratio
+        // is ignored (declared dimensions take precedence).
         $ratio = $this->resolveAspectRatio($style);
-        if ($ratio !== null && $heightIsAuto && $geo->width > 0.0 && $ratio > 0.0) {
-            $geo->height = $geo->width / $ratio;
+        if ($ratio !== null && $ratio > 0.0) {
+            if ($heightIsAuto && !$widthAuto && $geo->width > 0.0) {
+                $geo->height = $geo->width / $ratio;
+            } elseif ($widthAuto && !$heightIsAuto && $geo->height > 0.0) {
+                $geo->width = $geo->height * $ratio;
+            } elseif ($heightIsAuto && $geo->width > 0.0) {
+                // Both auto path retained for the historic case
+                // where height defaults to width / ratio.
+                $geo->height = $geo->width / $ratio;
+            }
         }
         // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
         // with the width clamps above; `max-height: none` leaves the

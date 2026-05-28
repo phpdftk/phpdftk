@@ -1559,6 +1559,64 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('/ShadingType 3', $bytes, 'radial shading dict');
     }
 
+    public function testLinearGradientLengthPositionedStopResolvesToFraction(): void
+    {
+        // CSS Images 3 §3.5.1 — a `<length>` stop position divides
+        // by the gradient line length. For a vertical
+        // linear-gradient (0deg → upward, line length == box height),
+        // a stop at `40px` in a 100px-tall box should resolve to
+        // 0.4 in the PDF Type-3 stitching function's `/Bounds`.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        // body height + width are set so the gradient line is
+        // predictable. The default linear-gradient direction is
+        // `to bottom` (180deg) — vertical, line length = height.
+        $css = 'body { background-image: linear-gradient(red, yellow 40px, green); '
+            . 'width: 100pt; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/FunctionType 3', $bytes, 'three-stop stitching');
+        // The interior stop at 40px / 100px = 0.4 lands in Bounds.
+        self::assertMatchesRegularExpression(
+            '~/Bounds\s*\[\s*0\.4\d*\s*\]~',
+            $bytes,
+            'length-positioned stop converted to 0.4 fraction',
+        );
+    }
+
+    public function testLinearGradientLengthStopBeyondLineClampsToOne(): void
+    {
+        // Negative: a length stop that exceeds the gradient line
+        // length must clamp to 1.0 (not produce an out-of-range
+        // Bounds entry).
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(red, yellow 500px, blue, green); '
+            . 'width: 100pt; height: 100px; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The bounds array entries must all be in [0, 1].
+        if (preg_match('~/Bounds\s*\[([^\]]*)\]~', $bytes, $m) === 1) {
+            $entries = preg_split('/\s+/', trim($m[1])) ?: [];
+            foreach ($entries as $entry) {
+                if ($entry === '') {
+                    continue;
+                }
+                $value = (float) $entry;
+                self::assertGreaterThanOrEqual(0.0, $value);
+                self::assertLessThanOrEqual(1.0, $value);
+            }
+        } else {
+            self::fail('Expected a /Bounds array');
+        }
+    }
+
     public function testBackgroundSizeContainPreservesAspectAndCentres(): void
     {
         // A 4×2 PNG (2:1 aspect) in a 200px × 60px box. `contain` picks

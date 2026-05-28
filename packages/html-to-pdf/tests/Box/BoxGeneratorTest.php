@@ -673,6 +673,104 @@ final class BoxGeneratorTest extends TestCase
         self::assertNull($stray);
     }
 
+    public function testSelectMultipleRendersEverySelectedOption(): void
+    {
+        // HTML 5 §4.10.7: `<select multiple>` shows each option that
+        // carries the `selected` attribute. They stack via "\n" so
+        // line-breaking puts them on separate lines.
+        $doc = $this->html->parseDocument(
+            '<html><body><select multiple>'
+            . '<option selected>Alpha</option>'
+            . '<option>Beta</option>'
+            . '<option selected>Gamma</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        $text = '';
+        foreach ($select->children as $child) {
+            if ($child instanceof TextBox) {
+                $text .= $child->text;
+            }
+        }
+        self::assertStringContainsString('Alpha', $text);
+        self::assertStringContainsString('Gamma', $text);
+        self::assertStringNotContainsString('Beta', $text, 'unselected option suppressed');
+    }
+
+    public function testSelectMultipleWithNoSelectionsRendersEmpty(): void
+    {
+        // Negative: `<select multiple>` with NO selected options
+        // produces no rendered text (unlike single-select which
+        // implicitly picks the first).
+        $doc = $this->html->parseDocument(
+            '<html><body><select multiple>'
+            . '<option>Alpha</option>'
+            . '<option>Beta</option>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        $text = '';
+        foreach ($select->children as $child) {
+            if ($child instanceof TextBox) {
+                $text .= $child->text;
+            }
+        }
+        self::assertSame('', $text, 'multi-select with no selections renders nothing');
+    }
+
+    public function testSelectOptgroupLabelsAppearBeforeOptions(): void
+    {
+        // HTML 5 §4.10.10: `<optgroup label>` groups its options. The
+        // label is rendered as a "label: " inline prefix so the print
+        // form keeps the grouping visible.
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . '<optgroup label="Fruits"><option selected>Apple</option></optgroup>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        $text = '';
+        foreach ($select->children as $child) {
+            if ($child instanceof TextBox) {
+                $text .= $child->text;
+            }
+        }
+        self::assertStringContainsString('Fruits:', $text, 'optgroup label rendered');
+        self::assertStringContainsString('Apple', $text);
+    }
+
+    public function testSelectFallsBackToFirstOptgroupedOption(): void
+    {
+        // Negative: when no option is selected, single-select picks
+        // the first option — including options nested inside an
+        // optgroup. The optgroup's label still renders.
+        $doc = $this->html->parseDocument(
+            '<html><body><select>'
+            . '<optgroup label="A"><option>x</option></optgroup>'
+            . '<optgroup label="B"><option>y</option></optgroup>'
+            . '</select></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $select = $this->findFirstByTag($box, 'select');
+        self::assertNotNull($select);
+        $text = '';
+        foreach ($select->children as $child) {
+            if ($child instanceof TextBox) {
+                $text .= $child->text;
+            }
+        }
+        self::assertStringContainsString('A:', $text);
+        self::assertStringContainsString('x', $text);
+        self::assertStringNotContainsString('B:', $text, 'only first option rendered');
+        self::assertStringNotContainsString('y', $text);
+    }
+
     public function testWbrEmitsZeroWidthSpaceCharacter(): void
     {
         // HTML 5 §4.5.27: `<wbr>` is a Word Break Opportunity — a void
@@ -847,9 +945,62 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame('original.png', $img->element->getAttribute('src'));
     }
 
-    public function testSrcsetMultipleUrlsPicksFirst(): void
+    public function testPictureSourceTypeFiltersUnsupportedFormats(): void
     {
-        // `srcset="u1 1x, u2 2x"` → first URL `u1` wins.
+        // HTML 5 §4.8.4.2.4 — `<source type="image/avif">` declares a
+        // format the painter can't decode. Skip it; pick the next
+        // source (image/png) instead.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source type="image/avif" srcset="modern.avif">'
+            . '<source type="image/png" srcset="legacy.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('legacy.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureSourceWithSupportedTypeWins(): void
+    {
+        // Positive: a `<source type="image/png">` matches and wins
+        // over a later untyped source.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source type="image/png" srcset="typed.png">'
+            . '<source srcset="untyped.png">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('typed.png', $img->element->getAttribute('src'));
+    }
+
+    public function testPictureSourceAllUnsupportedTypesFallsBackToImg(): void
+    {
+        // Negative: every source's `type` is unsupported → walk falls
+        // through and the inner `<img src>` stays the effective src.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source type="image/avif" srcset="a.avif">'
+            . '<source type="image/heif" srcset="b.heif">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('fallback.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetDensityDescriptorPicksHighestDpr(): void
+    {
+        // `srcset="lo.png 1x, hi.png 2x"` — print is high-DPI so the
+        // 2x candidate wins.
         $doc = $this->html->parseDocument(
             '<html><body><picture>'
             . '<source srcset="lo.png 1x, hi.png 2x">'
@@ -859,7 +1010,72 @@ final class BoxGeneratorTest extends TestCase
         $box = $this->generator->generate($doc, []);
         $img = $this->findFirstByTag($box, 'img');
         self::assertNotNull($img);
-        self::assertSame('lo.png', $img->element->getAttribute('src'));
+        self::assertSame('hi.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetWidthDescriptorPicksLargestWidth(): void
+    {
+        // `Nw` descriptors are width hints. Treated as density via
+        // N/100, so 800w > 400w > 200w. Largest wins.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="small.png 200w, medium.png 400w, large.png 800w">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('large.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetUnrecognisedDescriptorIsDropped(): void
+    {
+        // Negative: a candidate with an unknown descriptor is
+        // dropped. Here `bogus.png 5q` is invalid, so the algorithm
+        // picks among the remaining valid ones.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="bogus.png 5q, normal.png 1x">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('normal.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetBareUrlDefaultsToOneX(): void
+    {
+        // Negative: a candidate with no descriptor counts as 1x.
+        // 2x wins over the bare candidate.
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="default.png, hi.png 2x">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('hi.png', $img->element->getAttribute('src'));
+    }
+
+    public function testSrcsetTieAmongCandidatesPicksFirst(): void
+    {
+        // Negative: ties on density resolve to the first declared
+        // candidate (stable preservation of authored order).
+        $doc = $this->html->parseDocument(
+            '<html><body><picture>'
+            . '<source srcset="first.png 2x, second.png 2x">'
+            . '<img src="fallback.png" alt="x">'
+            . '</picture></body></html>',
+        );
+        $box = $this->generator->generate($doc, []);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        self::assertSame('first.png', $img->element->getAttribute('src'));
     }
 
     public function testQElementWrapsWithQuotes(): void
