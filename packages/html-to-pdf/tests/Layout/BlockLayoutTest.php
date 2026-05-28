@@ -3771,6 +3771,140 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $span->geometry->width, 0.001);
     }
 
+    public function testTableAutoWidthScalesColumnsToContentRatio(): void
+    {
+        // Positive: two cells with intrinsic widths 50, 150 → column
+        // widths scale to fill 600pt total in the 1:3 ratio. Cell
+        // B's X position = column A's resolved width = 150.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 50px"></td>'
+            . '<td class="b" style="width: 150px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        // Cells keep their declared widths; column widths drive the
+        // X positions. Cell B at x = column A's resolved width.
+        self::assertEqualsWithDelta(150.0, $cells['b']->geometry->x, 0.001);
+    }
+
+    public function testTableAutoWidthShrinksWhenCellsExceedTableWidth(): void
+    {
+        // Positive (shrink direction): two cells with widths 500
+        // and 400 in a 600pt table → columns scale by 600/900 =
+        // 0.667 → 333, 267. Cell B's x = 333.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 500px"></td>'
+            . '<td class="b" style="width: 400px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(333.333, $cells['b']->geometry->x, 0.5);
+    }
+
+    public function testTableAutoWidthAllEmptyCellsFallsBackToEqualShare(): void
+    {
+        // Negative: all-empty cells (zero max-content) — the
+        // measurement returns 0/0 so we fall back to the previous
+        // equal-share behaviour. 3 empty cells in 600pt = 200 each.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td><td class="c"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        foreach (['a', 'b', 'c'] as $key) {
+            self::assertEqualsWithDelta(200.0, $cells[$key]->geometry->width, 0.001);
+        }
+        // Positions: a at 0, b at 200, c at 400.
+        self::assertSame(200.0, $cells['b']->geometry->x);
+        self::assertSame(400.0, $cells['c']->geometry->x);
+    }
+
+    public function testTableExplicitColWidthBypassesAutoMeasurement(): void
+    {
+        // Negative: a `<col width="100">` declaration preempts the
+        // content-measurement pass for col 0. Col 1 is auto with a
+        // 50-wide cell → scales 50 into the remaining 500 available.
+        // Cell B (auto col 1) → x = 100 (after col 0's 100).
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<col width="100">'
+            . '<col>'
+            . '<tr><td class="a"></td>'
+            . '<td class="b" style="width: 50px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(100.0, $cells['a']->geometry->width, 0.001);
+        self::assertEqualsWithDelta(100.0, $cells['b']->geometry->x, 0.001);
+    }
+
+    public function testTableColspanCellDistributesMaxContentEquallyAcrossColumns(): void
+    {
+        // Positive: a colspan="2" cell with width 200 contributes
+        // 100 of max-content to each of the 2 spanned columns. The
+        // third column has its own 50-wide cell. Sum 100+100+50 =
+        // 250 scaled to 600 → 240+240+120. Last cell at x = 480.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="span" colspan="2" style="width: 200px"></td>'
+            . '<td class="last" style="width: 50px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(480.0, $cells['last']->geometry->x, 0.5);
+    }
+
+    public function testTableMixedAutoAndExplicitColWidthsKeepsExplicit(): void
+    {
+        // Negative: explicit `<col width>` on col 0 = 80, auto on
+        // col 1. Cell B in col 1 has intrinsic width 100. Available
+        // for auto = 600 - 80 = 520 → col 1 expands to 520. Cell B
+        // at x = 80; col 1 width = 520.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<col width="80">'
+            . '<col>'
+            . '<tr><td class="a"></td><td class="b" style="width: 100px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(80.0, $cells['a']->geometry->width, 0.001);
+        self::assertEqualsWithDelta(80.0, $cells['b']->geometry->x, 0.001);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with

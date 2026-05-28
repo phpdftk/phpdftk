@@ -64,6 +64,13 @@ final class BlockLayout
     private ?array $currentColumnWidths = null;
 
     /**
+     * Set to true once the auto-width content-measurement pass has
+     * run for the current table. Reset alongside `currentColumnWidths`
+     * in the table layout branch so each table re-measures.
+     */
+    private bool $currentAutoWidthsResolved = false;
+
+    /**
      * Cell-occupancy grid for the active table — HTML 5 §4.9.11
      * rowspan / colspan resolution. Keyed by `spl_object_id($cell)`;
      * the value records the cell's resolved (row, col) plus declared
@@ -123,11 +130,13 @@ final class BlockLayout
             // table-level concept).
             $prev = $this->currentTableColumns;
             $prevWidths = $this->currentColumnWidths;
+            $prevAutoResolved = $this->currentAutoWidthsResolved;
             $prevGrid = $this->currentTableCellGrid;
             $prevRowHeights = $this->currentTableRowHeights;
             $prevCellRefs = $this->resolvedCellReferences;
             $this->currentTableCellGrid = $this->precomputeTableCellGrid($box);
             $this->currentTableRowHeights = [];
+            $this->currentAutoWidthsResolved = false;
             // The cell grid drives the effective column count — rows
             // with rowspan-pulled-from-prior-row cells contribute to
             // the grid's max width.
@@ -153,6 +162,7 @@ final class BlockLayout
             } finally {
                 $this->currentTableColumns = $prev;
                 $this->currentColumnWidths = $prevWidths;
+                $this->currentAutoWidthsResolved = $prevAutoResolved;
                 $this->currentTableCellGrid = $prevGrid;
                 $this->currentTableRowHeights = $prevRowHeights;
                 $this->resolvedCellReferences = $prevCellRefs;
@@ -212,6 +222,20 @@ final class BlockLayout
         $colspans = array_map(fn($c) => $this->cellColspan($c), $cells);
         $totalColumns = $this->currentTableColumns ?? max(1, array_sum($colspans));
         $totalColumns = max(1, $totalColumns);
+        // CSS Tables 3 §10.4 auto-width pass: lazily fill in any
+        // column widths that weren't set by `<col width>` based on
+        // the measured max-content of cells in each column. Cached
+        // via `currentAutoWidthsResolved` so multi-row tables only
+        // pay the measurement cost once. Triggered on the first
+        // row's layout — by then the table's geometry width is set.
+        if (!$this->currentAutoWidthsResolved) {
+            $this->resolveAutoColumnContentWidths(
+                $totalColumns,
+                $geo->width,
+                $context,
+            );
+            $this->currentAutoWidthsResolved = true;
+        }
         // HTML 5 §4.9.4 — honour explicit `<col width>` declarations.
         // Build a per-column width array: explicit widths from the col
         // declarations are honoured directly; remaining slack divides
@@ -3656,6 +3680,88 @@ final class BlockLayout
             }
         }
         return $widths;
+    }
+
+    /**
+     * CSS Tables 3 §10.4 — for each `null` (auto) entry in
+     * `currentColumnWidths`, measure the max-content of cells
+     * anchored in that column via `measureMinMaxContent`. Auto
+     * columns then scale proportionally to fill (or shrink to fit)
+     * the remaining table width after explicit widths are
+     * subtracted.
+     *
+     * Multi-column-spanning cells distribute their max-content
+     * equally across the spanned columns as a Phase-2
+     * simplification — the spec prescribes a more involved
+     * distribution that takes the min/max-content envelope of
+     * non-spanning cells into account.
+     *
+     * When ALL columns have explicit widths, this is a no-op.
+     */
+    private function resolveAutoColumnContentWidths(
+        int $totalColumns,
+        float $tableContentWidth,
+        LayoutContext $context,
+    ): void {
+        if ($this->currentColumnWidths === null || $totalColumns <= 0) {
+            return;
+        }
+        // Check if any column is auto (null).
+        $hasAuto = false;
+        foreach ($this->currentColumnWidths as $w) {
+            if ($w === null) {
+                $hasAuto = true;
+                break;
+            }
+        }
+        if (!$hasAuto) {
+            return;
+        }
+        // Per-column max-content accumulation.
+        $colMax = array_fill(0, $totalColumns, 0.0);
+        $grid = $this->currentTableCellGrid ?? [];
+        foreach ($this->resolvedCellReferences as $cellId => $cell) {
+            $info = $grid[$cellId] ?? null;
+            if ($info === null) {
+                continue;
+            }
+            $mm = $this->measureMinMaxContent($cell, $context);
+            $share = $mm['max'] / max(1, $info['colspan']);
+            for (
+                $c = $info['col'];
+                $c < $info['col'] + $info['colspan'] && $c < $totalColumns;
+                $c++
+            ) {
+                if ($colMax[$c] < $share) {
+                    $colMax[$c] = $share;
+                }
+            }
+        }
+        // Sum explicit widths + auto max-content widths.
+        $explicitSum = 0.0;
+        $autoMaxSum = 0.0;
+        foreach ($this->currentColumnWidths as $i => $w) {
+            if ($w !== null) {
+                $explicitSum += $w;
+            } else {
+                $autoMaxSum += $colMax[$i];
+            }
+        }
+        // When every auto column has zero measured content (empty
+        // cells), leave the nulls so the existing equal-share
+        // distribution in `resolveColumnWidthGrid` takes over —
+        // that matches what authors expect when laying out an
+        // empty grid scaffold for borders / scaffolding.
+        if ($autoMaxSum <= 0.0) {
+            return;
+        }
+        $availableForAuto = max(0.0, $tableContentWidth - $explicitSum);
+        $scale = $availableForAuto / $autoMaxSum;
+        foreach ($this->currentColumnWidths as $i => $w) {
+            if ($w === null) {
+                $this->currentColumnWidths[$i] = $colMax[$i] * $scale;
+            }
+        }
     }
 
     /**

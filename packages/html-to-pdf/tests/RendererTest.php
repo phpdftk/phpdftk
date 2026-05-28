@@ -2544,6 +2544,32 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~0\.9\d+ 0\.9\d+ 1 rg~', $bytes);
     }
 
+    public function testTableAutoWidthEndToEndProducesValidPdf(): void
+    {
+        // Integration: render an auto-width table where one column
+        // is narrow (50pt) and another wide (200pt). Verify the
+        // produced PDF is well-formed and that the wide column's
+        // background extends further than the narrow one.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . 'html, body, tbody { display: block; }'
+            . 'table { display: table; width: 600pt; }'
+            . 'tr { display: table-row; }'
+            . 'td { display: table-cell; }'
+            . '.narrow { width: 50pt; background-color: #ffaaaa; }'
+            . '.wide { width: 200pt; background-color: #aaffaa; }'
+            . '</style></head><body><table>'
+            . '<tr><td class="narrow"></td><td class="wide"></td></tr>'
+            . '</table></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Both colours emitted.
+        self::assertMatchesRegularExpression('~1 0\.6\d+ 0\.6\d+ rg~', $bytes, 'narrow red emitted');
+        self::assertMatchesRegularExpression('~0\.6\d+ 1 0\.6\d+ rg~', $bytes, 'wide green emitted');
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

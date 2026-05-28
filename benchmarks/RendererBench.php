@@ -276,6 +276,32 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2TableAutoWidth(): void
+    {
+        // Phase-2 auto-width table algorithm: 25 rows × 5 columns
+        // of cells with varying intrinsic widths exercises the
+        // per-column max-content measurement + scaling.
+        $rows = '';
+        for ($r = 0; $r < 25; $r++) {
+            $cells = '';
+            for ($c = 0; $c < 5; $c++) {
+                $w = 30 + (($r + $c) % 4) * 20;
+                $cells .= sprintf(
+                    '<td style="width: %dpt; background-color: #ccc;"></td>',
+                    $w,
+                );
+            }
+            $rows .= '<tr>' . $cells . '</tr>';
+        }
+        $html = '<html><head><style>'
+            . 'html, body, tbody { display: block; }'
+            . 'table { display: table; width: 500pt; }'
+            . 'tr { display: table-row; }'
+            . 'td { display: table-cell; }'
+            . '</style></head><body><table>' . $rows . '</table></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2GridAutoTracks(): void
     {
         // Phase-2 Grid auto track sizing — `auto` columns trigger
