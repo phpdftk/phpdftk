@@ -1260,9 +1260,31 @@ final class BlockLayout
         $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
         $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
 
+        // CSS Grid Layout 2 §7.3 — `grid-template-areas` defines the
+        // named-area map. Each area's rectangle drives `grid-area:
+        // <name>` placement, and the area-grid dimensions provide
+        // implicit row/column counts when grid-template-{rows,
+        // columns} aren't supplied.
+        $areaMap = $this->parseGridTemplateAreas($style->get('grid-template-areas'));
+
+        // If no explicit tracks but template-areas IS set, derive
+        // implicit track counts from the area-grid shape so author
+        // CSS that uses only template-areas still lays out.
+        $areaRows = $areaMap['rowCount'] ?? 0;
+        $areaCols = $areaMap['colCount'] ?? 0;
+        if ($columnDescriptors === [] && $areaCols > 0) {
+            // Equal-width implicit columns spanning the container.
+            $each = max(0.0, ($geo->width - $columnGap * max(0, $areaCols - 1)) / $areaCols);
+            $columnDescriptors = array_fill(0, $areaCols, ['type' => 'length', 'value' => $each]);
+        }
+        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        if ($rowDescriptors === [] && $areaRows > 0 && $declaredHeightForFr !== null) {
+            $each = max(0.0, ($declaredHeightForFr - $rowGap * max(0, $areaRows - 1)) / $areaRows);
+            $rowDescriptors = array_fill(0, $areaRows, ['type' => 'length', 'value' => $each]);
+        }
+
         // Resolve fr → pixels against the container's main axis.
         $columnTracks = $this->resolveGridTrackSizes($columnDescriptors, $geo->width, $columnGap);
-        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight);
         $rowTracks = $this->resolveGridTrackSizes(
             $rowDescriptors,
             $declaredHeightForFr ?? 0.0,
@@ -1305,6 +1327,7 @@ final class BlockLayout
                 $child,
                 count($columnTracks),
                 count($rowTracks),
+                $areaMap['areas'] ?? [],
             );
         }
 
@@ -1621,20 +1644,48 @@ final class BlockLayout
      * colSpan)` in 0-based indices. Returns auto-flags so the
      * auto-flow pass can fill in missing axes.
      *
+     * When the area map is supplied and ANY of the child's four
+     * grid-{column,row}-{start,end} values references a named area,
+     * the area's rectangle wins for that axis. Mixed forms (e.g. a
+     * name for start + an integer for end) honour each independently.
+     *
+     * @param array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $areaMap
      * @return array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}
      */
-    private function resolveGridPlacement(Box $child, int $columnCount, int $rowCount): array
-    {
-        [$colStart, $colEnd, $autoCol] = $this->resolveGridLine(
-            $child->style->get('grid-column-start'),
-            $child->style->get('grid-column-end'),
-            $columnCount,
-        );
-        [$rowStart, $rowEnd, $autoRow] = $this->resolveGridLine(
-            $child->style->get('grid-row-start'),
-            $child->style->get('grid-row-end'),
-            $rowCount,
-        );
+    private function resolveGridPlacement(
+        Box $child,
+        int $columnCount,
+        int $rowCount,
+        array $areaMap = [],
+    ): array {
+        $cs = $child->style->get('grid-column-start');
+        $ce = $child->style->get('grid-column-end');
+        $rs = $child->style->get('grid-row-start');
+        $re = $child->style->get('grid-row-end');
+        // CSS Grid Layout 2 §8.5 — if BOTH axes' start values are
+        // the same named area, use the area's full rect.
+        $name = $this->matchedAreaName($cs, $rs, $ce, $re, $areaMap);
+        if ($name !== null) {
+            $rect = $areaMap[$name];
+            return [
+                'box' => $child,
+                'row' => $rect['rowStart'],
+                'rowSpan' => max(1, $rect['rowEnd'] - $rect['rowStart']),
+                'col' => $rect['colStart'],
+                'colSpan' => max(1, $rect['colEnd'] - $rect['colStart']),
+                'autoRow' => false,
+                'autoCol' => false,
+            ];
+        }
+        // Mixed / single-axis name references: convert any
+        // name-keyword line value into the area's matching line
+        // before normal placement resolution.
+        $cs = $this->areaNameToLine($cs, 'colStart', $areaMap);
+        $ce = $this->areaNameToLine($ce, 'colEnd', $areaMap);
+        $rs = $this->areaNameToLine($rs, 'rowStart', $areaMap);
+        $re = $this->areaNameToLine($re, 'rowEnd', $areaMap);
+        [$colStart, $colEnd, $autoCol] = $this->resolveGridLine($cs, $ce, $columnCount);
+        [$rowStart, $rowEnd, $autoRow] = $this->resolveGridLine($rs, $re, $rowCount);
         return [
             'box' => $child,
             'row' => $rowStart,
@@ -1643,6 +1694,173 @@ final class BlockLayout
             'colSpan' => max(1, $colEnd - $colStart),
             'autoRow' => $autoRow,
             'autoCol' => $autoCol,
+        ];
+    }
+
+    /**
+     * When all four grid-{row,col}-{start,end} values reference the
+     * SAME named area, return that name. Used to short-circuit the
+     * standard placement resolution and use the area's rectangle.
+     *
+     * @param array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $areaMap
+     */
+    private function matchedAreaName(
+        ?\Phpdftk\Css\Value\Value $cs,
+        ?\Phpdftk\Css\Value\Value $rs,
+        ?\Phpdftk\Css\Value\Value $ce,
+        ?\Phpdftk\Css\Value\Value $re,
+        array $areaMap,
+    ): ?string {
+        $name = $this->lineValueAreaName($rs);
+        if ($name === null
+            || $this->lineValueAreaName($cs) !== $name
+            || $this->lineValueAreaName($re) !== $name
+            || $this->lineValueAreaName($ce) !== $name
+        ) {
+            return null;
+        }
+        return isset($areaMap[$name]) ? $name : null;
+    }
+
+    private function lineValueAreaName(?\Phpdftk\Css\Value\Value $value): ?string
+    {
+        if (!$value instanceof Keyword) {
+            return null;
+        }
+        $name = strtolower($value->name);
+        if ($name === 'auto') {
+            return null;
+        }
+        return $name;
+    }
+
+    /**
+     * Convert a grid line value that references a named area into
+     * an Integer line for the matching axis side. Returns the value
+     * unchanged when it's not a name reference.
+     *
+     * @param array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $areaMap
+     */
+    private function areaNameToLine(
+        ?\Phpdftk\Css\Value\Value $value,
+        string $side,
+        array $areaMap,
+    ): ?\Phpdftk\Css\Value\Value {
+        $name = $this->lineValueAreaName($value);
+        if ($name === null || !isset($areaMap[$name])) {
+            return $value;
+        }
+        $line = $areaMap[$name][$side];
+        // resolveGridLine consumes 1-based line values when fed an
+        // Integer; the area map stores 0-based start (inclusive)
+        // and 0-based end (exclusive). Convert: start lines map to
+        // (index + 1), end lines map to (index + 1) as well (since
+        // the end line index IS the inclusive line number).
+        return new \Phpdftk\Css\Value\Integer($line + 1);
+    }
+
+    /**
+     * Parse `grid-template-areas` into a name → rectangle map.
+     * Returns `null` (or an empty stub) when the value is `none` or
+     * malformed. Each row in the value list is a string whose
+     * whitespace-separated tokens name areas (`.` is a null cell).
+     *
+     * Validation: each name must form a contiguous rectangle; names
+     * that don't (L-shape, scattered) drop entirely (their cells
+     * become null cells). Rows with mismatched column counts drop
+     * the whole template.
+     *
+     * @return array{rowCount: int, colCount: int, areas: array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}>}|array{}
+     */
+    private function parseGridTemplateAreas(?\Phpdftk\Css\Value\Value $value): array
+    {
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'none')
+        ) {
+            return [];
+        }
+        $rowStrings = [];
+        if ($value instanceof \Phpdftk\Css\Value\StringValue) {
+            $rowStrings = [$value->value];
+        } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $v) {
+                if (!$v instanceof \Phpdftk\Css\Value\StringValue) {
+                    return [];
+                }
+                $rowStrings[] = $v->value;
+            }
+        } else {
+            return [];
+        }
+        if ($rowStrings === []) {
+            return [];
+        }
+        // Tokenise each row into whitespace-separated cells. Empty
+        // strings (multiple `.` runs as a single null cell) are
+        // collapsed to the `.` token.
+        $grid = [];
+        $colCount = -1;
+        foreach ($rowStrings as $row) {
+            $cells = preg_split('/\s+/', trim($row)) ?: [];
+            if ($cells === [] || $cells === ['']) {
+                return [];
+            }
+            if ($colCount === -1) {
+                $colCount = count($cells);
+            } elseif (count($cells) !== $colCount) {
+                // Per spec, rows with mismatched column counts drop
+                // the whole template.
+                return [];
+            }
+            $grid[] = $cells;
+        }
+        $rowCount = count($grid);
+        // Walk every cell, collecting name → min/max row/col.
+        /** @var array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $extents */
+        $extents = [];
+        for ($r = 0; $r < $rowCount; $r++) {
+            for ($c = 0; $c < $colCount; $c++) {
+                $name = strtolower($grid[$r][$c]);
+                if ($name === '.' || $name === '') {
+                    continue;
+                }
+                if (!isset($extents[$name])) {
+                    $extents[$name] = [
+                        'rowStart' => $r,
+                        'colStart' => $c,
+                        'rowEnd' => $r + 1,
+                        'colEnd' => $c + 1,
+                    ];
+                    continue;
+                }
+                $extents[$name]['rowStart'] = min($extents[$name]['rowStart'], $r);
+                $extents[$name]['colStart'] = min($extents[$name]['colStart'], $c);
+                $extents[$name]['rowEnd'] = max($extents[$name]['rowEnd'], $r + 1);
+                $extents[$name]['colEnd'] = max($extents[$name]['colEnd'], $c + 1);
+            }
+        }
+        // Validate: each named area must form a contiguous rectangle
+        // — every cell within its computed extent must carry the
+        // name. Otherwise drop the area.
+        $areas = [];
+        foreach ($extents as $name => $rect) {
+            $isRect = true;
+            for ($r = $rect['rowStart']; $r < $rect['rowEnd']; $r++) {
+                for ($c = $rect['colStart']; $c < $rect['colEnd']; $c++) {
+                    if (strtolower($grid[$r][$c]) !== $name) {
+                        $isRect = false;
+                        break 2;
+                    }
+                }
+            }
+            if ($isRect) {
+                $areas[$name] = $rect;
+            }
+        }
+        return [
+            'rowCount' => $rowCount,
+            'colCount' => $colCount,
+            'areas' => $areas,
         ];
     }
 

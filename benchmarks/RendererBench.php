@@ -253,6 +253,36 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2GridTemplateAreas(): void
+    {
+        // Phase-2 Grid template-areas — exercises the area parser
+        // (rectangle validation per name), name → line resolution,
+        // and implicit track-count derivation. 6 nested holy-grail
+        // layouts in a single document to give the hot path enough
+        // to chew on.
+        $body = '';
+        for ($i = 0; $i < 6; $i++) {
+            $body .= '<div class="app">'
+                . '<div class="head"></div>'
+                . '<div class="side"></div>'
+                . '<div class="main"></div>'
+                . '<div class="foot"></div>'
+                . '</div>';
+        }
+        $html = '<html><head><style>'
+            . '.app { display: grid; '
+            . '       grid-template-areas: "head head" "side main" "foot foot"; '
+            . '       grid-template-columns: 80pt 1fr; '
+            . '       grid-template-rows: 30pt 80pt 30pt; '
+            . '       column-gap: 4pt; row-gap: 4pt; height: 144pt; }'
+            . '.head { grid-area: head; background-color: #336699; }'
+            . '.side { grid-area: side; background-color: #99ccff; }'
+            . '.main { grid-area: main; background-color: #eeeeff; }'
+            . '.foot { grid-area: foot; background-color: #336699; }'
+            . '</style></head><body>' . $body . '</body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2Gradients(): void
     {
         // Phase-2: N-stop gradients route through a Type-3 stitching

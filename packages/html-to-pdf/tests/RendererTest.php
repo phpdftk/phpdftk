@@ -2385,6 +2385,43 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~0\.6\d+ 0\.8\d+ 1 rg~', $bytes, 'span rect colour');
     }
 
+    public function testGridTemplateAreasEndToEndProducesValidPdf(): void
+    {
+        // Integration: the canonical "holy grail" Grid layout — a
+        // header / sidebar / main / footer using `grid-template-
+        // areas` with name-based placement.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.app { display: grid; '
+            . '       grid-template-areas: "head head" "side main" "foot foot"; '
+            . '       grid-template-columns: 80pt 1fr; '
+            . '       grid-template-rows: 40pt 200pt 30pt; '
+            . '       column-gap: 4pt; row-gap: 4pt; height: 280pt; }'
+            . '.head { grid-area: head; background-color: #336699; }'
+            . '.side { grid-area: side; background-color: #99ccff; }'
+            . '.main { grid-area: main; background-color: #eeeeff; }'
+            . '.foot { grid-area: foot; background-color: #336699; }'
+            . '</style></head><body>'
+            . '<div class="app">'
+            . '<div class="head"></div>'
+            . '<div class="main"></div>'
+            . '<div class="side"></div>'
+            . '<div class="foot"></div>'
+            . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Each named area picks up its own background colour. The
+        // dark blue (#336699 ≈ 0.2 0.4 0.6) used by head + foot
+        // should appear in the bytes; the light blue (#99ccff
+        // ≈ 0.6 0.8 1) used by side; and the lavender (#eeeeff
+        // ≈ 0.933 0.933 1) used by main.
+        self::assertMatchesRegularExpression('~0\.2 0\.4 0\.6 rg~', $bytes, 'head/foot blue');
+        self::assertMatchesRegularExpression('~0\.6 0\.8 1 rg~', $bytes, 'side blue');
+        self::assertMatchesRegularExpression('~0\.9\d+ 0\.9\d+ 1 rg~', $bytes, 'main lavender');
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

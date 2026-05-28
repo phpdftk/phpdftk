@@ -78,8 +78,61 @@ final class ShorthandExpander
             'flex-flow' => $this->expandFlexFlow($value),
             'grid-column' => $this->expandGridLine($value, 'column'),
             'grid-row' => $this->expandGridLine($value, 'row'),
+            'grid-area' => $this->expandGridArea($value),
             default => [$property => $value],
         };
+    }
+
+    /**
+     * CSS Grid Layout 2 §8.5 — `grid-area` shorthand. Three forms:
+     *  - Single `<custom-ident>` (any non-`auto` keyword) — propagates
+     *    to all four longhands as a name reference. Layout resolves
+     *    the name against the grid container's `grid-template-areas`
+     *    map; falls back to `auto` when the name doesn't exist.
+     *  - Single `<integer>` — applies to `grid-row-start` only; the
+     *    other three default to `auto`.
+     *  - Slash-separated 2-, 3-, or 4-value form — fills row-start /
+     *    column-start / row-end / column-end. Omitted positions
+     *    mirror the spec's "missing → matching opposite or auto"
+     *    rule (Phase-2 simplification: missing → `auto`).
+     *
+     * @return array<string, Value>
+     */
+    private function expandGridArea(Value $value): array
+    {
+        $autoKey = new \Phpdftk\Css\Value\Keyword('auto');
+        // Single-value forms.
+        if (!($value instanceof \Phpdftk\Css\Value\ValueList)
+            || $value->separator !== \Phpdftk\Css\Value\ListSeparator::Slash
+        ) {
+            if ($value instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($value->name) !== 'auto'
+                && strtolower($value->name) !== 'none'
+            ) {
+                // Custom-ident name — propagate to all four sides.
+                return [
+                    'grid-row-start' => $value,
+                    'grid-column-start' => $value,
+                    'grid-row-end' => $value,
+                    'grid-column-end' => $value,
+                ];
+            }
+            // Bare integer / `auto` — only row-start gets the value.
+            return [
+                'grid-row-start' => $value,
+                'grid-column-start' => $autoKey,
+                'grid-row-end' => $autoKey,
+                'grid-column-end' => $autoKey,
+            ];
+        }
+        // Slash-separated list — positional mapping.
+        $vs = $value->values;
+        return [
+            'grid-row-start' => $vs[0] ?? $autoKey,
+            'grid-column-start' => $vs[1] ?? $autoKey,
+            'grid-row-end' => $vs[2] ?? $autoKey,
+            'grid-column-end' => $vs[3] ?? $autoKey,
+        ];
     }
 
     /**

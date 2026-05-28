@@ -3064,6 +3064,198 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(30.0, $a->geometry->y, 0.001);
     }
 
+    public function testGridTemplateAreasDropsOnMismatchedColumns(): void
+    {
+        // Negative: rows with different column counts make the whole
+        // template invalid per spec — `grid-area: header` won't resolve.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'a a\' \'b\'; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 40px 40px;">'
+            . '<div class="x" style="grid-area: a;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $x = $this->find($box, 'div.x');
+        // Template dropped → grid-area: a doesn't resolve, falls
+        // through to auto-flow at (0, 0).
+        self::assertSame(0.0, $x->geometry->x);
+        // Stretched across only 1 column since the area lookup
+        // failed (would have been 2 columns if it resolved).
+        self::assertEqualsWithDelta(100.0, $x->geometry->width, 0.001);
+    }
+
+    public function testGridTemplateAreasNonRectangularNameDropped(): void
+    {
+        // Negative: an L-shaped name area is invalid per spec — its
+        // entry drops from the area map.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'a a\' \'a .\'; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 40px 40px;">'
+            . '<div class="x" style="grid-area: a;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $x = $this->find($box, 'div.x');
+        // `a` is L-shaped (top-row both cells + bottom-left only)
+        // → dropped → falls back to auto-flow at (0, 0).
+        self::assertSame(0.0, $x->geometry->x);
+        self::assertSame(0.0, $x->geometry->y);
+    }
+
+    public function testGridTemplateAreasUnknownNameFallsThroughToAuto(): void
+    {
+        // Negative: `grid-area: bogus` doesn't match any declared
+        // area → falls back to auto-flow at the next free cell.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'header\'; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 40px 40px;">'
+            . '<div class="real" style="grid-area: header;"></div>'
+            . '<div class="phantom" style="grid-area: nonsense;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $real = $this->find($box, 'div.real');
+        $phantom = $this->find($box, 'div.phantom');
+        // real → row 0
+        self::assertSame(0.0, $real->geometry->y);
+        // phantom → row 1 (next free after real)
+        self::assertSame(40.0, $phantom->geometry->y);
+    }
+
+    public function testGridTemplateAreasNoneFallsBackToTracks(): void
+    {
+        // Negative: `grid-template-areas: none` (initial) leaves the
+        // area map empty; placement falls back to explicit tracks.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px;'
+            . 'grid-template-rows: 40px;">'
+            . '<div class="x"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $x = $this->find($box, 'div.x');
+        self::assertEqualsWithDelta(80.0, $x->geometry->width, 0.001);
+    }
+
+    public function testGridAreaShorthandWithFourValuesExpands(): void
+    {
+        // Negative: 4-value `grid-area: 1 / 2 / 3 / 4` expands to
+        // row-start=1, col-start=2, row-end=3, col-end=4 (line nums).
+        // Item should span rows 1-2 (0-based: 0-1) and cols 2-3
+        // (0-based: 1-2).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 50px 50px 50px; '
+            . 'grid-template-rows: 30px 30px;">'
+            . '<div class="x" style="grid-area: 1 / 2 / 3 / 4;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $x = $this->find($box, 'div.x');
+        // col-start=2 (0-based 1) → x = 50
+        // span 2 cols (col-end 4 → 0-based 3) → width = 100
+        self::assertEqualsWithDelta(50.0, $x->geometry->x, 0.001);
+        self::assertEqualsWithDelta(100.0, $x->geometry->width, 0.001);
+        // row-start=1 → y = 0; span 2 rows → height = 60
+        self::assertEqualsWithDelta(0.0, $x->geometry->y, 0.001);
+        self::assertEqualsWithDelta(60.0, $x->geometry->height, 0.001);
+    }
+
+    public function testGridAreaNameResolvesToAreaRectangle(): void
+    {
+        // Positive: `grid-area: header` looks up the named area's
+        // rectangle from the `grid-template-areas` map.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'h h h\' \'s m m\'; '
+            . 'grid-template-columns: 50px 60px 70px; '
+            . 'grid-template-rows: 30px 40px;">'
+            . '<div class="header" style="grid-area: h;"></div>'
+            . '<div class="side" style="grid-area: s;"></div>'
+            . '<div class="main" style="grid-area: m;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $header = $this->find($box, 'div.header');
+        $side = $this->find($box, 'div.side');
+        $main = $this->find($box, 'div.main');
+        // header spans all 3 columns of row 0 → width = 50+60+70 = 180
+        self::assertSame(0.0, $header->geometry->x);
+        self::assertSame(0.0, $header->geometry->y);
+        self::assertEqualsWithDelta(180.0, $header->geometry->width, 0.001);
+        // side = bottom-left cell only
+        self::assertSame(0.0, $side->geometry->x);
+        self::assertSame(30.0, $side->geometry->y);
+        self::assertEqualsWithDelta(50.0, $side->geometry->width, 0.001);
+        // main = bottom row cols 1-2 → x = 50, width = 60 + 70 = 130
+        self::assertSame(50.0, $main->geometry->x);
+        self::assertEqualsWithDelta(130.0, $main->geometry->width, 0.001);
+    }
+
+    public function testGridTemplateAreasImplicitRowAndColumnCounts(): void
+    {
+        // Positive: when only grid-template-areas is set (no
+        // grid-template-columns/rows), the area-grid's dimensions
+        // drive implicit equal-sized tracks. 3-column area-grid in a
+        // 600px container → 200px columns.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'a b c\'; width: 600px; height: 40px;">'
+            . '<div class="a" style="grid-area: a;"></div>'
+            . '<div class="c" style="grid-area: c;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $c = $this->find($box, 'div.c');
+        self::assertEqualsWithDelta(200.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(400.0, $c->geometry->x, 0.001);
+    }
+
+    public function testGridTemplateAreasDotCellIsAnonymous(): void
+    {
+        // Positive: `.` in the template-areas string marks an
+        // anonymous null cell — no item can target it by name, but
+        // an auto-flowing item still places into it.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-areas: \'a .\' \'. b\'; '
+            . 'grid-template-columns: 50px 50px; '
+            . 'grid-template-rows: 30px 30px;">'
+            . '<div class="a" style="grid-area: a;"></div>'
+            . '<div class="b" style="grid-area: b;"></div>'
+            . '<div class="filler"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $filler = $this->find($box, 'div.filler');
+        // a at (0,0), b at (1,1), filler auto-places at (0,1)
+        // (the first free cell in document/row-major order).
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(0.0, $a->geometry->y);
+        self::assertSame(50.0, $b->geometry->x);
+        self::assertSame(30.0, $b->geometry->y);
+        self::assertSame(50.0, $filler->geometry->x);
+        self::assertSame(0.0, $filler->geometry->y);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with
