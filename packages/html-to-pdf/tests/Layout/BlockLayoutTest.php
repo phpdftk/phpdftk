@@ -214,6 +214,237 @@ final class BlockLayoutTest extends TestCase
         self::assertGreaterThan(0.0, $cells['br']->geometry->borderBottom);
     }
 
+    /**
+     * Collect cells keyed by their first CSS class. Shared helper for
+     * the border-collapse tests below.
+     *
+     * @return array<string, \Phpdftk\HtmlToPdf\Box\TableCellBox>
+     */
+    private function collectCellsByClass(Box $root): array
+    {
+        $cells = [];
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox) {
+                $key = $node->element?->classes()[0] ?? '';
+                if ($key !== '') {
+                    $cells[$key] = $node;
+                }
+                continue;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return $cells;
+    }
+
+    public function testBorderCollapseDefaultKeepsCellBordersIntact(): void
+    {
+        // Negative: omitting `border-collapse` leaves the cascade
+        // initial (`separate`), so the collapse pass must NOT run.
+        // Every cell keeps its own declared borders on every side.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 1px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertGreaterThan(0.0, $cells['a']->geometry->borderRight, 'separate leaves inner edges intact');
+        self::assertGreaterThan(0.0, $cells['b']->geometry->borderLeft);
+    }
+
+    public function testBorderCollapseInvalidKeywordFallsBackToSeparate(): void
+    {
+        // Negative: `border-collapse: bogus` must not match `collapse`.
+        // The CSS parser may either drop the declaration or keep it as
+        // a Keyword; either way `isBorderCollapse` returns false and
+        // the collapse pass is skipped.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: bogus; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 1px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertGreaterThan(0.0, $cells['a']->geometry->borderRight);
+        self::assertGreaterThan(0.0, $cells['b']->geometry->borderLeft);
+    }
+
+    public function testBorderCollapseHandlesEmptyTableWithoutCrashing(): void
+    {
+        // Negative: a `<table>` with no rows must not blow up the
+        // collapse pass — the grid is empty and there's nothing to
+        // resolve. Reaching the assertion proves layout returned.
+        $box = $this->buildTree(
+            '<html><body><table></table></body></html>',
+            'html, body { display: block; }
+             table { display: table; border-collapse: collapse; }',
+        );
+        $height = $this->layout->layout($box, $this->defaultCtx);
+        self::assertGreaterThanOrEqual(0.0, $height);
+    }
+
+    public function testBorderCollapseSingleCellKeepsAllFourSides(): void
+    {
+        // Negative: a 1×1 table has no joints to resolve. The single
+        // cell's outer edges (all four sides) must keep their
+        // declared widths even in collapse mode.
+        $box = $this->buildTree(
+            '<html><body><table><tr><td class="only"></td></tr></table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 2px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertGreaterThan(0.0, $cells['only']->geometry->borderTop);
+        self::assertGreaterThan(0.0, $cells['only']->geometry->borderRight);
+        self::assertGreaterThan(0.0, $cells['only']->geometry->borderBottom);
+        self::assertGreaterThan(0.0, $cells['only']->geometry->borderLeft);
+    }
+
+    public function testBorderCollapseHiddenSuppressesJointEntirely(): void
+    {
+        // Negative: `hidden` on either side of a joint wins — the
+        // joint goes to zero on both sides regardless of the other
+        // side's width. (Spec: hidden has top priority.)
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; }
+             .a { border-right: 5px hidden #000; border-top: 5px solid #000; border-bottom: 5px solid #000; border-left: 5px solid #000; }
+             .b { border: 1px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertSame(0.0, $cells['a']->geometry->borderRight, 'hidden suppresses A side');
+        self::assertSame(0.0, $cells['b']->geometry->borderLeft, 'hidden suppresses B side too');
+    }
+
+    public function testBorderCollapseNoneLosesToVisibleNeighbour(): void
+    {
+        // Negative: a `none` border-style contributes width 0 and
+        // loses to any visible neighbour. The visible side keeps its
+        // declared width.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; }
+             .a { border: 4px solid #000; border-right-style: none; }
+             .b { border: 2px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertSame(0.0, $cells['a']->geometry->borderRight, 'none loses');
+        self::assertEqualsWithDelta(2.0, $cells['b']->geometry->borderLeft, 0.001, 'visible neighbour keeps its width');
+    }
+
+    public function testBorderCollapseEqualBordersDefaultsToNeighbourBias(): void
+    {
+        // Negative: when width AND style are tied, the existing
+        // direction bias must hold — the right / bottom neighbour
+        // keeps the joint so the left / top cell is the one that
+        // gets zeroed. (Pins the tiebreaker direction.)
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 2px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertSame(0.0, $cells['a']->geometry->borderRight);
+        self::assertEqualsWithDelta(2.0, $cells['b']->geometry->borderLeft, 0.001);
+    }
+
+    public function testBorderCollapseThickerWidthWins(): void
+    {
+        // Positive: the thicker side wins at the joint regardless of
+        // which neighbour declared it. A's 5px right beats B's 1px
+        // left — A's geometry keeps 5px, B's left zeroes out.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; }
+             .a { border: 5px solid #000; }
+             .b { border: 1px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(5.0, $cells['a']->geometry->borderRight, 0.001, 'thicker A wins');
+        self::assertSame(0.0, $cells['b']->geometry->borderLeft, 'thinner B loses');
+    }
+
+    public function testBorderCollapseStylePrecedenceDoubleBeatsSolid(): void
+    {
+        // Positive: width tie at 3px, A is double, B is solid. Double
+        // (rank 7) beats solid (rank 6) — A wins the joint.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; }
+             .a { border: 3px double #000; }
+             .b { border: 3px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(3.0, $cells['a']->geometry->borderRight, 0.001, 'double wins style tiebreak');
+        self::assertSame(0.0, $cells['b']->geometry->borderLeft);
+    }
+
+    public function testBorderCollapseThickerVerticalWinsAtRowJoint(): void
+    {
+        // Positive: same algorithm applies to horizontal joints
+        // (row-to-row). A's 6px bottom beats B's 2px top.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td></tr>'
+            . '<tr><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; }
+             .a { border: 6px solid #000; }
+             .b { border: 2px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(6.0, $cells['a']->geometry->borderBottom, 0.001);
+        self::assertSame(0.0, $cells['b']->geometry->borderTop);
+    }
+
     public function testTableColumnsAlignAcrossRows(): void
     {
         // Row 1 has 2 cells, row 2 has 3 cells. The table-level column

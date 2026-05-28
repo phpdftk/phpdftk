@@ -2612,45 +2612,165 @@ final class BlockLayout
     }
 
     /**
-     * Walk the table's rows + cells; zero out border-right widths on cells
-     * that aren't the last in their row, and border-bottom widths on cells
-     * that aren't in the last row. Net effect: adjacent cells share a
-     * single border line instead of doubling — the simple-case
-     * approximation of CSS Tables 3 §11.2 "collapsing borders model".
+     * CSS Tables 3 §11.2 "collapsing borders model" — for every joint
+     * between two adjacent anchor cells, run border-conflict
+     * resolution and zero the losing side. The winning side keeps
+     * the resolved width so the painter draws one shared line.
+     *
+     * Resolution order: `hidden` on either side suppresses entirely;
+     * otherwise the thicker border wins; on a width tie the style
+     * precedence (double > solid > dashed > dotted > ridge > outset
+     * > groove > inset > none) breaks it; on a style tie the right /
+     * bottom neighbour wins (matching the Phase-1 direction bias).
+     *
+     * Outermost cell edges (those without an adjacent cell) keep
+     * their declared width — outer-cell-vs-table-border collapse is
+     * a follow-up.
      */
     private function collapseBorders(\Phpdftk\HtmlToPdf\Box\TableBox $table): void
     {
-        /** @var list<\Phpdftk\HtmlToPdf\Box\TableRowBox> $rows */
-        $rows = [];
-        // Pre-order DFS in document order via reversed-child push.
-        $stack = [$table];
-        while ($stack !== []) {
-            $node = array_shift($stack);
-            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
-                $rows[] = $node;
+        $grid = $this->currentTableCellGrid ?? [];
+        if ($grid === [] || $this->resolvedCellReferences === []) {
+            return;
+        }
+        // Anchor-position lookup: only positions where a cell starts.
+        /** @var array<int, array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>> $anchorAt */
+        $anchorAt = [];
+        foreach ($this->resolvedCellReferences as $cellId => $cell) {
+            $info = $grid[$cellId] ?? null;
+            if ($info === null) {
                 continue;
             }
-            $children = $node->children;
-            foreach (array_reverse($children) as $c) {
-                array_unshift($stack, $c);
+            $anchorAt[$info['row']][$info['col']] = $cell;
+        }
+        // Per-cell-side resolved widths. Tracked separately so a span
+        // touching multiple neighbours keeps the max winning width.
+        /** @var array<int, array{right?: float, left?: float, bottom?: float, top?: float}> $resolved */
+        $resolved = [];
+        /** @var array<int, array{right?: true, left?: true, bottom?: true, top?: true}> $touched */
+        $touched = [];
+
+        foreach ($this->resolvedCellReferences as $cellId => $cell) {
+            $info = $grid[$cellId];
+            $endCol = $info['col'] + $info['colspan'];
+            $endRow = $info['row'] + $info['rowspan'];
+
+            // RIGHT edge — resolve against every right neighbour
+            // anchored at column $endCol within the spanned rows.
+            for ($r = $info['row']; $r < $endRow; $r++) {
+                $neighbor = $anchorAt[$r][$endCol] ?? null;
+                if ($neighbor === null) {
+                    continue;
+                }
+                [$aWidth, $bWidth] = $this->resolveCollapsedJoint($cell, 'right', $neighbor, 'left');
+                $nid = spl_object_id($neighbor);
+                $resolved[$cellId]['right'] = max($resolved[$cellId]['right'] ?? 0.0, $aWidth);
+                $resolved[$nid]['left'] = max($resolved[$nid]['left'] ?? 0.0, $bWidth);
+                $touched[$cellId]['right'] = true;
+                $touched[$nid]['left'] = true;
+            }
+
+            // BOTTOM edge — resolve against every bottom neighbour
+            // anchored at row $endRow within the spanned columns.
+            for ($c = $info['col']; $c < $endCol; $c++) {
+                $neighbor = $anchorAt[$endRow][$c] ?? null;
+                if ($neighbor === null) {
+                    continue;
+                }
+                [$aWidth, $bWidth] = $this->resolveCollapsedJoint($cell, 'bottom', $neighbor, 'top');
+                $nid = spl_object_id($neighbor);
+                $resolved[$cellId]['bottom'] = max($resolved[$cellId]['bottom'] ?? 0.0, $aWidth);
+                $resolved[$nid]['top'] = max($resolved[$nid]['top'] ?? 0.0, $bWidth);
+                $touched[$cellId]['bottom'] = true;
+                $touched[$nid]['top'] = true;
             }
         }
-        $rowCount = count($rows);
-        foreach ($rows as $rIdx => $row) {
-            $cells = array_values(array_filter(
-                $row->children,
-                static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
-            ));
-            $cellCount = count($cells);
-            foreach ($cells as $cIdx => $cell) {
-                if ($cIdx < $cellCount - 1) {
-                    $cell->geometry->borderRight = 0.0;
-                }
-                if ($rIdx < $rowCount - 1) {
-                    $cell->geometry->borderBottom = 0.0;
-                }
+
+        // Apply resolved widths. Sides not touched (outer-table edges)
+        // keep their pre-collapse `geometry` value.
+        foreach ($this->resolvedCellReferences as $cellId => $cell) {
+            if (isset($touched[$cellId]['right'])) {
+                $cell->geometry->borderRight = $resolved[$cellId]['right'] ?? 0.0;
+            }
+            if (isset($touched[$cellId]['left'])) {
+                $cell->geometry->borderLeft = $resolved[$cellId]['left'] ?? 0.0;
+            }
+            if (isset($touched[$cellId]['bottom'])) {
+                $cell->geometry->borderBottom = $resolved[$cellId]['bottom'] ?? 0.0;
+            }
+            if (isset($touched[$cellId]['top'])) {
+                $cell->geometry->borderTop = $resolved[$cellId]['top'] ?? 0.0;
             }
         }
+    }
+
+    /**
+     * Resolve a single border joint between cell $a's $aSide and
+     * cell $b's $bSide. Returns `[aWidth, bWidth]` — one of the two
+     * is the winning width, the other is zero (or both are zero for
+     * a `hidden` joint).
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function resolveCollapsedJoint(Box $a, string $aSide, Box $b, string $bSide): array
+    {
+        $aStyle = $this->borderStyleName($a, $aSide);
+        $bStyle = $this->borderStyleName($b, $bSide);
+        // `hidden` on either side suppresses the joint entirely.
+        if ($aStyle === 'hidden' || $bStyle === 'hidden') {
+            return [0.0, 0.0];
+        }
+        // `none` contributes width 0 — the other side wins by default
+        // (its own non-zero width survives; on tied zero both stay 0).
+        $aWidth = ($aStyle === 'none') ? 0.0 : $this->borderDeclaredWidth($a, $aSide);
+        $bWidth = ($bStyle === 'none') ? 0.0 : $this->borderDeclaredWidth($b, $bSide);
+        if ($aWidth > $bWidth) {
+            return [$aWidth, 0.0];
+        }
+        if ($bWidth > $aWidth) {
+            return [0.0, $bWidth];
+        }
+        $aRank = $this->borderStylePrecedence($aStyle);
+        $bRank = $this->borderStylePrecedence($bStyle);
+        if ($aRank > $bRank) {
+            return [$aWidth, 0.0];
+        }
+        if ($bRank > $aRank) {
+            return [0.0, $bWidth];
+        }
+        // Tie on style — direction bias: B (the right/bottom
+        // neighbour) wins so the visible line lives on B's side.
+        return [0.0, $bWidth];
+    }
+
+    private function borderStyleName(Box $box, string $side): string
+    {
+        $v = $box->style->get("border-$side-style");
+        if (!$v instanceof \Phpdftk\Css\Value\Keyword) {
+            return 'none';
+        }
+        return strtolower($v->name);
+    }
+
+    private function borderDeclaredWidth(Box $box, string $side): float
+    {
+        $v = $box->style->get("border-$side-width");
+        return $v instanceof Length ? $v->value : 0.0;
+    }
+
+    private function borderStylePrecedence(string $style): int
+    {
+        return match ($style) {
+            'double' => 7,
+            'solid' => 6,
+            'dashed' => 5,
+            'dotted' => 4,
+            'ridge' => 3,
+            'outset' => 2,
+            'groove' => 1,
+            'inset' => 0,
+            default => -1,
+        };
     }
 
     /**

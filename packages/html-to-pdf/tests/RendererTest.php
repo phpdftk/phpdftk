@@ -2085,6 +2085,46 @@ final class RendererTest extends TestCase
         self::assertStringStartsWith('%PDF-', $bytes);
     }
 
+    public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
+    {
+        // Integration: render a 2×2 table where cell A has a 6pt
+        // right border and cell B has a 1pt left border. With
+        // `border-collapse: collapse`, the painter must emit a
+        // single 6pt rect at the shared edge (the winner) and NOT
+        // emit B's 1pt left border at the same joint. Border widths
+        // appear in PDF px (6pt = 8px, 1pt ≈ 1.333px at 96/72 dpi).
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . 'html, body, tbody { display: block; }'
+            . 'table { display: table; border-collapse: collapse; }'
+            . 'tr { display: table-row; }'
+            . 'td { display: table-cell; width: 100pt; height: 30pt; }'
+            . '.a { border: 6pt solid #000; }'
+            . '.b { border: 1pt solid #000; }'
+            . '</style></head><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // 6pt right-edge winning border at the joint paints as a
+        // 8-px-wide vertical rect at the joint X coordinate (~146.7).
+        self::assertMatchesRegularExpression(
+            '~14[0-9]\.\d+\s+\d+\.?\d*\s+8\s+\d+\.?\d*\s+re~',
+            $bytes,
+            'winning 6pt border (= 8px in PDF user space) emitted at the joint',
+        );
+        // B's 1pt left border (1.333... px wide) must NOT show up
+        // adjacent to the joint — it's been resolved to zero.
+        self::assertDoesNotMatchRegularExpression(
+            '~14[89]\.\d+\s+\d+\.?\d*\s+1\.333\d+\s+\d+\.?\d*\s+re~',
+            $bytes,
+            'thinner 1pt border zeroed at the joint',
+        );
+    }
+
     public function testPageBackgroundColorFillsEntirePage(): void
     {
         // `@page { background-color: #ffeecc }` should paint a full
