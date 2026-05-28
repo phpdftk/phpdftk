@@ -426,25 +426,37 @@ final class BoxGenerator
      * Resolve CSS Generated Content 3 §3.1 `quotes` to the
      * `[openQuote, closeQuote]` pair for `open-quote` / `close-quote`
      * content keywords. `auto` (initial value) defers to the
-     * typographic default U+201C / U+201D ("smart quotes"). An
-     * explicit value is a list of strings paired open/close — Phase-1
-     * uses the first pair only; nested quote depth tracking lands
-     * later.
+     * typographic default U+201C / U+201D ("smart quotes"). `none`
+     * suppresses quote glyphs entirely — both `open-quote` and
+     * `close-quote` evaluate to the empty string in that case.
+     * Explicit string lists are paired open/close; nested-depth
+     * tracking through ancestor `<q>` chains picks the pair at the
+     * current depth (clamping to the last pair when nesting exceeds
+     * the list).
      *
-     * @return array{0:string, 1:string}
+     * @return array{0:string, 1:string}|null  Null means `quotes: none`.
      */
-    private function resolveQuotePair(CascadedValues $values): array
+    private function resolveQuotePair(CascadedValues $values, int $depth): ?array
     {
         $value = $values->get('quotes');
+        if ($value instanceof Keyword && strtolower($value->name) === 'none') {
+            return null;
+        }
         if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $pairs = [];
             $strings = [];
             foreach ($value->values as $v) {
                 if ($v instanceof \Phpdftk\Css\Value\StringValue) {
                     $strings[] = $v->value;
+                    if (count($strings) === 2) {
+                        $pairs[] = [$strings[0], $strings[1]];
+                        $strings = [];
+                    }
                 }
             }
-            if (count($strings) >= 2) {
-                return [$strings[0], $strings[1]];
+            if ($pairs !== []) {
+                $idx = max(0, min($depth, count($pairs) - 1));
+                return $pairs[$idx];
             }
         }
         // U+201C LEFT DOUBLE QUOTATION MARK + U+201D RIGHT DOUBLE
@@ -452,6 +464,25 @@ final class BoxGenerator
         // locales (German „..." / French «...») are Phase 2 once the
         // cascade tracks `:lang()`-driven UA stylesheets.
         return ["\u{201C}", "\u{201D}"];
+    }
+
+    /**
+     * Walk up the host element's `<q>` ancestor chain to compute the
+     * current quote nesting depth. Each enclosing `<q>` bumps the
+     * depth by one. The depth is what indexes into the `quotes`
+     * property's pair list.
+     */
+    private function currentQuoteDepth(Element $host): int
+    {
+        $depth = 0;
+        $node = $host->parentNode;
+        while ($node !== null) {
+            if ($node instanceof Element && strtolower($node->localName) === 'q') {
+                $depth++;
+            }
+            $node = $node->parentNode;
+        }
+        return $depth;
     }
 
     private function contentItemAsString(\Phpdftk\Css\Value\Value $value, Element $host, CascadedValues $values): ?string
@@ -462,7 +493,11 @@ final class BoxGenerator
         if ($value instanceof Keyword) {
             $kw = strtolower($value->name);
             if ($kw === 'open-quote' || $kw === 'close-quote') {
-                $pair = $this->resolveQuotePair($values);
+                $depth = $this->currentQuoteDepth($host);
+                $pair = $this->resolveQuotePair($values, $depth);
+                if ($pair === null) {
+                    return '';
+                }
                 return $kw === 'open-quote' ? $pair[0] : $pair[1];
             }
             return match ($kw) {

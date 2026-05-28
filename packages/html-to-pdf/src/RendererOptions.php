@@ -295,8 +295,11 @@ final readonly class RendererOptions
                render shows nothing by default. */
             dialog { display: none; }
             dialog[open] { display: block; }
-            /* HTML 5 §3.2.6.1: the `hidden` attribute hides any element. */
+            /* HTML 5 §3.2.6.1: the `hidden` attribute hides any element.
+               `hidden="until-found"` is the find-in-page reveal mode —
+               it stays hidden in static print just like the bare form. */
             [hidden] { display: none; }
+            [hidden="until-found"] { display: none; }
             /* HTML 5 §4.12.3: `<template>` content is inert and never
                renders directly. */
             template { display: none; }

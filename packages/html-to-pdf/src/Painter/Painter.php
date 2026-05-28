@@ -73,6 +73,14 @@ final class Painter
          * @var array<string, RegisteredFont>
          */
         private readonly array $registeredFonts = [],
+        /**
+         * Page width in PDF user-space units. Used by per-axis
+         * `overflow-x` / `overflow-y` clipping to extend the clip
+         * rect across the unconstrained axis. Defaults to a value
+         * large enough that any reasonable page-width effectively
+         * disables horizontal clipping when only the Y axis clips.
+         */
+        private readonly float $pageWidth = 100000.0,
     ) {}
 
     /**
@@ -684,22 +692,89 @@ final class Painter
     }
 
     /**
+     * Resolve CSS Backgrounds 3 §3.4 `background-origin` to one of
+     * `padding-box` (initial) / `border-box` / `content-box`. The
+     * origin rect anchors `background-position`'s percentage math.
+     */
+    private function resolveBackgroundOrigin(Box $box): string
+    {
+        $value = $box->style->get('background-origin');
+        if (!($value instanceof Keyword)) {
+            return 'padding-box';
+        }
+        $name = strtolower($value->name);
+        if (in_array($name, ['border-box', 'padding-box', 'content-box'], true)) {
+            return $name;
+        }
+        return 'padding-box';
+    }
+
+    /**
+     * Compute the (x, top, width, height) rect that
+     * `background-origin: <value>` selects on `$box`. `x/top` are in
+     * top-down layout space.
+     *
+     * @return array{x: float, top: float, width: float, height: float}
+     */
+    private function backgroundOriginRect(Box $box, string $origin): array
+    {
+        $g = $box->geometry;
+        switch ($origin) {
+            case 'content-box':
+                return [
+                    'x' => $g->x,
+                    'top' => $g->y,
+                    'width' => $g->width,
+                    'height' => $g->height,
+                ];
+            case 'border-box':
+                return [
+                    'x' => $g->x - $g->paddingLeft - $g->borderLeft,
+                    'top' => $g->y - $g->paddingTop - $g->borderTop,
+                    'width' => $g->paddingLeft + $g->width + $g->paddingRight
+                        + $g->borderLeft + $g->borderRight,
+                    'height' => $g->paddingTop + $g->height + $g->paddingBottom
+                        + $g->borderTop + $g->borderBottom,
+                ];
+            default: // 'padding-box'
+                return [
+                    'x' => $g->x - $g->paddingLeft,
+                    'top' => $g->y - $g->paddingTop,
+                    'width' => $g->paddingLeft + $g->width + $g->paddingRight,
+                    'height' => $g->paddingTop + $g->height + $g->paddingBottom,
+                ];
+        }
+    }
+
+    /**
      * CSS Overflow 3 §3 — return true when this box should clip its
-     * descendants to its padding edge. `visible` (initial) → no clip;
-     * any of `hidden` / `clip` / `scroll` / `auto` → clip. PDF
-     * clipping is rectangular (both axes), so when EITHER `overflow-x`
-     * or `overflow-y` is non-visible we clip both axes — over-clipping
-     * relative to spec but visually correct for print where there's
-     * no scroll viewport.
+     * descendants on at least one axis. `visible` (initial) → no
+     * clip; any of `hidden` / `clip` / `scroll` / `auto` → clip.
+     * Per-axis: when `overflow-x` is constraining and `overflow-y`
+     * isn't (or vice versa), the clip rect extends to the page on
+     * the unconstrained axis so spec-correct one-axis clipping holds.
      */
     private function shouldOverflowClip(Box $box): bool
     {
-        foreach (['overflow', 'overflow-x', 'overflow-y'] as $prop) {
+        return $this->axisClips($box, 'x') || $this->axisClips($box, 'y');
+    }
+
+    /**
+     * Return true when the given axis (`'x'` or `'y'`) should clip
+     * for this box. Checks the axis-specific longhand first, then
+     * the `overflow` shorthand.
+     */
+    private function axisClips(Box $box, string $axis): bool
+    {
+        foreach (["overflow-$axis", 'overflow'] as $prop) {
             $value = $box->style->get($prop);
             if (!($value instanceof Keyword)) {
                 continue;
             }
             $name = strtolower($value->name);
+            if ($name === 'visible') {
+                return false;
+            }
             if ($name === 'hidden' || $name === 'clip' || $name === 'scroll' || $name === 'auto') {
                 return true;
             }
@@ -708,10 +783,11 @@ final class Painter
     }
 
     /**
-     * Emit a clip rect at the box's padding-edge rectangle (CSS
-     * Overflow 3 §4) so descendants painted after this call are
-     * clipped to it. Caller is responsible for the `saveGraphicsState`
-     * / `restoreGraphicsState` envelope.
+     * Emit a clip rect for CSS Overflow 3 §4. Unconstrained axes are
+     * widened to the full page so the clip is effectively one-axis;
+     * fully-constrained boxes clip to the padding rect on both axes.
+     * Caller is responsible for the `saveGraphicsState` /
+     * `restoreGraphicsState` envelope.
      */
     private function emitOverflowClipPath(ContentStream $stream, Box $box): void
     {
@@ -723,8 +799,14 @@ final class Painter
         if ($padWidth <= 0.0 || $padHeight <= 0.0) {
             return;
         }
-        $pdfY = $this->pageHeight - $padTop - $padHeight;
-        $stream->rectangle($padX, $pdfY, $padWidth, $padHeight);
+        $clipsX = $this->axisClips($box, 'x');
+        $clipsY = $this->axisClips($box, 'y');
+        $rectX = $clipsX ? $padX : 0.0;
+        $rectWidth = $clipsX ? $padWidth : $this->pageWidth;
+        $rectTop = $clipsY ? $padTop : 0.0;
+        $rectHeight = $clipsY ? $padHeight : $this->pageHeight;
+        $pdfY = $this->pageHeight - $rectTop - $rectHeight;
+        $stream->rectangle($rectX, $pdfY, $rectWidth, $rectHeight);
         $stream->clip();
         $stream->endPath();
     }
@@ -1824,6 +1906,12 @@ final class Painter
             $sizeValue = $box->style->get('background-size');
             $positionValue = $box->style->get('background-position');
             $repeatValue = $box->style->get('background-repeat');
+            // CSS Backgrounds 3 §3.4 — `background-origin` controls
+            // which box rect the image is positioned within. It is
+            // independent of `background-clip` (which controls where
+            // the paint is clipped).
+            $origin = $this->resolveBackgroundOrigin($box);
+            $originRect = $this->backgroundOriginRect($box, $origin);
             $this->paintBackgroundImage(
                 $bgImage,
                 $stream,
@@ -1834,6 +1922,7 @@ final class Painter
                 $sizeValue,
                 $positionValue,
                 $repeatValue,
+                $originRect,
             );
         }
         if ($hasGradient && $width > 0.0 && $height > 0.0) {
@@ -2078,6 +2167,14 @@ final class Painter
      *     letterbox area.
      *   - `<length> <length>` → explicit width × height; centred.
      */
+    /**
+     * @param array{x: float, top: float, width: float, height: float}|null $originRect
+     *   Positioning area per CSS Backgrounds 3 §3.4 `background-origin`.
+     *   When null, defaults to the (x, top, width, height) clip rect —
+     *   keeps the Phase-1 behaviour of positioning + clipping against
+     *   the same rect. When supplied, image sizing + positioning math
+     *   uses this rect while clipping uses the outer (clip) rect.
+     */
     private function paintBackgroundImage(
         \Phpdftk\Css\Value\Url $url,
         ContentStream $stream,
@@ -2088,6 +2185,7 @@ final class Painter
         ?\Phpdftk\Css\Value\Value $sizeValue = null,
         ?\Phpdftk\Css\Value\Value $positionValue = null,
         ?\Phpdftk\Css\Value\Value $repeatValue = null,
+        ?array $originRect = null,
     ): void {
         if ($this->writer === null || $this->page === null) {
             return;
@@ -2107,12 +2205,19 @@ final class Painter
             }
             $this->imageNameCache[$src] = $name;
         }
-        // Resolve final paint rect (final size + offset within the box).
-        $paint = $this->resolveBackgroundSize($sizeValue, $src, $width, $height);
+        // Positioning anchor: $originRect when supplied, else fall
+        // back to the clip rect (Phase-1 behaviour).
+        $originX = $originRect['x'] ?? $x;
+        $originTop = $originRect['top'] ?? $top;
+        $originWidth = $originRect['width'] ?? $width;
+        $originHeight = $originRect['height'] ?? $height;
+        // Resolve final paint rect (final size + offset within the
+        // positioning area).
+        $paint = $this->resolveBackgroundSize($sizeValue, $src, $originWidth, $originHeight);
         // Author `background-position` may override the size resolver's
         // default centred offset. `auto` size keeps the stretch
         // behaviour so positioning has no effect (the rect equals the
-        // box). For non-auto sizes, apply the position formula:
+        // origin box). For non-auto sizes, apply the position formula:
         // offset = (box - image) × percent.
         $isAuto = $sizeValue === null
             || ($sizeValue instanceof \Phpdftk\Css\Value\Keyword
@@ -2122,8 +2227,8 @@ final class Painter
                 $positionValue,
                 $paint['w'],
                 $paint['h'],
-                $width,
-                $height,
+                $originWidth,
+                $originHeight,
             );
             $paint['offsetX'] = $pos['offsetX'];
             $paint['offsetY'] = $pos['offsetY'];
@@ -2149,8 +2254,8 @@ final class Painter
         }
         // Start positions: shift the anchor backwards by whole tile
         // widths until the leftmost / topmost tile sits at or before
-        // the box origin. With `no-repeat`, no shift happens — single
-        // tile at the resolved position.
+        // the origin box (NOT the clip box — tiles anchor against
+        // `background-origin`). With `no-repeat`, no shift happens.
         $startX = $paint['offsetX'];
         if ($repeat['x']) {
             while ($startX > 0.0) {
@@ -2163,15 +2268,18 @@ final class Painter
                 $startY -= $tileH;
             }
         }
-        // Iterate forward emitting cm + Do per tile. Cap the tile count
-        // defensively so a pathological 1×1 image in a 10000×10000 box
-        // doesn't blow up the content stream.
+        // Tile iteration bounds: extend until the tile passes the
+        // origin rect's far edge. Tiles anchored inside the origin
+        // rect may still spill into the clip rect (when clip > origin)
+        // — that's the spec semantic.
+        $originBottomLayoutY = $originTop + $originHeight;
+        $originPdfBottom = $this->pageHeight - $originBottomLayoutY;
         $maxTiles = 4096;
         $tileCount = 0;
         $offsetY = $startY;
-        while ($offsetY < $height) {
+        while ($offsetY < $originHeight) {
             $offsetX = $startX;
-            while ($offsetX < $width) {
+            while ($offsetX < $originWidth) {
                 if ($tileCount >= $maxTiles) {
                     break 2;
                 }
@@ -2181,8 +2289,8 @@ final class Painter
                     0.0,
                     0.0,
                     $tileH,
-                    $x + $offsetX,
-                    $pdfY + ($height - $tileH - $offsetY),
+                    $originX + $offsetX,
+                    $originPdfBottom + ($originHeight - $tileH - $offsetY),
                 );
                 $stream->doXObject($name);
                 $stream->restoreGraphicsState();

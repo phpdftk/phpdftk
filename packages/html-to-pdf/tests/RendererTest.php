@@ -572,6 +572,152 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~[\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+ [\d.]+ c~', $bytes);
     }
 
+    public function testBackgroundOriginContentBoxShiftsImageInward(): void
+    {
+        // CSS Backgrounds 3 §3.4 — `background-origin: content-box`
+        // anchors the image to the content edge, which is inset by
+        // (border + padding) from the border edge. Render the same
+        // image once with the default `padding-box` origin and once
+        // with `content-box`; the X translation in the emitted `cm`
+        // matrix MUST differ by exactly the padding-left amount.
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $renderInto = function (string $originDecl) use ($pngBase64): string {
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer = new Renderer();
+            $renderer->renderInto(
+                $writer,
+                sprintf(
+                    '<html><body><div style="width: 100px; height: 100px; '
+                    . 'padding: 20px; border: 10px solid black; '
+                    . 'background-image: url(\'data:image/png;base64,%s\'); '
+                    . 'background-size: 40px 40px; background-repeat: no-repeat; '
+                    . 'background-position: 0%% 0%%; %s">'
+                    . '</div></body></html>',
+                    $pngBase64,
+                    $originDecl,
+                ),
+            );
+            return $writer->toBytes();
+        };
+        $padBytes = $renderInto('');
+        $contentBytes = $renderInto('background-origin: content-box;');
+        // Extract the cm matrix that precedes the Do (image draw) op.
+        $extractCmX = static function (string $bytes): ?float {
+            if (preg_match('~(\S+) 0 0 (\S+) (\S+) (\S+) cm\s+/Im\d+ Do~', $bytes, $m) !== 1) {
+                return null;
+            }
+            return (float) $m[3];
+        };
+        $padX = $extractCmX($padBytes);
+        $contentX = $extractCmX($contentBytes);
+        self::assertNotNull($padX, 'default (padding-box) emits an image cm');
+        self::assertNotNull($contentX, 'content-box emits an image cm');
+        // content-box should be inset by 20px (padding-left) from
+        // padding-box at the same 0% 0% position.
+        self::assertEqualsWithDelta(
+            20.0,
+            $contentX - $padX,
+            0.5,
+            'content-box origin shifts image right by padding-left',
+        );
+    }
+
+    public function testBackgroundOriginBorderBoxAnchorsAtBorderEdge(): void
+    {
+        // `border-box` origin anchors at the outermost edge — image
+        // sits 10px (border-left) further left than padding-box.
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $renderInto = function (string $originDecl) use ($pngBase64): string {
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer = new Renderer();
+            $renderer->renderInto(
+                $writer,
+                sprintf(
+                    '<html><body><div style="width: 100px; height: 100px; '
+                    . 'padding: 20px; border: 10px solid black; '
+                    . 'background-image: url(\'data:image/png;base64,%s\'); '
+                    . 'background-size: 40px 40px; background-repeat: no-repeat; '
+                    . 'background-position: 0%% 0%%; %s">'
+                    . '</div></body></html>',
+                    $pngBase64,
+                    $originDecl,
+                ),
+            );
+            return $writer->toBytes();
+        };
+        $padBytes = $renderInto('');
+        $borderBytes = $renderInto('background-origin: border-box;');
+        $extractCmX = static function (string $bytes): ?float {
+            if (preg_match('~(\S+) 0 0 (\S+) (\S+) (\S+) cm\s+/Im\d+ Do~', $bytes, $m) !== 1) {
+                return null;
+            }
+            return (float) $m[3];
+        };
+        $padX = $extractCmX($padBytes);
+        $borderX = $extractCmX($borderBytes);
+        self::assertNotNull($padX);
+        self::assertNotNull($borderX);
+        self::assertEqualsWithDelta(
+            -10.0,
+            $borderX - $padX,
+            0.5,
+            'border-box origin shifts image left by border-left',
+        );
+    }
+
+    public function testBackgroundOriginInvalidKeywordFallsBackToPaddingBox(): void
+    {
+        // Negative: an unrecognised keyword falls back to the
+        // initial `padding-box`. Same image position as the default.
+        $pngBase64 = base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $renderInto = function (string $originDecl) use ($pngBase64): string {
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer = new Renderer();
+            $renderer->renderInto(
+                $writer,
+                sprintf(
+                    '<html><body><div style="width: 100px; height: 100px; '
+                    . 'padding: 20px; border: 10px solid black; '
+                    . 'background-image: url(\'data:image/png;base64,%s\'); '
+                    . 'background-size: 40px 40px; background-repeat: no-repeat; '
+                    . 'background-position: 0%% 0%%; %s">'
+                    . '</div></body></html>',
+                    $pngBase64,
+                    $originDecl,
+                ),
+            );
+            return $writer->toBytes();
+        };
+        $defaultBytes = $renderInto('');
+        $invalidBytes = $renderInto('background-origin: bogus;');
+        $extractCmX = static function (string $bytes): ?float {
+            if (preg_match('~(\S+) 0 0 (\S+) (\S+) (\S+) cm\s+/Im\d+ Do~', $bytes, $m) !== 1) {
+                return null;
+            }
+            return (float) $m[3];
+        };
+        $defaultX = $extractCmX($defaultBytes);
+        $invalidX = $extractCmX($invalidBytes);
+        self::assertNotNull($defaultX);
+        self::assertNotNull($invalidX);
+        self::assertEqualsWithDelta(0.0, $invalidX - $defaultX, 0.001);
+    }
+
     public function testBackgroundImageDataUrlPaints(): void
     {
         $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
@@ -1607,6 +1753,30 @@ final class RendererTest extends TestCase
             $bytes,
             'visible sibling still rendered',
         );
+    }
+
+    public function testHiddenUntilFoundStillHidesInPrint(): void
+    {
+        // HTML 5 §3.2.6.1: `hidden="until-found"` reveals the
+        // element only for in-page text find. In a static print
+        // render there is no find UI — the element must stay hidden,
+        // matching the bare `hidden` form.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<div hidden="until-found" style="background-color: #cc0000; height: 50px;"></div>'
+            . '<div style="background-color: #00cc00; height: 50px;"></div>'
+            . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertDoesNotMatchRegularExpression(
+            '~0\.8 0 0 rg~',
+            $bytes,
+            'until-found stays hidden in static print',
+        );
+        self::assertMatchesRegularExpression('~0 0\.8 0 rg~', $bytes);
     }
 
     public function testDialogWithoutOpenIsHidden(): void

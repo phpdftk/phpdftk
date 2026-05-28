@@ -966,6 +966,106 @@ final class BoxGeneratorTest extends TestCase
         self::assertCount(0, $before->children);
     }
 
+    public function testQuotesNoneSuppressesQuoteGlyphs(): void
+    {
+        // CSS Generated Content 3 §3.1 — `quotes: none` makes both
+        // `open-quote` and `close-quote` evaluate to the empty
+        // string. The pseudo boxes still generate (so author CSS
+        // can target them) but they hold no text.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: none; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>hi</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $q = $this->findFirstByTag($box, 'q');
+        self::assertNotNull($q);
+        $before = $q->children[0];
+        $after = $q->children[2];
+        self::assertInstanceOf(InlineBox::class, $before);
+        self::assertCount(0, $before->children, 'open-quote suppressed by quotes: none');
+        self::assertCount(0, $after->children, 'close-quote suppressed by quotes: none');
+    }
+
+    public function testQuotesNestedDepthPicksSecondPair(): void
+    {
+        // Nested `<q>` chains advance the depth — the inner `<q>`
+        // picks the SECOND pair from `quotes` (single-quote glyphs)
+        // while the outer keeps the first (double-quote glyphs).
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: '"' '"' "'" "'"; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q>outer <q>inner</q> trail</q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        // Collect unique <q> boxes in document order — dedupe by
+        // element identity to skip anonymous wrappers reusing the
+        // element pointer.
+        $qs = [];
+        $seen = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            $el = $n->element;
+            if ($el !== null && strtolower($el->localName) === 'q' && $n instanceof InlineBox) {
+                $id = spl_object_id($el);
+                if (!isset($seen[$id])) {
+                    $seen[$id] = true;
+                    $qs[] = $n;
+                }
+            }
+            foreach (array_reverse($n->children) as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertCount(2, $qs);
+        // outer q (depth 0) uses pair 0 = double quote
+        $outerBefore = $qs[0]->children[0];
+        self::assertSame('"', $outerBefore->children[0]->text);
+        // inner q (depth 1) uses pair 1 = single quote
+        $innerBefore = $qs[1]->children[0];
+        self::assertSame("'", $innerBefore->children[0]->text);
+    }
+
+    public function testQuotesNestedClampsToLastPairWhenTooDeep(): void
+    {
+        // Negative: when nesting exceeds the declared pair count,
+        // the depth clamps to the LAST pair (spec behaviour). Two
+        // nested `<q>`s with only one pair → both use the same pair.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            q { display: inline; quotes: "X" "Y"; }
+            q::before { content: open-quote; }
+            q::after { content: close-quote; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p><q><q>inner</q></q></p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $qs = [];
+        $seen = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            $el = $n->element;
+            if ($el !== null && strtolower($el->localName) === 'q' && $n instanceof InlineBox) {
+                $id = spl_object_id($el);
+                if (!isset($seen[$id])) {
+                    $seen[$id] = true;
+                    $qs[] = $n;
+                }
+            }
+            foreach (array_reverse($n->children) as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertCount(2, $qs);
+        self::assertSame('X', $qs[0]->children[0]->children[0]->text);
+        self::assertSame('X', $qs[1]->children[0]->children[0]->text, 'over-nesting clamps to last pair');
+    }
+
 
     public function testPseudoAttrMissingProducesEmptyString(): void
     {

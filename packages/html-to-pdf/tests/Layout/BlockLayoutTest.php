@@ -2250,6 +2250,66 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->y);
     }
 
+    public function testPositionStickyDegradesToRelativeOffsets(): void
+    {
+        // Positive: `position: sticky` in print has no scroll
+        // container, so the spec falls back to relative-like
+        // positioning at the static offset — `top: 50px` shifts the
+        // paint position down by 50.
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div class="a" style="height: 100px;"></div>'
+            . '<p style="position: sticky; top: 50px; height: 30px;">x</p>'
+            . '</body></html>',
+            'html, body, div, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Box was statically at y=100; sticky+top:50 shifts to 150.
+        self::assertSame(150.0, $p->geometry->y);
+    }
+
+    public function testPositionStickyWithoutOffsetsIsNoOp(): void
+    {
+        // Negative: `position: sticky` with no offsets must not
+        // shift — must behave like static.
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div class="a" style="height: 100px;"></div>'
+            . '<p style="position: sticky; height: 30px;">x</p>'
+            . '</body></html>',
+            'html, body, div, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertSame(100.0, $p->geometry->y);
+    }
+
+    public function testPositionStickyDoesNotAffectSiblings(): void
+    {
+        // Negative: sibling after a sticky box stacks against the
+        // pre-shift position, matching `position: relative` (the box
+        // is removed from normal flow only paintwise).
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<p class="a" style="position: sticky; top: 200px; height: 30px;">a</p>'
+            . '<p class="b" style="height: 30px;">b</p>'
+            . '</body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c->element !== null && in_array('b', $c->element->classes(), true)) {
+                $b = $c;
+            }
+        }
+        self::assertNotNull($b);
+        self::assertSame(30.0, $b->geometry->y, 'sibling stacks at pre-shift cursor');
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with

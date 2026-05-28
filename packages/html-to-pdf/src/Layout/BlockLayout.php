@@ -528,20 +528,27 @@ final class BlockLayout
             }
         }
 
-        // CSS 2.1 §9.4.3 — `position: relative`. The box and its
-        // descendants paint at their original layout position plus the
-        // resolved offsets; siblings continue to flow against the
-        // original position (this function returns `outerHeight()` from
-        // the pre-shift geometry, which is what stackChildren uses to
-        // advance its cursor — so siblings stay put).
+        // CSS 2.1 §9.4.3 — `position: relative` AND `position: sticky`.
+        // The box and its descendants paint at their original layout
+        // position plus the resolved offsets; siblings continue to
+        // flow against the original position (this function returns
+        // `outerHeight()` from the pre-shift geometry, which is what
+        // stackChildren uses to advance its cursor — so siblings stay
+        // put). Sticky falls back to relative-like behaviour in print
+        // since there's no scrolling viewport for the box to stick
+        // to (CSS Positioning 3 §6.3 — without a scroll container,
+        // sticky degrades to relative offsets at the static position).
         $positionValue = $style->get('position');
-        if ($positionValue instanceof Keyword && strtolower($positionValue->name) === 'relative') {
-            $relativeOuterHeight = $geo->outerHeight();
-            [$dx, $dy] = $this->resolveRelativeOffsets($style, $context);
-            if ($dx !== 0.0 || $dy !== 0.0) {
-                $this->shiftSubtree($box, $dy, $dx);
+        if ($positionValue instanceof Keyword) {
+            $posName = strtolower($positionValue->name);
+            if ($posName === 'relative' || $posName === 'sticky') {
+                $relativeOuterHeight = $geo->outerHeight();
+                [$dx, $dy] = $this->resolveRelativeOffsets($style, $context);
+                if ($dx !== 0.0 || $dy !== 0.0) {
+                    $this->shiftSubtree($box, $dy, $dx);
+                }
+                return $relativeOuterHeight;
             }
-            return $relativeOuterHeight;
         }
 
         return $geo->outerHeight();

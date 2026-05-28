@@ -1105,12 +1105,15 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 130(\.0+)? \d/', $bytes);
     }
 
-    public function testOverflowXHiddenClipsBothAxesInPrint(): void
+    public function testOverflowXHiddenClipsOnlyTheXAxis(): void
     {
-        // PDF can't clip a single axis without a rectangle; per-axis
-        // overflow collapses to clip-both for our purposes.
+        // CSS Overflow 3 §3.1: `overflow-x: hidden` constrains the
+        // horizontal axis only. The clip rect uses the box's
+        // padding-edge width but extends across the full page
+        // height — so `overflow-y` (visible) is honoured. Verified
+        // by checking the clip rect's height matches pageWidth/Height.
         $doc = $this->html->parseDocument(
-            '<html><body><div style="overflow-x: hidden; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+            '<html><body><div style="overflow-x: hidden; width: 100px; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
         );
         $sheet = $this->css->parseStylesheet(
             'html, body, div, p { display: block; }',
@@ -1122,11 +1125,82 @@ final class PainterTest extends TestCase
         $writer = new PdfWriter(compressStreams: false);
         $page = $writer->addPage(612, 792);
         $stream = $writer->addContentStream($page);
-        $painter = new Painter(792.0);
+        $painter = new Painter(792.0, pageWidth: 612.0);
         $painter->paint($root, $stream);
 
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
         $opcodes = $this->operatorTokens($stream->getOperators());
-        self::assertContains('W', $opcodes, 'overflow-x clips both axes');
+        self::assertContains('W', $opcodes, 'clip path emitted');
+        // The clip rect for x-axis-only should have height === pageHeight
+        // (full page). Match `<x> <y> <w> 792 re` somewhere.
+        self::assertMatchesRegularExpression(
+            '/[-0-9.]+\s+[-0-9.]+\s+[-0-9.]+\s+792(\.0+)?\s+re/',
+            $bytes,
+            'clip rect spans full page height when y axis is visible',
+        );
+    }
+
+    public function testOverflowYHiddenClipsOnlyTheYAxis(): void
+    {
+        // Symmetric: `overflow-y: hidden` clips the y axis but
+        // leaves x unconstrained — the clip rect extends the full
+        // page width.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow-y: hidden; width: 100px; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0, pageWidth: 612.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $opcodes);
+        // Clip rect should have width === pageWidth.
+        self::assertMatchesRegularExpression(
+            '/0(\.0+)?\s+[-0-9.]+\s+612(\.0+)?\s+[-0-9.]+\s+re/',
+            $bytes,
+            'clip rect spans full page width when x axis is visible',
+        );
+    }
+
+    public function testOverflowBothAxesHiddenClipsToPaddingRect(): void
+    {
+        // Negative against the per-axis path: `overflow: hidden`
+        // (both axes) should clip to the padding rect on BOTH axes
+        // — not extend to page dimensions.
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="overflow: hidden; width: 100px; height: 50px"><p style="background-color: red; height: 200px"></p></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0, pageWidth: 612.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        // Clip rect should be 100 wide × 50 tall (the box's padding
+        // rect since no padding declared).
+        self::assertMatchesRegularExpression(
+            '/[-0-9.]+\s+[-0-9.]+\s+100(\.0+)?\s+50(\.0+)?\s+re/',
+            $bytes,
+            'both-axes clip uses the padding rect',
+        );
     }
 
     public function testOverflowYAutoTriggersClip(): void

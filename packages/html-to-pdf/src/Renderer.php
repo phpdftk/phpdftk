@@ -294,6 +294,7 @@ final class Renderer
                 writer: $writer,
                 baseDir: $this->options->baseDir,
                 registeredFonts: $registeredMap,
+                pageWidth: $pageWidth,
             );
             $painter->paint($root, $stream);
             // Per-page link annotations — emit one /Link per `<a href>` rect
