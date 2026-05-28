@@ -11,4 +11,14 @@ composer require phpdftk/html-to-pdf
 
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+Phase 1 (MVP) is complete and Phase 2 is most of the way through. The renderer ships a working HTML/CSS-to-PDF pipeline with the following surface in place:
+
+**CSS basics** — tokenizer, value parsing, selector matching, full cascade with `!important`, custom properties / `var()`, `calc()`, shorthand expansion, `@media` (with feature queries: `(min-width: N)`, `(max-width: N)`, `(orientation: ...)`), `@supports` (full condition evaluation), `@import`, `@font-face`, `@page` with margin boxes and named pages.
+
+**Layout** — block formatting context, inline / line boxes with shaping, floats + `clear`, `position: relative` / `absolute` / `fixed` / `sticky`, min/max sizing, `aspect-ratio` in both directions, `box-sizing: border-box`, multi-column with `column-span: all`, paged media with `break-before` / `break-after` / `break-inside` + orphans / widows / `box-decoration-break`, tables (with `border-collapse: collapse` running full conflict resolution, `caption-side`, `rowspan` / `colspan`, `<col>` / `<colgroup>` widths), flexbox (row + column, wrap, all `justify-content` / `align-items` / `align-content` / `flex-grow` / `flex-shrink` / `flex-basis` / `order`).
+
+**Painter** — backgrounds (including N-stop linear + radial gradients via PDF Type-3 stitching functions, with length-positioned stops), `background-clip` + `background-origin` + `background-size` + `background-position` + `background-repeat`, borders (all 8 styles), box-shadow + inset box-shadow, `filter: drop-shadow()`, outline, text decorations (`underline` / `overline` / `line-through` with `text-decoration-style: wavy`), 2D CSS transforms.
+
+**Inputs** — full WHATWG HTML5 parser (passing 81% of `html5lib-tests` tree-construction), `<picture>` / `<source>` with `media`-attribute selection and `srcset` DPR picking, `<select>` + `<select multiple>` + `<optgroup>`, `<details>` / `<summary>`, `<input type=button|submit|reset|checkbox|radio>` static rendering.
+
+Remaining Phase 2 work (Grid, Writing Modes, Universal Shaping Engine for Arabic / Indic, remote `url()` fetching with SSRF gates, AcroForm widget annotations, raster filter primitives, full auto-width table algorithm, 3D transforms with perspective) lives in [`docs/plans/html-and-svg.md`](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). The [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) document the locked public surface.

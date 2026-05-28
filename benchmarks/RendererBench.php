@@ -212,6 +212,60 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2Gradients(): void
+    {
+        // Phase-2: N-stop gradients route through a Type-3 stitching
+        // function. 30 elements × ~5-stop gradients exercises both
+        // the stop normalisation and the PDF function-tree emission.
+        $body = '';
+        for ($i = 0; $i < 30; $i++) {
+            $body .= '<div style="height: 24pt; background-image: '
+                . 'linear-gradient(red, yellow 25%, lime 50%, aqua 75%, blue);">'
+                . '</div>';
+        }
+        $this->renderer->render('<html><body>' . $body . '</body></html>');
+    }
+
+    public function benchPhase2BorderCollapseHeavy(): void
+    {
+        // Phase-2: border-collapse conflict resolution runs per joint
+        // (O(cells) + O(rim)). A 20×10 table with mixed border widths
+        // and explicit table-border vs cell-border exercises both
+        // inner-joint and outer-table-border resolution paths.
+        $rows = '';
+        for ($r = 0; $r < 20; $r++) {
+            $cells = '';
+            for ($c = 0; $c < 10; $c++) {
+                $w = ($c % 3 === 0) ? 4 : 1;
+                $cells .= '<td style="border: ' . $w . 'pt solid black;">x</td>';
+            }
+            $rows .= '<tr>' . $cells . '</tr>';
+        }
+        $html = '<html><body><table style="display: table; '
+            . 'border: 6pt solid black; border-collapse: collapse;">'
+            . $rows . '</table></body></html>';
+        $this->renderer->render($html);
+    }
+
+    public function benchPhase2MediaQueriesScale(): void
+    {
+        // Phase-2: every @media block runs feature-query evaluation
+        // per declaration. 100 sheets each with a @media gate ensures
+        // the cascade walks the conditional path repeatedly.
+        $css = '';
+        for ($i = 0; $i < 100; $i++) {
+            $css .= '@media (min-width: ' . $i . 'px) { '
+                . '.s' . $i . ' { color: red; } }';
+        }
+        $body = '';
+        for ($i = 0; $i < 50; $i++) {
+            $body .= '<p class="s' . $i . '">Section ' . $i . '</p>';
+        }
+        $html = '<html><head><style>' . $css . '</style></head>'
+            . '<body>' . $body . '</body></html>';
+        $this->renderer->render($html);
+    }
+
     private function document(int $sections): string
     {
         $body = '';
