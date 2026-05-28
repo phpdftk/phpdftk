@@ -49,6 +49,7 @@ use Phpdftk\Pdf\Core\FileSpec\EmbeddedFile;
 use Phpdftk\Pdf\Core\FileSpec\FileSpec;
 use Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation;
 use Phpdftk\Pdf\Core\Graphics\Function\FunctionType2;
+use Phpdftk\Pdf\Core\Graphics\Function\FunctionType3;
 use Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern;
 use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2;
 use Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3;
@@ -468,6 +469,118 @@ class PdfDoc
         $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
         $this->writer->register($pattern);
         return $pattern;
+    }
+
+    /**
+     * Register an N-stop axial (linear) gradient. Each stop is a
+     * `{offset, rgb}` pair with `offset` in [0, 1]. Stops must be
+     * sorted ascending and start at 0 / end at 1 (the caller is
+     * responsible for normalising — typical CSS gradient resolution
+     * already does this). Two-stop input falls through to the same
+     * Type-2 function as `addLinearGradient`; three-or-more produces
+     * a Type-3 stitching function with N-1 Type-2 sub-functions.
+     *
+     * @param list<array{offset: float, rgb: array{float, float, float}}> $stops
+     */
+    public function addLinearGradientStops(Point $from, Point $to, array $stops): ShadingPattern
+    {
+        $fn = $this->buildRgbStopFunction($stops);
+        $shading = new ShadingType2(
+            new PdfName('DeviceRGB'),
+            new PdfArray([
+                new PdfNumber($from->x),
+                new PdfNumber($from->y),
+                new PdfNumber($to->x),
+                new PdfNumber($to->y),
+            ]),
+            new PdfReference($fn->objectNumber),
+        );
+        $this->writer->register($shading);
+
+        $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
+        $this->writer->register($pattern);
+        return $pattern;
+    }
+
+    /**
+     * Register an N-stop radial gradient. Same stop semantics as
+     * {@see addLinearGradientStops()}.
+     *
+     * @param list<array{offset: float, rgb: array{float, float, float}}> $stops
+     */
+    public function addRadialGradientStops(
+        Point $innerCenter,
+        float $innerRadius,
+        Point $outerCenter,
+        float $outerRadius,
+        array $stops,
+    ): ShadingPattern {
+        $fn = $this->buildRgbStopFunction($stops);
+        $shading = new ShadingType3(
+            new PdfName('DeviceRGB'),
+            new PdfArray([
+                new PdfNumber($innerCenter->x),
+                new PdfNumber($innerCenter->y),
+                new PdfNumber($innerRadius),
+                new PdfNumber($outerCenter->x),
+                new PdfNumber($outerCenter->y),
+                new PdfNumber($outerRadius),
+            ]),
+            new PdfReference($fn->objectNumber),
+        );
+        $this->writer->register($shading);
+
+        $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
+        $this->writer->register($pattern);
+        return $pattern;
+    }
+
+    /**
+     * Build a Function object that maps [0,1] → RGB through the given
+     * stop list. Two stops produce a Type-2 (exponential, n=1, linear
+     * interpolation). Three or more stops produce a Type-3 stitching
+     * function: bounds at the intermediate stop offsets, N-1 child
+     * Type-2 functions each linearly interpolating one segment.
+     *
+     * @param list<array{offset: float, rgb: array{float, float, float}}> $stops
+     */
+    private function buildRgbStopFunction(array $stops): FunctionType2|FunctionType3
+    {
+        if (count($stops) < 2) {
+            throw new \InvalidArgumentException('Gradient requires at least 2 stops.');
+        }
+        if (count($stops) === 2) {
+            return $this->buildRgbFunction($stops[0]['rgb'], $stops[1]['rgb']);
+        }
+        // Build N-1 segment functions linearly interpolating between
+        // adjacent stops.
+        $subFunctions = [];
+        $bounds = [];
+        $encode = [];
+        $count = count($stops);
+        for ($i = 0; $i < $count - 1; $i++) {
+            $segment = $this->buildRgbFunction($stops[$i]['rgb'], $stops[$i + 1]['rgb']);
+            $subFunctions[] = new PdfReference($segment->objectNumber);
+            if ($i > 0) {
+                $bounds[] = new PdfNumber($stops[$i]['offset']);
+            }
+            // Each segment consumes its full [0, 1] domain.
+            $encode[] = new PdfNumber(0.0);
+            $encode[] = new PdfNumber(1.0);
+        }
+        $fn = new FunctionType3(
+            domain: new PdfArray([new PdfNumber(0.0), new PdfNumber(1.0)]),
+            functions: new PdfArray($subFunctions),
+            bounds: new PdfArray($bounds),
+            encode: new PdfArray($encode),
+        );
+        $fn->range = new PdfArray([
+            new PdfNumber(0.0), new PdfNumber(1.0),
+            new PdfNumber(0.0), new PdfNumber(1.0),
+            new PdfNumber(0.0), new PdfNumber(1.0),
+        ]);
+        $this->writer->register($fn);
+        return $fn;
     }
 
     /**

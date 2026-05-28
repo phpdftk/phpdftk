@@ -1335,6 +1335,84 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('/ShadingType 2', $bytes, 'axial shading dict written');
     }
 
+    public function testLinearGradientThreeStopsUsesStitchingFunction(): void
+    {
+        // CSS Images 3 §3.5.1: a `linear-gradient(red, yellow, green)`
+        // with 3 colour stops should produce a Type-3 stitching
+        // function that pieces together 2 Type-2 sub-functions. The
+        // resulting PDF should reference both function types.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(red, yellow, green); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/FunctionType 3', $bytes, 'stitching function written');
+        self::assertStringContainsString('/Functions [', $bytes, 'Functions array present');
+        self::assertStringContainsString('/Bounds [', $bytes, 'Bounds array present');
+        self::assertStringContainsString('/ShadingType 2', $bytes, 'axial shading still used');
+    }
+
+    public function testLinearGradientTwoStopsKeepsSimpleFunction(): void
+    {
+        // Negative: a two-stop gradient should NOT produce a Type-3
+        // stitching function — the simple Type-2 path is more compact.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(red, blue); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringNotContainsString('/FunctionType 3', $bytes, 'two-stop should not stitch');
+        self::assertStringContainsString('/FunctionType 2', $bytes, 'Type-2 used directly');
+    }
+
+    public function testLinearGradientStopsWithExplicitPositions(): void
+    {
+        // `linear-gradient(red, yellow 30%, green 70%, blue)` — four
+        // stops with two interior positions. Should emit a stitching
+        // function with bounds at 0.3 and 0.7.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: linear-gradient(red, yellow 30%, green 70%, blue); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/FunctionType 3', $bytes);
+        // Bounds list should contain 0.3 and 0.7 (the two interior
+        // positions). Match permissively to tolerate float formatting.
+        self::assertMatchesRegularExpression(
+            '~/Bounds\s*\[\s*0\.3\d*\s+0\.7\d*\s*\]~',
+            $bytes,
+            'bounds reflect the authored stop positions',
+        );
+    }
+
+    public function testRadialGradientThreeStopsUsesStitchingFunction(): void
+    {
+        // Negative-ish: same multi-stop machinery applies to radial.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { background-image: radial-gradient(circle, red, yellow, green); '
+            . 'height: 100pt; }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/FunctionType 3', $bytes, 'radial uses stitching too');
+        self::assertStringContainsString('/ShadingType 3', $bytes, 'radial shading dict');
+    }
+
     public function testBackgroundSizeContainPreservesAspectAndCentres(): void
     {
         // A 4×2 PNG (2:1 aspect) in a 200px × 60px box. `contain` picks

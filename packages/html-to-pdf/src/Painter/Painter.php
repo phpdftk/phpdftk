@@ -1868,8 +1868,7 @@ final class Painter
         if ($this->writer === null || $gradient->stops === []) {
             return;
         }
-        $first = $gradient->stops[0];
-        $last = $gradient->stops[array_key_last($gradient->stops)];
+        $stopList = $this->resolveGradientStops($gradient->stops);
         $pdfY = $this->pageHeight - $top - $height;
         // Centre: default to the box centre when no `at <position>` is
         // supplied. Author-supplied length values resolve relative to
@@ -1886,13 +1885,12 @@ final class Painter
         // for elliptical aspect when sizeX != sizeY.
         try {
             $doc = \Phpdftk\Pdf\Writer\PdfDoc::wrap($this->writer);
-            $pattern = $doc->addRadialGradient(
+            $pattern = $doc->addRadialGradientStops(
                 new \Phpdftk\Geometry\Point(0, 0),
                 0.0,
                 new \Phpdftk\Geometry\Point(0, 0),
                 max($rx, $ry),
-                [$first->color->r, $first->color->g, $first->color->b],
-                [$last->color->r, $last->color->g, $last->color->b],
+                $stopList,
             );
         } catch (\Throwable) {
             return;
@@ -1924,6 +1922,81 @@ final class Painter
     }
 
     /**
+     * Normalise CSS gradient stops to PDF `{offset, rgb}` tuples per
+     * CSS Images 3 §3.5.1: unspecified positions distribute evenly
+     * between adjacent positioned stops; the first stop defaults to
+     * offset 0 and the last to 1. After normalisation, offsets are
+     * monotonically non-decreasing in [0, 1].
+     *
+     * @param list<\Phpdftk\Css\Value\GradientStop> $stops
+     * @return list<array{offset: float, rgb: array{float, float, float}}>
+     */
+    private function resolveGradientStops(array $stops): array
+    {
+        $count = count($stops);
+        if ($count === 0) {
+            return [];
+        }
+        // Step 1: pull positions where authored. `<percentage>` →
+        // [0,1] fraction; `<length>` is not yet honoured (a Phase-3
+        // follow-up — would require the gradient line's length).
+        $offsets = array_fill(0, $count, null);
+        foreach ($stops as $i => $s) {
+            if ($s->position instanceof \Phpdftk\Css\Value\Percentage) {
+                $offsets[$i] = max(0.0, min(1.0, $s->position->value / 100.0));
+            }
+        }
+        // Step 2: anchor unset endpoints at 0/1.
+        if ($offsets[0] === null) {
+            $offsets[0] = 0.0;
+        }
+        if ($offsets[$count - 1] === null) {
+            $offsets[$count - 1] = 1.0;
+        }
+        // Step 3: monotonic clamp — each stop's offset must be ≥ the
+        // previous stop's offset.
+        $prev = 0.0;
+        foreach ($offsets as $i => $o) {
+            if ($o !== null) {
+                $offsets[$i] = max($o, $prev);
+                $prev = $offsets[$i];
+            }
+        }
+        // Step 4: linearly interpolate runs of unset offsets between
+        // adjacent anchored stops.
+        $i = 0;
+        while ($i < $count) {
+            if ($offsets[$i] !== null) {
+                $i++;
+                continue;
+            }
+            $start = $i - 1;
+            $end = $i;
+            while ($end < $count && $offsets[$end] === null) {
+                $end++;
+            }
+            // $start ≥ 0 (anchored), $end < $count (anchored at last).
+            $startOffset = $offsets[$start];
+            $endOffset = $offsets[$end];
+            $span = $endOffset - $startOffset;
+            $gap = $end - $start;
+            for ($j = $start + 1; $j < $end; $j++) {
+                $offsets[$j] = $startOffset + $span * ($j - $start) / $gap;
+            }
+            $i = $end;
+        }
+        // Step 5: emit tuples.
+        $out = [];
+        foreach ($stops as $i => $s) {
+            $out[] = [
+                'offset' => (float) $offsets[$i],
+                'rgb' => [$s->color->r, $s->color->g, $s->color->b],
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * Paint a CSS `linear-gradient(<angle>|to <side>, <stops>)` as the
      * box's background. Phase-1 simplification: only the first and last
      * stop colours are honoured (PDF's basic shading dictionary is
@@ -1942,8 +2015,7 @@ final class Painter
         if ($this->writer === null || $gradient->stops === []) {
             return;
         }
-        $first = $gradient->stops[0];
-        $last = $gradient->stops[array_key_last($gradient->stops)];
+        $stopList = $this->resolveGradientStops($gradient->stops);
         $pdfY = $this->pageHeight - $top - $height;
         // CSS angle convention: 0deg points up, increases clockwise. The
         // gradient line passes through the centre. Compute its start
@@ -1971,11 +2043,10 @@ final class Painter
         $endPdfY = $cy + $dy * $halfLen;
         try {
             $doc = \Phpdftk\Pdf\Writer\PdfDoc::wrap($this->writer);
-            $pattern = $doc->addLinearGradient(
+            $pattern = $doc->addLinearGradientStops(
                 new \Phpdftk\Geometry\Point($startPdfX, $startPdfY),
                 new \Phpdftk\Geometry\Point($endPdfX, $endPdfY),
-                [$first->color->r, $first->color->g, $first->color->b],
-                [$last->color->r, $last->color->g, $last->color->b],
+                $stopList,
             );
         } catch (\Throwable) {
             return;
