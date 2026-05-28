@@ -1229,6 +1229,94 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->height);
     }
 
+    public function testDetailsClosedSummaryHasRightTriangleMarker(): void
+    {
+        // Positive: closed `<details>` `<summary>` carries a `▶ ` prefix
+        // from the UA `summary::before { content: "\25B6 " }` rule.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details><summary>Heading</summary></details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $summary = $this->find($box, 'summary');
+        self::assertNotNull($summary);
+        // Walk the summary's subtree collecting all text. Expect the
+        // U+25B6 right-pointing triangle and the heading text.
+        $text = '';
+        $stack = [$summary];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TextBox) {
+                $text .= $n->text;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertStringContainsString("\u{25B6}", $text, 'right triangle marker present');
+        self::assertStringContainsString('Heading', $text);
+    }
+
+    public function testDetailsOpenSummaryHasDownTriangleMarker(): void
+    {
+        // Positive: open `<details>` flips the marker to `▼ ` via the
+        // `details[open] > summary::before` rule which beats the
+        // base rule in source order.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details open><summary>Heading</summary></details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $summary = $this->find($box, 'summary');
+        self::assertNotNull($summary);
+        $text = '';
+        $stack = [$summary];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TextBox) {
+                $text .= $n->text;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertStringContainsString("\u{25BC}", $text, 'down triangle marker present');
+        self::assertStringNotContainsString("\u{25B6}", $text, 'right triangle replaced');
+    }
+
+    public function testDetailsAuthorCanSuppressMarker(): void
+    {
+        // Negative: author CSS `summary::before { content: none }`
+        // suppresses the UA-supplied marker.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details><summary>Heading</summary></details>'
+                . '</body></html>',
+            'summary::before { content: none; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $summary = $this->find($box, 'summary');
+        self::assertNotNull($summary);
+        $text = '';
+        $stack = [$summary];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TextBox) {
+                $text .= $n->text;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertStringNotContainsString("\u{25B6}", $text);
+        self::assertStringNotContainsString("\u{25BC}", $text);
+        self::assertStringContainsString('Heading', $text);
+    }
+
     public function testRowspanCellExtendsAcrossRows(): void
     {
         // 2-row table; first row's first cell has rowspan="2". The

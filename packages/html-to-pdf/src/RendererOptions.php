@@ -428,9 +428,18 @@ final readonly class RendererOptions
                only the summary renders — until the [open] attribute
                flips the visibility. Print authors who want a permanent
                open disclosure either set [open] on the tag or override
-               with their own CSS. */
+               with their own CSS.
+
+               The `▶ ` / `▼ ` triangle markers come from the
+               `summary::before` pseudo-element. Browsers render this
+               as a real `::marker` box, but our pseudo-element pipeline
+               already handles `::before`, so the visual outcome is the
+               same: a triangle prefix on the summary text. Authors
+               can hide it via `summary::before { content: none; }`. */
             details, summary { display: block; }
             summary { font-weight: bold; }
+            summary::before { content: "\25B6  "; }
+            details[open] > summary::before { content: "\25BC  "; }
             details > * { display: none; }
             details > summary { display: block; }
             details[open] > * { display: block; }
