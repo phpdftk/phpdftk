@@ -2452,6 +2452,33 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~0\.5 0 0 1 ~', $bytes, 'rotateY(60deg) X-scale');
     }
 
+    public function testGridImplicitRowsEndToEndProducesValidPdf(): void
+    {
+        // Integration: render 12 items in a 3-column grid with only
+        // 1 explicit row + grid-auto-rows. The 9 extra items grow
+        // implicit rows. Total grid height = 1 explicit + 3 implicit.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $items = '';
+        for ($i = 0; $i < 12; $i++) {
+            $items .= '<div class="cell"></div>';
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: repeat(3, 60pt); '
+            . '        grid-template-rows: 30pt; '
+            . '        grid-auto-rows: 40pt; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #def; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // 12 cells × 1 rg setup ≥ 12 fills.
+        $rgCount = preg_match_all('~0\.8\d+ 0\.9\d+ 1 rg~', $bytes);
+        self::assertGreaterThanOrEqual(12, $rgCount);
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

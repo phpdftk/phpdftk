@@ -1290,6 +1290,15 @@ final class BlockLayout
             $declaredHeightForFr ?? 0.0,
             $rowGap,
         );
+        // CSS Grid Layout 2 §7.4 — implicit-track sizing via
+        // `grid-auto-rows` / `grid-auto-columns`. Phase-2 honours
+        // a single `<length>` value; `auto` / `min-content` /
+        // `max-content` resolve to zero pending the min/max-content
+        // sizing pass. Implicit tracks grow during pass 1 (for
+        // explicit placements past the declared grid) and pass 2
+        // (for auto-flow that runs past the last row).
+        $autoRowSize = $this->resolveGridAutoTrackSize($style->get('grid-auto-rows'));
+        $autoColSize = $this->resolveGridAutoTrackSize($style->get('grid-auto-columns'));
 
         if ($box->children === []) {
             $geo->height = $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap);
@@ -1332,19 +1341,22 @@ final class BlockLayout
         }
 
         // Pass 1: mark cells occupied for items with both axes
-        // explicitly placed. Skip items whose explicit position falls
-        // outside the declared track counts — those silently drop.
+        // explicitly placed. Items whose row position exceeds the
+        // declared grid grow the implicit rows (CSS Grid Layout 2
+        // §7.4 — `grid-auto-rows` sizes new tracks). Items whose
+        // column position exceeds the declared columns still drop
+        // silently for `grid-auto-flow: row` since rows are the
+        // implicit-growth axis by spec.
         /** @var array<int, array<int, true>> $occupied  occupied[row][col] = true */
         $occupied = [];
-        $rowCount = count($rowTracks);
         $colCount = count($columnTracks);
         foreach ($placements as &$p) {
             if (!$p['autoRow'] && !$p['autoCol']) {
-                if ($p['row'] >= $rowCount || $p['col'] >= $colCount) {
-                    // Mark "couldn't place" by leaving row/col as
-                    // their explicit (possibly out-of-range) values
-                    // — pass 3 skips items with row/col ≥ track count.
+                if ($p['col'] >= $colCount) {
                     continue;
+                }
+                if ($p['row'] + $p['rowSpan'] > count($rowTracks)) {
+                    $this->growGridRows($rowTracks, $p['row'] + $p['rowSpan'], $autoRowSize);
                 }
                 $this->markGridOccupied($occupied, $p['row'], $p['col'], $p['rowSpan'], $p['colSpan']);
             }
@@ -1357,19 +1369,34 @@ final class BlockLayout
         //       cursor, advancing the cursor past each placement.
         //   (b) Auto row only → search down the fixed column.
         //   (c) Auto col only → search across the fixed row.
+        // The grid grows implicit rows when the cursor or fixed
+        // placement runs past the current row count.
         $cursorRow = 0;
         $cursorCol = 0;
+        // Cap the grow loop so a degenerate template can't lock us up.
+        $maxImplicitRows = 1024;
         foreach ($placements as &$p) {
             if (!$p['autoRow'] && !$p['autoCol']) {
                 continue;
             }
             if ($p['autoRow'] && $p['autoCol']) {
-                // Fully auto — row-major walk.
-                while ($cursorRow < $rowCount) {
+                // Fully auto — row-major walk; grow rows as needed.
+                // The iteration cap below bounds pathological cases
+                // (zero-tall implicit rows still make row-count
+                // progress on each cursor advance, so termination
+                // is guaranteed by the cap).
+                $iter = 0;
+                while ($iter++ < $maxImplicitRows) {
+                    if ($cursorRow >= count($rowTracks)) {
+                        $this->growGridRows($rowTracks, $cursorRow + 1, $autoRowSize);
+                    }
                     if ($cursorCol + $p['colSpan'] > $colCount) {
                         $cursorRow++;
                         $cursorCol = 0;
                         continue;
+                    }
+                    if ($cursorRow + $p['rowSpan'] > count($rowTracks)) {
+                        $this->growGridRows($rowTracks, $cursorRow + $p['rowSpan'], $autoRowSize);
                     }
                     if (!$this->isGridRangeOccupied($occupied, $cursorRow, $cursorCol, $p['rowSpan'], $p['colSpan'])) {
                         $p['row'] = $cursorRow;
@@ -1383,24 +1410,34 @@ final class BlockLayout
                 continue;
             }
             if ($p['autoRow']) {
-                // Fixed col, search rows from the top.
+                // Fixed col, search rows from the top — growing
+                // implicit rows when none of the explicit ones fit.
                 $c = $p['col'];
                 if ($c < 0 || $c >= $colCount) {
                     continue;
                 }
-                for ($r = 0; $r + $p['rowSpan'] <= $rowCount; $r++) {
+                $r = 0;
+                $iter = 0;
+                while ($iter++ < $maxImplicitRows) {
+                    if ($r + $p['rowSpan'] > count($rowTracks)) {
+                        $this->growGridRows($rowTracks, $r + $p['rowSpan'], $autoRowSize);
+                    }
                     if (!$this->isGridRangeOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan'])) {
                         $p['row'] = $r;
                         $this->markGridOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan']);
                         break;
                     }
+                    $r++;
                 }
                 continue;
             }
             // Auto col only — fixed row, search columns left-to-right.
             $r = $p['row'];
-            if ($r < 0 || $r >= $rowCount) {
+            if ($r < 0) {
                 continue;
+            }
+            if ($r >= count($rowTracks)) {
+                $this->growGridRows($rowTracks, $r + 1, $autoRowSize);
             }
             for ($c = 0; $c + $p['colSpan'] <= $colCount; $c++) {
                 if (!$this->isGridRangeOccupied($occupied, $r, $c, $p['rowSpan'], $p['colSpan'])) {
@@ -1411,6 +1448,9 @@ final class BlockLayout
             }
         }
         unset($p);
+        // Silence the unused-variable analyser — autoColSize is
+        // reserved for `grid-auto-flow: column` (Phase-2 follow-up).
+        unset($autoColSize);
 
         // Pass 3: lay out each child inside its assigned cell.
         // Track-prefix sums let us cheaply compute (x, y, width,
@@ -1588,6 +1628,36 @@ final class BlockLayout
             return (float) $v->value;
         }
         return null;
+    }
+
+    /**
+     * Resolve `grid-auto-rows` / `grid-auto-columns` to a single
+     * pixel size used for every implicit track. Phase-2 honours
+     * `<length>` directly; `auto`, `min-content`, `max-content`,
+     * and `minmax()` resolve to 0 pending the min/max-content
+     * sizing pass. Negative widths clamp to 0.
+     */
+    private function resolveGridAutoTrackSize(?\Phpdftk\Css\Value\Value $value): float
+    {
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Append implicit tracks to `$tracks` until it reaches the
+     * requested length. Each new track gets the configured
+     * `grid-auto-*` size. No-op when `$tracks` is already long
+     * enough.
+     *
+     * @param list<float> $tracks Mutated in place.
+     */
+    private function growGridRows(array &$tracks, int $requiredCount, float $autoTrackSize): void
+    {
+        for ($i = count($tracks); $i < $requiredCount; $i++) {
+            $tracks[] = $autoTrackSize;
+        }
     }
 
     /**

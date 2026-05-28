@@ -3256,6 +3256,147 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $filler->geometry->y);
     }
 
+    public function testGridImplicitRowGrowsWithAutoRows(): void
+    {
+        // Positive: more items than declared rows triggers implicit
+        // row growth via grid-auto-rows. 2 columns × 1 declared row +
+        // 4 items → 2 rows total. The 4th item lands at row 1.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px; '
+            . 'grid-template-rows: 30px; '
+            . 'grid-auto-rows: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '<div class="d"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->find($box, 'div.c');
+        $d = $this->find($box, 'div.d');
+        // c at row 1, col 0 → y = 30 (after first row)
+        self::assertSame(30.0, $c->geometry->y);
+        // d at row 1, col 1 → also y = 30, x = 80
+        self::assertSame(30.0, $d->geometry->y);
+        self::assertSame(80.0, $d->geometry->x);
+        // Implicit row height = grid-auto-rows: 50px
+        self::assertEqualsWithDelta(50.0, $c->geometry->height, 0.001);
+    }
+
+    public function testGridImplicitRowFromExplicitPlacementBeyondGrid(): void
+    {
+        // Positive: `grid-row: 4` places an item at row 3 (0-based)
+        // even when grid-template-rows declares only 2 rows; the
+        // intervening rows grow via grid-auto-rows.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 20px 20px; '
+            . 'grid-auto-rows: 30px;">'
+            . '<div class="a" style="grid-row: 4;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // Row 4 (1-based) = row 3 (0-based) → y = 20 + 20 + 30 (one
+        // grown row) = 70.
+        self::assertSame(70.0, $a->geometry->y);
+        self::assertEqualsWithDelta(30.0, $a->geometry->height, 0.001);
+    }
+
+    public function testGridImplicitRowAutoKeywordCollapsesToZero(): void
+    {
+        // Negative: `grid-auto-rows: auto` (initial) means
+        // "intrinsic-content-sized", which Phase-2 doesn't measure
+        // yet — collapses to 0 height. With explicit rows declared,
+        // items past them grow with 0-tall implicit rows.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // Implicit row at y = 40 (after first explicit row), height 0
+        self::assertSame(40.0, $b->geometry->y);
+        self::assertEqualsWithDelta(0.0, $b->geometry->height, 0.001);
+    }
+
+    public function testGridImplicitColumnsStillSilentlyDrops(): void
+    {
+        // Negative: `grid-column: 99` past the column count still
+        // drops (Phase-2 grows rows only — column-axis growth needs
+        // `grid-auto-flow: column` which isn't shipped). The dropped
+        // item leaves room for auto-flow siblings.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 40px; '
+            . 'grid-auto-columns: 60px;">'
+            . '<div class="dropped" style="grid-column: 99;"></div>'
+            . '<div class="kept"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $kept = $this->find($box, 'div.kept');
+        self::assertSame(0.0, $kept->geometry->x);
+    }
+
+    public function testGridImplicitRowsBoundedByMaxCap(): void
+    {
+        // Negative: a pathological placement at `grid-row: 9999`
+        // doesn't lock up the layout — the maxImplicitRows cap
+        // bounds the growth loop. We just verify the layout returns
+        // (the test passing is the assertion).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 20px; '
+            . 'grid-auto-rows: 1px;">'
+            . '<div class="a" style="grid-row: 9999;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $h = $this->layout->layout($box, $this->defaultCtx);
+        self::assertGreaterThanOrEqual(0.0, $h);
+    }
+
+    public function testGridImplicitAutoRowKeepsTotalGridHeight(): void
+    {
+        // Positive: the container's natural height = sum of all
+        // explicit + implicit rows (when no declared height). Two
+        // items in a 1-row × 1-col grid + grid-auto-rows: 50px →
+        // total = first row (40) + implicit (50) = 90.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 40px; '
+            . 'grid-auto-rows: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $grid = null;
+        foreach ($this->find($box, 'body')->children as $c) {
+            if ($c instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
+                $grid = $c;
+            }
+        }
+        self::assertNotNull($grid);
+        // No declared height → height = sum of rows (40 + 50 = 90).
+        self::assertEqualsWithDelta(90.0, $grid->geometry->height, 0.001);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with

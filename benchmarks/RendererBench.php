@@ -276,6 +276,26 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2GridImplicitRows(): void
+    {
+        // Phase-2 Grid implicit-row growth — 100 cells in a 4-column
+        // grid with only 1 explicit row exercises the growth loop
+        // through 25 implicit rows on every render.
+        $items = '';
+        for ($i = 0; $i < 100; $i++) {
+            $items .= '<div class="cell"></div>';
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: repeat(4, 40pt); '
+            . '        grid-template-rows: 25pt; '
+            . '        grid-auto-rows: 25pt; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ccc; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2GridTemplateAreas(): void
     {
         // Phase-2 Grid template-areas — exercises the area parser
