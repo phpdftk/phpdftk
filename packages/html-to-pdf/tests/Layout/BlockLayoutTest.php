@@ -3635,6 +3635,142 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $b->geometry->y);
     }
 
+    public function testGridAutoTrackWithExplicitWidthChildUsesChildWidth(): void
+    {
+        // Positive: a child with explicit `width: 80px` in a single
+        // `auto`-sized column → the track grows to 80.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: auto; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="width: 80px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // Track sized to max-content (= 80px child).
+        self::assertEqualsWithDelta(80.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridAutoTrackWithoutContentCollapsesToZero(): void
+    {
+        // Negative: an empty `auto` track has no content to size
+        // against — collapses to 0. A 2-column grid where col 2 is
+        // auto with no item in it gets a 0-wide second column.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px auto; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        // Only one item placed in col 0. Col 1 is auto and empty → 0.
+        $a = $this->find($box, 'div.a');
+        // `a` fills col 0 (100px).
+        self::assertEqualsWithDelta(100.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridAutoTrackPicksMaxAcrossItemsInSameColumn(): void
+    {
+        // Positive: two items in the same auto column → track sizes
+        // to the WIDEST item's width.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: auto; '
+            . 'grid-template-rows: 30px 30px;">'
+            . '<div class="narrow" style="width: 40px;"></div>'
+            . '<div class="wide" style="width: 120px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $narrow = $this->find($box, 'div.narrow');
+        // Track sizes to widest child (120px); narrow stretches to fill.
+        self::assertEqualsWithDelta(120.0, $narrow->geometry->width, 0.001);
+    }
+
+    public function testGridMinContentTrackUsesChildMin(): void
+    {
+        // Positive: `min-content` track tracks the item's min-content
+        // (widest unbreakable run). Without text, falls back to the
+        // declared width.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: min-content; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a" style="width: 60px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridMaxContentTrackUsesChildMax(): void
+    {
+        // Positive: explicit `max-content` keyword behaves the same as
+        // `auto` for the no-text fallback case — sizes to the item's
+        // declared width.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: max-content; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a" style="width: 75px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(75.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridAutoTrackBetweenFixedTracks(): void
+    {
+        // Positive: `100px auto 100px` → middle track sizes to its
+        // item's max-content (50px), so the third track starts at
+        // x = 100 + 50 = 150.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px auto 100px; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a"></div>'
+            . '<div class="b" style="width: 50px;"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(100.0, $b->geometry->x);
+        self::assertEqualsWithDelta(50.0, $b->geometry->width, 0.001);
+        self::assertSame(150.0, $c->geometry->x);
+    }
+
+    public function testGridAutoTrackMultiSpanDistributesEqually(): void
+    {
+        // Negative-ish: a 2-cell-spanning item across two auto
+        // tracks distributes its max-content equally. Item width
+        // 100 → each track gets 50.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: auto auto; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="span" style="grid-column: 1 / 3; width: 100px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $span = $this->find($box, 'div.span');
+        // Item placed at col 0, spans both tracks (50+50=100).
+        self::assertSame(0.0, $span->geometry->x);
+        self::assertEqualsWithDelta(100.0, $span->geometry->width, 0.001);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with

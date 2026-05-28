@@ -276,6 +276,30 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2GridAutoTracks(): void
+    {
+        // Phase-2 Grid auto track sizing — `auto` columns trigger
+        // the content-sizing pass on every render. 40 items with
+        // varying widths in a 2-auto-col grid exercises measurement.
+        $items = '';
+        for ($i = 0; $i < 40; $i++) {
+            $w = 30 + ($i % 5) * 20; // 30, 50, 70, 90, 110 pt
+            $items .= sprintf(
+                '<div class="cell" style="width: %dpt;"></div>',
+                $w,
+            );
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: auto auto; '
+            . '        grid-template-rows: 20pt; '
+            . '        grid-auto-rows: 20pt; '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ccc; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2GridAutoFlow(): void
     {
         // Phase-2 Grid auto-flow column + dense — 60 items in a

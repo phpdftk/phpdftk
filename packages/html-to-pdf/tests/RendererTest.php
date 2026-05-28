@@ -2512,6 +2512,38 @@ final class RendererTest extends TestCase
         self::assertGreaterThanOrEqual(4, $rgCount);
     }
 
+    public function testGridAutoTracksEndToEndProducesValidPdf(): void
+    {
+        // Integration: holy-grail variant with an `auto` content
+        // column for the sidebar. The sidebar gets sized to its
+        // declared 120pt; the main `1fr` column fills the rest.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.app { display: grid; '
+            . '       grid-template-columns: auto 1fr; '
+            . '       grid-template-rows: 40pt 200pt 30pt; '
+            . '       column-gap: 4pt; row-gap: 4pt; height: 280pt; }'
+            . '.side { width: 120pt; background-color: #99ccff; }'
+            . '.main { background-color: #eeeeff; }'
+            . '.head { grid-column: 1 / 3; background-color: #336699; }'
+            . '.foot { grid-column: 1 / 3; background-color: #336699; }'
+            . '</style></head><body>'
+            . '<div class="app">'
+            . '<div class="head"></div>'
+            . '<div class="side"></div>'
+            . '<div class="main"></div>'
+            . '<div class="foot"></div>'
+            . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Side colour painted (≈ 0.6 0.8 1 for #99ccff).
+        self::assertMatchesRegularExpression('~0\.6 0\.8 1 rg~', $bytes);
+        // Main lavender painted.
+        self::assertMatchesRegularExpression('~0\.9\d+ 0\.9\d+ 1 rg~', $bytes);
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

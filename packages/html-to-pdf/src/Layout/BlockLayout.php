@@ -1485,6 +1485,29 @@ final class BlockLayout
         }
         unset($p);
 
+        // Pass 2.5: content-size `auto` / `min-content` / `max-content`
+        // tracks per CSS Grid Layout 2 §11. Measure each placed
+        // item's max-content; for items spanning one auto track,
+        // bump that track to at least the item's max. Items
+        // spanning MULTIPLE auto tracks distribute equally as a
+        // Phase-2 simplification (the spec prescribes a more
+        // intricate distribution but equal-share is correct often
+        // enough to be useful).
+        $this->resolveGridContentSizedTracks(
+            $columnTracks,
+            $columnDescriptors,
+            $placements,
+            $context,
+            isColumnAxis: true,
+        );
+        $this->resolveGridContentSizedTracks(
+            $rowTracks,
+            $rowDescriptors,
+            $placements,
+            $context,
+            isColumnAxis: false,
+        );
+
         // Pass 3: lay out each child inside its assigned cell.
         // Track-prefix sums let us cheaply compute (x, y, width,
         // height) per cell range.
@@ -1651,8 +1674,19 @@ final class BlockLayout
                 return;
             }
         }
-        // Other shapes (Keyword like `auto`, Percentage, etc.) are
-        // skipped at MVP rather than guessed.
+        // CSS Grid Layout 2 §7.2 — `auto` / `min-content` /
+        // `max-content` track sizes resolve via the content-sizing
+        // pass below. Recorded as descriptors so `resolveGridTrackSizes`
+        // leaves them at zero for the fr pass and the post-placement
+        // measurement pass fills them in.
+        if ($value instanceof Keyword) {
+            $name = strtolower($value->name);
+            if ($name === 'auto' || $name === 'min-content' || $name === 'max-content') {
+                $out[] = ['type' => $name, 'value' => 0.0];
+            }
+        }
+        // Other shapes (Percentage, etc.) are skipped at MVP rather
+        // than guessed.
     }
 
     private function numericValueOrNull(?\Phpdftk\Css\Value\Value $v): ?float
@@ -1799,6 +1833,199 @@ final class BlockLayout
     }
 
     /**
+     * Fill in `auto` / `min-content` / `max-content` track sizes by
+     * measuring placed items. Each placed item contributes its
+     * max-content (or min-content for `min-content` tracks) to the
+     * tracks it spans. Multi-track spans distribute equally as a
+     * Phase-2 simplification.
+     *
+     * @param array<int, float> $resolved      Mutated track sizes.
+     * @param list<array{type: string, value: float}> $descriptors
+     * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
+     */
+    private function resolveGridContentSizedTracks(
+        array &$resolved,
+        array $descriptors,
+        array $placements,
+        LayoutContext $context,
+        bool $isColumnAxis,
+    ): void {
+        // Bail when there are no content-sized tracks to resolve.
+        $hasContentTrack = false;
+        foreach ($descriptors as $d) {
+            if ($d['type'] === 'auto' || $d['type'] === 'min-content' || $d['type'] === 'max-content') {
+                $hasContentTrack = true;
+                break;
+            }
+        }
+        if (!$hasContentTrack) {
+            return;
+        }
+        foreach ($placements as $p) {
+            if ($p['row'] < 0 || $p['col'] < 0) {
+                continue;
+            }
+            $start = $isColumnAxis ? $p['col'] : $p['row'];
+            $span = $isColumnAxis ? $p['colSpan'] : $p['rowSpan'];
+            // Find which spanned tracks are content-sized.
+            $contentTrackIndices = [];
+            for ($i = $start; $i < $start + $span && $i < count($descriptors); $i++) {
+                $type = $descriptors[$i]['type'];
+                if ($type === 'auto' || $type === 'min-content' || $type === 'max-content') {
+                    $contentTrackIndices[] = $i;
+                }
+            }
+            if ($contentTrackIndices === []) {
+                continue;
+            }
+            // Measure item intrinsic sizes. For the column axis we
+            // want widths; for the row axis we'd want heights. The
+            // measurement function returns widths, so row-axis
+            // sizing reuses width as a Phase-2 approximation — row
+            // auto sizing typically gets fed item heights via
+            // declared CSS, which the post-layout content height
+            // override handles. Refining row-axis intrinsic sizing
+            // is a follow-up.
+            if (!$isColumnAxis) {
+                continue;
+            }
+            $mm = $this->measureMinMaxContent($p['box'], $context);
+            $intrinsic = $mm['max'];
+            // For the simplest "use min-content" track:
+            foreach ($contentTrackIndices as $i) {
+                $type = $descriptors[$i]['type'];
+                $size = $type === 'min-content' ? $mm['min'] : $intrinsic;
+                // Distribute the item's intrinsic size equally
+                // across its content-sized tracks. The track's
+                // current size only grows; it never shrinks under
+                // a smaller item.
+                $share = $size / max(1, count($contentTrackIndices));
+                if (($resolved[$i] ?? 0.0) < $share) {
+                    $resolved[$i] = $share;
+                }
+            }
+        }
+    }
+
+    /**
+     * Intrinsic-size measurement for a box's content. Returns
+     * `['min' => <min-content>, 'max' => <max-content>]` per CSS
+     * Sizing 3 §5.1. Phase-2 implementation:
+     *   - `TextBox`: min = widest single word (whitespace-tokenised);
+     *     max = full text on one line. Uses the cascade-resolved
+     *     font for the closest ancestor with a `font-family` /
+     *     `font-size`; falls back to the layout context's default
+     *     font.
+     *   - `BlockBox` / `AnonymousBlockBox` / `TableCellBox`: children
+     *     stack vertically so the container can be as narrow as its
+     *     widest child's min, and wants its widest child's max.
+     *   - `InlineBox`: children flow on one line; min = max-of-mins,
+     *     max = sum-of-maxes.
+     *   - `AtomicInlineBox`: declared `width` (or 0 fallback).
+     *   - Other boxes: descend into children using the block rule.
+     *
+     * The measurement is intentionally simple and doesn't account
+     * for borders / padding / margins on the box itself — callers
+     * (e.g. Grid `auto` track sizing) layer those on if needed.
+     *
+     * @return array{min: float, max: float}
+     */
+    public function measureMinMaxContent(Box $box, LayoutContext $context): array
+    {
+        if ($box instanceof TextBox) {
+            return $this->measureTextBoxMinMax($box, $context);
+        }
+        // Any non-text box with an explicit `width` reports that
+        // width as both min and max-content. Authors who declared a
+        // size for a box have stated its intrinsic preference; the
+        // intrinsic-sizing pass shouldn't second-guess it.
+        $explicit = $box->style->get('width');
+        if ($explicit instanceof Length && $explicit->value > 0.0) {
+            return ['min' => $explicit->value, 'max' => $explicit->value];
+        }
+        if ($box instanceof AtomicInlineBox) {
+            return $this->aggregateChildrenMinMax($box, $context, inline: true);
+        }
+        if ($box instanceof InlineBox) {
+            return $this->aggregateChildrenMinMax($box, $context, inline: true);
+        }
+        // Block / anonymous-block / table cell — children stack
+        // vertically, so each child gets its full max-content extent
+        // and the container needs the widest of them.
+        return $this->aggregateChildrenMinMax($box, $context, inline: false);
+    }
+
+    /**
+     * @return array{min: float, max: float}
+     */
+    private function aggregateChildrenMinMax(Box $box, LayoutContext $context, bool $inline): array
+    {
+        $maxOfMins = 0.0;
+        $maxOfMaxes = 0.0;
+        $sumOfMaxes = 0.0;
+        foreach ($box->children as $child) {
+            $cm = $this->measureMinMaxContent($child, $context);
+            $maxOfMins = max($maxOfMins, $cm['min']);
+            $maxOfMaxes = max($maxOfMaxes, $cm['max']);
+            $sumOfMaxes += $cm['max'];
+        }
+        if ($inline) {
+            return ['min' => $maxOfMins, 'max' => $sumOfMaxes];
+        }
+        return ['min' => $maxOfMins, 'max' => $maxOfMaxes];
+    }
+
+    /**
+     * Shape the text and report `(widest word, total advance)`.
+     * Words split on Unicode whitespace; empty or whitespace-only
+     * text returns 0/0.
+     *
+     * @return array{min: float, max: float}
+     */
+    private function measureTextBoxMinMax(TextBox $box, LayoutContext $context): array
+    {
+        $text = $box->text;
+        if ($text === '' || trim($text) === '') {
+            return ['min' => 0.0, 'max' => 0.0];
+        }
+        $font = $context->defaultFont;
+        if ($font === null) {
+            // No font registered — fall back to a character-count
+            // heuristic so Grid `auto` tracks still get a usable
+            // (if coarse) sizing instead of zero.
+            $words = preg_split('/\s+/', trim($text)) ?: [];
+            $widest = 0;
+            foreach ($words as $w) {
+                $widest = max($widest, mb_strlen($w));
+            }
+            $totalChars = mb_strlen(trim($text));
+            // ~6 user units per character is a sane sans-serif average.
+            return [
+                'min' => (float) $widest * 6.0,
+                'max' => (float) $totalChars * 6.0,
+            ];
+        }
+        $fontSizeValue = $box->style->get('font-size');
+        $fontSize = $fontSizeValue instanceof Length && $fontSizeValue->value > 0.0
+            ? $fontSizeValue->value
+            : 12.0;
+        $ctx = new \Phpdftk\Text\ShapingContext($font, $fontSize);
+        $shaper = new \Phpdftk\Text\Shaper();
+        $full = $shaper->shapeRun($text, $ctx);
+        $maxAdvance = $full->totalAdvance;
+        $words = preg_split('/\s+/', trim($text)) ?: [];
+        $minAdvance = 0.0;
+        foreach ($words as $w) {
+            if ($w === '') {
+                continue;
+            }
+            $shaped = $shaper->shapeRun($w, $ctx);
+            $minAdvance = max($minAdvance, $shaped->totalAdvance);
+        }
+        return ['min' => $minAdvance, 'max' => $maxAdvance];
+    }
+
+    /**
      * Resolve `grid-auto-rows` / `grid-auto-columns` to a single
      * pixel size used for every implicit track. Phase-2 honours
      * `<length>` directly; `auto`, `min-content`, `max-content`,
@@ -1846,9 +2073,12 @@ final class BlockLayout
         foreach ($tracks as $t) {
             if ($t['type'] === 'length') {
                 $fixedTotal += $t['value'];
-            } else {
+            } elseif ($t['type'] === 'fr') {
                 $frTotal += $t['value'];
             }
+            // `auto` / `min-content` / `max-content` tracks contribute
+            // nothing at this stage; the content-sizing pass fills
+            // them in after placement is known.
         }
         $gapTotal = $gap * max(0, count($tracks) - 1);
         $frSpace = max(0.0, $containerExtent - $fixedTotal - $gapTotal);
@@ -1856,9 +2086,14 @@ final class BlockLayout
         foreach ($tracks as $t) {
             if ($t['type'] === 'length') {
                 $resolved[] = $t['value'];
-            } else {
+            } elseif ($t['type'] === 'fr') {
                 $share = $frTotal > 0.0 ? $frSpace * ($t['value'] / $frTotal) : 0.0;
                 $resolved[] = $share;
+            } else {
+                // Auto / min-content / max-content — leave at 0; the
+                // content-sizing pass overwrites this with the
+                // measured max-content of items spanning the track.
+                $resolved[] = 0.0;
             }
         }
         return $resolved;
