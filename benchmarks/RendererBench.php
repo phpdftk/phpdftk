@@ -231,6 +231,28 @@ class RendererBench
         $this->renderer->render($html);
     }
 
+    public function benchPhase2GridAdvanced(): void
+    {
+        // Phase-2 Grid advanced — exercises fr resolution, repeat()
+        // expansion, span placement and justify-self alignment so
+        // regressions in any of the four show up here.
+        $items = '';
+        for ($i = 0; $i < 40; $i++) {
+            $cls = ($i % 5 === 0) ? 'span' : 'cell';
+            $items .= '<div class="' . $cls . '"></div>';
+        }
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: 80pt repeat(4, 1fr); '
+            . '        grid-template-rows: repeat(10, 30pt); '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ccc; }'
+            . '.span { grid-column: span 2; background-color: #def; '
+            . '        justify-self: center; width: 60pt; }'
+            . '</style></head><body><div class="grid">' . $items . '</div></body></html>';
+        $this->renderer->render($html);
+    }
+
     public function benchPhase2Gradients(): void
     {
         // Phase-2: N-stop gradients route through a Type-3 stitching

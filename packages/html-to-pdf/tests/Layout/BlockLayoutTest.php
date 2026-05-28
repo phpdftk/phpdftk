@@ -2702,6 +2702,368 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(120.0, $a->geometry->width, 0.001);
     }
 
+    public function testGridFrZeroCountTrackDropped(): void
+    {
+        // Negative: `0fr` has zero share — it gets zero width when
+        // other tracks consume the available space. Our parser
+        // currently drops descriptors with non-positive fr counts.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 0fr; '
+            . 'grid-template-rows: 40px; width: 300px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // 0fr was dropped → only 1 track (100px); 'b' falls off the
+        // grid (no second track) and is silently dropped.
+        self::assertSame(0.0, $b->geometry->x, 'no second track means b drops to default-placed');
+    }
+
+    public function testGridFrWithoutContainerExtentCollapsesToZero(): void
+    {
+        // Negative: fr tracks divide REMAINING space after fixed
+        // widths. If container width is zero (or all consumed by
+        // fixed tracks) the fr space is zero.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 1fr; '
+            . 'grid-template-rows: 40px; width: 0px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertSame(0.0, $a->geometry->width);
+    }
+
+    public function testGridFrIgnoredOnAutoHeightContainer(): void
+    {
+        // Negative: row fr depends on the container's declared
+        // height. With no explicit height (auto), the fr-space is 0
+        // and row fr tracks collapse.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 1fr; width: 300px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // Row fr resolves against the declaredHeight; with none,
+        // it's 0 so the row track is 0 height.
+        self::assertSame(0.0, $a->geometry->height);
+    }
+
+    public function testGridFrSplitsRemainingSpaceProportionally(): void
+    {
+        // Positive: in a 300px container with 100px fixed + 1fr + 1fr,
+        // remaining 200px splits 100/100 between the two fr tracks.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 1fr 1fr; '
+            . 'grid-template-rows: 40px; width: 300px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertEqualsWithDelta(100.0, $b->geometry->x, 0.001);
+        self::assertEqualsWithDelta(100.0, $b->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $c->geometry->x, 0.001);
+        self::assertEqualsWithDelta(100.0, $c->geometry->width, 0.001);
+    }
+
+    public function testGridFrUnequalCountsSplitsProportionally(): void
+    {
+        // Positive: 1fr + 2fr + 3fr in 600px container splits the
+        // 600 into 1/6, 2/6, 3/6 → 100, 200, 300.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 1fr 2fr 3fr; '
+            . 'grid-template-rows: 40px; width: 600px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertEqualsWithDelta(100.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $b->geometry->width, 0.001);
+        self::assertEqualsWithDelta(300.0, $c->geometry->width, 0.001);
+    }
+
+    public function testGridRepeatZeroCountDropped(): void
+    {
+        // Negative: `repeat(0, 100px)` produces no tracks. The
+        // implicit single-column fallback kicks in.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: repeat(0, 100px); '
+            . 'grid-template-rows: 40px; width: 300px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // Fallback to a single full-width column.
+        self::assertEqualsWithDelta(300.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridRepeatNegativeCountIgnored(): void
+    {
+        // Negative: negative repeat counts evaluate to no tracks.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: repeat(-2, 100px); '
+            . 'grid-template-rows: 40px; width: 300px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(300.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridRepeatExpandsToFixedTracks(): void
+    {
+        // Positive: `repeat(3, 80px)` expands to 3 80px columns.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: repeat(3, 80px); '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(80.0, $b->geometry->x);
+        self::assertSame(160.0, $c->geometry->x);
+    }
+
+    public function testGridRepeatMixedWithFixedTracks(): void
+    {
+        // Positive: `100px repeat(2, 50px)` → [100, 50, 50].
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px repeat(2, 50px); '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(100.0, $b->geometry->x);
+        self::assertSame(150.0, $c->geometry->x);
+    }
+
+    public function testGridSpanWithoutIntegerDefaultsToOne(): void
+    {
+        // Negative: `span` without a count defaults to span 1.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px 100px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="grid-column: span auto;"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        // 'a' span 1 takes col 0. 'b' takes col 1.
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(100.0, $b->geometry->x);
+    }
+
+    public function testGridSpanZeroClampsToOne(): void
+    {
+        // Negative: `span 0` clamps to 1 cell per spec.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="grid-column: span 0;"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertEqualsWithDelta(100.0, $a->geometry->width, 0.001);
+        self::assertSame(100.0, $b->geometry->x);
+    }
+
+    public function testGridSpanBeyondGridDropsItem(): void
+    {
+        // Negative: `span 99` exceeds the grid → item silently drops
+        // (implicit-track growth is a follow-up). Other items still place.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="grid-column: span 99;"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        // 'a' dropped; 'b' auto-places at first free cell.
+        self::assertSame(0.0, $b->geometry->x);
+    }
+
+    public function testGridSpanExplicitStartSpansForward(): void
+    {
+        // Positive: `grid-column: 1 / span 2` starts at col 0, spans 2.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 80px 80px 80px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="grid-column: 1 / span 2;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertEqualsWithDelta(160.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridJustifySelfAutoResolvesToStretch(): void
+    {
+        // Negative: `justify-self: auto` (initial) → stretch in grid.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(200.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridJustifySelfUnknownKeywordResolvesToStretch(): void
+    {
+        // Negative: unknown self keyword falls back to stretch.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: nonsense;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(200.0, $a->geometry->width, 0.001);
+    }
+
+    public function testGridJustifySelfStartLeavesItemAtCellOrigin(): void
+    {
+        // Negative-ish: explicit `justify-self: start` should still
+        // place at cell origin; the item doesn't stretch, so its
+        // width = its declared content (auto = container content).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: start; width: 50px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(50.0, $a->geometry->width);
+    }
+
+    public function testGridJustifySelfEndShiftsRight(): void
+    {
+        // Positive: `justify-self: end` aligns the item to cell's
+        // main-end. In a 200px cell with a 50px-wide item, the item
+        // shifts right by 150 (200 - 50).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: end; width: 50px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(150.0, $a->geometry->x, 0.001);
+    }
+
+    public function testGridJustifySelfCenterCentersItem(): void
+    {
+        // Positive: `justify-self: center` centers the item in its
+        // cell. 200px cell - 50px item = 150px slack, item shifts by 75.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: center; width: 50px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(75.0, $a->geometry->x, 0.001);
+    }
+
+    public function testGridAlignSelfEndShiftsDown(): void
+    {
+        // Positive: `align-self: end` aligns the item to cell's
+        // cross-end. 50px tall cell, item with 20px height → shifts
+        // down by 30.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; '
+            . 'grid-template-rows: 50px;">'
+            . '<div class="a" style="align-self: end; height: 20px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(30.0, $a->geometry->y, 0.001);
+    }
+
     public function testFlexRowLaysOutItemsHorizontally(): void
     {
         // Three 100-wide items in a 600-wide flex container with

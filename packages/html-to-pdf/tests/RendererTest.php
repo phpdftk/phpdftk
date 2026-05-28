@@ -2351,6 +2351,40 @@ final class RendererTest extends TestCase
         self::assertGreaterThanOrEqual(5, $rgCount, 'multiple rg operators present');
     }
 
+    public function testGridAdvancedFeaturesEndToEndProducesValidPdf(): void
+    {
+        // Integration: exercise fr + repeat + span + justify-self in
+        // a single fixture and verify the produced PDF starts with
+        // %PDF- and emits the expected background rects.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $html = '<html><head><style>'
+            . '.grid { display: grid; '
+            . '        grid-template-columns: 100pt repeat(2, 1fr); '
+            . '        grid-template-rows: repeat(3, 40pt); '
+            . '        column-gap: 4pt; row-gap: 4pt; }'
+            . '.cell { background-color: #ddeeff; }'
+            . '.span { grid-column: 1 / span 3; background-color: #aaddff; }'
+            . '.endX { justify-self: end; width: 30pt; background-color: #ff0000; }'
+            . '</style></head><body>'
+            . '<div class="grid">'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="span"></div>'
+            . '<div class="endX"></div>'
+            . '<div class="cell"></div>'
+            . '<div class="cell"></div>'
+            . '</div></body></html>';
+        $renderer->renderInto($writer, $html);
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Red end-justified item emitted.
+        self::assertMatchesRegularExpression('~1 0 0 rg~', $bytes, 'red endX rect');
+        // Light blue span rect emitted (#aaddff ≈ 0.667 0.867 1).
+        self::assertMatchesRegularExpression('~0\.6\d+ 0\.8\d+ 1 rg~', $bytes, 'span rect colour');
+    }
+
     public function testBorderCollapseEndToEndOnlyPaintsThickerJoint(): void
     {
         // Integration: render a 2×2 table where cell A has a 6pt

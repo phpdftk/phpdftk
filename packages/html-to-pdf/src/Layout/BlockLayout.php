@@ -1255,14 +1255,22 @@ final class BlockLayout
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
-        $columnTracks = $this->parseGridTrackList($style->get('grid-template-columns'));
-        $rowTracks = $this->parseGridTrackList($style->get('grid-template-rows'));
+        $columnDescriptors = $this->parseGridTrackList($style->get('grid-template-columns'));
+        $rowDescriptors = $this->parseGridTrackList($style->get('grid-template-rows'));
         $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
         $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
 
+        // Resolve fr → pixels against the container's main axis.
+        $columnTracks = $this->resolveGridTrackSizes($columnDescriptors, $geo->width, $columnGap);
+        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        $rowTracks = $this->resolveGridTrackSizes(
+            $rowDescriptors,
+            $declaredHeightForFr ?? 0.0,
+            $rowGap,
+        );
+
         if ($box->children === []) {
-            $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
-            $geo->height = $declaredHeight ?? $this->gridTotalExtent($rowTracks, $rowGap);
+            $geo->height = $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap);
             $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
             return $geo->outerHeight();
         }
@@ -1276,8 +1284,7 @@ final class BlockLayout
             // Implicit row sizing falls back to one row of "auto"
             // height — but auto track sizing isn't shipped yet, so
             // we use the container's declared height or 0.
-            $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
-            $rowTracks = [$declaredHeight ?? 0.0];
+            $rowTracks = [$declaredHeightForFr ?? 0.0];
         }
 
         // Resolve each child's grid placement.
@@ -1399,30 +1406,69 @@ final class BlockLayout
             $cellY = $geo->y + $rowOffsets[$p['row']];
             $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGap);
             $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowGap);
+
+            // CSS Box Alignment 3 §6.2 — `justify-self` (inline axis)
+            // and `align-self` (block axis). `auto` → `stretch` for
+            // Grid (matching CSS Grid Layout 2 §11). Other keywords:
+            //   `start` — align to cell's main-start
+            //   `end`   — align to cell's main-end
+            //   `center` — centered
+            //   `stretch` — fill the cell
+            $justify = $this->gridSelfKeyword($p['box'], 'justify-self');
+            $alignS = $this->gridSelfKeyword($p['box'], 'align-self');
+            $isStretchX = $justify === 'stretch';
+            $isStretchY = $alignS === 'stretch';
+
             $childCtx = $context
                 ->withContainingBlock($cellWidth, $cellHeight)
                 ->withOrigin($cellX, $cellY);
             $this->cascade->resolveLengths($p['box']->style, $childCtx->lengthContext);
             $this->layoutBox($p['box'], $childCtx);
-            // Stretch the child to fill its cell — Phase-2 default,
-            // matching `align/justify-self: stretch`. Author override
-            // via `width` / `height` already short-circuits since the
-            // child's layout uses the cell's containing-block dims.
-            $p['box']->geometry->width = $cellWidth
-                - $p['box']->geometry->marginLeft
-                - $p['box']->geometry->marginRight
-                - $p['box']->geometry->borderLeft
-                - $p['box']->geometry->borderRight
-                - $p['box']->geometry->paddingLeft
-                - $p['box']->geometry->paddingRight;
-            if ($p['box']->geometry->height < $cellHeight) {
-                $p['box']->geometry->height = $cellHeight
-                    - $p['box']->geometry->marginTop
-                    - $p['box']->geometry->marginBottom
-                    - $p['box']->geometry->borderTop
-                    - $p['box']->geometry->borderBottom
-                    - $p['box']->geometry->paddingTop
-                    - $p['box']->geometry->paddingBottom;
+
+            $childGeo = $p['box']->geometry;
+            $childOuterWidth = $childGeo->outerWidth();
+            $childOuterHeight = $childGeo->outerHeight();
+            if ($isStretchX) {
+                // Stretch fills the cell minus the child's own
+                // surroundings — matches Phase-2 default behaviour.
+                $childGeo->width = $cellWidth
+                    - $childGeo->marginLeft - $childGeo->marginRight
+                    - $childGeo->borderLeft - $childGeo->borderRight
+                    - $childGeo->paddingLeft - $childGeo->paddingRight;
+                $childOuterWidth = $childGeo->outerWidth();
+            }
+            if ($isStretchY && $childOuterHeight < $cellHeight) {
+                $childGeo->height = $cellHeight
+                    - $childGeo->marginTop - $childGeo->marginBottom
+                    - $childGeo->borderTop - $childGeo->borderBottom
+                    - $childGeo->paddingTop - $childGeo->paddingBottom;
+                $childOuterHeight = $childGeo->outerHeight();
+            }
+            // Reposition for non-stretch alignment. `start` keeps the
+            // existing origin; `end` / `center` shift the child within
+            // the cell. Since the box uses outer extents for stacking,
+            // shift `geometry->x` / `geometry->y` accordingly.
+            if (!$isStretchX) {
+                $slackX = $cellWidth - $childOuterWidth;
+                $shiftX = match ($justify) {
+                    'end' => $slackX,
+                    'center' => $slackX / 2,
+                    default => 0.0, // 'start' or unknown
+                };
+                if ($shiftX !== 0.0) {
+                    $this->shiftSubtree($p['box'], 0.0, $shiftX);
+                }
+            }
+            if (!$isStretchY) {
+                $slackY = $cellHeight - $childOuterHeight;
+                $shiftY = match ($alignS) {
+                    'end' => $slackY,
+                    'center' => $slackY / 2,
+                    default => 0.0,
+                };
+                if ($shiftY !== 0.0) {
+                    $this->shiftSubtree($p['box'], $shiftY, 0.0);
+                }
             }
         }
 
@@ -1435,12 +1481,15 @@ final class BlockLayout
 
     /**
      * Parse a `grid-template-columns` / `grid-template-rows` value
-     * into a list of `<length>` track sizes. Returns `[]` for `none`
-     * (initial), unknown keywords, or empty values. Phase-2 honours
-     * only `<length>` tracks; `fr`, `auto`, `repeat()`, `min-content`,
-     * `max-content`, `minmax()` are deferred.
+     * into a list of track descriptors per CSS Grid Layout 2 §7.
+     * Each descriptor is `['type' => 'length', 'value' => float]`
+     * (fixed pixels) or `['type' => 'fr', 'value' => float]`
+     * (proportional flex). `repeat(N, <tracks>)` is expanded
+     * inline. Returns `[]` for `none` (initial) or empty values.
+     * Phase-2 still defers `auto`, `min-content`, `max-content`,
+     * `minmax()`, `fit-content()`, `auto-fill` / `auto-fit`.
      *
-     * @return list<float>
+     * @return list<array{type: string, value: float}>
      */
     private function parseGridTrackList(?\Phpdftk\Css\Value\Value $value): array
     {
@@ -1449,19 +1498,109 @@ final class BlockLayout
         ) {
             return [];
         }
-        if ($value instanceof Length) {
-            return [$value->value];
-        }
+        $tracks = [];
+        $this->collectGridTrackDescriptors($value, $tracks);
+        return $tracks;
+    }
+
+    /**
+     * Walk a track-list value recursively, appending descriptors
+     * for `<length>` / `<flex>` tracks. `repeat()` is expanded; any
+     * other shape is silently skipped (Phase-2 will widen later).
+     *
+     * @param list<array{type: string, value: float}> $out
+     */
+    private function collectGridTrackDescriptors(\Phpdftk\Css\Value\Value $value, array &$out): void
+    {
         if ($value instanceof \Phpdftk\Css\Value\ValueList) {
-            $tracks = [];
             foreach ($value->values as $v) {
-                if ($v instanceof Length) {
-                    $tracks[] = $v->value;
-                }
+                $this->collectGridTrackDescriptors($v, $out);
             }
-            return $tracks;
+            return;
         }
-        return [];
+        if ($value instanceof Length) {
+            $out[] = ['type' => 'length', 'value' => $value->value];
+            return;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\CssFunction) {
+            $name = strtolower($value->name);
+            if ($name === 'fr') {
+                $first = $value->arguments[0] ?? null;
+                $count = $this->numericValueOrNull($first);
+                if ($count !== null && $count > 0) {
+                    $out[] = ['type' => 'fr', 'value' => $count];
+                }
+                return;
+            }
+            if ($name === 'repeat') {
+                // `repeat(<count>, <track>+)` — Phase-2 supports the
+                // integer-count form only. `auto-fill` / `auto-fit`
+                // require min-content sizing to settle.
+                $countVal = $value->arguments[0] ?? null;
+                $count = null;
+                if ($countVal instanceof \Phpdftk\Css\Value\Integer) {
+                    $count = $countVal->value;
+                } elseif ($countVal instanceof \Phpdftk\Css\Value\Number) {
+                    $count = (int) $countVal->value;
+                }
+                if ($count === null || $count < 1) {
+                    return;
+                }
+                $rest = array_slice($value->arguments, 1);
+                for ($i = 0; $i < $count; $i++) {
+                    foreach ($rest as $r) {
+                        $this->collectGridTrackDescriptors($r, $out);
+                    }
+                }
+                return;
+            }
+        }
+        // Other shapes (Keyword like `auto`, Percentage, etc.) are
+        // skipped at MVP rather than guessed.
+    }
+
+    private function numericValueOrNull(?\Phpdftk\Css\Value\Value $v): ?float
+    {
+        if ($v instanceof \Phpdftk\Css\Value\Number || $v instanceof \Phpdftk\Css\Value\Integer) {
+            return (float) $v->value;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve track descriptors to a list of pixel sizes. Fixed
+     * tracks pass through; `fr` tracks divide the remaining space
+     * after fixed widths + gaps are subtracted.
+     *
+     * @param list<array{type: string, value: float}> $tracks
+     * @return list<float>
+     */
+    private function resolveGridTrackSizes(array $tracks, float $containerExtent, float $gap): array
+    {
+        if ($tracks === []) {
+            return [];
+        }
+        $fixedTotal = 0.0;
+        $frTotal = 0.0;
+        foreach ($tracks as $t) {
+            if ($t['type'] === 'length') {
+                $fixedTotal += $t['value'];
+            } else {
+                $frTotal += $t['value'];
+            }
+        }
+        $gapTotal = $gap * max(0, count($tracks) - 1);
+        $frSpace = max(0.0, $containerExtent - $fixedTotal - $gapTotal);
+        $resolved = [];
+        foreach ($tracks as $t) {
+            if ($t['type'] === 'length') {
+                $resolved[] = $t['value'];
+            } else {
+                $share = $frTotal > 0.0 ? $frSpace * ($t['value'] / $frTotal) : 0.0;
+                $resolved[] = $share;
+            }
+        }
+        return $resolved;
     }
 
     /**
@@ -1510,9 +1649,11 @@ final class BlockLayout
     /**
      * Resolve a single axis's start / end. Returns `[startIdx,
      * endIdx, isAuto]` — 0-based, exclusive end (so a 1-cell item
-     * at line 1 returns `[0, 1, false]`). When both are `auto`, the
-     * `isAuto` flag is true so the auto-flow pass picks the slot.
-     * Negative indices count from the end of the explicit grid.
+     * at line 1 returns `[0, 1, false]`). When BOTH ends are `auto`,
+     * the `isAuto` flag is true so the auto-flow pass picks the slot.
+     * `span N` propagates as an N-cell span anchored on whichever
+     * side has an explicit line, or N cells auto-placed when both
+     * sides are span/auto. Negative indices count from the end.
      *
      * @return array{0: int, 1: int, 2: bool}
      */
@@ -1522,58 +1663,117 @@ final class BlockLayout
         int $trackCount,
     ): array {
         $totalLines = max(1, $trackCount) + 1; // line N+1 = end of grid
-        $start = $this->gridLineToIndex($startVal, $totalLines);
-        $end = $this->gridLineToIndex($endVal, $totalLines);
-        $auto = $start === null && $end === null;
-        if ($start === null && $end === null) {
-            return [-1, -1, true];
+        $start = $this->parseGridLineValue($startVal, $totalLines);
+        $end = $this->parseGridLineValue($endVal, $totalLines);
+        // CSS Grid Layout 2 §8.3 — if both sides are `auto` (or span)
+        // without an anchor line, auto-place with the requested span.
+        $startIsLine = $start !== null && $start['type'] === 'line';
+        $endIsLine = $end !== null && $end['type'] === 'line';
+        $startSpan = $start !== null && $start['type'] === 'span' ? $start['count'] : null;
+        $endSpan = $end !== null && $end['type'] === 'span' ? $end['count'] : null;
+
+        if (!$startIsLine && !$endIsLine) {
+            // No anchor — fully auto-placed.
+            $span = $startSpan ?? $endSpan ?? 1;
+            $autoLen = max(1, $span);
+            // Mark "auto" by returning negative placeholders; the
+            // auto-flow pass fills in the real position. We encode
+            // the span length in the (endIdx - startIdx) gap so the
+            // placement record's `colSpan` / `rowSpan` math works.
+            return [-1, -1 + $autoLen, true];
         }
-        if ($start === null) {
-            // `auto / N` → 1-cell span ending at end.
-            $endIdx = max(1, $end);
-            return [max(0, $endIdx - 1), $endIdx, $auto];
+        if (!$startIsLine) {
+            // `<span N> / N` — count back from `end`.
+            $endIdx = $end['value'];
+            $span = $startSpan ?? 1;
+            return [max(0, $endIdx - $span), max(1, $endIdx), false];
         }
-        if ($end === null) {
-            // `N / auto` → 1-cell span starting at start.
-            $startIdx = max(0, $start);
-            return [$startIdx, $startIdx + 1, $auto];
+        if (!$endIsLine) {
+            // `N / <span N>` (or `N / auto`) — count forward from start.
+            $startIdx = $start['value'];
+            $span = $endSpan ?? 1;
+            return [max(0, $startIdx), $startIdx + max(1, $span), false];
         }
-        if ($end <= $start) {
+        // Two explicit lines.
+        $startIdx = $start['value'];
+        $endIdx = $end['value'];
+        if ($endIdx <= $startIdx) {
             // CSS Grid Layout 2 §8.3.1 — when end ≤ start, swap them
-            // so the span is at least 1 cell. Spec actually says the
-            // span is treated as 1; swap matches the visual intent.
-            [$start, $end] = [$end, $start + 1];
+            // so the span is at least 1 cell.
+            [$startIdx, $endIdx] = [$endIdx, $startIdx + 1];
         }
-        $start = max(0, $start);
-        $end = min(max($start + 1, $end), $trackCount);
-        return [$start, $end, false];
+        $startIdx = max(0, $startIdx);
+        $endIdx = min(max($startIdx + 1, $endIdx), $trackCount);
+        return [$startIdx, $endIdx, false];
     }
 
     /**
-     * Convert a single grid-line value to a 0-based line index, or
-     * null when the value is `auto`. Negative ints count from the
-     * end of the explicit grid (line `-1` = last edge = `totalLines
-     * - 1` in 0-based, `-2` = one before that, etc.).
+     * Parse a single grid-line value into a discriminated descriptor:
+     *   - `null` for `auto` or unrecognised input
+     *   - `['type' => 'line', 'value' => int]` for a 0-based line index
+     *   - `['type' => 'span', 'count' => int]` for `span N`
+     * Negative integers count from the explicit-grid end edge.
+     *
+     * @return array{type: string, value?: int, count?: int}|null
      */
-    private function gridLineToIndex(?\Phpdftk\Css\Value\Value $value, int $totalLines): ?int
+    private function parseGridLineValue(?\Phpdftk\Css\Value\Value $value, int $totalLines): ?array
     {
         if ($value === null
             || ($value instanceof Keyword && strtolower($value->name) === 'auto')
         ) {
             return null;
         }
+        // `span N` — Space-separated ValueList of [Keyword(span), Integer(N)].
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            $first = $value->values[0] ?? null;
+            $second = $value->values[1] ?? null;
+            if ($first instanceof Keyword && strtolower($first->name) === 'span') {
+                $count = $this->numericValueOrNull($second);
+                if ($count !== null && $count >= 1) {
+                    return ['type' => 'span', 'count' => (int) $count];
+                }
+                // `span auto` falls through — treat as span 1.
+                return ['type' => 'span', 'count' => 1];
+            }
+        }
         if ($value instanceof \Phpdftk\Css\Value\Integer) {
             $n = $value->value;
             if ($n > 0) {
-                return $n - 1; // 1-based to 0-based.
+                return ['type' => 'line', 'value' => $n - 1];
             }
             if ($n < 0) {
-                // -1 → last edge index = totalLines - 1
-                // -2 → totalLines - 2, …
-                return max(0, $totalLines + $n);
+                return ['type' => 'line', 'value' => max(0, $totalLines + $n)];
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve a `justify-self` / `align-self` keyword on a grid item.
+     * `auto` resolves to `stretch` (the Grid spec default); unknown
+     * keywords fall through to `stretch` too rather than dropping
+     * silently. Other keywords (`start` / `end` / `center` / `stretch`)
+     * pass through; baseline and `*-self: <other>` keywords aren't
+     * modelled at MVP and resolve to `stretch`.
+     */
+    private function gridSelfKeyword(Box $box, string $property): string
+    {
+        $value = $box->style->get($property);
+        if (!$value instanceof Keyword) {
+            return 'stretch';
+        }
+        $name = strtolower($value->name);
+        // `flex-start` / `flex-end` alias for compatibility with
+        // flex shorthand authors mixing the two layout modes.
+        return match ($name) {
+            'start', 'flex-start', 'self-start' => 'start',
+            'end', 'flex-end', 'self-end' => 'end',
+            'center' => 'center',
+            'stretch' => 'stretch',
+            default => 'stretch',
+        };
     }
 
     /**
