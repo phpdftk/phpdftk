@@ -190,6 +190,107 @@ final class PainterTest extends TestCase
         self::assertGreaterThanOrEqual(2, $rectCount, 'box-shadow + background → 2+ rects');
     }
 
+    public function testFilterDropShadowEmitsOffsetRectBehindBackground(): void
+    {
+        // Filter Effects 1 §16.1 — `filter: drop-shadow(4px 4px red)`
+        // emits an offset rect BEFORE the background paint (sits
+        // behind the box visually).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   filter: drop-shadow(4px 4px red); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        // Expect at least one red fill rect (the drop shadow) plus a
+        // white background rect. Match the colour ops by their
+        // canonical token (1 0 0 rg for red, 1 1 1 rg for white).
+        self::assertStringContainsString('1 0 0 rg', $bytes, 'red drop-shadow emitted');
+        self::assertStringContainsString('1 1 1 rg', $bytes, 'white background emitted');
+        // Drop-shadow comes BEFORE background — the offset (4 4) is
+        // applied to the box's outer rect. Confirm ordering: the red
+        // fill appears before the white.
+        $redPos = strpos($bytes, '1 0 0 rg');
+        $whitePos = strpos($bytes, '1 1 1 rg');
+        self::assertNotFalse($redPos);
+        self::assertNotFalse($whitePos);
+        self::assertLessThan($whitePos, $redPos, 'drop-shadow paints below background');
+    }
+
+    public function testFilterNoneEmitsNoExtraShadowRect(): void
+    {
+        // Negative: `filter: none` (initial) must not emit any extra
+        // rects. Rect count matches the no-filter baseline.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        self::assertStringNotContainsString('1 0 0 rg', $bytes, 'no shadow when filter is omitted');
+    }
+
+    public function testFilterUnsupportedPrimitiveIsNoOp(): void
+    {
+        // Negative: `filter: blur(5px)` parses but the painter must
+        // not emit anything for it (raster pre-painting required).
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   filter: blur(5px); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        // White background still present; no extra shadow colour.
+        self::assertStringContainsString('1 1 1 rg', $bytes);
+    }
+
+    public function testFilterDropShadowMixedWithOtherPrimitivesStillPaints(): void
+    {
+        // Positive: a value list `filter: blur(2px) drop-shadow(...)`
+        // skips the blur (raster Phase-2 deferral) but still paints
+        // the drop-shadow.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: white; height: 50px;
+                   filter: blur(2px) drop-shadow(3px 3px green); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        self::assertMatchesRegularExpression('~0 0\.5\d+ 0 rg~', $bytes, 'green drop-shadow rendered');
+    }
+
     public function testSolidBorderEmitsOneRectPerSide(): void
     {
         // Regression — 4-sided solid border = 4 rects.

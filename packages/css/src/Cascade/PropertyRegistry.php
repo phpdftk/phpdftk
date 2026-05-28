@@ -306,6 +306,13 @@ final class PropertyRegistry
             [new Percentage(50.0), new Percentage(50.0)],
             ListSeparator::Space,
         )));
+        // Filter Effects 1 — `filter` is non-inherited; initial value
+        // is `none`. The painter honours the `drop-shadow()` primitive
+        // (CSS Filter Effects 1 §16.1) by emitting a hard-edged
+        // offset rect behind the box. Other primitives (`blur`,
+        // `grayscale`, `brightness`, etc.) parse but no-op since they
+        // require raster pre-painting.
+        $r->register($initial('filter', new Keyword('none')));
         // CSS Fragmentation 4 §4: orphans / widows. Initial 2, both
         // inherit; layout uses them to gate where a paragraph may split
         // across a page boundary.

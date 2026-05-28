@@ -161,6 +161,12 @@ final class Painter
                 $originalGeo = $box->geometry;
                 $box->geometry = $this->clampGeometryToPage($originalGeo);
             }
+            // Filter Effects 1 §16.1 — `filter: drop-shadow(...)`
+            // paints an offset rect behind the box (below the
+            // background, like an outset box-shadow). Other filter
+            // primitives (`blur`, `grayscale`, etc.) require raster
+            // pre-painting and are intentionally not honoured.
+            $this->paintFilterDropShadow($box, $stream);
             // CSS Backgrounds 3 §6.1.1 — paint stack from bottom up:
             // outset shadows → background → inset shadows → border.
             $this->paintBoxShadow($box, $stream, insetOnly: false);
@@ -918,6 +924,122 @@ final class Painter
         $stream->rectangle($innerX, $innerPdfY, $innerWidth, $innerHeight);
         $stream->fillEvenOdd();
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Filter Effects 1 §16.1 — paint `filter: drop-shadow(...)` as an
+     * offset rect behind the box. Syntax matches `box-shadow`'s
+     * `<offset-x> <offset-y> <blur>? <color>?` minus `inset` and
+     * `spread`. Multiple drop-shadow filters in the value list paint
+     * back-to-front (first listed sits on top), matching CSS stacking.
+     * Other filter primitives (`blur`, `brightness`, `grayscale`, …)
+     * silently fall through — they require raster pre-painting.
+     */
+    private function paintFilterDropShadow(Box $box, ContentStream $stream): void
+    {
+        $value = $box->style->get('filter');
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'none')
+        ) {
+            return;
+        }
+        $shadows = $this->collectDropShadowFilters($value);
+        if ($shadows === []) {
+            return;
+        }
+        $defaultColor = $box->style->get('color');
+        $textColor = $defaultColor instanceof Color ? $defaultColor : new Color(0, 0, 0, 1);
+        $geo = $box->geometry;
+        foreach (array_reverse($shadows) as $shadow) {
+            $color = $shadow['color'] ?? $textColor;
+            $x = $geo->x - $geo->paddingLeft - $geo->borderLeft + $shadow['offsetX'];
+            $top = $geo->y - $geo->paddingTop - $geo->borderTop + $shadow['offsetY'];
+            $width = $geo->paddingLeft + $geo->width + $geo->paddingRight
+                + $geo->borderLeft + $geo->borderRight;
+            $height = $geo->paddingTop + $geo->height + $geo->paddingBottom
+                + $geo->borderTop + $geo->borderBottom;
+            if ($width <= 0.0 || $height <= 0.0) {
+                continue;
+            }
+            $this->emitRect($stream, $x, $top, $width, $height, fill: $color);
+        }
+    }
+
+    /**
+     * Walk a `filter` value collecting every `drop-shadow(...)` call.
+     * Returns `[]` when no drop-shadow appears (other filter primitives
+     * are skipped without warning).
+     *
+     * @return list<array{offsetX: float, offsetY: float, blur: float, color: ?Color}>
+     */
+    private function collectDropShadowFilters(\Phpdftk\Css\Value\Value $value): array
+    {
+        $out = [];
+        $items = $value instanceof \Phpdftk\Css\Value\ValueList
+            ? $value->values
+            : [$value];
+        foreach ($items as $item) {
+            if (!$item instanceof \Phpdftk\Css\Value\CssFunction) {
+                continue;
+            }
+            if (strtolower($item->name) !== 'drop-shadow') {
+                continue;
+            }
+            $parsed = $this->parseDropShadowArgs($item->arguments);
+            if ($parsed !== null) {
+                $out[] = $parsed;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Parse `drop-shadow(<offset-x> <offset-y> [<blur>] [<color>])`
+     * arguments into a layer struct. The CSS parser wraps a
+     * space-separated function-arg list inside a single ValueList,
+     * so flatten one level of ValueList before scanning.
+     *
+     * @param list<\Phpdftk\Css\Value\Value> $args
+     * @return array{offsetX: float, offsetY: float, blur: float, color: ?Color}|null
+     */
+    private function parseDropShadowArgs(array $args): ?array
+    {
+        $flat = [];
+        foreach ($args as $a) {
+            if ($a instanceof \Phpdftk\Css\Value\ValueList) {
+                foreach ($a->values as $inner) {
+                    $flat[] = $inner;
+                }
+            } else {
+                $flat[] = $a;
+            }
+        }
+        $color = null;
+        $lengths = [];
+        foreach ($flat as $a) {
+            if ($a instanceof Color) {
+                $color = $a;
+                continue;
+            }
+            if ($a instanceof \Phpdftk\Css\Value\Length) {
+                $lengths[] = $a->value;
+                continue;
+            }
+            if ($a instanceof \Phpdftk\Css\Value\Integer
+                || $a instanceof \Phpdftk\Css\Value\Number
+            ) {
+                $lengths[] = (float) $a->value;
+            }
+        }
+        if (count($lengths) < 2) {
+            return null;
+        }
+        return [
+            'offsetX' => $lengths[0],
+            'offsetY' => $lengths[1],
+            'blur' => $lengths[2] ?? 0.0,
+            'color' => $color,
+        ];
     }
 
     /**
