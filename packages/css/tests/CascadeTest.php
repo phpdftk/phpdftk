@@ -436,9 +436,130 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $color->r);
     }
 
+    public function testMediaMinWidthQueryMatchesWhenViewportLarger(): void
+    {
+        // CSS Media Queries 4 §4.5 — `(min-width: 600px)` matches
+        // when the viewport is at least 600px wide.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 600px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaMinWidthQueryDropsWhenViewportTooSmall(): void
+    {
+        // Negative: viewport (300px) < min-width threshold (600px) → rule drops.
+        $cascade = $this->cascade->withViewport(300.0, 400.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 600px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r, 'min-width drops when viewport too small');
+    }
+
+    public function testMediaMaxWidthQueryMatchesWhenViewportSmaller(): void
+    {
+        $cascade = $this->cascade->withViewport(400.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (max-width: 600px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaPrintAndFeatureQueryBothMatch(): void
+    {
+        // Positive: media type + feature combine via `and`.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media print and (min-width: 600px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaNotPrintInvertsToScreenAndDoesNotMatch(): void
+    {
+        // Negative: `not print` in a print rendering context must NOT match.
+        $sheet = $this->parser->parseStylesheet(
+            '@media not print { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testMediaOnlyPrintKeywordStillMatches(): void
+    {
+        // `only print` — `only` is a legacy hide-from-old-browsers
+        // keyword, treated as a no-op gate. The query still matches.
+        $sheet = $this->parser->parseStylesheet(
+            '@media only print { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaUnknownFeatureEvaluatesFalse(): void
+    {
+        // Negative: an unrecognised feature (`color-index`) makes
+        // the query fail per CSS Media Queries 4 §3.1.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (color-index: 1024) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testMediaOrientationLandscape(): void
+    {
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (orientation: landscape) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testMediaOrientationPortrait(): void
+    {
+        // Negative orientation: landscape viewport, portrait query → drop.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (orientation: portrait) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testMediaFeatureQueryUnknownViewportMatchesPermissively(): void
+    {
+        // Default Cascade has no viewport configured → feature
+        // queries match permissively so print stylesheets that gate
+        // on width never silently drop.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 9999px) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        // Without viewport, the feature is treated as matching.
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
     public function testSupportsRulesAlwaysApply(): void
     {
-        // `@supports` always enters at Phase 1 — full evaluation comes later.
+        // `@supports (display: flex)` — `display` is a registered
+        // property in our cascade, so the condition holds.
         $sheet = $this->parser->parseStylesheet(
             '@supports (display: flex) { p { color: red; } }',
         );
@@ -446,6 +567,81 @@ final class CascadeTest extends TestCase
         $color = $values->get('color');
         self::assertInstanceOf(Color::class, $color);
         self::assertSame(1.0, $color->r);
+    }
+
+    public function testSupportsUnknownPropertyDrops(): void
+    {
+        // Negative: `@supports (mystery-prop: 1)` — the property isn't
+        // registered, so the cascade reports "unsupported" and the
+        // gated rule drops.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (mystery-prop: 1) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsNotInverts(): void
+    {
+        // `@supports not (mystery-prop: 1)` — the prop is unsupported,
+        // so `not` makes the condition true.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports not (mystery-prop: 1) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsAndConditionRequiresBothMatching(): void
+    {
+        // Positive: both display and color are registered, so the
+        // condition holds.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (display: flex) and (color: red) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsAndConditionDropsWhenEitherFails(): void
+    {
+        // Negative: one side fails → the whole condition fails.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (display: flex) and (mystery-prop: 1) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsOrCondition(): void
+    {
+        // `or` — either side passing makes the whole condition hold.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (mystery-prop: 1) or (color: red) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsSelectorFunctionEvaluatesFalse(): void
+    {
+        // Negative: `selector(...)` predicates aren't modeled.
+        // The condition evaluates false → rule drops.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports selector(:has(p)) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsBooleanFormChecksPropertyExists(): void
+    {
+        // `(display)` — boolean form checks the property exists.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (display) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
     }
 
     public function testVarLoopFallsBackToInitial(): void

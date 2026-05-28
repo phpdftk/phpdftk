@@ -53,7 +53,15 @@ final class Renderer
     ) {
         $this->htmlParser = new HtmlParser();
         $this->cssParser = new CssParser();
-        $this->cascade = new Cascade(PropertyRegistry::default());
+        // Wire the page viewport into the cascade so `@media`
+        // feature queries (`(min-width: ...)`, `orientation`, etc.)
+        // evaluate against the rendered page dimensions in CSS px.
+        $cssPxPerPt = 96.0 / 72.0;
+        $this->cascade = (new Cascade(PropertyRegistry::default()))
+            ->withViewport(
+                $this->options->pageWidth * $cssPxPerPt,
+                $this->options->pageHeight * $cssPxPerPt,
+            );
         $this->boxGenerator = new BoxGenerator($this->cascade, $this->options->baseDir);
         $this->layout = new BlockLayout($this->cascade);
     }

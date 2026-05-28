@@ -491,6 +491,98 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(['I. ', 'II. ', 'III. ', 'IV. '], $texts);
     }
 
+    public function testCountersPluralWithSeparatorEmitsCurrentValue(): void
+    {
+        // CSS Generated Content 3 §2.3 — `counters(name, ".")`
+        // formats the current counter value. Phase-2 falls back to a
+        // single-scope rendering (no nested chain) — equivalent to
+        // `counter(name)`.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            body { counter-reset: section; }
+            p { counter-increment: section; }
+            p::before { content: counters(section, ".") '. '; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><p>a</p><p>b</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        $first = $body->children[0]->children[0];
+        $second = $body->children[1]->children[0];
+        self::assertSame('1. ', $first->children[0]->text);
+        self::assertSame('2. ', $second->children[0]->text);
+    }
+
+    public function testCountersAcceptsExplicitStyleArg(): void
+    {
+        // `counters(name, sep, style)` — third arg is the counter style.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            body { counter-reset: chap; }
+            p { counter-increment: chap; }
+            p::before { content: counters(chap, ".", upper-roman) '. '; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><p>a</p><p>b</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $body = $this->findFirstByTag($box, 'body');
+        $first = $body->children[0]->children[0];
+        self::assertSame('I. ', $first->children[0]->text);
+    }
+
+    public function testCountersRequiresSeparatorArgument(): void
+    {
+        // Negative: `counters(name)` (missing separator) — bad
+        // grammar, the function resolves to null content so no
+        // pseudo box generates and the `<p>` only has its own text.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            body { counter-reset: section; }
+            p { counter-increment: section; }
+            p::before { content: counters(section); }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p>x</p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+        // No counter digit should appear anywhere in the subtree.
+        $text = '';
+        $stack = [$p];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            if ($n instanceof TextBox) {
+                $text .= $n->text;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame('x', $text, 'no counter value rendered from bad grammar');
+    }
+
+    public function testContentUrlAcceptedButProducesNoText(): void
+    {
+        // Phase-2 accepts `content: url(...)` syntactically — the
+        // pseudo box still generates so layout / cascade behaviour
+        // around author CSS is preserved, but no text content is
+        // emitted (image insertion through generated content is
+        // a follow-up).
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            p::before { content: url('badge.png'); }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p>x</p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+        $pseudo = $p->children[0];
+        self::assertInstanceOf(InlineBox::class, $pseudo);
+        self::assertCount(0, $pseudo->children, 'url() content produces no TextBox');
+    }
+
     public function testSubmitInputRendersValueAsLabel(): void
     {
         // `<input type="submit" value="Send">` renders the label

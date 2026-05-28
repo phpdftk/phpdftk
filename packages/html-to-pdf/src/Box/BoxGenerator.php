@@ -661,6 +661,40 @@ final class BoxGenerator
                 return $this->formatCounter($count, $style);
             }
         }
+        // CSS Generated Content 3 §2.3 — `counters(name, separator, style?)`
+        // formats the nested chain of counters with `name` joined by
+        // `separator`. The cascade doesn't track per-scope counter
+        // stacks yet, so this falls back to formatting the single
+        // current value (matching the common authored use case
+        // `counters(foo, ".")` on a non-nested counter).
+        if ($value instanceof \Phpdftk\Css\Value\CssFunction
+            && strtolower($value->name) === 'counters'
+            && count($value->arguments) >= 2
+        ) {
+            $nameArg = $value->arguments[0];
+            $sepArg = $value->arguments[1];
+            if (!$nameArg instanceof Keyword || !$sepArg instanceof \Phpdftk\Css\Value\StringValue) {
+                return null;
+            }
+            $count = $this->counters[$nameArg->name] ?? 0;
+            $style = isset($value->arguments[2]) && $value->arguments[2] instanceof Keyword
+                ? strtolower($value->arguments[2]->name)
+                : 'decimal';
+            // Single-scope fallback: emit the current counter value
+            // (no separator-joining since there's no nested chain).
+            // The separator is retained for grammar compatibility.
+            return $this->formatCounter($count, $style);
+        }
+        // `content: url(...)` is a replaced-element generator. For
+        // Phase-2 we accept the syntax but emit no text — the pseudo
+        // box still generates so author CSS targeting it (e.g.
+        // `::before { content: url(badge.png); margin-right: 4px }`)
+        // doesn't get silently dropped. Image insertion through
+        // generated content is a follow-up requiring XObject hooks
+        // to thread through pseudo-element generation.
+        if ($value instanceof \Phpdftk\Css\Value\Url) {
+            return '';
+        }
         return null;
     }
 

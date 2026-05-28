@@ -423,6 +423,104 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $cells['b']->geometry->borderLeft);
     }
 
+    public function testBorderCollapseOuterCellWinsOverThinnerTableBorder(): void
+    {
+        // CSS Tables 3 §11.2 — outer-cell-vs-table-border collapse:
+        // a cell's outer side competes against the table's matching
+        // side. Cell's 5px outer beats table's 1px → cell wins,
+        // table's matching side gets zeroed everywhere on that rim.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="only"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border: 1px solid #000; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 5px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cell = null;
+        $table = null;
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox) {
+                $cell = $node;
+            } elseif ($node instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+                $table = $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($cell);
+        self::assertNotNull($table);
+        // Thicker cell border wins on every outer side.
+        self::assertEqualsWithDelta(5.0, $cell->geometry->borderTop, 0.001);
+        self::assertEqualsWithDelta(5.0, $cell->geometry->borderRight, 0.001);
+        // Table border zeroes since the cell wins everywhere.
+        self::assertSame(0.0, $table->geometry->borderTop);
+        self::assertSame(0.0, $table->geometry->borderRight);
+    }
+
+    public function testBorderCollapseThickerTableBorderSuppressesOuterCellSides(): void
+    {
+        // Negative direction: table's 10px outer beats cells' 2px.
+        // Cell outer sides zero; table sides keep their declared width.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border: 10px solid #000; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 2px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        $table = null;
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+                $table = $node;
+                break;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($table);
+        // Outer sides of outer cells zero (table wins).
+        self::assertSame(0.0, $cells['a']->geometry->borderTop, 'cell top loses to table top');
+        self::assertSame(0.0, $cells['a']->geometry->borderLeft, 'cell left loses to table left');
+        self::assertSame(0.0, $cells['b']->geometry->borderRight, 'cell right loses');
+        // Table keeps its outer border.
+        self::assertEqualsWithDelta(10.0, $table->geometry->borderTop, 0.001);
+        self::assertEqualsWithDelta(10.0, $table->geometry->borderRight, 0.001);
+    }
+
+    public function testBorderCollapseTableNoBorderLeavesCellOuterSidesIntact(): void
+    {
+        // Negative: when the table has no own border, the outer-vs-
+        // table collapse leaves the cell outer sides alone.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="only"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; border-collapse: collapse; }
+             tr { display: table-row; }
+             td { display: table-cell; border: 3px solid #000; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(3.0, $cells['only']->geometry->borderTop, 0.001);
+        self::assertEqualsWithDelta(3.0, $cells['only']->geometry->borderRight, 0.001);
+        self::assertEqualsWithDelta(3.0, $cells['only']->geometry->borderBottom, 0.001);
+        self::assertEqualsWithDelta(3.0, $cells['only']->geometry->borderLeft, 0.001);
+    }
+
     public function testBorderCollapseThickerVerticalWinsAtRowJoint(): void
     {
         // Positive: same algorithm applies to horizontal joints

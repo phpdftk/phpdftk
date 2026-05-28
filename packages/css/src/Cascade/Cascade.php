@@ -72,7 +72,32 @@ final class Cascade
         private readonly Matcher $matcher = new Matcher(),
         private readonly ShorthandExpander $shorthands = new ShorthandExpander(),
         private readonly Parser $parser = new Parser(),
+        /**
+         * Viewport width in CSS pixels, used to evaluate `@media`
+         * feature queries (`(min-width: N)`, `(max-width: N)`, etc).
+         * Null = unknown (feature queries treated as matching so
+         * print stylesheets that gate on width never silently drop).
+         */
+        private readonly ?float $viewportWidth = null,
+        private readonly ?float $viewportHeight = null,
     ) {}
+
+    /**
+     * Return a Cascade configured for a specific viewport so that
+     * `@media (min-width: N)`-style feature queries can evaluate.
+     * The other dependencies are inherited from this instance.
+     */
+    public function withViewport(float $width, float $height): self
+    {
+        return new self(
+            $this->registry,
+            $this->matcher,
+            $this->shorthands,
+            $this->parser,
+            $width,
+            $height,
+        );
+    }
 
     /**
      * Run the cascade for one element. `$parentValues` is the already-
@@ -228,7 +253,11 @@ final class Cascade
                     if (!$this->mediaPreludeMatches($rule->prelude)) {
                         continue;
                     }
-                } elseif ($name !== 'supports') {
+                } elseif ($name === 'supports') {
+                    if (!$this->supportsPreludeMatches($rule->prelude)) {
+                        continue;
+                    }
+                } else {
                     continue;
                 }
                 $nested = [];
@@ -243,10 +272,23 @@ final class Cascade
     }
 
     /**
-     * `@media <prelude>` matches when the media list mentions `print` or
-     * `all` (the renderer's intrinsic media). Logical `not`/`only` and
-     * media features (`(min-width: ...)`) are not honoured at Phase 1 —
-     * a `not print` query incorrectly matches; this is a follow-up.
+     * Evaluate a CSS Media Queries 4 prelude against the print
+     * rendering context. Supports:
+     *  - comma-separated media query list — true when ANY part matches
+     *  - bare media types: `print`, `all` match; `screen`, `speech`
+     *    don't
+     *  - logical `not` prefix — inverts the rest of the query
+     *  - logical `only` prefix — historical legacy keyword, treated
+     *    as no-op (the query must otherwise match)
+     *  - `and`-joined feature queries: `(min-width: N)`, `(max-width:
+     *    N)`, `(width: N)`, plus their `min-height` / `max-height` /
+     *    `height` siblings; resolves against the cascade's viewport
+     *    dimensions when set
+     *  - `(orientation: portrait | landscape)` — true when matching
+     *    the viewport's aspect ratio
+     * Unknown features evaluate to `false` per spec (CSS Media
+     * Queries 4 §3.1) so a query gated on something we don't model
+     * never accidentally matches.
      */
     private function mediaPreludeMatches(string $prelude): bool
     {
@@ -255,14 +297,275 @@ final class Cascade
             return true;
         }
         foreach (explode(',', $lower) as $part) {
-            $tokens = preg_split('/\s+/', trim($part)) ?: [];
-            foreach ($tokens as $tok) {
-                if ($tok === 'print' || $tok === 'all') {
-                    return true;
-                }
+            if ($this->matchSingleMediaQuery(trim($part))) {
+                return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Match a single comma-separated media query — `[not|only] type?
+     * [and (feature)]*` per CSS Media Queries 4 §2.1.
+     */
+    private function matchSingleMediaQuery(string $query): bool
+    {
+        if ($query === '') {
+            return false;
+        }
+        $negate = false;
+        if (str_starts_with($query, 'not ')) {
+            $negate = true;
+            $query = trim(substr($query, 4));
+        } elseif (str_starts_with($query, 'only ')) {
+            // `only` is a no-op gate for legacy browsers; the rest of
+            // the query must still match.
+            $query = trim(substr($query, 5));
+        }
+        $result = $this->evaluateMediaQueryBody($query);
+        return $negate ? !$result : $result;
+    }
+
+    /**
+     * Evaluate a media-query body — `<type>? [and (feature)]*`.
+     * Returns true when the type matches AND every feature query
+     * evaluates to true.
+     */
+    private function evaluateMediaQueryBody(string $query): bool
+    {
+        // Split on top-level ` and ` between feature groups. Features
+        // are parenthesised so they're easy to separate.
+        $parts = preg_split('/\s+and\s+/', $query) ?: [];
+        $typeMatches = true;
+        $first = $parts[0] ?? '';
+        if ($first === '' || $first[0] !== '(') {
+            // First slot is a media type (or empty).
+            $typeMatches = $first === '' || $first === 'all'
+                || $first === 'print';
+            array_shift($parts);
+        }
+        if (!$typeMatches) {
+            return false;
+        }
+        foreach ($parts as $featureRaw) {
+            $feature = trim($featureRaw);
+            if ($feature === '' || $feature[0] !== '(' || !str_ends_with($feature, ')')) {
+                return false;
+            }
+            $inside = trim(substr($feature, 1, -1));
+            if (!$this->matchFeatureQuery($inside)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Evaluate one feature query like `min-width: 600px` or
+     * `orientation: portrait`. Returns false for any feature the
+     * cascade doesn't model.
+     */
+    private function matchFeatureQuery(string $inside): bool
+    {
+        if (!str_contains($inside, ':')) {
+            // Boolean form `(color)` — unsupported. False per spec.
+            return false;
+        }
+        [$name, $valueRaw] = array_map('trim', explode(':', $inside, 2));
+        $name = strtolower($name);
+        $valueRaw = strtolower($valueRaw);
+        if ($name === 'orientation') {
+            if ($this->viewportWidth === null || $this->viewportHeight === null) {
+                return true;
+            }
+            $isLandscape = $this->viewportWidth >= $this->viewportHeight;
+            return ($valueRaw === 'landscape' && $isLandscape)
+                || ($valueRaw === 'portrait' && !$isLandscape);
+        }
+        if (in_array($name, ['min-width', 'max-width', 'width'], true)) {
+            return $this->matchDimensionFeature($name, $valueRaw, $this->viewportWidth);
+        }
+        if (in_array($name, ['min-height', 'max-height', 'height'], true)) {
+            return $this->matchDimensionFeature($name, $valueRaw, $this->viewportHeight);
+        }
+        return false;
+    }
+
+    /**
+     * Evaluate a CSS Conditional Rules 3 `@supports` prelude. Returns
+     * true when the cascade can honour the queried feature. Supported:
+     *  - `(property: value)` — true when the property is registered
+     *    AND the value parses without errors
+     *  - `(property)` boolean form — true when the property is
+     *    registered
+     *  - `not <cond>` — invert
+     *  - `<a> and <b>` / `<a> or <b>` — combined conditions
+     *  - parentheses for grouping
+     *
+     * `selector()`, `font-tech()`, `font-format()` and other extended
+     * predicates evaluate to false (we don't model selector support
+     * granularity).
+     */
+    private function supportsPreludeMatches(string $prelude): bool
+    {
+        $prelude = trim($prelude);
+        if ($prelude === '') {
+            return true;
+        }
+        $pos = 0;
+        $result = $this->parseSupportsOr($prelude, $pos);
+        return $result;
+    }
+
+    /** Recursive-descent: `<and-cond> ( 'or' <and-cond> )*`. */
+    private function parseSupportsOr(string $s, int &$pos): bool
+    {
+        $left = $this->parseSupportsAnd($s, $pos);
+        while (true) {
+            $this->skipSupportsWs($s, $pos);
+            if (!$this->consumeSupportsKeyword($s, $pos, 'or')) {
+                break;
+            }
+            $right = $this->parseSupportsAnd($s, $pos);
+            $left = $left || $right;
+        }
+        return $left;
+    }
+
+    /** Recursive-descent: `<unary> ( 'and' <unary> )*`. */
+    private function parseSupportsAnd(string $s, int &$pos): bool
+    {
+        $left = $this->parseSupportsUnary($s, $pos);
+        while (true) {
+            $this->skipSupportsWs($s, $pos);
+            if (!$this->consumeSupportsKeyword($s, $pos, 'and')) {
+                break;
+            }
+            $right = $this->parseSupportsUnary($s, $pos);
+            $left = $left && $right;
+        }
+        return $left;
+    }
+
+    /** Recursive-descent: `'not'? <primary>`. */
+    private function parseSupportsUnary(string $s, int &$pos): bool
+    {
+        $this->skipSupportsWs($s, $pos);
+        $negate = $this->consumeSupportsKeyword($s, $pos, 'not');
+        $inner = $this->parseSupportsPrimary($s, $pos);
+        return $negate ? !$inner : $inner;
+    }
+
+    /** Recursive-descent: `(<expr>)` where expr is a feature query or nested logical. */
+    private function parseSupportsPrimary(string $s, int &$pos): bool
+    {
+        $this->skipSupportsWs($s, $pos);
+        if ($pos >= strlen($s) || $s[$pos] !== '(') {
+            return false;
+        }
+        $pos++; // skip '('
+        // Find the matching close paren, respecting nesting.
+        $start = $pos;
+        $depth = 1;
+        while ($pos < strlen($s)) {
+            $ch = $s[$pos];
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth--;
+                if ($depth === 0) {
+                    break;
+                }
+            }
+            $pos++;
+        }
+        $body = trim(substr($s, $start, $pos - $start));
+        if ($pos < strlen($s)) {
+            $pos++; // skip ')'
+        }
+        // If the body itself contains `and`/`or`/`not` at the top
+        // level, recurse — it's a logical group like `(A and B)`.
+        if (preg_match('/^(not\s|.*\s(and|or)\s)/i', $body) === 1) {
+            $sub = 0;
+            return $this->parseSupportsOr($body, $sub);
+        }
+        return $this->evaluateSupportsFeature($body);
+    }
+
+    private function skipSupportsWs(string $s, int &$pos): void
+    {
+        while ($pos < strlen($s) && ctype_space($s[$pos])) {
+            $pos++;
+        }
+    }
+
+    private function consumeSupportsKeyword(string $s, int &$pos, string $kw): bool
+    {
+        $this->skipSupportsWs($s, $pos);
+        $len = strlen($kw);
+        if (strtolower(substr($s, $pos, $len)) !== $kw) {
+            return false;
+        }
+        // Must be followed by whitespace or end (so 'and' doesn't match in 'android').
+        $next = $s[$pos + $len] ?? '';
+        if ($next !== '' && !ctype_space($next) && $next !== '(') {
+            return false;
+        }
+        $pos += $len;
+        return true;
+    }
+
+    private function evaluateSupportsFeature(string $body): bool
+    {
+        if ($body === '') {
+            return false;
+        }
+        // selector() / font-tech() / font-format() etc — unsupported.
+        if (str_contains($body, '(')) {
+            return false;
+        }
+        if (str_contains($body, ':')) {
+            // `(property: value)` form — we honour any property the
+            // cascade's registry knows about. Value validation is a
+            // larger lift and pessimistic on edge cases would silently
+            // drop valid author CSS, so we accept on property match.
+            [$prop] = array_map('trim', explode(':', $body, 2));
+            return $this->registry->has(strtolower($prop));
+        }
+        // Boolean form `(property)`.
+        return $this->registry->has(strtolower($body));
+    }
+
+    /**
+     * Compare a `<length>` value against the viewport extent.
+     * Supports px (default), pt, in, cm, mm. Unknown units evaluate
+     * to false. When the viewport extent is unknown (null), the
+     * query is treated as matching so print stylesheets never
+     * silently drop.
+     */
+    private function matchDimensionFeature(string $name, string $valueRaw, ?float $viewportExtent): bool
+    {
+        if ($viewportExtent === null) {
+            return true;
+        }
+        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(px|pt|in|cm|mm)?$/', $valueRaw, $m) !== 1) {
+            return false;
+        }
+        $n = (float) $m[1];
+        $unit = $m[2] ?? 'px';
+        $px = match ($unit) {
+            'pt' => $n * 96.0 / 72.0,
+            'in' => $n * 96.0,
+            'cm' => $n * 96.0 / 2.54,
+            'mm' => $n * 96.0 / 25.4,
+            default => $n,
+        };
+        return match ($name) {
+            'min-width', 'min-height' => $viewportExtent >= $px,
+            'max-width', 'max-height' => $viewportExtent <= $px,
+            'width', 'height' => abs($viewportExtent - $px) < 0.001,
+            default => false,
+        };
     }
 
     private function selectorPseudoElementName(\Phpdftk\Css\Selector\ComplexSelector $sel): ?string

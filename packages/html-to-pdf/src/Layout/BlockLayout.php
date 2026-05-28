@@ -2641,9 +2641,10 @@ final class BlockLayout
      * > groove > inset > none) breaks it; on a style tie the right /
      * bottom neighbour wins (matching the Phase-1 direction bias).
      *
-     * Outermost cell edges (those without an adjacent cell) keep
-     * their declared width — outer-cell-vs-table-border collapse is
-     * a follow-up.
+     * Outermost cell edges also conflict-resolve against the table's
+     * own border on the corresponding side — the loser side zeroes
+     * out so the painter never doubles a thick table border against
+     * the outer cells.
      */
     private function collapseBorders(\Phpdftk\HtmlToPdf\Box\TableBox $table): void
     {
@@ -2704,8 +2705,9 @@ final class BlockLayout
             }
         }
 
-        // Apply resolved widths. Sides not touched (outer-table edges)
-        // keep their pre-collapse `geometry` value.
+        // Apply resolved widths. Sides not touched at this point are
+        // still candidates for the outer-vs-table-border collapse
+        // pass below.
         foreach ($this->resolvedCellReferences as $cellId => $cell) {
             if (isset($touched[$cellId]['right'])) {
                 $cell->geometry->borderRight = $resolved[$cellId]['right'] ?? 0.0;
@@ -2719,6 +2721,156 @@ final class BlockLayout
             if (isset($touched[$cellId]['top'])) {
                 $cell->geometry->borderTop = $resolved[$cellId]['top'] ?? 0.0;
             }
+        }
+
+        // Phase-2 step: collapse outermost cell edges against the
+        // table's own declared border. For each side, the table's
+        // border participates as one of the two combatants in
+        // conflict resolution; the loser zeroes out so the painter
+        // draws a single shared line. Cells inside spans on the
+        // outer rim share the table's outer-side decision.
+        $this->collapseOuterCellsAgainstTableBorder($table, $grid, $anchorAt);
+    }
+
+    /**
+     * Walk the rim of the cell grid, conflict-resolving each outer
+     * cell side against the table's matching side. The winner keeps
+     * the resolved width on its geometry; the loser zeroes. When the
+     * table side wins for at least one rim cell, the table's own
+     * geometry stays as-is so it paints; when the cell side wins on
+     * every spanned position, the table's matching geometry side
+     * zeroes so it's not double-painted.
+     *
+     * @param array<int, array{row: int, col: int, rowspan: int, colspan: int}> $grid
+     * @param array<int, array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>> $anchorAt
+     */
+    private function collapseOuterCellsAgainstTableBorder(
+        \Phpdftk\HtmlToPdf\Box\TableBox $table,
+        array $grid,
+        array $anchorAt,
+    ): void {
+        // Discover the rim coordinates.
+        $maxRow = -1;
+        $maxCol = -1;
+        foreach ($grid as $info) {
+            $maxRow = max($maxRow, $info['row'] + $info['rowspan'] - 1);
+            $maxCol = max($maxCol, $info['col'] + $info['colspan'] - 1);
+        }
+        if ($maxRow < 0 || $maxCol < 0) {
+            return;
+        }
+        // Track whether the table's own side survives anywhere on
+        // the rim — when a single outer cell wins the side, the
+        // table border still paints at that segment, so we leave the
+        // table side untouched. When the cell side loses everywhere,
+        // we can zero it; when it wins everywhere, we zero the
+        // table side. The conservative choice (preserve a side that
+        // paints somewhere) keeps the rim visually correct without
+        // per-segment painting.
+        $tableSurvives = [
+            'top' => false,
+            'right' => false,
+            'bottom' => false,
+            'left' => false,
+        ];
+        $cellLosesEverywhere = [
+            'top' => true,
+            'right' => true,
+            'bottom' => true,
+            'left' => true,
+        ];
+        // Top + bottom rows.
+        for ($c = 0; $c <= $maxCol; $c++) {
+            $top = $anchorAt[0][$c] ?? null;
+            if ($top !== null) {
+                $this->rimResolve($table, $top, 'top', $tableSurvives, $cellLosesEverywhere);
+            }
+            $bottomCell = $this->cellOccupying($maxRow, $c, $grid, $anchorAt);
+            if ($bottomCell !== null) {
+                $this->rimResolve($table, $bottomCell, 'bottom', $tableSurvives, $cellLosesEverywhere);
+            }
+        }
+        // Left + right columns.
+        for ($r = 0; $r <= $maxRow; $r++) {
+            $left = $anchorAt[$r][0] ?? null;
+            if ($left !== null) {
+                $this->rimResolve($table, $left, 'left', $tableSurvives, $cellLosesEverywhere);
+            }
+            $rightCell = $this->cellOccupying($r, $maxCol, $grid, $anchorAt);
+            if ($rightCell !== null) {
+                $this->rimResolve($table, $rightCell, 'right', $tableSurvives, $cellLosesEverywhere);
+            }
+        }
+        // Zero the table's side when cell sides win on the whole rim.
+        if (!$tableSurvives['top']) {
+            $table->geometry->borderTop = 0.0;
+        }
+        if (!$tableSurvives['right']) {
+            $table->geometry->borderRight = 0.0;
+        }
+        if (!$tableSurvives['bottom']) {
+            $table->geometry->borderBottom = 0.0;
+        }
+        if (!$tableSurvives['left']) {
+            $table->geometry->borderLeft = 0.0;
+        }
+    }
+
+    /**
+     * Find the cell occupying grid position (row, col) — either the
+     * anchor cell at that position or a cell whose span covers it.
+     *
+     * @param array<int, array{row: int, col: int, rowspan: int, colspan: int}> $grid
+     * @param array<int, array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>> $anchorAt
+     */
+    private function cellOccupying(int $row, int $col, array $grid, array $anchorAt): ?\Phpdftk\HtmlToPdf\Box\TableCellBox
+    {
+        if (isset($anchorAt[$row][$col])) {
+            return $anchorAt[$row][$col];
+        }
+        foreach ($this->resolvedCellReferences as $cell) {
+            $info = $grid[spl_object_id($cell)] ?? null;
+            if ($info === null) {
+                continue;
+            }
+            if ($row >= $info['row'] && $row < $info['row'] + $info['rowspan']
+                && $col >= $info['col'] && $col < $info['col'] + $info['colspan']
+            ) {
+                return $cell;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolve one rim segment between a cell's outer side and the
+     * table's matching side; apply the result to both geometries and
+     * update the per-side survival flags.
+     *
+     * @param array<string, bool> $tableSurvives  Mutated in place.
+     * @param array<string, bool> $cellLosesEverywhere Mutated in place.
+     */
+    private function rimResolve(
+        \Phpdftk\HtmlToPdf\Box\TableBox $table,
+        \Phpdftk\HtmlToPdf\Box\TableCellBox $cell,
+        string $side,
+        array &$tableSurvives,
+        array &$cellLosesEverywhere,
+    ): void {
+        // The cell's outer side joins with the table's matching
+        // side (cell-top↔table-top, cell-left↔table-left, etc.).
+        [$cellWidth, $tableWidth] = $this->resolveCollapsedJoint($cell, $side, $table, $side);
+        if ($cellWidth > 0.0) {
+            // Cell side wins this segment — apply.
+            $cell->geometry->{'border' . ucfirst($side)} = $cellWidth;
+            $cellLosesEverywhere[$side] = false;
+        } else {
+            // Cell side loses (or `hidden` zeroes both). Zero the
+            // cell side; the table side, if non-zero, paints across.
+            $cell->geometry->{'border' . ucfirst($side)} = 0.0;
+        }
+        if ($tableWidth > 0.0) {
+            $tableSurvives[$side] = true;
         }
     }
 
