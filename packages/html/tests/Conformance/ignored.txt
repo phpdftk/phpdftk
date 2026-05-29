@@ -13,19 +13,10 @@ tree-construction/template:#90:<template><template><col>: Phase-2 follow-up — 
 tree-construction/template:#102:<body><table><tr><td><select><template>Foo</template><captio: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests1:#30:<select><b><option><select><option></b></select>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests1:#100:<select><b><option><select><option></b></select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests10:#17:<!DOCTYPE html><body><table><tr><td><select><svg><g>foo</g><: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests10:#18:<!DOCTYPE html><body><table><select><svg><g>foo</g><g>bar</g: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests9:#18:<!DOCTYPE html><body><table><tr><td><select><math><mi>foo</m: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests9:#19:<!DOCTYPE html><body><table><select><math><mi>foo</mi><mi>ba: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#2:<p id="status"><noscript><strong>A</strong></noscript><span>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#23:<svg xml:base xml:lang xml:space xml:baaah definitionurl>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#36:<select><div><i></div><option>option: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#38:<select><div>div 1</div><button>button</button><div>div 2</d: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#39:<select><button>button</select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#40:<select><datalist>datalist</select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#41:<select><button><select></select></button></select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#42:<select><button><div><select></select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#43:<select><div><option><img>option</option></div></select>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#45:<select><button><selectedcontent></button><option>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#46:<select><button><selectedcontent></button><option>x<i>i<b>ib: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#47:<select><button><selectedcontent></button><option>X<option>Y: Phase-2 follow-up — html5lib-tests deferred case

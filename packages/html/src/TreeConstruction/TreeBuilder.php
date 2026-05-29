@@ -3246,7 +3246,43 @@ final class TreeBuilder
                 $tokenizer->state = TokenizerState::Plaintext;
                 return;
             }
-            return; // parse error, ignore other start tags
+            // Table-context start tags are still rejected outright
+            // even under the customizable-select rules — a `<tr>` /
+            // `<td>` / `<caption>` etc. inside a stray `<select>`
+            // is a parse error and the token is dropped (it doesn't
+            // get nested as content). Otherwise the html5lib tests17
+            // cases would regress.
+            if (in_array($tag, [
+                'caption', 'col', 'colgroup', 'frame', 'head',
+                'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
+            ], true)) {
+                return;
+            }
+            // Customizable-select fallback: any other element nests
+            // inside the `<select>` rather than being dropped. The
+            // historical "in select" mode was parse-error / ignore
+            // for "any other start tag", but the WHATWG customizable-
+            // select work and the html5lib-tests expectations show
+            // generic elements (`<div>`, `<button>`, `<datalist>`,
+            // `<i>`, `<img>`, etc.) landing as descendants of the
+            // select. Void elements pop themselves after insertion;
+            // formatting elements push onto the active formatting
+            // elements list as they would in InBody.
+            $void = ['area', 'br', 'embed', 'img', 'wbr'];
+            $formatting = ['a', 'b', 'big', 'code', 'em', 'font', 'i', 'nobr', 's', 'small', 'strike', 'strong', 'tt', 'u'];
+            if (in_array($tag, $formatting, true)) {
+                $this->reconstructActiveFormatting();
+                $el = $this->insertHtmlElement($token);
+                $this->activeFormatting->push($el);
+                return;
+            }
+            if (in_array($tag, $void, true)) {
+                $this->insertHtmlElement($token);
+                $this->openElements->pop();
+                return;
+            }
+            $this->insertHtmlElement($token);
+            return;
         }
         if ($token instanceof EndTagToken) {
             $tag = $token->tagName;
