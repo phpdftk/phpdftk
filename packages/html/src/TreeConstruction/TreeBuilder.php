@@ -2905,25 +2905,35 @@ final class TreeBuilder
             if (strcasecmp($node->localName, $tag) !== 0) {
                 // parse error, but continue walking
             }
+            // §13.2.6.5 "An end tag whose tag name is neither 'br'
+            // nor 'p'" — iterate foreign-namespace ancestors top-
+            // down, comparing case-insensitively. If a foreign node
+            // matches the tag, pop down to and including it. If the
+            // walk reaches an HTML-namespace ancestor without
+            // matching, hand the token to the current insertion
+            // mode (step 7).
+            //
+            // Order matters: check namespace FIRST so a literal HTML
+            // `<div>` on the stack doesn't get popped by `</div>`
+            // arriving from foreign content. Per the spec, step 4's
+            // name-match runs against the foreign-content chain,
+            // not against HTML elements; HTML elements are handled
+            // by step 7's reprocess.
             for (; $i >= 0; $i--) {
                 $node = $items[$i];
+                if ($node->namespaceURI === Document::HTML_NS) {
+                    // Can't go through dispatch() — the current node
+                    // is still foreign, dispatch() would re-route the
+                    // same token back to foreign-content (infinite
+                    // loop). Hand off to the mode handler directly.
+                    $this->dispatchToInsertionMode($token);
+                    return;
+                }
                 if (strcasecmp($node->localName, $tag) === 0) {
                     while ($this->openElements->count() - 1 > $i) {
                         $this->openElements->pop();
                     }
                     $this->openElements->pop();
-                    return;
-                }
-                if ($node->namespaceURI === Document::HTML_NS) {
-                    // Spec: when the walk reaches an HTML-namespace
-                    // element, process the token under the current
-                    // insertion mode. We can't go through dispatch()
-                    // here because the current node is still in a
-                    // foreign namespace (we haven't popped) and
-                    // dispatch() would re-route the same token back
-                    // to foreign-content handling — infinite loop.
-                    // Hand off directly to the mode handler instead.
-                    $this->dispatchToInsertionMode($token);
                     return;
                 }
             }

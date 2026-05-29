@@ -27,7 +27,6 @@ tree-construction/tests1:#100:<select><b><option><select><option></b></select>: 
 tree-construction/tests10:#5:<!DOCTYPE html><body><select><option><svg></svg></option></s: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests10:#17:<!DOCTYPE html><body><table><tr><td><select><svg><g>foo</g><: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests10:#18:<!DOCTYPE html><body><table><select><svg><g>foo</g><g>bar</g: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests10:#31:<div><svg><path><foreignObject><math></div>a: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests18:#14:<!doctype html><select><plaintext></plaintext>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests18:#15:<!doctype html><table><select><plaintext>a<caption>b: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#91:<!doctype html><table><i>a<b>b<div>c<a>d</i>e</b>f: Phase-2 follow-up — html5lib-tests deferred case
