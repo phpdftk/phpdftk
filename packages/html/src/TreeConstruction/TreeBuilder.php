@@ -1010,6 +1010,20 @@ final class TreeBuilder
             return;
         }
 
+        // WHATWG §13.2.6.4.7 — `<applet>`, `<marquee>`, `<object>`
+        // are "scope-defining" formatting-ish elements: reconstruct
+        // AFE, insert, push an AFE marker, and clear frameset-ok.
+        // The AFE marker is what makes nested formatting elements
+        // inside `<object>` etc. not leak out across the boundary
+        // when the adoption agency runs.
+        if (in_array($tag, ['applet', 'marquee', 'object'], true)) {
+            $this->reconstructActiveFormatting();
+            $this->insertHtmlElement($token);
+            $this->activeFormatting->pushMarker();
+            $this->framesetOk = false;
+            return;
+        }
+
         if ($tag === 'li') {
             $this->framesetOk = false;
             for ($i = array_key_last($this->openElements->items()); $i !== null && $i >= 0; $i--) {
@@ -1367,6 +1381,20 @@ final class TreeBuilder
             }
             $this->openElements->generateImpliedEndTags();
             $this->openElements->popUntilLocalName(...$headings);
+            return;
+        }
+
+        // WHATWG §13.2.6.4.7 — `</applet>` / `</marquee>` /
+        // `</object>` close back to the matching scoped element
+        // and clear AFE up to the marker pushed when the start
+        // tag was inserted.
+        if (in_array($tag, ['applet', 'marquee', 'object'], true)) {
+            if (!$this->openElements->hasInScope($tag)) {
+                return;
+            }
+            $this->openElements->generateImpliedEndTags();
+            $this->openElements->popUntilLocalName($tag);
+            $this->activeFormatting->clearToLastMarker();
             return;
         }
 
