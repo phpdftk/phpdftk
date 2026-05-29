@@ -149,6 +149,8 @@ final class Parser
             'polygon' => new Polygon(),
             'g' => new Group(),
             'path' => new Path(),
+            'text' => new Text\TextElement(),
+            'tspan' => new Text\Tspan(),
             default => new GenericElement($localName),
         };
     }

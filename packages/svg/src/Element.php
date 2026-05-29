@@ -259,6 +259,93 @@ abstract class Element extends Node
         return $this->parseNumberPrefix($raw);
     }
 
+    /**
+     * `font-family` — CSS Fonts 4 §3.2. A comma-separated prioritised list
+     * of family names; each entry is trimmed and surrounding single or
+     * double quotes are stripped (CSS reserves quotes for names containing
+     * whitespace or reserved words). An absent attribute → empty list, so
+     * the painter applies the inherited or default stack.
+     *
+     * @return list<string>
+     */
+    public function fontFamily(): array
+    {
+        $raw = $this->attributes['font-family'] ?? null;
+        if ($raw === null || trim($raw) === '') {
+            return [];
+        }
+        $parts = explode(',', $raw);
+        $out = [];
+        foreach ($parts as $part) {
+            $name = trim($part);
+            if ($name === '') {
+                continue;
+            }
+            if (strlen($name) >= 2) {
+                $first = $name[0];
+                $last = $name[strlen($name) - 1];
+                if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                    $name = substr($name, 1, -1);
+                }
+            }
+            if ($name !== '') {
+                $out[] = $name;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * `font-size` — CSS Fonts 4 §3.5. Length value; absolute keywords
+     * (`small`, `large`, …) and percentages are deferred to the cascade
+     * work in 3J.
+     */
+    public function fontSize(): ?float
+    {
+        $raw = $this->attributes['font-size'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = $this->parseNumberPrefix($raw);
+        if ($value === null || $value < 0.0) {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
+     * `font-weight` — returned as a raw string (`normal`, `bold`,
+     * `bolder`, `lighter`, or a numeric weight like `400`). The painter
+     * normalises to the OpenType weight axis; the parser stays neutral.
+     */
+    public function fontWeight(): ?string
+    {
+        $raw = $this->attributes['font-weight'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = trim($raw);
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * `font-style` — `normal`, `italic`, or `oblique`. Returns null for
+     * absent and unrecognised values so the painter applies the inherited
+     * or initial style.
+     */
+    public function fontStyle(): ?string
+    {
+        $raw = $this->attributes['font-style'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'normal', 'italic', 'oblique' => $value,
+            default => null,
+        };
+    }
+
     private function parsePaint(string $attr): ?Paint
     {
         $raw = $this->attributes[$attr] ?? null;
