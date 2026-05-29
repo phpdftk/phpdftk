@@ -11,7 +11,6 @@
 # and a handful of feature gaps).
 tree-construction/template:#90:<template><template><col>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/template:#102:<body><table><tr><td><select><template>Foo</template><captio: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/webkit02:#2:<p id="status"><noscript><strong>A</strong></noscript><span>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#45:<select><button><selectedcontent></button><option>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#46:<select><button><selectedcontent></button><option>x<i>i<b>ib: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#47:<select><button><selectedcontent></button><option>X<option>Y: Phase-2 follow-up — html5lib-tests deferred case

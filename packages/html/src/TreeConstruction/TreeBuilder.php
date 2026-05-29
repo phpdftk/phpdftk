@@ -843,6 +843,22 @@ final class TreeBuilder
             return;
         }
 
+        // WHATWG §13.2.6.4.7 — `<noscript>` in InBody when scripting
+        // is enabled: insert + flip the tokenizer to RAWTEXT + push
+        // Text mode (so the noscript's children come through as one
+        // big character token instead of being parsed as HTML).
+        // When scripting is disabled, the spec says "treat the token
+        // as a regular element" — fall through to the formatting /
+        // any-other handlers and let the noscript nest its children
+        // as normal HTML.
+        if ($tag === 'noscript' && $this->options->scriptingEnabled) {
+            $this->insertHtmlElement($token);
+            $tokenizer->state = TokenizerState::Rawtext;
+            $this->originalInsertionMode = $this->insertionMode;
+            $this->insertionMode = InsertionMode::Text;
+            return;
+        }
+
         if ($tag === 'body') {
             // WHATWG §13.2.6.4.7 — parse error. If the second
             // element on the stack isn't a body, or the stack has
