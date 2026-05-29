@@ -198,16 +198,18 @@ final class Html5LibTreeConstructionTest extends TestCase
         }
         $out = [];
         foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
-            $line = trim($line);
+            $line = rtrim($line, "\r\n");
             if ($line === '' || str_starts_with($line, '#')) {
                 continue;
             }
-            // Strip the ": reason" trailer.
-            $colon = strrpos($line, ':');
-            if ($colon === false) {
-                continue;
-            }
-            $key = substr($line, 0, $colon);
+            // Reasons are optional and separated by ': ' (colon + space)
+            // so case data containing colons (e.g. `<a:b>`) isn't split.
+            // When a line carries no reason, the whole line IS the key.
+            // Earlier this used strrpos(':') which silently chopped
+            // off everything past the last colon, making `#2:<html>`
+            // collapse to `#2` and prefix-match `#20`..`#29`.
+            $sep = strrpos($line, ': ');
+            $key = $sep === false ? $line : substr($line, 0, $sep);
             $out[trim($key)] = true;
         }
         return $out;

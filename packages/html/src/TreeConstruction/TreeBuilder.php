@@ -921,6 +921,33 @@ final class TreeBuilder
             return;
         }
 
+        // HTML Living Standard §13.2.6.4.7 — ruby base / container.
+        // `<rb>` and `<rtc>` close any unclosed nested element down to
+        // the open `<ruby>` if one is in scope.
+        if ($tag === 'rb' || $tag === 'rtc') {
+            if ($this->openElements->hasInScope('ruby')) {
+                $this->openElements->generateImpliedEndTags();
+                // Parse error if current node isn't `<ruby>`, but we
+                // proceed (lenient mode) and insert anyway.
+            }
+            $this->insertHtmlElement($token);
+            return;
+        }
+
+        // `<rt>` and `<rp>` close any unclosed nested element down to
+        // the open `<ruby>` or `<rtc>` if a `<ruby>` is in scope —
+        // the `<rtc>` exception lets `rt` annotations live inside a
+        // shared container.
+        if ($tag === 'rt' || $tag === 'rp') {
+            if ($this->openElements->hasInScope('ruby')) {
+                $this->openElements->generateImpliedEndTags('rtc');
+                // Parse error if current node isn't `<ruby>` or `<rtc>`
+                // — proceed in lenient mode.
+            }
+            $this->insertHtmlElement($token);
+            return;
+        }
+
         // Default: just insert (any other start tag).
         $this->reconstructActiveFormatting();
         $this->insertHtmlElement($token);
@@ -2502,6 +2529,24 @@ final class TreeBuilder
             }
             if (in_array($tag, ['script', 'template'], true)) {
                 $this->modeInHead($token, $this->activeTokenizer ?? new Tokenizer(''));
+                return;
+            }
+            // HTML Living Standard §13.2.6.4.16 — `<hr>` inside a
+            // `<select>` pops any open `<option>` / `<optgroup>` and
+            // inserts the hr as a void element. Lets authors break
+            // an option list into sections.
+            if ($tag === 'hr') {
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'option') {
+                    $this->openElements->pop();
+                }
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'optgroup') {
+                    $this->openElements->pop();
+                }
+                $this->insertHtmlElement($token);
+                // Void element — pop immediately.
+                $this->openElements->pop();
                 return;
             }
             return; // parse error, ignore other start tags
