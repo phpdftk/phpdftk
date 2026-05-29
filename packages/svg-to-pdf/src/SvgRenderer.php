@@ -39,12 +39,17 @@ use Phpdftk\Svg\SvgDocument;
  * `preserveAspectRatio` handling (SVG 2 §7.10):
  *
  *  - `none` — scale axes independently to fill the destination.
- *  - Default (`xMidYMid meet`) — uniform scale to fit (letterbox),
- *    centred in the destination.
+ *  - `<align> meet` — uniform scale to fit (letterbox); the smallest
+ *    axis scale wins so the whole content stays inside the
+ *    destination rectangle.
+ *  - `<align> slice` — uniform scale to fill; the largest axis scale
+ *    wins so the destination is fully covered, and overflow is
+ *    clipped to the destination rectangle.
  *
- * Other alignment keywords (`xMinYMin`, `xMaxYMax`, …) and the `slice`
- * meet/slice mode are deferred to a future sub-phase; everything that
- * isn't `none` resolves to `xMidYMid meet` for now.
+ * Both meet and slice honour all nine `<align>` keywords —
+ * `xMinYMin`, `xMidYMin`, `xMaxYMin`, `xMinYMid`, `xMidYMid` (default),
+ * `xMaxYMid`, `xMinYMax`, `xMidYMax`, `xMaxYMax` — controlling how the
+ * scaled content is positioned within the destination rectangle.
  */
 final class SvgRenderer
 {
@@ -72,7 +77,7 @@ final class SvgRenderer
         $dstWidth = $width ?? $srcWidth;
         $dstHeight = $height ?? $srcHeight;
 
-        [$scaleX, $scaleY, $offsetX, $offsetY] = self::applyPreserveAspectRatio(
+        [$scaleX, $scaleY, $offsetX, $offsetY, $needsClip] = self::applyPreserveAspectRatio(
             $svg,
             $srcWidth,
             $srcHeight,
@@ -89,6 +94,14 @@ final class SvgRenderer
         //   f = y + offsetY + effectiveH + srcMinY * sy
         $effectiveH = $scaleY * $srcHeight;
         $stream->saveGraphicsState();
+        if ($needsClip) {
+            // `slice` mode lets the scaled content overflow the
+            // destination rect. Clip to the dest rect first so the
+            // overflow doesn't leak into other page content.
+            $stream->rectangle($x, $y, $dstWidth, $dstHeight);
+            $stream->clip();
+            $stream->endPath();
+        }
         $stream->concatMatrix(
             $scaleX,
             0.0,
@@ -124,12 +137,20 @@ final class SvgRenderer
 
     /**
      * SVG 2 §7.10 viewport / viewBox alignment. Returns
-     * `[scaleX, scaleY, offsetX, offsetY]` so the caller can fold them
-     * into the outer `cm`. `none` reproduces the pre-fix behaviour
-     * (independent axes, no offset). Anything else resolves to the
-     * default `xMidYMid meet` — uniform scale to fit, centred.
+     * `[scaleX, scaleY, offsetX, offsetY, needsClip]` so the caller can
+     * fold them into the outer `cm` and decide whether to clip
+     * overflow.
      *
-     * @return array{0: float, 1: float, 2: float, 3: float}
+     *  - `none` reproduces the original independent-axes behaviour, no
+     *    offset, no clip.
+     *  - `<align> meet` (default `xMidYMid meet`) — uniform scale to
+     *    fit; the smaller axis scale wins.
+     *  - `<align> slice` — uniform scale to fill; the larger axis
+     *    scale wins. The leftover "leftover" goes negative, so the
+     *    scaled content overflows the destination rectangle on one
+     *    axis; the caller is told to add a destination-rect clip.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: bool}
      */
     private static function applyPreserveAspectRatio(
         SvgDocument $svg,
@@ -142,19 +163,59 @@ final class SvgRenderer
         $sy = $srcH > 0.0 ? $dstH / $srcH : 1.0;
         $par = strtolower(trim($svg->getAttribute('preserveAspectRatio') ?? ''));
         if ($par === 'none') {
-            return [$sx, $sy, 0.0, 0.0];
+            return [$sx, $sy, 0.0, 0.0, false];
         }
-        // Default: uniform scale + centre. Out-of-scope keywords
-        // collapse to the same behaviour rather than failing the draw.
-        $scale = min($sx, $sy);
+
+        $tokens = preg_split('/\s+/', $par) ?: [];
+        $align = $tokens[0] ?? '';
+        $slice = ($tokens[1] ?? 'meet') === 'slice';
+        [$xRatio, $yRatio] = self::alignRatios($align);
+
+        $scale = $slice ? max($sx, $sy) : min($sx, $sy);
         $effectiveW = $scale * $srcW;
         $effectiveH = $scale * $srcH;
+
         return [
             $scale,
             $scale,
-            ($dstW - $effectiveW) / 2.0,
-            ($dstH - $effectiveH) / 2.0,
+            $xRatio * ($dstW - $effectiveW),
+            $yRatio * ($dstH - $effectiveH),
+            $slice,
         ];
+    }
+
+    /**
+     * Map an SVG 2 §7.10 align keyword to a pair of ratios in the
+     * `[xRatio, yRatio]` shape used by `applyPreserveAspectRatio`:
+     *
+     *  - `xRatio` ∈ {0, 0.5, 1} — how much of the X-leftover sits on
+     *    the LEFT side of the content (`xMin` → 0, `xMid` → 0.5,
+     *    `xMax` → 1).
+     *  - `yRatio` ∈ {0, 0.5, 1} — how much of the Y-leftover sits
+     *    BELOW the content in PDF coords. Because PDF's y axis points
+     *    up and SVG's points down, "Y at the top" maps to "all
+     *    leftover at the bottom" → `yMin` → 1, `yMid` → 0.5,
+     *    `yMax` → 0.
+     *
+     * Unknown keywords default to `xMidYMid` (centre).
+     *
+     * @return array{0: float, 1: float}
+     */
+    private static function alignRatios(string $align): array
+    {
+        $alignLower = strtolower($align);
+        $xRatio = match (true) {
+            str_starts_with($alignLower, 'xmin') => 0.0,
+            str_starts_with($alignLower, 'xmax') => 1.0,
+            default => 0.5,
+        };
+        // The Y keyword sits after the X part — `xMinYMin`, `xMidYMax`, …
+        $yRatio = match (true) {
+            str_contains($alignLower, 'ymin') => 1.0,
+            str_contains($alignLower, 'ymax') => 0.0,
+            default => 0.5,
+        };
+        return [$xRatio, $yRatio];
     }
 
     /**
