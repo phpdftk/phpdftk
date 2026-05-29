@@ -3148,6 +3148,13 @@ final class TreeBuilder
             if ($token->data === "\u{0000}") {
                 return; // parse error, drop
             }
+            // Reconstruct AFE first — under customizable-select a
+            // formatting element that was opened then unwound (e.g.
+            // by an end tag) needs to be re-instantiated around
+            // subsequent text. Without this, `<select><option><i>i<b>ib</i>b`
+            // drops "b" as bare text instead of wrapping it in the
+            // surviving `<b>` from AFE.
+            $this->reconstructActiveFormatting();
             $this->insertCharacter($token);
             return;
         }

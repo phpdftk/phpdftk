@@ -39,7 +39,99 @@ final class Parser
     {
         $tokenizer = new Tokenizer($html);
         $builder = new TreeBuilder($this->options);
-        return $builder->build($tokenizer);
+        $doc = $builder->build($tokenizer);
+        $this->mirrorSelectedContent($doc);
+        return $doc;
+    }
+
+    /**
+     * Post-parse pass for the customizable-select `<selectedcontent>` element:
+     * mirror the selected option's children into each `<selectedcontent>`
+     * descendant of every `<select>`. Per the customizable-select draft, this
+     * happens at runtime — but parsing-time test fixtures (html5lib-tests
+     * webkit02 #45–#48) bake the mirror into their expected output, so we
+     * perform it once after the tree is built.
+     */
+    private function mirrorSelectedContent(Document $doc): void
+    {
+        $stack = [$doc];
+        $selects = [];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            foreach ($node->childNodes() as $child) {
+                if ($child instanceof Element) {
+                    if ($child->localName === 'select'
+                        && $child->namespaceURI === \Phpdftk\Html\Dom\Document::HTML_NS
+                    ) {
+                        $selects[] = $child;
+                    }
+                    $stack[] = $child;
+                }
+            }
+        }
+        foreach ($selects as $select) {
+            $selectedContent = $this->findFirstDescendant($select, 'selectedcontent');
+            if ($selectedContent === null) {
+                continue;
+            }
+            $option = $this->findSelectedOption($select);
+            if ($option === null) {
+                continue;
+            }
+            foreach ($option->childNodes() as $child) {
+                $selectedContent->appendChild($child->cloneNode(true));
+            }
+        }
+    }
+
+    private function findFirstDescendant(Element $root, string $localName): ?Element
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            foreach ($node->childNodes() as $child) {
+                if ($child instanceof Element) {
+                    if ($child->localName === $localName
+                        && $child->namespaceURI === \Phpdftk\Html\Dom\Document::HTML_NS
+                    ) {
+                        return $child;
+                    }
+                    $stack[] = $child;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function findSelectedOption(Element $select): ?Element
+    {
+        $firstOption = null;
+        $stack = [$select];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            foreach ($node->childNodes() as $child) {
+                if (!$child instanceof Element) {
+                    continue;
+                }
+                if ($child->localName === 'option'
+                    && $child->namespaceURI === \Phpdftk\Html\Dom\Document::HTML_NS
+                ) {
+                    if ($child->hasAttribute('selected')) {
+                        return $child;
+                    }
+                    $firstOption ??= $child;
+                }
+                // Don't recurse into nested selects.
+                if ($child->localName === 'select'
+                    && $child->namespaceURI === \Phpdftk\Html\Dom\Document::HTML_NS
+                    && $child !== $select
+                ) {
+                    continue;
+                }
+                $stack[] = $child;
+            }
+        }
+        return $firstOption;
     }
 
     /**
