@@ -131,9 +131,7 @@ tree-construction/tests25:#10:<!DOCTYPE html><body><frame>A: Phase-2 follow-up �
 tree-construction/tests26:#3:<!DOCTYPE html><body><b><nobr>1<table><nobr></b><i><nobr>2<n: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests26:#16:<button><p><button>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests26:#17:<svg></p><foo>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests26:#18:<svg></br><foo>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests26:#19:<math></p><foo>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests26:#20:<math></br><foo>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests3:#1:<head></head><style></style>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests3:#2:<head></head><script></script>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests3:#3:<head></head><!-- --><style></style><!-- --><script></script: Phase-2 follow-up — html5lib-tests deferred case

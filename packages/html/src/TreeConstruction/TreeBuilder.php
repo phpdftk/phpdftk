@@ -2495,6 +2495,16 @@ final class TreeBuilder
         }
         if ($token instanceof EndTagToken) {
             $tag = $token->tagName;
+            // WHATWG §13.2.6.5 — `</br>` in foreign content is a
+            // parse error that re-runs as a synthesised `<br>` start
+            // tag (which IS in the breakout list, so processing pops
+            // back into HTML).
+            if ($tag === 'br') {
+                $synthetic = new StartTagToken();
+                $synthetic->tagName = 'br';
+                $this->modeInForeignContent($synthetic);
+                return;
+            }
             $items = $this->openElements->items();
             $i = array_key_last($items);
             if ($i === null) {
