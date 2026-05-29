@@ -10,6 +10,18 @@ use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Svg\Element;
+use Phpdftk\Svg\Path;
+use Phpdftk\Svg\Path\ArcTo;
+use Phpdftk\Svg\Path\ClosePath;
+use Phpdftk\Svg\Path\CurveTo;
+use Phpdftk\Svg\Path\HorizontalLineTo;
+use Phpdftk\Svg\Path\LineTo;
+use Phpdftk\Svg\Path\MoveTo;
+use Phpdftk\Svg\Path\PathCommand;
+use Phpdftk\Svg\Path\QuadraticCurveTo;
+use Phpdftk\Svg\Path\SmoothCurveTo;
+use Phpdftk\Svg\Path\SmoothQuadraticCurveTo;
+use Phpdftk\Svg\Path\VerticalLineTo;
 use Phpdftk\Svg\Shape\Circle;
 use Phpdftk\Svg\Shape\Ellipse;
 use Phpdftk\Svg\Shape\Line;
@@ -22,6 +34,8 @@ use Phpdftk\Svg\Value\Paint\CurrentColor;
 use Phpdftk\Svg\Value\Paint\None_;
 use Phpdftk\Svg\Value\Paint\SolidColor;
 use Phpdftk\Svg\Value\Paint\Url;
+use Phpdftk\SvgToPdf\Path\ArcToCubic;
+use Phpdftk\SvgToPdf\Path\PathPainterState;
 
 /**
  * Translates a parsed `Phpdftk\Svg\SvgDocument` into PDF content-stream
@@ -79,8 +93,207 @@ final class Translator
             $element instanceof Line => $this->paintLine($element, $stream),
             $element instanceof Polyline => $this->paintPolyline($element, $stream),
             $element instanceof Polygon => $this->paintPolygon($element, $stream),
+            $element instanceof Path => $this->paintPath($element, $stream),
             default => $this->paintChildren($element, $stream),
         };
+    }
+
+    private function paintPath(Path $path, ContentStream $stream): void
+    {
+        $commands = $path->d()->commands;
+        if ($commands === []) {
+            return;
+        }
+        $state = new PathPainterState();
+        foreach ($commands as $command) {
+            $this->emitPathCommand($command, $stream, $state);
+        }
+        $this->applyFillAndStroke($path, $stream);
+    }
+
+    private function emitPathCommand(
+        PathCommand $command,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        match (true) {
+            $command instanceof MoveTo => $this->emitMoveTo($command, $stream, $state),
+            $command instanceof LineTo => $this->emitLineTo($command, $stream, $state),
+            $command instanceof HorizontalLineTo => $this->emitHorizontalLineTo($command, $stream, $state),
+            $command instanceof VerticalLineTo => $this->emitVerticalLineTo($command, $stream, $state),
+            $command instanceof CurveTo => $this->emitCurveTo($command, $stream, $state),
+            $command instanceof SmoothCurveTo => $this->emitSmoothCurveTo($command, $stream, $state),
+            $command instanceof QuadraticCurveTo => $this->emitQuadraticCurveTo($command, $stream, $state),
+            $command instanceof SmoothQuadraticCurveTo => $this->emitSmoothQuadraticCurveTo($command, $stream, $state),
+            $command instanceof ArcTo => $this->emitArcTo($command, $stream, $state),
+            $command instanceof ClosePath => $this->emitClosePath($stream, $state),
+            // Sealed-via-convention: 3rd-party impls of `PathCommand` are
+            // not part of the SVG spec, so we no-op silently rather than
+            // throw — same posture the parser uses for unknown content.
+            default => null,
+        };
+    }
+
+    private function emitMoveTo(MoveTo $cmd, ContentStream $stream, PathPainterState $state): void
+    {
+        [$x, $y] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $stream->moveTo($x, $y);
+        $state->moveTo($x, $y);
+    }
+
+    private function emitLineTo(LineTo $cmd, ContentStream $stream, PathPainterState $state): void
+    {
+        [$x, $y] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $stream->lineTo($x, $y);
+        $state->lineTo($x, $y);
+    }
+
+    private function emitHorizontalLineTo(
+        HorizontalLineTo $cmd,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        $x = $cmd->absolute ? $cmd->x : $state->currentX + $cmd->x;
+        $stream->lineTo($x, $state->currentY);
+        $state->lineTo($x, $state->currentY);
+    }
+
+    private function emitVerticalLineTo(
+        VerticalLineTo $cmd,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        $y = $cmd->absolute ? $cmd->y : $state->currentY + $cmd->y;
+        $stream->lineTo($state->currentX, $y);
+        $state->lineTo($state->currentX, $y);
+    }
+
+    private function emitCurveTo(CurveTo $cmd, ContentStream $stream, PathPainterState $state): void
+    {
+        [$x1, $y1] = $this->resolvePoint($cmd->x1, $cmd->y1, $cmd->absolute, $state);
+        [$x2, $y2] = $this->resolvePoint($cmd->x2, $cmd->y2, $cmd->absolute, $state);
+        [$x, $y] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $stream->curveTo($x1, $y1, $x2, $y2, $x, $y);
+        $state->currentX = $x;
+        $state->currentY = $y;
+        $state->recordCubicControl($x2, $y2);
+    }
+
+    private function emitSmoothCurveTo(
+        SmoothCurveTo $cmd,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        [$x1, $y1] = $state->reflectedCubicControl();
+        [$x2, $y2] = $this->resolvePoint($cmd->x2, $cmd->y2, $cmd->absolute, $state);
+        [$x, $y] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $stream->curveTo($x1, $y1, $x2, $y2, $x, $y);
+        $state->currentX = $x;
+        $state->currentY = $y;
+        $state->recordCubicControl($x2, $y2);
+    }
+
+    /**
+     * PDF has no native quadratic curve operator. Lift to cubic via the
+     * standard `C1 = P0 + 2/3·(P1-P0)`, `C2 = P2 + 2/3·(P1-P2)` formula —
+     * mathematically exact, no approximation error.
+     */
+    private function emitQuadraticCurveTo(
+        QuadraticCurveTo $cmd,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        [$qx, $qy] = $this->resolvePoint($cmd->x1, $cmd->y1, $cmd->absolute, $state);
+        [$ex, $ey] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $this->emitQuadraticAsCubic($state->currentX, $state->currentY, $qx, $qy, $ex, $ey, $stream);
+        $state->currentX = $ex;
+        $state->currentY = $ey;
+        $state->recordQuadraticControl($qx, $qy);
+    }
+
+    private function emitSmoothQuadraticCurveTo(
+        SmoothQuadraticCurveTo $cmd,
+        ContentStream $stream,
+        PathPainterState $state,
+    ): void {
+        [$qx, $qy] = $state->reflectedQuadraticControl();
+        [$ex, $ey] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $this->emitQuadraticAsCubic($state->currentX, $state->currentY, $qx, $qy, $ex, $ey, $stream);
+        $state->currentX = $ex;
+        $state->currentY = $ey;
+        $state->recordQuadraticControl($qx, $qy);
+    }
+
+    private function emitArcTo(ArcTo $cmd, ContentStream $stream, PathPainterState $state): void
+    {
+        [$endX, $endY] = $this->resolvePoint($cmd->x, $cmd->y, $cmd->absolute, $state);
+        $segments = ArcToCubic::convert(
+            $state->currentX,
+            $state->currentY,
+            $cmd->rx,
+            $cmd->ry,
+            $cmd->xAxisRotation,
+            $cmd->largeArc,
+            $cmd->sweep,
+            $endX,
+            $endY,
+        );
+        if ($segments === []) {
+            // Degenerate: zero-length or zero-radius. Per SVG 2 §9.5.1,
+            // an arc with a zero radius is rendered as a straight line.
+            if ($cmd->rx === 0.0 || $cmd->ry === 0.0) {
+                $stream->lineTo($endX, $endY);
+                $state->lineTo($endX, $endY);
+            }
+            return;
+        }
+        foreach ($segments as $segment) {
+            $stream->curveTo(
+                $segment['x1'],
+                $segment['y1'],
+                $segment['x2'],
+                $segment['y2'],
+                $segment['x'],
+                $segment['y'],
+            );
+        }
+        $state->currentX = $endX;
+        $state->currentY = $endY;
+        $state->clearControlPoints();
+    }
+
+    private function emitClosePath(ContentStream $stream, PathPainterState $state): void
+    {
+        $stream->closePath();
+        $state->closeSubpath();
+    }
+
+    private function emitQuadraticAsCubic(
+        float $p0x,
+        float $p0y,
+        float $p1x,
+        float $p1y,
+        float $p2x,
+        float $p2y,
+        ContentStream $stream,
+    ): void {
+        $twoThirds = 2.0 / 3.0;
+        $c1x = $p0x + $twoThirds * ($p1x - $p0x);
+        $c1y = $p0y + $twoThirds * ($p1y - $p0y);
+        $c2x = $p2x + $twoThirds * ($p1x - $p2x);
+        $c2y = $p2y + $twoThirds * ($p1y - $p2y);
+        $stream->curveTo($c1x, $c1y, $c2x, $c2y, $p2x, $p2y);
+    }
+
+    /**
+     * @return array{float, float}
+     */
+    private function resolvePoint(float $x, float $y, bool $absolute, PathPainterState $state): array
+    {
+        if ($absolute) {
+            return [$x, $y];
+        }
+        return [$state->currentX + $x, $state->currentY + $y];
     }
 
     private function paintRect(Rect $rect, ContentStream $stream): void
