@@ -13,11 +13,13 @@ use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\SvgToPdf\Gradient\GradientPainter;
 use Phpdftk\SvgToPdf\Text\FontResolver;
+use Phpdftk\Svg\ClipPath;
 use Phpdftk\Svg\Defs;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Image as SvgImage;
 use Phpdftk\Svg\Symbol;
 use Phpdftk\Svg\Use_;
+use Phpdftk\SvgToPdf\Geometry\BoundingBox;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
 use Phpdftk\Svg\Path\ClosePath;
@@ -165,13 +167,18 @@ final class Translator
         //   - transform: emits `cm`.
         //   - opacity / fill-opacity / stroke-opacity (< 1): emits `gs`.
         //   - stroke params (w / J / j / M / d): each emits its own op.
+        //   - clip-path: emits the clip region inside the same wrap.
         //
         // Painting the same shape with all defaults stays a one-shot
         // op stream — no overhead when none of the above is set.
         $transform = $element->transform();
         $opacityGs = $this->resolveOpacityState($element);
         $needsStrokeParams = $this->needsStrokeParams($element);
-        $needsWrap = $transform !== null || $opacityGs !== null || $needsStrokeParams;
+        $clipPath = $this->resolveClipPath($element);
+        $needsWrap = $transform !== null
+            || $opacityGs !== null
+            || $needsStrokeParams
+            || $clipPath !== null;
 
         if (!$needsWrap) {
             $this->dispatchElement($element, $stream);
@@ -196,8 +203,185 @@ final class Translator
         if ($needsStrokeParams) {
             $this->applyStrokeParams($element, $stream);
         }
+        if ($clipPath !== null) {
+            $this->applyClipPath($clipPath, $element, $stream);
+        }
         $this->dispatchElement($element, $stream);
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Resolve an element's `clip-path="url(#id)"` reference to the
+     * matching `<clipPath>` element. Returns null when no clip-path is
+     * set, the reference can't be parsed, or the id doesn't resolve to
+     * a clipPath — each case falls through to the unclipped paint per
+     * SVG 2's "invalid → no clip" rule.
+     */
+    private function resolveClipPath(Element $element): ?ClipPath
+    {
+        if ($this->document === null) {
+            return null;
+        }
+        $raw = $element->getAttribute('clip-path');
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === 'none') {
+            return null;
+        }
+        if (preg_match('/^url\(\s*#([^)\s]+)\s*\)/i', $trimmed, $m) !== 1) {
+            return null;
+        }
+        $referent = $this->document->findById($m[1]);
+        return $referent instanceof ClipPath ? $referent : null;
+    }
+
+    /**
+     * Construct the PDF clipping region from the `<clipPath>` element's
+     * geometry and emit `W`/`W*` + `n` so subsequent painting is
+     * scoped to it. `clipPathUnits="objectBoundingBox"` is honoured by
+     * sandwiching the path construction between a bbox-space `cm` and
+     * its inverse — the clip region is "frozen" by `W` in user space,
+     * so applying the inverse `cm` returns the CTM to its pre-clip
+     * state without disturbing the established region.
+     */
+    private function applyClipPath(ClipPath $clipPath, Element $element, ContentStream $stream): void
+    {
+        $useBbox = $clipPath->clipPathUnits() === 'objectBoundingBox';
+        $bbox = $useBbox ? BoundingBox::compute($element) : null;
+        if ($useBbox && $bbox === null) {
+            // bbox required for objectBoundingBox mode but unavailable
+            // (e.g. `<path>` element with no bbox helper at 3R+3) —
+            // fall back to no clip rather than emitting a broken clip.
+            return;
+        }
+
+        if ($bbox !== null) {
+            $stream->concatMatrix(
+                $bbox['width'],
+                0.0,
+                0.0,
+                $bbox['height'],
+                $bbox['minX'],
+                $bbox['minY'],
+            );
+        }
+        foreach ($clipPath->children as $child) {
+            if ($child instanceof Element) {
+                $this->emitElementPath($child, $stream);
+            }
+        }
+        if ($bbox !== null) {
+            // Undo the bbox `cm` so user-space coords for the painted
+            // content stay aligned with the SVG source. The clip
+            // region established by `W` survives the CTM change
+            // because it lives in device space.
+            $invW = 1.0 / $bbox['width'];
+            $invH = 1.0 / $bbox['height'];
+            $stream->concatMatrix(
+                $invW,
+                0.0,
+                0.0,
+                $invH,
+                -$bbox['minX'] * $invW,
+                -$bbox['minY'] * $invH,
+            );
+        }
+
+        $rule = self::resolveClipRule($clipPath);
+        if ($rule === 'evenodd') {
+            $stream->clipEvenOdd();
+        } else {
+            $stream->clip();
+        }
+        $stream->endPath();
+    }
+
+    /**
+     * `clip-rule` per SVG 2 §14.4.4. The attribute lives on the
+     * `<clipPath>` element itself at 3R+3; per-child clip-rule support
+     * (the spec allows overriding on individual children) lands later.
+     *
+     * @return 'nonzero'|'evenodd'
+     */
+    private static function resolveClipRule(ClipPath $clipPath): string
+    {
+        $raw = $clipPath->getAttribute('clip-rule');
+        return strtolower(trim($raw ?? '')) === 'evenodd' ? 'evenodd' : 'nonzero';
+    }
+
+    /**
+     * Emit just the geometry of an element — the path operators that
+     * would have ended up before the fill/stroke op. Used by
+     * `applyClipPath` to assemble a clipping region without painting.
+     */
+    private function emitElementPath(Element $element, ContentStream $stream): void
+    {
+        match (true) {
+            $element instanceof Rect => $this->emitRectPath($element, $stream),
+            $element instanceof Circle => $this->emitCirclePath($element, $stream),
+            $element instanceof Ellipse => $this->emitEllipsePathFor($element, $stream),
+            $element instanceof Polyline => $this->emitPolylinePath($element, $stream),
+            $element instanceof Polygon => $this->emitPolygonPath($element, $stream),
+            $element instanceof Path => $this->emitPathPath($element, $stream),
+            // `<line>` and other non-area-enclosing children don't
+            // contribute to a clip region per SVG 2 §14.4.1.
+            default => null,
+        };
+    }
+
+    private function emitRectPath(Rect $rect, ContentStream $stream): void
+    {
+        $w = $rect->width();
+        $h = $rect->height();
+        if ($w > 0.0 && $h > 0.0) {
+            $stream->rectangle($rect->x(), $rect->y(), $w, $h);
+        }
+    }
+
+    private function emitCirclePath(Circle $circle, ContentStream $stream): void
+    {
+        if ($circle->r() > 0.0) {
+            $this->emitEllipsePath($stream, $circle->cx(), $circle->cy(), $circle->r(), $circle->r());
+        }
+    }
+
+    private function emitEllipsePathFor(Ellipse $ellipse, ContentStream $stream): void
+    {
+        $rx = $ellipse->rx();
+        $ry = $ellipse->ry();
+        if ($rx !== null && $ry !== null && $rx > 0.0 && $ry > 0.0) {
+            $this->emitEllipsePath($stream, $ellipse->cx(), $ellipse->cy(), $rx, $ry);
+        }
+    }
+
+    private function emitPolylinePath(Polyline $polyline, ContentStream $stream): void
+    {
+        $points = $polyline->points();
+        if (count($points) >= 2) {
+            $this->emitPolyPath($stream, $points, closed: false);
+        }
+    }
+
+    private function emitPolygonPath(Polygon $polygon, ContentStream $stream): void
+    {
+        $points = $polygon->points();
+        if (count($points) >= 3) {
+            $this->emitPolyPath($stream, $points, closed: true);
+        }
+    }
+
+    private function emitPathPath(Path $path, ContentStream $stream): void
+    {
+        $commands = $path->d()->commands;
+        if ($commands === []) {
+            return;
+        }
+        $state = new PathPainterState();
+        foreach ($commands as $command) {
+            $this->emitPathCommand($command, $stream, $state);
+        }
     }
 
     /**
@@ -299,10 +483,13 @@ final class Translator
             $element instanceof SvgImage => $this->paintImage($element, $stream),
             // `<defs>` and `<symbol>` are referenceable containers: they
             // never paint themselves at the document level. `<use>`
-            // expands them on demand. Skipping them here also skips
-            // their nested shape children, which is what the spec
-            // wants (SVG 2 §5.5 / §5.6).
-            $element instanceof Defs, $element instanceof Symbol => null,
+            // expands `<defs>` / `<symbol>` referents; `clip-path` on
+            // a painted element pulls in a `<clipPath>`. Skipping them
+            // here also skips their nested shape children, which is
+            // what the spec wants (SVG 2 §5.5 / §5.6 / §14.4).
+            $element instanceof Defs,
+            $element instanceof Symbol,
+            $element instanceof ClipPath => null,
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
