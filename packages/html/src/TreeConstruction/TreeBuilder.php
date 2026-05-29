@@ -292,6 +292,96 @@ final class TreeBuilder
         $this->reprocess($token);
     }
 
+    /**
+     * Public identifiers whose presence (anywhere, case-insensitively) forces
+     * quirks mode per WHATWG §13.2.6.2. Stored lowercase, compared with
+     * `str_starts_with` against `strtolower($publicId)`.
+     *
+     * @var list<string>
+     */
+    private const array QUIRKS_PUBLIC_ID_PREFIXES = [
+        '+//silmaril//dtd html pro v0r11 19970101//',
+        '-//as//dtd html 3.0 aswedit + extensions//',
+        '-//advasoft ltd//dtd html 3.0 aswedit + extensions//',
+        '-//ietf//dtd html 2.0 level 1//',
+        '-//ietf//dtd html 2.0 level 2//',
+        '-//ietf//dtd html 2.0 strict level 1//',
+        '-//ietf//dtd html 2.0 strict level 2//',
+        '-//ietf//dtd html 2.0 strict//',
+        '-//ietf//dtd html 2.0//',
+        '-//ietf//dtd html 2.1e//',
+        '-//ietf//dtd html 3.0//',
+        '-//ietf//dtd html 3.2 final//',
+        '-//ietf//dtd html 3.2//',
+        '-//ietf//dtd html 3//',
+        '-//ietf//dtd html level 0//',
+        '-//ietf//dtd html level 1//',
+        '-//ietf//dtd html level 2//',
+        '-//ietf//dtd html level 3//',
+        '-//ietf//dtd html strict level 0//',
+        '-//ietf//dtd html strict level 1//',
+        '-//ietf//dtd html strict level 2//',
+        '-//ietf//dtd html strict level 3//',
+        '-//ietf//dtd html strict//',
+        '-//ietf//dtd html//',
+        '-//metrius//dtd metrius presentational//',
+        '-//microsoft//dtd internet explorer 2.0 html strict//',
+        '-//microsoft//dtd internet explorer 2.0 html//',
+        '-//microsoft//dtd internet explorer 2.0 tables//',
+        '-//microsoft//dtd internet explorer 3.0 html strict//',
+        '-//microsoft//dtd internet explorer 3.0 html//',
+        '-//microsoft//dtd internet explorer 3.0 tables//',
+        '-//netscape comm. corp.//dtd html//',
+        '-//netscape comm. corp.//dtd strict html//',
+        '-//o\'reilly and associates//dtd html 2.0//',
+        '-//o\'reilly and associates//dtd html extended 1.0//',
+        '-//o\'reilly and associates//dtd html extended relaxed 1.0//',
+        '-//sq//dtd html 2.0 hotmetal + extensions//',
+        '-//softquad software//dtd hotmetal pro 6.0::19990601::extensions to html 4.0//',
+        '-//softquad//dtd hotmetal pro 4.0::19971010::extensions to html 4.0//',
+        '-//spyglass//dtd html 2.0 extended//',
+        '-//sun microsystems corp.//dtd hotjava html//',
+        '-//sun microsystems corp.//dtd hotjava strict html//',
+        '-//w3c//dtd html 3 1995-03-24//',
+        '-//w3c//dtd html 3.2 draft//',
+        '-//w3c//dtd html 3.2 final//',
+        '-//w3c//dtd html 3.2//',
+        '-//w3c//dtd html 3.2s draft//',
+        '-//w3c//dtd html 4.0 frameset//',
+        '-//w3c//dtd html 4.0 transitional//',
+        '-//w3c//dtd html experimental 19960712//',
+        '-//w3c//dtd html experimental 970421//',
+        '-//w3c//dtd w3 html//',
+        '-//w3o//dtd w3 html 3.0//',
+        '-//webtechs//dtd mozilla html 2.0//',
+        '-//webtechs//dtd mozilla html//',
+    ];
+
+    /** @var list<string> exact-match (case-insensitive) public IDs that force quirks. */
+    private const array QUIRKS_PUBLIC_ID_EXACT = [
+        '-//w3o//dtd w3 html strict 3.0//en//',
+        '-/w3c/dtd html 4.0 transitional/en',
+        'html',
+    ];
+
+    /**
+     * Public-ID prefixes whose presence puts the document into limited-
+     * quirks mode (or, if a system ID is set, into full quirks for the
+     * HTML 4.01 variants). Lowercase, compared via `str_starts_with`.
+     *
+     * @var list<string>
+     */
+    private const array LIMITED_QUIRKS_PUBLIC_ID_PREFIXES = [
+        '-//w3c//dtd xhtml 1.0 frameset//',
+        '-//w3c//dtd xhtml 1.0 transitional//',
+    ];
+
+    /** @var list<string> HTML 4.01 variants — limited-quirks when systemId missing, quirks when present. */
+    private const array CONDITIONAL_QUIRKS_PUBLIC_ID_PREFIXES = [
+        '-//w3c//dtd html 4.01 frameset//',
+        '-//w3c//dtd html 4.01 transitional//',
+    ];
+
     private function resolveDocumentMode(DoctypeToken $token): DocumentMode
     {
         if ($token->forceQuirks) {
@@ -301,13 +391,43 @@ final class TreeBuilder
         if ($name !== 'html') {
             return DocumentMode::Quirks;
         }
-        if ($token->publicId === null && ($token->systemId === null || strcasecmp($token->systemId, 'about:legacy-compat') === 0)) {
+        $publicId = $token->publicId;
+        $systemId = $token->systemId;
+        $publicLower = $publicId !== null ? strtolower($publicId) : null;
+        $systemLower = $systemId !== null ? strtolower($systemId) : null;
+
+        // System-ID exact match forces quirks (WHATWG §13.2.6.2).
+        if ($systemLower === 'http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd') {
+            return DocumentMode::Quirks;
+        }
+
+        if ($publicLower !== null) {
+            if (in_array($publicLower, self::QUIRKS_PUBLIC_ID_EXACT, true)) {
+                return DocumentMode::Quirks;
+            }
+            foreach (self::QUIRKS_PUBLIC_ID_PREFIXES as $prefix) {
+                if (str_starts_with($publicLower, $prefix)) {
+                    return DocumentMode::Quirks;
+                }
+            }
+            // HTML 4.01 frameset/transitional: quirks if systemId present,
+            // limited-quirks if missing.
+            foreach (self::CONDITIONAL_QUIRKS_PUBLIC_ID_PREFIXES as $prefix) {
+                if (str_starts_with($publicLower, $prefix)) {
+                    return $systemId === null ? DocumentMode::Quirks : DocumentMode::LimitedQuirks;
+                }
+            }
+            foreach (self::LIMITED_QUIRKS_PUBLIC_ID_PREFIXES as $prefix) {
+                if (str_starts_with($publicLower, $prefix)) {
+                    return DocumentMode::LimitedQuirks;
+                }
+            }
+        }
+
+        if ($publicId === null && ($systemId === null || strcasecmp($systemId, 'about:legacy-compat') === 0)) {
             return DocumentMode::NoQuirks;
         }
-        // Public-ID-based legacy detection (subset; full table in §13.2.6.2)
-        if (str_starts_with(strtolower($token->publicId ?? ''), '-//w3c//dtd html 4')) {
-            return DocumentMode::LimitedQuirks;
-        }
+
         return DocumentMode::NoQuirks;
     }
 
