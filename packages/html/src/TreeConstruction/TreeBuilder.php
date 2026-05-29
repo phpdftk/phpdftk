@@ -1620,18 +1620,47 @@ final class TreeBuilder
         ) {
             return [$target, null];
         }
-        // Foster-parent target: insert before the last table on the stack.
-        for ($i = array_key_last($this->openElements->items()); $i !== null && $i >= 0; $i--) {
-            $el = $this->openElements->items()[$i];
-            if ($el->localName === 'table' && $el->namespaceURI === Document::HTML_NS) {
-                $tableParent = $el->parentNode;
-                if ($tableParent !== null) {
-                    return [$tableParent, $el];
-                }
-                // No parent — fall back to the element before the table on the stack.
-                if ($i > 0) {
-                    return [$this->openElements->items()[$i - 1], null];
-                }
+        // Foster-parent target: find last template AND last table on
+        // the stack. If a template is more recent (deeper) than any
+        // table, the foster-parent target is the template's content
+        // fragment — that's how `<template><tr><div>` lands its `<div>`
+        // as a sibling of `<tr>` inside the template's content rather
+        // than nested inside the still-open `<tr>`. Otherwise insert
+        // before the last table on the stack (normal foster parent).
+        $items = $this->openElements->items();
+        $lastTableIdx = null;
+        $lastTemplateIdx = null;
+        for ($i = array_key_last($items); $i !== null && $i >= 0; $i--) {
+            $el = $items[$i];
+            if ($el->namespaceURI !== Document::HTML_NS) {
+                continue;
+            }
+            if ($lastTemplateIdx === null && $el->localName === 'template') {
+                $lastTemplateIdx = $i;
+            }
+            if ($lastTableIdx === null && $el->localName === 'table') {
+                $lastTableIdx = $i;
+            }
+            if ($lastTemplateIdx !== null && $lastTableIdx !== null) {
+                break;
+            }
+        }
+        if ($lastTemplateIdx !== null
+            && ($lastTableIdx === null || $lastTemplateIdx > $lastTableIdx)
+        ) {
+            $template = $items[$lastTemplateIdx];
+            if ($template instanceof HTMLTemplateElement && $template->content !== null) {
+                return [$template->content, null];
+            }
+        }
+        if ($lastTableIdx !== null) {
+            $tableEl = $items[$lastTableIdx];
+            $tableParent = $tableEl->parentNode;
+            if ($tableParent !== null) {
+                return [$tableParent, $tableEl];
+            }
+            if ($lastTableIdx > 0) {
+                return [$items[$lastTableIdx - 1], null];
             }
         }
         return [$target, null];
