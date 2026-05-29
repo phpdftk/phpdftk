@@ -1620,14 +1620,21 @@ final class TreeBuilder
     // ============================================================
     private function modeInTable(Token $token, Tokenizer $tokenizer): void
     {
-        if ($token instanceof CharacterToken
-            && $this->currentNodeIsTableContext()
-        ) {
-            $this->pendingTableCharacters = [];
-            $this->pendingTableCharactersHaveNonWhitespace = false;
-            $this->originalInsertionMode = $this->insertionMode;
-            $this->insertionMode = InsertionMode::InTableText;
-            $this->reprocess($token);
+        if ($token instanceof CharacterToken) {
+            if ($this->currentNodeIsTableContext()) {
+                $this->pendingTableCharacters = [];
+                $this->pendingTableCharactersHaveNonWhitespace = false;
+                $this->originalInsertionMode = $this->insertionMode;
+                $this->insertionMode = InsertionMode::InTableText;
+                $this->reprocess($token);
+                return;
+            }
+            // Per §13.2.6.4.9 "Anything else": when current node isn't
+            // a table-context element (e.g. we've nested into a
+            // MathML/SVG integration point inside the table), foster-
+            // parent the character through InBody. Otherwise the
+            // character silently drops.
+            $this->processAsInBodyWithFosterParenting($token, $tokenizer);
             return;
         }
         if ($token instanceof CommentToken) {
@@ -2690,6 +2697,40 @@ final class TreeBuilder
             }
             if (in_array($tag, ['script', 'template'], true)) {
                 $this->modeInHead($token, $this->activeTokenizer ?? new Tokenizer(''));
+                return;
+            }
+            // HTML Living Standard §13.2.6.4.16 — `<svg>` / `<math>`
+            // in InSelect inserts the foreign element and continues
+            // in foreign-content dispatch. Lets select widgets carry
+            // inline SVG icons / math snippets per the modern spec.
+            if ($tag === 'svg') {
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'option') {
+                    $this->openElements->pop();
+                }
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'optgroup') {
+                    $this->openElements->pop();
+                }
+                $this->insertForeignElement($token, Document::SVG_NS, self::SVG_TAG_CASE_CORRECTIONS);
+                if ($token->selfClosing) {
+                    $this->openElements->pop();
+                }
+                return;
+            }
+            if ($tag === 'math') {
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'option') {
+                    $this->openElements->pop();
+                }
+                $current = $this->openElements->currentNode();
+                if ($current !== null && $current->localName === 'optgroup') {
+                    $this->openElements->pop();
+                }
+                $this->insertForeignElement($token, Document::MATHML_NS, []);
+                if ($token->selfClosing) {
+                    $this->openElements->pop();
+                }
                 return;
             }
             // HTML Living Standard §13.2.6.4.16 — `<hr>` inside a
