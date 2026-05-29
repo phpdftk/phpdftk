@@ -72,6 +72,21 @@ final class Translator
 
     public function paint(SvgDocument $document, ContentStream $stream): void
     {
+        $viewBox = $document->viewBox();
+        if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
+            // SVG 2 §7 — the viewBox's `min-x`/`min-y` shift the
+            // origin of the local coordinate system. The proper
+            // viewBox-to-viewport mapping (with `preserveAspectRatio`)
+            // needs a caller-supplied target rectangle, so it lives
+            // in the 3R adapter layer; here we honour just the
+            // translation so the painted content stays anchored
+            // correctly relative to the viewBox.
+            $stream->saveGraphicsState();
+            $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, -$viewBox[0], -$viewBox[1]);
+            $this->paintChildren($document, $stream);
+            $stream->restoreGraphicsState();
+            return;
+        }
         $this->paintChildren($document, $stream);
     }
 
@@ -86,6 +101,32 @@ final class Translator
 
     private function paintElement(Element $element, ContentStream $stream): void
     {
+        // SVG 2 §8.4: the `transform` attribute can sit on any element
+        // that establishes a new coordinate system (`<g>`, `<svg>`,
+        // `<symbol>`, `<use>`, the shape elements, …). Always check it
+        // here so the painter doesn't grow a per-element branch for
+        // the same wrapping logic.
+        $transform = $element->transform();
+        if ($transform !== null) {
+            $matrix = $transform->toMatrix();
+            $stream->saveGraphicsState();
+            $stream->concatMatrix(
+                $matrix[0],
+                $matrix[1],
+                $matrix[2],
+                $matrix[3],
+                $matrix[4],
+                $matrix[5],
+            );
+            $this->dispatchElement($element, $stream);
+            $stream->restoreGraphicsState();
+            return;
+        }
+        $this->dispatchElement($element, $stream);
+    }
+
+    private function dispatchElement(Element $element, ContentStream $stream): void
+    {
         match (true) {
             $element instanceof Rect => $this->paintRect($element, $stream),
             $element instanceof Circle => $this->paintCircle($element, $stream),
@@ -94,6 +135,8 @@ final class Translator
             $element instanceof Polyline => $this->paintPolyline($element, $stream),
             $element instanceof Polygon => $this->paintPolygon($element, $stream),
             $element instanceof Path => $this->paintPath($element, $stream),
+            // `<g>` and any other container fall through here — the
+            // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
         };
     }

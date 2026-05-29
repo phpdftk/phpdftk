@@ -26,7 +26,7 @@ composer require phpdftk/svg-to-pdf
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic-shape painters for `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>` (3K) and `<path>` with the full SVG 2 path grammar — including arc-to-cubic-Bézier conversion per the SVG implementation note Appendix B (3L). Unrecognised containers are walked transparently. Next: 3M `<g>` + transforms, 3N opacity / dash, 3O gradients, 3P text, 3Q use/clip/mask/image, 3R adapter API + samples + benchmarks.
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic-shape painters (3K), `<path>` with the full SVG 2 path grammar including arc-to-cubic conversion (3L), and the `transform` attribute on any element + `<g>` containers + minimal viewBox origin shift (3M). Next: 3N opacity / dash, 3O gradients, 3P text, 3Q use/clip/mask/image, 3R adapter API + samples + benchmarks.
 
 ## License
 
