@@ -163,6 +163,7 @@ final class Parser
             'linearGradient' => new Gradient\LinearGradient(),
             'radialGradient' => new Gradient\RadialGradient(),
             'stop' => new Gradient\Stop(),
+            'style' => new StyleElement(),
             default => new GenericElement($localName),
         };
     }

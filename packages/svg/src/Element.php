@@ -103,6 +103,36 @@ abstract class Element extends Node
     }
 
     /**
+     * Class names from the `class` attribute, whitespace-separated per
+     * HTML / CSS conventions. Empty list when absent or empty.
+     *
+     * @return list<string>
+     */
+    public function classList(): array
+    {
+        $raw = $this->attributes['class'] ?? null;
+        if ($raw === null || trim($raw) === '') {
+            return [];
+        }
+        $parts = preg_split('/\s+/', trim($raw)) ?: [];
+        return array_values(array_filter($parts, static fn(string $c): bool => $c !== ''));
+    }
+
+    /**
+     * Raw `style=""` attribute text, or null if absent. Parsing into
+     * typed declarations happens in `Css\CssBridge`; sanitiser callers
+     * can read the raw text without pulling in the CSS dependency.
+     */
+    public function inlineStyleText(): ?string
+    {
+        $raw = $this->attributes['style'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        return trim($raw) === '' ? null : $raw;
+    }
+
+    /**
      * `fill` presentation attribute per SVG 2 §13.2. Null when absent or
      * malformed; the painter then applies inherited or initial values.
      */
