@@ -73,7 +73,6 @@ tree-construction/tests10:#31:<div><svg><path><foreignObject><math></div>a: Phas
 tree-construction/tests10:#32:<div><svg><path><foreignObject><p></div>a: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests10:#35:<!DOCTYPE html><p><svg><desc><p>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests10:#36:<!DOCTYPE html><p><svg><title><p>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests12:#1:<!DOCTYPE html><body><p>foo<math><mtext><i>baz</i></mtext><a: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests14:#3:<!DOCTYPE html><html><html abc:def=gh><xyz:abc></xyz:abc>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests14:#4:<!DOCTYPE html><html xml:lang=bar><html xml:lang=foo>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests14:#6:<!DOCTYPE html><html 123=456><html 789=012>: Phase-2 follow-up — html5lib-tests deferred case
@@ -81,11 +80,6 @@ tree-construction/tests15:#3:<!doctype html></html> <head>: Phase-2 follow-up �
 tree-construction/tests16:#197:<!doctype html><form><table></form><form></table></form>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests18:#14:<!doctype html><select><plaintext></plaintext>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests18:#15:<!doctype html><table><select><plaintext>a<caption>b: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#31:<!doctype html><p><math><mi><p><h1>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#32:<!doctype html><p><math><mo><p><h1>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#33:<!doctype html><p><math><mn><p><h1>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#34:<!doctype html><p><math><ms><p><h1>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#35:<!doctype html><p><math><mtext><p><h1>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#37:<!doctype html><html c=d><body></html><html a=b>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#38:<!doctype html><html c=d><frameset></frameset></html><html a: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#54:<!doctype html><button><frameset>: Phase-2 follow-up — html5lib-tests deferred case
@@ -94,7 +88,6 @@ tree-construction/tests19:#56:<!doctype html><marquee><frameset>: Phase-2 follow
 tree-construction/tests19:#57:<!doctype html><object><frameset>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#76:<!doctype html><svg>a</svg><frameset><frame>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#81:<!doctype html><div><body><frameset>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests19:#83:<!doctype html><p><math><mn><span></p>a: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#88:<!doctype html><html a=b><head></head><html c=d>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#89:<!doctype html><image/>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#91:<!doctype html><table><i>a<b>b<div>c<a>d</i>e</b>f: Phase-2 follow-up — html5lib-tests deferred case

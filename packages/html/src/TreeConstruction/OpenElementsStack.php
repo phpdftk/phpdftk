@@ -271,6 +271,11 @@ final class OpenElementsStack
         return isset(self::SPECIAL_HTML[$localName]);
     }
 
+    /** MathML scope boundaries per WHATWG §13.2.4.2. */
+    private const array MATHML_SCOPE_BOUNDARIES = [
+        'mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml',
+    ];
+
     /** @param list<string> $boundaries */
     private function hasInScopeWithBoundaries(string $localName, array $boundaries): bool
     {
@@ -279,7 +284,22 @@ final class OpenElementsStack
             if ($el->localName === $localName && $el->namespaceURI === Document::HTML_NS) {
                 return true;
             }
-            if (in_array($el->localName, $boundaries, true) && $el->namespaceURI === Document::HTML_NS) {
+            if ($el->namespaceURI === Document::HTML_NS
+                && in_array($el->localName, $boundaries, true)
+            ) {
+                return false;
+            }
+            // MathML text integration points act as scope boundaries
+            // per §13.2.4.2 — without them, HTML content inside a
+            // `<mi>` would erroneously see ancestor HTML elements as
+            // in-scope and close them. The symmetric SVG boundaries
+            // (foreignObject / desc / title) are intentionally not
+            // added here; they're modelled elsewhere as integration
+            // points and adding them to scope changed too many other
+            // table/SVG tests in the wrong direction.
+            if ($el->namespaceURI === Document::MATHML_NS
+                && in_array($el->localName, self::MATHML_SCOPE_BOUNDARIES, true)
+            ) {
                 return false;
             }
         }
