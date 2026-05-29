@@ -882,6 +882,21 @@ final class TreeBuilder
             return;
         }
 
+        // WHATWG §13.2.6.4.7 — start tags that are only valid
+        // inside specific table / colgroup / head contexts are
+        // a parse error and dropped silently when seen in InBody.
+        // Without this, a stray `<col>` or `<tr>` outside its
+        // proper container would be inserted as a body-level
+        // element. (head is here because `<head>` is only ever
+        // valid as the very first element, and a stray reappearance
+        // mid-document is the spec's parse-error case.)
+        if (in_array($tag, [
+            'caption', 'col', 'colgroup', 'frame', 'head',
+            'tbody', 'td', 'tfoot', 'th', 'thead', 'tr',
+        ], true)) {
+            return;
+        }
+
         // Block-level elements that close a currently open <p>.
         $closesParagraph = [
             'address', 'article', 'aside', 'blockquote', 'center', 'details', 'dialog',
