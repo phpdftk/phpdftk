@@ -9,7 +9,6 @@
 # the parser doesn't yet implement (adoption-agency variants, foreign-
 # content cdata, template + plaintext quirks, entity-tokenizer edge cases,
 # and a handful of feature gaps).
-tree-construction/template:#102:<body><table><tr><td><select><template>Foo</template><captio: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#45:<select><button><selectedcontent></button><option>X: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#46:<select><button><selectedcontent></button><option>x<i>i<b>ib: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/webkit02:#47:<select><button><selectedcontent></button><option>X<option>Y: Phase-2 follow-up — html5lib-tests deferred case

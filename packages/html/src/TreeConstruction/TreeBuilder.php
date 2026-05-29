@@ -3505,6 +3505,25 @@ final class TreeBuilder
             // Phase 1B.3 simplification: ignore the "last" flag from the
             // fragment-parsing case (no fragment parsing yet).
             if ($name === 'select') {
+                // Per WHATWG §13.2.4.1 step 4 — walk ancestors of
+                // the select. If a `<table>` ancestor is found
+                // before hitting a `<template>` (which would limit
+                // the search to the template content), use the
+                // table-aware select mode.
+                for ($j = $i - 1; $j >= 0; $j--) {
+                    $ancestor = $items[$j];
+                    if ($ancestor->localName === 'template'
+                        && $ancestor->namespaceURI === Document::HTML_NS
+                    ) {
+                        break;
+                    }
+                    if ($ancestor->localName === 'table'
+                        && $ancestor->namespaceURI === Document::HTML_NS
+                    ) {
+                        $this->insertionMode = InsertionMode::InSelectInTable;
+                        return;
+                    }
+                }
                 $this->insertionMode = InsertionMode::InSelect;
                 return;
             }
