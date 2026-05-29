@@ -1966,7 +1966,12 @@ final class TreeBuilder
             }
         }
 
-        // From i forward: clone and re-insert each entry.
+        // From i forward: clone and re-insert each entry. Route
+        // through `appropriatePlaceForInserting` so foster parenting
+        // applies — when reconstruction fires during table-context
+        // character buffering (`InTableText` flush) the clone needs
+        // to land before the table, not inside the still-current
+        // tbody/tr/td that survived adoption-agency cleanup.
         for (; $i < count($entries); $i++) {
             $entry = $entries[$i];
             if ($entry === null) {
@@ -1976,8 +1981,12 @@ final class TreeBuilder
             foreach ($entry->attributes() as $attr) {
                 $clone->setAttributeNode($attr);
             }
-            $current = $this->openElements->currentNode();
-            ($current ?? $this->document)->appendChild($clone);
+            [$parent, $before] = $this->appropriatePlaceForInserting();
+            if ($before !== null) {
+                $parent->insertBefore($clone, $before);
+            } else {
+                $parent->appendChild($clone);
+            }
             $this->openElements->push($clone);
             $this->activeFormatting->replace($entry, $clone);
         }
