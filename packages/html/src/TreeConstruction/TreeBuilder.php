@@ -769,13 +769,76 @@ final class TreeBuilder
         }
 
         if ($tag === 'form') {
-            if ($this->formElement !== null) {
-                return; // parse error
+            // WHATWG §13.2.6.4.7 — if there is a form pointer set,
+            // ignore the token (unless a `<template>` is on the
+            // open-elements stack, in which case the form pointer
+            // is scoped to the template's content fragment and the
+            // outer document can still nest another form).
+            $hasTemplateOnStack = false;
+            foreach ($this->openElements->items() as $el) {
+                if ($el->localName === 'template' && $el->namespaceURI === Document::HTML_NS) {
+                    $hasTemplateOnStack = true;
+                    break;
+                }
+            }
+            if ($this->formElement !== null && !$hasTemplateOnStack) {
+                return; // parse error — second <form> at top level is ignored
             }
             if ($this->openElements->hasInButtonScope('p')) {
                 $this->closePElement();
             }
-            $this->formElement = $this->insertHtmlElement($token);
+            $newForm = $this->insertHtmlElement($token);
+            if (!$hasTemplateOnStack) {
+                $this->formElement = $newForm;
+            }
+            return;
+        }
+
+        // WHATWG §13.2.6.4.7 — A start tag whose tag name is
+        // "button". If `<button>` is already in scope, the spec
+        // closes it (generate implied end tags, pop until popped)
+        // BEFORE inserting the new one. Without this, repeated
+        // `<button>` tags would nest, since `<button>` isn't on
+        // the special-element list that's auto-closed elsewhere.
+        if ($tag === 'button') {
+            if ($this->openElements->hasInScope('button')) {
+                $this->openElements->generateImpliedEndTags();
+                $this->openElements->popUntilLocalName('button');
+            }
+            $this->reconstructActiveFormatting();
+            $this->insertHtmlElement($token);
+            $this->framesetOk = false;
+            return;
+        }
+
+        // WHATWG §13.2.6.4.7 — `<option>` and `<optgroup>` in
+        // InBody auto-close a preceding `<option>` (and `<optgroup>`
+        // closes a preceding `<optgroup>` too). This is the InBody
+        // mode flavour; InSelect has its own option/optgroup
+        // handlers and is unaffected.
+        if ($tag === 'optgroup') {
+            $current = $this->openElements->currentNode();
+            if ($current !== null && $current->localName === 'option'
+                && $current->namespaceURI === Document::HTML_NS) {
+                $this->openElements->pop();
+            }
+            $current = $this->openElements->currentNode();
+            if ($current !== null && $current->localName === 'optgroup'
+                && $current->namespaceURI === Document::HTML_NS) {
+                $this->openElements->pop();
+            }
+            $this->reconstructActiveFormatting();
+            $this->insertHtmlElement($token);
+            return;
+        }
+        if ($tag === 'option') {
+            $current = $this->openElements->currentNode();
+            if ($current !== null && $current->localName === 'option'
+                && $current->namespaceURI === Document::HTML_NS) {
+                $this->openElements->pop();
+            }
+            $this->reconstructActiveFormatting();
+            $this->insertHtmlElement($token);
             return;
         }
 
