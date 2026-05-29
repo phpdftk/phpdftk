@@ -34,6 +34,7 @@ composer.phar
 # scripts under examples/ are the source of truth; the .pdf outputs are
 # regenerated in CI before the docs build.
 /docs/site/public/samples/
+/examples/**/*.pdf
 
 # phpDocumentor
 .phpdoc/
