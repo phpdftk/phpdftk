@@ -11,9 +11,6 @@
 # and a handful of feature gaps).
 tree-construction/adoption01:#6:<table><a>1<p>2</a>3</p>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/adoption01:#11:<table><a>1<td>2</td>3</table>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/domjs-unsafe:#1:<svg><![CDATA[foo\nbar]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/domjs-unsafe:#2:<svg><![CDATA[foo\nbar]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/domjs-unsafe:#3:<svg><![CDATA[foo\nbar]]>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/entities01:#5:I'm &notit; I tell you: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/entities02:#14:<div bar="ZZ&pound_id=23"></div>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/entities02:#20:<div>ZZ&pound_id=23</div>: Phase-2 follow-up — html5lib-tests deferred case
@@ -35,7 +32,6 @@ tree-construction/plain-text-unsafe:#5:<html>
 tree-construction/plain-text-unsafe:#6:<html>
 tree-construction/plain-text-unsafe:#8:
 tree-construction/plain-text-unsafe:#9:<body>
-tree-construction/plain-text-unsafe:#11:<svg><![CDATA[
 tree-construction/plain-text-unsafe:#14:<body><svg><foreignObject>
 tree-construction/plain-text-unsafe:#24:<!DOCTYPE html><pre>\n\nA</pre>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/plain-text-unsafe:#25:<!DOCTYPE html><pre>\n\nA</pre>: Phase-2 follow-up — html5lib-tests deferred case
@@ -158,27 +154,6 @@ tree-construction/tests20:#42:<p><table></p>: Phase-2 follow-up — html5lib-tes
 tree-construction/tests20:#47:<!doctype html><table><form><form>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests20:#48:<!doctype html><table><form></table><form>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests20:#52:<option><option>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#1:<svg><![CDATA[foo]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#2:<math><![CDATA[foo]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#4:<svg><![CDATA[foo: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#5:<svg><![CDATA[: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#6:<svg><![CDATA[]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#7:<svg><![CDATA[]] >]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#8:<svg><![CDATA[]]: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#9:<svg><![CDATA[]: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#10:<svg><![CDATA[]>a: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#11:<!DOCTYPE html><svg><![CDATA[foo]]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#12:<!DOCTYPE html><svg><![CDATA[foo]]]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#13:<!DOCTYPE html><svg><![CDATA[foo]]]]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#15:<svg><![CDATA[<svg>]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#16:<svg><![CDATA[</svg>a]]>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#17:<svg><![CDATA[<svg>a: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#18:<svg><![CDATA[</svg>a: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#19:<svg><![CDATA[<svg>]]><path>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#20:<svg><![CDATA[<svg>]]></path>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#21:<svg><![CDATA[<svg>]]><!--path-->: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#22:<svg><![CDATA[<svg>]]>path: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests21:#23:<svg><![CDATA[<!--svg-->]]>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests23:#5:<p><b id=a><b id=a><b id=a><b><object><b id=a><b id=a>X</obj: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests24:#1:<!DOCTYPE html>&NotEqualTilde;: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests24:#2:<!DOCTYPE html>&NotEqualTilde;A: Phase-2 follow-up — html5lib-tests deferred case

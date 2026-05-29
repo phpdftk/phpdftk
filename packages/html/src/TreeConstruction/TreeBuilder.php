@@ -185,15 +185,38 @@ final class TreeBuilder
     {
         // Pull one token at a time so we can mutate the tokenizer state
         // between tokens — e.g. switching to RCDATA when we see <title>,
-        // RAWTEXT for <style>, ScriptData for <script>.
+        // RAWTEXT for <style>, ScriptData for <script>. We also sync
+        // the tokenizer's `inForeignContent` flag at each step so the
+        // MarkupDeclarationOpen state knows when to treat `<![CDATA[`
+        // as a real CDATA section (foreign content) vs a bogus comment
+        // (HTML content).
         $this->activeTokenizer = $tokenizer;
-        while (($token = $tokenizer->nextToken()) !== null) {
+        while (true) {
+            $tokenizer->inForeignContent = $this->isCurrentNodeForeign();
+            $token = $tokenizer->nextToken();
+            if ($token === null) {
+                break;
+            }
             $this->dispatch($token, $tokenizer);
             if ($this->done) {
                 break;
             }
         }
         return $this->document;
+    }
+
+    /**
+     * True when the adjusted current node is in a non-HTML namespace
+     * (SVG or MathML). Used to keep the tokenizer's CDATA-recognition
+     * gate aligned with the tree builder's foreign-content state.
+     */
+    private function isCurrentNodeForeign(): bool
+    {
+        $current = $this->adjustedCurrentNode();
+        if ($current === null) {
+            return false;
+        }
+        return $current->namespaceURI !== Document::HTML_NS;
     }
 
     private function dispatch(Token $token, Tokenizer $tokenizer): void
