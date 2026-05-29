@@ -3140,6 +3140,12 @@ final class TreeBuilder
                 if ($current !== null && $current->localName === 'option') {
                     $this->openElements->pop();
                 }
+                // Reconstruct AFE first — under customizable-select
+                // a formatting element that was opened inside the
+                // select but unwound by an end tag (e.g. `</div>`
+                // implicitly closing an enclosing `<i>`) needs to
+                // be re-instantiated around the upcoming option.
+                $this->reconstructActiveFormatting();
                 $this->insertHtmlElement($token);
                 return;
             }
@@ -3152,6 +3158,7 @@ final class TreeBuilder
                 if ($current !== null && $current->localName === 'optgroup') {
                     $this->openElements->pop();
                 }
+                $this->reconstructActiveFormatting();
                 $this->insertHtmlElement($token);
                 return;
             }
@@ -3325,7 +3332,37 @@ final class TreeBuilder
                 $this->modeInHead($token, $this->activeTokenizer ?? new Tokenizer(''));
                 return;
             }
-            return; // parse error, ignore
+            // Customizable-select fallback: end tags for elements
+            // that the expanded "any other start tag" rule now nests
+            // inside the select need to close their matching open
+            // element. Restrict the InBody handoff to cases where
+            // the matching element is between the top of the stack
+            // and the open `<select>` (i.e. inside the select). For
+            // elements OUTSIDE the select (e.g. `</font>` from
+            // `<font><select>...</font>`), keep the historical
+            // parse-error / ignore behaviour — running adoption
+            // agency across a select boundary would re-wrap the
+            // whole subtree.
+            $items = $this->openElements->items();
+            $matchInsideSelect = false;
+            for ($i = array_key_last($items); $i !== null && $i >= 0; $i--) {
+                $node = $items[$i];
+                if ($node->namespaceURI !== Document::HTML_NS) {
+                    continue;
+                }
+                if ($node->localName === 'select') {
+                    break;
+                }
+                if ($node->localName === $tag) {
+                    $matchInsideSelect = true;
+                    break;
+                }
+            }
+            if (!$matchInsideSelect) {
+                return; // parse error, ignore
+            }
+            $this->modeInBodyEndTag($token);
+            return;
         }
         if ($token instanceof EofToken) {
             $this->modeInBody($token, $this->activeTokenizer ?? new Tokenizer(''));
