@@ -617,27 +617,115 @@ final class Translator
         );
         $size = $text->fontSize() ?? 16.0;
 
-        // 3P uses only the first entry of the x / y lists — per-glyph
-        // positioning lands later. `Td` is enough for the common case
-        // of `<text x="…" y="…">…</text>`.
+        // SVG 2 §11.6 list-valued positioning. `<text x="10 20 30">ABC</text>`
+        // positions each glyph individually. When any list has > 1 entry
+        // the painter walks character-by-character; otherwise it falls
+        // through to the cheaper single-Tj path. Single-value rotate
+        // also takes the per-glyph code path so the rotation lands in
+        // the text matrix.
         $xList = $text->x();
         $yList = $text->y();
-        $x = $xList[0] ?? 0.0;
-        $y = $yList[0] ?? 0.0;
+        $rotateList = $text->rotate();
+        $perGlyph = count($xList) > 1
+            || count($yList) > 1
+            || $rotateList !== [];
 
         $stream->beginText()->setFont($font, $size);
-        if ($this->compensateTextFlip) {
-            // Under an outer Y-flip CTM (`SvgRenderer::draw` applies
-            // one), `Td` would render glyphs upside-down. Setting Tm
-            // with `d = -1` flips text space so the combined
-            // `Tm · CTM` cancels the outer flip and glyphs render
-            // upright at the SVG-stated baseline.
-            $stream->setTextMatrix(1.0, 0.0, 0.0, -1.0, $x, $y);
+        if (!$perGlyph) {
+            $x = $xList[0] ?? 0.0;
+            $y = $yList[0] ?? 0.0;
+            if ($this->compensateTextFlip) {
+                // Under an outer Y-flip CTM (`SvgRenderer::draw` applies
+                // one), `Td` would render glyphs upside-down. Setting Tm
+                // with `d = -1` flips text space so the combined
+                // `Tm · CTM` cancels the outer flip and glyphs render
+                // upright at the SVG-stated baseline.
+                $stream->setTextMatrix(1.0, 0.0, 0.0, -1.0, $x, $y);
+            } else {
+                $stream->moveTextPosition($x, $y);
+            }
+            $stream->showText($content);
         } else {
-            $stream->moveTextPosition($x, $y);
+            $this->paintTextPerGlyph($content, $xList, $yList, $rotateList, $stream);
         }
-        $stream->showText($content);
         $stream->endText();
+    }
+
+    /**
+     * Per-glyph positioning per SVG 2 §11.6: walk content character-by-
+     * character, emit one `Tm` per explicitly-positioned glyph, then
+     * batch the remaining characters as a single `Tj` so their natural
+     * advance handles the trailing positioning.
+     *
+     * Sticky semantics: when a glyph specifies `x[i]` but not `y[i]`
+     * (or vice-versa), the unspecified component carries over from the
+     * previous glyph's position. SVG 2 actually defines this as "the
+     * previous glyph's effective position" which requires knowing the
+     * per-glyph advance — we don't have font metrics here at 3R+5, so
+     * we use the last explicit value instead. The result is correct
+     * for the common case where `x` and `y` have matching lengths.
+     *
+     * @param list<float> $xList
+     * @param list<float> $yList
+     * @param list<float> $rotateList
+     */
+    private function paintTextPerGlyph(
+        string $content,
+        array $xList,
+        array $yList,
+        array $rotateList,
+        ContentStream $stream,
+    ): void {
+        $chars = mb_str_split($content);
+        if ($chars === []) {
+            return;
+        }
+        $explicitCount = max(count($xList), count($yList), count($rotateList));
+        $stickyX = $xList[0] ?? 0.0;
+        $stickyY = $yList[0] ?? 0.0;
+        $stickyRotate = $rotateList[0] ?? 0.0;
+
+        $emitted = 0;
+        foreach ($chars as $i => $char) {
+            if ($i >= $explicitCount) {
+                break;
+            }
+            $stickyX = $xList[$i] ?? $stickyX;
+            $stickyY = $yList[$i] ?? $stickyY;
+            $stickyRotate = $rotateList[$i] ?? $stickyRotate;
+
+            $this->emitTextMatrix($stickyX, $stickyY, $stickyRotate, $stream);
+            $stream->showText($char);
+            $emitted++;
+        }
+        if ($emitted < count($chars)) {
+            // Remaining glyphs ride the auto-advance from the last
+            // positioned glyph — emit them as a single `Tj` so the
+            // PDF reader inter-glyph kerning still applies.
+            $stream->showText(implode('', array_slice($chars, $emitted)));
+        }
+    }
+
+    /**
+     * Set the text matrix for a single positioned glyph. Combines the
+     * per-glyph rotation with the optional outer-flip compensation
+     * established by `SvgRenderer::draw`. Algebra:
+     *
+     *  Without flip: Tm = T(x,y) · R(θ) = [cosθ sinθ -sinθ cosθ x y]
+     *  With    flip: Tm = T(x,y) · F · R(θ) = [cosθ sinθ sinθ -cosθ x y]
+     *
+     * where `F = [1 0 0 -1 0 0]` is the y-axis flip.
+     */
+    private function emitTextMatrix(float $x, float $y, float $rotateDegrees, ContentStream $stream): void
+    {
+        $rad = deg2rad($rotateDegrees);
+        $cos = cos($rad);
+        $sin = sin($rad);
+        if ($this->compensateTextFlip) {
+            $stream->setTextMatrix($cos, $sin, $sin, -$cos, $x, $y);
+        } else {
+            $stream->setTextMatrix($cos, $sin, -$sin, $cos, $x, $y);
+        }
     }
 
     /**
