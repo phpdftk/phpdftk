@@ -157,6 +157,9 @@ final class Parser
             'defs' => new Defs(),
             'symbol' => new Symbol(),
             'use' => new Use_(),
+            'clipPath' => new ClipPath(),
+            'mask' => new Mask(),
+            'image' => new Image(),
             default => new GenericElement($localName),
         };
     }
