@@ -1601,9 +1601,9 @@ final class TreeBuilder
      *
      * @return array{0: Node, 1: ?Node} parent + optional reference sibling
      */
-    private function appropriatePlaceForInserting(): array
+    private function appropriatePlaceForInserting(?Element $overrideTarget = null): array
     {
-        $target = $this->openElements->currentNode() ?? $this->document;
+        $target = $overrideTarget ?? ($this->openElements->currentNode() ?? $this->document);
         // Template redirection: inserted children flow into the template's
         // content fragment (DocumentFragment for normal templates, ShadowRoot
         // for declarative shadow DOM) rather than into the template element
@@ -1861,14 +1861,26 @@ final class TreeBuilder
                 $node = $newNode;
             }
 
-            // 4o: insert lastNode under common ancestor (foster-parented if applicable).
+            // 4o: insert lastNode under common ancestor — but route
+            // through `appropriatePlaceForInserting` with commonAncestor
+            // as the override target so foster parenting fires when
+            // commonAncestor is itself a table-context element. Without
+            // this, `<table><a>1<p>2</a>` keeps the cloned `<a>` (with
+            // "2") inside the still-open `<table>` instead of foster-
+            // parenting it before the table (where the spec puts it
+            // because the override target is a table).
             if ($lastNode->parentNode !== null) {
                 $lastNode->parentNode->removeChild($lastNode);
             }
-            // Use appropriatePlaceForInserting via override: we want $commonAncestor as target.
-            // Foster-parenting only applies when commonAncestor is a table-context element AND
-            // we're in a table-related mode. Phase 1B.3-bis simplification: append directly.
-            $commonAncestor->appendChild($lastNode);
+            $previousFoster = $this->fosterParenting;
+            $this->fosterParenting = true;
+            [$lnParent, $lnBefore] = $this->appropriatePlaceForInserting($commonAncestor);
+            $this->fosterParenting = $previousFoster;
+            if ($lnBefore !== null) {
+                $lnParent->insertBefore($lastNode, $lnBefore);
+            } else {
+                $lnParent->appendChild($lastNode);
+            }
 
             // 4p: create new element for formatting element's token.
             $newFormatting = $this->document->createElement($formattingElement->localName);
