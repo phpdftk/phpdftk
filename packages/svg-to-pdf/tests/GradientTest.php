@@ -48,6 +48,27 @@ final class GradientTest extends TestCase
         ];
     }
 
+    /**
+     * Helper that runs the painter with stream compression disabled so
+     * the gradient's Pattern dict — including its `/Matrix` and the
+     * Shading's `/Coords` — is visible in the byte stream for
+     * grepping.
+     *
+     * @return array{ops: string, bytes: string}
+     */
+    private function paintUncompressed(string $svg): array
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage();
+        $stream = $writer->addContentStream($page);
+        $doc = $this->svgParser->parse($svg);
+        $this->translator->paint($doc, $stream, $page, $writer);
+        return [
+            'ops' => implode("\n", $stream->getOperators()),
+            'bytes' => $writer->toBytes(),
+        ];
+    }
+
     public function testLinearGradientFillEmitsPatternColorSpaceAndShading(): void
     {
         $result = $this->paintWithWriter(
@@ -179,5 +200,81 @@ final class GradientTest extends TestCase
             . '</svg>',
         );
         self::assertStringContainsString('/ShadingType 2', $result['bytes']);
+    }
+
+    public function testGradientTransformIsBakedIntoPatternMatrix(): void
+    {
+        // `gradientTransform` maps gradient (pattern) space to user
+        // space — exactly what the PDF pattern `/Matrix` entry does.
+        // The painter sets it from the 3C-derived 3×2 affine matrix.
+        $result = $this->paintUncompressed(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" '
+            . 'x1="0" y1="0" x2="100" y2="0" '
+            . 'gradientTransform="rotate(45)">'
+            . '<stop offset="0" stop-color="red"/>'
+            . '<stop offset="1" stop-color="blue"/>'
+            . '</linearGradient></defs>'
+            . '<rect width="100" height="50" fill="url(#g)"/>'
+            . '</svg>',
+        );
+        // rotate(45) → [cos, sin, -sin, cos, 0, 0] ≈ [0.707..., 0.707..., -0.707..., 0.707..., 0, 0].
+        self::assertMatchesRegularExpression(
+            '!/Matrix \[ 0\.707\d+ 0\.707\d+ -0\.707\d+ 0\.707\d+ 0 0 \]!',
+            $result['bytes'],
+        );
+    }
+
+    public function testGradientTransformAbsentEmitsNoMatrixEntry(): void
+    {
+        // No `gradientTransform` → no `/Matrix` in the pattern dict
+        // (PDF default = identity).
+        $result = $this->paintUncompressed(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" '
+            . 'x1="0" y1="0" x2="100" y2="0">'
+            . '<stop offset="0" stop-color="red"/>'
+            . '<stop offset="1" stop-color="blue"/>'
+            . '</linearGradient></defs>'
+            . '<rect width="100" height="50" fill="url(#g)"/>'
+            . '</svg>',
+        );
+        // ShadingPattern only emits `/Matrix` when set; absent
+        // gradientTransform leaves the dict without the key.
+        self::assertStringNotContainsString('/Matrix', $result['bytes']);
+    }
+
+    public function testRadialFocalPointReachesInnerCircle(): void
+    {
+        // `fx` / `fy` / `fr` lower into PDF ShadingType 3's `/Coords`
+        // array as the first three numbers (inner circle).
+        $result = $this->paintUncompressed(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><radialGradient id="r" gradientUnits="userSpaceOnUse" '
+            . 'cx="50" cy="50" r="40" fx="30" fy="35" fr="5">'
+            . '<stop offset="0" stop-color="red"/>'
+            . '<stop offset="1" stop-color="blue"/>'
+            . '</radialGradient></defs>'
+            . '<rect width="100" height="100" fill="url(#r)"/>'
+            . '</svg>',
+        );
+        // ShadingType 3 Coords: [fx fy fr cx cy r].
+        self::assertStringContainsString('/Coords [ 30 35 5 50 50 40 ]', $result['bytes']);
+    }
+
+    public function testRadialFocalPointDefaultsToCentre(): void
+    {
+        // Per SVG 2 §13.7.5, absent fx/fy default to cx/cy and fr to 0.
+        $result = $this->paintUncompressed(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><radialGradient id="r" gradientUnits="userSpaceOnUse" '
+            . 'cx="60" cy="40" r="30">'
+            . '<stop offset="0" stop-color="red"/>'
+            . '<stop offset="1" stop-color="blue"/>'
+            . '</radialGradient></defs>'
+            . '<rect width="100" height="100" fill="url(#r)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString('/Coords [ 60 40 0 60 40 30 ]', $result['bytes']);
     }
 }

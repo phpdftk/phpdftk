@@ -8,6 +8,8 @@ use Phpdftk\Color\RgbColor;
 use Phpdftk\Geometry\Point;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfNumber;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfDoc;
 use Phpdftk\Pdf\Writer\PdfWriter;
@@ -17,6 +19,7 @@ use Phpdftk\Svg\Gradient\LinearGradient;
 use Phpdftk\Svg\Gradient\RadialGradient;
 use Phpdftk\Svg\Gradient\Stop;
 use Phpdftk\Svg\SvgDocument;
+use Phpdftk\Svg\Value\Transform;
 use Phpdftk\SvgToPdf\Geometry\BoundingBox;
 
 /**
@@ -108,11 +111,37 @@ final class GradientPainter
             }
         }
         $doc = PdfDoc::wrap($this->writer);
-        return match (true) {
+        $pattern = match (true) {
             $gradient instanceof LinearGradient => $this->registerLinear($gradient, $stops, $bbox, $doc),
             $gradient instanceof RadialGradient => $this->registerRadial($gradient, $stops, $bbox, $doc),
             default => null,
         };
+        if ($pattern !== null) {
+            self::applyGradientTransform($pattern, $gradient->gradientTransform());
+        }
+        return $pattern;
+    }
+
+    /**
+     * Bake the SVG `gradientTransform` attribute into the PDF
+     * `ShadingPattern`'s `Matrix` entry. PDF pattern Matrix maps
+     * pattern space (where `Coords` live) to user space, which is
+     * exactly the SVG-2 §13.6.5 semantic for `gradientTransform`.
+     */
+    private static function applyGradientTransform(ShadingPattern $pattern, ?Transform $transform): void
+    {
+        if ($transform === null) {
+            return;
+        }
+        $matrix = $transform->toMatrix();
+        $pattern->matrix = new PdfArray([
+            new PdfNumber($matrix[0]),
+            new PdfNumber($matrix[1]),
+            new PdfNumber($matrix[2]),
+            new PdfNumber($matrix[3]),
+            new PdfNumber($matrix[4]),
+            new PdfNumber($matrix[5]),
+        ]);
     }
 
     /**
@@ -156,12 +185,14 @@ final class GradientPainter
         PdfDoc $doc,
     ): ShadingPattern {
         // SVG 2 §13.7.5 defaults — cx, cy, r default to 50% / 50% / 50%
-        // in the resolution mode's coordinate space. `fx`/`fy`/`fr`
-        // focal control deferred at 3O; we use (cx, cy) / 0 for the
-        // inner circle.
+        // in the resolution mode's coordinate space. `fx` / `fy`
+        // default to the centre point; `fr` defaults to 0.
         $cx = $gradient->cx() ?? ($bbox !== null ? 0.5 : 0.0);
         $cy = $gradient->cy() ?? ($bbox !== null ? 0.5 : 0.0);
         $r = $gradient->r() ?? ($bbox !== null ? 0.5 : 0.0);
+        $fx = $gradient->fx() ?? $cx;
+        $fy = $gradient->fy() ?? $cy;
+        $fr = $gradient->fr() ?? 0.0;
         if ($r <= 0.0) {
             // Zero-radius radial paints nothing; return a shading that
             // produces transparent output. Simpler: bail and let
@@ -171,16 +202,20 @@ final class GradientPainter
         if ($bbox !== null) {
             $cx = $bbox['minX'] + $cx * $bbox['width'];
             $cy = $bbox['minY'] + $cy * $bbox['height'];
+            $fx = $bbox['minX'] + $fx * $bbox['width'];
+            $fy = $bbox['minY'] + $fy * $bbox['height'];
             // SVG specifies `r` against the bbox diagonal scaled by
-            // `√2/2` (the "user space units" mapping). At 3O we use
+            // `√2/2` (the "user space units" mapping). At 3O we used
             // the larger axis as a conservative approximation — the
             // gradient still emanates from the centre, scaled to
-            // cover the bbox.
-            $r *= max($bbox['width'], $bbox['height']);
+            // cover the bbox. `fr` rides on the same factor.
+            $axis = max($bbox['width'], $bbox['height']);
+            $r *= $axis;
+            $fr *= $axis;
         }
         return $doc->addRadialGradientStops(
-            new Point($cx, $cy),
-            0.0,
+            new Point($fx, $fy),
+            max(0.0, $fr),
             new Point($cx, $cy),
             $r,
             $stops,
