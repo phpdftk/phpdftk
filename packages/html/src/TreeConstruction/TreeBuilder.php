@@ -595,16 +595,23 @@ final class TreeBuilder
                 'base', 'basefont', 'bgsound', 'link', 'meta', 'noframes',
                 'script', 'style', 'template', 'title',
             ], true)) {
-                // Parse error, but reprocess in InHead.
+                // WHATWG §13.2.6.4.6 — parse error. Push the head
+                // pointer back onto the stack, process the token in
+                // InHead, then pop the head pointer off (it may not
+                // be the current node by now if InHead pushed
+                // something on top). Crucially, we don't snap the
+                // insertion mode back to AfterHead afterwards —
+                // InHead may have switched to Text mode (for
+                // `<script>`/`<style>`/`<title>` RCDATA/RAWTEXT)
+                // and forcing AfterHead here would skip the
+                // matching end-tag handling for that content.
                 if ($this->headElement !== null) {
                     $this->openElements->push($this->headElement);
                 }
-                $this->insertionMode = InsertionMode::InHead;
-                $this->reprocess($token);
+                $this->modeInHead($token, $this->activeTokenizer ?? new Tokenizer(''));
                 if ($this->headElement !== null) {
                     $this->openElements->remove($this->headElement);
                 }
-                $this->insertionMode = InsertionMode::AfterHead;
                 return;
             }
             if ($token->tagName === 'head') {
