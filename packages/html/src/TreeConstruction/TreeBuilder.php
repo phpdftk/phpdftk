@@ -1318,11 +1318,18 @@ final class TreeBuilder
 
         if ($tag === 'p') {
             if (!$this->openElements->hasInButtonScope('p')) {
-                // Per spec: insert an implicit <p>, then close it.
-                $p = $this->document->createElement('p');
-                $current = $this->openElements->currentNode();
-                ($current ?? $this->document)->appendChild($p);
-                $this->openElements->push($p);
+                // Per spec: synthesise an empty `<p>` start tag and
+                // reprocess it. Route through `insertHtmlElement`
+                // (with a synthetic StartTagToken) so the insertion
+                // honours `appropriatePlaceForInserting` — this is
+                // what makes `<p><table></p>` foster-parent the
+                // synthesised `<p>` next to (rather than inside)
+                // the table. Previously this appended directly to
+                // the current node, which buried the new `<p>`
+                // inside the table.
+                $synthetic = new StartTagToken();
+                $synthetic->tagName = 'p';
+                $this->insertHtmlElement($synthetic);
             }
             $this->closePElement();
             return;
@@ -2785,14 +2792,29 @@ final class TreeBuilder
         }
         if ($token instanceof EndTagToken) {
             $tag = $token->tagName;
-            // WHATWG §13.2.6.5 — `</br>` in foreign content is a
-            // parse error that re-runs as a synthesised `<br>` start
-            // tag (which IS in the breakout list, so processing pops
-            // back into HTML).
-            if ($tag === 'br') {
-                $synthetic = new StartTagToken();
-                $synthetic->tagName = 'br';
-                $this->modeInForeignContent($synthetic);
+            // WHATWG §13.2.6.5 — `</br>` and `</p>` in foreign
+            // content are special: pop foreign elements until the
+            // current node is HTML / an integration point, then
+            // reprocess the token. `</br>` additionally runs as
+            // a synthesised `<br>` start tag in HTML.
+            if ($tag === 'br' || $tag === 'p') {
+                while (!$this->openElements->isEmpty()) {
+                    $top = $this->openElements->currentNode();
+                    if ($top === null) {
+                        break;
+                    }
+                    if ($top->namespaceURI === Document::HTML_NS) {
+                        break;
+                    }
+                    $this->openElements->pop();
+                }
+                if ($tag === 'br') {
+                    $synthetic = new StartTagToken();
+                    $synthetic->tagName = 'br';
+                    $this->dispatch($synthetic, $this->activeTokenizer ?? new Tokenizer(''));
+                } else {
+                    $this->dispatch($token, $this->activeTokenizer ?? new Tokenizer(''));
+                }
                 return;
             }
             $items = $this->openElements->items();

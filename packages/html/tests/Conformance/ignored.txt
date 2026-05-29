@@ -54,13 +54,10 @@ tree-construction/tests19:#91:<!doctype html><table><i>a<b>b<div>c<a>d</i>e</b>f
 tree-construction/tests19:#93:<!doctype html><table><i>a<b>b<div>c</i>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#94:<!doctype html><table><i>a<div>b<tr>c<b>d</i>e: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests19:#95:<!doctype html><table><td><table><i>a<div>b<b>c</i>d: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests20:#42:<p><table></p>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests20:#47:<!doctype html><table><form><form>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests20:#48:<!doctype html><table><form></table><form>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests23:#5:<p><b id=a><b id=a><b id=a><b><object><b id=a><b id=a>X</obj: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests26:#3:<!DOCTYPE html><body><b><nobr>1<table><nobr></b><i><nobr>2<n: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests26:#17:<svg></p><foo>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/tests26:#19:<math></p><foo>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests7:#31:<table><b><tr><td>aaa</td></tr>bbb</table>ccc: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests7:#34:<select><keygen>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests9:#6:<!DOCTYPE html><body><select><option><math></math></option><: Phase-2 follow-up — html5lib-tests deferred case
