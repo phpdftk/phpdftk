@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Phpdftk\Svg;
 
 use Phpdftk\Svg\Exception\InvalidSvgException;
+use Phpdftk\Svg\Shape\Circle;
+use Phpdftk\Svg\Shape\Ellipse;
+use Phpdftk\Svg\Shape\Line;
+use Phpdftk\Svg\Shape\Polygon;
+use Phpdftk\Svg\Shape\Polyline;
 use Phpdftk\Svg\Shape\Rect;
 
 /**
@@ -137,6 +142,11 @@ final class Parser
     {
         return match ($localName) {
             'rect' => new Rect(),
+            'circle' => new Circle(),
+            'ellipse' => new Ellipse(),
+            'line' => new Line(),
+            'polyline' => new Polyline(),
+            'polygon' => new Polygon(),
             default => new GenericElement($localName),
         };
     }

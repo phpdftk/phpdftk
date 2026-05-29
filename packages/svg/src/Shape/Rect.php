@@ -70,20 +70,4 @@ final class Rect extends Element
         }
         return null;
     }
-
-    private function parseLengthOrZero(string $attr): float
-    {
-        $raw = $this->getAttribute($attr);
-        if ($raw === null) {
-            return 0.0;
-        }
-        // SVG length grammar: optional sign, number (with optional
-        // fraction and exponent), optional unit (px/pt/mm/cm/in/pc/em
-        // /ex/%). Anything that isn't a valid number prefix returns
-        // 0.0 — the spec treats invalid lengths as the initial value.
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
-            return 0.0;
-        }
-        return (float) $m[1];
-    }
 }

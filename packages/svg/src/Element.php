@@ -61,4 +61,51 @@ abstract class Element extends Node
         }
         return $out;
     }
+
+    /**
+     * Read an SVG length attribute as a float, falling back to 0 when the
+     * attribute is absent OR doesn't start with a parseable number — per
+     * SVG 2's "invalid value → initial value" rule for `<length>`. Unit
+     * suffixes (`px`, `pt`, `mm`, `%`, …) are tolerated and ignored.
+     */
+    protected function parseLengthOrZero(string $attr): float
+    {
+        $raw = $this->attributes[$attr] ?? null;
+        if ($raw === null) {
+            return 0.0;
+        }
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
+            return 0.0;
+        }
+        return (float) $m[1];
+    }
+
+    /**
+     * Parse the `points` attribute grammar (SVG 2 §9.7) — a list of `(x, y)`
+     * coordinate pairs separated by comma-or-whitespace. Per spec, a malformed
+     * tail (odd count, non-numeric value) terminates parsing; pairs read
+     * before the error are kept.
+     *
+     * @return list<array{float, float}>
+     */
+    protected static function parsePoints(?string $raw): array
+    {
+        if ($raw === null || trim($raw) === '') {
+            return [];
+        }
+        $numberPattern = '[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?';
+        if (preg_match_all('/' . $numberPattern . '/', $raw, $m) === false) {
+            return [];
+        }
+        $values = $m[0];
+        if ($values === []) {
+            return [];
+        }
+        $pairs = [];
+        $count = (int) (count($values) / 2) * 2;
+        for ($i = 0; $i < $count; $i += 2) {
+            $pairs[] = [(float) $values[$i], (float) $values[$i + 1]];
+        }
+        return $pairs;
+    }
 }

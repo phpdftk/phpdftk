@@ -7,6 +7,11 @@ namespace Phpdftk\Svg\Tests;
 use Phpdftk\Svg\Exception\InvalidSvgException;
 use Phpdftk\Svg\GenericElement;
 use Phpdftk\Svg\Parser;
+use Phpdftk\Svg\Shape\Circle;
+use Phpdftk\Svg\Shape\Ellipse;
+use Phpdftk\Svg\Shape\Line;
+use Phpdftk\Svg\Shape\Polygon;
+use Phpdftk\Svg\Shape\Polyline;
 use Phpdftk\Svg\Shape\Rect;
 use Phpdftk\Svg\SvgDocument;
 use Phpdftk\Svg\Text;
@@ -143,14 +148,167 @@ final class ParserTest extends TestCase
     public function testUnknownElementBecomesGenericElement(): void
     {
         $doc = $this->parser->parse(
-            '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="25"/></svg>',
+            '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject x="0" y="0" width="100" height="100"/></svg>',
         );
         self::assertCount(1, $doc->children);
+        $node = $doc->children[0];
+        self::assertInstanceOf(GenericElement::class, $node);
+        self::assertSame('foreignObject', $node->localName);
+        self::assertSame('100', $node->getAttribute('width'));
+    }
+
+    public function testParsesCircle(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="60" r="25"/></svg>',
+        );
         $circle = $doc->children[0];
-        self::assertInstanceOf(GenericElement::class, $circle);
-        self::assertSame('circle', $circle->localName);
-        self::assertSame('50', $circle->getAttribute('cx'));
-        self::assertSame('25', $circle->getAttribute('r'));
+        self::assertInstanceOf(Circle::class, $circle);
+        self::assertSame(50.0, $circle->cx());
+        self::assertSame(60.0, $circle->cy());
+        self::assertSame(25.0, $circle->r());
+    }
+
+    public function testCircleDefaultsCxCyToZero(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>',
+        );
+        $circle = $doc->children[0];
+        self::assertInstanceOf(Circle::class, $circle);
+        self::assertSame(0.0, $circle->cx());
+        self::assertSame(0.0, $circle->cy());
+        self::assertSame(10.0, $circle->r());
+    }
+
+    public function testParsesEllipse(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="60" rx="30" ry="20"/></svg>',
+        );
+        $ellipse = $doc->children[0];
+        self::assertInstanceOf(Ellipse::class, $ellipse);
+        self::assertSame(50.0, $ellipse->cx());
+        self::assertSame(60.0, $ellipse->cy());
+        self::assertSame(30.0, $ellipse->rx());
+        self::assertSame(20.0, $ellipse->ry());
+    }
+
+    public function testEllipseRxFallsBackToRyAndViceVersa(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><ellipse rx="5"/></svg>',
+        );
+        $ellipse = $doc->children[0];
+        self::assertInstanceOf(Ellipse::class, $ellipse);
+        self::assertSame(5.0, $ellipse->rx());
+        self::assertSame(5.0, $ellipse->ry(), 'ry should fall back to rx when not set');
+    }
+
+    public function testEllipseRxRyNullWhenNeitherSet(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><ellipse cx="0" cy="0"/></svg>',
+        );
+        $ellipse = $doc->children[0];
+        self::assertInstanceOf(Ellipse::class, $ellipse);
+        self::assertNull($ellipse->rx());
+        self::assertNull($ellipse->ry());
+    }
+
+    public function testParsesLine(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="2" x2="3" y2="4"/></svg>',
+        );
+        $line = $doc->children[0];
+        self::assertInstanceOf(Line::class, $line);
+        self::assertSame(1.0, $line->x1());
+        self::assertSame(2.0, $line->y1());
+        self::assertSame(3.0, $line->x2());
+        self::assertSame(4.0, $line->y2());
+    }
+
+    public function testLineDefaultsAllCoordsToZero(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><line/></svg>',
+        );
+        $line = $doc->children[0];
+        self::assertInstanceOf(Line::class, $line);
+        self::assertSame(0.0, $line->x1());
+        self::assertSame(0.0, $line->y1());
+        self::assertSame(0.0, $line->x2());
+        self::assertSame(0.0, $line->y2());
+    }
+
+    public function testLineStripsUnitsFromCoords(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><line x1="10px" y1="20mm" x2="30em" y2="40%"/></svg>',
+        );
+        $line = $doc->children[0];
+        self::assertInstanceOf(Line::class, $line);
+        self::assertSame(10.0, $line->x1());
+        self::assertSame(20.0, $line->y1());
+        self::assertSame(30.0, $line->x2());
+        self::assertSame(40.0, $line->y2());
+    }
+
+    public function testParsesPolylinePointsCommaAndSpaceSeparated(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><polyline points="0,0 10,10 20 20, 30 30"/></svg>',
+        );
+        $poly = $doc->children[0];
+        self::assertInstanceOf(Polyline::class, $poly);
+        self::assertSame(
+            [[0.0, 0.0], [10.0, 10.0], [20.0, 20.0], [30.0, 30.0]],
+            $poly->points(),
+        );
+    }
+
+    public function testPolylineEmptyPointsAttributeYieldsEmptyList(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><polyline/></svg>',
+        );
+        $poly = $doc->children[0];
+        self::assertInstanceOf(Polyline::class, $poly);
+        self::assertSame([], $poly->points());
+    }
+
+    public function testPolylineOddCoordinateCountTrimsLastUnpaired(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><polyline points="1 2 3 4 5"/></svg>',
+        );
+        $poly = $doc->children[0];
+        self::assertInstanceOf(Polyline::class, $poly);
+        self::assertSame([[1.0, 2.0], [3.0, 4.0]], $poly->points());
+    }
+
+    public function testParsesPolygonPoints(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="0,0 50,0 50,50 0,50"/></svg>',
+        );
+        $poly = $doc->children[0];
+        self::assertInstanceOf(Polygon::class, $poly);
+        self::assertSame(
+            [[0.0, 0.0], [50.0, 0.0], [50.0, 50.0], [0.0, 50.0]],
+            $poly->points(),
+        );
+    }
+
+    public function testPolygonPointsAcceptsExponentNotation(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><polygon points="1e2,2e1 .5,-.5"/></svg>',
+        );
+        $poly = $doc->children[0];
+        self::assertInstanceOf(Polygon::class, $poly);
+        self::assertSame([[100.0, 20.0], [0.5, -0.5]], $poly->points());
     }
 
     public function testTextDataIsPreserved(): void
