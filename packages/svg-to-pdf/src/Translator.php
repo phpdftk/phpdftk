@@ -102,10 +102,12 @@ final class Translator
         ContentStream $stream,
         ?Page $page = null,
         ?PdfWriter $writer = null,
+        bool $compensateTextFlip = false,
     ): void {
         $this->page = $page;
         $this->writer = $writer;
         $this->document = $document;
+        $this->compensateTextFlip = $compensateTextFlip;
         $this->gradientPainter = $page !== null && $writer !== null
             ? new GradientPainter($writer, $page, $document)
             : null;
@@ -135,6 +137,7 @@ final class Translator
             $this->document = null;
             $this->gradientPainter = null;
             $this->fontResolver = null;
+            $this->compensateTextFlip = false;
         }
     }
 
@@ -143,6 +146,7 @@ final class Translator
     private ?SvgDocument $document = null;
     private ?GradientPainter $gradientPainter = null;
     private ?FontResolver $fontResolver = null;
+    private bool $compensateTextFlip = false;
 
     private function paintChildren(Element $parent, ContentStream $stream): void
     {
@@ -434,10 +438,18 @@ final class Translator
         $x = $xList[0] ?? 0.0;
         $y = $yList[0] ?? 0.0;
 
-        $stream->beginText()
-            ->setFont($font, $size)
-            ->moveTextPosition($x, $y)
-            ->showText($content);
+        $stream->beginText()->setFont($font, $size);
+        if ($this->compensateTextFlip) {
+            // Under an outer Y-flip CTM (`SvgRenderer::draw` applies
+            // one), `Td` would render glyphs upside-down. Setting Tm
+            // with `d = -1` flips text space so the combined
+            // `Tm · CTM` cancels the outer flip and glyphs render
+            // upright at the SVG-stated baseline.
+            $stream->setTextMatrix(1.0, 0.0, 0.0, -1.0, $x, $y);
+        } else {
+            $stream->moveTextPosition($x, $y);
+        }
+        $stream->showText($content);
         $stream->endText();
     }
 

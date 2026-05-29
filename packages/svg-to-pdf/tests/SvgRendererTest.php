@@ -48,37 +48,43 @@ final class SvgRendererTest extends TestCase
         );
         $ctx['renderer']->draw($svg, x: 50, y: 100);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // No scale needed → unit cm with translation at (50, 100).
-        self::assertStringContainsString('1 0 0 1 50 100 cm', $ops);
+        // No scale needed → unit cm with y-flip and translation that
+        // lands the SVG's top edge at PDF y = y + height = 100 + 100 = 200.
+        self::assertStringContainsString('1 0 0 -1 50 200 cm', $ops);
         self::assertStringContainsString('0 0 100 100 re', $ops);
     }
 
-    public function testExplicitDimensionsScaleSource(): void
+    public function testExplicitDimensionsScaleSourceWithPreserveAspectRatioNone(): void
     {
         $ctx = $this->renderer();
         $svg = $this->svgParser->parse(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
+            . 'preserveAspectRatio="none">'
             . '<rect width="100" height="100" fill="blue"/></svg>',
         );
         $ctx['renderer']->draw($svg, x: 50, y: 100, width: 200, height: 50);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // sx = 200/100 = 2, sy = 50/100 = 0.5.
-        self::assertStringContainsString('2 0 0 0.5 50 100 cm', $ops);
+        // preserveAspectRatio=none → independent axes. sx = 200/100 = 2,
+        // sy = 50/100 = 0.5; effectiveH = 0.5 * 100 = 50;
+        // f = 100 + 0 + 50 + 0 = 150.
+        self::assertStringContainsString('2 0 0 -0.5 50 150 cm', $ops);
     }
 
     public function testViewBoxOriginShiftIsHonoured(): void
     {
         $ctx = $this->renderer();
         $svg = $this->svgParser->parse(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -25 100 50">'
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -25 100 50" '
+            . 'preserveAspectRatio="none">'
             . '<rect x="-50" y="-25" width="100" height="50" fill="green"/>'
             . '</svg>',
         );
         $ctx['renderer']->draw($svg, x: 0, y: 0);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // srcMinX = -50, srcMinY = -25, scale 1 → translation at
-        // (0 - (-50 * 1), 0 - (-25 * 1)) = (50, 25).
-        self::assertStringContainsString('1 0 0 1 50 25 cm', $ops);
+        // srcMin = (-50, -25), scale 1, effectiveH = 50.
+        // e = 0 - (-50 * 1) = 50.
+        // f = 0 + 0 + 50 + (-25 * 1) = 25.
+        self::assertStringContainsString('1 0 0 -1 50 25 cm', $ops);
     }
 
     public function testWidthHeightAttributeFallbackWhenNoViewBox(): void
@@ -90,8 +96,9 @@ final class SvgRendererTest extends TestCase
         );
         $ctx['renderer']->draw($svg, x: 10, y: 10, width: 160, height: 80);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // sx = 160/80 = 2, sy = 80/40 = 2.
-        self::assertStringContainsString('2 0 0 2 10 10 cm', $ops);
+        // sx = sy = 2 (uniform fits exactly); effectiveH = 2 * 40 = 80;
+        // f = 10 + 0 + 80 + 0 = 90.
+        self::assertStringContainsString('2 0 0 -2 10 90 cm', $ops);
     }
 
     public function testWidthAttributeStripsUnits(): void
@@ -105,7 +112,61 @@ final class SvgRendererTest extends TestCase
         );
         $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 50);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        self::assertStringContainsString('1 0 0 1 0 0 cm', $ops);
+        // No scale change, effectiveH = 50; f = 0 + 50 = 50.
+        self::assertStringContainsString('1 0 0 -1 0 50 cm', $ops);
+    }
+
+    public function testPreserveAspectRatioDefaultIsUniformScaleAndCentre(): void
+    {
+        // SVG 2 §7.10 default = `xMidYMid meet`. Source 100×100 into
+        // 200×50 → uniform scale 0.5 (smallest axis), centred:
+        //   effectiveW = 50, effectiveH = 50
+        //   offsetX = (200 - 50) / 2 = 75
+        //   offsetY = (50 - 50) / 2 = 0
+        // cm e = 50 + 75 = 125; f = 100 + 0 + 50 + 0 = 150.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            . '<rect width="100" height="100" fill="grey"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 50, y: 100, width: 200, height: 50);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('0.5 0 0 -0.5 125 150 cm', $ops);
+    }
+
+    public function testTextUnderSvgRendererEmitsTmFlipNotTd(): void
+    {
+        // Y-flip CTM under SvgRenderer flips glyphs upside-down unless
+        // the text painter compensates with `Tm 1 0 0 -1 x y` instead
+        // of the default `Td`. The flip restores upright glyph
+        // rendering under the outer CTM.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">'
+            . '<text x="10" y="50">Hi</text></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('1 0 0 -1 10 50 Tm', $ops);
+        self::assertStringNotContainsString(' Td', $ops);
+    }
+
+    public function testTranslatorWithoutFlipFlagStillEmitsTd(): void
+    {
+        // Direct Translator usage (without SvgRenderer) keeps the
+        // pre-fix behaviour: no outer Y-flip, no Tm flip — text
+        // renders at the SVG-stated baseline using `Td`.
+        $writer = new PdfWriter();
+        $page = $writer->addPage();
+        $stream = $writer->addContentStream($page);
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<text x="10" y="20">Hi</text></svg>',
+        );
+        (new \Phpdftk\SvgToPdf\Translator())->paint($svg, $stream, $page, $writer);
+        $ops = implode("\n", $stream->getOperators());
+        self::assertStringContainsString('10 20 Td', $ops);
+        self::assertStringNotContainsString(' Tm', $ops);
     }
 
     public function testDrawWrapsInQQ(): void
@@ -147,9 +208,13 @@ final class SvgRendererTest extends TestCase
         $bytes = $writer->toBytes();
         self::assertStringStartsWith('%PDF-', $bytes);
         self::assertStringContainsString('%%EOF', $bytes);
-        // Uncompressed stream — both outer cm transforms visible.
-        self::assertStringContainsString('2 0 0 2 72 600 cm', $bytes);
-        self::assertStringContainsString('1 0 0 1 320 600 cm', $bytes);
+        // Uncompressed stream — both outer cm transforms with y-flip
+        // visible. First draw: dst 200×200 over src 100×100 →
+        // uniform scale 2, effectiveH = 200, f = 600 + 200 = 800.
+        // Second draw: dst 100×100 → scale 1, effectiveH = 100, f =
+        // 600 + 100 = 700.
+        self::assertStringContainsString('2 0 0 -2 72 800 cm', $bytes);
+        self::assertStringContainsString('1 0 0 -1 320 700 cm', $bytes);
     }
 
     public function testSvgWithoutAnyDimensionsFallsBackToUnitSource(): void
@@ -160,7 +225,8 @@ final class SvgRendererTest extends TestCase
         );
         $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // Source 1×1, dest 100×100 → cm 100 0 0 100 0 0.
-        self::assertStringContainsString('100 0 0 100 0 0 cm', $ops);
+        // Source 1×1, dest 100×100 → uniform scale 100, effectiveH 100,
+        // f = 0 + 100 = 100.
+        self::assertStringContainsString('100 0 0 -100 0 100 cm', $ops);
     }
 }
