@@ -12,6 +12,7 @@ use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\SvgToPdf\Gradient\GradientPainter;
+use Phpdftk\SvgToPdf\Text\FontResolver;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
@@ -32,6 +33,8 @@ use Phpdftk\Svg\Shape\Polygon;
 use Phpdftk\Svg\Shape\Polyline;
 use Phpdftk\Svg\Shape\Rect;
 use Phpdftk\Svg\SvgDocument;
+use Phpdftk\Svg\Text as TextNode;
+use Phpdftk\Svg\Text\TextElement;
 use Phpdftk\Svg\Value\Paint;
 use Phpdftk\Svg\Value\Paint\CurrentColor;
 use Phpdftk\Svg\Value\Paint\None_;
@@ -100,6 +103,9 @@ final class Translator
         $this->gradientPainter = $page !== null && $writer !== null
             ? new GradientPainter($writer, $page, $document)
             : null;
+        $this->fontResolver = $page !== null && $writer !== null
+            ? new FontResolver($writer, $page)
+            : null;
         try {
             $viewBox = $document->viewBox();
             if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
@@ -120,11 +126,13 @@ final class Translator
         } finally {
             $this->page = null;
             $this->gradientPainter = null;
+            $this->fontResolver = null;
         }
     }
 
     private ?Page $page = null;
     private ?GradientPainter $gradientPainter = null;
+    private ?FontResolver $fontResolver = null;
 
     private function paintChildren(Element $parent, ContentStream $stream): void
     {
@@ -272,10 +280,77 @@ final class Translator
             $element instanceof Polyline => $this->paintPolyline($element, $stream),
             $element instanceof Polygon => $this->paintPolygon($element, $stream),
             $element instanceof Path => $this->paintPath($element, $stream),
+            $element instanceof TextElement => $this->paintTextElement($element, $stream),
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
         };
+    }
+
+    private function paintTextElement(TextElement $text, ContentStream $stream): void
+    {
+        // Without writer + page references the resolver can't register a
+        // font, so the text silently drops. Matches the same standalone
+        // posture the gradient painter uses at 3O.
+        if ($this->fontResolver === null) {
+            return;
+        }
+        $content = self::collectTextContent($text);
+        if ($content === '') {
+            return;
+        }
+
+        // SVG 2 default fill for `<text>` is black; the existing
+        // applyFillPaint path covers that, but we apply it *before*
+        // entering the text object so the colour persists across the
+        // Tj sequence (PDF text objects share the page graphics state).
+        $fill = $text->fill();
+        if (!($fill instanceof None_)) {
+            $this->applyFillPaint($fill, $text, $stream);
+        }
+
+        $font = $this->fontResolver->resolve(
+            $text->fontFamily(),
+            $text->fontWeight(),
+            $text->fontStyle(),
+        );
+        $size = $text->fontSize() ?? 16.0;
+
+        // 3P uses only the first entry of the x / y lists — per-glyph
+        // positioning lands later. `Td` is enough for the common case
+        // of `<text x="…" y="…">…</text>`.
+        $xList = $text->x();
+        $yList = $text->y();
+        $x = $xList[0] ?? 0.0;
+        $y = $yList[0] ?? 0.0;
+
+        $stream->beginText()
+            ->setFont($font, $size)
+            ->moveTextPosition($x, $y)
+            ->showText($content);
+        $stream->endText();
+    }
+
+    /**
+     * Concatenate all `Phpdftk\Svg\Text` (data) descendants in document
+     * order. SVG 2's whitespace handling is complex (xml:space="preserve"
+     * vs the default collapse); 3P keeps things simple by emitting the
+     * source bytes verbatim and leaving whitespace policy to the future
+     * cascade-aware text painter.
+     */
+    private static function collectTextContent(Element $element): string
+    {
+        $out = '';
+        foreach ($element->children as $child) {
+            if ($child instanceof TextNode) {
+                $out .= $child->data;
+                continue;
+            }
+            if ($child instanceof Element) {
+                $out .= self::collectTextContent($child);
+            }
+        }
+        return $out;
     }
 
     private function paintPath(Path $path, ContentStream $stream): void

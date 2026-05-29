@@ -26,7 +26,7 @@ composer require phpdftk/svg-to-pdf
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic-shape painters (3K), `<path>` with the full SVG 2 path grammar including arc-to-cubic conversion (3L), the `transform` attribute on any element + `<g>` containers + viewBox origin shift (3M), stroke parameters + element opacity via ExtGState (3N — opacity needs the optional `?Page` arg to `paint()`), and linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` modes and href-chain stop inheritance (3O — gradients need both `?Page` and `?PdfWriter` to `paint()` for shading + pattern registration). 3O deferred: `spreadMethod: reflect`/`repeat`, `gradientTransform`, and `radialGradient`'s `fx`/`fy`/`fr` focal-point. Next: 3P text, 3Q use/clip/mask/image, 3R adapter API + samples + benchmarks.
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic-shape painters (3K), `<path>` with arc-to-cubic conversion (3L), the `transform` attribute + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), and `<text>` with the 14 standard PDF fonts via family / weight / style resolution (3P). 3O / 3P deferred: gradient `spreadMethod: reflect`/`repeat`, `gradientTransform`, radial focal-point (fx/fy/fr); per-glyph text positioning, per-tspan font overrides, OpenType shaping, `@font-face` embedding. Next: 3Q use/clip/mask/image, 3R adapter API + samples + benchmarks.
 
 ## License
 
