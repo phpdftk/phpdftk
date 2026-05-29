@@ -711,8 +711,34 @@ final class TreeBuilder
         }
 
         if ($tag === 'body') {
-            // Parse error: foreign attributes are ignored at this scope in
-            // Phase 1B.3; no merging into the open <body>.
+            // WHATWG §13.2.6.4.7 — parse error. If the second
+            // element on the stack isn't a body, or the stack has
+            // only the html root, or a `<template>` is on the
+            // stack, ignore the token. Otherwise flip frameset-ok
+            // off and merge any not-already-present attributes onto
+            // the existing body. The attribute merge is how
+            // `<body xlink:href=foo>` later in the document still
+            // contributes the namespaced attribute even though body
+            // was implicitly opened earlier.
+            $items = $this->openElements->items();
+            $bodyAtIndexOne = isset($items[1])
+                && $items[1]->localName === 'body'
+                && $items[1]->namespaceURI === Document::HTML_NS;
+            if (!$bodyAtIndexOne || count($items) < 2) {
+                return;
+            }
+            foreach ($items as $el) {
+                if ($el->localName === 'template' && $el->namespaceURI === Document::HTML_NS) {
+                    return;
+                }
+            }
+            $this->framesetOk = false;
+            $body = $items[1];
+            foreach ($token->attributes as $attr) {
+                if (!$body->hasAttribute($attr['name'])) {
+                    $body->setAttribute($attr['name'], $attr['value']);
+                }
+            }
             return;
         }
         if ($tag === 'frameset') {
