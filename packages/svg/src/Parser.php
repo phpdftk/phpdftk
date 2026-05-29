@@ -109,7 +109,10 @@ final class Parser
             if ($attr->prefix === 'xmlns' || $attr->name === 'xmlns') {
                 continue;
             }
-            $dest->attributes[$attr->name] = $attr->value;
+            // Use the qualified node name so `href` and `xlink:href`
+            // remain distinct keys — libxml's `$attr->name` returns
+            // just the local name, which would collapse the two.
+            $dest->attributes[$attr->nodeName] = $attr->value;
         }
     }
 
@@ -151,6 +154,9 @@ final class Parser
             'path' => new Path(),
             'text' => new Text\TextElement(),
             'tspan' => new Text\Tspan(),
+            'defs' => new Defs(),
+            'symbol' => new Symbol(),
+            'use' => new Use_(),
             default => new GenericElement($localName),
         };
     }

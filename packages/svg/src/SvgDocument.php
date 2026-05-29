@@ -5,60 +5,68 @@ declare(strict_types=1);
 namespace Phpdftk\Svg;
 
 /**
- * The root `<svg>` element. Exposes the document-level dimensions and the
- * view box as typed accessors, plus the namespace declarations that the
- * parser observed on the root (some downstream consumers care).
+ * The root `<svg>` element. Inherits the viewBox / width / height accessors
+ * from `ViewportElement` (shared with `<symbol>`), and owns the
+ * document-level `findById()` resolver used by `<use>` and gradient `href`
+ * lookups.
  *
- * Coordinate-system attributes (`width` / `height` / `viewBox`) are stored
- * as raw strings in `$attributes` like any other; the typed accessors
- * parse on demand so the parser stays cheap.
+ * The id index is lazily built on first lookup and then cached. Mutating the
+ * tree after the first lookup invalidates the cache; rebuild by calling
+ * `invalidateIdIndex()` (or just call findById on a freshly parsed
+ * document — the common case).
  */
-final class SvgDocument extends Element
+final class SvgDocument extends ViewportElement
 {
+    /** @var array<string, Element>|null */
+    private ?array $idIndex = null;
+
     public function __construct()
     {
         parent::__construct('svg');
     }
 
     /**
-     * Parsed `viewBox` per SVG 2 §7.7 — `[minX, minY, width, height]`,
-     * or null if no viewBox is set. Negative width/height return null
-     * (the spec invalidates them).
-     *
-     * @return array{0: float, 1: float, 2: float, 3: float}|null
+     * Look up an element by its `id` attribute. Returns null when no
+     * element with that id exists. Lazily caches the index after the
+     * first call.
      */
-    public function viewBox(): ?array
+    public function findById(string $id): ?Element
     {
-        $raw = $this->getAttribute('viewBox');
-        if ($raw === null) {
+        if ($id === '') {
             return null;
         }
-        $parts = preg_split('/[\s,]+/', trim($raw)) ?: [];
-        if (count($parts) !== 4) {
-            return null;
+        if ($this->idIndex === null) {
+            $this->idIndex = [];
+            self::indexInto($this, $this->idIndex);
         }
-        foreach ($parts as $p) {
-            if (!is_numeric($p)) {
-                return null;
+        return $this->idIndex[$id] ?? null;
+    }
+
+    /**
+     * Drop the cached id index — call this after mutating the tree if
+     * you need subsequent `findById` calls to see the new state.
+     */
+    public function invalidateIdIndex(): void
+    {
+        $this->idIndex = null;
+    }
+
+    /**
+     * @param array<string, Element> $into
+     */
+    private static function indexInto(Element $element, array &$into): void
+    {
+        $id = $element->getAttribute('id');
+        if ($id !== null && $id !== '' && !isset($into[$id])) {
+            // SVG 2: duplicate ids are technically invalid; pick the first
+            // in document order — same shape browsers use for
+            // querySelector('#id').
+            $into[$id] = $element;
+        }
+        foreach ($element->children as $child) {
+            if ($child instanceof Element) {
+                self::indexInto($child, $into);
             }
         }
-        $w = (float) $parts[2];
-        $h = (float) $parts[3];
-        if ($w < 0 || $h < 0) {
-            return null;
-        }
-        return [(float) $parts[0], (float) $parts[1], $w, $h];
-    }
-
-    /** Raw `width=""` attribute string (may include a unit), or null. */
-    public function widthAttribute(): ?string
-    {
-        return $this->getAttribute('width');
-    }
-
-    /** Raw `height=""` attribute string (may include a unit), or null. */
-    public function heightAttribute(): ?string
-    {
-        return $this->getAttribute('height');
     }
 }
