@@ -207,7 +207,14 @@ final class OpenElementsStack
 
     public function hasInTableScope(string $localName): bool
     {
-        return $this->hasInScopeWithBoundaries($localName, ['html', 'table', 'template']);
+        // Table scope is the only scope variant that does NOT treat
+        // MathML/SVG integration points as boundaries — its list per
+        // §13.2.4.2 is html / table / template only, all HTML.
+        return $this->hasInScopeWithBoundaries(
+            $localName,
+            ['html', 'table', 'template'],
+            includeForeignBoundaries: false,
+        );
     }
 
     /**
@@ -276,9 +283,17 @@ final class OpenElementsStack
         'mi', 'mo', 'mn', 'ms', 'mtext', 'annotation-xml',
     ];
 
+    /** SVG scope boundaries per WHATWG §13.2.4.2. */
+    private const array SVG_SCOPE_BOUNDARIES = [
+        'foreignObject', 'desc', 'title',
+    ];
+
     /** @param list<string> $boundaries */
-    private function hasInScopeWithBoundaries(string $localName, array $boundaries): bool
-    {
+    private function hasInScopeWithBoundaries(
+        string $localName,
+        array $boundaries,
+        bool $includeForeignBoundaries = true,
+    ): bool {
         for ($i = array_key_last($this->items); $i !== null && $i >= 0; $i--) {
             $el = $this->items[$i];
             if ($el->localName === $localName && $el->namespaceURI === Document::HTML_NS) {
@@ -289,16 +304,22 @@ final class OpenElementsStack
             ) {
                 return false;
             }
-            // MathML text integration points act as scope boundaries
-            // per §13.2.4.2 — without them, HTML content inside a
-            // `<mi>` would erroneously see ancestor HTML elements as
-            // in-scope and close them. The symmetric SVG boundaries
-            // (foreignObject / desc / title) are intentionally not
-            // added here; they're modelled elsewhere as integration
-            // points and adding them to scope changed too many other
-            // table/SVG tests in the wrong direction.
+            // §13.2.4.2 lists MathML text integration points (mi/mo/mn/ms/
+            // mtext/annotation-xml) and SVG HTML integration points
+            // (foreignObject/desc/title) as scope boundaries for every
+            // scope variant EXCEPT "table scope" — that one is the
+            // limited html/table/template trio only. Callers that want
+            // pure HTML-list semantics (hasInTableScope) pass false.
+            if (!$includeForeignBoundaries) {
+                continue;
+            }
             if ($el->namespaceURI === Document::MATHML_NS
                 && in_array($el->localName, self::MATHML_SCOPE_BOUNDARIES, true)
+            ) {
+                return false;
+            }
+            if ($el->namespaceURI === Document::SVG_NS
+                && in_array($el->localName, self::SVG_SCOPE_BOUNDARIES, true)
             ) {
                 return false;
             }
