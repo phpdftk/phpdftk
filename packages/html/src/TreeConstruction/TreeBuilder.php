@@ -2755,7 +2755,11 @@ final class TreeBuilder
         'xlink:show' => [Document::XLINK_NS, 'xlink', 'show'],
         'xlink:title' => [Document::XLINK_NS, 'xlink', 'title'],
         'xlink:type' => [Document::XLINK_NS, 'xlink', 'type'],
-        'xml:base' => [Document::XML_NS, 'xml', 'base'],
+        // `xml:base` is intentionally NOT in this table — WHATWG
+        // §13.2.6.1 "adjust foreign attributes" only namespaces
+        // `xml:lang` and `xml:space`. Other `xml:*` attributes (and
+        // arbitrary `xml:foo` colon names) stay as flat HTML-style
+        // attribute names.
         'xml:lang' => [Document::XML_NS, 'xml', 'lang'],
         'xml:space' => [Document::XML_NS, 'xml', 'space'],
         'xmlns' => [Document::XMLNS_NS, null, 'xmlns'],

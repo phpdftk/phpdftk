@@ -104,22 +104,18 @@ class Element extends Node implements MatchableElement
         $key = $this->canonicalAttrKey($name);
         // Preserve namespace/prefix of existing attribute if present.
         $existing = $this->attributes[$key] ?? null;
-        // HTML-namespace attribute names are flat — a colon is just part
-        // of the name (`abc:def` is the literal name `abc:def`, not a
-        // prefix). Only foreign-content attributes go through the
-        // namespace-adjusted `setAttributeNode` path with split names.
-        $isHtmlNs = $this->namespaceURI === Document::HTML_NS;
-        $localName = $existing !== null
-            ? $existing->localName
-            : ($isHtmlNs ? $name : $this->splitLocalName($name));
-        $prefix = $existing !== null
-            ? $existing->prefix
-            : ($isHtmlNs ? null : $this->splitPrefix($name));
+        // Attribute names are flat strings — a colon is just part of
+        // the literal name. Namespace-adjusted foreign attributes
+        // (xlink:* / xml:lang / xml:space / xmlns) go through
+        // setAttributeNode() with a prefix + localName already split
+        // by the tree builder's adjust-foreign-attributes pass. So
+        // setAttribute() always stores the whole name as localName
+        // with prefix=null — works for both HTML and foreign elements.
         $this->attributes[$key] = new Attr(
-            localName: $localName,
+            localName: $existing !== null ? $existing->localName : $name,
             value: $value,
             namespaceURI: $existing !== null ? $existing->namespaceURI : Document::HTML_NS,
-            prefix: $prefix,
+            prefix: $existing !== null ? $existing->prefix : null,
         );
     }
 
@@ -389,18 +385,6 @@ class Element extends Node implements MatchableElement
     private function canonicalAttrKey(string $name): string
     {
         return $this->namespaceURI === Document::HTML_NS ? strtolower($name) : $name;
-    }
-
-    private function splitPrefix(string $qualified): ?string
-    {
-        $i = strpos($qualified, ':');
-        return $i === false ? null : substr($qualified, 0, $i);
-    }
-
-    private function splitLocalName(string $qualified): string
-    {
-        $i = strpos($qualified, ':');
-        return $i === false ? $qualified : substr($qualified, $i + 1);
     }
 
     protected function shallowClone(): static
