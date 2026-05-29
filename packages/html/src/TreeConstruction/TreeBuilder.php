@@ -664,6 +664,16 @@ final class TreeBuilder
             return;
         }
         if ($token instanceof EofToken) {
+            // WHATWG §13.2.6.4.7 — if any template insertion modes
+            // are still active, EOF redirects to InTemplate (which
+            // unwinds templates, resets the insertion mode, and
+            // reprocesses). Without this hop, a document that ends
+            // mid-template like `<template><div>` stops here in
+            // InBody without ever inserting the implicit `<body>`.
+            if ($this->templateInsertionModes !== []) {
+                $this->modeInTemplate($token, $tokenizer);
+                return;
+            }
             $this->done = true;
         }
     }
@@ -1357,8 +1367,19 @@ final class TreeBuilder
 
     private function insertComment(CommentToken $token): void
     {
-        $current = $this->openElements->currentNode();
-        ($current ?? $this->document)->appendChild($this->document->createComment($token->data));
+        // Route through `appropriatePlaceForInserting` so template
+        // redirection (and foster parenting where it applies) wraps
+        // the comment correctly. Previously this used the current
+        // node directly, which meant comments inside `<template>`
+        // landed as children of the template element rather than in
+        // its content fragment.
+        [$parent, $before] = $this->appropriatePlaceForInserting();
+        $comment = $this->document->createComment($token->data);
+        if ($before !== null) {
+            $parent->insertBefore($comment, $before);
+        } else {
+            $parent->appendChild($comment);
+        }
     }
 
     /**
