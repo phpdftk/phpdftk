@@ -10,7 +10,8 @@ use Phpdftk\HtmlToPdf\RendererOptions;
 use Phpdftk\Pdf\Writer\PdfWriter;
 
 /**
- * Head-to-head HTML-to-PDF benchmark across phpdftk / dompdf / mpdf.
+ * Head-to-head HTML-to-PDF benchmark across phpdftk / dompdf / mpdf
+ * / TCPDF.
  *
  * Every subject feeds the SAME HTML+CSS string to one renderer. The
  * three fixtures grow in size so the slope is visible, and they use
@@ -280,5 +281,54 @@ HTML;
         $mpdf = new \Mpdf\Mpdf(['tempDir' => $this->tempDir]);
         $mpdf->WriteHTML($this->longReport());
         $mpdf->Output($this->tempDir . '/mpdf_long.pdf', \Mpdf\Output\Destination::FILE);
+    }
+
+    // -----------------------------------------------------------------------
+    // TCPDF subjects
+    // -----------------------------------------------------------------------
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchTcpdfSmall(): void
+    {
+        if (!class_exists(\TCPDF::class)) {
+            return;
+        }
+        $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $pdf->SetCreator('phpdftk-bench');
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->AddPage();
+        $pdf->writeHTML($this->smallInvoice(), true, false, true, false, '');
+        $pdf->Output($this->tempDir . '/tcpdf_small.pdf', 'F');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchTcpdfMedium(): void
+    {
+        if (!class_exists(\TCPDF::class)) {
+            return;
+        }
+        $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $pdf->SetCreator('phpdftk-bench');
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->AddPage();
+        $pdf->writeHTML($this->mediumArticle(), true, false, true, false, '');
+        $pdf->Output($this->tempDir . '/tcpdf_medium.pdf', 'F');
+    }
+
+    #[Bench\Subject]
+    #[Bench\BeforeMethods('setUp')]
+    public function benchTcpdfLong(): void
+    {
+        if (!class_exists(\TCPDF::class)) {
+            return;
+        }
+        $pdf = new \TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        $pdf->SetCreator('phpdftk-bench');
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->AddPage();
+        $pdf->writeHTML($this->longReport(), true, false, true, false, '');
+        $pdf->Output($this->tempDir . '/tcpdf_long.pdf', 'F');
     }
 }
