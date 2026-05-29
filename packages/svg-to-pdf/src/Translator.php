@@ -9,6 +9,7 @@ use Phpdftk\Color\ColorInterface;
 use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
 use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
@@ -70,25 +71,45 @@ final class Translator
      */
     private const float KAPPA = 0.5522847498;
 
-    public function paint(SvgDocument $document, ContentStream $stream): void
-    {
-        $viewBox = $document->viewBox();
-        if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
-            // SVG 2 §7 — the viewBox's `min-x`/`min-y` shift the
-            // origin of the local coordinate system. The proper
-            // viewBox-to-viewport mapping (with `preserveAspectRatio`)
-            // needs a caller-supplied target rectangle, so it lives
-            // in the 3R adapter layer; here we honour just the
-            // translation so the painted content stays anchored
-            // correctly relative to the viewBox.
-            $stream->saveGraphicsState();
-            $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, -$viewBox[0], -$viewBox[1]);
+    /**
+     * Paint a parsed SVG document into the given content stream.
+     *
+     * When `$page` is supplied, the painter registers an `ExtGState`
+     * resource on that page for any element that carries `opacity`,
+     * `fill-opacity`, or `stroke-opacity` < 1 and emits the `gs`
+     * operator to invoke it. Without a `$page` reference opacity
+     * attributes are silently ignored — the painter falls back to
+     * fully-opaque rendering.
+     */
+    public function paint(
+        SvgDocument $document,
+        ContentStream $stream,
+        ?Page $page = null,
+    ): void {
+        $this->page = $page;
+        try {
+            $viewBox = $document->viewBox();
+            if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
+                // SVG 2 §7 — the viewBox's `min-x`/`min-y` shift the
+                // origin of the local coordinate system. The proper
+                // viewBox-to-viewport mapping (with `preserveAspectRatio`)
+                // needs a caller-supplied target rectangle, so it lives
+                // in the 3R adapter layer; here we honour just the
+                // translation so the painted content stays anchored
+                // correctly relative to the viewBox.
+                $stream->saveGraphicsState();
+                $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, -$viewBox[0], -$viewBox[1]);
+                $this->paintChildren($document, $stream);
+                $stream->restoreGraphicsState();
+                return;
+            }
             $this->paintChildren($document, $stream);
-            $stream->restoreGraphicsState();
-            return;
+        } finally {
+            $this->page = null;
         }
-        $this->paintChildren($document, $stream);
     }
+
+    private ?Page $page = null;
 
     private function paintChildren(Element $parent, ContentStream $stream): void
     {
@@ -101,15 +122,28 @@ final class Translator
 
     private function paintElement(Element $element, ContentStream $stream): void
     {
-        // SVG 2 §8.4: the `transform` attribute can sit on any element
-        // that establishes a new coordinate system (`<g>`, `<svg>`,
-        // `<symbol>`, `<use>`, the shape elements, …). Always check it
-        // here so the painter doesn't grow a per-element branch for
-        // the same wrapping logic.
+        // Any of these scope-leaking attributes triggers a `q`/`Q` wrap
+        // so the state doesn't leak across siblings:
+        //
+        //   - transform: emits `cm`.
+        //   - opacity / fill-opacity / stroke-opacity (< 1): emits `gs`.
+        //   - stroke params (w / J / j / M / d): each emits its own op.
+        //
+        // Painting the same shape with all defaults stays a one-shot
+        // op stream — no overhead when none of the above is set.
         $transform = $element->transform();
+        $opacityGs = $this->resolveOpacityState($element);
+        $needsStrokeParams = $this->needsStrokeParams($element);
+        $needsWrap = $transform !== null || $opacityGs !== null || $needsStrokeParams;
+
+        if (!$needsWrap) {
+            $this->dispatchElement($element, $stream);
+            return;
+        }
+
+        $stream->saveGraphicsState();
         if ($transform !== null) {
             $matrix = $transform->toMatrix();
-            $stream->saveGraphicsState();
             $stream->concatMatrix(
                 $matrix[0],
                 $matrix[1],
@@ -118,11 +152,99 @@ final class Translator
                 $matrix[4],
                 $matrix[5],
             );
-            $this->dispatchElement($element, $stream);
-            $stream->restoreGraphicsState();
-            return;
+        }
+        if ($opacityGs !== null) {
+            $stream->setGraphicsState($opacityGs);
+        }
+        if ($needsStrokeParams) {
+            $this->applyStrokeParams($element, $stream);
         }
         $this->dispatchElement($element, $stream);
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Register (or reuse) the `ExtGState` resource encoding this
+     * element's effective opacity. Returns the resource name or null
+     * when no `gs` op is needed (no Page reference, or every opacity
+     * channel is already ≥ 0.999).
+     */
+    private function resolveOpacityState(Element $element): ?string
+    {
+        if ($this->page === null) {
+            return null;
+        }
+        $opacity = $element->opacity() ?? 1.0;
+        $fillOpacity = ($element->fillOpacity() ?? 1.0) * $opacity;
+        $strokeOpacity = ($element->strokeOpacity() ?? 1.0) * $opacity;
+        if ($fillOpacity >= 0.999 && $strokeOpacity >= 0.999) {
+            return null;
+        }
+        return $this->page->ensureOpacityState($strokeOpacity, $fillOpacity);
+    }
+
+    /**
+     * Whether the element carries any stroke parameter that would
+     * leak past a sibling shape if emitted inline. Used to decide
+     * whether to wrap the element's painting in `q`/`Q`.
+     */
+    private function needsStrokeParams(Element $element): bool
+    {
+        if ($element->stroke() === null || $element->stroke() instanceof None_) {
+            return false;
+        }
+        if ($element->strokeWidth() !== null) {
+            return true;
+        }
+        if ($element->strokeLinecap() !== null) {
+            return true;
+        }
+        if ($element->strokeLinejoin() !== null) {
+            return true;
+        }
+        if ($element->strokeMiterlimit() !== null) {
+            return true;
+        }
+        if ($element->strokeDasharray() !== []) {
+            return true;
+        }
+        if ($element->strokeDashoffset() !== null) {
+            return true;
+        }
+        return false;
+    }
+
+    private function applyStrokeParams(Element $element, ContentStream $stream): void
+    {
+        $width = $element->strokeWidth();
+        if ($width !== null) {
+            $stream->setLineWidth($width);
+        }
+        $cap = $element->strokeLinecap();
+        if ($cap !== null) {
+            $stream->setLineCap(match ($cap) {
+                'round' => 1,
+                'square' => 2,
+                default => 0, // butt
+            });
+        }
+        $join = $element->strokeLinejoin();
+        if ($join !== null) {
+            $stream->setLineJoin(match ($join) {
+                'round' => 1,
+                'bevel' => 2,
+                default => 0, // miter / miter-clip / arcs all fall back to PDF's miter
+            });
+        }
+        $miterLimit = $element->strokeMiterlimit();
+        if ($miterLimit !== null) {
+            $stream->setMiterLimit($miterLimit);
+        }
+        $dash = $element->strokeDasharray();
+        if ($dash !== []) {
+            $offset = (int) round($element->strokeDashoffset() ?? 0.0);
+            $stream->setDashPattern($dash, $offset);
+        }
     }
 
     private function dispatchElement(Element $element, ContentStream $stream): void
