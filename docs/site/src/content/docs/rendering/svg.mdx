@@ -3,12 +3,43 @@ title: phpdftk/svg
 description: Pure-PHP SVG 2 parser producing a typed tree.
 ---
 
-Pure-PHP SVG 2 parser producing a typed tree.
+Pure-PHP SVG 2 parser. Produces a typed tree (`SvgDocument`, `Shape\Rect`, `GenericElement`, …) with on-demand attribute parsing.
 
 ```bash
 composer require phpdftk/svg
 ```
 
+## Quick example
+
+```php
+use Phpdftk\Svg\Parser;
+use Phpdftk\Svg\Shape\Rect;
+
+$doc = (new Parser())->parse(<<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+  <rect x="10" y="20" width="30" height="40"/>
+</svg>
+SVG);
+
+$doc->widthAttribute();   // "200"
+$doc->viewBox();          // null (none declared)
+
+foreach ($doc->findByTag('rect') as $r) {
+    // $r is a Phpdftk\Svg\Shape\Rect
+    $r->x(); $r->y(); $r->width(); $r->height();
+}
+```
+
+## Security
+
+The parser uses `DOMDocument::loadXML` with `LIBXML_NONET` and explicitly leaves `LIBXML_NOENT` off:
+
+- External entities (`<!ENTITY x SYSTEM "file://…">` or `http://…`) are NOT substituted. Classic XXE payloads return empty content rather than leaking file or network data.
+- No network access during parse (no DTD or entity fetches).
+- `XInclude` directives pass through as generic elements; the parser never calls `DOMDocument::xinclude()`.
+
+A `SecurityTest` suite covers these properties — regressions break CI before they ship.
+
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Foundation landed (secure XML loader + `SvgDocument` + `Shape\Rect`); typed classes for the rest of the v1 element set (circle, ellipse, line, polyline, polygon, path, g, text, tspan, use, symbol, image, clipPath, mask, defs) plus the `d`-attribute path-grammar parser are next.
