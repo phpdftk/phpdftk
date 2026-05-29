@@ -921,6 +921,20 @@ final class TreeBuilder
             return;
         }
 
+        // HTML Living Standard §13.2.5.32 — `<plaintext>` start tag.
+        // Closes a `<p>` in button scope, inserts the element, and
+        // switches the tokenizer into PLAINTEXT state. Everything
+        // after `<plaintext>` is character data until EOF — no
+        // `</plaintext>` end tag exists.
+        if ($tag === 'plaintext') {
+            if ($this->openElements->hasInButtonScope('p')) {
+                $this->closePElement();
+            }
+            $this->insertHtmlElement($token);
+            $tokenizer->state = TokenizerState::Plaintext;
+            return;
+        }
+
         // HTML Living Standard §13.2.6.4.7 — ruby base / container.
         // `<rb>` and `<rtc>` close any unclosed nested element down to
         // the open `<ruby>` if one is in scope.
