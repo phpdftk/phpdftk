@@ -10,9 +10,6 @@
 # content cdata, template + plaintext quirks, entity-tokenizer edge cases,
 # and a handful of feature gaps).
 tree-construction/menuitem-element:#14:<!DOCTYPE html><select><menuitem></select>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/template:#46:<body><template><tr></tr><td></td></template>: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/template:#68:<body><template><tr></tr><template></template><td></td></tem: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/template:#69:<body><template><thead></thead><template><tr></tr></template: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/template:#90:<template><template><col>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/template:#102:<body><table><tr><td><select><template>Foo</template><captio: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/tests1:#30:<select><b><option><select><option></b></select>X: Phase-2 follow-up — html5lib-tests deferred case

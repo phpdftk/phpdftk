@@ -2096,10 +2096,17 @@ final class TreeBuilder
             return;
         }
         if (in_array($tag, ['td', 'th', 'tr'], true)) {
+            // Synthesise the implicit `<tbody>` via
+            // `appropriatePlaceForInserting` so template-content
+            // redirection fires when this runs inside a `<template>`.
             $this->clearStackToTableContext();
             $synthetic = $this->document->createElement('tbody');
-            $current = $this->openElements->currentNode();
-            ($current ?? $this->document)->appendChild($synthetic);
+            [$parent, $before] = $this->appropriatePlaceForInserting();
+            if ($before !== null) {
+                $parent->insertBefore($synthetic, $before);
+            } else {
+                $parent->appendChild($synthetic);
+            }
             $this->openElements->push($synthetic);
             $this->insertionMode = InsertionMode::InTableBody;
             $this->reprocess($token);
@@ -2345,11 +2352,20 @@ final class TreeBuilder
             return;
         }
         if ($token instanceof StartTagToken && in_array($token->tagName, ['th', 'td'], true)) {
-            // Implicit <tr>, then reprocess.
+            // Implicit `<tr>`, then reprocess. Route the synthetic
+            // insertion through `appropriatePlaceForInserting` so
+            // template-content redirection fires — without it, a
+            // `<td>` arriving in template-content's table body lands
+            // its synthetic `<tr>` on the template element rather
+            // than inside template.content.
             $this->clearStackToTableBodyContext();
             $synthetic = $this->document->createElement('tr');
-            $current = $this->openElements->currentNode();
-            ($current ?? $this->document)->appendChild($synthetic);
+            [$parent, $before] = $this->appropriatePlaceForInserting();
+            if ($before !== null) {
+                $parent->insertBefore($synthetic, $before);
+            } else {
+                $parent->appendChild($synthetic);
+            }
             $this->openElements->push($synthetic);
             $this->insertionMode = InsertionMode::InRow;
             $this->reprocess($token);
