@@ -3164,8 +3164,13 @@ final class TreeBuilder
                 $this->resetInsertionModeAppropriately();
                 return;
             }
-            if (in_array($tag, ['input', 'keygen', 'textarea'], true)) {
+            if (in_array($tag, ['input', 'textarea'], true)) {
                 // Parse error: implicit </select>, then reprocess.
+                // `<keygen>` was historically in this set but the
+                // customizable-select work routes it through the
+                // void-element branch below — html5lib-tests expect
+                // `<select><keygen>` to nest the keygen inside the
+                // select rather than break out of it.
                 if (!$this->openElements->hasInSelectScope('select')) {
                     return;
                 }
@@ -3217,6 +3222,28 @@ final class TreeBuilder
                 $this->insertHtmlElement($token);
                 // Void element — pop immediately.
                 $this->openElements->pop();
+                return;
+            }
+            // Customizable-select: a small set of legacy form-control
+            // elements (`<menuitem>`, `<keygen>`) and the
+            // `<plaintext>` raw-text trapdoor are inserted directly
+            // into the select rather than triggering an implicit
+            // `</select>` close. html5lib-tests expectations match
+            // this — keygen / plaintext / menuitem land as children
+            // of the current node (which may be option / optgroup).
+            if ($tag === 'menuitem') {
+                $this->insertHtmlElement($token);
+                return;
+            }
+            if ($tag === 'keygen') {
+                $this->insertHtmlElement($token);
+                $this->openElements->pop();
+                return;
+            }
+            if ($tag === 'plaintext') {
+                $this->insertHtmlElement($token);
+                $tokenizer = $this->activeTokenizer ?? new Tokenizer('');
+                $tokenizer->state = TokenizerState::Plaintext;
                 return;
             }
             return; // parse error, ignore other start tags
