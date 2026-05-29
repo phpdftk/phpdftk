@@ -3178,19 +3178,16 @@ final class TreeBuilder
                 $this->modeInHead($token, $this->activeTokenizer ?? new Tokenizer(''));
                 return;
             }
-            // HTML Living Standard §13.2.6.4.16 — `<svg>` / `<math>`
-            // in InSelect inserts the foreign element and continues
-            // in foreign-content dispatch. Lets select widgets carry
-            // inline SVG icons / math snippets per the modern spec.
+            // HTML Living Standard customizable-select (§13.2.6.4.16) —
+            // `<svg>` / `<math>` in InSelect insert the foreign element
+            // directly into the current node (which may be an
+            // `<option>` or `<optgroup>`) and then continue with
+            // foreign-content dispatch for descendants. The html5lib
+            // expectations for `<select><option><svg>` show the SVG
+            // root INSIDE the option, so we keep option/optgroup on
+            // the stack rather than popping them as the older "in
+            // select" rules did.
             if ($tag === 'svg') {
-                $current = $this->openElements->currentNode();
-                if ($current !== null && $current->localName === 'option') {
-                    $this->openElements->pop();
-                }
-                $current = $this->openElements->currentNode();
-                if ($current !== null && $current->localName === 'optgroup') {
-                    $this->openElements->pop();
-                }
                 $this->insertForeignElement($token, Document::SVG_NS, self::SVG_TAG_CASE_CORRECTIONS);
                 if ($token->selfClosing) {
                     $this->openElements->pop();
@@ -3198,14 +3195,6 @@ final class TreeBuilder
                 return;
             }
             if ($tag === 'math') {
-                $current = $this->openElements->currentNode();
-                if ($current !== null && $current->localName === 'option') {
-                    $this->openElements->pop();
-                }
-                $current = $this->openElements->currentNode();
-                if ($current !== null && $current->localName === 'optgroup') {
-                    $this->openElements->pop();
-                }
                 $this->insertForeignElement($token, Document::MATHML_NS, []);
                 if ($token->selfClosing) {
                     $this->openElements->pop();
