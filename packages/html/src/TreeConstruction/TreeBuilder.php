@@ -238,6 +238,19 @@ final class TreeBuilder
             $this->modeInForeignContent($token);
             return;
         }
+        $this->dispatchToInsertionMode($token);
+    }
+
+    /**
+     * Run the current insertion-mode handler directly, bypassing the
+     * foreign-content gate. Used both from `dispatch()` (after the
+     * gate has been checked) and from the foreign-content end-tag
+     * fallback where we know we want HTML processing even though the
+     * current node is still foreign.
+     */
+    private function dispatchToInsertionMode(Token $token): void
+    {
+        $tokenizer = $this->activeTokenizer ?? new Tokenizer('');
         match ($this->insertionMode) {
             InsertionMode::Initial => $this->modeInitial($token),
             InsertionMode::BeforeHtml => $this->modeBeforeHtml($token),
@@ -2902,11 +2915,15 @@ final class TreeBuilder
                     return;
                 }
                 if ($node->namespaceURI === Document::HTML_NS) {
-                    // Process per regular insertion mode rules.
-                    match ($this->insertionMode) {
-                        InsertionMode::InBody => $this->modeInBody($token, $this->activeTokenizer ?? new Tokenizer('')),
-                        default => null,
-                    };
+                    // Spec: when the walk reaches an HTML-namespace
+                    // element, process the token under the current
+                    // insertion mode. We can't go through dispatch()
+                    // here because the current node is still in a
+                    // foreign namespace (we haven't popped) and
+                    // dispatch() would re-route the same token back
+                    // to foreign-content handling — infinite loop.
+                    // Hand off directly to the mode handler instead.
+                    $this->dispatchToInsertionMode($token);
                     return;
                 }
             }
