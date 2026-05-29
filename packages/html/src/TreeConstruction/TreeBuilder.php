@@ -2073,7 +2073,25 @@ final class TreeBuilder
             }
         }
         if ($tag === 'form') {
-            // Parse error per spec; we just bail with no form.
+            // WHATWG §13.2.6.4.9 — InTable's `<form>` is a parse
+            // error. If a `<template>` is on the stack OR the form
+            // pointer is already set, ignore the token. Otherwise
+            // insert the form (without foster parenting — the
+            // form lands inside the table, since the spec routes
+            // through the normal current-node insert), set the
+            // form pointer to it, then immediately pop. The pop
+            // is what stops subsequent siblings from nesting
+            // inside the form element.
+            foreach ($this->openElements->items() as $el) {
+                if ($el->localName === 'template' && $el->namespaceURI === Document::HTML_NS) {
+                    return;
+                }
+            }
+            if ($this->formElement !== null) {
+                return;
+            }
+            $this->formElement = $this->insertHtmlElement($token);
+            $this->openElements->pop();
             return;
         }
         // "Anything else" — parse error; process the token under InBody with
