@@ -104,11 +104,22 @@ class Element extends Node implements MatchableElement
         $key = $this->canonicalAttrKey($name);
         // Preserve namespace/prefix of existing attribute if present.
         $existing = $this->attributes[$key] ?? null;
+        // HTML-namespace attribute names are flat — a colon is just part
+        // of the name (`abc:def` is the literal name `abc:def`, not a
+        // prefix). Only foreign-content attributes go through the
+        // namespace-adjusted `setAttributeNode` path with split names.
+        $isHtmlNs = $this->namespaceURI === Document::HTML_NS;
+        $localName = $existing !== null
+            ? $existing->localName
+            : ($isHtmlNs ? $name : $this->splitLocalName($name));
+        $prefix = $existing !== null
+            ? $existing->prefix
+            : ($isHtmlNs ? null : $this->splitPrefix($name));
         $this->attributes[$key] = new Attr(
-            localName: $existing !== null ? $existing->localName : $this->splitLocalName($name),
+            localName: $localName,
             value: $value,
             namespaceURI: $existing !== null ? $existing->namespaceURI : Document::HTML_NS,
-            prefix: $existing !== null ? $existing->prefix : $this->splitPrefix($name),
+            prefix: $prefix,
         );
     }
 
