@@ -6,6 +6,7 @@ namespace Phpdftk\Svg\Tests;
 
 use Phpdftk\Svg\Exception\InvalidSvgException;
 use Phpdftk\Svg\GenericElement;
+use Phpdftk\Svg\Group;
 use Phpdftk\Svg\Parser;
 use Phpdftk\Svg\Shape\Circle;
 use Phpdftk\Svg\Shape\Ellipse;
@@ -380,5 +381,65 @@ final class ParserTest extends TestCase
         $this->expectException(InvalidSvgException::class);
         $this->expectExceptionMessage('Expected <svg> root');
         $this->parser->parse('<html><body/></html>');
+    }
+
+    public function testParsesGroupAsTypedElement(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><g><rect width="1" height="1"/></g></svg>',
+        );
+        $group = $doc->children[0];
+        self::assertInstanceOf(Group::class, $group);
+        self::assertSame('g', $group->localName);
+        self::assertCount(1, $group->children);
+        self::assertInstanceOf(Rect::class, $group->children[0]);
+    }
+
+    public function testElementTransformAccessorReturnsNullWhenAbsent(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><g/></svg>',
+        );
+        $group = $doc->children[0];
+        self::assertInstanceOf(Group::class, $group);
+        self::assertNull($group->transform());
+    }
+
+    public function testElementTransformAccessorParsesAttribute(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 20)"/></svg>',
+        );
+        $group = $doc->children[0];
+        self::assertInstanceOf(Group::class, $group);
+        $t = $group->transform();
+        self::assertNotNull($t);
+        self::assertSame([1.0, 0.0, 0.0, 1.0, 10.0, 20.0], $t->toMatrix());
+    }
+
+    public function testElementTransformAccessorTreatsMalformedAsNull(): void
+    {
+        // SVG 2: invalid transform-attribute → element renders as if no
+        // transform were specified. Our accessor returns null rather
+        // than bubbling the InvalidArgumentException.
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><g transform="nonsense(1 2 3)"/></svg>',
+        );
+        $group = $doc->children[0];
+        self::assertInstanceOf(Group::class, $group);
+        self::assertNull($group->transform());
+    }
+
+    public function testTransformAvailableOnAnyElementNotJustGroup(): void
+    {
+        // The accessor lives on Element so shapes can carry it directly.
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" transform="scale(2)"/></svg>',
+        );
+        $rect = $doc->children[0];
+        self::assertInstanceOf(Rect::class, $rect);
+        $t = $rect->transform();
+        self::assertNotNull($t);
+        self::assertSame([2.0, 0.0, 0.0, 2.0, 0.0, 0.0], $t->toMatrix());
     }
 }

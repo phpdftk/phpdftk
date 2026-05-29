@@ -1,6 +1,6 @@
 # phpdftk/svg
 
-Pure-PHP SVG 2 parser. Produces a typed tree (`SvgDocument`, `Shape\Rect`, `Shape\Circle`, `Shape\Ellipse`, `Shape\Line`, `Shape\Polyline`, `Shape\Polygon`, `GenericElement`, …) with on-demand attribute parsing.
+Pure-PHP SVG 2 parser. Produces a typed tree (`SvgDocument`, `Group`, `Shape\Rect`, `Shape\Circle`, `Shape\Ellipse`, `Shape\Line`, `Shape\Polyline`, `Shape\Polygon`, `GenericElement`, …) with on-demand attribute parsing, including the `transform` attribute (`Value\Transform`).
 
 Useful outside of phpdftk for sanitisers, format converters, and animation extractors. XML loading has XXE and XInclude defenses on by default.
 
@@ -41,7 +41,7 @@ There's a `SecurityTest` suite that asserts these properties — regressions bre
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Foundation + basic shapes landed (secure XML loader, `SvgDocument`, `Shape\Rect`, `Shape\Circle`, `Shape\Ellipse`, `Shape\Line`, `Shape\Polyline`, `Shape\Polygon`); typed classes for `<g>`+transform, `<path>` with full `d`-grammar, presentation attributes, `<text>`/`<tspan>`, `<defs>`/`<use>`/`<symbol>`, `<clipPath>`/`<mask>`/`<image>`, gradients, and CSS-inside-SVG are next.
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: secure XML loader, `SvgDocument`, `Group`, all five basic shapes, and the `transform` attribute (`Value\Transform` with matrix/translate/rotate/scale/skewX/skewY). Next: `<path>` with full `d`-grammar, presentation attributes, `<text>`/`<tspan>`, `<defs>`/`<use>`/`<symbol>`, `<clipPath>`/`<mask>`/`<image>`, gradients, and CSS-inside-SVG.
 
 ## License
 

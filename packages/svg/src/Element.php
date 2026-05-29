@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\Svg;
 
+use Phpdftk\Svg\Value\Transform;
+
 /**
  * An SVG element with a tag name, attributes, and a child list. Concrete
  * subclasses (`Shape\Rect`, `Group`, `SvgDocument`, …) add typed accessors
@@ -78,6 +80,25 @@ abstract class Element extends Node
             return 0.0;
         }
         return (float) $m[1];
+    }
+
+    /**
+     * Parse the `transform` attribute per SVG 2 §8.4. Returns null when the
+     * attribute is absent, empty, or malformed — SVG 2's "invalid →
+     * ignored" semantics. Callers that want a hard error should call
+     * `Transform::parse()` directly.
+     */
+    public function transform(): ?Transform
+    {
+        $raw = $this->attributes['transform'] ?? null;
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        try {
+            return Transform::parse($raw);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
