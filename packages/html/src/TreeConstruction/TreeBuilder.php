@@ -856,6 +856,17 @@ final class TreeBuilder
             return;
         }
 
+        // WHATWG §13.2.6.4.7 — "A start tag whose tag name is
+        // 'image' — Parse error. Change the token's tag name to
+        // 'img' and reprocess it." The legacy alias predates the
+        // `<img>` standardisation and is the only such rewrite in
+        // tree construction (the spec's parenthetical is literally
+        // "Don't ask.").
+        if ($tag === 'image') {
+            $token->tagName = 'img';
+            $tag = 'img';
+        }
+
         // Void / self-closing-ish elements that clear framesetOk.
         if (in_array($tag, ['area', 'br', 'embed', 'img', 'keygen', 'wbr'], true)) {
             $this->reconstructActiveFormatting();
@@ -1161,10 +1172,27 @@ final class TreeBuilder
 
     private function processInBodyForStrayHtml(StartTagToken $token): void
     {
-        // Per spec parse-error case: merge attributes onto the <html> root
-        // that aren't already present. Phase 1B.3 simplification: skip the
-        // attribute merge; real-world impact is negligible for non-degenerate
-        // input where the parser sees <html> only once.
+        // WHATWG §13.2.6.4.7 — A start tag whose tag name is "html"
+        // outside InBody's normal slot is a parse error. If there
+        // is a `<template>` on the stack, ignore the token; else
+        // copy any not-already-present attributes onto the root
+        // html element (the bottom of the stack). This is how
+        // `<html a=b>` later in the document still contributes
+        // its attributes after the initial `<html>` was inserted.
+        foreach ($this->openElements->items() as $el) {
+            if ($el->localName === 'template' && $el->namespaceURI === Document::HTML_NS) {
+                return;
+            }
+        }
+        $root = $this->openElements->items()[0] ?? null;
+        if ($root === null) {
+            return;
+        }
+        foreach ($token->attributes as $attr) {
+            if (!$root->hasAttribute($attr['name'])) {
+                $root->setAttribute($attr['name'], $attr['value']);
+            }
+        }
     }
 
     // ============================================================
