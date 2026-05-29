@@ -1370,6 +1370,24 @@ final class TreeBuilder
             return;
         }
 
+        // WHATWG §13.2.6.4.7 — end tag whose tag name is "br":
+        // parse error. Drop the attributes from the token and act
+        // as if a `<br>` start tag with no attributes had been
+        // seen (which is the standard void-element insertion).
+        // Without this, `</br foo=bar>` falls through to the
+        // generic any-other-end-tag walk which never finds a
+        // `<br>` on the stack (br is void) and the tag silently
+        // vanishes from the tree.
+        if ($tag === 'br') {
+            $synthetic = new StartTagToken();
+            $synthetic->tagName = 'br';
+            $this->reconstructActiveFormatting();
+            $this->insertHtmlElement($synthetic);
+            $this->openElements->pop();
+            $this->framesetOk = false;
+            return;
+        }
+
         // Formatting elements — run the adoption agency algorithm
         // (WHATWG §13.2.6.4.7 "any other end tag" / formatting tags subset).
         $formatting = ['a', 'b', 'big', 'code', 'em', 'font', 'i', 'nobr', 's', 'small', 'strike', 'strong', 'tt', 'u'];
