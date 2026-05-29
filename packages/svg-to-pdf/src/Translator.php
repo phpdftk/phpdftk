@@ -13,7 +13,11 @@ use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\SvgToPdf\Gradient\GradientPainter;
 use Phpdftk\SvgToPdf\Text\FontResolver;
+use Phpdftk\Svg\Defs;
 use Phpdftk\Svg\Element;
+use Phpdftk\Svg\Image as SvgImage;
+use Phpdftk\Svg\Symbol;
+use Phpdftk\Svg\Use_;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
 use Phpdftk\Svg\Path\ClosePath;
@@ -100,6 +104,8 @@ final class Translator
         ?PdfWriter $writer = null,
     ): void {
         $this->page = $page;
+        $this->writer = $writer;
+        $this->document = $document;
         $this->gradientPainter = $page !== null && $writer !== null
             ? new GradientPainter($writer, $page, $document)
             : null;
@@ -125,12 +131,16 @@ final class Translator
             $this->paintChildren($document, $stream);
         } finally {
             $this->page = null;
+            $this->writer = null;
+            $this->document = null;
             $this->gradientPainter = null;
             $this->fontResolver = null;
         }
     }
 
     private ?Page $page = null;
+    private ?PdfWriter $writer = null;
+    private ?SvgDocument $document = null;
     private ?GradientPainter $gradientPainter = null;
     private ?FontResolver $fontResolver = null;
 
@@ -281,10 +291,110 @@ final class Translator
             $element instanceof Polygon => $this->paintPolygon($element, $stream),
             $element instanceof Path => $this->paintPath($element, $stream),
             $element instanceof TextElement => $this->paintTextElement($element, $stream),
+            $element instanceof Use_ => $this->paintUse($element, $stream),
+            $element instanceof SvgImage => $this->paintImage($element, $stream),
+            // `<defs>` and `<symbol>` are referenceable containers: they
+            // never paint themselves at the document level. `<use>`
+            // expands them on demand. Skipping them here also skips
+            // their nested shape children, which is what the spec
+            // wants (SVG 2 §5.5 / §5.6).
+            $element instanceof Defs, $element instanceof Symbol => null,
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
         };
+    }
+
+    private function paintUse(Use_ $use, ContentStream $stream): void
+    {
+        if ($this->document === null) {
+            return;
+        }
+        $referent = $use->resolve($this->document);
+        if ($referent === null) {
+            return;
+        }
+        // SVG 2 §5.6 — the `<use>`'s `x` / `y` translate the referent's
+        // coordinate system. Width / height overrides on `<symbol>`
+        // referents resolve through viewBox-to-viewport mapping; that
+        // mapping needs target-rectangle context we don't have until
+        // 3R, so 3Q honours the translation only.
+        $x = $use->x();
+        $y = $use->y();
+        if ($x === 0.0 && $y === 0.0) {
+            $this->paintUseReferent($referent, $stream);
+            return;
+        }
+        $stream->saveGraphicsState();
+        $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $x, $y);
+        $this->paintUseReferent($referent, $stream);
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * `<symbol>` referents have their children painted directly per
+     * SVG 2 §5.5 — referencing them via `<use>` is the only way they
+     * paint at all. Everything else routes through normal dispatch.
+     */
+    private function paintUseReferent(Element $referent, ContentStream $stream): void
+    {
+        if ($referent instanceof Symbol) {
+            $this->paintChildren($referent, $stream);
+            return;
+        }
+        $this->paintElement($referent, $stream);
+    }
+
+    private function paintImage(SvgImage $image, ContentStream $stream): void
+    {
+        if ($this->writer === null || $this->page === null) {
+            return;
+        }
+        $href = $image->href();
+        if ($href === null) {
+            return;
+        }
+        // 3Q: filesystem hrefs only. `data:` and `http(s)://` go through
+        // a resource-loader gate that lands with the html-to-pdf 1L work;
+        // until that's available the painter refuses anything that
+        // doesn't look like a local path so an SVG can't trigger an
+        // unwanted file read or network fetch.
+        if (str_contains($href, '://') || str_starts_with($href, 'data:')) {
+            return;
+        }
+        try {
+            $resourceName = $this->writer->addImage($href, $this->page);
+        } catch (\Throwable) {
+            // Missing file / unparseable bytes / unsupported format —
+            // SVG 2 §12.6's "no image available" outcome is to paint
+            // nothing.
+            return;
+        }
+
+        $x = $image->x();
+        $y = $image->y();
+        $w = $image->width();
+        $h = $image->height();
+        if ($w === null || $h === null || $w <= 0.0 || $h <= 0.0) {
+            // Without an explicit extent the painter would have to fall
+            // back to the image's intrinsic dimensions — the existing
+            // `addImage` already knows them, but the resource name is
+            // all it returns. Reading them back requires walking the
+            // image registry, which 3Q doesn't need. Defer.
+            return;
+        }
+
+        // PDF Do paints the image inside a unit square at (0, 0) → (1, 1).
+        // The transformation matrix translates + scales it to the SVG
+        // rectangle. Y is flipped so the image's top-left lands at
+        // (x, y) — PDF's image space is y-down within the unit square,
+        // SVG's image element is y-down too, so the flip cancels them
+        // out and the image renders right-side-up at the SVG-stated
+        // position.
+        $stream->saveGraphicsState();
+        $stream->concatMatrix($w, 0.0, 0.0, -$h, $x, $y + $h);
+        $stream->doXObject($resourceName);
+        $stream->restoreGraphicsState();
     }
 
     private function paintTextElement(TextElement $text, ContentStream $stream): void
