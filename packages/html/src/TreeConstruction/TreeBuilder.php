@@ -641,6 +641,16 @@ final class TreeBuilder
     private function modeInBody(Token $token, Tokenizer $tokenizer): void
     {
         if ($token instanceof CharacterToken) {
+            // WHATWG §13.2.6.4.7 — U+0000 NULL is a parse error and
+            // is dropped (NOT replaced with U+FFFD; that replacement
+            // is for foreign content only). Dropping here keeps the
+            // frameset-ok flag truthful and matches the spec's "ignore
+            // the token" rule. Without this, a leading NULL would
+            // pollute the body text node and flip frameset-ok off
+            // even though no real content was inserted.
+            if ($token->data === "\u{0000}") {
+                return;
+            }
             $this->reconstructActiveFormatting();
             $this->insertCharacter($token);
             if (!$this->isWhitespaceOnlyCharacter($token)) {

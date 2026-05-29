@@ -16,21 +16,6 @@ tree-construction/menuitem-element:#14:<!DOCTYPE html><select><menuitem></select
 tree-construction/noscript01:#2:<head><noscript><html class="foo"><!--foo--></noscript>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/noscript01:#12:<head><noscript></br><!--foo--></noscript>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/pending-spec-changes:#2:<!DOCTYPE html><table><caption><svg>foo</table>bar: Phase-2 follow-up — html5lib-tests deferred case
-tree-construction/plain-text-unsafe:#2:<html>
-tree-construction/plain-text-unsafe:#3:<html> 
-tree-construction/plain-text-unsafe:#4:<html>a
-tree-construction/plain-text-unsafe:#5:<html>
-tree-construction/plain-text-unsafe:#6:<html>
-tree-construction/plain-text-unsafe:#8:
-tree-construction/plain-text-unsafe:#9:<body>
-tree-construction/plain-text-unsafe:#14:<body><svg><foreignObject>
-tree-construction/plain-text-unsafe:#27:<!DOCTYPE html><table><tr><td><math><mtext>
-tree-construction/plain-text-unsafe:#28:<!DOCTYPE html><table><tr><td><svg><foreignObject>
-tree-construction/plain-text-unsafe:#29:<!DOCTYPE html><math><mi>a
-tree-construction/plain-text-unsafe:#30:<!DOCTYPE html><math><mo>a
-tree-construction/plain-text-unsafe:#31:<!DOCTYPE html><math><mn>a
-tree-construction/plain-text-unsafe:#32:<!DOCTYPE html><math><ms>a
-tree-construction/plain-text-unsafe:#33:<!DOCTYPE html><math><mtext>a
 tree-construction/quirks01:#2:<!DOCTYPE html SYSTEM "http://www.ibm.com/data/dtd/v11/ibmxh: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/quirks01:#3:<!DOCTYPE html PUBLIC "html"><p><table>: Phase-2 follow-up — html5lib-tests deferred case
 tree-construction/quirks01:#4:<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"\n   "http:/: Phase-2 follow-up — html5lib-tests deferred case
