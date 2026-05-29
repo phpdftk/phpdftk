@@ -66,6 +66,15 @@ final class TreeBuilder
     private ?Tokenizer $activeTokenizer = null;
 
     /**
+     * HTML 5 §13.2.6.4.7 — `<pre>` / `<listing>` / `<textarea>`
+     * start tags set this so the next character token's leading
+     * U+000A LF is silently dropped. The flag is single-shot:
+     * cleared on the next character insertion regardless of
+     * whether an LF was actually present.
+     */
+    private bool $skipLeadingNewlineOnNextChar = false;
+
+    /**
      * Pending table character tokens: collected by InTableText, emitted as
      * either text into the table (if all whitespace) or foster-parented out
      * to the table's previous sibling (per §13.2.6.4.10).
@@ -733,8 +742,9 @@ final class TreeBuilder
             }
             $this->insertHtmlElement($token);
             $this->framesetOk = false;
-            // Per spec: skip a single leading LF if present (handled at
-            // character-insertion time; tokenizer doesn't expose that here).
+            // Spec: ignore a single leading LF in the next character
+            // token — authoring convenience for `<pre>\n…</pre>`.
+            $this->skipLeadingNewlineOnNextChar = true;
             return;
         }
 
@@ -898,6 +908,9 @@ final class TreeBuilder
 
         if ($tag === 'textarea') {
             $this->insertHtmlElement($token);
+            // Spec: ignore a single leading LF in the next character
+            // token — same authoring convenience as `<pre>`.
+            $this->skipLeadingNewlineOnNextChar = true;
             $tokenizer->state = TokenizerState::Rcdata;
             $this->originalInsertionMode = $this->insertionMode;
             $this->framesetOk = false;
@@ -1307,23 +1320,39 @@ final class TreeBuilder
         if (!$token instanceof CharacterToken) {
             return;
         }
+        $data = $token->data;
+        // HTML 5 §13.2.6.4.7 — after a `<pre>` / `<listing>` /
+        // `<textarea>` start tag, the parser ignores a single
+        // leading U+000A LF in the next character token. Same
+        // authoring convenience that lets `<pre>\n…</pre>` write
+        // the opening LF immediately after the tag without it
+        // showing up in the rendered text.
+        if ($this->skipLeadingNewlineOnNextChar) {
+            $this->skipLeadingNewlineOnNextChar = false;
+            if (isset($data[0]) && $data[0] === "\n") {
+                $data = substr($data, 1);
+                if ($data === '') {
+                    return;
+                }
+            }
+        }
         [$parent, $before] = $this->appropriatePlaceForInserting();
         if ($before !== null) {
             // Foster-parented text: merge with the immediately-preceding text node if any.
             $prev = $before->previousSibling;
             if ($prev instanceof Text) {
-                $prev->data .= $token->data;
+                $prev->data .= $data;
                 return;
             }
-            $parent->insertBefore($this->document->createTextNode($token->data), $before);
+            $parent->insertBefore($this->document->createTextNode($data), $before);
             return;
         }
         $last = $parent->lastChild;
         if ($last instanceof Text) {
-            $last->data .= $token->data;
+            $last->data .= $data;
             return;
         }
-        $parent->appendChild($this->document->createTextNode($token->data));
+        $parent->appendChild($this->document->createTextNode($data));
     }
 
     private function insertComment(CommentToken $token): void
