@@ -2243,6 +2243,79 @@ final class TreeBuilder
     ];
 
     /**
+     * MathML attribute case adjustments per HTML 5 §13.2.6.1.
+     * Tokenizer lower-cases attribute names; for MathML, the canonical
+     * spelling has a single uppercase URL.
+     */
+    private const array MATHML_ATTR_CASE_CORRECTIONS = [
+        'definitionurl' => 'definitionURL',
+    ];
+
+    /**
+     * SVG attribute case adjustments per HTML 5 §13.2.6.1. The
+     * tokenizer lower-cases all attribute names; this restores the
+     * canonical camelCase that SVG attributes use (gradientUnits,
+     * preserveAspectRatio, viewBox, etc.).
+     */
+    private const array SVG_ATTR_CASE_CORRECTIONS = [
+        'attributename' => 'attributeName', 'attributetype' => 'attributeType',
+        'basefrequency' => 'baseFrequency', 'baseprofile' => 'baseProfile',
+        'calcmode' => 'calcMode', 'clippathunits' => 'clipPathUnits',
+        'diffuseconstant' => 'diffuseConstant', 'edgemode' => 'edgeMode',
+        'filterunits' => 'filterUnits', 'glyphref' => 'glyphRef',
+        'gradienttransform' => 'gradientTransform', 'gradientunits' => 'gradientUnits',
+        'kernelmatrix' => 'kernelMatrix', 'kernelunitlength' => 'kernelUnitLength',
+        'keypoints' => 'keyPoints', 'keysplines' => 'keySplines',
+        'keytimes' => 'keyTimes', 'lengthadjust' => 'lengthAdjust',
+        'limitingconeangle' => 'limitingConeAngle', 'markerheight' => 'markerHeight',
+        'markerunits' => 'markerUnits', 'markerwidth' => 'markerWidth',
+        'maskcontentunits' => 'maskContentUnits', 'maskunits' => 'maskUnits',
+        'numoctaves' => 'numOctaves', 'pathlength' => 'pathLength',
+        'patterncontentunits' => 'patternContentUnits',
+        'patterntransform' => 'patternTransform', 'patternunits' => 'patternUnits',
+        'pointsatx' => 'pointsAtX', 'pointsaty' => 'pointsAtY',
+        'pointsatz' => 'pointsAtZ', 'preservealpha' => 'preserveAlpha',
+        'preserveaspectratio' => 'preserveAspectRatio',
+        'primitiveunits' => 'primitiveUnits', 'refx' => 'refX', 'refy' => 'refY',
+        'repeatcount' => 'repeatCount', 'repeatdur' => 'repeatDur',
+        'requiredextensions' => 'requiredExtensions',
+        'requiredfeatures' => 'requiredFeatures',
+        'specularconstant' => 'specularConstant',
+        'specularexponent' => 'specularExponent', 'spreadmethod' => 'spreadMethod',
+        'startoffset' => 'startOffset', 'stddeviation' => 'stdDeviation',
+        'stitchtiles' => 'stitchTiles', 'surfacescale' => 'surfaceScale',
+        'systemlanguage' => 'systemLanguage', 'tablevalues' => 'tableValues',
+        'targetx' => 'targetX', 'targety' => 'targetY',
+        'textlength' => 'textLength', 'viewbox' => 'viewBox',
+        'viewtarget' => 'viewTarget', 'xchannelselector' => 'xChannelSelector',
+        'ychannelselector' => 'yChannelSelector', 'zoomandpan' => 'zoomAndPan',
+    ];
+
+    /**
+     * Foreign-attribute namespace map per HTML 5 §13.2.6.1.
+     * Tokenized attribute names like `xlink:href` get the
+     * corresponding `[namespace, prefix, localName]` triple so the
+     * Attr node ends up in the right namespace for the serializer
+     * (and any downstream consumers that introspect namespaces).
+     *
+     * @var array<string, array{0: string, 1: ?string, 2: string}>
+     */
+    private const array FOREIGN_ATTR_NAMESPACES = [
+        'xlink:actuate' => [Document::XLINK_NS, 'xlink', 'actuate'],
+        'xlink:arcrole' => [Document::XLINK_NS, 'xlink', 'arcrole'],
+        'xlink:href' => [Document::XLINK_NS, 'xlink', 'href'],
+        'xlink:role' => [Document::XLINK_NS, 'xlink', 'role'],
+        'xlink:show' => [Document::XLINK_NS, 'xlink', 'show'],
+        'xlink:title' => [Document::XLINK_NS, 'xlink', 'title'],
+        'xlink:type' => [Document::XLINK_NS, 'xlink', 'type'],
+        'xml:base' => [Document::XML_NS, 'xml', 'base'],
+        'xml:lang' => [Document::XML_NS, 'xml', 'lang'],
+        'xml:space' => [Document::XML_NS, 'xml', 'space'],
+        'xmlns' => [Document::XMLNS_NS, null, 'xmlns'],
+        'xmlns:xlink' => [Document::XMLNS_NS, 'xmlns', 'xlink'],
+    ];
+
+    /**
      * HTML-element names that "break out" of foreign content per §13.2.6.5
      * "Any start tag whose tag name is one of: ..." — encountering one of
      * these in foreign content pops back to HTML.
@@ -2313,8 +2386,30 @@ final class TreeBuilder
     {
         $localName = $caseTable[$token->tagName] ?? $token->tagName;
         $element = $this->document->createElement($localName, $namespace);
+        // HTML 5 §13.2.6.5 step 7.4.3 — adjust MathML / SVG attribute
+        // casing, then adjust foreign attributes (xlink:*, xml:*,
+        // xmlns) by attaching the proper namespace URI.
+        $svgAdjust = $namespace === Document::SVG_NS
+            ? self::SVG_ATTR_CASE_CORRECTIONS
+            : [];
+        $mathmlAdjust = $namespace === Document::MATHML_NS
+            ? self::MATHML_ATTR_CASE_CORRECTIONS
+            : [];
         foreach ($token->attributes as $attr) {
-            $element->setAttribute($attr['name'], $attr['value']);
+            $name = $attr['name'];
+            $name = $svgAdjust[$name] ?? $name;
+            $name = $mathmlAdjust[$name] ?? $name;
+            $foreign = self::FOREIGN_ATTR_NAMESPACES[$name] ?? null;
+            if ($foreign !== null) {
+                $element->setAttributeNode(new \Phpdftk\Html\Dom\Attr(
+                    localName: $foreign[2],
+                    value: $attr['value'],
+                    namespaceURI: $foreign[0],
+                    prefix: $foreign[1],
+                ));
+                continue;
+            }
+            $element->setAttribute($name, $attr['value']);
         }
         [$parent, $before] = $this->appropriatePlaceForInserting();
         if ($before !== null) {
