@@ -8,6 +8,8 @@ use Phpdftk\Svg\Exception\InvalidSvgException;
 use Phpdftk\Svg\GenericElement;
 use Phpdftk\Svg\Group;
 use Phpdftk\Svg\Parser;
+use Phpdftk\Svg\Path;
+use Phpdftk\Svg\Path\MoveTo;
 use Phpdftk\Svg\Shape\Circle;
 use Phpdftk\Svg\Shape\Ellipse;
 use Phpdftk\Svg\Shape\Line;
@@ -428,6 +430,30 @@ final class ParserTest extends TestCase
         $group = $doc->children[0];
         self::assertInstanceOf(Group::class, $group);
         self::assertNull($group->transform());
+    }
+
+    public function testParsesPathAsTypedElement(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><path d="M 10 20 L 30 40"/></svg>',
+        );
+        $path = $doc->children[0];
+        self::assertInstanceOf(Path::class, $path);
+        self::assertSame('M 10 20 L 30 40', $path->dRaw());
+        $cmds = $path->d()->commands;
+        self::assertCount(2, $cmds);
+        self::assertInstanceOf(MoveTo::class, $cmds[0]);
+    }
+
+    public function testPathDAccessorReturnsEmptyDataWhenAttributeAbsent(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><path/></svg>',
+        );
+        $path = $doc->children[0];
+        self::assertInstanceOf(Path::class, $path);
+        self::assertNull($path->dRaw());
+        self::assertSame([], $path->d()->commands);
     }
 
     public function testTransformAvailableOnAnyElementNotJustGroup(): void

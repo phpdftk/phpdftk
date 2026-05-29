@@ -148,6 +148,7 @@ final class Parser
             'polyline' => new Polyline(),
             'polygon' => new Polygon(),
             'g' => new Group(),
+            'path' => new Path(),
             default => new GenericElement($localName),
         };
     }
