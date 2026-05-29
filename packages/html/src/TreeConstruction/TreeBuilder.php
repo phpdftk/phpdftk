@@ -2346,6 +2346,15 @@ final class TreeBuilder
             $this->modeInHead($token, $tokenizer);
             return;
         }
+        // EOF in InColumnGroup is processed under InBody — that's
+        // the spec's explicit rule. Without this hop the EOF gets
+        // dropped at the parse-error guard below and the document
+        // never reaches the AfterBody→AfterAfterBody chain that
+        // creates the implicit body element.
+        if ($token instanceof EofToken) {
+            $this->modeInBody($token, $tokenizer);
+            return;
+        }
         // "Anything else" — implicit </colgroup>, then reprocess in InTable.
         $current = $this->openElements->currentNode();
         if ($current === null || $current->localName !== 'colgroup') {
