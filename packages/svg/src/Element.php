@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Svg;
 
+use Phpdftk\Svg\Value\Paint;
 use Phpdftk\Svg\Value\Transform;
 
 /**
@@ -99,6 +100,193 @@ abstract class Element extends Node
         } catch (\InvalidArgumentException) {
             return null;
         }
+    }
+
+    /**
+     * `fill` presentation attribute per SVG 2 §13.2. Null when absent or
+     * malformed; the painter then applies inherited or initial values.
+     */
+    public function fill(): ?Paint
+    {
+        return $this->parsePaint('fill');
+    }
+
+    /**
+     * `stroke` presentation attribute per SVG 2 §13.2. Default is `none`
+     * per spec; absent here returns null so the painter can distinguish
+     * "not set on this element" from "explicitly none".
+     */
+    public function stroke(): ?Paint
+    {
+        return $this->parsePaint('stroke');
+    }
+
+    /** `fill-opacity` — clamped to [0, 1] per SVG 2 §13.2. */
+    public function fillOpacity(): ?float
+    {
+        return $this->parseClampedFraction('fill-opacity');
+    }
+
+    /** `stroke-opacity` — clamped to [0, 1]. */
+    public function strokeOpacity(): ?float
+    {
+        return $this->parseClampedFraction('stroke-opacity');
+    }
+
+    /** Group `opacity` — clamped to [0, 1]. */
+    public function opacity(): ?float
+    {
+        return $this->parseClampedFraction('opacity');
+    }
+
+    /**
+     * `fill-rule` — one of `nonzero` or `evenodd`. Returns null for absent
+     * or unrecognised values so the painter applies the initial value
+     * (`nonzero`) rather than guessing.
+     */
+    public function fillRule(): ?string
+    {
+        $raw = $this->attributes['fill-rule'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'nonzero', 'evenodd' => $value,
+            default => null,
+        };
+    }
+
+    /** `stroke-width` — non-negative length, default `1`. Negative → null. */
+    public function strokeWidth(): ?float
+    {
+        $raw = $this->attributes['stroke-width'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = $this->parseNumberPrefix($raw);
+        if ($value === null || $value < 0.0) {
+            return null;
+        }
+        return $value;
+    }
+
+    /** `stroke-linecap` — one of `butt`, `round`, `square`. */
+    public function strokeLinecap(): ?string
+    {
+        $raw = $this->attributes['stroke-linecap'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'butt', 'round', 'square' => $value,
+            default => null,
+        };
+    }
+
+    /**
+     * `stroke-linejoin` — `miter`, `round`, `bevel`, plus SVG 2's
+     * `miter-clip` and `arcs`.
+     */
+    public function strokeLinejoin(): ?string
+    {
+        $raw = $this->attributes['stroke-linejoin'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'miter', 'round', 'bevel', 'miter-clip', 'arcs' => $value,
+            default => null,
+        };
+    }
+
+    /** `stroke-miterlimit` — must be ≥ 1 per SVG 2 §13.4; otherwise null. */
+    public function strokeMiterlimit(): ?float
+    {
+        $raw = $this->attributes['stroke-miterlimit'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = $this->parseNumberPrefix($raw);
+        if ($value === null || $value < 1.0) {
+            return null;
+        }
+        return $value;
+    }
+
+    /**
+     * `stroke-dasharray` — `none` or a list of lengths. Returns an empty
+     * list for both null and `none` so the painter has a single
+     * "no dashes" branch.
+     *
+     * @return list<float>
+     */
+    public function strokeDasharray(): array
+    {
+        $raw = $this->attributes['stroke-dasharray'] ?? null;
+        if ($raw === null) {
+            return [];
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '' || strcasecmp($trimmed, 'none') === 0) {
+            return [];
+        }
+        if (preg_match_all('/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/', $trimmed, $m) === false) {
+            return [];
+        }
+        $out = [];
+        foreach ($m[0] as $token) {
+            $n = (float) $token;
+            if ($n < 0.0) {
+                // SVG 2 §13.4: a single negative value invalidates the
+                // entire list. Painter falls back to no dashes.
+                return [];
+            }
+            $out[] = $n;
+        }
+        return $out;
+    }
+
+    /** `stroke-dashoffset` — any number; default `0`. */
+    public function strokeDashoffset(): ?float
+    {
+        $raw = $this->attributes['stroke-dashoffset'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        return $this->parseNumberPrefix($raw);
+    }
+
+    private function parsePaint(string $attr): ?Paint
+    {
+        $raw = $this->attributes[$attr] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        return Paint::parse($raw);
+    }
+
+    private function parseClampedFraction(string $attr): ?float
+    {
+        $raw = $this->attributes[$attr] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = $this->parseNumberPrefix($raw);
+        if ($value === null) {
+            return null;
+        }
+        return max(0.0, min(1.0, $value));
+    }
+
+    private function parseNumberPrefix(string $raw): ?float
+    {
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
+            return null;
+        }
+        return (float) $m[1];
     }
 
     /**

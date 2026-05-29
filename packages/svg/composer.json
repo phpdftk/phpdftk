@@ -22,6 +22,7 @@
     "require": {
         "php": "^8.4",
         "ext-simplexml": "*",
+        "phpdftk/color": "^1.0",
         "phpdftk/css": "^1.0",
         "phpdftk/geometry": "^1.0"
     },
