@@ -3156,8 +3156,13 @@ final class TreeBuilder
                 return;
             }
             if ($tag === 'select') {
-                // Parse error: treat as </select>.
-                if (!$this->openElements->hasInSelectScope('select')) {
+                // Parse error — under customizable-select the second
+                // `<select>` pops everything back through the open
+                // select even if intermediate non-option elements
+                // (e.g. `<b>`) are on the stack. The older "select
+                // scope" check rejected this case because `<b>` is a
+                // boundary; html5lib-tests expect the unwind.
+                if (!$this->openElements->containsLocalName('select')) {
                     return;
                 }
                 $this->openElements->popUntilLocalName('select');
