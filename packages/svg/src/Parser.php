@@ -160,6 +160,9 @@ final class Parser
             'clipPath' => new ClipPath(),
             'mask' => new Mask(),
             'image' => new Image(),
+            'linearGradient' => new Gradient\LinearGradient(),
+            'radialGradient' => new Gradient\RadialGradient(),
+            'stop' => new Gradient\Stop(),
             default => new GenericElement($localName),
         };
     }

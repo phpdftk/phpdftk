@@ -41,7 +41,7 @@ There's a `SecurityTest` suite that asserts these properties — regressions bre
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: secure XML loader, `SvgDocument` (with `findById` id→element index), `Group`, all five basic shapes, the `transform` attribute (`Value\Transform`), `<path>` with the full SVG 2 §9.3.9 `d`-grammar, SVG 2 §13 presentation / paint accessors, `<text>`/`<tspan>` + CSS Fonts 4 font accessors, `<defs>`/`<symbol>`/`<use>` with intra-document href resolution, and `<clipPath>`/`<mask>`/`<image>` (image href passes through raw — painter / resource loader decides what's safe). Next: gradients and CSS-inside-SVG.
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: secure XML loader, `SvgDocument` (with `findById` id→element index), `Group`, all five basic shapes, the `transform` attribute (`Value\Transform`), `<path>` with the full SVG 2 §9.3.9 `d`-grammar, SVG 2 §13 presentation / paint accessors, `<text>`/`<tspan>` + CSS Fonts 4 font accessors, `<defs>`/`<symbol>`/`<use>` with intra-document href resolution, `<clipPath>`/`<mask>`/`<image>`, and gradients (`linearGradient`/`radialGradient`/`stop` with cycle-safe href chaining for inherited stops). Next: CSS-inside-SVG.
 
 ## License
 
