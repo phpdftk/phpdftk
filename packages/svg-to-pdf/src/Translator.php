@@ -10,6 +10,8 @@ use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Writer\Page;
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\SvgToPdf\Gradient\GradientPainter;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
@@ -80,13 +82,24 @@ final class Translator
      * operator to invoke it. Without a `$page` reference opacity
      * attributes are silently ignored — the painter falls back to
      * fully-opaque rendering.
+     *
+     * When `$page` AND `$writer` are both supplied, gradient paint
+     * references (`fill="url(#id)"`) resolve through the writer's
+     * `PdfDoc` for shading registration and the page's
+     * `useGradient` for resource attachment. Without them, gradient
+     * fills fall back to no paint per SVG 2's "invalid → no paint"
+     * semantics.
      */
     public function paint(
         SvgDocument $document,
         ContentStream $stream,
         ?Page $page = null,
+        ?PdfWriter $writer = null,
     ): void {
         $this->page = $page;
+        $this->gradientPainter = $page !== null && $writer !== null
+            ? new GradientPainter($writer, $page, $document)
+            : null;
         try {
             $viewBox = $document->viewBox();
             if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
@@ -106,10 +119,12 @@ final class Translator
             $this->paintChildren($document, $stream);
         } finally {
             $this->page = null;
+            $this->gradientPainter = null;
         }
     }
 
     private ?Page $page = null;
+    private ?GradientPainter $gradientPainter = null;
 
     private function paintChildren(Element $parent, ContentStream $stream): void
     {
@@ -500,7 +515,7 @@ final class Translator
         if ($stroke === null || $stroke instanceof None_) {
             return;
         }
-        if (!$this->applyStrokePaint($stroke, $stream)) {
+        if (!$this->applyStrokePaint($stroke, $line, $stream)) {
             return;
         }
         $stream->moveTo($line->x1(), $line->y1())
@@ -577,8 +592,8 @@ final class Translator
         $fill = $element->fill();
         $stroke = $element->stroke();
 
-        $hasFill = $this->applyFillPaint($fill, $stream);
-        $hasStroke = $this->applyStrokePaint($stroke, $stream);
+        $hasFill = $this->applyFillPaint($fill, $element, $stream);
+        $hasStroke = $this->applyStrokePaint($stroke, $element, $stream);
 
         $rule = $element->fillRule() ?? 'nonzero';
 
@@ -606,14 +621,13 @@ final class Translator
      * cascade-resolved `color` lands later). Gradient/pattern `url(#…)`
      * is deferred to 3O.
      */
-    private function applyFillPaint(?Paint $paint, ContentStream $stream): bool
+    private function applyFillPaint(?Paint $paint, Element $element, ContentStream $stream): bool
     {
         if ($paint instanceof None_) {
             return false;
         }
         if ($paint instanceof Url) {
-            // Gradient / pattern fill — painter 3O.
-            return false;
+            return $this->gradientPainter?->applyAsFill($paint->id, $element, $stream) ?? false;
         }
         if ($paint instanceof SolidColor) {
             $this->setFillColor($stream, $paint->color);
@@ -629,13 +643,13 @@ final class Translator
      * to stroke. Default (null paint) = SVG-spec "no stroke"; explicit
      * `none` = no stroke.
      */
-    private function applyStrokePaint(?Paint $paint, ContentStream $stream): bool
+    private function applyStrokePaint(?Paint $paint, Element $element, ContentStream $stream): bool
     {
         if ($paint === null || $paint instanceof None_) {
             return false;
         }
         if ($paint instanceof Url) {
-            return false;
+            return $this->gradientPainter?->applyAsStroke($paint->id, $element, $stream) ?? false;
         }
         if ($paint instanceof SolidColor) {
             $this->setStrokeColor($stream, $paint->color);
