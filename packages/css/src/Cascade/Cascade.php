@@ -80,7 +80,53 @@ final class Cascade
          */
         private readonly ?float $viewportWidth = null,
         private readonly ?float $viewportHeight = null,
-    ) {}
+    ) {
+        $this->expandedCache = new \WeakMap();
+        $this->selPseudoCache = new \WeakMap();
+    }
+
+    /**
+     * Per-Declaration shorthand-expansion cache. Same Declaration
+     * applied against many elements only pays the expansion cost
+     * once. WeakMap so stylesheets can be GC'd cleanly.
+     *
+     * Value: `list<array{0: string, 1: \Phpdftk\Css\Value\Value}>`
+     *
+     * @var \WeakMap<object, mixed>
+     */
+    private \WeakMap $expandedCache;
+
+    /**
+     * Per-ComplexSelector pseudo-element-name cache. The same
+     * selector applied against many elements only walks its
+     * compounds once.
+     *
+     * Value: `array{0: ?string}` (tuple so we can distinguish
+     * "cached null" from "missing").
+     *
+     * @var \WeakMap<object, mixed>
+     */
+    private \WeakMap $selPseudoCache;
+
+    /**
+     * Expand a declaration's shorthand, memoised on the Declaration
+     * object itself. Returns `[longhandName, expandedValue]` tuples
+     * so the cascade can iterate without per-call array allocation.
+     *
+     * @return list<array{string, \Phpdftk\Css\Value\Value}>
+     */
+    private function expandDeclaration(\Phpdftk\Css\Sheet\Declaration $decl): array
+    {
+        if (isset($this->expandedCache[$decl])) {
+            return $this->expandedCache[$decl];
+        }
+        $pairs = [];
+        foreach ($this->shorthands->expand($decl->property, $decl->value) as $longhand => $value) {
+            $pairs[] = [$longhand, $value];
+        }
+        $this->expandedCache[$decl] = $pairs;
+        return $pairs;
+    }
 
     /**
      * Return a Cascade configured for a specific viewport so that
@@ -147,9 +193,17 @@ final class Cascade
                     continue;
                 }
                 foreach ($rule->declarations as $decl) {
-                    foreach ($this->shorthands->expand($decl->property, $decl->value) as $longhand => $value) {
+                    foreach ($this->expandDeclaration($decl) as [$longhand, $value]) {
+                        // Reuse the original Declaration when the
+                        // longhand is unchanged (the common case for
+                        // non-shorthand properties), skipping the
+                        // per-cascade allocation. Same Specificity
+                        // and origin can also be shared.
+                        $decl2 = ($longhand === $decl->property)
+                            ? $decl
+                            : new Declaration($longhand, $value, $decl->important);
                         $candidates[] = [
-                            'declaration' => new Declaration($longhand, $value, $decl->important),
+                            'declaration' => $decl2,
                             'specificity' => $matchedSpec,
                             'origin' => $sheet->origin,
                             'order' => $order++,
@@ -172,9 +226,12 @@ final class Cascade
             $inlineSpec = new Specificity(1024, 0, 0);
             $inlineRule = $this->parser->parseInlineStyle($inlineCss);
             foreach ($inlineRule->declarations as $decl) {
-                foreach ($this->shorthands->expand($decl->property, $decl->value) as $longhand => $value) {
+                foreach ($this->expandDeclaration($decl) as [$longhand, $value]) {
+                    $decl2 = ($longhand === $decl->property)
+                        ? $decl
+                        : new Declaration($longhand, $value, $decl->important);
                     $candidates[] = [
-                        'declaration' => new Declaration($longhand, $value, $decl->important),
+                        'declaration' => $decl2,
                         'specificity' => $inlineSpec,
                         'origin' => Origin::Author,
                         'order' => $order++,
@@ -680,17 +737,26 @@ final class Cascade
 
     private function selectorPseudoElementName(\Phpdftk\Css\Selector\ComplexSelector $sel): ?string
     {
-        $compounds = $sel->compounds;
-        if ($compounds === []) {
-            return null;
+        // Memoise by selector identity — the same ComplexSelector
+        // is matched against every element of the cascade, but
+        // its pseudo-element tail is a property of the selector
+        // alone.
+        if (isset($this->selPseudoCache[$sel])) {
+            return $this->selPseudoCache[$sel][0];
         }
-        $last = $compounds[array_key_last($compounds)]->compound;
-        foreach ($last->components as $simple) {
-            if ($simple instanceof \Phpdftk\Css\Selector\PseudoElementSelector) {
-                return strtolower($simple->name);
+        $compounds = $sel->compounds;
+        $result = null;
+        if ($compounds !== []) {
+            $last = $compounds[array_key_last($compounds)]->compound;
+            foreach ($last->components as $simple) {
+                if ($simple instanceof \Phpdftk\Css\Selector\PseudoElementSelector) {
+                    $result = strtolower($simple->name);
+                    break;
+                }
             }
         }
-        return null;
+        $this->selPseudoCache[$sel] = [$result];
+        return $result;
     }
 
     /**
