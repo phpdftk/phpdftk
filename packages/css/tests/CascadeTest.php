@@ -623,15 +623,85 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $values->get('color')->r);
     }
 
-    public function testSupportsSelectorFunctionEvaluatesFalse(): void
+    public function testSupportsSelectorFunctionEvaluatesParseable(): void
     {
-        // Negative: `selector(...)` predicates aren't modeled.
-        // The condition evaluates false → rule drops.
+        // CSS Conditional Rules 4 §3 — `selector(<sel>)` returns
+        // true when the inner selector parses cleanly. We don't
+        // model "supported pseudo-class" granularity beyond
+        // parseability — any well-formed selector returns true.
         $sheet = $this->parser->parseStylesheet(
             '@supports selector(:has(p)) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsSelectorFunctionWithMalformedSelectorDrops(): void
+    {
+        // A genuinely malformed inner selector (`!!!`) fails to
+        // parse and the supports condition evaluates false.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports selector(!!!) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        // Initial color (black) — rule dropped.
         self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsFontFormatWoff2Matches(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@supports font-format(woff2) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsFontFormatUnknownDrops(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@supports font-format(quux) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsFontTechVariationsMatches(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@supports font-tech(variations) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsFontTechUnknownDrops(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@supports font-tech(color-cbdt) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testSupportsCombinedSelectorAndPropertyQueries(): void
+    {
+        // `selector(...)` composes with `(property: value)` via
+        // and / or. Both must evaluate.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports selector(:has(p)) and (display: grid) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsNotSelectorInverts(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@supports not selector(!!!) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
     }
 
     public function testSupportsBooleanFormChecksPropertyExists(): void

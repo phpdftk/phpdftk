@@ -456,11 +456,45 @@ final class Cascade
         return $negate ? !$inner : $inner;
     }
 
-    /** Recursive-descent: `(<expr>)` where expr is a feature query or nested logical. */
+    /**
+     * Recursive-descent: `(<expr>)` OR a bare feature function call
+     * (`selector(...)`, `font-format(...)`, `font-tech(...)`) per
+     * CSS Conditional Rules 4 §3 — these appear bare in the
+     * prelude, NOT wrapped in another `(...)`.
+     */
     private function parseSupportsPrimary(string $s, int &$pos): bool
     {
         $this->skipSupportsWs($s, $pos);
-        if ($pos >= strlen($s) || $s[$pos] !== '(') {
+        if ($pos >= strlen($s)) {
+            return false;
+        }
+        // Bare feature function form: `selector(...)` etc.
+        if (preg_match('/\G([A-Za-z][\w-]*)\(/A', $s, $m, 0, $pos) === 1) {
+            $name = strtolower($m[1]);
+            if (in_array($name, ['selector', 'font-format', 'font-tech'], true)) {
+                $pos += strlen($m[0]);
+                $start = $pos;
+                $depth = 1;
+                while ($pos < strlen($s)) {
+                    $ch = $s[$pos];
+                    if ($ch === '(') {
+                        $depth++;
+                    } elseif ($ch === ')') {
+                        $depth--;
+                        if ($depth === 0) {
+                            break;
+                        }
+                    }
+                    $pos++;
+                }
+                $arg = substr($s, $start, $pos - $start);
+                if ($pos < strlen($s)) {
+                    $pos++; // skip closing ')'
+                }
+                return $this->evaluateSupportsFeature($m[1] . '(' . $arg . ')');
+            }
+        }
+        if ($s[$pos] !== '(') {
             return false;
         }
         $pos++; // skip '('
@@ -520,9 +554,18 @@ final class Cascade
         if ($body === '') {
             return false;
         }
-        // selector() / font-tech() / font-format() etc — unsupported.
-        if (str_contains($body, '(')) {
-            return false;
+        // CSS Conditional Rules 4 §3 — `selector(<sel>)`,
+        // `font-format(<f>)`, `font-tech(<t>)`. Detect by leading
+        // function name.
+        if (preg_match('/^([A-Za-z][\w-]*)\s*\((.*)\)\s*$/s', $body, $m) === 1) {
+            $name = strtolower($m[1]);
+            $arg = trim($m[2]);
+            return match ($name) {
+                'selector' => $this->evaluateSupportsSelector($arg),
+                'font-format' => self::evaluateSupportsFontFormat($arg),
+                'font-tech' => self::evaluateSupportsFontTech($arg),
+                default => false,
+            };
         }
         if (str_contains($body, ':')) {
             // `(property: value)` form — we honour any property the
@@ -534,6 +577,59 @@ final class Cascade
         }
         // Boolean form `(property)`.
         return $this->registry->has(strtolower($body));
+    }
+
+    /**
+     * CSS Conditional Rules 4 — `selector(<sel>)` is true when the
+     * inner selector parses cleanly. Selector support granularity
+     * isn't modelled (we don't differentiate "supported but not
+     * yet implemented" from "matches nothing"), so any well-formed
+     * selector returns true.
+     */
+    private function evaluateSupportsSelector(string $selector): bool
+    {
+        try {
+            $parsed = \Phpdftk\Css\Selector\SelectorParser::parse($selector);
+            return $parsed->selectors !== [];
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * CSS Conditional Rules 4 / Fonts 4 §4.3 — `font-format()`.
+     * True for the well-known font format keywords browsers
+     * recognise. Without an actual font subsystem we accept the
+     * standard formats and reject the rest.
+     */
+    private static function evaluateSupportsFontFormat(string $format): bool
+    {
+        $format = strtolower(trim($format, " \t\n\r\0\x0B\"'"));
+        return in_array($format, [
+            'collection',
+            'embedded-opentype',
+            'opentype',
+            'svg',
+            'truetype',
+            'woff',
+            'woff2',
+        ], true);
+    }
+
+    /**
+     * CSS Conditional Rules 4 / Fonts 4 §4.4 — `font-tech()`. We
+     * don't model OpenType variations / palettes / colorv0 / etc
+     * granularity (rendering paths for those land with `phpdftk/text`
+     * shaping), so this returns false for unknown techs. Accept the
+     * baseline ones the renderer's font loader actually supports.
+     */
+    private static function evaluateSupportsFontTech(string $tech): bool
+    {
+        $tech = strtolower(trim($tech, " \t\n\r\0\x0B\"'"));
+        return in_array($tech, [
+            'variations',
+            'palettes',
+        ], true);
     }
 
     /**
