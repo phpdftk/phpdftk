@@ -435,36 +435,35 @@ final class Translator
             return;
         }
 
-        if ($bbox !== null) {
-            $stream->concatMatrix(
-                $bbox['width'],
-                0.0,
-                0.0,
-                $bbox['height'],
-                $bbox['minX'],
-                $bbox['minY'],
-            );
+        $bboxMatrix = $bbox === null
+            ? null
+            : [$bbox['width'], 0.0, 0.0, $bbox['height'], $bbox['minX'], $bbox['minY']];
+        $clipTransform = $clipPath->transform()?->toMatrix();
+
+        // Apply outer→inner: bbox first, then the clipPath's own
+        // `transform`. Children paint in their authored coordinate
+        // system; the cm composition reifies that into user space
+        // for the W operator to capture.
+        if ($bboxMatrix !== null) {
+            $stream->concatMatrix(...$bboxMatrix);
+        }
+        if ($clipTransform !== null) {
+            $stream->concatMatrix(...$clipTransform);
         }
         foreach ($clipPath->children as $child) {
             if ($child instanceof Element) {
                 $this->emitElementPath($child, $stream);
             }
         }
-        if ($bbox !== null) {
-            // Undo the bbox `cm` so user-space coords for the painted
-            // content stay aligned with the SVG source. The clip
-            // region established by `W` survives the CTM change
-            // because it lives in device space.
-            $invW = 1.0 / $bbox['width'];
-            $invH = 1.0 / $bbox['height'];
-            $stream->concatMatrix(
-                $invW,
-                0.0,
-                0.0,
-                $invH,
-                -$bbox['minX'] * $invW,
-                -$bbox['minY'] * $invH,
-            );
+        // Undo the cms in reverse order so the CTM is back to the
+        // pre-clip user space. The clip region established by `W`
+        // already lives in device space, so it survives the CTM
+        // changes.
+        if ($clipTransform !== null) {
+            $stream->concatMatrix(...self::inverseAffine($clipTransform));
+        }
+        if ($bboxMatrix !== null) {
+            $stream->concatMatrix(...self::inverseAffine($bboxMatrix));
         }
 
         $rule = self::resolveClipRule($clipPath);
@@ -474,6 +473,34 @@ final class Translator
             $stream->clip();
         }
         $stream->endPath();
+    }
+
+    /**
+     * Inverse of a 3×2 affine matrix in PDF `[a b c d e f]` order. The
+     * full 3×3 affine has bottom row `[0 0 1]` so we only need the six
+     * SVG/PDF entries. Singular matrices (det == 0) shouldn't occur
+     * for any transform we generate; if one does, returning identity
+     * makes the worst-case behaviour "no inverse applied" rather than
+     * a divide-by-zero.
+     *
+     * @param array{float, float, float, float, float, float} $m
+     * @return array{float, float, float, float, float, float}
+     */
+    private static function inverseAffine(array $m): array
+    {
+        [$a, $b, $c, $d, $e, $f] = $m;
+        $det = $a * $d - $b * $c;
+        if (abs($det) < 1.0e-12) {
+            return [1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
+        }
+        return [
+            $d / $det,
+            -$b / $det,
+            -$c / $det,
+            $a / $det,
+            ($c * $f - $d * $e) / $det,
+            ($b * $e - $a * $f) / $det,
+        ];
     }
 
     /**

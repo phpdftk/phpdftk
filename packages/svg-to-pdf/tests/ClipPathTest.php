@@ -223,4 +223,81 @@ final class ClipPathTest extends TestCase
         // its constructed path without filling.
         self::assertSame(1, $fillCount);
     }
+
+    public function testClipPathTransformWrapsChildPathConstruction(): void
+    {
+        // `transform="translate(10, 5)"` on `<clipPath>` shifts its
+        // children's coords before they contribute to the clip region.
+        // The painter emits the transform cm, then the inverse cm
+        // afterwards so the body paints in its original user space.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="clip" clipPathUnits="userSpaceOnUse" '
+            . 'transform="translate(10, 5)">'
+            . '<rect width="20" height="20"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect width="40" height="40" fill="red" clip-path="url(#clip)"/>'
+            . '</svg>',
+        );
+        // Forward translate, then the constructed rect, then the
+        // inverse translate before W.
+        self::assertStringContainsString('1 0 0 1 10 5 cm', $ops);
+        self::assertStringContainsString('0 0 20 20 re', $ops);
+        self::assertStringContainsString('1 0 0 1 -10 -5 cm', $ops);
+        $lines = explode("\n", $ops);
+        self::assertContains('W', $lines);
+    }
+
+    public function testClipPathTransformAndBboxModeCompose(): void
+    {
+        // bbox cm AND clipPath transform cm both apply. Order matters:
+        // bbox first (outer), then transform (inner). The inverses
+        // restore CTM in reverse before W fires. Note that SVG 2
+        // defaults `clipPathUnits` to `userSpaceOnUse`, so this test
+        // sets the bbox mode explicitly.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="clip" clipPathUnits="objectBoundingBox" '
+            . 'transform="scale(0.5)">'
+            . '<rect width="2" height="2"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect x="10" y="20" width="50" height="30" fill="red" '
+            . 'clip-path="url(#clip)"/>'
+            . '</svg>',
+        );
+        // Bbox cm = 50 0 0 30 10 20.
+        self::assertStringContainsString('50 0 0 30 10 20 cm', $ops);
+        // Transform cm = 0.5 0 0 0.5 0 0.
+        self::assertStringContainsString('0.5 0 0 0.5 0 0 cm', $ops);
+        // Inverse transform follows = 2 0 0 2 0 0.
+        self::assertStringContainsString('2 0 0 2 0 0 cm', $ops);
+        // Inverse bbox cm = 0.02 0 0 0.033… -0.2 -0.666… .
+        self::assertMatchesRegularExpression(
+            '!0\.02 0 0 0\.033333 -0\.2 -0\.666667 cm!',
+            $ops,
+        );
+    }
+
+    public function testClipPathWithoutTransformEmitsNoCmAroundChildren(): void
+    {
+        // Regression guard: in userSpaceOnUse mode with no clipPath
+        // transform, there should be no leftover cm operators around
+        // the path construction (the 3R+3 behaviour stays intact).
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="clip" clipPathUnits="userSpaceOnUse">'
+            . '<rect width="10" height="10"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect width="20" height="20" fill="red" clip-path="url(#clip)"/>'
+            . '</svg>',
+        );
+        self::assertStringNotContainsString(' cm', $ops);
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+    }
 }
