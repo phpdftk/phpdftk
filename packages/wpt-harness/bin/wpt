@@ -4,31 +4,29 @@
 declare(strict_types=1);
 
 /**
- * `wpt` — the harness CLI entry point. Phase 4A.0 scaffold.
+ * `wpt` — the harness CLI entry point.
  *
- * Subcommands (filled in by 4A.1):
+ * Subcommands:
  *
- *   wpt run [--filter=<glob>] [--in-scope-only]
- *           Run the harness and emit `var/wpt/report.json` +
- *           `var/wpt/summary.md`.
+ *   wpt run [--root=<path>] [--filter=<glob>]
+ *           Walk the corpus under <path> (default
+ *           ./vendor-data/wpt), classify each test against the
+ *           manifest, emit a summary report to stdout.
  *
- *   wpt classify
- *           Reclassify the manifest. Loads
- *           `packages/wpt-harness/manifest/*.yaml`, walks the WPT
- *           corpus, prints per-test classification verdicts.
+ *   wpt classify <test-id> [--root=<path>]
+ *           Show how a single test ID would be classified by the
+ *           current manifest.
  *
  *   wpt status
- *           Print the last harness run's summary.
+ *           Print the most recent harness summary (4A.5).
  *
  *   wpt diff <test-id>
- *           Open the failure artefacts for a single test.
+ *           Open the per-test failure artefacts (4A.5).
  */
 
-// Locate the autoloader — works whether the package is installed via
-// composer or used straight from the monorepo.
 $autoloadCandidates = [
-    __DIR__ . '/../../../vendor/autoload.php',  // monorepo
-    __DIR__ . '/../vendor/autoload.php',         // package install
+    __DIR__ . '/../../../vendor/autoload.php',
+    __DIR__ . '/../vendor/autoload.php',
 ];
 $autoload = null;
 foreach ($autoloadCandidates as $candidate) {
@@ -43,14 +41,107 @@ if ($autoload === null) {
 }
 require $autoload;
 
+use Phpdftk\WptHarness\HarnessRunner;
+use Phpdftk\WptHarness\Manifest;
+use Phpdftk\WptHarness\Rasteriser;
+use Phpdftk\WptHarness\ReportPublisher;
+use Phpdftk\WptHarness\Scorer;
+use Phpdftk\WptHarness\TestStatus;
+
 $subcommand = $argv[1] ?? 'help';
+$args = array_slice($argv, 2);
+
+function parseOptions(array $args): array
+{
+    $opts = [];
+    $positional = [];
+    foreach ($args as $arg) {
+        if (str_starts_with($arg, '--')) {
+            $eq = strpos($arg, '=');
+            if ($eq !== false) {
+                $opts[substr($arg, 2, $eq - 2)] = substr($arg, $eq + 1);
+            } else {
+                $opts[substr($arg, 2)] = true;
+            }
+        } else {
+            $positional[] = $arg;
+        }
+    }
+    return ['opts' => $opts, 'positional' => $positional];
+}
+
+function manifestDir(): string
+{
+    return __DIR__ . '/../manifest';
+}
+
+function defaultWptRoot(): string
+{
+    return getcwd() . '/vendor-data/wpt';
+}
 
 switch ($subcommand) {
-    case 'run':
-    case 'classify':
+    case 'run': {
+        $parsed = parseOptions($args);
+        $root = isset($parsed['opts']['root']) && is_string($parsed['opts']['root'])
+            ? $parsed['opts']['root']
+            : defaultWptRoot();
+        $filter = isset($parsed['opts']['filter']) && is_string($parsed['opts']['filter'])
+            ? $parsed['opts']['filter']
+            : null;
+        if (!is_dir($root)) {
+            fwrite(STDERR, "wpt run: corpus not found at $root\n");
+            fwrite(STDERR, "  Pass --root=<path> or run from the monorepo with vendor-data/wpt populated.\n");
+            exit(2);
+        }
+        $manifest = Manifest::loadFromDirectory(manifestDir());
+        $runner = new HarnessRunner($manifest, new Rasteriser(), new Scorer(), $root);
+        $results = $runner->run($filter);
+        $agg = ReportPublisher::aggregate($results);
+
+        printf("WPT harness — corpus: %s\n", $root);
+        if ($filter !== null) {
+            printf("Filter: %s\n", $filter);
+        }
+        printf("\n  Total tests:        %d\n", count($results));
+        printf("    Pass:             %d\n", $agg['pass']);
+        printf("    Fail:             %d\n", $agg['fail']);
+        printf("    Out of scope:     %d\n", $agg['outOfScope']);
+        printf("    Pending substr.:  %d\n", $agg['pendingSubstrate']);
+        printf("    Skipped:          %d\n", $agg['skipped']);
+        printf("    Harness errors:   %d\n", $agg['harnessError']);
+        printf("\n  In-scope total:    %d\n", $agg['inScopeTotal']);
+        printf("  In-scope pass:     %.2f%%\n", $agg['inScopePassRate'] * 100);
+        exit(0);
+    }
+    case 'classify': {
+        $parsed = parseOptions($args);
+        if (count($parsed['positional']) < 1) {
+            fwrite(STDERR, "wpt classify: missing test ID\n");
+            fwrite(STDERR, "Usage: wpt classify <test-id>\n");
+            exit(2);
+        }
+        $testId = $parsed['positional'][0];
+        $manifest = Manifest::loadFromDirectory(manifestDir());
+        $verdict = $manifest->classify($testId);
+        if ($verdict === null) {
+            printf("%s\n  in-scope (no rule matched)\n", $testId);
+            exit(0);
+        }
+        printf(
+            "%s\n  %s\n  reason: %s\n",
+            $testId,
+            $verdict['status']->value,
+            $verdict['reason'],
+        );
+        if (isset($verdict['phase'])) {
+            printf("  phase: %s\n", $verdict['phase']);
+        }
+        exit(0);
+    }
     case 'status':
     case 'diff':
-        fwrite(STDERR, "wpt {$subcommand}: 4A.1 not yet implemented\n");
+        fwrite(STDERR, "wpt $subcommand: not yet implemented (lands at 4A.5)\n");
         exit(2);
 
     case 'help':
@@ -61,10 +152,10 @@ switch ($subcommand) {
 Usage: wpt <subcommand> [options]
 
 Subcommands:
-  run        Run the harness corpus, emit report.json + summary.md
-  classify   Reclassify the WPT manifest
-  status     Print last-run summary
-  diff <id>  Open the failure artefacts for one test
+  run [--root=<path>] [--filter=<glob>]   Classify the corpus + print summary
+  classify <test-id>                       Show verdict for one ID
+  status                                   Show last run (4A.5)
+  diff <test-id>                           Open failure artefacts (4A.5)
 
 See packages/wpt-harness/README.md for full docs.
 
