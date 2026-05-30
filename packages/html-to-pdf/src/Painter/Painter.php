@@ -1094,6 +1094,20 @@ final class Painter
     private function collectDropShadowFilters(\Phpdftk\Css\Value\Value $value): array
     {
         $out = [];
+        // Filter post-processing typed form: Filter<list<FilterFunction>>.
+        if ($value instanceof \Phpdftk\Css\Value\Filter) {
+            foreach ($value->functions as $fn) {
+                if ($fn->kind === \Phpdftk\Css\Value\FilterKind::DropShadow) {
+                    $parsed = $this->parseDropShadowArgs($fn->args);
+                    if ($parsed !== null) {
+                        $out[] = $parsed;
+                    }
+                }
+            }
+            return $out;
+        }
+        // Legacy generic form (CssFunction / ValueList<CssFunction>) for
+        // value-paths that bypass Parser::makeDeclaration.
         $items = $value instanceof \Phpdftk\Css\Value\ValueList
             ? $value->values
             : [$value];
