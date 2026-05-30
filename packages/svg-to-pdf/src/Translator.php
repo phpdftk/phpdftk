@@ -277,24 +277,24 @@ final class Translator
         if (!$referent instanceof Mask) {
             return null;
         }
-        // Use the masked element's bbox as the form's BBox. Shapes
-        // whose bbox isn't computable at 3R+8 (e.g. `<path>`) fall
-        // through to no mask.
-        $bbox = BoundingBox::compute($element);
-        if ($bbox === null) {
+        $elementBbox = BoundingBox::compute($element);
+        if ($elementBbox === null) {
             return null;
         }
+        $region = self::computeMaskRegion($referent, $elementBbox);
 
         $maskStream = new ContentStream();
         if ($referent->maskContentUnits() === 'objectBoundingBox') {
-            // Reify mask children's [0, 1] coords against the bbox.
+            // Reify mask children's [0, 1] coords against the masked
+            // element's bbox (the same reference frame the masked
+            // element's geometry inhabits — not the mask region).
             $maskStream->concatMatrix(
-                $bbox['width'],
+                $elementBbox['width'],
                 0.0,
                 0.0,
-                $bbox['height'],
-                $bbox['minX'],
-                $bbox['minY'],
+                $elementBbox['height'],
+                $elementBbox['minX'],
+                $elementBbox['minY'],
             );
         }
         foreach ($referent->children as $child) {
@@ -305,10 +305,10 @@ final class Translator
         $operatorBytes = implode("\n", $maskStream->getOperators());
         $form = new FormXObject(
             new PdfArray([
-                new PdfNumber($bbox['minX']),
-                new PdfNumber($bbox['minY']),
-                new PdfNumber($bbox['minX'] + $bbox['width']),
-                new PdfNumber($bbox['minY'] + $bbox['height']),
+                new PdfNumber($region['minX']),
+                new PdfNumber($region['minY']),
+                new PdfNumber($region['minX'] + $region['width']),
+                new PdfNumber($region['minY'] + $region['height']),
             ]),
             $operatorBytes,
         );
@@ -319,7 +319,16 @@ final class Translator
         $form->group = $group;
         $this->writer->register($form);
 
-        $smask = new SoftMask('Luminosity', new PdfReference($form->objectNumber));
+        // SVG 2 §14.5: `mask-type="alpha"` uses the painted pixels'
+        // alpha channel directly; the default `luminance` (also
+        // covering the old `mask-type` absent case) uses the
+        // luminance of the RGB pixels. PDF maps these to the SoftMask
+        // `/S /Alpha` and `/S /Luminosity` modes.
+        $maskSubtype = strtolower(trim($referent->getAttribute('mask-type') ?? ''));
+        $smask = new SoftMask(
+            $maskSubtype === 'alpha' ? 'Alpha' : 'Luminosity',
+            new PdfReference($form->objectNumber),
+        );
         // Backdrop colour black ([0]) so anywhere the mask content
         // doesn't paint stays hidden — matches SVG 2's "outside the
         // mask region the alpha is 0" semantic.
@@ -335,6 +344,48 @@ final class Translator
             $resources->extGState[$name] = new PdfReference($gstate->objectNumber);
         }
         return $name;
+    }
+
+    /**
+     * Compute the rectangular region that the mask covers, in user
+     * space. SVG 2 §14.5.4 defaults:
+     *
+     *  - `maskUnits="objectBoundingBox"` (default): `x=-10%, y=-10%,
+     *    width=120%, height=120%` of the masked element's bounding
+     *    box. The 10% pad on each side is what makes the mask
+     *    naturally reach a hair beyond the painted geometry so
+     *    anti-aliased edges aren't clipped.
+     *  - `maskUnits="userSpaceOnUse"`: SVG defaults to the viewport
+     *    rect (-10% etc. of the viewport), which we don't have direct
+     *    access to here — fall back to the masked element's bbox
+     *    (matches 3R+8 behaviour for unset attributes).
+     *
+     * @param array{minX: float, minY: float, width: float, height: float} $elementBbox
+     * @return array{minX: float, minY: float, width: float, height: float}
+     */
+    private static function computeMaskRegion(Mask $mask, array $elementBbox): array
+    {
+        $bboxMode = $mask->maskUnits() === 'objectBoundingBox';
+
+        if ($bboxMode) {
+            $x = $mask->x() ?? -0.1;
+            $y = $mask->y() ?? -0.1;
+            $w = $mask->width() ?? 1.2;
+            $h = $mask->height() ?? 1.2;
+            return [
+                'minX' => $elementBbox['minX'] + $x * $elementBbox['width'],
+                'minY' => $elementBbox['minY'] + $y * $elementBbox['height'],
+                'width' => $w * $elementBbox['width'],
+                'height' => $h * $elementBbox['height'],
+            ];
+        }
+
+        return [
+            'minX' => $mask->x() ?? $elementBbox['minX'],
+            'minY' => $mask->y() ?? $elementBbox['minY'],
+            'width' => $mask->width() ?? $elementBbox['width'],
+            'height' => $mask->height() ?? $elementBbox['height'],
+        ];
     }
 
     /**

@@ -70,10 +70,12 @@ final class MaskTest extends TestCase
         self::assertStringContainsString('/BC [ 0 ]', $result['bytes']);
     }
 
-    public function testMaskBBoxMatchesMaskedElementBounds(): void
+    public function testMaskBBoxAppliesDefaultObjectBoundingBoxExtension(): void
     {
-        // The form's /BBox should enclose the masked rect (0, 0) ..
-        // (100, 50) so the soft mask covers it.
+        // SVG 2 §14.5.4 default `maskUnits="objectBoundingBox"` with
+        // `x=-10%`, `y=-10%`, `width=120%`, `height=120%`. Masked
+        // rect (0, 0, 100, 50) → mask region (-10, -5, 120, 60) →
+        // BBox `[-10 -5 110 55]`.
         $result = $this->paint(
             '<svg xmlns="http://www.w3.org/2000/svg">'
             . '<defs><mask id="m" maskContentUnits="userSpaceOnUse">'
@@ -82,7 +84,57 @@ final class MaskTest extends TestCase
             . '<rect width="100" height="50" fill="red" mask="url(#m)"/>'
             . '</svg>',
         );
+        self::assertStringContainsString('/BBox [ -10 -5 110 55 ]', $result['bytes']);
+    }
+
+    public function testExplicitMaskRegionInUserSpaceOnUseMode(): void
+    {
+        // maskUnits=userSpaceOnUse + explicit x/y/w/h → BBox lifts
+        // those coords verbatim instead of reifying against the
+        // element bbox.
+        $result = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><mask id="m" maskUnits="userSpaceOnUse" '
+            . 'maskContentUnits="userSpaceOnUse" '
+            . 'x="20" y="10" width="40" height="30">'
+            . '<rect width="40" height="30" fill="white"/>'
+            . '</mask></defs>'
+            . '<rect width="100" height="100" fill="red" mask="url(#m)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString('/BBox [ 20 10 60 40 ]', $result['bytes']);
+    }
+
+    public function testExplicitMaskRegionInObjectBoundingBoxMode(): void
+    {
+        // Explicit `x=0 y=0 w=1 h=1` in objectBoundingBox mode → BBox
+        // equals the masked element's bbox exactly (no 10% pad).
+        $result = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><mask id="m" x="0" y="0" width="1" height="1" '
+            . 'maskContentUnits="userSpaceOnUse">'
+            . '<rect width="100" height="50" fill="white"/>'
+            . '</mask></defs>'
+            . '<rect width="100" height="50" fill="red" mask="url(#m)"/>'
+            . '</svg>',
+        );
         self::assertStringContainsString('/BBox [ 0 0 100 50 ]', $result['bytes']);
+    }
+
+    public function testMaskTypeAlphaSwitchesSoftMaskSubtype(): void
+    {
+        $result = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><mask id="m" mask-type="alpha" '
+            . 'maskContentUnits="userSpaceOnUse">'
+            . '<rect width="100" height="50" fill="white"/>'
+            . '</mask></defs>'
+            . '<rect width="100" height="50" fill="red" mask="url(#m)"/>'
+            . '</svg>',
+        );
+        // PDF body should carry /S /Alpha instead of /Luminosity.
+        self::assertStringContainsString('/S /Alpha', $result['bytes']);
+        self::assertStringNotContainsString('/S /Luminosity', $result['bytes']);
     }
 
     public function testMaskContentUnitsObjectBoundingBoxAppliesBboxMatrix(): void
