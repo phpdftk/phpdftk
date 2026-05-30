@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 250">
+  <!-- stroke-linecap variants -->
+  <line x1="20" y1="20" x2="120" y2="20" stroke="#3b82f6" stroke-width="10" stroke-linecap="butt"/>
+  <line x1="20" y1="40" x2="120" y2="40" stroke="#3b82f6" stroke-width="10" stroke-linecap="round"/>
+  <line x1="20" y1="60" x2="120" y2="60" stroke="#3b82f6" stroke-width="10" stroke-linecap="square"/>
+  <!-- stroke-linejoin variants -->
+  <polyline points="140,15 165,30 190,15 215,30 240,15" fill="none" stroke="#10b981" stroke-width="6" stroke-linejoin="miter"/>
+  <polyline points="140,40 165,55 190,40 215,55 240,40" fill="none" stroke="#10b981" stroke-width="6" stroke-linejoin="round"/>
+  <polyline points="140,65 165,80 190,65 215,80 240,65" fill="none" stroke="#10b981" stroke-width="6" stroke-linejoin="bevel"/>
+  <!-- stroke-dasharray variants -->
+  <line x1="20" y1="100" x2="280" y2="100" stroke="#ef4444" stroke-width="2" stroke-dasharray="5"/>
+  <line x1="20" y1="120" x2="280" y2="120" stroke="#ef4444" stroke-width="2" stroke-dasharray="10 5"/>
+  <line x1="20" y1="140" x2="280" y2="140" stroke="#ef4444" stroke-width="2" stroke-dasharray="5 2 1 2"/>
+  <!-- Combined: rounded rect with dashes -->
+  <rect x="20" y="170" width="260" height="60" fill="none" stroke="#7c3aed"
+        stroke-width="3" stroke-dasharray="10 5" stroke-linejoin="round"/>
+</svg>

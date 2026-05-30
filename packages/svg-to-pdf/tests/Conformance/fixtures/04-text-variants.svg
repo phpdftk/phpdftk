@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250">
+  <!-- Each line exercises a different font-family / weight / style combination -->
+  <text x="10" y="30" font-size="20" fill="#0f172a">Default sans-serif (Helvetica)</text>
+  <text x="10" y="60" font-size="16" font-family="serif" fill="#475569">Default serif (Times-Roman)</text>
+  <text x="10" y="85" font-size="14" font-family="serif" font-weight="bold">Serif bold (Times-Bold)</text>
+  <text x="10" y="110" font-size="14" font-family="serif" font-style="italic">Serif italic (Times-Italic)</text>
+  <text x="10" y="135" font-size="14" font-family="serif" font-weight="bold" font-style="italic">Serif bold-italic</text>
+  <text x="10" y="160" font-size="14" font-family="monospace">Monospace (Courier)</text>
+  <text x="10" y="185" font-size="14" font-family="monospace" font-weight="bold">Monospace bold</text>
+  <!-- Per-glyph x positioning (3R+5) -->
+  <text x="10 40 70 100 130 160" y="220" font-size="16">SPACED</text>
+</svg>

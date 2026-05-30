@@ -33,7 +33,7 @@ composer require phpdftk/svg-to-pdf
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), the full SVG 2 §7.10 `preserveAspectRatio` matrix (3R+6), intrinsic `<image>` dimensions (3R+7), `<mask>` via soft-mask `ExtGState` (3R+8), `<path>` bounding box (3R+9), SVG 2 §14.5.4 mask region + `mask-type` (3R+10), `transform` on `<clipPath>` (3R+11), and a `SvgToPdfBench` PHPBench suite covering the major feature families (3R+12).
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), the full SVG 2 §7.10 `preserveAspectRatio` matrix (3R+6), intrinsic `<image>` dimensions (3R+7), `<mask>` via soft-mask `ExtGState` (3R+8), `<path>` bounding box (3R+9), SVG 2 §14.5.4 mask region + `mask-type` (3R+10), `transform` on `<clipPath>` (3R+11), a `SvgToPdfBench` PHPBench suite (3R+12), and a 12-fixture conformance smoke suite with an `ignored.txt` deferral ledger (3R+13).
 
 Coordinate convention: `(x, y)` passed to `SvgRenderer::draw()` is the **bottom-left** of the destination rectangle in PDF user space. The renderer applies the standard SVG y-down → PDF y-up flip at the `cm` level and tells the `Translator` to compensate the flip inside text objects (via `Tm 1 0 0 -1 x y`) so glyphs render upright. Direct `Translator::paint()` usage without `SvgRenderer` keeps the pre-fix behaviour — no outer flip, `Td` for text — so existing callers don't regress.
 
@@ -45,7 +45,7 @@ Deferred from this phase:
 - Nothing major remaining on `<mask>` — region attributes, default extension, and `mask-type` all landed at 3R+10.
 - Nested `clip-path` on `<clipPath>` children; per-child `clip-rule` overrides (PDF clip operators apply per-path with a single fill rule so varying rules per child would need a transparency-group-based clip).
 - `data:` and `http(s)://` `<image>` hrefs (gated on the html-to-pdf 1L resource loader).
-- A W3C SVG 2 conformance subset under `tests/conformance/`.
+- Growing the conformance fixture set toward the full W3C SVG 2 testsuite — current 12 fixtures are hand-curated. Pulling in upstream fixture files (and the rasterised reference images they'd need for proper visual diff) is a follow-up.
 
 ## License
 

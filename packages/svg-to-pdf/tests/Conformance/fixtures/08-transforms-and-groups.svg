@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+  <g transform="translate(50, 30)">
+    <rect width="40" height="40" fill="#3b82f6"/>
+    <g transform="rotate(15) scale(1.2)">
+      <rect width="40" height="40" fill="#10b981" opacity="0.7"/>
+    </g>
+    <g transform="translate(60, 0) rotate(30, 20, 20)">
+      <rect width="40" height="40" fill="#f59e0b" opacity="0.6"/>
+    </g>
+  </g>
+  <g transform="translate(180, 30)">
+    <!-- Nested transforms compose -->
+    <g transform="scale(0.8)">
+      <g transform="rotate(-15)">
+        <rect width="50" height="50" fill="#a855f7"/>
+      </g>
+    </g>
+  </g>
+  <!-- skewX / skewY -->
+  <rect x="20" y="130" width="60" height="40" fill="#ef4444"
+        transform="skewX(20)"/>
+  <rect x="120" y="130" width="60" height="40" fill="#0ea5e9"
+        transform="skewY(15)"/>
+</svg>

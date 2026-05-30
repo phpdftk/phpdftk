@@ -1,0 +1,19 @@
+# svg-to-pdf conformance deferral ledger
+#
+# Per the project's strict-conformance posture (see docs/plans/html-and-svg.md
+# Validation strategy section), every fixture under
+# packages/svg-to-pdf/tests/conformance/fixtures/ either passes or has a line
+# here. CI fails if:
+#
+#   - a passing fixture stops passing (regression detected), OR
+#   - an ignored fixture starts passing (deferral can be graduated).
+#
+# Removing an entry requires the fixture itself to pass. New fixtures should
+# be added with no line here (i.e. expected to pass at land time).
+#
+# Line format: `<fixture-filename>: <one-line reason>`
+#
+# Example (hypothetical):
+#   filter-blur.svg: Filter Effects 1 — deferred to a future phase.
+
+# (Currently empty — all fixtures pass.)
