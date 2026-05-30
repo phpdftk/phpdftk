@@ -11,29 +11,27 @@ use Phpdftk\ResourceLoader\Cache\NullCache;
  * URL → bytes resolver with SSRF guard, caching, and bounded
  * retry / redirect handling.
  *
- * Phase 4F scaffold. The HTTP fetcher itself, MIME sniffing, the
- * file-backed cache, and the redirect handling all land in
- * sub-phases 4F.1–4F.4. The package shape and the public types are
- * stable from this scaffold so the html-to-pdf + svg-to-pdf
- * call sites can be written against them now.
+ * Wiring stack:
  *
- * Wiring (Phase 4F.5):
- *
- *   svg-to-pdf  — Translator::paintImage hands `http(s)://` and
- *                 external filesystem hrefs to the loader instead
- *                 of dropping them silently.
- *   html-to-pdf — `<img>`, `<picture>`, `<video poster>`, `<iframe
- *                 src>`, `<object data>` all route through the
- *                 loader. `@font-face url()` and `@import url()`
- *                 do too.
+ *   ResourceLoader  →  cache lookup
+ *                  →  HttpFetcher
+ *                       →  SsrfGuard (pre-flight + per redirect hop)
+ *                       →  TransportInterface (curl by default)
+ *                       →  MimeSniffer
+ *                  →  cache store
  */
 final class ResourceLoader
 {
+    private readonly HttpFetcher $fetcher;
+
     public function __construct(
         private readonly CacheInterface $cache = new NullCache(),
         private readonly SsrfGuard $ssrfGuard = new SsrfGuard(),
         private readonly FetchOptions $defaultOptions = new FetchOptions(),
-    ) {}
+        ?HttpFetcher $fetcher = null,
+    ) {
+        $this->fetcher = $fetcher ?? new HttpFetcher(ssrfGuard: $this->ssrfGuard);
+    }
 
     /**
      * Fetch the resource at `$url`. Throws
@@ -41,15 +39,31 @@ final class ResourceLoader
      * the SSRF policy, {@see Exception\FetchFailedException} for
      * everything else.
      *
-     * Phase 4F.1 implements the actual HTTP path. The SSRF gate is
-     * already live — the scaffold runs the guard so call sites get
-     * the immediate safety benefit even before 4F.1 lands.
+     * Cache lookup is keyed by the requested URL (not the final
+     * post-redirect URL) — same URL means same result for the
+     * caller, regardless of how the server chose to redirect.
      */
     public function fetch(string $url, ?FetchOptions $options = null): FetchResult
     {
+        $resolvedOptions = $options ?? $this->defaultOptions;
+
         $this->ssrfGuard->assertSafe($url);
-        unset($options);
-        throw new \RuntimeException('4F.1 not yet implemented');
+
+        $cached = $this->cache->get($url);
+        if ($cached !== null) {
+            return new FetchResult(
+                bytes: $cached->bytes,
+                mimeType: $cached->mimeType,
+                originalUrl: $cached->originalUrl,
+                finalUrl: $cached->finalUrl,
+                cacheHit: true,
+                statusCode: $cached->statusCode,
+            );
+        }
+
+        $result = $this->fetcher->fetch($url, $resolvedOptions);
+        $this->cache->set($url, $result);
+        return $result;
     }
 
     public function cache(): CacheInterface
@@ -65,5 +79,10 @@ final class ResourceLoader
     public function defaultOptions(): FetchOptions
     {
         return $this->defaultOptions;
+    }
+
+    public function fetcher(): HttpFetcher
+    {
+        return $this->fetcher;
     }
 }
