@@ -66,6 +66,24 @@ final class SvgRenderer
     ) {}
 
     /**
+     * Ergonomic alternative to `new SvgRenderer($page, $writer,
+     * new Translator($loader))`. Use when you want network image
+     * hrefs (`<image href="https://...">`) to resolve through
+     * `phpdftk/resource-loader` without constructing a Translator
+     * manually.
+     *
+     *   $renderer = SvgRenderer::withLoader($page, $writer, $loader);
+     *   $renderer->draw($svg, x: 72, y: 600, width: 200, height: 200);
+     */
+    public static function withLoader(
+        Page $page,
+        PdfWriter $writer,
+        ResourceLoader $resourceLoader,
+    ): self {
+        return new self($page, $writer, new Translator($resourceLoader));
+    }
+
+    /**
      * Paint `$svg` onto the renderer's page with its source coordinate
      * space mapped to the rectangle `(x, y) … (x + width, y + height)`.
      * Omitting `$width` / `$height` keeps the source's natural size.
@@ -153,6 +171,10 @@ final class SvgRenderer
         Alignment $align = Alignment::Left,
         ?ResourceLoader $resourceLoader = null,
     ): Pdf {
+        // Explicit parameter wins; otherwise fall back to the loader
+        // attached to the Pdf via `withResourceLoader`. Lets callers
+        // configure once and forget for the whole document.
+        $resourceLoader ??= $pdf->resourceLoader();
         [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
         $aspect = $srcHeight > 0.0 ? $srcWidth / $srcHeight : 1.0;
 

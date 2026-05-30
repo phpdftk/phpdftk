@@ -136,10 +136,22 @@ class Pdf
     /** @var array<string, AfmData> family+variant key => AFM metrics for width measurement */
     private array $fontMetricsCache = [];
 
+    /**
+     * Optional `phpdftk/resource-loader` for resolving `http(s)://`
+     * URLs in author content — currently consumed by
+     * `Phpdftk\SvgToPdf\SvgRenderer::addToPdf` for `<image>` hrefs.
+     * Wire via {@see withResourceLoader()} (or pass to the
+     * constructor). When null the legacy "drop network hrefs
+     * silently" behaviour is preserved per the SVG 2 §12.6 / image-
+     * loading no-image outcome.
+     */
+    private ?\Phpdftk\ResourceLoader\ResourceLoader $resourceLoader = null;
+
     public function __construct(
         PageSize $pageSize = PageSize::Letter,
         ?Theme $theme = null,
         bool $compressStreams = true,
+        ?\Phpdftk\ResourceLoader\ResourceLoader $resourceLoader = null,
     ) {
         $this->doc = new PdfDoc($compressStreams);
         $this->writer = $this->doc->writer();
@@ -148,6 +160,34 @@ class Pdf
         $this->font = $this->theme->family;
         $this->fontSize = $this->theme->fontSize;
         $this->decorator = new PageDecorator();
+        $this->resourceLoader = $resourceLoader;
+    }
+
+    /**
+     * Attach a {@see \Phpdftk\ResourceLoader\ResourceLoader} for
+     * network resource resolution. Mutating fluent setter — returns
+     * `$this` so chains like
+     *
+     *   (new Pdf())->withResourceLoader($loader)->setFont('Inter', 12)
+     *
+     * work the same way as the existing setFont / setTheme family.
+     */
+    public function withResourceLoader(?\Phpdftk\ResourceLoader\ResourceLoader $loader): self
+    {
+        $this->resourceLoader = $loader;
+        return $this;
+    }
+
+    /**
+     * The currently-attached ResourceLoader, or null. Consumed by
+     * downstream translators (e.g. `SvgRenderer::addToPdf` picks
+     * this up when no explicit loader is passed) so a single
+     * `$pdf->withResourceLoader($loader)` call wires the whole
+     * document.
+     */
+    public function resourceLoader(): ?\Phpdftk\ResourceLoader\ResourceLoader
+    {
+        return $this->resourceLoader;
     }
 
     // -----------------------------------------------------------------------

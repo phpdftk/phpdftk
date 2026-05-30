@@ -2686,14 +2686,15 @@
             "dist": {
                 "type": "path",
                 "url": "packages/pdf/writer",
-                "reference": "c02e3c28dfbbf6a78312cf1e8c5dd8f90d3b4661"
+                "reference": "069b8dcfcb656fd5adae05f3cd0c8de5bdff856e"
             },
             "require": {
                 "php": "^8.4",
                 "phpdftk/barcode": "^1.0 || @dev",
                 "phpdftk/filesystem": "^1.0",
                 "phpdftk/pdf-conformance": "^1.0 || @dev",
-                "phpdftk/pdf-core": "^1.0"
+                "phpdftk/pdf-core": "^1.0",
+                "phpdftk/resource-loader": "^1.0 || @dev"
             },
             "type": "library",
             "extra": {
