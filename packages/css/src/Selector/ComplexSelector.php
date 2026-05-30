@@ -14,10 +14,22 @@ namespace Phpdftk\Css\Selector;
  */
 final readonly class ComplexSelector
 {
-    /** @param list<CompoundSelectorWithCombinator> $compounds */
+    /**
+     * @param list<CompoundSelectorWithCombinator> $compounds
+     * @param ?Combinator $leadingCombinator When non-null, this is
+     *     a CSS Selectors 4 §17.5 *relative selector* — the
+     *     combinator binds the selector against an implicit
+     *     subject (used inside `:has(...)`). For example
+     *     `:has(> .child)` parses to a relative selector with
+     *     `leadingCombinator = Combinator::Child` and one compound
+     *     `.child`. The Matcher's `hasMatches` dispatches on this
+     *     field to decide whether to walk descendants, just
+     *     children, the next sibling, or subsequent siblings.
+     */
     public function __construct(
         public array $compounds,
         public string $text = '',
+        public ?Combinator $leadingCombinator = null,
     ) {}
 
     public function specificity(): Specificity

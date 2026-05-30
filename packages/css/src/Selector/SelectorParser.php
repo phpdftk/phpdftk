@@ -85,7 +85,7 @@ final class SelectorParser
      *
      * @return list<ComplexSelector>
      */
-    private function parseComplexSelectorList(bool $forgiving): array
+    private function parseComplexSelectorList(bool $forgiving, bool $relative = false): array
     {
         $out = [];
         while (true) {
@@ -95,7 +95,9 @@ final class SelectorParser
             }
             $start = $this->i;
             try {
-                $sel = $this->parseComplexSelector();
+                $sel = $relative
+                    ? $this->parseRelativeComplexSelector()
+                    : $this->parseComplexSelector();
                 if ($sel !== null) {
                     $out[] = $sel;
                 }
@@ -125,6 +127,59 @@ final class SelectorParser
             }
         }
         return $out;
+    }
+
+    /**
+     * Parse a CSS Selectors 4 §17.5 *relative selector*:
+     * `<combinator>? <complex-selector>`. Used inside `:has(...)`
+     * arguments so authors can write `:has(> child)`,
+     * `:has(+ sibling)`, `:has(~ sibling)` to bind the inner
+     * selector against an implicit subject.
+     *
+     * A leading combinator is optional — when absent the relative
+     * selector is equivalent to a descendant relative selector
+     * (which is the v1 `:has(s)` behaviour).
+     */
+    private function parseRelativeComplexSelector(): ?ComplexSelector
+    {
+        $startTok = $this->i;
+        $this->skipWhitespace();
+        $leadingCombinator = $this->tryParseLeadingCombinator();
+        $this->skipWhitespace();
+        $base = $this->parseComplexSelector();
+        if ($base === null) {
+            return null;
+        }
+        if ($leadingCombinator === null) {
+            return $base;
+        }
+        $text = self::serializeTokenRange($this->tokens, $startTok, $this->i);
+        return new ComplexSelector(
+            compounds: $base->compounds,
+            text: trim($text),
+            leadingCombinator: $leadingCombinator,
+        );
+    }
+
+    private function tryParseLeadingCombinator(): ?Combinator
+    {
+        $save = $this->i;
+        $tok = $this->peek();
+        if (!($tok instanceof DelimToken)) {
+            return null;
+        }
+        $combinator = match ($tok->value) {
+            '>' => Combinator::Child,
+            '+' => Combinator::NextSibling,
+            '~' => Combinator::SubsequentSibling,
+            default => null,
+        };
+        if ($combinator === null) {
+            $this->i = $save;
+            return null;
+        }
+        $this->i++;
+        return $combinator;
     }
 
     private function parseComplexSelector(): ?ComplexSelector
@@ -380,10 +435,15 @@ final class SelectorParser
         switch ($name) {
             case 'is':
             case 'where':
-            case 'has':
             case 'not':
                 $forgiving = in_array($name, ['is', 'where'], true);
                 $inner = self::parseTokensInner($argTokens, $forgiving);
+                return new PseudoClassSelector($name, $inner);
+            case 'has':
+                // CSS Selectors 4 §17 — `:has()` accepts a relative
+                // selector list (each arg may start with a leading
+                // `>` / `+` / `~`). Per §17 `:has()` is forgiving.
+                $inner = self::parseTokensInner($argTokens, true, relative: true);
                 return new PseudoClassSelector($name, $inner);
             case 'nth-child':
             case 'nth-last-child':
@@ -417,10 +477,10 @@ final class SelectorParser
     }
 
     /** @param list<Token> $tokens */
-    private static function parseTokensInner(array $tokens, bool $forgiving): SelectorList
+    private static function parseTokensInner(array $tokens, bool $forgiving, bool $relative = false): SelectorList
     {
         $self = new self($tokens);
-        $sels = $self->parseComplexSelectorList($forgiving);
+        $sels = $self->parseComplexSelectorList($forgiving, $relative);
         return new SelectorList(self::serializeTokens($tokens), $sels);
     }
 

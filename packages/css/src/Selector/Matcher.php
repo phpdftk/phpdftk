@@ -254,18 +254,72 @@ final class Matcher
 
     private function hasMatches(SelectorList $list, MatchableElement $el): bool
     {
-        // `:has(s)` matches when at least one descendant matches s.
-        $stack = $el->elementChildren();
-        while ($stack !== []) {
-            $node = array_shift($stack);
-            if ($this->listMatches($list, $node)) {
+        // `:has(s)` is a relative selector — its inner ComplexSelectors
+        // may carry a `leadingCombinator` that constrains the search
+        // (CSS Selectors 4 §17.5). Dispatch per selector:
+        //
+        //   Child (>)          → only direct children of $el
+        //   NextSibling (+)    → the immediately-following sibling
+        //   SubsequentSibling  → siblings after $el in the tree
+        //   Descendant (null)  → all descendants (v1 behaviour)
+        //
+        // The list as a whole matches if any of its branches matches.
+        foreach ($list->selectors as $branch) {
+            $combinator = $branch->leadingCombinator;
+            $branchList = new SelectorList($branch->text, [$branch]);
+            if ($this->relativeSelectorMatches($branchList, $branch, $combinator, $el)) {
                 return true;
-            }
-            foreach ($node->elementChildren() as $c) {
-                $stack[] = $c;
             }
         }
         return false;
+    }
+
+    private function relativeSelectorMatches(
+        SelectorList $list,
+        ComplexSelector $branch,
+        ?Combinator $combinator,
+        MatchableElement $el,
+    ): bool {
+        switch ($combinator) {
+            case Combinator::Child:
+                foreach ($el->elementChildren() as $child) {
+                    if ($this->listMatches($list, $child)) {
+                        return true;
+                    }
+                }
+                return false;
+            case Combinator::NextSibling:
+                $next = $el->nextElementSibling();
+                if ($next === null) {
+                    return false;
+                }
+                return $this->listMatches($list, $next);
+            case Combinator::SubsequentSibling:
+                $sib = $el->nextElementSibling();
+                while ($sib !== null) {
+                    if ($this->listMatches($list, $sib)) {
+                        return true;
+                    }
+                    $sib = $sib->nextElementSibling();
+                }
+                return false;
+            case Combinator::Descendant:
+            case null:
+            default:
+                unset($branch);
+                // Walk all descendants.
+                $stack = $el->elementChildren();
+                while ($stack !== []) {
+                    $node = array_shift($stack);
+                    if ($this->listMatches($list, $node)) {
+                        return true;
+                    }
+                    foreach ($node->elementChildren() as $c) {
+                        $stack[] = $c;
+                    }
+                }
+                return false;
+        }
     }
 
     private function matchPseudoElement(PseudoElementSelector $sel, MatchableElement $el): bool
