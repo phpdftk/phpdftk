@@ -202,7 +202,11 @@ final class Matcher
                 && $this->listMatches($sel->arguments, $el),
             'has' => $sel->arguments !== null
                 && $this->hasMatches($sel->arguments, $el),
-            'scope' => false,
+            // CSS Selectors 4 §13.5 — `:scope` matches the scoping
+            // element. Without an explicit @scope root, the
+            // document's root element is the scope, so treat
+            // `:scope` like `:root`.
+            'scope' => $el->parentElement() === null,
             'lang' => $this->matchLang($sel, $el),
             'dir' => false,
             'host', 'host-context' => false,
