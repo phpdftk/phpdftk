@@ -39,6 +39,7 @@ use Phpdftk\Css\Value\ColorSpace;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\CustomProperty;
 use Phpdftk\Css\Value\Gradient;
+use Phpdftk\Css\Value\ConicGradient;
 use Phpdftk\Css\Value\GradientShape;
 use Phpdftk\Css\Value\GradientStop;
 use Phpdftk\Css\Value\Integer;
@@ -245,6 +246,12 @@ final class ValueParser
         }
         if ($name === 'radial-gradient' || $name === 'repeating-radial-gradient') {
             $g = $this->parseRadialGradient($tokens, $name === 'repeating-radial-gradient');
+            if ($g !== null) {
+                return $g;
+            }
+        }
+        if ($name === 'conic-gradient' || $name === 'repeating-conic-gradient') {
+            $g = $this->parseConicGradient($tokens, $name === 'repeating-conic-gradient');
             if ($g !== null) {
                 return $g;
             }
@@ -1629,6 +1636,177 @@ final class ValueParser
             return null;
         }
         return new RadialGradient($shape, $sizeX, $sizeY, $centerX, $centerY, $stops, $repeating);
+    }
+
+    // ============================================================
+    // conic-gradient — CSS Backgrounds 4 / Images 4 §3.5
+    // ============================================================
+    /**
+     * Parse `conic-gradient([from <angle>]? [at <position>]?,
+     * <color-stop-list>)`.
+     *
+     *   conic-gradient(red, blue)
+     *   conic-gradient(from 90deg, red, blue)
+     *   conic-gradient(at 25% 75%, red, blue)
+     *   conic-gradient(from 0deg at center, red, blue, red)
+     *   conic-gradient(red 0deg, yellow 90deg, blue 180deg)
+     *
+     * Stops can use angular positions (degrees) per CSS Images 4
+     * §3.5, but `parseGradientStop` only handles length /
+     * percentage positions for now — angle-positioned stops fall
+     * through to "stop position null" and the engine interpolates
+     * uniformly. Full angular stop parsing lands once the
+     * gradient painter ships conic rendering.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseConicGradient(array $tokens, bool $repeating): ?ConicGradient
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $groups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($groups) < 2) {
+            return null;
+        }
+        $first = self::trimWhitespace($groups[0]);
+        $fromAngle = 0.0;
+        $centerX = null;
+        $centerY = null;
+        $stopGroups = $groups;
+        if ($this->isConicHeader($first)) {
+            $header = $this->parseConicHeader($first);
+            if ($header === null) {
+                return null;
+            }
+            [$fromAngle, $centerX, $centerY] = $header;
+            $stopGroups = array_slice($groups, 1);
+        }
+        if (count($stopGroups) < 2) {
+            return null;
+        }
+        $stops = [];
+        foreach ($stopGroups as $g) {
+            $stop = $this->parseGradientStop($g);
+            if ($stop === null) {
+                return null;
+            }
+            $stops[] = $stop;
+        }
+        return new ConicGradient(
+            fromAngleDeg: $fromAngle,
+            centerX: $centerX,
+            centerY: $centerY,
+            stops: $stops,
+            repeating: $repeating,
+        );
+    }
+
+    /** @param list<Token> $tokens */
+    private function isConicHeader(array $tokens): bool
+    {
+        foreach ($tokens as $t) {
+            if ($t instanceof IdentToken
+                && in_array(strtolower($t->value), ['from', 'at'], true)
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Parse the optional `from <angle> [at <position>]` /
+     * `at <position>` header of a conic-gradient.
+     *
+     * @param list<Token> $tokens
+     * @return array{0: float, 1: ?float, 2: ?float}|null
+     */
+    private function parseConicHeader(array $tokens): ?array
+    {
+        $fromAngle = 0.0;
+        $centerX = null;
+        $centerY = null;
+
+        // Walk the tokens looking for `from <angle>` followed by
+        // optional `at <position-x> <position-y>`. Both clauses
+        // optional but at least one of them must be present (the
+        // caller's `isConicHeader` already verified that).
+        $i = 0;
+        $count = count($tokens);
+        while ($i < $count) {
+            $t = $tokens[$i];
+            if ($t instanceof WhitespaceToken) {
+                $i++;
+                continue;
+            }
+            if ($t instanceof IdentToken && strtolower($t->value) === 'from') {
+                $i++;
+                // Skip whitespace.
+                while ($i < $count && $tokens[$i] instanceof WhitespaceToken) {
+                    $i++;
+                }
+                if ($i >= $count) {
+                    return null;
+                }
+                $angleTok = $tokens[$i];
+                if (!($angleTok instanceof DimensionToken) && !($angleTok instanceof NumberToken)) {
+                    return null;
+                }
+                if ($angleTok instanceof DimensionToken) {
+                    $unit = AngleUnit::tryFrom(strtolower($angleTok->unit));
+                    if ($unit === null) {
+                        return null;
+                    }
+                    $fromAngle = $unit->toDegrees((float) $angleTok->value);
+                } else {
+                    $fromAngle = (float) $angleTok->value;
+                }
+                $fromAngle = fmod(fmod($fromAngle, 360.0) + 360.0, 360.0);
+                $i++;
+                continue;
+            }
+            if ($t instanceof IdentToken && strtolower($t->value) === 'at') {
+                $i++;
+                // Collect the next two position values.
+                $positions = [];
+                while ($i < $count && count($positions) < 2) {
+                    $p = $tokens[$i];
+                    if ($p instanceof WhitespaceToken) {
+                        $i++;
+                        continue;
+                    }
+                    if ($p instanceof PercentageToken) {
+                        $positions[] = (float) $p->value / 100.0;
+                        $i++;
+                        continue;
+                    }
+                    if ($p instanceof IdentToken) {
+                        $name = strtolower($p->value);
+                        $val = match ($name) {
+                            'left', 'top' => 0.0,
+                            'center', 'centre' => 0.5,
+                            'right', 'bottom' => 1.0,
+                            default => null,
+                        };
+                        if ($val === null) {
+                            return null;
+                        }
+                        $positions[] = $val;
+                        $i++;
+                        continue;
+                    }
+                    return null;
+                }
+                if ($positions === []) {
+                    return null;
+                }
+                $centerX = $positions[0];
+                $centerY = $positions[1] ?? $positions[0];
+                continue;
+            }
+            // Unknown header token.
+            return null;
+        }
+        return [$fromAngle, $centerX, $centerY];
     }
 
     /** @param list<Token> $tokens */
