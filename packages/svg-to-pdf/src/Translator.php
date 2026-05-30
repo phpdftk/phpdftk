@@ -8,6 +8,7 @@ use Phpdftk\Color\CmykColor;
 use Phpdftk\Color\ColorInterface;
 use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
+use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\ImageMetadata\ImageParser;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Document\GroupAttributes;
@@ -752,25 +753,56 @@ final class Translator
         if ($href === null) {
             return;
         }
-        // 3Q: filesystem hrefs only. `data:` and `http(s)://` go through
-        // a resource-loader gate that lands with the html-to-pdf 1L work;
-        // until that's available the painter refuses anything that
-        // doesn't look like a local path so an SVG can't trigger an
-        // unwanted file read or network fetch.
-        if (str_contains($href, '://') || str_starts_with($href, 'data:')) {
+        // 3Q: filesystem hrefs.
+        // 3R+18: `data:` URIs are decoded and materialised to a temp
+        // file so the same `ImageParser`+`PdfWriter::addImage` flow
+        // (which only accepts paths) can embed them. The temp file is
+        // unlinked once the bytes have been registered as a PDF
+        // XObject — the writer copies them into its own stream.
+        // `http(s)://` still goes through a resource-loader gate that
+        // lands with the html-to-pdf 1L work; until that's available
+        // the painter refuses network-scheme hrefs so an SVG can't
+        // trigger an unwanted fetch.
+        $sourcePath = $href;
+        $tempPath = null;
+        if (str_starts_with($href, 'data:')) {
+            $decoded = self::decodeDataUri($href);
+            if ($decoded === null) {
+                return;
+            }
+            $tempPath = self::materialiseDataUri($decoded);
+            if ($tempPath === null) {
+                return;
+            }
+            $sourcePath = $tempPath;
+        } elseif (str_contains($href, '://')) {
             return;
         }
+        try {
+            $this->paintImageFromPath($sourcePath, $image, $stream);
+        } finally {
+            if ($tempPath !== null) {
+                @unlink($tempPath);
+            }
+        }
+    }
+
+    private function paintImageFromPath(string $path, SvgImage $image, ContentStream $stream): void
+    {
         // Resolve intrinsic source dimensions before registering so we
         // can fall back to them when the SVG omits width / height.
         // `ImageParser::parse` is cheap (header-only read) and
         // bypassing the writer keeps this self-contained.
         try {
-            $info = ImageParser::parse($href);
+            $info = ImageParser::parse($path);
         } catch (\Throwable) {
             return;
         }
+        if ($this->writer === null || $this->page === null) {
+            return;
+        }
         try {
-            $resourceName = $this->writer->addImage($href, $this->page);
+            $resourceName = $this->writer->addImage($path, $this->page);
         } catch (\Throwable) {
             // Missing file / unparseable bytes / unsupported format —
             // SVG 2 §12.6's "no image available" outcome is to paint
@@ -816,6 +848,78 @@ final class Translator
         $stream->concatMatrix($w, 0.0, 0.0, -$h, $x, $y + $h);
         $stream->doXObject($resourceName);
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Decode a `data:` URI per RFC 2397.
+     *
+     *  - `data:image/png;base64,iVBOR…` → base64 payload
+     *  - `data:image/svg+xml,<svg…>`     → percent-decoded payload
+     *  - `data:,hello`                    → empty mime, percent-decoded
+     *
+     * Returns `null` if the URI is malformed or the base64 won't
+     * decode. The MIME type is returned for the caller's information
+     * but is not authoritative — `ImageParser::parse` still sniffs the
+     * actual bytes to determine the PDF colour space + filter.
+     *
+     * @return array{bytes: string, mime: string}|null
+     */
+    private static function decodeDataUri(string $uri): ?array
+    {
+        if (!str_starts_with($uri, 'data:')) {
+            return null;
+        }
+        $rest = substr($uri, 5);
+        $commaPos = strpos($rest, ',');
+        if ($commaPos === false) {
+            return null;
+        }
+        $meta = substr($rest, 0, $commaPos);
+        $data = substr($rest, $commaPos + 1);
+        $isBase64 = false;
+        $mime = '';
+        if ($meta !== '') {
+            $parts = explode(';', $meta);
+            $mime = $parts[0];
+            foreach (array_slice($parts, 1) as $param) {
+                if ($param === 'base64') {
+                    $isBase64 = true;
+                }
+            }
+        }
+        if ($isBase64) {
+            $bytes = base64_decode($data, true);
+            if ($bytes === false) {
+                return null;
+            }
+        } else {
+            $bytes = rawurldecode($data);
+        }
+        return ['bytes' => $bytes, 'mime' => $mime];
+    }
+
+    /**
+     * Write the decoded data-URI bytes to a temp file that lives only
+     * for the duration of `paintImage`. Returns the path on success
+     * or `null` if either the temp file couldn't be opened or the
+     * write failed — both fall back to the SVG "no image available"
+     * outcome.
+     *
+     * @param array{bytes: string, mime: string} $decoded
+     */
+    private static function materialiseDataUri(array $decoded): ?string
+    {
+        $tmpPath = tempnam(sys_get_temp_dir(), 'svg-img-');
+        if ($tmpPath === false) {
+            return null;
+        }
+        try {
+            LocalFilesystem::writeFile($tmpPath, $decoded['bytes']);
+            return $tmpPath;
+        } catch (\Throwable) {
+            @unlink($tmpPath);
+            return null;
+        }
     }
 
     private function paintTextElement(TextElement $text, ContentStream $stream): void

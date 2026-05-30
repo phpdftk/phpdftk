@@ -139,16 +139,71 @@ final class UseAndImageTest extends TestCase
         self::assertSame('', $ops);
     }
 
-    public function testImageWithDataUrlIsRejectedAt3Q(): void
+    public function testImageWithMalformedDataUrlDropsSilently(): void
     {
-        // Until 1L's resource-loader gate lands, `data:` is rejected
-        // along with `http(s)`. The element drops silently.
+        // 3R+18 — well-formed `data:` URIs now decode, but a bogus
+        // base64 payload still drops silently because the bytes won't
+        // parse as a valid image.
         $result = $this->paintWithWriter(
             '<svg xmlns="http://www.w3.org/2000/svg">'
             . '<image x="0" y="0" width="10" height="10" '
             . 'href="data:image/png;base64,AAAA"/></svg>',
         );
         self::assertStringNotContainsString(' Do', $result['ops']);
+    }
+
+    public function testImageWithBase64DataUriEmbedsTheImage(): void
+    {
+        // 3R+18 — `data:image/png;base64,...` is now decoded and
+        // embedded the same way a filesystem href would be.
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        // Produce a real PNG and base64-encode it into a data URI.
+        $tmpPath = $this->createPngFixture();
+        try {
+            $bytes = file_get_contents($tmpPath);
+            self::assertNotFalse($bytes);
+            $uri = 'data:image/png;base64,' . base64_encode($bytes);
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="10" y="20" width="40" height="30" href="%s"/></svg>',
+                    htmlspecialchars($uri, ENT_XML1),
+                ),
+            );
+            self::assertStringContainsString('40 0 0 -30 10 50 cm', $result['ops']);
+            self::assertMatchesRegularExpression('!/Im\d+ Do!', $result['ops']);
+            self::assertStringContainsString('/Subtype /Image', $result['bytes']);
+        } finally {
+            @unlink($tmpPath);
+        }
+    }
+
+    public function testImageWithUrlEncodedDataUriEmbedsTheImage(): void
+    {
+        // `data:image/png,<percent-encoded bytes>` (no `;base64,`) is
+        // also decoded — the per-RFC-2397 non-base64 path runs
+        // `rawurldecode` over the payload.
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        $tmpPath = $this->createPngFixture();
+        try {
+            $bytes = file_get_contents($tmpPath);
+            self::assertNotFalse($bytes);
+            $uri = 'data:image/png,' . rawurlencode($bytes);
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="0" y="0" width="20" height="30" href="%s"/></svg>',
+                    htmlspecialchars($uri, ENT_XML1),
+                ),
+            );
+            self::assertMatchesRegularExpression('!/Im\d+ Do!', $result['ops']);
+        } finally {
+            @unlink($tmpPath);
+        }
     }
 
     public function testImageWithHttpHrefIsRejected(): void
