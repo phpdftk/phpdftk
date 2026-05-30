@@ -206,8 +206,12 @@ final class UseAndImageTest extends TestCase
         }
     }
 
-    public function testImageWithHttpHrefIsRejected(): void
+    public function testImageWithHttpHrefIsRejectedWithoutLoader(): void
     {
+        // No ResourceLoader injected → http(s) drops silently per
+        // SVG 2 §12.6 "no image available" outcome. Preserves the
+        // pre-4F.1 default posture for callers who haven't opted
+        // into network fetching.
         $result = $this->paintWithWriter(
             '<svg xmlns="http://www.w3.org/2000/svg">'
             . '<image x="0" y="0" width="10" height="10" '

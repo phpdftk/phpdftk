@@ -11,6 +11,7 @@ use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\Pdf;
 use Phpdftk\Pdf\Writer\PdfDoc;
 use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\ResourceLoader\ResourceLoader;
 use Phpdftk\Svg\SvgDocument;
 
 /**
@@ -150,6 +151,7 @@ final class SvgRenderer
         ?float $width = null,
         ?float $height = null,
         Alignment $align = Alignment::Left,
+        ?ResourceLoader $resourceLoader = null,
     ): Pdf {
         [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
         $aspect = $srcHeight > 0.0 ? $srcWidth / $srcHeight : 1.0;
@@ -173,8 +175,11 @@ final class SvgRenderer
             $w,
             $h,
             $align,
-            static function (Page $page, float $x, float $y, float $bw, float $bh) use ($svg, $pdf): void {
-                (new self($page, $pdf->writer()))->draw($svg, $x, $y, $bw, $bh);
+            static function (Page $page, float $x, float $y, float $bw, float $bh) use ($svg, $pdf, $resourceLoader): void {
+                $translator = $resourceLoader !== null
+                    ? new Translator($resourceLoader)
+                    : new Translator();
+                (new self($page, $pdf->writer(), $translator))->draw($svg, $x, $y, $bw, $bh);
             },
         );
     }
@@ -208,6 +213,7 @@ final class SvgRenderer
         SvgDocument $svg,
         ?float $width = null,
         ?float $height = null,
+        ?ResourceLoader $resourceLoader = null,
     ): FormXObject {
         [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
         $aspect = $srcHeight > 0.0 ? $srcWidth / $srcHeight : 1.0;
@@ -231,7 +237,7 @@ final class SvgRenderer
         $writer = $doc->writer();
         return $doc->createTemplate(
             $bbox,
-            static function (ContentStream $stream) use ($svg, $resourceHost, $writer, $w, $h): void {
+            static function (ContentStream $stream) use ($svg, $resourceHost, $writer, $w, $h, $resourceLoader): void {
                 [$srcMinX2, $srcMinY2, $srcW, $srcH] = self::resolveSourceRect($svg);
                 [$scaleX, $scaleY, $offsetX, $offsetY, $needsClip] = self::applyPreserveAspectRatio(
                     $svg,
@@ -257,7 +263,10 @@ final class SvgRenderer
                     $offsetX - $srcMinX2 * $scaleX,
                     $offsetY + $effectiveH + $srcMinY2 * $scaleY,
                 );
-                (new Translator())->paint(
+                $translator = $resourceLoader !== null
+                    ? new Translator($resourceLoader)
+                    : new Translator();
+                $translator->paint(
                     $svg,
                     $stream,
                     $resourceHost,

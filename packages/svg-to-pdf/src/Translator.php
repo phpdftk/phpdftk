@@ -10,6 +10,9 @@ use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
 use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\ImageMetadata\ImageParser;
+use Phpdftk\ResourceLoader\Exception\FetchFailedException;
+use Phpdftk\ResourceLoader\Exception\SsrfBlockedException;
+use Phpdftk\ResourceLoader\ResourceLoader;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Document\GroupAttributes;
 use Phpdftk\Pdf\Core\Graphics\ExtGState;
@@ -92,6 +95,19 @@ final class Translator
      * `<circle>` / `<ellipse>` rendering.
      */
     private const float KAPPA = 0.5522847498;
+
+    /**
+     * Optional `phpdftk/resource-loader` for `http(s)://` `<image>`
+     * hrefs. When `null` (the default — preserves existing call-
+     * site behaviour), network hrefs drop silently per the SVG 2
+     * §12.6 "no image available" outcome. When supplied, the
+     * loader runs (with its SSRF guard, redirect handling, body
+     * cap, and MIME sniffing) and the embedded bytes get
+     * materialised to a temp file the same way `data:` URIs do.
+     */
+    public function __construct(
+        private readonly ?ResourceLoader $resourceLoader = null,
+    ) {}
 
     /**
      * Paint a parsed SVG document into the given content stream.
@@ -754,15 +770,17 @@ final class Translator
             return;
         }
         // 3Q: filesystem hrefs.
-        // 3R+18: `data:` URIs are decoded and materialised to a temp
-        // file so the same `ImageParser`+`PdfWriter::addImage` flow
-        // (which only accepts paths) can embed them. The temp file is
-        // unlinked once the bytes have been registered as a PDF
-        // XObject — the writer copies them into its own stream.
-        // `http(s)://` still goes through a resource-loader gate that
-        // lands with the html-to-pdf 1L work; until that's available
-        // the painter refuses network-scheme hrefs so an SVG can't
-        // trigger an unwanted fetch.
+        // 3R+18: `data:` URIs decoded and materialised to a temp
+        // file so the same `ImageParser` + `PdfWriter::addImage`
+        // flow (which only accepts paths) can embed them.
+        // 4F.1: `http(s)://` hrefs route through the optional
+        // `ResourceLoader` injected at construction. SSRF guard,
+        // redirect handling, content-length cap, and MIME sniffing
+        // all live in the loader; we just hand off the URL and
+        // materialise the bytes to a temp file like the data:
+        // path. When no loader is configured, http(s):// drops
+        // silently per the original 3R+18 posture so existing
+        // callers don't change behaviour.
         $sourcePath = $href;
         $tempPath = null;
         if (str_starts_with($href, 'data:')) {
@@ -771,6 +789,15 @@ final class Translator
                 return;
             }
             $tempPath = self::materialiseDataUri($decoded);
+            if ($tempPath === null) {
+                return;
+            }
+            $sourcePath = $tempPath;
+        } elseif (str_starts_with($href, 'http://') || str_starts_with($href, 'https://')) {
+            if ($this->resourceLoader === null) {
+                return;
+            }
+            $tempPath = $this->fetchAndMaterialiseHttpHref($href);
             if ($tempPath === null) {
                 return;
             }
@@ -915,6 +942,39 @@ final class Translator
         }
         try {
             LocalFilesystem::writeFile($tmpPath, $decoded['bytes']);
+            return $tmpPath;
+        } catch (\Throwable) {
+            @unlink($tmpPath);
+            return null;
+        }
+    }
+
+    /**
+     * 4F.1 — fetch an `http(s)://` `<image>` href through the
+     * injected ResourceLoader and materialise the bytes to a temp
+     * file so the existing `ImageParser` + `PdfWriter::addImage`
+     * flow can register them as a PDF XObject. Returns the temp
+     * path on success or null on any failure (SSRF policy
+     * violation, network error, non-2xx, body cap exceeded, write
+     * failure) — all of which surface as the SVG 2 §12.6 "no image
+     * available" outcome.
+     */
+    private function fetchAndMaterialiseHttpHref(string $href): ?string
+    {
+        if ($this->resourceLoader === null) {
+            return null;
+        }
+        try {
+            $result = $this->resourceLoader->fetch($href);
+        } catch (SsrfBlockedException | FetchFailedException) {
+            return null;
+        }
+        $tmpPath = tempnam(sys_get_temp_dir(), 'svg-http-img-');
+        if ($tmpPath === false) {
+            return null;
+        }
+        try {
+            LocalFilesystem::writeFile($tmpPath, $result->bytes);
             return $tmpPath;
         } catch (\Throwable) {
             @unlink($tmpPath);

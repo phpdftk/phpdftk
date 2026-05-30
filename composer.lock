@@ -2907,7 +2907,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/svg-to-pdf",
-                "reference": "0bb8648f89893e74d360be17c159cc65b13a9ca0"
+                "reference": "0557ed55a136d54061ff1847b8ead0730ea3161f"
             },
             "require": {
                 "ext-intl": "*",
@@ -2916,6 +2916,7 @@
                 "phpdftk/filesystem": "^1.0",
                 "phpdftk/image-metadata": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
+                "phpdftk/resource-loader": "^1.0",
                 "phpdftk/svg": "^1.0",
                 "phpdftk/text": "^1.0"
             },
