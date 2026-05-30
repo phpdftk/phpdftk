@@ -342,6 +342,12 @@ final class Parser
         // painter can consume it directly without re-parsing.
         if ($property === 'transform') {
             $value = $this->valueParser->postProcessTransform($value);
+        } elseif ($property === 'filter' || $property === 'backdrop-filter') {
+            // CSS Filter Effects 1 §6.1 — both properties accept
+            // the same `<filter-function-list>`. Lift the generic
+            // CssFunction list into a typed Filter so the painter
+            // can dispatch by FilterKind.
+            $value = $this->valueParser->postProcessFilter($value);
         }
         return new Declaration($property, $value, $important);
     }

@@ -25,6 +25,9 @@ use Phpdftk\Css\Token\UrlToken;
 use Phpdftk\Css\Token\WhitespaceToken;
 use Phpdftk\Css\Value\AnchorFunction;
 use Phpdftk\Css\Value\AnchorSizeFunction;
+use Phpdftk\Css\Value\Filter;
+use Phpdftk\Css\Value\FilterFunction;
+use Phpdftk\Css\Value\FilterKind;
 use Phpdftk\Css\Value\Angle;
 use Phpdftk\Css\Value\AngleUnit;
 use Phpdftk\Css\Value\Calc;
@@ -323,6 +326,62 @@ final class ValueParser
             $fns[] = $fn;
         }
         return new Transform($fns);
+    }
+
+    /**
+     * Parse + type a `filter:` declaration. Convenience entry
+     * point for tests + the cascade post-processor.
+     */
+    public function parseFilter(string $css): Value
+    {
+        return $this->postProcessFilter($this->parseFromString($css));
+    }
+
+    /**
+     * Convert a generic parsed value (CssFunction, ValueList of
+     * CssFunctions, Url) into a typed `Filter` so the painter can
+     * dispatch by FilterKind without re-inspecting strings. The
+     * keyword `none` (initial value) and any unrecognised
+     * function fall through unchanged.
+     */
+    public function postProcessFilter(Value $value): Value
+    {
+        if ($value instanceof Filter) {
+            return $value;
+        }
+        if ($value instanceof Keyword && strtolower($value->name) === 'none') {
+            return $value;
+        }
+        $items = $value instanceof ValueList ? $value->values : [$value];
+        $fns = [];
+        foreach ($items as $v) {
+            $fn = $this->valueToFilterFunction($v);
+            if ($fn === null) {
+                return $value;
+            }
+            $fns[] = $fn;
+        }
+        if ($fns === []) {
+            return $value;
+        }
+        return new Filter($fns);
+    }
+
+    private function valueToFilterFunction(Value $value): ?FilterFunction
+    {
+        // url() references for SVG filter chains are valid filter
+        // values too.
+        if ($value instanceof Url) {
+            return new FilterFunction(FilterKind::Url, [$value]);
+        }
+        if (!($value instanceof CssFunction)) {
+            return null;
+        }
+        $kind = FilterKind::tryFrom(strtolower($value->name));
+        if ($kind === null) {
+            return null;
+        }
+        return new FilterFunction($kind, $value->arguments);
     }
 
     private function valueToTransformFunction(Value $value): ?TransformFunction

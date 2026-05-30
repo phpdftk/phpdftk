@@ -533,6 +533,12 @@ final class PropertyRegistry
         // `grayscale`, `brightness`, etc.) parse but no-op since they
         // require raster pre-painting.
         $r->register($initial('filter', new Keyword('none')));
+        // CSS Filter Effects 2 — `backdrop-filter` applies the
+        // filter chain to the content BEHIND the element. Same
+        // typed Filter value as `filter`; painter dispatch will
+        // rasterise the backdrop region via `phpdftk/raster` once
+        // 4C ships.
+        $r->register($initial('backdrop-filter', new Keyword('none')));
         // CSS Transforms 2 §15 — `backface-visibility: hidden`
         // suppresses paint when the cumulative 3D rotation flips the
         // box past 90° on the X or Y axis (cos(θ) < 0). Print
