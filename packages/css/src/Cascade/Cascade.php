@@ -328,6 +328,12 @@ final class Cascade
                     // CSS Cascade 6 §3 — `@scope (root) [to limit] { ... }`
                     // Same pass-through posture as @layer for now;
                     // proper scope tree handling lands later.
+                } elseif ($name === 'starting-style') {
+                    // CSS Transitions 2 §3 — declares the entry
+                    // (from-) state for transitioning properties.
+                    // For static print render the starting state
+                    // IS the rendered state, so the inner rules
+                    // pass through.
                 } else {
                     continue;
                 }

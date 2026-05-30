@@ -104,4 +104,17 @@ final class LayerScopeTest extends TestCase
         // of the scope selector.
         self::assertSame(1.0, $values->get('color')->r);
     }
+
+    public function testStartingStyleBlockApplies(): void
+    {
+        // CSS Transitions 2 §3 — @starting-style declares the
+        // entry (from-) state for transitioning properties. For
+        // a static print render the starting state IS the
+        // rendered state.
+        $sheet = $this->parser->parseStylesheet(
+            '@starting-style { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
 }
