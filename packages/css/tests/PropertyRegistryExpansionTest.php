@@ -74,6 +74,27 @@ final class PropertyRegistryExpansionTest extends TestCase
         yield 'position-anchor' => ['position-anchor'];
         yield 'position-area' => ['position-area'];
         yield 'inset-area' => ['inset-area'];
+
+        // CSS Cascade 5 + Lists 3 + UI 4 + Values 5
+        yield 'all' => ['all'];
+        yield 'marker-side' => ['marker-side'];
+        yield 'counter-set' => ['counter-set'];
+        yield 'appearance' => ['appearance'];
+        yield 'field-sizing' => ['field-sizing'];
+        yield 'interpolate-size' => ['interpolate-size'];
+
+        // CSS Box Alignment 3
+        yield 'grid-gap' => ['grid-gap'];
+        yield 'grid-row-gap' => ['grid-row-gap'];
+        yield 'grid-column-gap' => ['grid-column-gap'];
+        yield 'place-content' => ['place-content'];
+        yield 'place-items' => ['place-items'];
+        yield 'place-self' => ['place-self'];
+
+        // CSS Containment 3 §4
+        yield 'container' => ['container'];
+        yield 'container-name' => ['container-name'];
+        yield 'container-type' => ['container-type'];
     }
 
     #[DataProvider('newlyRegisteredProperties')]

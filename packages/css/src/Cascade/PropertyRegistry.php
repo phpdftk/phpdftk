@@ -337,6 +337,62 @@ final class PropertyRegistry
         $r->register($initial('position-area', new Keyword('none')));
         $r->register($initial('inset-area', new Keyword('none')));  // legacy name; aliased to position-area
 
+        // CSS Cascade 5 §3.2 — `all` is a meta property that
+        // resets every non-custom property to a given keyword
+        // (initial / inherit / unset / revert / revert-layer).
+        // The cascade applies the expansion before computed-value
+        // time; storing the declaration on the registry just lets
+        // author CSS round-trip without being dropped.
+        $r->register($initial('all', new Keyword('initial')));
+
+        // CSS Lists 3 §3 — marker-side controls whether ::marker
+        // sits inside or outside the list item. Inherits.
+        $r->register($initial('marker-side', new Keyword('match-self'), true));
+        // CSS Lists 3 §6 — counter-set sets a counter to a specific
+        // value (vs counter-reset which creates+resets, and
+        // counter-increment which only adds).
+        $r->register($initial('counter-set', new Keyword('none')));
+
+        // CSS UI 4 §3 — appearance. The cascade carries the value
+        // forward; form-control rendering opts in via
+        // `appearance: auto | none` in the painter.
+        $r->register($initial('appearance', new Keyword('auto')));
+        // CSS UI 4 §4.10 — field-sizing controls whether form
+        // controls size to their content (`content`) or to a
+        // fixed UA default (`fixed`).
+        $r->register($initial('field-sizing', new Keyword('fixed')));
+
+        // CSS Values 5 §5.4 — `interpolate-size` controls whether
+        // intrinsic sizing keywords (`auto`, `min-content`,
+        // `max-content`, `fit-content`) interpolate during
+        // animations / transitions. Default `numeric-only` keeps
+        // the legacy "intrinsic keywords don't animate" behaviour.
+        $r->register($initial('interpolate-size', new Keyword('numeric-only'), true));
+
+        // CSS Box Alignment 3 — `gap` family (gap / row-gap /
+        // column-gap already registered above). Legacy grid-gap
+        // aliases.
+        $r->register($initial('grid-gap', new Keyword('normal')));
+        $r->register($initial('grid-row-gap', new Keyword('normal')));
+        $r->register($initial('grid-column-gap', new Keyword('normal')));
+
+        // CSS Box Alignment 3 — `place-*` shorthands for
+        // align-content/justify-content, align-items/justify-items,
+        // align-self/justify-self.
+        $r->register($initial('place-content', new Keyword('normal')));
+        $r->register($initial('place-items', new Keyword('normal')));
+        $r->register($initial('place-self', new Keyword('auto')));
+
+        // CSS Containment 3 §4 — container-name + container-type
+        // declarative properties that the @container query
+        // mechanism reads. Interactive container query matching is
+        // gated on viewport-relative queries that print medium
+        // doesn't fire; the properties cascade so author CSS
+        // round-trips.
+        $r->register($initial('container', new Keyword('none')));
+        $r->register($initial('container-name', new Keyword('none')));
+        $r->register($initial('container-type', new Keyword('normal')));
+
         // CSS Fragmentation 4 §3 + legacy `page-break-*` aliases.
         $r->register($initial('break-before', new Keyword('auto')));
         $r->register($initial('break-after', new Keyword('auto')));
