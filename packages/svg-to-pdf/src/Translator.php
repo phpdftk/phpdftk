@@ -8,6 +8,7 @@ use Phpdftk\Color\CmykColor;
 use Phpdftk\Color\ColorInterface;
 use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
+use Phpdftk\ImageMetadata\ImageParser;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
@@ -553,6 +554,15 @@ final class Translator
         if (str_contains($href, '://') || str_starts_with($href, 'data:')) {
             return;
         }
+        // Resolve intrinsic source dimensions before registering so we
+        // can fall back to them when the SVG omits width / height.
+        // `ImageParser::parse` is cheap (header-only read) and
+        // bypassing the writer keeps this self-contained.
+        try {
+            $info = ImageParser::parse($href);
+        } catch (\Throwable) {
+            return;
+        }
         try {
             $resourceName = $this->writer->addImage($href, $this->page);
         } catch (\Throwable) {
@@ -566,12 +576,26 @@ final class Translator
         $y = $image->y();
         $w = $image->width();
         $h = $image->height();
-        if ($w === null || $h === null || $w <= 0.0 || $h <= 0.0) {
-            // Without an explicit extent the painter would have to fall
-            // back to the image's intrinsic dimensions — the existing
-            // `addImage` already knows them, but the resource name is
-            // all it returns. Reading them back requires walking the
-            // image registry, which 3Q doesn't need. Defer.
+        $intrinsicW = (float) $info->width;
+        $intrinsicH = (float) $info->height;
+        // SVG 2 §12.6 fallback ladder for missing width / height: when
+        // one dimension is given the other is scaled to preserve the
+        // intrinsic aspect ratio; when both are absent the intrinsic
+        // dimensions are used directly. A zero-size intrinsic image
+        // still paints nothing.
+        if ($intrinsicW <= 0.0 || $intrinsicH <= 0.0) {
+            return;
+        }
+        if ($w === null && $h === null) {
+            $w = $intrinsicW;
+            $h = $intrinsicH;
+        } elseif ($w === null) {
+            // height set, width follows the intrinsic aspect.
+            $w = ($h ?? 0.0) * ($intrinsicW / $intrinsicH);
+        } elseif ($h === null) {
+            $h = $w * ($intrinsicH / $intrinsicW);
+        }
+        if ($w <= 0.0 || $h <= 0.0) {
             return;
         }
 

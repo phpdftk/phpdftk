@@ -33,7 +33,7 @@ composer require phpdftk/svg-to-pdf
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), and the full SVG 2 §7.10 `preserveAspectRatio` matrix — all nine alignment keywords plus `slice` meet-or-slice with destination-rect clipping (3R+6).
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), the full SVG 2 §7.10 `preserveAspectRatio` matrix — all nine alignment keywords plus `slice` meet-or-slice with destination-rect clipping (3R+6), and intrinsic `<image>` dimensions via `phpdftk/image-metadata` with aspect-preserving fallbacks (3R+7).
 
 Coordinate convention: `(x, y)` passed to `SvgRenderer::draw()` is the **bottom-left** of the destination rectangle in PDF user space. The renderer applies the standard SVG y-down → PDF y-up flip at the `cm` level and tells the `Translator` to compensate the flip inside text objects (via `Tm 1 0 0 -1 x y`) so glyphs render upright. Direct `Translator::paint()` usage without `SvgRenderer` keeps the pre-fix behaviour — no outer flip, `Td` for text — so existing callers don't regress.
 
@@ -44,7 +44,6 @@ Deferred from this phase:
 - Per-glyph `dx` / `dy` offsets (would need font-metric-aware auto-advance to combine with sticky `x` / `y`); per-`<tspan>` font and positioning overrides (`<tspan>` content is still concatenated into the parent run); OpenType shaping via `phpdftk/text`; `@font-face` embedding.
 - `<mask>` painter (transparency-group XObject + soft-mask ExtGState); nested `clip-path` on `<clipPath>` children; per-child `clip-rule` overrides; `transform` on `<clipPath>` itself.
 - `data:` and `http(s)://` `<image>` hrefs (gated on the html-to-pdf 1L resource loader).
-- Intrinsic `<image>` dimensions when `width`/`height` are omitted.
 - Examples under `examples/svg-to-pdf/`, `benchmarks/SvgToPdfBench.php`, and a W3C SVG 2 conformance subset under `tests/conformance/`.
 
 ## License

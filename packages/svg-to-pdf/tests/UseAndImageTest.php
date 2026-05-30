@@ -196,6 +196,94 @@ final class UseAndImageTest extends TestCase
         }
     }
 
+    public function testImageWithoutWidthOrHeightUsesIntrinsicDimensions(): void
+    {
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        $path = $this->createPngFixture();
+        try {
+            // The fixture PNG is 20×30; with no width / height in the
+            // SVG, the painter falls back to those intrinsic dims.
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="5" y="7" href="%s"/></svg>',
+                    htmlspecialchars($path, ENT_XML1),
+                ),
+            );
+            // cm w 0 0 -h x (y+h) = 20 0 0 -30 5 37.
+            self::assertStringContainsString('20 0 0 -30 5 37 cm', $result['ops']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testImageWithOnlyWidthScalesHeightByIntrinsicAspect(): void
+    {
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        $path = $this->createPngFixture();
+        try {
+            // Intrinsic 20×30, width 40 → scaled height = 40 × (30/20) = 60.
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="0" y="0" width="40" href="%s"/></svg>',
+                    htmlspecialchars($path, ENT_XML1),
+                ),
+            );
+            self::assertStringContainsString('40 0 0 -60 0 60 cm', $result['ops']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testImageWithOnlyHeightScalesWidthByIntrinsicAspect(): void
+    {
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        $path = $this->createPngFixture();
+        try {
+            // Intrinsic 20×30, height 60 → scaled width = 60 × (20/30) = 40.
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="0" y="0" height="60" href="%s"/></svg>',
+                    htmlspecialchars($path, ENT_XML1),
+                ),
+            );
+            self::assertStringContainsString('40 0 0 -60 0 60 cm', $result['ops']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testImageExplicitDimensionsBypassIntrinsicFallback(): void
+    {
+        if (!function_exists('imagepng')) {
+            self::markTestSkipped('GD extension not available for PNG fixture.');
+        }
+        $path = $this->createPngFixture();
+        try {
+            // Both dimensions explicit → no intrinsic fallback, no
+            // aspect preservation. The painter stretches the image to
+            // the given rect.
+            $result = $this->paintWithWriter(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . sprintf(
+                    '<image x="0" y="0" width="100" height="50" href="%s"/></svg>',
+                    htmlspecialchars($path, ENT_XML1),
+                ),
+            );
+            self::assertStringContainsString('100 0 0 -50 0 50 cm', $result['ops']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
     private function createPngFixture(): string
     {
         $image = imagecreatetruecolor(20, 30);

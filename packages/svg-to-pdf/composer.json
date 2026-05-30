@@ -25,6 +25,7 @@
         "ext-intl": "*",
         "phpdftk/css": "^1.0",
         "phpdftk/filesystem": "^1.0",
+        "phpdftk/image-metadata": "^1.0",
         "phpdftk/pdf-writer": "^1.0",
         "phpdftk/svg": "^1.0",
         "phpdftk/text": "^1.0"
