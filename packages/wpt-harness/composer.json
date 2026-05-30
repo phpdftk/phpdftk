@@ -1,0 +1,50 @@
+{
+    "name": "phpdftk/wpt-harness",
+    "description": "Web Platform Tests harness for phpdftk's HTML/CSS/SVG rendering pipeline — runs WPT against the html-to-pdf / svg-to-pdf translators, classifies tests against the out-of-scope ledger, and scores per-test pass / fail / pending-substrate.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "web-platform-tests",
+        "wpt",
+        "conformance",
+        "css",
+        "html",
+        "svg",
+        "spec-compliance"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "phpdftk/filesystem": "@dev",
+        "phpdftk/html-to-pdf": "@dev",
+        "phpdftk/svg-to-pdf": "@dev",
+        "phpdftk/pdf-reader": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\WptHarness\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\WptHarness\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/wpt"
+    ],
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

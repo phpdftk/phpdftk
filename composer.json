@@ -26,7 +26,8 @@
         {"type": "path", "url": "packages/html"},
         {"type": "path", "url": "packages/svg"},
         {"type": "path", "url": "packages/html-to-pdf"},
-        {"type": "path", "url": "packages/svg-to-pdf"}
+        {"type": "path", "url": "packages/svg-to-pdf"},
+        {"type": "path", "url": "packages/wpt-harness"}
     ],
     "require": {
         "php": "^8.4"
@@ -61,6 +62,7 @@
         "phpdftk/svg": "@dev",
         "phpdftk/svg-to-pdf": "@dev",
         "phpdftk/text": "@dev",
+        "phpdftk/wpt-harness": "@dev",
         "phpdftk/xmp": "@dev",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^13.0",
@@ -81,7 +83,8 @@
             "Phpdftk\\Svg\\Tests\\": "packages/svg/tests/",
             "Phpdftk\\SvgToPdf\\Tests\\": "packages/svg-to-pdf/tests/",
             "Phpdftk\\Tests\\Support\\": "tests/Support/",
-            "Phpdftk\\Text\\Tests\\": "packages/text/tests/"
+            "Phpdftk\\Text\\Tests\\": "packages/text/tests/",
+            "Phpdftk\\WptHarness\\Tests\\": "packages/wpt-harness/tests/"
         }
     },
     "config": {
@@ -99,7 +102,8 @@
         "coverage": "scripts/coverage",
         "compliance": "scripts/compliance",
         "examples": "@php examples/run-all.php",
-        "phpdoc": "scripts/phpdoc"
+        "phpdoc": "scripts/phpdoc",
+        "wpt": "packages/wpt-harness/bin/wpt"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

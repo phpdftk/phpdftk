@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "923027c6946ffe90df45df40aaa8bffe",
+    "content-hash": "1ba05ba632c11389245778c92e0e1cc8",
     "packages": [],
     "packages-dev": [
         {
@@ -2686,13 +2686,19 @@
             "dist": {
                 "type": "path",
                 "url": "packages/svg",
-                "reference": "f2ceb9f6cb60458c0ae292b8cee0b41409f241db"
+                "reference": "47035e7c58bfd98ca74b0b70ab7d794c99390640"
             },
             "require": {
                 "ext-simplexml": "*",
                 "php": "^8.4",
-                "phpdftk/css": "^1.0",
+                "phpdftk/color": "^1.0",
                 "phpdftk/geometry": "^1.0"
+            },
+            "require-dev": {
+                "phpdftk/css": "^1.0"
+            },
+            "suggest": {
+                "phpdftk/css": "Required for the CSS-inside-SVG bridge (`Phpdftk\\Svg\\Css\\CssBridge` — parses `<style>` content and resolves the cascade)."
             },
             "type": "library",
             "extra": {
@@ -2740,13 +2746,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/svg-to-pdf",
-                "reference": "cdc80d597430747d0574fb93776f141161f32400"
+                "reference": "0bb8648f89893e74d360be17c159cc65b13a9ca0"
             },
             "require": {
                 "ext-intl": "*",
                 "php": "^8.4",
                 "phpdftk/css": "^1.0",
                 "phpdftk/filesystem": "^1.0",
+                "phpdftk/image-metadata": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
                 "phpdftk/svg": "^1.0",
                 "phpdftk/text": "^1.0"
@@ -2838,6 +2845,67 @@
                 "opentype",
                 "shaping",
                 "unicode"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/wpt-harness",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/wpt-harness",
+                "reference": "366454fb94c884c012d27cbb917b726a87b4c896"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/filesystem": "@dev",
+                "phpdftk/html-to-pdf": "@dev",
+                "phpdftk/pdf-reader": "@dev",
+                "phpdftk/svg-to-pdf": "@dev"
+            },
+            "bin": [
+                "bin/wpt"
+            ],
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\WptHarness\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\WptHarness\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Web Platform Tests harness for phpdftk's HTML/CSS/SVG rendering pipeline — runs WPT against the html-to-pdf / svg-to-pdf translators, classifies tests against the out-of-scope ledger, and scores per-test pass / fail / pending-substrate.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "conformance",
+                "css",
+                "html",
+                "spec-compliance",
+                "svg",
+                "web-platform-tests",
+                "wpt"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7368,6 +7436,7 @@
         "phpdftk/svg": 20,
         "phpdftk/svg-to-pdf": 20,
         "phpdftk/text": 20,
+        "phpdftk/wpt-harness": 20,
         "phpdftk/xmp": 20
     },
     "prefer-stable": true,

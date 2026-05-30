@@ -1,0 +1,73 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * `wpt` — the harness CLI entry point. Phase 4A.0 scaffold.
+ *
+ * Subcommands (filled in by 4A.1):
+ *
+ *   wpt run [--filter=<glob>] [--in-scope-only]
+ *           Run the harness and emit `var/wpt/report.json` +
+ *           `var/wpt/summary.md`.
+ *
+ *   wpt classify
+ *           Reclassify the manifest. Loads
+ *           `packages/wpt-harness/manifest/*.yaml`, walks the WPT
+ *           corpus, prints per-test classification verdicts.
+ *
+ *   wpt status
+ *           Print the last harness run's summary.
+ *
+ *   wpt diff <test-id>
+ *           Open the failure artefacts for a single test.
+ */
+
+// Locate the autoloader — works whether the package is installed via
+// composer or used straight from the monorepo.
+$autoloadCandidates = [
+    __DIR__ . '/../../../vendor/autoload.php',  // monorepo
+    __DIR__ . '/../vendor/autoload.php',         // package install
+];
+$autoload = null;
+foreach ($autoloadCandidates as $candidate) {
+    if (is_file($candidate)) {
+        $autoload = $candidate;
+        break;
+    }
+}
+if ($autoload === null) {
+    fwrite(STDERR, "wpt: could not find autoload.php\n");
+    exit(1);
+}
+require $autoload;
+
+$subcommand = $argv[1] ?? 'help';
+
+switch ($subcommand) {
+    case 'run':
+    case 'classify':
+    case 'status':
+    case 'diff':
+        fwrite(STDERR, "wpt {$subcommand}: 4A.1 not yet implemented\n");
+        exit(2);
+
+    case 'help':
+    case '--help':
+    case '-h':
+    default:
+        echo <<<HELP
+Usage: wpt <subcommand> [options]
+
+Subcommands:
+  run        Run the harness corpus, emit report.json + summary.md
+  classify   Reclassify the WPT manifest
+  status     Print last-run summary
+  diff <id>  Open the failure artefacts for one test
+
+See packages/wpt-harness/README.md for full docs.
+
+HELP;
+        exit(0);
+}
