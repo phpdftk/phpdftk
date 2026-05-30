@@ -415,8 +415,13 @@ class PdfDoc
      * @param array{float,float,float} $startRgb RGB at gradient origin.
      * @param array{float,float,float} $endRgb   RGB at gradient end.
      */
-    public function addLinearGradient(Point $from, Point $to, array $startRgb, array $endRgb): ShadingPattern
-    {
+    public function addLinearGradient(
+        Point $from,
+        Point $to,
+        array $startRgb,
+        array $endRgb,
+        bool $extend = false,
+    ): ShadingPattern {
         $fn = $this->buildRgbFunction($startRgb, $endRgb);
         $shading = new ShadingType2(
             new PdfName('DeviceRGB'),
@@ -428,6 +433,9 @@ class PdfDoc
             ]),
             new PdfReference($fn->objectNumber),
         );
+        if ($extend) {
+            $shading->extend = self::extendBothEnds();
+        }
         $this->writer->register($shading);
 
         $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
@@ -450,6 +458,7 @@ class PdfDoc
         float $outerRadius,
         array $startRgb,
         array $endRgb,
+        bool $extend = false,
     ): ShadingPattern {
         $fn = $this->buildRgbFunction($startRgb, $endRgb);
         $shading = new ShadingType3(
@@ -464,6 +473,9 @@ class PdfDoc
             ]),
             new PdfReference($fn->objectNumber),
         );
+        if ($extend) {
+            $shading->extend = self::extendBothEnds();
+        }
         $this->writer->register($shading);
 
         $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
@@ -482,8 +494,12 @@ class PdfDoc
      *
      * @param list<array{offset: float, rgb: array{float, float, float}}> $stops
      */
-    public function addLinearGradientStops(Point $from, Point $to, array $stops): ShadingPattern
-    {
+    public function addLinearGradientStops(
+        Point $from,
+        Point $to,
+        array $stops,
+        bool $extend = false,
+    ): ShadingPattern {
         $fn = $this->buildRgbStopFunction($stops);
         $shading = new ShadingType2(
             new PdfName('DeviceRGB'),
@@ -495,6 +511,9 @@ class PdfDoc
             ]),
             new PdfReference($fn->objectNumber),
         );
+        if ($extend) {
+            $shading->extend = self::extendBothEnds();
+        }
         $this->writer->register($shading);
 
         $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
@@ -514,6 +533,7 @@ class PdfDoc
         Point $outerCenter,
         float $outerRadius,
         array $stops,
+        bool $extend = false,
     ): ShadingPattern {
         $fn = $this->buildRgbStopFunction($stops);
         $shading = new ShadingType3(
@@ -528,6 +548,9 @@ class PdfDoc
             ]),
             new PdfReference($fn->objectNumber),
         );
+        if ($extend) {
+            $shading->extend = self::extendBothEnds();
+        }
         $this->writer->register($shading);
 
         $pattern = new ShadingPattern(new PdfReference($shading->objectNumber));
@@ -610,6 +633,16 @@ class PdfDoc
         ]);
         $this->writer->register($fn);
         return $fn;
+    }
+
+    /**
+     * Build `/Extend [true true]` — used by the `addLinearGradient*` /
+     * `addRadialGradient*` registration helpers when the caller opts
+     * into endpoint-pad semantics on a Type 2 / Type 3 shading.
+     */
+    private static function extendBothEnds(): PdfArray
+    {
+        return new PdfArray([true, true]);
     }
 
     // -----------------------------------------------------------------------

@@ -44,7 +44,9 @@ use Phpdftk\SvgToPdf\Geometry\BoundingBox;
  *
  * Deferred (documented in plan and README):
  *
- *  - `spreadMethod: reflect | repeat` (treated as `pad`).
+ *  - `spreadMethod: reflect | repeat` (still treated as `pad` — would
+ *    need a synthesised wider function domain with mirrored / cycled
+ *    stops to render properly; PDF's `/Extend` only does pad).
  *  - `gradientTransform` (would need to bake into the shading's
  *    `Matrix`, deferred).
  *  - `radialGradient`'s `fx` / `fy` / `fr` focal-point and focal-radius
@@ -171,7 +173,13 @@ final class GradientPainter
             $x2 = $bbox['minX'] + $x2 * $bbox['width'];
             $y2 = $bbox['minY'] + $y2 * $bbox['height'];
         }
-        return $doc->addLinearGradientStops(new Point($x1, $y1), new Point($x2, $y2), $stops);
+        // SVG 2 §13.6.5 — `pad` is the default; we surface it as PDF
+        // `/Extend [true true]` so the endpoint colours fill the
+        // shading rect beyond `[from, to]`. `reflect` / `repeat` still
+        // degrade to no-extend (would need a wider function domain with
+        // mirrored / cycled stops to render properly).
+        $extend = $gradient->spreadMethod() === 'pad';
+        return $doc->addLinearGradientStops(new Point($x1, $y1), new Point($x2, $y2), $stops, extend: $extend);
     }
 
     /**
@@ -213,12 +221,14 @@ final class GradientPainter
             $r *= $axis;
             $fr *= $axis;
         }
+        $extend = $gradient->spreadMethod() === 'pad';
         return $doc->addRadialGradientStops(
             new Point($fx, $fy),
             max(0.0, $fr),
             new Point($cx, $cy),
             $r,
             $stops,
+            extend: $extend,
         );
     }
 

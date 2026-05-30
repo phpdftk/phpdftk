@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Phpdftk\SvgToPdf;
 
+use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
 use Phpdftk\Pdf\Writer\Alignment;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\Pdf;
+use Phpdftk\Pdf\Writer\PdfDoc;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\Svg\SvgDocument;
 
@@ -172,6 +175,96 @@ final class SvgRenderer
             $align,
             static function (Page $page, float $x, float $y, float $bw, float $bh) use ($svg, $pdf): void {
                 (new self($page, $pdf->writer()))->draw($svg, $x, $y, $bw, $bh);
+            },
+        );
+    }
+
+    /**
+     * Build a reusable Form XObject from an SVG that can be placed on
+     * multiple pages without re-emitting the underlying operators.
+     * Pair with `Page::drawTemplate($tpl, $x, $y, ?w, ?h)` for cheap
+     * watermark / repeating-graphic use cases.
+     *
+     * The template's BBox is `[0, 0, $w, $h]` where `$w` / `$h`
+     * follow the same dimension-resolution ladder as
+     * {@see addToPdf()}:
+     *
+     *   - both set       → that rectangle (no aspect preservation)
+     *   - only width     → height scales to the intrinsic aspect
+     *   - only height    → width scales to the intrinsic aspect
+     *   - neither        → the SVG's natural width / height
+     *
+     * Resources (gradients, fonts, embedded images) are registered on
+     * `$resourceHost`. FormXObjects inherit resources from the page
+     * that places them, so callers should reuse `$resourceHost` (or a
+     * page sharing its resource pool) when invoking the template via
+     * `Page::drawTemplate`. The template itself is registered with the
+     * doc's writer immediately, so the returned handle is safe to
+     * pass between pages.
+     */
+    public static function createTemplate(
+        PdfDoc $doc,
+        Page $resourceHost,
+        SvgDocument $svg,
+        ?float $width = null,
+        ?float $height = null,
+    ): FormXObject {
+        [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
+        $aspect = $srcHeight > 0.0 ? $srcWidth / $srcHeight : 1.0;
+
+        if ($width === null && $height === null) {
+            $w = $srcWidth;
+            $h = $srcHeight;
+        } elseif ($width !== null && $height === null) {
+            $w = $width;
+            $h = $aspect > 0.0 ? $width / $aspect : $width;
+        } elseif ($width === null && $height !== null) {
+            $h = $height;
+            $w = $height * $aspect;
+        } else {
+            $w = (float) $width;
+            $h = (float) $height;
+        }
+        unset($srcMinX, $srcMinY);
+
+        $bbox = new \Phpdftk\Geometry\Rectangle(0.0, 0.0, $w, $h);
+        $writer = $doc->writer();
+        return $doc->createTemplate(
+            $bbox,
+            static function (ContentStream $stream) use ($svg, $resourceHost, $writer, $w, $h): void {
+                [$srcMinX2, $srcMinY2, $srcW, $srcH] = self::resolveSourceRect($svg);
+                [$scaleX, $scaleY, $offsetX, $offsetY, $needsClip] = self::applyPreserveAspectRatio(
+                    $svg,
+                    $srcW,
+                    $srcH,
+                    $w,
+                    $h,
+                );
+                $effectiveH = $scaleY * $srcH;
+                $stream->saveGraphicsState();
+                if ($needsClip) {
+                    $stream->rectangle(0.0, 0.0, $w, $h);
+                    $stream->clip();
+                    $stream->endPath();
+                }
+                // Same derivation as SvgRenderer::draw with x=y=0:
+                // map source-rect top-left to (offsetX, offsetY + effectiveH).
+                $stream->concatMatrix(
+                    $scaleX,
+                    0.0,
+                    0.0,
+                    -$scaleY,
+                    $offsetX - $srcMinX2 * $scaleX,
+                    $offsetY + $effectiveH + $srcMinY2 * $scaleY,
+                );
+                (new Translator())->paint(
+                    $svg,
+                    $stream,
+                    $resourceHost,
+                    $writer,
+                    compensateTextFlip: true,
+                );
+                $stream->restoreGraphicsState();
             },
         );
     }

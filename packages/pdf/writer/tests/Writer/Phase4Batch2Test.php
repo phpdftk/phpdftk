@@ -173,6 +173,59 @@ class Phase4Batch2Test extends TestCase
         self::assertStringContainsString('/ColorSpace /DeviceRGB', $bytes);
     }
 
+    public function testLinearGradientExtendEmitsExtendArray(): void
+    {
+        $doc = new PdfDoc(compressStreams: false);
+        $page = $doc->addPage();
+        $g = $doc->addLinearGradient(
+            new Point(0, 0),
+            new Point(100, 0),
+            [1, 0, 0],
+            [0, 0, 1],
+            extend: true,
+        );
+        $page->useGradient($g);
+        $bytes = $doc->writer()->generate();
+        self::assertStringContainsString('/Extend [ true true ]', $bytes);
+    }
+
+    public function testLinearGradientDefaultsToNoExtend(): void
+    {
+        $doc = new PdfDoc(compressStreams: false);
+        $page = $doc->addPage();
+        $g = $doc->addLinearGradient(
+            new Point(0, 0),
+            new Point(100, 0),
+            [1, 0, 0],
+            [0, 0, 1],
+        );
+        $page->useGradient($g);
+        $bytes = $doc->writer()->generate();
+        self::assertStringNotContainsString('/Extend [ true true ]', $bytes);
+    }
+
+    public function testRadialGradientStopsExtendEmitsExtendArray(): void
+    {
+        $doc = new PdfDoc(compressStreams: false);
+        $page = $doc->addPage();
+        $g = $doc->addRadialGradientStops(
+            new Point(50, 50),
+            0.0,
+            new Point(50, 50),
+            50.0,
+            [
+                ['offset' => 0.0, 'rgb' => [1.0, 1.0, 1.0]],
+                ['offset' => 0.5, 'rgb' => [0.5, 0.5, 0.5]],
+                ['offset' => 1.0, 'rgb' => [0.0, 0.0, 0.0]],
+            ],
+            extend: true,
+        );
+        $page->useGradient($g);
+        $bytes = $doc->writer()->generate();
+        self::assertStringContainsString('/Extend [ true true ]', $bytes);
+        self::assertStringContainsString('/ShadingType 3', $bytes);
+    }
+
     // -----------------------------------------------------------------------
     // 4.13 — Multimedia + 3D annotations
     // -----------------------------------------------------------------------

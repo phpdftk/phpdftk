@@ -30,6 +30,20 @@ $pdf->addText('See the chart above.');
 $pdf->save('report.pdf');
 ```
 
+To stamp the same SVG onto many pages (watermarks, repeating logos) without re-emitting operators, bake it into a reusable Form XObject:
+
+```php
+use Phpdftk\Pdf\Writer\PdfDoc;
+
+$doc = new PdfDoc();
+$cover = $doc->addPage();
+$tpl = SvgRenderer::createTemplate($doc, $cover, $logo, width: 120, height: 40);
+$cover->drawTemplate($tpl, x: 72, y: 720);
+$doc->addPage()->drawTemplate($tpl, x: 72, y: 720);
+$doc->addPage()->drawTemplate($tpl, x: 72, y: 720);
+$doc->writer()->save('report.pdf');
+```
+
 The lower-level `Translator::paint()` is still available for callers that already own a `ContentStream` and want full control:
 
 ```php
@@ -45,14 +59,13 @@ composer require phpdftk/svg-to-pdf
 
 ## Status
 
-Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), the full SVG 2 §7.10 `preserveAspectRatio` matrix (3R+6), intrinsic `<image>` dimensions (3R+7), `<mask>` via soft-mask `ExtGState` (3R+8), `<path>` bounding box (3R+9), SVG 2 §14.5.4 mask region + `mask-type` (3R+10), `transform` on `<clipPath>` (3R+11), a `SvgToPdfBench` PHPBench suite (3R+12), a 12-fixture conformance smoke suite (3R+13), and `SvgRenderer::addToPdf(Pdf, SvgDocument, ?w, ?h, align)` for flow-style top-level placement via the new generic `Pdf::addBlock` hook in `phpdftk/pdf-writer` (3R+14).
+Phase 3 of the [HTML & SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md). Landed: basic shapes (3K), `<path>` with arc-to-cubic (3L), `transform` + `<g>` + viewBox origin shift (3M), stroke params + element opacity via ExtGState (3N), linear / radial gradients with `userSpaceOnUse` + `objectBoundingBox` (3O), `<text>` with the 14 standard PDF fonts (3P), `<defs>` / `<symbol>` + `<use>` expansion + `<image>` embedding for filesystem hrefs (3Q), the top-level `SvgRenderer` adapter (3R), `<clipPath>` via the `clip-path` attribute (3R+3), `gradientTransform` + `radialGradient` focal-point (3R+4), SVG 2 §11.6 per-glyph `x` / `y` / `rotate` text positioning (3R+5), the full SVG 2 §7.10 `preserveAspectRatio` matrix (3R+6), intrinsic `<image>` dimensions (3R+7), `<mask>` via soft-mask `ExtGState` (3R+8), `<path>` bounding box (3R+9), SVG 2 §14.5.4 mask region + `mask-type` (3R+10), `transform` on `<clipPath>` (3R+11), a `SvgToPdfBench` PHPBench suite (3R+12), a 12-fixture conformance smoke suite (3R+13), `SvgRenderer::addToPdf(Pdf, SvgDocument, ?w, ?h, align)` for flow-style top-level placement via the new generic `Pdf::addBlock` hook in `phpdftk/pdf-writer` (3R+14), `SvgRenderer::createTemplate(PdfDoc, Page, SvgDocument, ?w, ?h)` returning a reusable `FormXObject` for `Page::drawTemplate` (3R+15), and SVG `spreadMethod: pad` correctly extending gradient endpoint colours via PDF `/Extend [true true]` (3R+16).
 
 Coordinate convention: `(x, y)` passed to `SvgRenderer::draw()` is the **bottom-left** of the destination rectangle in PDF user space. The renderer applies the standard SVG y-down → PDF y-up flip at the `cm` level and tells the `Translator` to compensate the flip inside text objects (via `Tm 1 0 0 -1 x y`) so glyphs render upright. Direct `Translator::paint()` usage without `SvgRenderer` keeps the pre-fix behaviour — no outer flip, `Td` for text — so existing callers don't regress.
 
 Deferred from this phase:
 
-- `PdfDoc::createSvgTemplate(SvgDocument): FormXObject` — the remaining adapter surface from the plan. Would need the painter to redirect its operator output into a fresh `ContentStream` for the FormXObject's body (similar to what the 3R+8 `<mask>` painter does) plus a new `Page::useForm`-style resource attachment for callers to reuse the result. `Pdf::addSvg` ships at 3R+14 via `SvgRenderer::addToPdf`.
-- Gradient `spreadMethod: reflect`/`repeat` (would need to synthesise extended stops over a wider function domain); PDF `/Extend [true true]` for the SVG default `pad` (gradients cut off cleanly at endpoints today rather than extending the edge colours).
+- Gradient `spreadMethod: reflect`/`repeat` (would need to synthesise extended stops over a wider function domain — PDF's `/Extend` only does pad). `pad` (the SVG default) now correctly emits `/Extend [true true]` so endpoint colours fill beyond the gradient endpoints (3R+16).
 - Per-glyph `dx` / `dy` offsets (would need font-metric-aware auto-advance to combine with sticky `x` / `y`); per-`<tspan>` font and positioning overrides (`<tspan>` content is still concatenated into the parent run); OpenType shaping via `phpdftk/text`; `@font-face` embedding.
 - Nothing major remaining on `<mask>` — region attributes, default extension, and `mask-type` all landed at 3R+10.
 - Nested `clip-path` on `<clipPath>` children; per-child `clip-rule` overrides (PDF clip operators apply per-path with a single fill rule so varying rules per child would need a transparency-group-based clip).
