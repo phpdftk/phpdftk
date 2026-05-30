@@ -257,6 +257,20 @@ final class Cascade
                     if (!$this->supportsPreludeMatches($rule->prelude)) {
                         continue;
                     }
+                } elseif ($name === 'layer') {
+                    // CSS Cascade 5 §3.1 — `@layer <name> { ... }`
+                    // block-form. We currently treat layers as
+                    // pass-through (cascade order = source order,
+                    // ignoring layer priority). This is wrong per
+                    // §3.4 for cross-layer conflicts, but it lets
+                    // author CSS inside layer blocks actually
+                    // apply instead of being silently dropped.
+                    // Full layer-priority cascade lands as a
+                    // follow-up.
+                } elseif ($name === 'scope') {
+                    // CSS Cascade 6 §3 — `@scope (root) [to limit] { ... }`
+                    // Same pass-through posture as @layer for now;
+                    // proper scope tree handling lands later.
                 } else {
                     continue;
                 }
