@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9ef67c13dcbca569f83730b14c31d022",
+    "content-hash": "1fa2ae58403dd5df848c1a6d8887ef56",
     "packages": [],
     "packages-dev": [
         {
@@ -2672,6 +2672,60 @@
                 "generator",
                 "pdf",
                 "writer"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/raster",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/raster",
+                "reference": "7c4ba3a96a62085260aaae6f40e3c36963de4aa2"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/color": "@dev",
+                "phpdftk/geometry": "@dev"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Raster\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Raster\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Pure-PHP software raster compositor for phpdftk — renders graphics primitive trees to RGBA pixel buffers, applies CSS Filter Effects 1 + Compositing 1/2 + advanced Masking 1 operations, then exports as a PDF Image XObject. Required substrate for CSS filter, backdrop-filter, mix-blend-mode beyond PDF-native modes, mask-composite, and CSS Transforms 3 (3D).",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "blend-mode",
+                "compositor",
+                "css-filter",
+                "image-processing",
+                "raster"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7486,6 +7540,7 @@
         "phpdftk/pdf-reader": 20,
         "phpdftk/pdf-toolkit": 20,
         "phpdftk/pdf-writer": 20,
+        "phpdftk/raster": 20,
         "phpdftk/resource-loader": 20,
         "phpdftk/svg": 20,
         "phpdftk/svg-to-pdf": 20,

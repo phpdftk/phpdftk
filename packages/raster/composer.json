@@ -1,0 +1,43 @@
+{
+    "name": "phpdftk/raster",
+    "description": "Pure-PHP software raster compositor for phpdftk — renders graphics primitive trees to RGBA pixel buffers, applies CSS Filter Effects 1 + Compositing 1/2 + advanced Masking 1 operations, then exports as a PDF Image XObject. Required substrate for CSS filter, backdrop-filter, mix-blend-mode beyond PDF-native modes, mask-composite, and CSS Transforms 3 (3D).",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "raster",
+        "compositor",
+        "css-filter",
+        "blend-mode",
+        "image-processing"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "phpdftk/geometry": "@dev",
+        "phpdftk/color": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Raster\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Raster\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}
