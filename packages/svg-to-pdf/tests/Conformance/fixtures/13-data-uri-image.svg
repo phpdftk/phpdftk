@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!--
+    3R+18 — `data:` URI <image> hrefs. The base64 below is the
+    smallest possible valid PNG (1x1 transparent pixel) so this
+    fixture round-trips through the painter without any external
+    file dependency. Renders nothing visible but exercises the
+    decode → ImageParser → addImage → Do path end-to-end.
+  -->
+  <rect x="0" y="0" width="100" height="100" fill="#f3f4f6"/>
+  <image x="10" y="10" width="80" height="80"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="/>
+</svg>

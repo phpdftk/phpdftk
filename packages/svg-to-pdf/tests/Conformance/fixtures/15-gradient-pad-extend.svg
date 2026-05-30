@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+  <!--
+    3R+16 — `spreadMethod: pad` extending gradient endpoint colours
+    via PDF `/Extend [true true]`. The gradient stops at x=100→x=200
+    but the painted rect spans x=0→x=300; with /Extend [true true]
+    the endpoint colours fill the leading 100px and trailing 100px
+    bands. Without /Extend (the pre-3R+16 behaviour) those bands
+    would render transparent / black.
+  -->
+  <defs>
+    <linearGradient id="padded" x1="100" y1="0" x2="200" y2="0"
+                    gradientUnits="userSpaceOnUse" spreadMethod="pad">
+      <stop offset="0" stop-color="#dc2626"/>
+      <stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+    <radialGradient id="rpad" cx="150" cy="150" r="30"
+                    gradientUnits="userSpaceOnUse" spreadMethod="pad">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="20" width="300" height="60" fill="url(#padded)"/>
+  <rect x="0" y="120" width="300" height="60" fill="url(#rpad)"/>
+</svg>

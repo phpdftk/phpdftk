@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+  <!--
+    3R+17 — per-glyph dx/dy. The first text shows accumulating dx
+    spacing out characters; the second shows dy producing a wave-
+    like vertical shift; the third combines x/y lists with dx/dy
+    offsets so the painter walks the per-glyph path with all four
+    positioning attributes active simultaneously.
+  -->
+  <rect width="300" height="200" fill="#fafafa"/>
+
+  <text x="20" y="40" font-family="sans-serif" font-size="20"
+        dx="0 4 4 4 4 4">spaced</text>
+
+  <text x="20" y="100" font-family="sans-serif" font-size="20"
+        dy="0 -5 0 5 0 -5 0 5 0">wave-text</text>
+
+  <text font-family="serif" font-size="18"
+        x="20 40 60 80 100"
+        y="160 160 160 160 160"
+        dx="0 2 4 6 8"
+        dy="0 -2 -4 -6 -8">stair</text>
+</svg>
