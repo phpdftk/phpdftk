@@ -10,6 +10,14 @@ use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
 use Phpdftk\ImageMetadata\ImageParser;
 use Phpdftk\Pdf\Core\Content\ContentStream;
+use Phpdftk\Pdf\Core\Document\GroupAttributes;
+use Phpdftk\Pdf\Core\Graphics\ExtGState;
+use Phpdftk\Pdf\Core\Graphics\SoftMask;
+use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
+use Phpdftk\Pdf\Core\PdfArray;
+use Phpdftk\Pdf\Core\PdfName;
+use Phpdftk\Pdf\Core\PdfNumber;
+use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\SvgToPdf\Gradient\GradientPainter;
@@ -18,6 +26,7 @@ use Phpdftk\Svg\ClipPath;
 use Phpdftk\Svg\Defs;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Image as SvgImage;
+use Phpdftk\Svg\Mask;
 use Phpdftk\Svg\Symbol;
 use Phpdftk\Svg\Use_;
 use Phpdftk\SvgToPdf\Geometry\BoundingBox;
@@ -169,6 +178,7 @@ final class Translator
         //   - opacity / fill-opacity / stroke-opacity (< 1): emits `gs`.
         //   - stroke params (w / J / j / M / d): each emits its own op.
         //   - clip-path: emits the clip region inside the same wrap.
+        //   - mask: emits `gs` referencing a SMask-bearing ExtGState.
         //
         // Painting the same shape with all defaults stays a one-shot
         // op stream — no overhead when none of the above is set.
@@ -176,10 +186,12 @@ final class Translator
         $opacityGs = $this->resolveOpacityState($element);
         $needsStrokeParams = $this->needsStrokeParams($element);
         $clipPath = $this->resolveClipPath($element);
+        $maskGs = $this->resolveMaskState($element);
         $needsWrap = $transform !== null
             || $opacityGs !== null
             || $needsStrokeParams
-            || $clipPath !== null;
+            || $clipPath !== null
+            || $maskGs !== null;
 
         if (!$needsWrap) {
             $this->dispatchElement($element, $stream);
@@ -207,8 +219,122 @@ final class Translator
         if ($clipPath !== null) {
             $this->applyClipPath($clipPath, $element, $stream);
         }
+        if ($maskGs !== null) {
+            $stream->setGraphicsState($maskGs);
+        }
         $this->dispatchElement($element, $stream);
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Resolve `mask="url(#id)"` to a registered `ExtGState` whose
+     * `/SMask` references a Form XObject containing the mask's
+     * painted children. Returns the resource name to invoke via
+     * `gs`, or null when no mask is set / can't be resolved.
+     *
+     * Pipeline:
+     *
+     *   1. Paint the `<mask>`'s children into a new `ContentStream`
+     *      (running the full Translator pipeline so gradients, fonts,
+     *      images, etc. all register on the host page).
+     *   2. Wrap the resulting bytes in a Form XObject. `/Group /S
+     *      Transparency /CS DeviceGray` so the form's pixels become an
+     *      alpha channel via their luminance.
+     *   3. Build a `SoftMask` dict with `/S Luminosity` and `/BC [0]`
+     *      so the backdrop outside the mask region is black (hidden).
+     *   4. Drop the SMask in an `ExtGState`, register, and attach to
+     *      the page's resources under a stable name.
+     *
+     * Scope at 3R+8:
+     *
+     *   - `maskContentUnits = objectBoundingBox` applies a bbox `cm`
+     *     to the mask content stream so authored coords are in [0, 1].
+     *   - Default mask region is the masked element's bbox. Proper
+     *     SVG 2 §14.5.4 defaults (`-10%` / `120%` extension) and the
+     *     explicit `x` / `y` / `width` / `height` attributes are
+     *     deferred to a follow-up.
+     */
+    private function resolveMaskState(Element $element): ?string
+    {
+        if ($this->writer === null
+            || $this->page === null
+            || $this->document === null
+        ) {
+            return null;
+        }
+        $raw = $element->getAttribute('mask');
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === 'none') {
+            return null;
+        }
+        if (preg_match('/^url\(\s*#([^)\s]+)\s*\)/i', $trimmed, $m) !== 1) {
+            return null;
+        }
+        $referent = $this->document->findById($m[1]);
+        if (!$referent instanceof Mask) {
+            return null;
+        }
+        // Use the masked element's bbox as the form's BBox. Shapes
+        // whose bbox isn't computable at 3R+8 (e.g. `<path>`) fall
+        // through to no mask.
+        $bbox = BoundingBox::compute($element);
+        if ($bbox === null) {
+            return null;
+        }
+
+        $maskStream = new ContentStream();
+        if ($referent->maskContentUnits() === 'objectBoundingBox') {
+            // Reify mask children's [0, 1] coords against the bbox.
+            $maskStream->concatMatrix(
+                $bbox['width'],
+                0.0,
+                0.0,
+                $bbox['height'],
+                $bbox['minX'],
+                $bbox['minY'],
+            );
+        }
+        foreach ($referent->children as $child) {
+            if ($child instanceof Element) {
+                $this->paintElement($child, $maskStream);
+            }
+        }
+        $operatorBytes = implode("\n", $maskStream->getOperators());
+        $form = new FormXObject(
+            new PdfArray([
+                new PdfNumber($bbox['minX']),
+                new PdfNumber($bbox['minY']),
+                new PdfNumber($bbox['minX'] + $bbox['width']),
+                new PdfNumber($bbox['minY'] + $bbox['height']),
+            ]),
+            $operatorBytes,
+        );
+        // Transparency group with the DeviceGray colour space so the
+        // luminance of the painted pixels becomes the mask's alpha.
+        $group = new GroupAttributes('Transparency');
+        $group->cs = new PdfName('DeviceGray');
+        $form->group = $group;
+        $this->writer->register($form);
+
+        $smask = new SoftMask('Luminosity', new PdfReference($form->objectNumber));
+        // Backdrop colour black ([0]) so anywhere the mask content
+        // doesn't paint stays hidden — matches SVG 2's "outside the
+        // mask region the alpha is 0" semantic.
+        $smask->bc = new PdfArray([new PdfNumber(0)]);
+
+        $gstate = new ExtGState();
+        $gstate->sMask = $smask;
+        $this->writer->register($gstate);
+
+        $name = 'GS_mask_' . $gstate->objectNumber;
+        $resources = $this->page->corePage()->resources;
+        if ($resources !== null) {
+            $resources->extGState[$name] = new PdfReference($gstate->objectNumber);
+        }
+        return $name;
     }
 
     /**
@@ -485,12 +611,14 @@ final class Translator
             // `<defs>` and `<symbol>` are referenceable containers: they
             // never paint themselves at the document level. `<use>`
             // expands `<defs>` / `<symbol>` referents; `clip-path` on
-            // a painted element pulls in a `<clipPath>`. Skipping them
-            // here also skips their nested shape children, which is
-            // what the spec wants (SVG 2 §5.5 / §5.6 / §14.4).
+            // a painted element pulls in a `<clipPath>`; `mask` pulls
+            // in a `<mask>`. Skipping them here also skips their
+            // nested shape children, which is what the spec wants
+            // (SVG 2 §5.5 / §5.6 / §14.4 / §14.5).
             $element instanceof Defs,
             $element instanceof Symbol,
-            $element instanceof ClipPath => null,
+            $element instanceof ClipPath,
+            $element instanceof Mask => null,
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
