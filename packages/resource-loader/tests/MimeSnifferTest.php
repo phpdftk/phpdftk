@@ -150,4 +150,49 @@ final class MimeSnifferTest extends TestCase
         // to confirm.
         self::assertSame(MimeSniffer::FALLBACK, $this->sniffer->sniff("\x89PNG"));
     }
+
+    // -----------------------------------------------------------------------
+    // Font formats (extension)
+    // -----------------------------------------------------------------------
+
+    public function testTrueTypeFontSignatureSniffs(): void
+    {
+        // 00 01 00 00 is the TTF magic. Common for .ttf fonts.
+        $bytes = "\x00\x01\x00\x00" . str_repeat("\x00", 12);
+        self::assertSame('font/ttf', $this->sniffer->sniff($bytes));
+    }
+
+    public function testOpenTypeFontSignatureSniffs(): void
+    {
+        // OTTO magic for CFF-based OpenType fonts.
+        $bytes = 'OTTO' . str_repeat("\x00", 12);
+        self::assertSame('font/otf', $this->sniffer->sniff($bytes));
+    }
+
+    public function testWoffFontSignatureSniffs(): void
+    {
+        $bytes = 'wOFF' . "\x00\x01\x00\x00" . str_repeat("\x00", 28);
+        self::assertSame('font/woff', $this->sniffer->sniff($bytes));
+    }
+
+    public function testWoff2FontSignatureSniffs(): void
+    {
+        $bytes = 'wOF2' . "\x00\x01\x00\x00" . str_repeat("\x00", 36);
+        self::assertSame('font/woff2', $this->sniffer->sniff($bytes));
+    }
+
+    public function testTrueTypeCollectionSignatureSniffs(): void
+    {
+        // .ttc files start with "ttcf" then a version + table count.
+        $bytes = 'ttcf' . "\x00\x02\x00\x00" . "\x00\x00\x00\x02";
+        self::assertSame('font/collection', $this->sniffer->sniff($bytes));
+    }
+
+    public function testNonFontStringFallsThrough(): void
+    {
+        // A four-char string that's not a font signature shouldn't
+        // false-positive.
+        self::assertSame(MimeSniffer::FALLBACK, $this->sniffer->sniff('OTTX' . str_repeat("\x00", 12)));
+        self::assertSame(MimeSniffer::FALLBACK, $this->sniffer->sniff('wOFx' . str_repeat("\x00", 12)));
+    }
 }

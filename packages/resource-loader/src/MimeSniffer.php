@@ -11,18 +11,23 @@ namespace Phpdftk\ResourceLoader;
  * response header is treated as a hint, not authoritative; servers
  * routinely mislabel images.
  *
- * v1 (4F.1) covers:
+ * Coverage:
  *
- *   - image/png       89 50 4E 47 0D 0A 1A 0A   (8 bytes)
- *   - image/jpeg      FF D8 FF                  (3 bytes)
- *   - image/gif       'GIF87a' | 'GIF89a'       (6 bytes)
- *   - image/webp      'RIFF' .... 'WEBP'        (12 bytes)
- *   - image/tiff      'II' 2A 00 | 'MM' 00 2A   (4 bytes)
- *   - image/bmp       'BM'                      (2 bytes)
- *   - image/svg+xml   XML/SVG textual sniff
+ *   - image/png         89 50 4E 47 0D 0A 1A 0A   (8 bytes)
+ *   - image/jpeg        FF D8 FF                  (3 bytes)
+ *   - image/gif         'GIF87a' | 'GIF89a'       (6 bytes)
+ *   - image/webp        'RIFF' .... 'WEBP'        (12 bytes)
+ *   - image/tiff        'II' 2A 00 | 'MM' 00 2A   (4 bytes)
+ *   - image/bmp         'BM'                      (2 bytes)
+ *   - image/svg+xml     XML/SVG textual sniff
+ *   - font/ttf          00 01 00 00               (4 bytes)
+ *   - font/otf          'OTTO'                    (4 bytes)
+ *   - font/woff         'wOFF'                    (4 bytes)
+ *   - font/woff2        'wOF2'                    (4 bytes)
+ *   - font/collection   'ttcf'                    (4 bytes — TrueType collection)
  *
  * Returns `application/octet-stream` when no signature matches —
- * safe default that downstream image-format-aware code can reject.
+ * safe default that downstream code can reject.
  */
 final class MimeSniffer
 {
@@ -83,6 +88,25 @@ final class MimeSniffer
 
         if (substr($bytes, 0, 2) === 'BM') {
             return 'image/bmp';
+        }
+
+        if ($length >= 4) {
+            $first4 = substr($bytes, 0, 4);
+            if ($first4 === "\x00\x01\x00\x00") {
+                return 'font/ttf';
+            }
+            if ($first4 === 'OTTO') {
+                return 'font/otf';
+            }
+            if ($first4 === 'wOFF') {
+                return 'font/woff';
+            }
+            if ($first4 === 'wOF2') {
+                return 'font/woff2';
+            }
+            if ($first4 === 'ttcf') {
+                return 'font/collection';
+            }
         }
 
         if (self::looksLikeSvg($bytes)) {
