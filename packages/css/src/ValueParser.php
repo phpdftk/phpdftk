@@ -42,6 +42,8 @@ use Phpdftk\Css\Value\Gradient;
 use Phpdftk\Css\Value\ConicGradient;
 use Phpdftk\Css\Value\GradientShape;
 use Phpdftk\Css\Value\GradientStop;
+use Phpdftk\Css\Value\ImageSet;
+use Phpdftk\Css\Value\ImageSetOption;
 use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
@@ -254,6 +256,12 @@ final class ValueParser
             $g = $this->parseConicGradient($tokens, $name === 'repeating-conic-gradient');
             if ($g !== null) {
                 return $g;
+            }
+        }
+        if ($name === 'image-set' || $name === '-webkit-image-set') {
+            $set = $this->parseImageSet($tokens);
+            if ($set !== null) {
+                return $set;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -1807,6 +1815,173 @@ final class ValueParser
             return null;
         }
         return [$fromAngle, $centerX, $centerY];
+    }
+
+    // ============================================================
+    // image-set — CSS Images 4 §6
+    // ============================================================
+    /**
+     * Parse `image-set(<option> [, <option>]*)` where each option
+     * is `<image> [<resolution>]? [type(<mime>)]?`. Resolutions
+     * accept the `x` / `dppx` / `dpcm` / `dpi` units; type() takes
+     * a string-literal MIME.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseImageSet(array $tokens): ?ImageSet
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $groups = self::splitTopLevel($tokens, CommaToken::class);
+        $options = [];
+        foreach ($groups as $group) {
+            $opt = $this->parseImageSetOption(self::trimWhitespace($group));
+            if ($opt === null) {
+                return null;
+            }
+            $options[] = $opt;
+        }
+        return new ImageSet($options);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function parseImageSetOption(array $tokens): ?ImageSetOption
+    {
+        if ($tokens === []) {
+            return null;
+        }
+        // First non-WS token may be either a URL function, a
+        // string literal, or a nested image-* function (gradient
+        // etc). For simplicity, treat the head as the "image"
+        // until we hit a resolution token or a `type(` function.
+        $image = null;
+        $resolution = null;
+        $mime = null;
+
+        $i = 0;
+        $count = count($tokens);
+        while ($i < $count) {
+            $t = $tokens[$i];
+            if ($t instanceof WhitespaceToken) {
+                $i++;
+                continue;
+            }
+            if ($t instanceof DimensionToken && self::isResolutionUnit($t->unit)) {
+                $dppx = self::resolutionToDppx((float) $t->value, $t->unit);
+                if ($dppx === null) {
+                    return null;
+                }
+                $resolution = $dppx;
+                $i++;
+                continue;
+            }
+            if ($t instanceof NumberToken && $image !== null) {
+                // Bare numbers are NOT valid resolution per spec;
+                // fail to parse.
+                return null;
+            }
+            if ($t instanceof FunctionToken && strtolower($t->name) === 'type') {
+                // Collect the matching close paren.
+                $depth = 1;
+                $argStart = $i + 1;
+                $j = $argStart;
+                while ($j < $count) {
+                    if ($tokens[$j] instanceof LeftParenToken || $tokens[$j] instanceof FunctionToken) {
+                        $depth++;
+                    } elseif ($tokens[$j] instanceof RightParenToken) {
+                        $depth--;
+                        if ($depth === 0) {
+                            break;
+                        }
+                    }
+                    $j++;
+                }
+                $inner = self::trimWhitespace(array_slice($tokens, $argStart, $j - $argStart));
+                if (count($inner) !== 1 || !($inner[0] instanceof StringToken)) {
+                    return null;
+                }
+                $mime = $inner[0]->value;
+                $i = $j + 1;
+                continue;
+            }
+            if ($image === null) {
+                // Fast paths for the common cases — saves a
+                // re-tokenise + re-parse round trip:
+                //   - UrlToken    → Url value directly
+                //   - StringToken → StringValue directly
+                if ($t instanceof UrlToken) {
+                    $image = new Url($t->value);
+                    $i++;
+                    continue;
+                }
+                if ($t instanceof StringToken) {
+                    $image = new \Phpdftk\Css\Value\StringValue($t->value);
+                    $i++;
+                    continue;
+                }
+                // Fallback: treat the token (and any function /
+                // paren-balanced run starting here) as the image
+                // and let the dispatch parse it. Used for nested
+                // image-set / linear-gradient / etc.
+                $consumed = self::collectFunctionLikeRun($tokens, $i);
+                $imageTokens = array_slice($tokens, $i, $consumed);
+                $css = self::serializeTokens($imageTokens);
+                $image = $this->parseFromString($css);
+                $i += $consumed;
+                continue;
+            }
+            return null;
+        }
+        if ($image === null) {
+            return null;
+        }
+        return new ImageSetOption($image, $resolution, $mime);
+    }
+
+    /**
+     * Collect a function call (and any nested function calls in
+     * its arguments) starting at $start, OR a single non-function
+     * token. Returns the count of tokens consumed.
+     *
+     * @param list<Token> $tokens
+     */
+    private static function collectFunctionLikeRun(array $tokens, int $start): int
+    {
+        $head = $tokens[$start] ?? null;
+        if (!($head instanceof FunctionToken)) {
+            return 1;
+        }
+        $depth = 1;
+        $i = $start + 1;
+        $count = count($tokens);
+        while ($i < $count && $depth > 0) {
+            if ($tokens[$i] instanceof LeftParenToken || $tokens[$i] instanceof FunctionToken) {
+                $depth++;
+            } elseif ($tokens[$i] instanceof RightParenToken) {
+                $depth--;
+            }
+            $i++;
+        }
+        return $i - $start;
+    }
+
+    private static function isResolutionUnit(string $unit): bool
+    {
+        return in_array(strtolower($unit), ['x', 'dppx', 'dpcm', 'dpi'], true);
+    }
+
+    private static function resolutionToDppx(float $value, string $unit): ?float
+    {
+        return match (strtolower($unit)) {
+            'x', 'dppx' => $value,
+            'dpi' => $value / 96.0,                        // 96 dpi = 1 dppx
+            'dpcm' => $value * 2.54 / 96.0,                // 1 dpcm = 2.54 dpi → /96
+            default => null,
+        };
     }
 
     /** @param list<Token> $tokens */
