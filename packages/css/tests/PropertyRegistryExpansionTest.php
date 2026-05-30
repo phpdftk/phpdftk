@@ -95,6 +95,50 @@ final class PropertyRegistryExpansionTest extends TestCase
         yield 'container' => ['container'];
         yield 'container-name' => ['container-name'];
         yield 'container-type' => ['container-type'];
+
+        // CSS Logical Properties 1 §4 — sizing
+        yield 'block-size' => ['block-size'];
+        yield 'inline-size' => ['inline-size'];
+        yield 'min-block-size' => ['min-block-size'];
+        yield 'min-inline-size' => ['min-inline-size'];
+        yield 'max-block-size' => ['max-block-size'];
+        yield 'max-inline-size' => ['max-inline-size'];
+
+        // CSS Logical Properties 1 §5 — margin / padding
+        foreach ([
+            'margin-block', 'margin-block-start', 'margin-block-end',
+            'margin-inline', 'margin-inline-start', 'margin-inline-end',
+            'padding-block', 'padding-block-start', 'padding-block-end',
+            'padding-inline', 'padding-inline-start', 'padding-inline-end',
+        ] as $name) {
+            yield $name => [$name];
+        }
+
+        // CSS Logical Properties 1 §6 — inset
+        foreach ([
+            'inset', 'inset-block', 'inset-block-start', 'inset-block-end',
+            'inset-inline', 'inset-inline-start', 'inset-inline-end',
+        ] as $name) {
+            yield $name => [$name];
+        }
+
+        // CSS Logical Properties 1 §7 — borders + corner radii
+        foreach ([
+            'border-block', 'border-inline',
+            'border-block-color', 'border-inline-color',
+            'border-block-style', 'border-inline-style',
+            'border-block-width', 'border-inline-width',
+            'border-block-start-color', 'border-block-end-color',
+            'border-inline-start-color', 'border-inline-end-color',
+            'border-block-start-style', 'border-block-end-style',
+            'border-inline-start-style', 'border-inline-end-style',
+            'border-block-start-width', 'border-block-end-width',
+            'border-inline-start-width', 'border-inline-end-width',
+            'border-start-start-radius', 'border-start-end-radius',
+            'border-end-start-radius', 'border-end-end-radius',
+        ] as $name) {
+            yield $name => [$name];
+        }
     }
 
     #[DataProvider('newlyRegisteredProperties')]

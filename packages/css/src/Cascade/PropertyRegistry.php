@@ -433,6 +433,69 @@ final class PropertyRegistry
         $r->register($initial('container-name', new Keyword('none')));
         $r->register($initial('container-type', new Keyword('normal')));
 
+        // CSS Logical Properties 1 §4 — block / inline sizing. The
+        // computed value maps to the writing-mode's physical
+        // equivalents at used-value time.
+        $r->register($initial('block-size', new Keyword('auto')));
+        $r->register($initial('inline-size', new Keyword('auto')));
+        $r->register($initial('min-block-size', new Length(0.0, LengthUnit::Px)));
+        $r->register($initial('min-inline-size', new Length(0.0, LengthUnit::Px)));
+        $r->register($initial('max-block-size', new Keyword('none')));
+        $r->register($initial('max-inline-size', new Keyword('none')));
+
+        // CSS Logical Properties 1 §5 — margin / padding logical
+        // longhands + their two-axis shorthands.
+        $marginZero = new Length(0.0, LengthUnit::Px);
+        foreach ([
+            'margin-block', 'margin-block-start', 'margin-block-end',
+            'margin-inline', 'margin-inline-start', 'margin-inline-end',
+            'padding-block', 'padding-block-start', 'padding-block-end',
+            'padding-inline', 'padding-inline-start', 'padding-inline-end',
+        ] as $name) {
+            $r->register($initial($name, $marginZero));
+        }
+
+        // CSS Logical Properties 1 §6 — inset shorthand + longhands.
+        $r->register($initial('inset', new Keyword('auto')));
+        $r->register($initial('inset-block', new Keyword('auto')));
+        $r->register($initial('inset-block-start', new Keyword('auto')));
+        $r->register($initial('inset-block-end', new Keyword('auto')));
+        $r->register($initial('inset-inline', new Keyword('auto')));
+        $r->register($initial('inset-inline-start', new Keyword('auto')));
+        $r->register($initial('inset-inline-end', new Keyword('auto')));
+
+        // CSS Logical Properties 1 §7 — border logical longhands.
+        foreach ([
+            'border-block', 'border-inline',  // shorthands (style/width/color)
+            'border-block-color', 'border-inline-color',
+            'border-block-style', 'border-inline-style',
+            'border-block-width', 'border-inline-width',
+            'border-block-start-color', 'border-block-end-color',
+            'border-inline-start-color', 'border-inline-end-color',
+            'border-block-start-style', 'border-block-end-style',
+            'border-inline-start-style', 'border-inline-end-style',
+            'border-block-start-width', 'border-block-end-width',
+            'border-inline-start-width', 'border-inline-end-width',
+        ] as $name) {
+            // Sensible per-suffix defaults: -color → currentcolor;
+            // -style → none; -width → medium; bare shorthands → none.
+            $default = match (true) {
+                str_ends_with($name, '-color') => new Keyword('currentcolor'),
+                str_ends_with($name, '-style') => new Keyword('none'),
+                str_ends_with($name, '-width') => new Keyword('medium'),
+                default => new Keyword('none'),
+            };
+            $r->register($initial($name, $default));
+        }
+
+        // CSS Logical Properties 1 §7.4 — corner-relative border
+        // radii. Initial is 0 per CSS Backgrounds 3 §6.1.
+        $zeroRadius = new Length(0.0, LengthUnit::Px);
+        $r->register($initial('border-start-start-radius', $zeroRadius));
+        $r->register($initial('border-start-end-radius', $zeroRadius));
+        $r->register($initial('border-end-start-radius', $zeroRadius));
+        $r->register($initial('border-end-end-radius', $zeroRadius));
+
         // CSS Fragmentation 4 §3 + legacy `page-break-*` aliases.
         $r->register($initial('break-before', new Keyword('auto')));
         $r->register($initial('break-after', new Keyword('auto')));
