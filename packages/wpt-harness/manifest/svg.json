@@ -1,0 +1,68 @@
+{
+    "_comment": "SVG-specific WPT classification.",
+    "out-of-scope": [
+        {
+            "glob": "svg/interact/**",
+            "reason": "SVG interactivity — no user input"
+        },
+        {
+            "glob": "svg/scripted/**",
+            "reason": "SVG scripting — no JS runtime"
+        },
+        {
+            "glob": "svg/animations/discard-*",
+            "reason": "<discard> — runtime element removal"
+        },
+        {
+            "glob": "svg/linking/views-*",
+            "reason": "<view> element — navigation target only"
+        }
+    ],
+    "pending-substrate": [
+        {
+            "glob": "svg/filters/**",
+            "phase": "4C",
+            "reason": "SVG <filter> primitives — needs phpdftk/raster"
+        },
+        {
+            "glob": "svg/text/text-on-path-*",
+            "phase": "4D",
+            "reason": "<textPath> — needs path-following text shaping"
+        },
+        {
+            "glob": "svg/text/tspan-font-*",
+            "phase": "4D",
+            "reason": "per-<tspan> font overrides — needs cascade inheritance"
+        },
+        {
+            "glob": "svg/embedded-content/the-image-element/href-http-*",
+            "phase": "4F",
+            "reason": "<image> http(s) hrefs — needs resource loader"
+        },
+        {
+            "glob": "svg/embedded-content/the-image-element/href-external-*",
+            "phase": "4F",
+            "reason": "<image> external file hrefs — needs resource loader for fetched files"
+        },
+        {
+            "glob": "svg/struct/the-use-element/href-external-*",
+            "phase": "4F",
+            "reason": "<use> external references — needs resource loader"
+        },
+        {
+            "glob": "svg/embedded-content/the-foreignobject-element/**",
+            "phase": "4C",
+            "reason": "<foreignObject> — needs raster + full HTML/CSS rendering inside SVG"
+        },
+        {
+            "glob": "svg/painting/gradient-spreadmethod-reflect*",
+            "phase": "internal",
+            "reason": "spreadMethod: reflect — needs synthesised wider function domain in svg-to-pdf gradient painter"
+        },
+        {
+            "glob": "svg/painting/gradient-spreadmethod-repeat*",
+            "phase": "internal",
+            "reason": "spreadMethod: repeat — same as reflect"
+        }
+    ]
+}

@@ -1,0 +1,88 @@
+{
+    "_comment": "HTML-specific WPT classification.",
+    "out-of-scope": [
+        {
+            "glob": "html/dom/events/**",
+            "reason": "DOM events — no user, no runtime"
+        },
+        {
+            "glob": "html/semantics/scripting-*/**",
+            "reason": "Scripting — no JS runtime"
+        },
+        {
+            "glob": "html/webappapis/**",
+            "reason": "Web application APIs — no runtime"
+        },
+        {
+            "glob": "html/syntax/dynamic-markup-insertion/**",
+            "reason": "document.write / innerHTML — runtime mutation"
+        },
+        {
+            "glob": "html/editing/**",
+            "reason": "Editing API — no user"
+        },
+        {
+            "glob": "html/interaction/**",
+            "reason": "Interaction surfaces — no user"
+        },
+        {
+            "glob": "html/canvas/dynamic-*",
+            "reason": "Dynamic canvas — runtime"
+        },
+        {
+            "glob": "html/semantics/forms/**/runtime-*",
+            "reason": "Form submission / runtime — out of scope (rendering is in)"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/modal-*",
+            "reason": "showModal / close — runtime (open-state rendering is in)"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-details-element/toggle-*",
+            "reason": "details toggle behaviour — runtime (open-state rendering is in)"
+        },
+        {
+            "glob": "html/semantics/popover/runtime-*",
+            "reason": "Popover invocation — runtime (popover-open rendering is in)"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-iframe-element/sandbox-*",
+            "reason": "iframe sandbox runtime — static rendering of fetched content is in scope"
+        },
+        {
+            "glob": "html/cross-origin-embedder-policy/**",
+            "reason": "COEP — runtime"
+        },
+        {
+            "glob": "html/cross-origin-opener-policy/**",
+            "reason": "COOP — runtime"
+        }
+    ],
+    "pending-substrate": [
+        {
+            "glob": "html/semantics/embedded-content/the-img-element/srcset-*",
+            "phase": "4F",
+            "reason": "srcset selection — needs resource loader + DPR policy"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-picture-element/**",
+            "phase": "4F",
+            "reason": "picture element — needs resource loader for source selection"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-video-element/poster-*",
+            "phase": "4F",
+            "reason": "video poster extraction — needs resource loader"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-iframe-element/static-*",
+            "phase": "4F",
+            "reason": "iframe static rendering of fetched content — needs resource loader"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-object-element/**",
+            "phase": "4F",
+            "reason": "<object data=> — needs resource loader"
+        }
+    ]
+}

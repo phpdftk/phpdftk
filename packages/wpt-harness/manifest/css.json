@@ -1,0 +1,229 @@
+{
+    "_comment": "CSS-specific WPT classification. Patterns match against WPT test IDs under css/. First-match wins; in-scope is the default, so we only list out-of-scope and pending-substrate here. See docs/spec/out-of-scope.md for the contract these rules implement.",
+    "out-of-scope": [
+        {
+            "glob": "css/css-scroll-snap/**",
+            "reason": "CSS Scroll Snap — no scrolling in fixed-pagination PDF"
+        },
+        {
+            "glob": "css/css-overscroll-behavior/**",
+            "reason": "CSS Overscroll Behavior — no scroll"
+        },
+        {
+            "glob": "css/css-scrollbars/**",
+            "reason": "CSS Scrollbars — no scrollbars in PDF"
+        },
+        {
+            "glob": "css/css-scroll-anchoring/**",
+            "reason": "CSS Scroll Anchoring — no scroll"
+        },
+        {
+            "glob": "css/css-will-change/**",
+            "reason": "CSS Will Change — perf hint, implemented as no-op"
+        },
+        {
+            "glob": "css/css-touch/**",
+            "reason": "CSS Touch — no touch input"
+        },
+        {
+            "glob": "css/css-speech/**",
+            "reason": "CSS Speech — audio synthesis"
+        },
+        {
+            "glob": "css/css-view-transitions/**",
+            "reason": "CSS View Transitions — no navigation"
+        },
+        {
+            "glob": "css/css-animation-worklet/**",
+            "reason": "Animation Worklet — worklet runtime"
+        },
+        {
+            "glob": "css/css-paint-api/**",
+            "reason": "Paint API worklet — runtime"
+        },
+        {
+            "glob": "css/css-layout-api/**",
+            "reason": "Layout API worklet — runtime"
+        },
+        {
+            "glob": "css/css-properties-values-api/runtime-*",
+            "reason": "Properties & Values worklet runtime — runtime"
+        },
+        {
+            "glob": "css/css-device-adapt/**",
+            "reason": "CSS Device Adaptation (@viewport) — device viewport doesn't apply"
+        },
+        {
+            "glob": "css/css-highlight-api/runtime-*",
+            "reason": "Highlight API runtime — CustomHighlight is runtime; ::selection style is in scope"
+        },
+        {
+            "glob": "css/css-nav/**",
+            "reason": "CSS Navigation (spatial nav) — interactive"
+        },
+        {
+            "glob": "css/selectors/*hover*",
+            "reason": ":hover — interactive pseudo"
+        },
+        {
+            "glob": "css/selectors/*focus*",
+            "reason": ":focus / :focus-visible / :focus-within — interactive pseudo"
+        },
+        {
+            "glob": "css/selectors/*active*",
+            "reason": ":active — interactive pseudo"
+        },
+        {
+            "glob": "css/selectors/*visited*",
+            "reason": ":visited — privacy / interactive"
+        },
+        {
+            "glob": "css/css-ui/cursor*",
+            "reason": "cursor — no cursor in PDF"
+        },
+        {
+            "glob": "css/css-ui/resize*",
+            "reason": "resize — no interactive resize"
+        },
+        {
+            "glob": "css/css-ui/pointer-events*",
+            "reason": "pointer-events — no pointer"
+        },
+        {
+            "glob": "css/css-ui/user-select*",
+            "reason": "user-select — viewer concern, not renderer"
+        }
+    ],
+    "pending-substrate": [
+        {
+            "glob": "css/filter-effects/**",
+            "phase": "4C",
+            "reason": "CSS Filter Effects 1 — needs phpdftk/raster compositor"
+        },
+        {
+            "glob": "css/compositing/**",
+            "phase": "4C",
+            "reason": "CSS Compositing 2 corners — needs phpdftk/raster for non-PDF-native blend modes"
+        },
+        {
+            "glob": "css/css-masking/mask-composite*",
+            "phase": "4C",
+            "reason": "mask-composite — needs phpdftk/raster"
+        },
+        {
+            "glob": "css/css-masking/mask-mode*",
+            "phase": "4C",
+            "reason": "mask-mode — needs phpdftk/raster"
+        },
+        {
+            "glob": "css/css-backdrop-filter/**",
+            "phase": "4C",
+            "reason": "backdrop-filter — needs phpdftk/raster to capture prior page state"
+        },
+        {
+            "glob": "css/css-transforms/transform-3d-*",
+            "phase": "4C",
+            "reason": "3D transforms with perspective — needs phpdftk/raster fallback"
+        },
+        {
+            "glob": "css/css-fonts/variations*",
+            "phase": "4D",
+            "reason": "font-variation-settings — needs OpenType variation axis shaping"
+        },
+        {
+            "glob": "css/css-fonts/font-feature*",
+            "phase": "4D",
+            "reason": "font-feature-settings — needs OpenType GSUB / GPOS"
+        },
+        {
+            "glob": "css/css-fonts/font-palette*",
+            "phase": "4D",
+            "reason": "@font-palette-values — needs font shaping"
+        },
+        {
+            "glob": "css/css-text/text-justify*",
+            "phase": "4D",
+            "reason": "text-justify — needs line-breaking + word-break"
+        },
+        {
+            "glob": "css/css-text/text-wrap-balance*",
+            "phase": "4D",
+            "reason": "text-wrap: balance — needs line-breaking"
+        },
+        {
+            "glob": "css/css-text/hyphen*",
+            "phase": "4D",
+            "reason": "hyphenation — needs UAX 14 + hyphenation patterns"
+        },
+        {
+            "glob": "css/css-writing-modes/vertical-*",
+            "phase": "4D",
+            "reason": "Vertical writing modes — needs vertical text shaping"
+        },
+        {
+            "glob": "css/css-text-decor/text-emphasis*",
+            "phase": "4D",
+            "reason": "text-emphasis — needs ideographic shaping"
+        },
+        {
+            "glob": "css/css-color/lab-*",
+            "phase": "4E",
+            "reason": "lab() / lch() — needs color engine"
+        },
+        {
+            "glob": "css/css-color/oklab-*",
+            "phase": "4E",
+            "reason": "oklab() / oklch() — needs color engine"
+        },
+        {
+            "glob": "css/css-color/color-function-*",
+            "phase": "4E",
+            "reason": "color() with wide-gamut spaces — needs color engine"
+        },
+        {
+            "glob": "css/css-color/color-mix*",
+            "phase": "4E",
+            "reason": "color-mix() — needs color engine (CSS Color 5)"
+        },
+        {
+            "glob": "css/css-color/relative-color*",
+            "phase": "4E",
+            "reason": "Relative color syntax — needs color engine (CSS Color 5)"
+        },
+        {
+            "glob": "css/css-fonts/at-font-face-src-*",
+            "phase": "4F",
+            "reason": "@font-face url() — needs resource loader"
+        },
+        {
+            "glob": "css/css-images/image-set-*",
+            "phase": "4F",
+            "reason": "image-set() with URL — needs resource loader"
+        },
+        {
+            "glob": "css/css-page/at-page-*",
+            "phase": "4G",
+            "reason": "@page rules — needs paged-media engine extraction"
+        },
+        {
+            "glob": "css/css-page-floats/**",
+            "phase": "4G",
+            "reason": "Page floats — needs paged-media engine"
+        },
+        {
+            "glob": "css/css-gcpm/**",
+            "phase": "4G",
+            "reason": "Generated Content for Paged Media — needs paged-media engine"
+        },
+        {
+            "glob": "css/css-break/**",
+            "phase": "4G",
+            "reason": "CSS Fragmentation — needs paged-media engine"
+        },
+        {
+            "glob": "css/css-multicol/multicol-rule*",
+            "phase": "4G",
+            "reason": "Multi-column rules — fragmentation interaction needs paged-media"
+        }
+    ]
+}

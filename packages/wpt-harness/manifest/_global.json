@@ -1,0 +1,298 @@
+{
+    "_comment": "Cross-cutting WPT classification rules. Loaded first; per-spec files (css.json, html.json, svg.json) can override with narrower patterns. Each rule is a glob over the WPT test ID (relative path from vendor-data/wpt/, minus the file extension). Glob syntax: `*` matches any non-separator segment, `**` matches across separators.",
+    "out-of-scope": [
+        {
+            "glob": "**/historical/**",
+            "reason": "WPT 'historical' test directories cover deprecated features — out of scope for the snapshot's applicable surface"
+        },
+        {
+            "glob": "**/IDL/**",
+            "reason": "Web IDL bindings — no JS runtime"
+        },
+        {
+            "glob": "**/idlharness*",
+            "reason": "IDL harness tests — no JS runtime"
+        },
+        {
+            "glob": "fetch/**",
+            "reason": "Fetch API — network at render-time is out of scope per ledger"
+        },
+        {
+            "glob": "xhr/**",
+            "reason": "XMLHttpRequest — runtime API"
+        },
+        {
+            "glob": "websockets/**",
+            "reason": "WebSockets — runtime API"
+        },
+        {
+            "glob": "webrtc/**",
+            "reason": "WebRTC — runtime API"
+        },
+        {
+            "glob": "webtransport/**",
+            "reason": "WebTransport — runtime API"
+        },
+        {
+            "glob": "service-workers/**",
+            "reason": "Service Workers — no runtime"
+        },
+        {
+            "glob": "workers/**",
+            "reason": "Web Workers — no runtime"
+        },
+        {
+            "glob": "webstorage/**",
+            "reason": "Web Storage (localStorage / sessionStorage) — no persistence"
+        },
+        {
+            "glob": "IndexedDB/**",
+            "reason": "IndexedDB — no persistence"
+        },
+        {
+            "glob": "FileAPI/**",
+            "reason": "File API — no runtime"
+        },
+        {
+            "glob": "webaudio/**",
+            "reason": "Web Audio — audio runtime"
+        },
+        {
+            "glob": "speech-api/**",
+            "reason": "Web Speech — audio runtime"
+        },
+        {
+            "glob": "mediacapture-*/**",
+            "reason": "Media Capture — runtime device API"
+        },
+        {
+            "glob": "media-source/**",
+            "reason": "Media Source Extensions — runtime media"
+        },
+        {
+            "glob": "webcodecs/**",
+            "reason": "WebCodecs — runtime media"
+        },
+        {
+            "glob": "encrypted-media/**",
+            "reason": "Encrypted Media — runtime"
+        },
+        {
+            "glob": "picture-in-picture/**",
+            "reason": "Picture-in-Picture — runtime"
+        },
+        {
+            "glob": "geolocation*/**",
+            "reason": "Geolocation — device sensor"
+        },
+        {
+            "glob": "device-posture/**",
+            "reason": "Device posture — sensor"
+        },
+        {
+            "glob": "deviceorientation/**",
+            "reason": "Device orientation — sensor"
+        },
+        {
+            "glob": "battery-status/**",
+            "reason": "Battery — sensor"
+        },
+        {
+            "glob": "ambient-light/**",
+            "reason": "Ambient Light — sensor"
+        },
+        {
+            "glob": "gyroscope/**",
+            "reason": "Gyroscope — sensor"
+        },
+        {
+            "glob": "accelerometer/**",
+            "reason": "Accelerometer — sensor"
+        },
+        {
+            "glob": "magnetometer/**",
+            "reason": "Magnetometer — sensor"
+        },
+        {
+            "glob": "vibration/**",
+            "reason": "Vibration — device"
+        },
+        {
+            "glob": "webxr/**",
+            "reason": "WebXR — runtime / device"
+        },
+        {
+            "glob": "webgl/**",
+            "reason": "WebGL — GPU runtime"
+        },
+        {
+            "glob": "webgpu/**",
+            "reason": "WebGPU — GPU runtime"
+        },
+        {
+            "glob": "webnfc/**",
+            "reason": "Web NFC — device"
+        },
+        {
+            "glob": "webusb/**",
+            "reason": "Web USB — device"
+        },
+        {
+            "glob": "webhid/**",
+            "reason": "Web HID — device"
+        },
+        {
+            "glob": "serial/**",
+            "reason": "Web Serial — device"
+        },
+        {
+            "glob": "bluetooth/**",
+            "reason": "Web Bluetooth — device"
+        },
+        {
+            "glob": "webmidi/**",
+            "reason": "Web MIDI — device"
+        },
+        {
+            "glob": "webauthn/**",
+            "reason": "Web Authentication — runtime / device"
+        },
+        {
+            "glob": "credential-management/**",
+            "reason": "Credential Management — runtime"
+        },
+        {
+            "glob": "payment-*/**",
+            "reason": "Payment Request — runtime"
+        },
+        {
+            "glob": "uievents/**",
+            "reason": "UI Events — no user"
+        },
+        {
+            "glob": "pointerevents/**",
+            "reason": "Pointer Events — no user"
+        },
+        {
+            "glob": "touch-events/**",
+            "reason": "Touch Events — no user"
+        },
+        {
+            "glob": "keyboard-*/**",
+            "reason": "Keyboard events — no user"
+        },
+        {
+            "glob": "input-events/**",
+            "reason": "Input events — no user"
+        },
+        {
+            "glob": "wheel*/**",
+            "reason": "Wheel events — no user"
+        },
+        {
+            "glob": "selection/**",
+            "reason": "Selection API runtime — no user"
+        },
+        {
+            "glob": "pointerlock/**",
+            "reason": "Pointer Lock — runtime"
+        },
+        {
+            "glob": "clipboard-apis/**",
+            "reason": "Clipboard API — runtime"
+        },
+        {
+            "glob": "fullscreen/**",
+            "reason": "Fullscreen — no display"
+        },
+        {
+            "glob": "page-visibility/**",
+            "reason": "Visibility API — lifecycle"
+        },
+        {
+            "glob": "navigation*/**",
+            "reason": "Navigation API — no navigation in PDF"
+        },
+        {
+            "glob": "html/browsers/**",
+            "reason": "Browsing contexts — no runtime"
+        },
+        {
+            "glob": "permissions*/**",
+            "reason": "Permissions API — runtime"
+        },
+        {
+            "glob": "notifications/**",
+            "reason": "Notifications API — runtime"
+        },
+        {
+            "glob": "background-fetch/**",
+            "reason": "Background Fetch — runtime"
+        },
+        {
+            "glob": "background-sync/**",
+            "reason": "Background Sync — runtime"
+        },
+        {
+            "glob": "wake-lock/**",
+            "reason": "Wake Lock — runtime"
+        },
+        {
+            "glob": "screen-capture/**",
+            "reason": "Screen Capture — runtime"
+        },
+        {
+            "glob": "html/cross-origin-*/**",
+            "reason": "Cross-origin policy runtime — resource loader handles allowlist"
+        },
+        {
+            "glob": "content-security-policy/**",
+            "reason": "CSP runtime enforcement — out; parsing is in for @import gating only"
+        },
+        {
+            "glob": "trusted-types/**",
+            "reason": "Trusted Types — runtime"
+        },
+        {
+            "glob": "referrer-policy/**",
+            "reason": "Referrer policy — runtime"
+        },
+        {
+            "glob": "x-frame-options/**",
+            "reason": "X-Frame-Options — runtime"
+        },
+        {
+            "glob": "mixed-content/**",
+            "reason": "Mixed content — runtime"
+        },
+        {
+            "glob": "websub/**",
+            "reason": "WebSub — runtime"
+        },
+        {
+            "glob": "server-timing/**",
+            "reason": "Server Timing — runtime"
+        },
+        {
+            "glob": "resource-timing/**",
+            "reason": "Resource Timing — runtime"
+        },
+        {
+            "glob": "performance-*/**",
+            "reason": "Performance API — runtime"
+        },
+        {
+            "glob": "reporting/**",
+            "reason": "Reporting API — runtime"
+        },
+        {
+            "glob": "preload/**",
+            "reason": "Preload — runtime"
+        },
+        {
+            "glob": "intervention-reporting/**",
+            "reason": "Intervention reporting — runtime"
+        }
+    ],
+    "pending-substrate": []
+}
