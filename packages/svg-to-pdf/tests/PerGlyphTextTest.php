@@ -178,4 +178,58 @@ final class PerGlyphTextTest extends TestCase
         // No BT/Tj/ET sequence at all.
         self::assertStringNotContainsString('BT', $ops);
     }
+
+    public function testDxOffsetsAccumulateOnStickyX(): void
+    {
+        // dx accumulates onto the running sticky x — matching common
+        // SVG renderer behaviour (each unspecified glyph's position
+        // inherits the previous glyph's *adjusted* position). x=10
+        // stays sticky, dx="0 5 10" shifts each subsequent glyph by
+        // an extra 5 / 10 user units relative to the previous one.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<text x="10" y="20" dx="0 5 10">ABC</text></svg>',
+        );
+        // A: 10 + 0 = 10. B: 10 + 5 = 15. C: 15 + 10 = 25.
+        self::assertStringContainsString('1 0 0 1 10 20 Tm', $ops);
+        self::assertStringContainsString('1 0 0 1 15 20 Tm', $ops);
+        self::assertStringContainsString('1 0 0 1 25 20 Tm', $ops);
+    }
+
+    public function testDyOffsetsAccumulateOnStickyY(): void
+    {
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<text x="10" y="20" dy="0 -5 -10">ABC</text></svg>',
+        );
+        // A: 20 + 0 = 20. B: 20 + -5 = 15. C: 15 + -10 = 5.
+        self::assertStringContainsString('1 0 0 1 10 20 Tm', $ops);
+        self::assertStringContainsString('1 0 0 1 10 15 Tm', $ops);
+        self::assertStringContainsString('1 0 0 1 10 5 Tm', $ops);
+    }
+
+    public function testDxDyForcesPerGlyphPath(): void
+    {
+        // Bare `<text x y dx>` without multi-valued x should still go
+        // through the per-glyph path — the dx list itself signals
+        // per-glyph positioning.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<text x="10" y="20" dx="0 5">AB</text></svg>',
+        );
+        self::assertStringContainsString(' Tm', $ops);
+        // Two per-glyph showText, not the cheap single-Tj path.
+        self::assertGreaterThanOrEqual(2, substr_count($ops, ' Tj'));
+    }
+
+    public function testDxDyCompositeWithXY(): void
+    {
+        // x="10 30" + dx="0 5" — first glyph at 10, second at 30+5=35.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<text x="10 30" y="20 40" dx="0 5" dy="0 -3">AB</text></svg>',
+        );
+        self::assertStringContainsString('1 0 0 1 10 20 Tm', $ops);
+        self::assertStringContainsString('1 0 0 1 35 37 Tm', $ops);
+    }
 }

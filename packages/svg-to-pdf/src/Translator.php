@@ -855,9 +855,13 @@ final class Translator
         // the text matrix.
         $xList = $text->x();
         $yList = $text->y();
+        $dxList = $text->dx();
+        $dyList = $text->dy();
         $rotateList = $text->rotate();
         $perGlyph = count($xList) > 1
             || count($yList) > 1
+            || $dxList !== []
+            || $dyList !== []
             || $rotateList !== [];
 
         $stream->beginText()->setFont($font, $size);
@@ -876,7 +880,7 @@ final class Translator
             }
             $stream->showText($content);
         } else {
-            $this->paintTextPerGlyph($content, $xList, $yList, $rotateList, $stream);
+            $this->paintTextPerGlyph($content, $xList, $yList, $dxList, $dyList, $rotateList, $stream);
         }
         $stream->endText();
     }
@@ -895,14 +899,27 @@ final class Translator
      * we use the last explicit value instead. The result is correct
      * for the common case where `x` and `y` have matching lengths.
      *
+     * `dx[i]` / `dy[i]` are additive deltas applied to the resolved
+     * `(stickyX, stickyY)` — SVG 2 §11.6 specifies them as relative
+     * offsets from the glyph's natural position. Without font metrics
+     * "natural position" collapses to "sticky position", so we treat
+     * dx/dy as deltas from sticky. The deltas accumulate into sticky
+     * so subsequent glyphs without their own dx/dy inherit the shift,
+     * matching the common renderer behaviour for stacked offsets like
+     * super/subscript adjustments.
+     *
      * @param list<float> $xList
      * @param list<float> $yList
+     * @param list<float> $dxList
+     * @param list<float> $dyList
      * @param list<float> $rotateList
      */
     private function paintTextPerGlyph(
         string $content,
         array $xList,
         array $yList,
+        array $dxList,
+        array $dyList,
         array $rotateList,
         ContentStream $stream,
     ): void {
@@ -910,7 +927,13 @@ final class Translator
         if ($chars === []) {
             return;
         }
-        $explicitCount = max(count($xList), count($yList), count($rotateList));
+        $explicitCount = max(
+            count($xList),
+            count($yList),
+            count($dxList),
+            count($dyList),
+            count($rotateList),
+        );
         $stickyX = $xList[0] ?? 0.0;
         $stickyY = $yList[0] ?? 0.0;
         $stickyRotate = $rotateList[0] ?? 0.0;
@@ -923,6 +946,12 @@ final class Translator
             $stickyX = $xList[$i] ?? $stickyX;
             $stickyY = $yList[$i] ?? $stickyY;
             $stickyRotate = $rotateList[$i] ?? $stickyRotate;
+            if (isset($dxList[$i])) {
+                $stickyX += $dxList[$i];
+            }
+            if (isset($dyList[$i])) {
+                $stickyY += $dyList[$i];
+            }
 
             $this->emitTextMatrix($stickyX, $stickyY, $stickyRotate, $stream);
             $stream->showText($char);
