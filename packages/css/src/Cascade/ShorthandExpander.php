@@ -73,6 +73,14 @@ final class ShorthandExpander
             'column-rule' => $this->expandColumnRule($value),
             'gap' => $this->expandGap($value),
             'inset' => $this->expandInset($value),
+            // CSS Logical Properties 1 §5 / §6 — axis pair
+            // shorthands.
+            'inset-block' => $this->expandLogicalPair('inset-block', $value, ['start', 'end']),
+            'inset-inline' => $this->expandLogicalPair('inset-inline', $value, ['start', 'end']),
+            'margin-block' => $this->expandLogicalPair('margin-block', $value, ['start', 'end']),
+            'margin-inline' => $this->expandLogicalPair('margin-inline', $value, ['start', 'end']),
+            'padding-block' => $this->expandLogicalPair('padding-block', $value, ['start', 'end']),
+            'padding-inline' => $this->expandLogicalPair('padding-inline', $value, ['start', 'end']),
             'overflow' => $this->expandOverflow($value),
             'flex' => $this->expandFlex($value),
             'flex-flow' => $this->expandFlexFlow($value),
@@ -81,6 +89,29 @@ final class ShorthandExpander
             'grid-area' => $this->expandGridArea($value),
             default => [$property => $value],
         };
+    }
+
+    /**
+     * Expand a `<prefix>: <start> [<end>]` logical-pair shorthand
+     * into `<prefix>-start` / `<prefix>-end`. One value applies
+     * to both sides; two values map first → start, second → end
+     * per CSS Logical Properties 1 §5.
+     *
+     * @param list<string> $suffixes
+     * @return array<string, Value>
+     */
+    private function expandLogicalPair(string $prefix, Value $value, array $suffixes): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $start = $components[0];
+        $end = $components[1] ?? $start;
+        return [
+            $prefix . '-' . $suffixes[0] => $start,
+            $prefix . '-' . $suffixes[1] => $end,
+        ];
     }
 
     /**
