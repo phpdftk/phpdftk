@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Phpdftk\SvgToPdf;
 
+use Phpdftk\Pdf\Writer\Alignment;
 use Phpdftk\Pdf\Writer\Page;
+use Phpdftk\Pdf\Writer\Pdf;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\Svg\SvgDocument;
 
@@ -118,6 +120,60 @@ final class SvgRenderer
             compensateTextFlip: true,
         );
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Drop an SVG into a top-level `Pdf` flow document, advancing the
+     * cursor below it just like `Pdf::addImage` does. The Pdf class
+     * itself doesn't depend on svg-to-pdf — it provides a generic
+     * `Pdf::addBlock` hook this method wraps.
+     *
+     * Dimension resolution mirrors `Pdf::addImage`:
+     *
+     *   - Both `$width` and `$height` set → stretch to that rect (no
+     *     aspect preservation, mirrors `addImage`).
+     *   - Only one set → the other scales to the SVG's intrinsic
+     *     aspect ratio (from the viewBox / width / height attributes).
+     *   - Neither set → use the SVG's natural dimensions in PDF
+     *     points (1 SVG unit = 1 point).
+     *
+     * Width caps at the current column width so a wide SVG doesn't
+     * paint past the column edge — matches the row-of-text behaviour
+     * the Pdf high-level API uses elsewhere.
+     */
+    public static function addToPdf(
+        Pdf $pdf,
+        SvgDocument $svg,
+        ?float $width = null,
+        ?float $height = null,
+        Alignment $align = Alignment::Left,
+    ): Pdf {
+        [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
+        $aspect = $srcHeight > 0.0 ? $srcWidth / $srcHeight : 1.0;
+
+        if ($width === null && $height === null) {
+            $w = $srcWidth;
+            $h = $srcHeight;
+        } elseif ($width !== null && $height === null) {
+            $w = $width;
+            $h = $aspect > 0.0 ? $width / $aspect : $width;
+        } elseif ($width === null && $height !== null) {
+            $h = $height;
+            $w = $height * $aspect;
+        } else {
+            $w = (float) $width;
+            $h = (float) $height;
+        }
+        unset($srcMinX, $srcMinY);
+
+        return $pdf->addBlock(
+            $w,
+            $h,
+            $align,
+            static function (Page $page, float $x, float $y, float $bw, float $bh) use ($svg, $pdf): void {
+                (new self($page, $pdf->writer()))->draw($svg, $x, $y, $bw, $bh);
+            },
+        );
     }
 
     /**

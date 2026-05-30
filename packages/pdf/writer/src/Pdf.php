@@ -1090,6 +1090,51 @@ class Pdf
     }
 
     /**
+     * Drop a fixed-size block of caller-painted content at the current
+     * cursor. The `$painter` closure runs at the position
+     * `addImage` would have placed a same-sized image — same alignment
+     * options, same overflow handling — but the caller is responsible
+     * for putting bytes on the page. This is the integration hook
+     * adapters (svg-to-pdf, future foreign-content renderers) use to
+     * plug their own painter into the cursor / pagination flow without
+     * Pdf itself growing a dependency on them.
+     *
+     * The closure receives `(Page $page, float $x, float $y, float $width, float $height)`.
+     * `(x, y)` is the bottom-left of the destination rectangle in PDF
+     * user space, matching the convention `Page::drawImage` and the
+     * other low-level drawing methods already use.
+     *
+     * @param \Closure(Page, float, float, float, float): void $painter
+     */
+    public function addBlock(
+        float $width,
+        float $height,
+        Alignment $align,
+        \Closure $painter,
+    ): self {
+        $this->ensurePage();
+        $this->advanceOnOverflow($height);
+
+        $columnWidth = $this->contentWidth();
+        $x = $this->columnLeftX() + match ($align) {
+            Alignment::Left   => 0.0,
+            Alignment::Center => ($columnWidth - $width) / 2.0,
+            Alignment::Right  => $columnWidth - $width,
+        };
+        $y = $this->cursorY - $height;
+
+        if ($this->currentPage === null) {
+            // Defensive: ensurePage() should have set this; this is
+            // just a static-analysis-friendly guard.
+            return $this;
+        }
+        $painter($this->currentPage, $x, $y, $width, $height);
+
+        $this->cursorY -= $height + $this->theme->paragraphSpacing;
+        return $this;
+    }
+
+    /**
      * Add an image. If neither width nor height is given, the image is
      * placed at its natural size in points (1 image pixel = 1 point).
      * If one dimension is given the other is scaled proportionally. If
