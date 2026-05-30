@@ -11,7 +11,12 @@ enum ColorSpace
     case A98RGB;
     case ProPhotoRGB;
     case Rec2020;
-    case OKLCH;
     case Lab;
     case Lch;
+    case OKLab;
+    case OKLCH;
+    case XYZ;
+    case XYZD50;
+    case XYZD65;
+    case sRGBLinear;
 }

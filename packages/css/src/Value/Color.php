@@ -52,13 +52,18 @@ final readonly class Color extends Value
     {
         return match ($this->space) {
             ColorSpace::sRGB => 'srgb',
+            ColorSpace::sRGBLinear => 'srgb-linear',
             ColorSpace::DisplayP3 => 'display-p3',
             ColorSpace::A98RGB => 'a98-rgb',
             ColorSpace::ProPhotoRGB => 'prophoto-rgb',
             ColorSpace::Rec2020 => 'rec2020',
-            ColorSpace::OKLCH => 'oklch',
             ColorSpace::Lab => 'lab',
             ColorSpace::Lch => 'lch',
+            ColorSpace::OKLab => 'oklab',
+            ColorSpace::OKLCH => 'oklch',
+            ColorSpace::XYZ => 'xyz',
+            ColorSpace::XYZD50 => 'xyz-d50',
+            ColorSpace::XYZD65 => 'xyz-d65',
         };
     }
 

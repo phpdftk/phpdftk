@@ -223,6 +223,9 @@ final class ValueParser
         if ($name === 'color') {
             return $this->parseColorFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
         }
+        if ($name === 'lab' || $name === 'lch' || $name === 'oklab' || $name === 'oklch') {
+            return $this->parseLabFunction($name, $tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
+        }
         if (CalcFunction::tryFrom($name) !== null) {
             $calc = $this->parseCalcFunction(CalcFunction::from($name), $tokens);
             if ($calc !== null) {
@@ -779,6 +782,226 @@ final class ValueParser
             return max(0.0, min(1.0, $t->value / 100.0));
         }
         return null;
+    }
+
+    // ============================================================
+    // lab() / lch() / oklab() / oklch()  — CSS Color 4 §10
+    // ============================================================
+    /**
+     * Parse a `lab()`, `lch()`, `oklab()`, or `oklch()` functional
+     * notation. CSS Color 4 §10 syntax:
+     *
+     *   lab(L a b [/ alpha])
+     *   lch(L C H [/ alpha])
+     *   oklab(L a b [/ alpha])
+     *   oklch(L C H [/ alpha])
+     *
+     * Component value ranges per CSS Color 4:
+     *
+     *   lab    L: 0-100 (or 0-100%); a, b: ±125 (±100% = ±125)
+     *   lch    L: 0-100 (or 0-100%); C: 0-150 (0-100% = 0-150); H: angle
+     *   oklab  L: 0-1   (or 0-100%); a, b: ±0.4 (±100% = ±0.4)
+     *   oklch  L: 0-1   (or 0-100%); C: 0-0.4 (0-100% = 0-0.4); H: angle
+     *
+     * Resolved values are stored in the Color's r/g/b slots without
+     * normalisation — the color space tag identifies which axes
+     * they represent. Downstream consumers (the 4E color engine)
+     * do the gamut-conversion math.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseLabFunction(string $name, array $tokens): ?Color
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $groups = self::splitRgbSpaceForm($tokens);
+        if (count($groups) < 3 || count($groups) > 4) {
+            return null;
+        }
+
+        $isLightnessPct100 = ($name === 'lab' || $name === 'lch');
+        $L = $this->extractLabLightness($groups[0], $isLightnessPct100);
+        if ($L === null) {
+            return null;
+        }
+
+        $space = match ($name) {
+            'lab' => ColorSpace::Lab,
+            'lch' => ColorSpace::Lch,
+            'oklab' => ColorSpace::OKLab,
+            'oklch' => ColorSpace::OKLCH,
+            default => null,
+        };
+        if ($space === null) {
+            return null;
+        }
+
+        $isPolar = ($name === 'lch' || $name === 'oklch');
+        if ($isPolar) {
+            // C (chroma) — 0-150 for lch, 0-0.4 for oklch.
+            $chromaMax = $name === 'lch' ? 150.0 : 0.4;
+            $c = $this->extractChromaComponent($groups[1], $chromaMax);
+            if ($c === null) {
+                return null;
+            }
+            $h = $this->extractLabHueComponent($groups[2]);
+            if ($h === null) {
+                return null;
+            }
+            $a = 1.0;
+            if (count($groups) === 4) {
+                $aValue = $this->extractAlphaComponent($groups[3]);
+                if ($aValue === null) {
+                    return null;
+                }
+                $a = $aValue;
+            }
+            return new Color($L, $c, $h, $a, $space);
+        }
+
+        // lab / oklab — a and b in Cartesian coordinates.
+        $axisMax = $name === 'lab' ? 125.0 : 0.4;
+        $aAxis = $this->extractLabAxisComponent($groups[1], $axisMax);
+        $bAxis = $this->extractLabAxisComponent($groups[2], $axisMax);
+        if ($aAxis === null || $bAxis === null) {
+            return null;
+        }
+        $alpha = 1.0;
+        if (count($groups) === 4) {
+            $aValue = $this->extractAlphaComponent($groups[3]);
+            if ($aValue === null) {
+                return null;
+            }
+            $alpha = $aValue;
+        }
+        return new Color($L, $aAxis, $bAxis, $alpha, $space);
+    }
+
+    /**
+     * Extract a `lab()` / `lch()` / `oklab()` / `oklch()` lightness.
+     * `$pctTo100` selects the percentage mapping:
+     *   true  → 0-100% maps to 0-100 (lab / lch)
+     *   false → 0-100% maps to 0-1   (oklab / oklch)
+     *
+     * `none` is parsed as a missing component per CSS Color 4 §10.5;
+     * we resolve it to 0 for now (a Missing-typed component lands
+     * once the 4E color engine ships).
+     *
+     * @param list<Token> $group
+     */
+    private function extractLabLightness(array $group, bool $pctTo100): ?float
+    {
+        $group = self::trimWhitespace($group);
+        if (count($group) !== 1) {
+            return null;
+        }
+        $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            return 0.0;
+        }
+        if ($t instanceof NumberToken) {
+            return (float) $t->value;
+        }
+        if ($t instanceof PercentageToken) {
+            return $pctTo100 ? (float) $t->value : ((float) $t->value / 100.0);
+        }
+        return null;
+    }
+
+    /**
+     * Extract a `lab()` / `oklab()` axis component (a or b).
+     * Percentages map ±100% → ±$axisMax. Numbers pass through.
+     * `none` resolves to 0.
+     *
+     * @param list<Token> $group
+     */
+    private function extractLabAxisComponent(array $group, float $axisMax): ?float
+    {
+        $group = self::trimWhitespace($group);
+        if (count($group) !== 1) {
+            return null;
+        }
+        $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            return 0.0;
+        }
+        if ($t instanceof NumberToken) {
+            return (float) $t->value;
+        }
+        if ($t instanceof PercentageToken) {
+            return ((float) $t->value / 100.0) * $axisMax;
+        }
+        return null;
+    }
+
+    /**
+     * Extract an `lch()` / `oklch()` chroma component.
+     * Percentages map 0-100% → 0-$chromaMax. Numbers pass through.
+     * `none` resolves to 0.
+     *
+     * @param list<Token> $group
+     */
+    private function extractChromaComponent(array $group, float $chromaMax): ?float
+    {
+        $group = self::trimWhitespace($group);
+        if (count($group) !== 1) {
+            return null;
+        }
+        $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            return 0.0;
+        }
+        if ($t instanceof NumberToken) {
+            return max(0.0, (float) $t->value);
+        }
+        if ($t instanceof PercentageToken) {
+            return max(0.0, ((float) $t->value / 100.0) * $chromaMax);
+        }
+        return null;
+    }
+
+    /**
+     * Extract an `lch()` / `oklch()` hue component in degrees
+     * (CSS Color 4 stores hues as degrees, not the 0-1 normalised
+     * form HSL uses). Accepts number (degrees implied), `deg`,
+     * `rad`, `grad`, `turn` dimension units, or `none`.
+     *
+     * @param list<Token> $group
+     */
+    private function extractLabHueComponent(array $group): ?float
+    {
+        $group = self::trimWhitespace($group);
+        if (count($group) !== 1) {
+            return null;
+        }
+        $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            return 0.0;
+        }
+        if ($t instanceof NumberToken) {
+            return self::normaliseHueDegrees((float) $t->value);
+        }
+        if ($t instanceof DimensionToken) {
+            $degrees = match (strtolower($t->unit)) {
+                'deg' => (float) $t->value,
+                'rad' => (float) $t->value * 180 / M_PI,
+                'grad' => (float) $t->value * 0.9,
+                'turn' => (float) $t->value * 360,
+                default => null,
+            };
+            if ($degrees === null) {
+                return null;
+            }
+            return self::normaliseHueDegrees($degrees);
+        }
+        return null;
+    }
+
+    /**
+     * Wrap a hue angle into the canonical [0, 360) range.
+     */
+    private static function normaliseHueDegrees(float $degrees): float
+    {
+        return fmod(fmod($degrees, 360.0) + 360.0, 360.0);
     }
 
     // ============================================================
