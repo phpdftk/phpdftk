@@ -33,6 +33,8 @@ use Phpdftk\Css\Value\CalcFunction;
 use Phpdftk\Css\Value\CalcLeaf;
 use Phpdftk\Css\Value\CalcOp;
 use Phpdftk\Css\Value\Color;
+use Phpdftk\Css\Value\ColorMix;
+use Phpdftk\Css\Value\HueInterpolation;
 use Phpdftk\Css\Value\ColorSpace;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\CustomProperty;
@@ -225,6 +227,9 @@ final class ValueParser
         }
         if ($name === 'lab' || $name === 'lch' || $name === 'oklab' || $name === 'oklch') {
             return $this->parseLabFunction($name, $tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
+        }
+        if ($name === 'color-mix') {
+            return $this->parseColorMixFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
         }
         if (CalcFunction::tryFrom($name) !== null) {
             $calc = $this->parseCalcFunction(CalcFunction::from($name), $tokens);
@@ -1023,6 +1028,255 @@ final class ValueParser
     private static function normaliseHueDegrees(float $degrees): float
     {
         return fmod(fmod($degrees, 360.0) + 360.0, 360.0);
+    }
+
+    // ============================================================
+    // color-mix() — CSS Color 5 §3
+    // ============================================================
+    /**
+     * Parse `color-mix(in <space> [<hue-interpolation> hue], <color>
+     * [<percentage>], <color> [<percentage>])` per CSS Color 5 §3.
+     *
+     * Percentage normalisation per §3.1:
+     *
+     *   - Both omitted          → 50% / 50%
+     *   - One given (p)         → other = 100% − p
+     *   - Both given, sum > 0%  → multiply each by 100/(p1+p2) and
+     *                             remember the original sum as
+     *                             `alphaMultiplier` so the resulting
+     *                             color's alpha can be scaled.
+     *   - Both 0%               → invalid; return null.
+     *
+     * Per-space hue interpolation method is captured for polar
+     * spaces (HSL, HWB, LCH, OKLCH) and ignored for the rest.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseColorMixFunction(array $tokens): ?ColorMix
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $groups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($groups) !== 3) {
+            return null;
+        }
+
+        // Group 0: "in <space> [<hue-interp> hue]"
+        $methodSpec = $this->parseColorMixMethod(self::trimWhitespace($groups[0]));
+        if ($methodSpec === null) {
+            return null;
+        }
+        [$space, $hueInterpolation] = $methodSpec;
+
+        // Groups 1 + 2: each is `<color> [<percentage>]`.
+        $left = $this->parseColorMixColorAndPercent(self::trimWhitespace($groups[1]));
+        $right = $this->parseColorMixColorAndPercent(self::trimWhitespace($groups[2]));
+        if ($left === null || $right === null) {
+            return null;
+        }
+        [$color1, $p1] = $left;
+        [$color2, $p2] = $right;
+
+        // Normalise percentages.
+        if ($p1 === null && $p2 === null) {
+            $p1 = 50.0;
+            $p2 = 50.0;
+            $alphaMultiplier = 1.0;
+        } elseif ($p1 === null) {
+            assert($p2 !== null);
+            $p1 = 100.0 - $p2;
+            $alphaMultiplier = 1.0;
+        } elseif ($p2 === null) {
+            $p2 = 100.0 - $p1;
+            $alphaMultiplier = 1.0;
+        } else {
+            $sum = $p1 + $p2;
+            if ($sum <= 0.0) {
+                return null;
+            }
+            // Per §3.1, when both percentages are present and sum
+            // ≠ 100, we scale them and remember `(p1+p2)/100` as
+            // the alpha multiplier so the result's alpha can be
+            // multiplied by it.
+            $alphaMultiplier = min(1.0, $sum / 100.0);
+            $p1 = ($p1 / $sum) * 100.0;
+            $p2 = ($p2 / $sum) * 100.0;
+        }
+
+        return new ColorMix(
+            space: $space,
+            color1: $color1,
+            percentage1: $p1,
+            color2: $color2,
+            percentage2: $p2,
+            alphaMultiplier: $alphaMultiplier,
+            hueInterpolation: $hueInterpolation,
+        );
+    }
+
+    /**
+     * Parse the `in <space> [<hue-interp> hue]` head of a
+     * color-mix() function. Returns `[ColorSpace, ?HueInterpolation]`
+     * or null if malformed.
+     *
+     * @param list<Token> $tokens
+     * @return array{0: ColorSpace, 1: ?HueInterpolation}|null
+     */
+    private function parseColorMixMethod(array $tokens): ?array
+    {
+        if ($tokens === []) {
+            return null;
+        }
+        $first = array_shift($tokens);
+        if (!($first instanceof IdentToken) || strtolower($first->value) !== 'in') {
+            return null;
+        }
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $spaceTok = array_shift($tokens);
+        if (!($spaceTok instanceof IdentToken)) {
+            return null;
+        }
+        $space = match (strtolower($spaceTok->value)) {
+            'srgb' => ColorSpace::sRGB,
+            'srgb-linear' => ColorSpace::sRGBLinear,
+            'display-p3' => ColorSpace::DisplayP3,
+            'a98-rgb' => ColorSpace::A98RGB,
+            'prophoto-rgb' => ColorSpace::ProPhotoRGB,
+            'rec2020' => ColorSpace::Rec2020,
+            'lab' => ColorSpace::Lab,
+            'lch' => ColorSpace::Lch,
+            'oklab' => ColorSpace::OKLab,
+            'oklch' => ColorSpace::OKLCH,
+            'xyz', 'xyz-d65' => ColorSpace::XYZD65,
+            'xyz-d50' => ColorSpace::XYZD50,
+            // HSL and HWB are polar spaces for mixing only —
+            // they're handled by the engine via a sRGB round-trip;
+            // we accept them at parse time but tag as sRGB so the
+            // engine can lift back into the polar space for hue
+            // interpolation.
+            'hsl', 'hwb' => ColorSpace::sRGB,
+            default => null,
+        };
+        if ($space === null) {
+            return null;
+        }
+
+        // Optional `<hue-interp> hue` clause — only meaningful for
+        // polar spaces.
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return [$space, null];
+        }
+        $hueInterp = array_shift($tokens);
+        if (!($hueInterp instanceof IdentToken)) {
+            return null;
+        }
+        $method = match (strtolower($hueInterp->value)) {
+            'shorter' => HueInterpolation::Shorter,
+            'longer' => HueInterpolation::Longer,
+            'increasing' => HueInterpolation::Increasing,
+            'decreasing' => HueInterpolation::Decreasing,
+            default => null,
+        };
+        if ($method === null) {
+            return null;
+        }
+        $tokens = self::trimWhitespace($tokens);
+        // Expect the literal `hue` keyword.
+        if (count($tokens) !== 1 || !($tokens[0] instanceof IdentToken) || strtolower($tokens[0]->value) !== 'hue') {
+            return null;
+        }
+        return [$space, $method];
+    }
+
+    /**
+     * Parse `<color> [<percentage>]` — the percentage may come
+     * before or after the color per CSS Color 5 §3.1.
+     *
+     * @param list<Token> $tokens
+     * @return array{0: Color, 1: ?float}|null
+     */
+    private function parseColorMixColorAndPercent(array $tokens): ?array
+    {
+        // Find a percentage token at start or end.
+        $percent = null;
+        if ($tokens !== []) {
+            $last = $tokens[count($tokens) - 1];
+            if ($last instanceof PercentageToken) {
+                $percent = (float) $last->value;
+                array_pop($tokens);
+            }
+        }
+        $tokens = self::trimWhitespace($tokens);
+        if ($percent === null && $tokens !== [] && $tokens[0] instanceof PercentageToken) {
+            $percent = (float) $tokens[0]->value;
+            array_shift($tokens);
+            $tokens = self::trimWhitespace($tokens);
+        }
+        $tokens = self::trimWhitespace($tokens);
+
+        // Whatever's left should be a parseable color.
+        $color = $this->parseColorFromTokens($tokens);
+        if ($color === null) {
+            return null;
+        }
+        return [$color, $percent];
+    }
+
+    /**
+     * Parse a token sequence into a Color, dispatching to the
+     * function / hash / named-color parsers as appropriate. Returns
+     * null if the tokens don't resolve to a color.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseColorFromTokens(array $tokens): ?Color
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        // Re-serialise the inner tokens by stripping outer parens
+        // and re-parsing through the public entry point so we get
+        // hash colors, named colors, and any function-color through
+        // one path.
+        $css = self::serializeTokens($tokens);
+        $value = $this->parseFromString($css);
+        return $value instanceof Color ? $value : null;
+    }
+
+    /**
+     * Roughly reconstruct CSS text from a token list. Adequate for
+     * round-tripping color tokens through parseFromString. The CSS
+     * Syntax 3 serialisation algorithm has edge cases this doesn't
+     * cover (escape sequences, etc.) but for the well-formed color
+     * tokens color-mix() argues over, it's enough.
+     *
+     * @param list<Token> $tokens
+     */
+    private static function serializeTokens(array $tokens): string
+    {
+        $out = '';
+        foreach ($tokens as $t) {
+            $out .= match (true) {
+                $t instanceof IdentToken => $t->value,
+                $t instanceof NumberToken => (string) $t->value,
+                $t instanceof PercentageToken => $t->value . '%',
+                $t instanceof DimensionToken => $t->value . $t->unit,
+                $t instanceof HashToken => '#' . $t->value,
+                $t instanceof StringToken => '"' . str_replace('"', '\\"', $t->value) . '"',
+                $t instanceof FunctionToken => $t->name . '(',
+                $t instanceof LeftParenToken => '(',
+                $t instanceof RightParenToken => ')',
+                $t instanceof CommaToken => ',',
+                $t instanceof WhitespaceToken => ' ',
+                $t instanceof DelimToken => $t->value,
+                default => '',
+            };
+        }
+        return $out;
     }
 
     // ============================================================
