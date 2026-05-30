@@ -277,4 +277,26 @@ final class GradientTest extends TestCase
         );
         self::assertStringContainsString('/Coords [ 60 40 0 60 40 30 ]', $result['bytes']);
     }
+
+    public function testObjectBoundingBoxGradientAppliesToPathFill(): void
+    {
+        // Confirms 3R+9 path-bbox feeds back into gradient resolution:
+        // `<path>` now exposes a bbox so `objectBoundingBox` gradients
+        // reify against it (previously path-filled elements fell
+        // through to "no paint" because BoundingBox returned null).
+        // Source path is the dome 0,0 → C 0 200 100 200 100 0 — its
+        // bbox is `(0, 0, 100, 150)` (3R+9 PathBoundingBoxTest covers
+        // that). The gradient's `[0, 0]–[1, 0]` axis reifies to user
+        // coords `(0, 0)–(100, 0)`.
+        $result = $this->paintUncompressed(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><linearGradient id="g">'
+            . '<stop offset="0" stop-color="red"/>'
+            . '<stop offset="1" stop-color="blue"/>'
+            . '</linearGradient></defs>'
+            . '<path d="M 0 0 C 0 200 100 200 100 0" fill="url(#g)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString('/Coords [ 0 0 100 0 ]', $result['bytes']);
+    }
 }
