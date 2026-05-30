@@ -1,0 +1,43 @@
+{
+    "name": "phpdftk/paged-media",
+    "description": "CSS Paged Media 3 + Generated Content for Paged Media 3 + Fragmentation 3/4 engine — page boxes, named pages, page selectors, @page margin boxes (16 positions), marginalia, running elements, fragmentation across pages and columns. Extracted from phpdftk/html-to-pdf so phpdftk/svg-to-pdf (foreignObject) and direct callers can reuse the same paged-media logic.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "paged-media",
+        "css-page",
+        "fragmentation",
+        "marginalia",
+        "running-elements"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "phpdftk/geometry": "@dev",
+        "phpdftk/css": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\PagedMedia\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\PagedMedia\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

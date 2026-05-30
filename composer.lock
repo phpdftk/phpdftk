@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1fa2ae58403dd5df848c1a6d8887ef56",
+    "content-hash": "18b528ca521a14d085ab6397ca663398",
     "packages": [],
     "packages-dev": [
         {
@@ -2338,6 +2338,60 @@
                 "jpeg",
                 "metadata",
                 "png"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/paged-media",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/paged-media",
+                "reference": "e15f686ef6e4e4420c6e4b5e1a40c10333c6018d"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/css": "@dev",
+                "phpdftk/geometry": "@dev"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\PagedMedia\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\PagedMedia\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "CSS Paged Media 3 + Generated Content for Paged Media 3 + Fragmentation 3/4 engine — page boxes, named pages, page selectors, @page margin boxes (16 positions), marginalia, running elements, fragmentation across pages and columns. Extracted from phpdftk/html-to-pdf so phpdftk/svg-to-pdf (foreignObject) and direct callers can reuse the same paged-media logic.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "css-page",
+                "fragmentation",
+                "marginalia",
+                "paged-media",
+                "running-elements"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7534,6 +7588,7 @@
         "phpdftk/html": 20,
         "phpdftk/html-to-pdf": 20,
         "phpdftk/image-metadata": 20,
+        "phpdftk/paged-media": 20,
         "phpdftk/pdf": 20,
         "phpdftk/pdf-conformance": 20,
         "phpdftk/pdf-core": 20,

@@ -29,6 +29,7 @@
         {"type": "path", "url": "packages/svg-to-pdf"},
         {"type": "path", "url": "packages/resource-loader"},
         {"type": "path", "url": "packages/raster"},
+        {"type": "path", "url": "packages/paged-media"},
         {"type": "path", "url": "packages/wpt-harness"}
     ],
     "require": {
@@ -61,6 +62,7 @@
         "phpdftk/pdf-reader": "@dev",
         "phpdftk/pdf-toolkit": "@dev",
         "phpdftk/pdf-writer": "@dev",
+        "phpdftk/paged-media": "@dev",
         "phpdftk/raster": "@dev",
         "phpdftk/resource-loader": "@dev",
         "phpdftk/svg": "@dev",
@@ -83,6 +85,7 @@
             "Phpdftk\\Html\\Tests\\": "packages/html/tests/",
             "Phpdftk\\HtmlToPdf\\Tests\\": "packages/html-to-pdf/tests/",
             "Phpdftk\\Pdf\\Conformance\\": "packages/pdf/conformance/src/",
+            "Phpdftk\\PagedMedia\\Tests\\": "packages/paged-media/tests/",
             "Phpdftk\\Pdf\\Conformance\\Tests\\": "packages/pdf/conformance/tests/",
             "Phpdftk\\Raster\\Tests\\": "packages/raster/tests/",
             "Phpdftk\\ResourceLoader\\Tests\\": "packages/resource-loader/tests/",

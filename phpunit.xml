@@ -76,6 +76,9 @@
         <testsuite name="raster">
             <directory>packages/raster/tests</directory>
         </testsuite>
+        <testsuite name="paged-media">
+            <directory>packages/paged-media/tests</directory>
+        </testsuite>
         <testsuite name="wpt-harness">
             <directory>packages/wpt-harness/tests</directory>
         </testsuite>
@@ -112,6 +115,7 @@
             <directory>packages/svg-to-pdf/src</directory>
             <directory>packages/resource-loader/src</directory>
             <directory>packages/raster/src</directory>
+            <directory>packages/paged-media/src</directory>
             <directory>packages/wpt-harness/src</directory>
         </include>
     </source>
