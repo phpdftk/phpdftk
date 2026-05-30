@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1ba05ba632c11389245778c92e0e1cc8",
+    "content-hash": "9ef67c13dcbca569f83730b14c31d022",
     "packages": [],
     "packages-dev": [
         {
@@ -2672,6 +2672,59 @@
                 "generator",
                 "pdf",
                 "writer"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/resource-loader",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/resource-loader",
+                "reference": "684cb14c35aa0099d6e9490e72e1587a4b632803"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/filesystem": "@dev"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\ResourceLoader\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\ResourceLoader\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "HTTP resource loader for phpdftk's HTML/CSS/SVG pipeline — caching, retries, redirect handling, SSRF guard, content-length cap, MIME sniffing. Used by html-to-pdf and svg-to-pdf to resolve `<img>`, `<image>`, `@font-face url()`, and `@import` hrefs through a single audited path.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "cache",
+                "fetch",
+                "http",
+                "resource-loader",
+                "ssrf"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7433,6 +7486,7 @@
         "phpdftk/pdf-reader": 20,
         "phpdftk/pdf-toolkit": 20,
         "phpdftk/pdf-writer": 20,
+        "phpdftk/resource-loader": 20,
         "phpdftk/svg": 20,
         "phpdftk/svg-to-pdf": 20,
         "phpdftk/text": 20,

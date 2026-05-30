@@ -1,0 +1,42 @@
+{
+    "name": "phpdftk/resource-loader",
+    "description": "HTTP resource loader for phpdftk's HTML/CSS/SVG pipeline — caching, retries, redirect handling, SSRF guard, content-length cap, MIME sniffing. Used by html-to-pdf and svg-to-pdf to resolve `<img>`, `<image>`, `@font-face url()`, and `@import` hrefs through a single audited path.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "http",
+        "fetch",
+        "resource-loader",
+        "ssrf",
+        "cache"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "phpdftk/filesystem": "@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\ResourceLoader\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\ResourceLoader\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

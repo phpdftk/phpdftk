@@ -70,6 +70,9 @@
         <testsuite name="svg-to-pdf">
             <directory>packages/svg-to-pdf/tests</directory>
         </testsuite>
+        <testsuite name="resource-loader">
+            <directory>packages/resource-loader/tests</directory>
+        </testsuite>
         <testsuite name="wpt-harness">
             <directory>packages/wpt-harness/tests</directory>
         </testsuite>
@@ -104,6 +107,7 @@
             <directory>packages/svg/src</directory>
             <directory>packages/html-to-pdf/src</directory>
             <directory>packages/svg-to-pdf/src</directory>
+            <directory>packages/resource-loader/src</directory>
             <directory>packages/wpt-harness/src</directory>
         </include>
     </source>

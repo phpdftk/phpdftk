@@ -27,6 +27,7 @@
         {"type": "path", "url": "packages/svg"},
         {"type": "path", "url": "packages/html-to-pdf"},
         {"type": "path", "url": "packages/svg-to-pdf"},
+        {"type": "path", "url": "packages/resource-loader"},
         {"type": "path", "url": "packages/wpt-harness"}
     ],
     "require": {
@@ -59,6 +60,7 @@
         "phpdftk/pdf-reader": "@dev",
         "phpdftk/pdf-toolkit": "@dev",
         "phpdftk/pdf-writer": "@dev",
+        "phpdftk/resource-loader": "@dev",
         "phpdftk/svg": "@dev",
         "phpdftk/svg-to-pdf": "@dev",
         "phpdftk/text": "@dev",
@@ -80,6 +82,7 @@
             "Phpdftk\\HtmlToPdf\\Tests\\": "packages/html-to-pdf/tests/",
             "Phpdftk\\Pdf\\Conformance\\": "packages/pdf/conformance/src/",
             "Phpdftk\\Pdf\\Conformance\\Tests\\": "packages/pdf/conformance/tests/",
+            "Phpdftk\\ResourceLoader\\Tests\\": "packages/resource-loader/tests/",
             "Phpdftk\\Svg\\Tests\\": "packages/svg/tests/",
             "Phpdftk\\SvgToPdf\\Tests\\": "packages/svg-to-pdf/tests/",
             "Phpdftk\\Tests\\Support\\": "tests/Support/",
