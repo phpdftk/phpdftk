@@ -23,6 +23,8 @@ use Phpdftk\Css\Token\StringToken;
 use Phpdftk\Css\Token\Token;
 use Phpdftk\Css\Token\UrlToken;
 use Phpdftk\Css\Token\WhitespaceToken;
+use Phpdftk\Css\Value\AnchorFunction;
+use Phpdftk\Css\Value\AnchorSizeFunction;
 use Phpdftk\Css\Value\Angle;
 use Phpdftk\Css\Value\AngleUnit;
 use Phpdftk\Css\Value\Calc;
@@ -272,6 +274,18 @@ final class ValueParser
             $set = $this->parseImageSet($tokens);
             if ($set !== null) {
                 return $set;
+            }
+        }
+        if ($name === 'anchor') {
+            $a = $this->parseAnchorFunction($tokens);
+            if ($a !== null) {
+                return $a;
+            }
+        }
+        if ($name === 'anchor-size') {
+            $a = $this->parseAnchorSizeFunction($tokens);
+            if ($a !== null) {
+                return $a;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -2039,6 +2053,94 @@ final class ValueParser
             return null;
         }
         return [$fromAngle, $centerX, $centerY];
+    }
+
+    // ============================================================
+    // anchor() / anchor-size() — CSS Anchor Positioning 1 §6, §7
+    // ============================================================
+    /** @param list<Token> $tokens */
+    private function parseAnchorFunction(array $tokens): ?AnchorFunction
+    {
+        return $this->parseAnchorOrSize(
+            $tokens,
+            ['top', 'bottom', 'left', 'right', 'start', 'end',
+                'self-start', 'self-end', 'center', 'inside', 'outside'],
+            isSize: false,
+        );
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseAnchorSizeFunction(array $tokens): ?AnchorSizeFunction
+    {
+        return $this->parseAnchorOrSize(
+            $tokens,
+            ['width', 'height', 'block', 'inline', 'self-block', 'self-inline'],
+            isSize: true,
+        );
+    }
+
+    /**
+     * Shared parser for `anchor()` / `anchor-size()`. The two
+     * differ only in the keyword vocabulary their middle slot
+     * accepts.
+     *
+     * @param list<Token> $tokens
+     * @param list<string> $validSideKeywords
+     * @return AnchorFunction|AnchorSizeFunction|null
+     */
+    private function parseAnchorOrSize(array $tokens, array $validSideKeywords, bool $isSize): AnchorFunction|AnchorSizeFunction|null
+    {
+        $tokens = self::trimWhitespace($tokens);
+        // Split on top-level comma — yields [main, fallback?].
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($commaGroups) < 1 || count($commaGroups) > 2) {
+            return null;
+        }
+        $mainGroup = self::trimWhitespace($commaGroups[0]);
+        if ($mainGroup === []) {
+            return null;
+        }
+
+        $anchorName = null;
+        $first = $mainGroup[0];
+        // `--my-anchor` starts with `--`; the tokenizer emits this
+        // as an IdentToken whose value starts with `--`.
+        if ($first instanceof IdentToken && str_starts_with($first->value, '--')) {
+            $anchorName = $first->value;
+            $mainGroup = self::trimWhitespace(array_slice($mainGroup, 1));
+            if ($mainGroup === []) {
+                return null;
+            }
+        }
+
+        // The middle slot — keyword from the per-function list,
+        // or a percentage (anchor() only).
+        if (count($mainGroup) !== 1) {
+            return null;
+        }
+        $sideTok = $mainGroup[0];
+        $side = null;
+        if ($sideTok instanceof IdentToken
+            && in_array(strtolower($sideTok->value), $validSideKeywords, true)
+        ) {
+            $side = new Keyword(strtolower($sideTok->value));
+        } elseif (!$isSize && $sideTok instanceof PercentageToken) {
+            $side = new Percentage((float) $sideTok->value);
+        }
+        if ($side === null) {
+            return null;
+        }
+
+        // Optional fallback expression.
+        $fallback = null;
+        if (count($commaGroups) === 2) {
+            $fallbackCss = self::serializeTokens(self::trimWhitespace($commaGroups[1]));
+            $fallback = $this->parseFromString($fallbackCss);
+        }
+
+        return $isSize
+            ? new AnchorSizeFunction($anchorName, $side, $fallback)
+            : new AnchorFunction($anchorName, $side, $fallback);
     }
 
     // ============================================================
