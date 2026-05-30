@@ -738,18 +738,22 @@ final class ValueParser
         }
         $space = match (strtolower($spaceTokens[0]->value)) {
             'srgb' => ColorSpace::sRGB,
+            'srgb-linear' => ColorSpace::sRGBLinear,
             'display-p3' => ColorSpace::DisplayP3,
             'a98-rgb' => ColorSpace::A98RGB,
             'prophoto-rgb' => ColorSpace::ProPhotoRGB,
             'rec2020' => ColorSpace::Rec2020,
+            'xyz', 'xyz-d65' => ColorSpace::XYZD65,
+            'xyz-d50' => ColorSpace::XYZD50,
             default => null,
         };
         if ($space === null) {
             return null;
         }
+        $isXyzSpace = $space === ColorSpace::XYZD50 || $space === ColorSpace::XYZD65;
         $components = [];
         for ($i = 1; $i <= 3; $i++) {
-            $c = $this->extractColorComponent($groups[$i]);
+            $c = $this->extractColorComponent($groups[$i], $isXyzSpace);
             if ($c === null) {
                 return null;
             }
@@ -766,20 +770,37 @@ final class ValueParser
         return new Color($components[0], $components[1], $components[2], $a, $space);
     }
 
-    /** @param list<Token> $group */
-    private function extractColorComponent(array $group): ?float
+    /**
+     * Extract a `color()` component. For sRGB-ish spaces this is
+     * 0-1; CSS Color 4 §6 also allows out-of-gamut values, so we
+     * preserve numeric inputs as-is rather than clamping. For XYZ
+     * spaces, percentages map to the sRGB white-point's Y = 100%
+     * (which is XYZ 1) so the divide-by-100 is still right.
+     *
+     * `none` ident resolves to 0 — a Missing-typed component lands
+     * once the 4E color engine ships.
+     *
+     * @param list<Token> $group
+     */
+    private function extractColorComponent(array $group, bool $isXyzSpace = false): ?float
     {
+        unset($isXyzSpace);
         $group = self::trimWhitespace($group);
         if (count($group) !== 1) {
             return null;
         }
         $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            return 0.0;
+        }
         if ($t instanceof NumberToken) {
-            // color() takes 0-1 numbers for sRGB-ish spaces.
-            return max(0.0, min(1.0, $t->value));
+            // CSS Color 4 §6 allows out-of-gamut values; preserve
+            // the raw number and let the gamut-mapping algorithm
+            // (4E) decide what to do with it.
+            return (float) $t->value;
         }
         if ($t instanceof PercentageToken) {
-            return max(0.0, min(1.0, $t->value / 100.0));
+            return (float) $t->value / 100.0;
         }
         return null;
     }

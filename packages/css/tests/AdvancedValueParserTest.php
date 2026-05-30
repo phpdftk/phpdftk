@@ -142,6 +142,65 @@ final class AdvancedValueParserTest extends TestCase
         self::assertEqualsWithDelta(0.25, $v->b, 0.001);
     }
 
+    public function testColorFunctionSrgbLinear(): void
+    {
+        $v = $this->parser->parseFromString('color(srgb-linear 0.5 0.25 0.75)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertSame(ColorSpace::sRGBLinear, $v->space);
+        self::assertEqualsWithDelta(0.5, $v->r, 1e-9);
+        self::assertEqualsWithDelta(0.25, $v->g, 1e-9);
+        self::assertEqualsWithDelta(0.75, $v->b, 1e-9);
+    }
+
+    public function testColorFunctionXyzD65(): void
+    {
+        $v = $this->parser->parseFromString('color(xyz-d65 0.4 0.5 0.6)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertSame(ColorSpace::XYZD65, $v->space);
+    }
+
+    public function testColorFunctionXyzAliasMapsToD65(): void
+    {
+        // CSS Color 4 §10.7 — `xyz` is an alias for `xyz-d65`.
+        $v = $this->parser->parseFromString('color(xyz 0.3 0.5 0.4)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertSame(ColorSpace::XYZD65, $v->space);
+    }
+
+    public function testColorFunctionXyzD50(): void
+    {
+        $v = $this->parser->parseFromString('color(xyz-d50 0.4 0.5 0.6)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertSame(ColorSpace::XYZD50, $v->space);
+    }
+
+    public function testColorFunctionXyzPreservesValuesAboveOne(): void
+    {
+        // XYZ Y can exceed 1 for HDR / out-of-gamut colors.
+        $v = $this->parser->parseFromString('color(xyz 0.4 1.5 0.6)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertEqualsWithDelta(1.5, $v->g, 1e-9);
+    }
+
+    public function testColorFunctionPreservesOutOfGamutSrgb(): void
+    {
+        // CSS Color 4 §6 allows out-of-gamut sRGB; values are
+        // preserved for the gamut-mapping algorithm to handle.
+        $v = $this->parser->parseFromString('color(srgb 1.2 -0.1 0.5)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertEqualsWithDelta(1.2, $v->r, 1e-9);
+        self::assertEqualsWithDelta(-0.1, $v->g, 1e-9);
+    }
+
+    public function testColorFunctionNoneResolvesToZero(): void
+    {
+        $v = $this->parser->parseFromString('color(srgb none none none)');
+        self::assertInstanceOf(Color::class, $v);
+        self::assertSame(0.0, $v->r);
+        self::assertSame(0.0, $v->g);
+        self::assertSame(0.0, $v->b);
+    }
+
     // ============================================================
     // calc()
     // ============================================================
