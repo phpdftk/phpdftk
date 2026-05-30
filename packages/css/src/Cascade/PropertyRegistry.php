@@ -276,6 +276,67 @@ final class PropertyRegistry
         $r->register($initial('overflow-wrap', new Keyword('normal'), true));
         $r->register($initial('word-wrap', new Keyword('normal'), true));
 
+        // CSS Text 4 §6 — text-wrap controls how text wraps inside
+        // the inline formatting context. `auto` (initial) lets the
+        // engine choose; `balance` reflows to balance line lengths,
+        // `pretty` minimises bad breaks at the cost of more passes,
+        // `stable` keeps existing breaks when re-laid-out.
+        $r->register($initial('text-wrap', new Keyword('auto'), true));
+        $r->register($initial('text-wrap-style', new Keyword('auto'), true));
+        // CSS Text 4 §7 — hyphenation control. `hyphens: auto`
+        // enables automatic hyphenation when a hyphenation pattern
+        // is available; `manual` only breaks at U+00AD soft hyphens.
+        $r->register($initial('hyphens', new Keyword('manual'), true));
+        $r->register($initial('hyphenate-character', new Keyword('auto'), true));
+        $r->register($initial('hyphenate-limit-chars', new Keyword('auto'), true));
+        // CSS Text 4 §10 — text-spacing-trim defaults to
+        // space-first (CJK spec) so cascade preserves author intent.
+        $r->register($initial('text-spacing-trim', new Keyword('space-all'), true));
+        $r->register($initial('text-spacing', new Keyword('normal'), true));
+        $r->register($initial('text-autospace', new Keyword('normal'), true));
+
+        // CSS Text Decoration 4 §8 — text-emphasis (CJK ruby
+        // decoration marks). Inherits.
+        $r->register($initial('text-emphasis', new Keyword('none'), true));
+        $r->register($initial('text-emphasis-color', new Keyword('currentcolor'), true));
+        $r->register($initial('text-emphasis-position', new Keyword('over'), true));
+        $r->register($initial('text-emphasis-style', new Keyword('none'), true));
+        // CSS Text Decoration 4 §1.6 — decoration-skip-ink.
+        $r->register($initial('text-decoration-skip-ink', new Keyword('auto'), true));
+
+        // CSS Inline 3 §6 — text-box-trim controls trimming of
+        // half-leading space above ascenders / below descenders so
+        // a heading sits tighter against its background. Layout uses
+        // these to size line boxes; missing values cascade to none.
+        $r->register($initial('text-box-trim', new Keyword('none'), true));
+        $r->register($initial('text-box-edge', new Keyword('auto'), true));
+        $r->register($initial('initial-letter', new Keyword('normal'), true));
+
+        // CSS Sizing 4 §6 — contain-intrinsic-size declares a
+        // placeholder size for an element with size containment so
+        // layout can proceed without measuring its contents. The
+        // longhands let authors set width / height (logical) /
+        // block / inline independently. Print medium doesn't use
+        // size containment but we register so author CSS keeps
+        // cascading.
+        $r->register($initial('contain-intrinsic-size', new Keyword('none')));
+        $r->register($initial('contain-intrinsic-width', new Keyword('none')));
+        $r->register($initial('contain-intrinsic-height', new Keyword('none')));
+        $r->register($initial('contain-intrinsic-block-size', new Keyword('none')));
+        $r->register($initial('contain-intrinsic-inline-size', new Keyword('none')));
+
+        // CSS Anchor Positioning 1 — declarative anchor-target
+        // pairs. The interactive flip behaviour is out of scope per
+        // the ledger, but the declarative anchor-name / position-
+        // anchor / position-area / inset-area properties cascade so
+        // print rendering of an anchored element uses its static
+        // position.
+        $r->register($initial('anchor-name', new Keyword('none')));
+        $r->register($initial('anchor-scope', new Keyword('none')));
+        $r->register($initial('position-anchor', new Keyword('auto')));
+        $r->register($initial('position-area', new Keyword('none')));
+        $r->register($initial('inset-area', new Keyword('none')));  // legacy name; aliased to position-area
+
         // CSS Fragmentation 4 §3 + legacy `page-break-*` aliases.
         $r->register($initial('break-before', new Keyword('auto')));
         $r->register($initial('break-after', new Keyword('auto')));
