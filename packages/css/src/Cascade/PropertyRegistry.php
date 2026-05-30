@@ -36,6 +36,17 @@ final class PropertyRegistry
     /** @var array<string, PropertyDefinition> */
     private array $definitions = [];
 
+    /**
+     * Cached list of property names that inherit. Recomputed on
+     * the next call after any `register()` that adds an inheriting
+     * property. The cascade calls `inheritingNames()` once per
+     * element and iterates that small list instead of the full
+     * registry on each pass.
+     *
+     * @var ?list<string>
+     */
+    private ?array $inheritingCache = null;
+
     public function register(PropertyDefinition $def): void
     {
         $name = strtolower($def->name);
@@ -43,6 +54,12 @@ final class PropertyRegistry
             throw new \LogicException("Property '$name' already registered");
         }
         $this->definitions[$name] = $def;
+        // Invalidate the inheriting cache only when the new
+        // property actually inherits. Non-inheriting properties
+        // never appear in the list anyway.
+        if ($def->inherits) {
+            $this->inheritingCache = null;
+        }
     }
 
     public function get(string $name): ?PropertyDefinition
@@ -59,6 +76,29 @@ final class PropertyRegistry
     public function all(): array
     {
         return $this->definitions;
+    }
+
+    /**
+     * Names of every property registered as `inherits: true`.
+     * Returned in registration order; the cascade iterates these
+     * during `applyInheritance` instead of walking the full
+     * 200+-entry registry.
+     *
+     * @return list<string>
+     */
+    public function inheritingNames(): array
+    {
+        if ($this->inheritingCache !== null) {
+            return $this->inheritingCache;
+        }
+        $out = [];
+        foreach ($this->definitions as $name => $def) {
+            if ($def->inherits) {
+                $out[] = $name;
+            }
+        }
+        $this->inheritingCache = $out;
+        return $out;
     }
 
     /**

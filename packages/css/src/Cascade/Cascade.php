@@ -805,10 +805,10 @@ final class Cascade
         if ($parent === null) {
             return;
         }
-        foreach ($this->registry->all() as $name => $def) {
-            if (!$def->inherits) {
-                continue;
-            }
+        // Iterate only the inheriting subset instead of walking
+        // every property. The registry caches the list internally
+        // so this is constant time per cascade run.
+        foreach ($this->registry->inheritingNames() as $name) {
             if ($values->has($name)) {
                 continue;
             }
