@@ -55,6 +55,7 @@ use Phpdftk\Css\Value\NamedColors;
 use Phpdftk\Css\Value\Number;
 use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Css\Value\RadialGradient;
+use Phpdftk\Css\Value\RelativeColor;
 use Phpdftk\Css\Value\RotateTransform;
 use Phpdftk\Css\Value\ScaleTransform;
 use Phpdftk\Css\Value\SkewTransform;
@@ -215,6 +216,15 @@ final class ValueParser
                 }
             }
             return new Url('');
+        }
+        // CSS Color 5 §4 — relative color syntax must run BEFORE
+        // the regular rgb / hsl / lab / etc. function parsers so
+        // they don't trip on the leading `from` keyword.
+        if (in_array($name, ['rgb', 'rgba', 'hsl', 'hsla', 'hwb', 'lab', 'lch', 'oklab', 'oklch', 'color'], true)) {
+            $relative = $this->parseRelativeColorIfPresent($name, $tokens);
+            if ($relative !== null) {
+                return $relative;
+            }
         }
         if ($name === 'rgb' || $name === 'rgba') {
             return $this->parseRgbFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
@@ -1043,6 +1053,220 @@ final class ValueParser
     private static function normaliseHueDegrees(float $degrees): float
     {
         return fmod(fmod($degrees, 360.0) + 360.0, 360.0);
+    }
+
+    // ============================================================
+    // relative color syntax — CSS Color 5 §4
+    // ============================================================
+    /**
+     * Detect a `<colorFn>(from <color> ...)` prefix and parse the
+     * relative-color form. Returns null when the function doesn't
+     * start with `from`, so the caller falls back to its non-
+     * relative parser.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseRelativeColorIfPresent(string $name, array $tokens): ?RelativeColor
+    {
+        $trimmed = self::trimWhitespace($tokens);
+        if ($trimmed === []) {
+            return null;
+        }
+        $first = $trimmed[0];
+        if (!($first instanceof IdentToken) || strtolower($first->value) !== 'from') {
+            return null;
+        }
+        return $this->parseRelativeColorBody($name, array_slice($trimmed, 1));
+    }
+
+    /**
+     * Parse the body of `<colorFn>(from <source> <c1> <c2> <c3>
+     * [/ alpha])` (or the `color(from <source> <space> <c1> <c2>
+     * <c3> [/ alpha])` form for `color()`).
+     *
+     * @param list<Token> $tokensAfterFrom
+     */
+    private function parseRelativeColorBody(string $name, array $tokensAfterFrom): ?RelativeColor
+    {
+        $tokensAfterFrom = self::trimWhitespace($tokensAfterFrom);
+
+        // The source color is the next "value" — could be a hex
+        // (HashToken), an ident (named color), or a function call.
+        // Use collectFunctionLikeRun for function-call runs; for
+        // hash / ident, just one token.
+        if ($tokensAfterFrom === []) {
+            return null;
+        }
+        $sourceConsumed = self::collectColorRun($tokensAfterFrom, 0);
+        if ($sourceConsumed === 0) {
+            return null;
+        }
+        $sourceCss = self::serializeTokens(array_slice($tokensAfterFrom, 0, $sourceConsumed));
+        $source = $this->parseFromString($sourceCss);
+        if (!($source instanceof Color)) {
+            return null;
+        }
+
+        $rest = self::trimWhitespace(array_slice($tokensAfterFrom, $sourceConsumed));
+
+        // For `color()`, an additional <space> ident follows.
+        $space = null;
+        if ($name === 'color') {
+            if ($rest === [] || !($rest[0] instanceof IdentToken)) {
+                return null;
+            }
+            $space = match (strtolower($rest[0]->value)) {
+                'srgb' => ColorSpace::sRGB,
+                'srgb-linear' => ColorSpace::sRGBLinear,
+                'display-p3' => ColorSpace::DisplayP3,
+                'a98-rgb' => ColorSpace::A98RGB,
+                'prophoto-rgb' => ColorSpace::ProPhotoRGB,
+                'rec2020' => ColorSpace::Rec2020,
+                'xyz', 'xyz-d65' => ColorSpace::XYZD65,
+                'xyz-d50' => ColorSpace::XYZD50,
+                default => null,
+            };
+            if ($space === null) {
+                return null;
+            }
+            $rest = self::trimWhitespace(array_slice($rest, 1));
+        } else {
+            $space = match ($name) {
+                'rgb', 'rgba' => ColorSpace::sRGB,
+                'hsl', 'hsla' => ColorSpace::sRGB,    // polar in CSS; stored as sRGB
+                'hwb' => ColorSpace::sRGB,
+                'lab' => ColorSpace::Lab,
+                'lch' => ColorSpace::Lch,
+                'oklab' => ColorSpace::OKLab,
+                'oklch' => ColorSpace::OKLCH,
+                default => null,
+            };
+            if ($space === null) {
+                return null;
+            }
+        }
+
+        // Split the remainder on `/` (alpha separator) and then
+        // by whitespace into three component groups. Use the
+        // paren-aware splitter so `calc(r + 10)` stays one group
+        // despite the inner whitespace.
+        $slashGroups = self::splitTopLevelDelim($rest, '/');
+        $componentTokens = self::trimWhitespace($slashGroups[0]);
+        $componentGroups = self::splitParenAwareSpaceForm($componentTokens);
+        if (count($componentGroups) !== 3) {
+            return null;
+        }
+
+        $c1 = $this->parseRelativeComponent($componentGroups[0]);
+        $c2 = $this->parseRelativeComponent($componentGroups[1]);
+        $c3 = $this->parseRelativeComponent($componentGroups[2]);
+        if ($c1 === null || $c2 === null || $c3 === null) {
+            return null;
+        }
+
+        $alpha = new Number(1.0);
+        if (count($slashGroups) === 2) {
+            $alphaTokens = self::trimWhitespace($slashGroups[1]);
+            $parsedAlpha = $this->parseRelativeComponent($alphaTokens);
+            if ($parsedAlpha === null) {
+                return null;
+            }
+            $alpha = $parsedAlpha;
+        }
+
+        return new RelativeColor($space, $source, $c1, $c2, $c3, $alpha);
+    }
+
+    /**
+     * Like {@see splitRgbSpaceForm} but skips whitespace / `/`
+     * delimiters inside paren-balanced runs (function calls etc).
+     * Lets `rgb(from red calc(r + 10) g b)` split into 3 groups
+     * even though `calc(r + 10)` carries inner whitespace.
+     *
+     * @param list<Token> $tokens
+     * @return list<list<Token>>
+     */
+    private static function splitParenAwareSpaceForm(array $tokens): array
+    {
+        $groups = [];
+        $current = [];
+        $depth = 0;
+        foreach ($tokens as $t) {
+            if ($t instanceof LeftParenToken || $t instanceof FunctionToken) {
+                $depth++;
+                $current[] = $t;
+                continue;
+            }
+            if ($t instanceof RightParenToken) {
+                $depth--;
+                $current[] = $t;
+                continue;
+            }
+            if ($depth === 0 && $t instanceof WhitespaceToken) {
+                if ($current !== []) {
+                    $groups[] = $current;
+                    $current = [];
+                }
+                continue;
+            }
+            if ($depth === 0 && $t instanceof DelimToken && $t->value === '/') {
+                if ($current !== []) {
+                    $groups[] = $current;
+                    $current = [];
+                }
+                continue;
+            }
+            $current[] = $t;
+        }
+        if ($current !== []) {
+            $groups[] = $current;
+        }
+        return $groups;
+    }
+
+    /**
+     * Collect tokens for a single color value at the start of the
+     * sequence: a hash, a function call (possibly nested), or a
+     * single ident (named color). Whitespace consumed too. Returns
+     * the count of tokens consumed (0 on no progress).
+     *
+     * @param list<Token> $tokens
+     */
+    private static function collectColorRun(array $tokens, int $start): int
+    {
+        $head = $tokens[$start] ?? null;
+        if ($head === null) {
+            return 0;
+        }
+        if ($head instanceof FunctionToken) {
+            return self::collectFunctionLikeRun($tokens, $start);
+        }
+        if ($head instanceof HashToken || $head instanceof IdentToken) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Parse a single relative-color component expression. The
+     * input may be an ident (e.g. `r`, `none`, `alpha`), a
+     * number, a percentage, a dimension, or a calc()-like
+     * function — any Value the cascade can represent. Returns
+     * null when the token group is empty or doesn't parse.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseRelativeComponent(array $tokens): ?Value
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $css = self::serializeTokens($tokens);
+        if ($css === '') {
+            return null;
+        }
+        return $this->parseFromString($css);
     }
 
     // ============================================================
