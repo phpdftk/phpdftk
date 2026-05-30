@@ -15,6 +15,9 @@ use Phpdftk\Pdf\Core\Font\RegisteredFont;
 use Phpdftk\Pdf\Writer\Font as WriterFont;
 use Phpdftk\Pdf\Writer\Page as WriterPage;
 use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\ResourceLoader\Exception\FetchFailedException;
+use Phpdftk\ResourceLoader\Exception\SsrfBlockedException;
+use Phpdftk\ResourceLoader\ResourceLoader as HttpResourceLoader;
 
 /**
  * Phase 1G — paints a laid-out box tree onto a {@see ContentStream}.
@@ -81,6 +84,18 @@ final class Painter
          * disables horizontal clipping when only the Y axis clips.
          */
         private readonly float $pageWidth = 100000.0,
+        /**
+         * Optional `phpdftk/resource-loader` for `http(s)://`
+         * `<img src>`, `<picture><source>`, `<iframe src>` etc.
+         * hrefs. When null (the default — preserves existing
+         * behaviour byte-for-byte), network hrefs drop silently per
+         * the same SVG 2 §12.6 / image-loading no-image outcome
+         * pattern. When supplied, the loader runs (with its SSRF
+         * guard, redirect handling, body cap, and MIME sniffing)
+         * and the embedded bytes get materialised to a temp file
+         * the same way `data:` URLs do.
+         */
+        private readonly ?HttpResourceLoader $resourceLoader = null,
     ) {}
 
     /**
@@ -665,6 +680,9 @@ final class Painter
      * Resolve an `<img src>` value to a real path that
      * {@see PdfWriter::addImage} can read. Handles:
      *   - `data:image/{png,jpeg}[;base64],...` → spilled tempfile
+     *   - `http(s)://...` → fetched via `phpdftk/resource-loader`
+     *     (4F.5) when a loader was supplied; spilled to a tempfile.
+     *     Without a loader, http(s) silently drops the image.
      *   - relative paths → joined with `baseDir`, must resolve under it
      *
      * Returns null when the source isn't a Phase-1 supported variant or
@@ -675,8 +693,45 @@ final class Painter
         if (str_starts_with($src, 'data:')) {
             return $this->materializeDataUrl($src);
         }
+        if (str_starts_with($src, 'http://') || str_starts_with($src, 'https://')) {
+            return $this->fetchHttpSrc($src);
+        }
         return (new \Phpdftk\Filesystem\ResourceLoader($this->baseDir))
             ->resolveLocalPath($src);
+    }
+
+    /**
+     * 4F.5 — fetch an `http(s)://` `<img src>` through the injected
+     * ResourceLoader and materialise the bytes to a temp file so
+     * the existing `ImageParser` + `PdfWriter::addImage` flow can
+     * register them as a PDF XObject. Returns the temp path on
+     * success or null on any failure (no loader configured, SSRF
+     * policy violation, network error, non-2xx, body cap exceeded,
+     * write failure) — all of which surface as the no-image
+     * outcome.
+     */
+    private function fetchHttpSrc(string $src): ?string
+    {
+        if ($this->resourceLoader === null) {
+            return null;
+        }
+        try {
+            $result = $this->resourceLoader->fetch($src);
+        } catch (SsrfBlockedException | FetchFailedException) {
+            return null;
+        }
+        $tmpPath = tempnam(sys_get_temp_dir(), 'phpdftk-http-img-');
+        if ($tmpPath === false) {
+            return null;
+        }
+        try {
+            \Phpdftk\Filesystem\LocalFilesystem::writeFile($tmpPath, $result->bytes);
+        } catch (\Throwable) {
+            @unlink($tmpPath);
+            return null;
+        }
+        $this->tempImagePaths[] = $tmpPath;
+        return $tmpPath;
     }
 
     /**

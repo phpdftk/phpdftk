@@ -6,6 +6,7 @@ namespace Phpdftk\HtmlToPdf;
 
 use Phpdftk\FontParser\OpenTypeData;
 use Phpdftk\HtmlToPdf\Layout\FontFace;
+use Phpdftk\ResourceLoader\ResourceLoader as HttpResourceLoader;
 
 /**
  * Configuration for the {@see Renderer}. Immutable; mutate via `with*()`.
@@ -61,6 +62,21 @@ final readonly class RendererOptions
          * @var array<string, list<FontFace>>
          */
         public array $faceMap = [],
+        /**
+         * Optional `phpdftk/resource-loader` for network resource
+         * resolution. When supplied, `<img src="http(s)://...">`,
+         * `<picture><source>`, and (4F.5.1+) `@font-face url()`,
+         * `@import url()`, `background-image: url()`, and
+         * `<iframe>` / `<object>` will resolve through this loader
+         * — which runs the SSRF guard, follows redirects up to
+         * `maxRedirects`, enforces the body cap, strips
+         * Authorization across cross-host hops per RFC 9110 §15.4,
+         * and MIME-sniffs the response. When null (the default),
+         * network hrefs drop silently per the same no-image
+         * outcome that was the pre-4F posture — preserves
+         * existing call-site behaviour byte-for-byte.
+         */
+        public ?HttpResourceLoader $resourceLoader = null,
     ) {}
 
     public function withPageSize(float $width, float $height): self
@@ -74,6 +90,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $this->fontMap,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 
@@ -88,6 +105,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $this->fontMap,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 
@@ -102,6 +120,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $this->fontMap,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 
@@ -116,6 +135,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $this->fontMap,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 
@@ -130,6 +150,30 @@ final readonly class RendererOptions
             $baseDir,
             $this->fontMap,
             $this->faceMap,
+            $this->resourceLoader,
+        );
+    }
+
+    /**
+     * Attach a {@see HttpResourceLoader} for network resource resolution.
+     * Without one, `<img src="https://...">` and other URL-form
+     * references drop silently. When supplied, the loader runs the
+     * SSRF guard, follows redirects, enforces the body cap, and
+     * MIME-sniffs the response — call sites in the painter integrate
+     * via `Painter::resolveImageSrc`.
+     */
+    public function withResourceLoader(?HttpResourceLoader $loader): self
+    {
+        return new self(
+            $this->pageWidth,
+            $this->pageHeight,
+            $this->defaultFont,
+            $this->userAgentStylesheet,
+            $this->strict,
+            $this->baseDir,
+            $this->fontMap,
+            $this->faceMap,
+            $loader,
         );
     }
 
@@ -184,6 +228,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $normalised,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 
@@ -229,6 +274,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $this->fontMap,
             $merged,
+            $this->resourceLoader,
         );
     }
 
@@ -272,6 +318,7 @@ final readonly class RendererOptions
             $this->baseDir,
             $merged,
             $this->faceMap,
+            $this->resourceLoader,
         );
     }
 

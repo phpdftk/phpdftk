@@ -2238,7 +2238,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/html-to-pdf",
-                "reference": "aff546485d62fb3fae197f1adcbe66b60bf7b404"
+                "reference": "335ea069e2e5ad634e42794e5a1dd2beb2fd27ff"
             },
             "require": {
                 "ext-intl": "*",
@@ -2250,6 +2250,7 @@
                 "phpdftk/html": "^1.0",
                 "phpdftk/image-metadata": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
+                "phpdftk/resource-loader": "^1.0",
                 "phpdftk/text": "^1.0"
             },
             "type": "library",

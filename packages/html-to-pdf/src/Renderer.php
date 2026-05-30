@@ -303,6 +303,7 @@ final class Renderer
                 baseDir: $this->options->baseDir,
                 registeredFonts: $registeredMap,
                 pageWidth: $pageWidth,
+                resourceLoader: $this->options->resourceLoader,
             );
             $painter->paint($root, $stream);
             // Per-page link annotations — emit one /Link per `<a href>` rect
@@ -1088,8 +1089,9 @@ final class Renderer
      * Mirror the painter's "can this `<img src>` be drawn?" decision so the
      * MissingResource warning doesn't false-positive on local-file paths
      * the painter actually handles. Accepts `data:image/{png,jpeg}` URLs
-     * unconditionally; for filesystem paths, requires `baseDir` and that
-     * `realpath()` resolves under it.
+     * unconditionally; `http(s)://` when the options carry an HTTP
+     * ResourceLoader (4F.5); for filesystem paths, requires `baseDir`
+     * and that `realpath()` resolves under it.
      */
     private function isPaintableImageSrc(?string $src): bool
     {
@@ -1098,6 +1100,9 @@ final class Renderer
         }
         if (preg_match('~^data:image/(png|jpeg|jpg);~', $src) === 1) {
             return true;
+        }
+        if (str_starts_with($src, 'http://') || str_starts_with($src, 'https://')) {
+            return $this->options->resourceLoader !== null;
         }
         return $this->resourceLoader()->resolveLocalPath($src) !== null;
     }
