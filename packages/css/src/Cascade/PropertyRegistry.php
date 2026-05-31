@@ -368,6 +368,14 @@ final class PropertyRegistry
         $r->register($initial('text-spacing', new Keyword('normal'), true));
         $r->register($initial('text-autospace', new Keyword('normal'), true));
 
+        // CSS Ruby Annotation 1 — ruby family. Inherits per spec.
+        // Print of Japanese / Chinese ruby annotations is a future
+        // layout deliverable; the cascade preserves the values.
+        $r->register($initial('ruby-position', new Keyword('alternate'), true));
+        $r->register($initial('ruby-align', new Keyword('space-around'), true));
+        $r->register($initial('ruby-merge', new Keyword('separate'), true));
+        $r->register($initial('ruby-overhang', new Keyword('auto'), true));
+
         // CSS Text Decoration 4 §8 — text-emphasis (CJK ruby
         // decoration marks). Inherits.
         $r->register($initial('text-emphasis', new Keyword('none'), true));
