@@ -465,6 +465,16 @@ final class PropertyRegistry
         // forward; form-control rendering opts in via
         // `appearance: auto | none` in the painter.
         $r->register($initial('appearance', new Keyword('auto')));
+        // CSS UI 4 §5 — `caret-shape` was added alongside caret-color
+        // for richer text-cursor styling. Runtime-only; cascades to
+        // preserve author CSS.
+        $r->register($initial('caret-shape', new Keyword('auto'), true));
+        // CSS UI 4 §9 — `nav-up | nav-down | nav-left | nav-right`
+        // declare focus navigation order. Runtime / no print effect.
+        $r->register($initial('nav-up', new Keyword('auto')));
+        $r->register($initial('nav-down', new Keyword('auto')));
+        $r->register($initial('nav-left', new Keyword('auto')));
+        $r->register($initial('nav-right', new Keyword('auto')));
         // CSS UI 4 §4.10 — field-sizing controls whether form
         // controls size to their content (`content`) or to a
         // fixed UA default (`fixed`).
