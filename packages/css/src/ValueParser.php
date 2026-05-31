@@ -58,6 +58,8 @@ use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\CustomProperty;
 use Phpdftk\Css\Value\Gradient;
 use Phpdftk\Css\Value\ConicGradient;
+use Phpdftk\Css\Value\CrossFade;
+use Phpdftk\Css\Value\CrossFadeOption;
 use Phpdftk\Css\Value\GradientShape;
 use Phpdftk\Css\Value\GradientStop;
 use Phpdftk\Css\Value\ImageSet;
@@ -331,6 +333,12 @@ final class ValueParser
             $ld = $this->parseLightDark($tokens);
             if ($ld !== null) {
                 return $ld;
+            }
+        }
+        if ($name === 'cross-fade') {
+            $cf = $this->parseCrossFade($tokens);
+            if ($cf !== null) {
+                return $cf;
             }
         }
         if ($name === 'linear') {
@@ -2999,6 +3007,67 @@ final class ValueParser
             return null;
         }
         return new Keyword($trim[0]->value);
+    }
+
+    // ============================================================
+    // cross-fade — CSS Images 4 §4
+    // ============================================================
+    /**
+     * Parse `cross-fade(<entry> [, <entry>]*)` where each entry
+     * is `[<percentage>]? <image>`. Percentages are 0..100; the
+     * unlabeled entries share whatever weight remains after the
+     * labeled entries.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseCrossFade(array $tokens): ?CrossFade
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if ($groups === []) {
+            return null;
+        }
+        $options = [];
+        foreach ($groups as $group) {
+            $opt = $this->parseCrossFadeEntry(self::trimWhitespace($group));
+            if ($opt === null) {
+                return null;
+            }
+            $options[] = $opt;
+        }
+        if (count($options) < 1) {
+            return null;
+        }
+        return new CrossFade($options);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function parseCrossFadeEntry(array $tokens): ?CrossFadeOption
+    {
+        if ($tokens === []) {
+            return null;
+        }
+        $percent = null;
+        $i = 0;
+        // Optional leading percentage.
+        if ($tokens[0] instanceof PercentageToken) {
+            $percent = (float) $tokens[0]->value;
+            if ($percent < 0.0 || $percent > 100.0) {
+                return null;
+            }
+            $i = 1;
+            // Eat trailing whitespace before the image.
+            while ($i < count($tokens) && $tokens[$i] instanceof WhitespaceToken) {
+                $i++;
+            }
+        }
+        $rest = array_slice($tokens, $i);
+        if ($rest === []) {
+            return null;
+        }
+        $image = $this->parseFromString(self::serializeTokens($rest));
+        return new CrossFadeOption($image, $percent);
     }
 
     // ============================================================
