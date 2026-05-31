@@ -208,7 +208,10 @@ final class Matcher
             // `:scope` like `:root`.
             'scope' => $el->parentElement() === null,
             'lang' => $this->matchLang($sel, $el),
-            'dir' => false,
+            // CSS Selectors 4 §15.2 — `:dir(ltr)` / `:dir(rtl)`
+            // matches when the closest ancestor with a `dir=` attr
+            // declares the requested direction (HTML §3.2.6.4).
+            'dir' => $this->matchDir($sel, $el),
             'host', 'host-context' => false,
             // UI-state pseudos: print medium can't observe them. Cascade
             // drops the rule cleanly when these don't match.
@@ -254,6 +257,33 @@ final class Matcher
             return false;
         }
         return false;
+    }
+
+    /**
+     * CSS Selectors 4 §15.2 — `:dir(ltr)` / `:dir(rtl)`. The
+     * direction comes from the closest ancestor `dir=` attribute
+     * (HTML §3.2.6.4). When no ancestor sets dir, defaults to
+     * `ltr` per the HTML spec.
+     */
+    private function matchDir(PseudoClassSelector $sel, MatchableElement $el): bool
+    {
+        $arg = $sel->argText !== null ? strtolower(trim($sel->argText)) : '';
+        if ($arg !== 'ltr' && $arg !== 'rtl' && $arg !== 'auto') {
+            return false;
+        }
+        for ($n = $el; $n !== null; $n = $n->parentElement()) {
+            $dir = $n->getAttributeValue('dir');
+            if ($dir === null) {
+                continue;
+            }
+            $dir = strtolower(trim($dir));
+            if ($dir === 'ltr' || $dir === 'rtl' || $dir === 'auto') {
+                return $dir === $arg;
+            }
+            // Invalid value — fall through to next ancestor.
+        }
+        // No dir set anywhere — HTML default is ltr.
+        return $arg === 'ltr';
     }
 
     private function hasMatches(SelectorList $list, MatchableElement $el): bool
