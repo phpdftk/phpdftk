@@ -698,6 +698,13 @@ final class Renderer
      */
     private function fetchImportSource(string $href): ?string
     {
+        // http(s) routes through phpdftk/resource-loader when one
+        // is attached; otherwise drops with a missing-resource
+        // warning consistent with @font-face http behaviour.
+        if (str_starts_with($href, 'http://') || str_starts_with($href, 'https://')) {
+            $sink = [];
+            return $this->fetchHttpResource($href, $sink, '@import');
+        }
         return $this->resourceLoader()->load($href, allowedMimes: ['text/css']);
     }
 
@@ -1470,6 +1477,14 @@ final class Renderer
         if (str_starts_with($url, 'data:') && stripos($url, ';base64,') === false) {
             return null;
         }
+        // http(s):// — route through the optional
+        // phpdftk/resource-loader. When no loader configured the
+        // url is rejected with a MissingResource warning (same as
+        // local-file unfound) instead of silently dropping.
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            $bytes = $this->fetchHttpResource($url, $warnings, '@font-face src');
+            return $bytes;
+        }
         $bytes = $this->resourceLoader()->load($url);
         if ($bytes === null && !str_starts_with($url, 'data:')) {
             // Local-file branch: emit a per-source warning so authors
@@ -1485,6 +1500,51 @@ final class Renderer
             }
         }
         return $bytes;
+    }
+
+    /**
+     * Resolve an `http(s)://` URL through the optional
+     * `phpdftk/resource-loader` attached via
+     * `RendererOptions::withResourceLoader`. Without a loader the
+     * URL is rejected and a per-source warning emitted so authors
+     * see the missing configuration instead of silently dropping
+     * their `@font-face` / `@import` / `<img>` / etc.
+     *
+     * @param list<Warning> $warnings
+     */
+    private function fetchHttpResource(string $url, array &$warnings, string $contextLabel): ?string
+    {
+        $loader = $this->options->resourceLoader;
+        if ($loader === null) {
+            $warnings[] = new Warning(
+                WarningCode::MissingResource,
+                sprintf(
+                    '%s `%s` requires a ResourceLoader (via RendererOptions::withResourceLoader) — http(s) hrefs drop otherwise.',
+                    $contextLabel,
+                    $url,
+                ),
+                WarningSeverity::Warning,
+            );
+            return null;
+        }
+        try {
+            $result = $loader->fetch($url);
+            return $result->bytes;
+        } catch (\Phpdftk\ResourceLoader\Exception\SsrfBlockedException $e) {
+            $warnings[] = new Warning(
+                WarningCode::MissingResource,
+                sprintf('%s `%s` blocked by SSRF policy: %s', $contextLabel, $url, $e->getMessage()),
+                WarningSeverity::Warning,
+            );
+            return null;
+        } catch (\Phpdftk\ResourceLoader\Exception\FetchFailedException $e) {
+            $warnings[] = new Warning(
+                WarningCode::MissingResource,
+                sprintf('%s `%s` fetch failed: %s', $contextLabel, $url, $e->getMessage()),
+                WarningSeverity::Warning,
+            );
+            return null;
+        }
     }
 
     /**

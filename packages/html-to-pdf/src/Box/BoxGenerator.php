@@ -632,6 +632,26 @@ final class BoxGenerator
                 default => null,
             };
         }
+        // CSS Values 5 §11 typed AttrFunction (preferred path).
+        if ($value instanceof \Phpdftk\Css\Value\AttrFunction) {
+            $name = $value->attributeName;
+            if ($name !== '') {
+                $attrValue = $host->getAttribute($name);
+                if ($attrValue !== null) {
+                    return $attrValue;
+                }
+                // Fallback expression on missing attribute — use
+                // its serialized form for now (the typed fallback
+                // value lands when AttrFunction is consumed by
+                // computed-value time).
+                if ($value->fallback !== null) {
+                    return $value->fallback->toCss();
+                }
+                return '';
+            }
+        }
+        // Legacy generic CssFunction path for value-paths that
+        // bypass Parser::makeDeclaration.
         if ($value instanceof \Phpdftk\Css\Value\CssFunction
             && strtolower($value->name) === 'attr'
             && $value->arguments !== []
