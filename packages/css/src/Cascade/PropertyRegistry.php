@@ -259,6 +259,39 @@ final class PropertyRegistry
         $r->register($initial('font-kerning', new Keyword('auto'), true));
         $r->register($initial('font-feature-settings', new Keyword('normal'), true));
         $r->register($initial('font-variation-settings', new Keyword('normal'), true));
+        // CSS Fonts 4 §6 — `font-variant` family. Each sub-property
+        // toggles a sub-set of OpenType features. Inheritable so a
+        // page-level `font-variant-numeric: tabular-nums` lights up
+        // for all descendant text without per-element re-declaration.
+        $r->register($initial('font-variant', new Keyword('normal'), true));
+        $r->register($initial('font-variant-alternates', new Keyword('normal'), true));
+        $r->register($initial('font-variant-caps', new Keyword('normal'), true));
+        $r->register($initial('font-variant-east-asian', new Keyword('normal'), true));
+        $r->register($initial('font-variant-emoji', new Keyword('normal'), true));
+        $r->register($initial('font-variant-ligatures', new Keyword('normal'), true));
+        $r->register($initial('font-variant-numeric', new Keyword('normal'), true));
+        $r->register($initial('font-variant-position', new Keyword('normal'), true));
+        // CSS Fonts 4 §6.6 — `font-optical-sizing` toggles
+        // OpenType opsz variation axis when present.
+        $r->register($initial('font-optical-sizing', new Keyword('auto'), true));
+        // CSS Fonts 4 §6.7 — `font-synthesis` family controls UA
+        // synthesis of missing weight / style / small-caps / position
+        // variants. Each accepts `auto | none` (or specific axis
+        // keywords for the shorthand).
+        $r->register($initial('font-synthesis', new Keyword('weight style small-caps'), true));
+        $r->register($initial('font-synthesis-weight', new Keyword('auto'), true));
+        $r->register($initial('font-synthesis-style', new Keyword('auto'), true));
+        $r->register($initial('font-synthesis-small-caps', new Keyword('auto'), true));
+        $r->register($initial('font-synthesis-position', new Keyword('auto'), true));
+        // CSS Fonts 4 §3 — `font-stretch` selects from a font-family's
+        // condensed / expanded variants. Inherits.
+        $r->register($initial('font-stretch', new Keyword('normal'), true));
+        // CSS Fonts 5 §4 — `font-language-override` overrides the
+        // OpenType language system from the host element's `lang`.
+        $r->register($initial('font-language-override', new Keyword('normal'), true));
+        // CSS Fonts 4 §5 — `font-size-adjust` normalises x-height
+        // across font-family fallbacks. `none | <number>+`.
+        $r->register($initial('font-size-adjust', new Keyword('none'), true));
         // CSS Compositing 1 — `isolation` controls stacking context;
         // print medium has no blending compositing layers but register
         // so cascade keeps the value.
