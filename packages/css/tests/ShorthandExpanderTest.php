@@ -435,4 +435,37 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame(10.0, $top->value);
         self::assertSame(20.0, $right->value);
     }
+
+    public function testPlaceItemsSingleValueAppliesToBothAxes(): void
+    {
+        $out = $this->expander->expand('place-items', $this->value('center'));
+        self::assertArrayHasKey('align-items', $out);
+        self::assertArrayHasKey('justify-items', $out);
+        self::assertInstanceOf(Keyword::class, $out['align-items']);
+        self::assertSame('center', $out['align-items']->name);
+        self::assertSame('center', $out['justify-items']->name);
+    }
+
+    public function testPlaceItemsTwoValuesMapsAlignAndJustify(): void
+    {
+        $out = $this->expander->expand('place-items', $this->value('start end'));
+        self::assertSame('start', $out['align-items']->name);
+        self::assertSame('end', $out['justify-items']->name);
+    }
+
+    public function testPlaceContentTwoValues(): void
+    {
+        $out = $this->expander->expand('place-content', $this->value('space-between center'));
+        self::assertArrayHasKey('align-content', $out);
+        self::assertArrayHasKey('justify-content', $out);
+        self::assertSame('space-between', $out['align-content']->name);
+        self::assertSame('center', $out['justify-content']->name);
+    }
+
+    public function testPlaceSelfSingleValueAppliesToBothAxes(): void
+    {
+        $out = $this->expander->expand('place-self', $this->value('stretch'));
+        self::assertSame('stretch', $out['align-self']->name);
+        self::assertSame('stretch', $out['justify-self']->name);
+    }
 }

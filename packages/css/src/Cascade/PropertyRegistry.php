@@ -647,10 +647,13 @@ final class PropertyRegistry
         $r->register($initial('align-self', new Keyword('auto')));
         // CSS Box Alignment 3 §6.2 — `justify-self` aligns an item
         // along the inline axis of its containing block. Initial
-        // `auto` defers to the container's `justify-items` (which we
-        // don't model yet — Phase-2 just treats `auto` as `stretch`
-        // in a grid context, the spec default).
+        // `auto` defers to the container's `justify-items`.
         $r->register($initial('justify-self', new Keyword('auto')));
+        // CSS Box Alignment 3 §6.1 — `justify-items` is the
+        // container-side default for the items' `justify-self: auto`.
+        // Initial value is `legacy` per spec; we use `stretch` since
+        // that's what flex+grid treat `legacy` as.
+        $r->register($initial('justify-items', new Keyword('legacy')));
         $r->register($initial('align-content', new Keyword('stretch')));
         $r->register($initial('flex-grow', new Number(0)));
         $r->register($initial('flex-shrink', new Number(1)));

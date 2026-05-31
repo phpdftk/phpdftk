@@ -87,6 +87,12 @@ final class ShorthandExpander
             'grid-column' => $this->expandGridLine($value, 'column'),
             'grid-row' => $this->expandGridLine($value, 'row'),
             'grid-area' => $this->expandGridArea($value),
+            // CSS Box Alignment 3 §8 — `place-*` shorthands. Single
+            // value applies to both axes; two values map first →
+            // align (block-axis), second → justify (inline-axis).
+            'place-items' => $this->expandPlaceShorthand($value, 'align-items', 'justify-items'),
+            'place-content' => $this->expandPlaceShorthand($value, 'align-content', 'justify-content'),
+            'place-self' => $this->expandPlaceShorthand($value, 'align-self', 'justify-self'),
             default => [$property => $value],
         };
     }
@@ -111,6 +117,28 @@ final class ShorthandExpander
         return [
             $prefix . '-' . $suffixes[0] => $start,
             $prefix . '-' . $suffixes[1] => $end,
+        ];
+    }
+
+    /**
+     * CSS Box Alignment 3 §8.3 — `place-items` / `place-content` /
+     * `place-self`. One value applies to both axes; two values map
+     * first → block-axis (`align-*`), second → inline-axis
+     * (`justify-*`).
+     *
+     * @return array<string, Value>
+     */
+    private function expandPlaceShorthand(Value $value, string $alignProp, string $justifyProp): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $align = $components[0];
+        $justify = $components[1] ?? $align;
+        return [
+            $alignProp => $align,
+            $justifyProp => $justify,
         ];
     }
 
