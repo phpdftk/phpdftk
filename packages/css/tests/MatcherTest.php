@@ -352,4 +352,31 @@ final class MatcherTest extends TestCase
             );
         }
     }
+
+    public function testLinkMatchesAnchorWithHref(): void
+    {
+        $a = new FakeElement('a', attributes: ['href' => 'https://example.com']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':link'), $a));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':any-link'), $a));
+    }
+
+    public function testLinkRejectsAnchorWithoutHref(): void
+    {
+        $a = new FakeElement('a');
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':link'), $a));
+    }
+
+    public function testLinkRejectsNonLinkElement(): void
+    {
+        $div = new FakeElement('div', attributes: ['href' => 'whatever']);
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':link'), $div));
+    }
+
+    public function testLinkMatchesAreaAndLink(): void
+    {
+        $area = new FakeElement('area', attributes: ['href' => '#x']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':link'), $area));
+        $link = new FakeElement('link', attributes: ['href' => 'style.css']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':link'), $link));
+    }
 }

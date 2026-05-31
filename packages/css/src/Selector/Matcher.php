@@ -213,12 +213,17 @@ final class Matcher
             // declares the requested direction (HTML §3.2.6.4).
             'dir' => $this->matchDir($sel, $el),
             'host', 'host-context' => false,
+            // CSS Selectors 4 §10.4 — `:link` / `:any-link` match an
+            // <a>, <area>, or <link> element with an href attribute.
+            // `:any-link` also matches `:visited`; print medium can't
+            // observe visit state so the two collapse here.
+            'link', 'any-link' => $this->matchLink($el),
             // UI-state pseudos: print medium can't observe them. Cascade
             // drops the rule cleanly when these don't match.
             'hover', 'focus', 'focus-within', 'focus-visible', 'active',
             'checked', 'disabled', 'enabled', 'required', 'optional',
             'read-only', 'read-write', 'placeholder-shown', 'default',
-            'valid', 'invalid', 'target', 'visited', 'link' => false,
+            'valid', 'invalid', 'target', 'visited' => false,
             default => false,
         };
     }
@@ -236,6 +241,20 @@ final class Matcher
             return $this->listMatches($sel->arguments, $el);
         }
         return true;
+    }
+
+    /**
+     * CSS Selectors 4 §10.4.1 — `:link`. Matches an HTML
+     * `<a>`, `<area>`, or `<link>` element that carries an
+     * `href` attribute.
+     */
+    private function matchLink(MatchableElement $el): bool
+    {
+        $tag = strtolower($el->localName());
+        if (!in_array($tag, ['a', 'area', 'link'], true)) {
+            return false;
+        }
+        return $el->getAttributeValue('href') !== null;
     }
 
     private function matchLang(PseudoClassSelector $sel, MatchableElement $el): bool
