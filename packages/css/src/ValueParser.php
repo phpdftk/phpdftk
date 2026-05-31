@@ -80,6 +80,8 @@ use Phpdftk\Css\Value\RotateTransform;
 use Phpdftk\Css\Value\ScaleTransform;
 use Phpdftk\Css\Value\SkewTransform;
 use Phpdftk\Css\Value\StringValue;
+use Phpdftk\Css\Value\TargetFunction;
+use Phpdftk\Css\Value\TargetFunctionKind;
 use Phpdftk\Css\Value\Transform;
 use Phpdftk\Css\Value\TransformFunction;
 use Phpdftk\Css\Value\TranslateTransform;
@@ -316,6 +318,12 @@ final class ValueParser
             $e = $this->parseEnvFunction($tokens);
             if ($e !== null) {
                 return $e;
+            }
+        }
+        if ($name === 'target-counter' || $name === 'target-counters' || $name === 'target-text') {
+            $t = $this->parseTargetFunction($name, $tokens);
+            if ($t !== null) {
+                return $t;
             }
         }
         if ($name === 'linear') {
@@ -1631,6 +1639,7 @@ final class ValueParser
                 $t instanceof HashToken => '#' . $t->value,
                 $t instanceof StringToken => '"' . str_replace('"', '\\"', $t->value) . '"',
                 $t instanceof FunctionToken => $t->name . '(',
+                $t instanceof UrlToken => 'url(' . $t->value . ')',
                 $t instanceof LeftParenToken => '(',
                 $t instanceof RightParenToken => ')',
                 $t instanceof CommaToken => ',',
@@ -2866,6 +2875,123 @@ final class ValueParser
             $fallback = $this->parseFromString($fbCss);
         }
         return new EnvFunction($envName, $indices, $fallback);
+    }
+
+    // ============================================================
+    // target-counter / target-counters / target-text — GCPM 3 §3
+    // ============================================================
+    /**
+     * Parse cross-reference functions used in paged-media TOCs:
+     *
+     *   target-counter(<url-or-attr>, <counter>, <style>?)
+     *   target-counters(<url-or-attr>, <counter>, <string>, <style>?)
+     *   target-text(<url-or-attr>, [content | before | after | first-letter]?)
+     *
+     * Returns null on malformed input (caller falls back to the
+     * generic function-token preservation path).
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseTargetFunction(string $name, array $tokens): ?TargetFunction
+    {
+        $kind = TargetFunctionKind::tryFrom(strtolower($name));
+        if ($kind === null) {
+            return null;
+        }
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if ($groups === []) {
+            return null;
+        }
+        $target = $this->parseFromString(self::serializeTokens(self::trimWhitespace($groups[0])));
+        return match ($kind) {
+            TargetFunctionKind::Counter   => $this->buildTargetCounter($kind, $target, $groups),
+            TargetFunctionKind::Counters  => $this->buildTargetCounters($kind, $target, $groups),
+            TargetFunctionKind::Text      => $this->buildTargetText($kind, $target, $groups),
+        };
+    }
+
+    /**
+     * @param list<list<Token>> $groups
+     */
+    private function buildTargetCounter(TargetFunctionKind $kind, Value $target, array $groups): ?TargetFunction
+    {
+        if (count($groups) < 2 || count($groups) > 3) {
+            return null;
+        }
+        $name = $this->parseCounterIdent($groups[1]);
+        if ($name === null) {
+            return null;
+        }
+        $style = null;
+        if (count($groups) === 3) {
+            $style = $this->parseCounterIdent($groups[2]);
+            if ($style === null) {
+                return null;
+            }
+        }
+        return new TargetFunction($kind, $target, $name, null, $style);
+    }
+
+    /**
+     * @param list<list<Token>> $groups
+     */
+    private function buildTargetCounters(TargetFunctionKind $kind, Value $target, array $groups): ?TargetFunction
+    {
+        if (count($groups) < 3 || count($groups) > 4) {
+            return null;
+        }
+        $name = $this->parseCounterIdent($groups[1]);
+        if ($name === null) {
+            return null;
+        }
+        $sepTokens = self::trimWhitespace($groups[2]);
+        if (count($sepTokens) !== 1 || !($sepTokens[0] instanceof StringToken)) {
+            return null;
+        }
+        $separator = new StringValue($sepTokens[0]->value);
+        $style = null;
+        if (count($groups) === 4) {
+            $style = $this->parseCounterIdent($groups[3]);
+            if ($style === null) {
+                return null;
+            }
+        }
+        return new TargetFunction($kind, $target, $name, $separator, $style);
+    }
+
+    /**
+     * @param list<list<Token>> $groups
+     */
+    private function buildTargetText(TargetFunctionKind $kind, Value $target, array $groups): ?TargetFunction
+    {
+        if (count($groups) < 1 || count($groups) > 2) {
+            return null;
+        }
+        $source = null;
+        if (count($groups) === 2) {
+            $srcTokens = self::trimWhitespace($groups[1]);
+            if (count($srcTokens) !== 1 || !($srcTokens[0] instanceof IdentToken)) {
+                return null;
+            }
+            $kw = strtolower($srcTokens[0]->value);
+            if (!in_array($kw, ['content', 'before', 'after', 'first-letter'], true)) {
+                return null;
+            }
+            $source = new Keyword($kw);
+        }
+        return new TargetFunction($kind, $target, null, $source, null);
+    }
+
+    /**
+     * @param list<Token> $group
+     */
+    private function parseCounterIdent(array $group): ?Keyword
+    {
+        $trim = self::trimWhitespace($group);
+        if (count($trim) !== 1 || !($trim[0] instanceof IdentToken)) {
+            return null;
+        }
+        return new Keyword($trim[0]->value);
     }
 
     // ============================================================
