@@ -468,4 +468,58 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('stretch', $out['align-self']->name);
         self::assertSame('stretch', $out['justify-self']->name);
     }
+
+    public function testTransitionShorthandExpandsTo4Longhands(): void
+    {
+        $out = $this->expander->expand('transition', $this->value('opacity 200ms ease-in 50ms'));
+        self::assertArrayHasKey('transition-property', $out);
+        self::assertArrayHasKey('transition-duration', $out);
+        self::assertArrayHasKey('transition-timing-function', $out);
+        self::assertArrayHasKey('transition-delay', $out);
+        self::assertSame('opacity', $out['transition-property']->name);
+        self::assertSame(0.2, $out['transition-duration']->toSeconds());
+        self::assertSame('ease-in', $out['transition-timing-function']->name);
+        self::assertSame(0.05, $out['transition-delay']->toSeconds());
+    }
+
+    public function testTransitionBareProperty(): void
+    {
+        $out = $this->expander->expand('transition', $this->value('color'));
+        self::assertSame('color', $out['transition-property']->name);
+        // Defaults — duration 0s, easing ease.
+        self::assertSame('0s', $out['transition-duration']->name);
+        self::assertSame('ease', $out['transition-timing-function']->name);
+    }
+
+    public function testAnimationShorthandFullForm(): void
+    {
+        $out = $this->expander->expand(
+            'animation',
+            $this->value('slidein 1s ease-out 0.5s 3 alternate forwards paused'),
+        );
+        self::assertSame('slidein', $out['animation-name']->name);
+        self::assertSame(1.0, $out['animation-duration']->toSeconds());
+        self::assertSame('ease-out', $out['animation-timing-function']->name);
+        self::assertSame(0.5, $out['animation-delay']->toSeconds());
+        self::assertSame(3, $out['animation-iteration-count']->value);
+        self::assertSame('alternate', $out['animation-direction']->name);
+        self::assertSame('forwards', $out['animation-fill-mode']->name);
+        self::assertSame('paused', $out['animation-play-state']->name);
+    }
+
+    public function testAnimationInfiniteCount(): void
+    {
+        $out = $this->expander->expand('animation', $this->value('spin 2s linear infinite'));
+        self::assertSame('infinite', $out['animation-iteration-count']->name);
+    }
+
+    public function testAnimationCommaSeparatedLayers(): void
+    {
+        $out = $this->expander->expand('animation', $this->value('fade 1s, slide 2s'));
+        $names = $out['animation-name'];
+        self::assertInstanceOf(\Phpdftk\Css\Value\ValueList::class, $names);
+        self::assertCount(2, $names->values);
+        self::assertSame('fade', $names->values[0]->name);
+        self::assertSame('slide', $names->values[1]->name);
+    }
 }

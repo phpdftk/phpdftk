@@ -536,14 +536,38 @@ final class PropertyRegistry
         // or `alpha`. Inherits per spec.
         $r->register($initial('mask-type', new Keyword('luminance'), true));
 
-        // CSS Animations 2 — animation-range / animation-composition.
-        // Animation playback gated on `Pdf::renderAnimationsAt(t)`;
+        // CSS Animations 1 + 2 — the eight per-instance longhands
+        // (animation-name + 7 timing/control siblings) plus the
+        // shape/range additions from Animations 2. Animation
+        // playback is gated on `Pdf::renderAnimationsAt(t)`;
         // properties cascade so declared keyframes can be picked
         // up by the engine.
+        $r->register($initial('animation-name', new Keyword('none')));
+        $r->register($initial('animation-duration', new Keyword('auto')));
+        $r->register($initial('animation-timing-function', new Keyword('ease')));
+        $r->register($initial('animation-delay', new Keyword('0s')));
+        $r->register($initial('animation-iteration-count', new Number(1)));
+        $r->register($initial('animation-direction', new Keyword('normal')));
+        $r->register($initial('animation-fill-mode', new Keyword('none')));
+        $r->register($initial('animation-play-state', new Keyword('running')));
         $r->register($initial('animation-composition', new Keyword('replace')));
         $r->register($initial('animation-range', new Keyword('normal')));
         $r->register($initial('animation-range-start', new Keyword('normal')));
         $r->register($initial('animation-range-end', new Keyword('normal')));
+
+        // CSS Transitions 1 + 2 — five per-property longhands. The
+        // shorthand `transition` parses into these via the
+        // ShorthandExpander; the renderer reads `transition-property`
+        // to know which longhands receive the interpolation
+        // treatment under `Pdf::renderAnimationsAt(t)`.
+        $r->register($initial('transition-property', new Keyword('all')));
+        $r->register($initial('transition-duration', new Keyword('0s')));
+        $r->register($initial('transition-timing-function', new Keyword('ease')));
+        $r->register($initial('transition-delay', new Keyword('0s')));
+        // CSS Transitions 2 §3 — transition-behavior controls whether
+        // discrete property changes (e.g. `display`) interpolate or
+        // jump. `normal` = jump (legacy), `allow-discrete` = animate.
+        $r->register($initial('transition-behavior', new Keyword('normal')));
 
         // CSS Compositing 1 §4 — background-blend-mode. Painter
         // honours PDF-native blend modes; non-native modes require

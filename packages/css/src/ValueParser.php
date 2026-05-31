@@ -88,6 +88,8 @@ use Phpdftk\Css\Value\StringFunction;
 use Phpdftk\Css\Value\StringValue;
 use Phpdftk\Css\Value\TargetFunction;
 use Phpdftk\Css\Value\TargetFunctionKind;
+use Phpdftk\Css\Value\Time;
+use Phpdftk\Css\Value\TimeUnit;
 use Phpdftk\Css\Value\Transform;
 use Phpdftk\Css\Value\TransformFunction;
 use Phpdftk\Css\Value\TranslateTransform;
@@ -204,6 +206,10 @@ final class ValueParser
             $angleUnit = AngleUnit::tryFrom($unit);
             if ($angleUnit !== null) {
                 return new Angle($head->value, $angleUnit);
+            }
+            $timeUnit = TimeUnit::tryFrom($unit);
+            if ($timeUnit !== null) {
+                return new Time($head->value, $timeUnit);
             }
             // Unknown unit — fall back to a CssFunction representation so the
             // value survives round-trip without being silently dropped.

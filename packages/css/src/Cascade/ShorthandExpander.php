@@ -93,6 +93,8 @@ final class ShorthandExpander
             'place-items' => $this->expandPlaceShorthand($value, 'align-items', 'justify-items'),
             'place-content' => $this->expandPlaceShorthand($value, 'align-content', 'justify-content'),
             'place-self' => $this->expandPlaceShorthand($value, 'align-self', 'justify-self'),
+            'transition' => $this->expandTransition($value),
+            'animation' => $this->expandAnimation($value),
             default => [$property => $value],
         };
     }
@@ -1007,6 +1009,219 @@ final class ShorthandExpander
                 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large',
                 'larger', 'smaller',
             ], true);
+        }
+        return false;
+    }
+
+    /**
+     * CSS Transitions 1 §3.2 — `transition` is per-property:
+     *
+     *   transition: <property> <duration> <timing-function> <delay>
+     *
+     * Components may appear in any order. The first time-valued
+     * component sets `transition-duration`, the second sets
+     * `transition-delay`; any easing keyword/function sets
+     * `transition-timing-function`; any non-time, non-easing
+     * non-keyword ident sets `transition-property` (or `all` as
+     * default). Multiple comma-separated layers are supported —
+     * each layer's longhands form a comma-joined list per spec.
+     *
+     * @return array<string, Value>
+     */
+    private function expandTransition(Value $value): array
+    {
+        $layers = $this->toCommaLayers($value);
+        $properties = [];
+        $durations = [];
+        $timings = [];
+        $delays = [];
+        foreach ($layers as $layer) {
+            $components = $this->toComponents($layer);
+            $property = null;
+            $duration = null;
+            $timing = null;
+            $delay = null;
+            foreach ($components as $c) {
+                if ($c instanceof \Phpdftk\Css\Value\Time) {
+                    if ($duration === null) {
+                        $duration = $c;
+                    } elseif ($delay === null) {
+                        $delay = $c;
+                    }
+                    continue;
+                }
+                if ($this->isEasingValue($c)) {
+                    $timing ??= $c;
+                    continue;
+                }
+                if ($c instanceof Keyword) {
+                    $property ??= $c;
+                }
+            }
+            $properties[] = $property ?? new Keyword('all');
+            $durations[] = $duration ?? new Keyword('0s');
+            $timings[] = $timing ?? new Keyword('ease');
+            $delays[] = $delay ?? new Keyword('0s');
+        }
+        return [
+            'transition-property' => $this->joinComma($properties),
+            'transition-duration' => $this->joinComma($durations),
+            'transition-timing-function' => $this->joinComma($timings),
+            'transition-delay' => $this->joinComma($delays),
+        ];
+    }
+
+    /**
+     * CSS Animations 1 §4.10 — `animation` is per-instance:
+     *
+     *   animation: <duration> <timing-function> <delay>
+     *              <iteration-count> <direction> <fill-mode>
+     *              <play-state> <name>
+     *
+     * Same any-order policy as `transition`: first time → duration,
+     * second time → delay, easing → timing-function, number →
+     * iteration-count, recognised keywords → direction / fill-mode /
+     * play-state, remaining ident → name. Multi-layer (comma)
+     * support.
+     *
+     * @return array<string, Value>
+     */
+    private function expandAnimation(Value $value): array
+    {
+        $layers = $this->toCommaLayers($value);
+        $names = [];
+        $durations = [];
+        $timings = [];
+        $delays = [];
+        $iterations = [];
+        $directions = [];
+        $fillModes = [];
+        $playStates = [];
+        $directionKw = ['normal', 'reverse', 'alternate', 'alternate-reverse'];
+        $fillModeKw = ['none', 'forwards', 'backwards', 'both'];
+        $playStateKw = ['running', 'paused'];
+        foreach ($layers as $layer) {
+            $components = $this->toComponents($layer);
+            $name = null;
+            $duration = null;
+            $timing = null;
+            $delay = null;
+            $iter = null;
+            $direction = null;
+            $fillMode = null;
+            $playState = null;
+            foreach ($components as $c) {
+                if ($c instanceof \Phpdftk\Css\Value\Time) {
+                    if ($duration === null) {
+                        $duration = $c;
+                    } elseif ($delay === null) {
+                        $delay = $c;
+                    }
+                    continue;
+                }
+                if ($c instanceof \Phpdftk\Css\Value\Number
+                    || $c instanceof \Phpdftk\Css\Value\Integer
+                ) {
+                    $iter ??= $c;
+                    continue;
+                }
+                if ($c instanceof Keyword && strtolower($c->name) === 'infinite') {
+                    $iter ??= $c;
+                    continue;
+                }
+                if ($this->isEasingValue($c)) {
+                    $timing ??= $c;
+                    continue;
+                }
+                if ($c instanceof Keyword) {
+                    $lc = strtolower($c->name);
+                    if ($direction === null && in_array($lc, $directionKw, true)) {
+                        $direction = $c;
+                        continue;
+                    }
+                    if ($fillMode === null && in_array($lc, $fillModeKw, true)) {
+                        $fillMode = $c;
+                        continue;
+                    }
+                    if ($playState === null && in_array($lc, $playStateKw, true)) {
+                        $playState = $c;
+                        continue;
+                    }
+                    $name ??= $c;
+                }
+            }
+            $names[] = $name ?? new Keyword('none');
+            $durations[] = $duration ?? new Keyword('0s');
+            $timings[] = $timing ?? new Keyword('ease');
+            $delays[] = $delay ?? new Keyword('0s');
+            $iterations[] = $iter ?? new \Phpdftk\Css\Value\Number(1);
+            $directions[] = $direction ?? new Keyword('normal');
+            $fillModes[] = $fillMode ?? new Keyword('none');
+            $playStates[] = $playState ?? new Keyword('running');
+        }
+        return [
+            'animation-name' => $this->joinComma($names),
+            'animation-duration' => $this->joinComma($durations),
+            'animation-timing-function' => $this->joinComma($timings),
+            'animation-delay' => $this->joinComma($delays),
+            'animation-iteration-count' => $this->joinComma($iterations),
+            'animation-direction' => $this->joinComma($directions),
+            'animation-fill-mode' => $this->joinComma($fillModes),
+            'animation-play-state' => $this->joinComma($playStates),
+        ];
+    }
+
+    /**
+     * Split a top-level comma list into per-layer values. A single
+     * non-list value yields one layer.
+     *
+     * @return list<Value>
+     */
+    private function toCommaLayers(Value $value): array
+    {
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Comma
+        ) {
+            return $value->values;
+        }
+        return [$value];
+    }
+
+    /**
+     * Join a list of per-layer longhand values into a comma-
+     * separated ValueList (or pass through the single value).
+     *
+     * @param list<Value> $values
+     */
+    private function joinComma(array $values): Value
+    {
+        if (count($values) === 1) {
+            return $values[0];
+        }
+        return new \Phpdftk\Css\Value\ValueList(
+            $values,
+            \Phpdftk\Css\Value\ListSeparator::Comma,
+        );
+    }
+
+    /**
+     * Recognise easing forms — both the named keywords and the
+     * typed function-value classes that the value parser lifts
+     * from cubic-bezier() / steps() / linear().
+     */
+    private function isEasingValue(Value $v): bool
+    {
+        if ($v instanceof Keyword) {
+            return in_array(strtolower($v->name), [
+                'linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out',
+                'step-start', 'step-end',
+            ], true);
+        }
+        if ($v instanceof \Phpdftk\Css\Value\CubicBezier
+            || $v instanceof \Phpdftk\Css\Value\StepsEasing
+            || $v instanceof \Phpdftk\Css\Value\LinearEasing
+        ) {
+            return true;
         }
         return false;
     }
