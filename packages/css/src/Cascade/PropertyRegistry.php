@@ -417,6 +417,17 @@ final class PropertyRegistry
         $r->register($initial('position-anchor', new Keyword('auto')));
         $r->register($initial('position-area', new Keyword('none')));
         $r->register($initial('inset-area', new Keyword('none')));  // legacy name; aliased to position-area
+        // CSS Anchor Positioning 1 §8 — position-try family.
+        // `position-try-fallbacks` lists fallback positions to try
+        // when the primary overflows; `position-try-order` picks the
+        // sort order. The `position-try` shorthand sets both at once.
+        $r->register($initial('position-try', new Keyword('normal')));
+        $r->register($initial('position-try-fallbacks', new Keyword('none')));
+        $r->register($initial('position-try-order', new Keyword('normal')));
+        // CSS Anchor Positioning 1 §10 — position-visibility controls
+        // when an absolutely-positioned element is hidden because its
+        // anchor isn't visible / overflows.
+        $r->register($initial('position-visibility', new Keyword('always')));
 
         // CSS Cascade 5 §3.2 — `all` is a meta property that
         // resets every non-custom property to a given keyword

@@ -522,4 +522,28 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('fade', $names->values[0]->name);
         self::assertSame('slide', $names->values[1]->name);
     }
+
+    public function testPositionTryDefaultsOrderToNormal(): void
+    {
+        $out = $this->expander->expand('position-try', $this->value('--fallback-a'));
+        self::assertSame('normal', $out['position-try-order']->name);
+        self::assertSame('--fallback-a', $out['position-try-fallbacks']->name);
+    }
+
+    public function testPositionTryWithOrderKeyword(): void
+    {
+        $out = $this->expander->expand('position-try', $this->value('most-width --fb'));
+        self::assertSame('most-width', $out['position-try-order']->name);
+        self::assertSame('--fb', $out['position-try-fallbacks']->name);
+    }
+
+    public function testPositionTryMultiFallbacksJoinAsComma(): void
+    {
+        $out = $this->expander->expand('position-try', $this->value('--a --b --c'));
+        self::assertSame('normal', $out['position-try-order']->name);
+        $fb = $out['position-try-fallbacks'];
+        self::assertInstanceOf(\Phpdftk\Css\Value\ValueList::class, $fb);
+        self::assertCount(3, $fb->values);
+        self::assertSame('--a', $fb->values[0]->name);
+    }
 }

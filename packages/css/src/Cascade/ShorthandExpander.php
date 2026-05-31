@@ -95,6 +95,7 @@ final class ShorthandExpander
             'place-self' => $this->expandPlaceShorthand($value, 'align-self', 'justify-self'),
             'transition' => $this->expandTransition($value),
             'animation' => $this->expandAnimation($value),
+            'position-try' => $this->expandPositionTry($value),
             default => [$property => $value],
         };
     }
@@ -997,6 +998,52 @@ final class ShorthandExpander
             $out['column-rule-color'] = $color;
         }
         return $out;
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §8 — `position-try` shorthand for
+     * `position-try-order` + `position-try-fallbacks`. Two-form
+     * grammar:
+     *
+     *   - Single value (no order keyword): all components feed the
+     *     fallbacks list; order defaults to `normal`.
+     *   - Leading order keyword (`normal | most-width | most-height
+     *     | most-block-size | most-inline-size`) sets the order
+     *     before the rest of the components feed the fallbacks list.
+     *
+     * @return array<string, Value>
+     */
+    private function expandPositionTry(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $orderKeywords = [
+            'normal', 'most-width', 'most-height',
+            'most-block-size', 'most-inline-size',
+        ];
+        $order = new Keyword('normal');
+        $fallbackComponents = $components;
+        $head = $components[0];
+        if ($head instanceof Keyword
+            && in_array(strtolower($head->name), $orderKeywords, true)
+        ) {
+            $order = $head;
+            $fallbackComponents = array_slice($components, 1);
+        }
+        $fallbacks = match (count($fallbackComponents)) {
+            0 => new Keyword('none'),
+            1 => $fallbackComponents[0],
+            default => new \Phpdftk\Css\Value\ValueList(
+                $fallbackComponents,
+                \Phpdftk\Css\Value\ListSeparator::Comma,
+            ),
+        };
+        return [
+            'position-try-order' => $order,
+            'position-try-fallbacks' => $fallbacks,
+        ];
     }
 
     private function looksLikeFontSize(Value $v): bool
