@@ -43,6 +43,17 @@ final class BoxGenerator
      */
     private array $counters = [];
 
+    /**
+     * CSS Generated Content for Paged Media 3 §5 — named-string
+     * store populated as `string-set` declarations flow through
+     * the document. Keyed by the string name (the first arg of
+     * `string-set: <name> <value>`), value is the resolved string.
+     * Page-margin painting reads this via {@see getNamedStrings}.
+     *
+     * @var array<string, string>
+     */
+    private array $namedStrings = [];
+
     public function __construct(
         private readonly Cascade $cascade = new Cascade(),
         /**
@@ -68,7 +79,21 @@ final class BoxGenerator
             return null;
         }
         $this->counters = [];
+        $this->namedStrings = [];
         return $this->buildElementBox($root, $sheets, null);
+    }
+
+    /**
+     * Snapshot of the named-string store accumulated during the
+     * last {@see generate} run. Used by the page-margin painter
+     * to resolve `content: string(name)` references in @page
+     * margin boxes.
+     *
+     * @return array<string, string>
+     */
+    public function getNamedStrings(): array
+    {
+        return $this->namedStrings;
     }
 
     /** @param list<Stylesheet> $sheets */
@@ -97,6 +122,7 @@ final class BoxGenerator
         $this->applyCounterReset($values);
         $this->applyCounterSet($values);
         $this->applyCounterIncrement($values);
+        $this->applyStringSet($element, $values);
 
         // HTML `<br>` produces a sentinel line-break box — a hard break
         // inside the parent inline formatting context that survives
@@ -735,6 +761,110 @@ final class BoxGenerator
         $this->forEachCounterPair($value, function (string $name, int $defaultOrSpecified): void {
             $this->counters[$name] = $defaultOrSpecified;
         }, defaultValue: 0);
+    }
+
+    /**
+     * Apply `string-set: <name> <content-list>` declarations — set
+     * the named string value to a resolved content list. Used by
+     * GCPM 3 §5 for running headers / footers.
+     *
+     * Supported `<content-list>` items for the initial pass:
+     *
+     *   - `<string>` literal       → emit literally
+     *   - `content()`              → emit the element's text content
+     *   - `attr(name)`             → emit the named attribute value
+     *
+     * Multiple `string-set` pairs may appear in a comma-separated
+     * list; each pair is processed independently. Unsupported
+     * content-list items are silently skipped so an unrecognised
+     * form doesn't corrupt the rest of the assignment.
+     */
+    private function applyStringSet(Element $element, CascadedValues $values): void
+    {
+        $value = $values->get('string-set');
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'none')
+        ) {
+            return;
+        }
+        $groups = $this->splitStringSetGroups($value);
+        foreach ($groups as $group) {
+            if (count($group) < 2) {
+                continue;
+            }
+            $head = $group[0];
+            if (!($head instanceof Keyword)) {
+                continue;
+            }
+            $name = $head->name;
+            $resolved = '';
+            for ($i = 1; $i < count($group); $i++) {
+                $resolved .= $this->resolveStringSetPart($group[$i], $element);
+            }
+            $this->namedStrings[$name] = $resolved;
+        }
+    }
+
+    /**
+     * Split the `string-set` value into the per-name groups —
+     * `string-set: a "x", b "y"` becomes `[[Kw(a), "x"], [Kw(b), "y"]]`.
+     * Each group is a name followed by a content list. Top-level
+     * commas are separators between groups; everything else is
+     * part of the current group.
+     *
+     * @return list<list<\Phpdftk\Css\Value\Value>>
+     */
+    private function splitStringSetGroups(\Phpdftk\Css\Value\Value $value): array
+    {
+        if (!($value instanceof \Phpdftk\Css\Value\ValueList)) {
+            return [[$value]];
+        }
+        if ($value->separator === \Phpdftk\Css\Value\ListSeparator::Comma) {
+            $out = [];
+            foreach ($value->values as $item) {
+                $out[] = $item instanceof \Phpdftk\Css\Value\ValueList
+                    && $item->separator === \Phpdftk\Css\Value\ListSeparator::Space
+                        ? $item->values
+                        : [$item];
+            }
+            return $out;
+        }
+        return [$value->values];
+    }
+
+    private function resolveStringSetPart(\Phpdftk\Css\Value\Value $value, Element $host): string
+    {
+        if ($value instanceof \Phpdftk\Css\Value\StringValue) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\CssFunction
+            && strtolower($value->name) === 'content'
+        ) {
+            // CSS GCPM 3 §5.1 — `content()` reads the host element's
+            // text content. Arguments select sub-text (text, before,
+            // after, first-letter); only the default form is honoured
+            // here for now.
+            return $host->textContent();
+        }
+        if ($value instanceof \Phpdftk\Css\Value\AttrFunction) {
+            $name = $value->attributeName;
+            if ($name === '') {
+                return '';
+            }
+            return $host->getAttribute($name) ?? '';
+        }
+        if ($value instanceof \Phpdftk\Css\Value\CssFunction
+            && strtolower($value->name) === 'attr'
+            && $value->arguments !== []
+        ) {
+            $arg = $value->arguments[0];
+            $name = $arg instanceof Keyword ? $arg->name : null;
+            if ($name === null || $name === '') {
+                return '';
+            }
+            return $host->getAttribute($name) ?? '';
+        }
+        return '';
     }
 
     /**

@@ -262,14 +262,16 @@ final class Translator
      *   4. Drop the SMask in an `ExtGState`, register, and attach to
      *      the page's resources under a stable name.
      *
-     * Scope at 3R+8:
+     * Implemented:
      *
      *   - `maskContentUnits = objectBoundingBox` applies a bbox `cm`
      *     to the mask content stream so authored coords are in [0, 1].
-     *   - Default mask region is the masked element's bbox. Proper
-     *     SVG 2 §14.5.4 defaults (`-10%` / `120%` extension) and the
-     *     explicit `x` / `y` / `width` / `height` attributes are
-     *     deferred to a follow-up.
+     *   - SVG 2 §14.5.4 defaults are honoured: bbox-mode defaults
+     *     `(-10%, -10%, 120%, 120%)` so the mask reaches a hair
+     *     beyond the painted geometry; userspace-mode defaults to
+     *     the masked element's own bbox.
+     *   - Explicit `x` / `y` / `width` / `height` attributes on
+     *     the `<mask>` element override the defaults.
      */
     private function resolveMaskState(Element $element): ?string
     {

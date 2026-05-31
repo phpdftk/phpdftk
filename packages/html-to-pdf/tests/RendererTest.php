@@ -1459,6 +1459,30 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~0\.8 0 0 rg~', $bytes, 'author color honoured');
     }
 
+    public function testPageMarginBoxesResolveStringFunction(): void
+    {
+        // CSS Generated Content for Paged Media 3 §5 — `string-set` on
+        // an element assigns a named string; `string(name)` in a page
+        // margin box emits the current value.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'h1 { string-set: chapter content(); }'
+            . '@page { @top-center { content: string(chapter); } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><h1>Chapter Title</h1><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The string value sits in the top margin band at Y 774.
+        self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
+    }
+
     public function testBodyBackgroundLinearGradientPaintsShadingPattern(): void
     {
         // `body { background-image: linear-gradient(...) }` should produce

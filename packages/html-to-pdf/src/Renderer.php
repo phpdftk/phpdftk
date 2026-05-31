@@ -116,6 +116,10 @@ final class Renderer
         // from `body { margin }` so existing fixtures stay stable.
         $pageMargins = $this->resolvePageMargins($sheets);
         $root = $this->boxGenerator->generate($document, $sheets);
+        // CSS GCPM 3 §5 — capture the named-string store populated
+        // during box generation. Page-margin painting reads it to
+        // resolve `content: string(name)` references.
+        $namedStrings = $this->boxGenerator->getNamedStrings();
         if ($root === null) {
             $warnings[] = new Warning(
                 WarningCode::UnsupportedDisplayType,
@@ -342,6 +346,7 @@ final class Renderer
                         marginRight: $pageMargins['right'],
                         marginBottom: $pageMargins['bottom'],
                         marginLeft: $pageMargins['left'],
+                        namedStrings: $namedStrings,
                     );
                 }
             }
@@ -2130,6 +2135,20 @@ final class Renderer
         foreach ($items as $item) {
             if ($item instanceof \Phpdftk\Css\Value\StringValue) {
                 $parts[] = ['kind' => 'literal', 'value' => $item->value];
+            } elseif ($item instanceof \Phpdftk\Css\Value\StringFunction) {
+                // GCPM 3 §5.2 — string(<name> [, <target>]?). Resolved
+                // against the document's named-string store at paint
+                // time. Renderer-side store population is the next
+                // deliverable; for now resolution returns the empty
+                // string, so the part survives shaping with no
+                // visible output but keeps the surrounding literal
+                // parts intact.
+                $parts[] = [
+                    'kind' => 'namedstring',
+                    'value' => '',
+                    'name' => $item->name,
+                    'target' => $item->target,
+                ];
             } elseif ($item instanceof \Phpdftk\Css\Value\CssFunction
                 && strtolower($item->name) === 'counter'
                 && $item->arguments !== []
@@ -2193,7 +2212,7 @@ final class Renderer
      * mini-layout (follow-up).
      *
      * @param array<string, array{
-     *     parts: list<array{kind: string, value: string}>,
+     *     parts: list<array{kind: string, value: string, style?: string, name?: string, target?: string}>,
      *     fontSize: float,
      *     color: \Phpdftk\Css\Value\Color,
      *     textAlign: ?string,
@@ -2202,6 +2221,9 @@ final class Renderer
      *     fontStyle: string,
      * }> $boxes
      * @param array<string, \Phpdftk\Pdf\Core\Font\RegisteredFont> $registeredMap
+     * @param array<string, string> $namedStrings  GCPM 3 §5 named-string
+     *     store accumulated during box generation; resolves
+     *     `content: string(name)` parts in page margin boxes.
      */
     private function paintPageMarginBoxes(
         \Phpdftk\Pdf\Core\Content\ContentStream $stream,
@@ -2218,6 +2240,7 @@ final class Renderer
         float $marginRight = 36.0,
         float $marginBottom = 36.0,
         float $marginLeft = 36.0,
+        array $namedStrings = [],
     ): void {
         $shaper = new \Phpdftk\Text\Shaper();
         foreach ($boxes as $position => $spec) {
@@ -2237,6 +2260,8 @@ final class Renderer
                         $pageCount,
                         $part['style'] ?? 'decimal',
                     );
+                } elseif ($part['kind'] === 'namedstring') {
+                    $text .= $namedStrings[$part['name']] ?? '';
                 } else {
                     $text .= $part['value'];
                 }
