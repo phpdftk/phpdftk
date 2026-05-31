@@ -714,6 +714,7 @@ final class ShorthandExpander
         $lineParts = [];
         $style = null;
         $color = null;
+        $thickness = null;
         foreach ($components as $c) {
             if ($c instanceof Keyword) {
                 $lower = strtolower($c->name);
@@ -725,6 +726,19 @@ final class ShorthandExpander
                     $style = $c;
                     continue;
                 }
+                // CSS Text Decoration 4 §1.5 — `auto` / `from-font`
+                // are the named thickness forms.
+                if ($thickness === null && in_array($lower, ['auto', 'from-font'], true)) {
+                    $thickness = $c;
+                    continue;
+                }
+            }
+            // Length / Percentage at this slot are thickness values
+            // per §1.5; the only other place a Length appears in the
+            // shorthand is the color slot, which Length isn't.
+            if ($thickness === null && ($c instanceof Length || $c instanceof Percentage)) {
+                $thickness = $c;
+                continue;
             }
             if ($this->looksLikeColor($c)) {
                 $color = $c;
@@ -741,6 +755,9 @@ final class ShorthandExpander
         }
         if ($color !== null) {
             $out['text-decoration-color'] = $color;
+        }
+        if ($thickness !== null) {
+            $out['text-decoration-thickness'] = $thickness;
         }
         return $out;
     }

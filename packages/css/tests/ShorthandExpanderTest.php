@@ -286,6 +286,20 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-decoration-color']);
     }
 
+    public function testTextDecorationWithThicknessLength(): void
+    {
+        $out = $this->expander->expand('text-decoration', $this->value('underline 2px'));
+        self::assertArrayHasKey('text-decoration-thickness', $out);
+        self::assertInstanceOf(Length::class, $out['text-decoration-thickness']);
+        self::assertSame(2.0, $out['text-decoration-thickness']->value);
+    }
+
+    public function testTextDecorationWithThicknessKeyword(): void
+    {
+        $out = $this->expander->expand('text-decoration', $this->value('underline from-font'));
+        self::assertSame('from-font', $out['text-decoration-thickness']->name);
+    }
+
     public function testColumnsShorthandSplitsWidthAndCount(): void
     {
         $out = $this->expander->expand('columns', $this->value('200px 3'));
