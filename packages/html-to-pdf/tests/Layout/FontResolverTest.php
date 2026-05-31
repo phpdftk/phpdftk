@@ -140,4 +140,47 @@ final class FontResolverTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         new FontFace($data, style: 'condensed');
     }
+
+    public function testFontFaceRejectsOutOfRangeStretch(): void
+    {
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $data = (new OpenTypeParser($fontPath))->parse();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('~50-200~');
+        new FontFace($data, stretch: 400.0);
+    }
+
+    public function testResolveMatchPicksClosestStretch(): void
+    {
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $data = (new OpenTypeParser($fontPath))->parse();
+        // Same family, three stretch variants — all 400-normal but
+        // different stretches. The matcher should pick the one
+        // whose stretch is closest to the request.
+        $faceMap = [
+            'flex' => [
+                new FontFace($data, 400, 'normal', 75.0),   // condensed
+                new FontFace($data, 400, 'normal', 100.0),  // normal
+                new FontFace($data, 400, 'normal', 125.0),  // expanded
+            ],
+        ];
+        $resolver = new FontResolver(
+            fontMap: [],
+            defaultFont: null,
+            faceMap: $faceMap,
+        );
+        $request = new Keyword('flex');
+        $match = $resolver->resolveMatch($request, 400, 'normal', stretch: 70.0);
+        self::assertNotNull($match);
+        self::assertSame(75.0, $match->face->stretch);
+        $match = $resolver->resolveMatch($request, 400, 'normal', stretch: 140.0);
+        self::assertNotNull($match);
+        self::assertSame(125.0, $match->face->stretch);
+    }
 }

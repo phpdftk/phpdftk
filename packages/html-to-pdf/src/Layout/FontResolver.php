@@ -51,8 +51,9 @@ final readonly class FontResolver
         ?Value $fontFamily,
         int $weight = 400,
         string $style = 'normal',
+        float $stretch = 100.0,
     ): ?OpenTypeData {
-        $match = $this->resolveMatch($fontFamily, $weight, $style);
+        $match = $this->resolveMatch($fontFamily, $weight, $style, $stretch);
         return $match?->face->data ?? $this->defaultFont;
     }
 
@@ -66,6 +67,7 @@ final readonly class FontResolver
         ?Value $fontFamily,
         int $weight = 400,
         string $style = 'normal',
+        float $stretch = 100.0,
     ): ?FontMatch {
         if ($fontFamily === null) {
             return null;
@@ -74,7 +76,7 @@ final readonly class FontResolver
         foreach ($this->iterateFamilies($fontFamily) as $name) {
             $key = strtolower($name);
             if (isset($this->faceMap[$key]) && $this->faceMap[$key] !== []) {
-                $best = $this->pickFace($this->faceMap[$key], $weight, $lcStyle);
+                $best = $this->pickFace($this->faceMap[$key], $weight, $lcStyle, $stretch);
                 return new FontMatch(
                     face: $best,
                     matchesWeight: $this->weightSatisfies($best->weight, $weight),
@@ -82,7 +84,7 @@ final readonly class FontResolver
                 );
             }
             if (isset($this->fontMap[$key])) {
-                // Single-face fallback — treat as 400-normal.
+                // Single-face fallback — treat as 400-normal-100%.
                 $synthetic = new FontFace($this->fontMap[$key], 400, 'normal');
                 return new FontMatch(
                     face: $synthetic,
@@ -103,8 +105,12 @@ final readonly class FontResolver
      *
      * @param list<FontFace> $faces
      */
-    private function pickFace(array $faces, int $weight, string $style): FontFace
+    private function pickFace(array $faces, int $weight, string $style, float $stretch = 100.0): FontFace
     {
+        // CSS Fonts 4 §6 — match order: stretch → style → weight.
+        // Bucket by closest stretch first; if multiple faces share
+        // the same minimum delta keep them all in the bucket.
+        $faces = $this->filterByClosestStretch($faces, $stretch);
         // Style buckets: prefer exact match. For 'italic' request, fall
         // back order is italic > oblique > normal; for 'oblique', oblique
         // > italic > normal; for 'normal', normal > oblique > italic.
@@ -126,6 +132,33 @@ final readonly class FontResolver
         // bucket matched (impossible since FontFace::style is normalised
         // to one of three values). Return the first.
         return $faces[0];
+    }
+
+    /**
+     * CSS Fonts 4 §6.5 — pick the face(s) whose stretch is closest to
+     * the requested value. Ties (multiple faces equidistant) keep
+     * everything; the style/weight matching cascade narrows from
+     * there. Empty input returns empty.
+     *
+     * @param list<FontFace> $faces
+     * @return list<FontFace>
+     */
+    private function filterByClosestStretch(array $faces, float $target): array
+    {
+        if ($faces === []) {
+            return [];
+        }
+        $best = INF;
+        foreach ($faces as $f) {
+            $d = abs($f->stretch - $target);
+            if ($d < $best) {
+                $best = $d;
+            }
+        }
+        return array_values(array_filter(
+            $faces,
+            static fn(FontFace $f): bool => abs($f->stretch - $target) === $best,
+        ));
     }
 
     /**
