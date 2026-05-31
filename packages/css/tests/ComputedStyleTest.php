@@ -280,6 +280,39 @@ final class ComputedStyleTest extends TestCase
         self::assertSame(7.5, $this->style->getBorderTopWidth()->value);
     }
 
+    public function testColorMixInSrgbResolvesAtComputedTime(): void
+    {
+        // 50/50 mix of red and blue in sRGB → (0.5, 0.0, 0.5).
+        $mix = new \Phpdftk\Css\Value\ColorMix(
+            space: \Phpdftk\Css\Value\ColorSpace::sRGB,
+            color1: new Color(1.0, 0.0, 0.0, 1.0),
+            percentage1: 50.0,
+            color2: new Color(0.0, 0.0, 1.0, 1.0),
+            percentage2: 50.0,
+        );
+        $this->values->set('color', $mix);
+        $c = $this->style->getColor();
+        self::assertEqualsWithDelta(0.5, $c->r, 1e-6);
+        self::assertSame(0.0, $c->g);
+        self::assertEqualsWithDelta(0.5, $c->b, 1e-6);
+    }
+
+    public function testColorMixWithWeightedPercentages(): void
+    {
+        // 25/75 mix favours the second color.
+        $mix = new \Phpdftk\Css\Value\ColorMix(
+            space: \Phpdftk\Css\Value\ColorSpace::sRGB,
+            color1: new Color(1.0, 0.0, 0.0, 1.0),
+            percentage1: 25.0,
+            color2: new Color(0.0, 0.0, 1.0, 1.0),
+            percentage2: 75.0,
+        );
+        $this->values->set('color', $mix);
+        $c = $this->style->getColor();
+        self::assertEqualsWithDelta(0.25, $c->r, 1e-6);
+        self::assertEqualsWithDelta(0.75, $c->b, 1e-6);
+    }
+
     public function testLightDarkStaysLightWhenBothListed(): void
     {
         $light = new Color(1.0, 1.0, 1.0, 1.0);
