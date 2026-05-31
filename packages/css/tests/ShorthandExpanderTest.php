@@ -580,6 +580,28 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('content-box', $out['mask-clip']->name);
     }
 
+    public function testBorderImageSourceAndRepeat(): void
+    {
+        $out = $this->expander->expand('border-image', $this->value('url(b.png) round'));
+        self::assertInstanceOf(\Phpdftk\Css\Value\Url::class, $out['border-image-source']);
+        self::assertSame('round', $out['border-image-repeat']->name);
+    }
+
+    public function testBorderImageSliceWidth(): void
+    {
+        $out = $this->expander->expand('border-image', $this->value('url(b.png) 25 / 1'));
+        self::assertArrayHasKey('border-image-slice', $out);
+        self::assertArrayHasKey('border-image-width', $out);
+    }
+
+    public function testBorderImageTwoRepeatKeywords(): void
+    {
+        $out = $this->expander->expand('border-image', $this->value('url(b.png) round stretch'));
+        $r = $out['border-image-repeat'];
+        self::assertInstanceOf(\Phpdftk\Css\Value\ValueList::class, $r);
+        self::assertCount(2, $r->values);
+    }
+
     public function testCascadeAppliesTransitionShorthand(): void
     {
         $sheet = $this->parser->parseStylesheet(

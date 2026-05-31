@@ -99,6 +99,7 @@ final class ShorthandExpander
             'position-try' => $this->expandPositionTry($value),
             'text-emphasis' => $this->expandTextEmphasis($value),
             'mask' => $this->expandMask($value),
+            'border-image' => $this->expandBorderImage($value),
             default => [$property => $value],
         };
     }
@@ -1183,6 +1184,109 @@ final class ShorthandExpander
             'mask-composite' => $this->joinComma($composites),
             'mask-mode' => $this->joinComma($modes),
         ];
+    }
+
+    /**
+     * CSS Backgrounds 3 §6.1 — `border-image` shorthand. Per the
+     * spec:
+     *
+     *   border-image: <source> || <slice> [/ <width> | / <width>?
+     *                 / <outset>]? || <repeat>
+     *
+     * Picks out the typed image source first, the repeat keyword(s)
+     * (1 or 2 of stretch | repeat | round | space), and the
+     * slash-split <slice> / <width> / <outset> chain. The slice /
+     * width / outset components may each be 1-4 numbers, a single
+     * value, or `fill` (slice only).
+     *
+     * @return array<string, Value>
+     */
+    private function expandBorderImage(Value $value): array
+    {
+        $repeatKw = ['stretch', 'repeat', 'round', 'space'];
+        // The shorthand uses `/` to separate slice / width / outset
+        // chunks. Authors usually write them on a single layer (no
+        // top-level commas), so flatten to a flat component list and
+        // then peel slash groups.
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $source = null;
+        $repeats = [];
+        $slashChunks = [[]];
+        foreach ($components as $c) {
+            if ($source === null && $this->looksLikeMaskImage($c)) {
+                $source = $c;
+                continue;
+            }
+            if ($c instanceof Keyword
+                && in_array(strtolower($c->name), $repeatKw, true)
+            ) {
+                $repeats[] = $c;
+                continue;
+            }
+            $slashChunks[count($slashChunks) - 1][] = $c;
+        }
+        // If the input was a ValueList(Slash), explode it.
+        if ($value instanceof ValueList && $value->separator === ListSeparator::Slash) {
+            $slashChunks = array_map(
+                fn(Value $g) => $g instanceof ValueList && $g->separator === ListSeparator::Space
+                    ? $g->values
+                    : [$g],
+                $value->values,
+            );
+            // Re-scan first chunk for source / repeats so they don't
+            // pollute the slice list.
+            $reScanned = [];
+            foreach ($slashChunks[0] ?? [] as $c) {
+                if ($source === null && $this->looksLikeMaskImage($c)) {
+                    $source = $c;
+                    continue;
+                }
+                if ($c instanceof Keyword
+                    && in_array(strtolower($c->name), $repeatKw, true)
+                ) {
+                    $repeats[] = $c;
+                    continue;
+                }
+                $reScanned[] = $c;
+            }
+            $slashChunks[0] = $reScanned;
+        }
+        $out = [];
+        if ($source !== null) {
+            $out['border-image-source'] = $source;
+        }
+        if ($slashChunks[0] !== []) {
+            $out['border-image-slice'] = $this->joinSpace($slashChunks[0]);
+        }
+        if (isset($slashChunks[1]) && $slashChunks[1] !== []) {
+            $out['border-image-width'] = $this->joinSpace($slashChunks[1]);
+        }
+        if (isset($slashChunks[2]) && $slashChunks[2] !== []) {
+            $out['border-image-outset'] = $this->joinSpace($slashChunks[2]);
+        }
+        if ($repeats !== []) {
+            $out['border-image-repeat'] = count($repeats) === 1
+                ? $repeats[0]
+                : new ValueList($repeats, ListSeparator::Space);
+        }
+        return $out;
+    }
+
+    /**
+     * Join a list of space-separated component values into a single
+     * Value, collapsing the trivial cases.
+     *
+     * @param list<Value> $values
+     */
+    private function joinSpace(array $values): Value
+    {
+        if (count($values) === 1) {
+            return $values[0];
+        }
+        return new ValueList(array_values($values), ListSeparator::Space);
     }
 
     /**
