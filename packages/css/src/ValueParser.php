@@ -56,6 +56,7 @@ use Phpdftk\Css\Value\HueInterpolation;
 use Phpdftk\Css\Value\ColorSpace;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\CustomProperty;
+use Phpdftk\Css\Value\DeviceCmyk;
 use Phpdftk\Css\Value\Gradient;
 use Phpdftk\Css\Value\ConicGradient;
 use Phpdftk\Css\Value\CrossFade;
@@ -339,6 +340,12 @@ final class ValueParser
             $cf = $this->parseCrossFade($tokens);
             if ($cf !== null) {
                 return $cf;
+            }
+        }
+        if ($name === 'device-cmyk') {
+            $dc = $this->parseDeviceCmyk($tokens);
+            if ($dc !== null) {
+                return $dc;
             }
         }
         if ($name === 'linear') {
@@ -728,6 +735,43 @@ final class ValueParser
         if ($current !== []) {
             $groups[] = $current;
         }
+        return $groups;
+    }
+
+    /**
+     * Top-level split on a `/` delim token only — components are
+     * left intact (including their inner whitespace). Used for
+     * grammar fragments like `device-cmyk(<c> <m> <y> <k> / <a>)`
+     * where the slash separates a multi-token primary list from
+     * the alpha tail.
+     *
+     * @param list<Token> $tokens
+     * @return list<list<Token>>
+     */
+    private static function splitOnSlash(array $tokens): array
+    {
+        $groups = [];
+        $current = [];
+        $depth = 0;
+        foreach ($tokens as $t) {
+            if ($t instanceof FunctionToken || $t instanceof LeftParenToken) {
+                $depth++;
+                $current[] = $t;
+                continue;
+            }
+            if ($t instanceof RightParenToken) {
+                $depth--;
+                $current[] = $t;
+                continue;
+            }
+            if ($depth === 0 && $t instanceof DelimToken && $t->value === '/') {
+                $groups[] = $current;
+                $current = [];
+                continue;
+            }
+            $current[] = $t;
+        }
+        $groups[] = $current;
         return $groups;
     }
 
@@ -3148,6 +3192,95 @@ final class ValueParser
             return null;
         }
         return new Keyword($trim[0]->value);
+    }
+
+    // ============================================================
+    // device-cmyk — CSS Color 5 §6
+    // ============================================================
+    /**
+     * Parse `device-cmyk(<c> <m> <y> <k> [/ <alpha>]? [, <rgb-fallback>]?)`.
+     *
+     * Components accept percentages (0%..100%) or numbers (0..1);
+     * both are normalised to the 0..1 storage range. Alpha
+     * defaults to 1. Optional sRGB fallback is the second comma-
+     * group (a color value the engine may use when CMYK isn't
+     * applicable).
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseDeviceCmyk(array $tokens): ?DeviceCmyk
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if (count($groups) < 1 || count($groups) > 2) {
+            return null;
+        }
+        $main = self::trimWhitespace($groups[0]);
+        // Split the main group on top-level `/` for alpha. The
+        // components themselves are space-separated, so the slash
+        // sits at depth-0.
+        $slashGroups = self::splitOnSlash($main);
+        if (count($slashGroups) < 1 || count($slashGroups) > 2) {
+            return null;
+        }
+        $components = self::splitOnWhitespace(self::trimWhitespace($slashGroups[0]));
+        if (count($components) !== 4) {
+            return null;
+        }
+        $cmyk = [];
+        foreach ($components as $group) {
+            $val = $this->parseCmykComponent($group);
+            if ($val === null) {
+                return null;
+            }
+            $cmyk[] = $val;
+        }
+        $alpha = 1.0;
+        if (count($slashGroups) === 2) {
+            $alphaTokens = self::trimWhitespace($slashGroups[1]);
+            if (count($alphaTokens) !== 1) {
+                return null;
+            }
+            $a = $alphaTokens[0];
+            if ($a instanceof PercentageToken) {
+                $alpha = max(0.0, min(1.0, (float) $a->value / 100.0));
+            } elseif ($a instanceof NumberToken) {
+                $alpha = max(0.0, min(1.0, (float) $a->value));
+            } else {
+                return null;
+            }
+        }
+        $fallback = null;
+        if (count($groups) === 2) {
+            $f = $this->parseFromString(self::serializeTokens(self::trimWhitespace($groups[1])));
+            if (!$f instanceof Color) {
+                return null;
+            }
+            $fallback = $f;
+        }
+        return new DeviceCmyk($cmyk[0], $cmyk[1], $cmyk[2], $cmyk[3], $alpha, $fallback);
+    }
+
+    /**
+     * Parse a single CMYK component — accept percentage (0..100%)
+     * or number (0..1). Returns the normalised 0..1 value or null
+     * if the input isn't a single value token.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseCmykComponent(array $tokens): ?float
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if (count($tokens) !== 1) {
+            return null;
+        }
+        $t = $tokens[0];
+        if ($t instanceof PercentageToken) {
+            return max(0.0, min(1.0, (float) $t->value / 100.0));
+        }
+        if ($t instanceof NumberToken) {
+            return max(0.0, min(1.0, (float) $t->value));
+        }
+        return null;
     }
 
     // ============================================================
