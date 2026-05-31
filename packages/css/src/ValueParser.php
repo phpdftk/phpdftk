@@ -60,6 +60,7 @@ use Phpdftk\Css\Value\DeviceCmyk;
 use Phpdftk\Css\Value\ElementFunction;
 use Phpdftk\Css\Value\Gradient;
 use Phpdftk\Css\Value\ConicGradient;
+use Phpdftk\Css\Value\ContrastColor;
 use Phpdftk\Css\Value\CrossFade;
 use Phpdftk\Css\Value\CrossFadeOption;
 use Phpdftk\Css\Value\GradientShape;
@@ -354,6 +355,12 @@ final class ValueParser
             $ld = $this->parseLightDark($tokens);
             if ($ld !== null) {
                 return $ld;
+            }
+        }
+        if ($name === 'contrast-color') {
+            $cc = $this->parseContrastColor($tokens);
+            if ($cc !== null) {
+                return $cc;
             }
         }
         if ($name === 'cross-fade') {
@@ -3371,6 +3378,27 @@ final class ValueParser
             return max(0.0, min(1.0, (float) $t->value));
         }
         return null;
+    }
+
+    // ============================================================
+    // contrast-color — CSS Color 7 §4
+    // ============================================================
+    /**
+     * Parse `contrast-color(<color>)`. Stores the base color
+     * verbatim; the renderer picks the higher-contrast UA color
+     * (baseline: black vs white via relative luminance) at paint
+     * time.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseContrastColor(array $tokens): ?ContrastColor
+    {
+        $trim = self::trimWhitespace($tokens);
+        if ($trim === []) {
+            return null;
+        }
+        $base = $this->parseFromString(self::serializeTokens($trim));
+        return new ContrastColor($base);
     }
 
     // ============================================================

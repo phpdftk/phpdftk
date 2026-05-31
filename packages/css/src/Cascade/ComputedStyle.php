@@ -7,6 +7,7 @@ namespace Phpdftk\Css\Cascade;
 use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\Integer;
+use Phpdftk\Css\Value\ContrastColor;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\LightDark;
@@ -730,14 +731,56 @@ final readonly class ComputedStyle
 
     private function expectColor(string $prop, Color $fallback): Color
     {
-        $v = $this->resolveLightDark($this->values->get($prop));
+        $v = $this->resolveContrastColor($this->resolveLightDark($this->values->get($prop)));
         return $v instanceof Color ? $v : $fallback;
     }
 
     private function expectColorOrKeyword(string $prop, string $keywordFallback): Color|Keyword
     {
-        $v = $this->resolveLightDark($this->values->get($prop));
+        $v = $this->resolveContrastColor($this->resolveLightDark($this->values->get($prop)));
         return $v instanceof Color || $v instanceof Keyword ? $v : new Keyword($keywordFallback);
+    }
+
+    /**
+     * CSS Color 7 §4 — `contrast-color(<color>)`. Resolves to
+     * black or white based on which has higher contrast against
+     * the base color. Computes WCAG 2.x relative luminance and
+     * picks black for the lighter half, white for the darker.
+     *
+     * Non-Color base values (a keyword like `currentcolor`,
+     * a CssFunction the engine can't yet resolve) fall through —
+     * the renderer treats `contrast-color(currentcolor)` as
+     * "currentcolor" rather than throwing.
+     */
+    private function resolveContrastColor(?Value $v): ?Value
+    {
+        if (!$v instanceof ContrastColor) {
+            return $v;
+        }
+        $base = $this->resolveLightDark($v->base);
+        if (!$base instanceof Color) {
+            return $base;
+        }
+        return self::relativeLuminance($base) > 0.5
+            ? new Color(0.0, 0.0, 0.0, 1.0)
+            : new Color(1.0, 1.0, 1.0, 1.0);
+    }
+
+    /**
+     * Compute WCAG 2.x relative luminance of an sRGB Color.
+     * Components linearised per the WCAG formula, then weighted
+     * 0.2126 R + 0.7152 G + 0.0722 B.
+     */
+    private static function relativeLuminance(Color $c): float
+    {
+        $linear = static function (float $v): float {
+            return $v <= 0.03928
+                ? $v / 12.92
+                : (($v + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * $linear($c->r)
+            + 0.7152 * $linear($c->g)
+            + 0.0722 * $linear($c->b);
     }
 
     /**
