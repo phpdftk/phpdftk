@@ -84,11 +84,18 @@ final class BoxGenerator
             return null;
         }
 
-        // CSS Generated Content 3 §2: apply counter-reset (set named
-        // counters at this scope) then counter-increment (bump them) so
-        // any `::before` content that reads `counter()` sees the post-
+        // CSS Generated Content 3 §2: apply counter-reset (creates +
+        // sets), then counter-set (sets to a specific value WITHOUT
+        // creating a new scope), then counter-increment (bumps) so any
+        // `::before` content that reads `counter()` sees the post-
         // increment value at this element's position in document order.
+        // counter-set's distinction from counter-reset is scope-related;
+        // since BoxGenerator carries a single flat counter table for
+        // print render rather than a per-scope stack, both reduce to the
+        // same write here but the property is still honoured rather than
+        // silently dropped.
         $this->applyCounterReset($values);
+        $this->applyCounterSet($values);
         $this->applyCounterIncrement($values);
 
         // HTML `<br>` produces a sentinel line-break box — a hard break
@@ -725,6 +732,19 @@ final class BoxGenerator
     private function applyCounterReset(CascadedValues $values): void
     {
         $value = $values->get('counter-reset');
+        $this->forEachCounterPair($value, function (string $name, int $defaultOrSpecified): void {
+            $this->counters[$name] = $defaultOrSpecified;
+        }, defaultValue: 0);
+    }
+
+    /**
+     * Apply `counter-set: <name> [<int>]?` declarations — sets the
+     * named counter to the specified value (default 0), without the
+     * scope-creating semantics of `counter-reset`. CSS Lists 3 §6.
+     */
+    private function applyCounterSet(CascadedValues $values): void
+    {
+        $value = $values->get('counter-set');
         $this->forEachCounterPair($value, function (string $name, int $defaultOrSpecified): void {
             $this->counters[$name] = $defaultOrSpecified;
         }, defaultValue: 0);

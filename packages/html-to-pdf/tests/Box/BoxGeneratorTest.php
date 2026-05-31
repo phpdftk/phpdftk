@@ -515,6 +515,32 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame('2. ', $second->children[0]->text);
     }
 
+    public function testCounterSetOverridesValue(): void
+    {
+        // CSS Lists 3 §6 — counter-set sets the counter to an explicit
+        // value at this element (vs counter-reset which creates a new
+        // scope). Applied after counter-reset but before
+        // counter-increment, so increment-bump compositions work.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            body { counter-reset: chap; }
+            p { counter-set: chap 10; counter-increment: chap; }
+            p::before { content: counter(chap) '. '; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><p>a</p><p>b</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        // counter-set: chap 10 fires on each p, then counter-increment
+        // bumps to 11. So both p's emit '11. '.
+        $first = $body->children[0]->children[0];
+        $second = $body->children[1]->children[0];
+        self::assertSame('11. ', $first->children[0]->text);
+        self::assertSame('11. ', $second->children[0]->text);
+    }
+
     public function testCountersAcceptsExplicitStyleArg(): void
     {
         // `counters(name, sep, style)` — third arg is the counter style.
