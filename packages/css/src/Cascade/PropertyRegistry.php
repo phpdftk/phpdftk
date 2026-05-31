@@ -159,6 +159,10 @@ final class PropertyRegistry
         // `<percentage>` relative to the font size) overrides.
         $r->register($initial('text-decoration-thickness', new Keyword('auto')));
         $r->register($initial('text-underline-offset', new Keyword('auto')));
+        // CSS Text Decoration 4 §3 — `text-underline-position` picks
+        // which baseline the underline anchors to (auto / under /
+        // left / right). Inherits per spec.
+        $r->register($initial('text-underline-position', new Keyword('auto'), true));
         $r->register($initial('text-shadow', new Keyword('none'), true));
         $r->register($initial('text-transform', new Keyword('none'), true));
         // CSS Text 3 §7.5: `text-justify` controls the justification
