@@ -26,7 +26,12 @@ use Phpdftk\Css\Token\WhitespaceToken;
 use Phpdftk\Css\Value\AnchorFunction;
 use Phpdftk\Css\Value\AnchorSizeFunction;
 use Phpdftk\Css\Value\AttrFunction;
+use Phpdftk\Css\Value\BasicShape;
+use Phpdftk\Css\Value\CircleShape;
+use Phpdftk\Css\Value\EllipseShape;
 use Phpdftk\Css\Value\EnvFunction;
+use Phpdftk\Css\Value\InsetShape;
+use Phpdftk\Css\Value\PolygonShape;
 use Phpdftk\Css\Value\Filter;
 use Phpdftk\Css\Value\FilterFunction;
 use Phpdftk\Css\Value\FilterKind;
@@ -326,6 +331,12 @@ final class ValueParser
             $st = $this->parseStepsFunction($tokens);
             if ($st !== null) {
                 return $st;
+            }
+        }
+        if ($name === 'circle' || $name === 'ellipse' || $name === 'inset' || $name === 'polygon') {
+            $shape = $this->parseBasicShape($name, $tokens);
+            if ($shape !== null) {
+                return $shape;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -2237,6 +2248,297 @@ final class ValueParser
         return $isSize
             ? new AnchorSizeFunction($anchorName, $side, $fallback)
             : new AnchorFunction($anchorName, $side, $fallback);
+    }
+
+    // ============================================================
+    // basic-shape — CSS Shapes 1 §3
+    // ============================================================
+    /**
+     * Dispatch for the four most commonly-used basic shapes.
+     * `path()`, `rect()`, `xywh()` (CSS Shapes 2) still fall
+     * through to generic CssFunction.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseBasicShape(string $name, array $tokens): ?BasicShape
+    {
+        return match ($name) {
+            'circle' => $this->parseCircleShape($tokens),
+            'ellipse' => $this->parseEllipseShape($tokens),
+            'inset' => $this->parseInsetShape($tokens),
+            'polygon' => $this->parsePolygonShape($tokens),
+            default => null,
+        };
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseCircleShape(array $tokens): ?CircleShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        // Possible forms:
+        //   circle()
+        //   circle(<radius>)
+        //   circle(at <position>)
+        //   circle(<radius> at <position>)
+        if ($tokens === []) {
+            return new CircleShape();
+        }
+        // Look for the `at` keyword to split radius from position.
+        [$radiusTokens, $positionTokens] = self::splitOnAtKeyword($tokens);
+        $radius = $radiusTokens === [] ? null : $this->parseShapeRadius($radiusTokens);
+        if ($radiusTokens !== [] && $radius === null) {
+            return null;
+        }
+        [$cx, $cy] = $this->parsePositionXY($positionTokens);
+        return new CircleShape($radius, $cx, $cy);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseEllipseShape(array $tokens): ?EllipseShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return new EllipseShape();
+        }
+        [$radiusTokens, $positionTokens] = self::splitOnAtKeyword($tokens);
+        $rx = null;
+        $ry = null;
+        if ($radiusTokens !== []) {
+            // Expect two space-separated radius tokens.
+            $rGroups = self::splitParenAwareSpaceForm($radiusTokens);
+            if (count($rGroups) !== 2) {
+                return null;
+            }
+            $rx = $this->parseShapeRadius($rGroups[0]);
+            $ry = $this->parseShapeRadius($rGroups[1]);
+            if ($rx === null || $ry === null) {
+                return null;
+            }
+        }
+        [$cx, $cy] = $this->parsePositionXY($positionTokens);
+        return new EllipseShape($rx, $ry, $cx, $cy);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseInsetShape(array $tokens): ?InsetShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        // Split on `round` keyword if present.
+        [$insetTokens, $roundTokens] = self::splitOnRoundKeyword($tokens);
+        $insetGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($insetTokens));
+        if (count($insetGroups) < 1 || count($insetGroups) > 4) {
+            return null;
+        }
+        $insets = [];
+        foreach ($insetGroups as $group) {
+            $value = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            if (!self::isShapePositionValue($value)) {
+                return null;
+            }
+            $insets[] = $value;
+        }
+        $radius = null;
+        if ($roundTokens !== []) {
+            $roundGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($roundTokens));
+            $radius = [];
+            foreach ($roundGroups as $group) {
+                $radius[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            }
+            if ($radius === []) {
+                $radius = null;
+            }
+        }
+        return new InsetShape($insets, $radius);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parsePolygonShape(array $tokens): ?PolygonShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if ($commaGroups === []) {
+            return null;
+        }
+        $fillRule = 'nonzero';
+        // Detect leading fill-rule ident.
+        $firstGroup = self::trimWhitespace($commaGroups[0]);
+        if ($firstGroup !== [] && $firstGroup[0] instanceof IdentToken) {
+            $rule = strtolower($firstGroup[0]->value);
+            if ($rule === 'nonzero' || $rule === 'evenodd') {
+                $fillRule = $rule;
+                // Remove the fill-rule ident from the first group.
+                $remainder = self::trimWhitespace(array_slice($firstGroup, 1));
+                if ($remainder !== []) {
+                    $commaGroups[0] = $remainder;
+                } else {
+                    array_shift($commaGroups);
+                }
+            }
+        }
+        $vertices = [];
+        foreach ($commaGroups as $group) {
+            $group = self::trimWhitespace($group);
+            $parts = self::splitParenAwareSpaceForm($group);
+            if (count($parts) !== 2) {
+                return null;
+            }
+            $x = $this->parseFromString(self::serializeTokens(self::trimWhitespace($parts[0])));
+            $y = $this->parseFromString(self::serializeTokens(self::trimWhitespace($parts[1])));
+            // Polygon vertices accept length / percentage / calc / number
+            // (bare `0` parses as Integer; treat zeros as 0px).
+            if (!self::isShapePositionValue($x) || !self::isShapePositionValue($y)) {
+                return null;
+            }
+            $vertices[] = [$x, $y];
+        }
+        if ($vertices === []) {
+            return null;
+        }
+        return new PolygonShape($fillRule, $vertices);
+    }
+
+    /**
+     * Accept the set of value types that may appear in a basic-
+     * shape vertex / inset slot: Length, Percentage, Calc, plus
+     * the literal `0` zero shorthand (Integer / Number).
+     */
+    private static function isShapePositionValue(?Value $value): bool
+    {
+        return $value instanceof Length
+            || $value instanceof Percentage
+            || $value instanceof Calc
+            || $value instanceof Integer
+            || $value instanceof Number;
+    }
+
+    /**
+     * Parse a `<shape-radius>` — Length / Percentage / Keyword
+     * (`closest-side` or `farthest-side`).
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseShapeRadius(array $tokens): ?Value
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        if (count($tokens) === 1 && $tokens[0] instanceof IdentToken) {
+            $kw = strtolower($tokens[0]->value);
+            if ($kw === 'closest-side' || $kw === 'farthest-side') {
+                return new Keyword($kw);
+            }
+        }
+        $value = $this->parseFromString(self::serializeTokens($tokens));
+        if ($value instanceof Length || $value instanceof Percentage || $value instanceof Calc) {
+            return $value;
+        }
+        return null;
+    }
+
+    /**
+     * Parse a `<position>` token sequence into `[centerX, centerY]`
+     * Value pairs. Accepts:
+     *   - empty list → [null, null]
+     *   - single keyword → applies to both axes via shape semantics
+     *   - two values (keywords / percentages / lengths) → x then y
+     *
+     * @param list<Token> $tokens
+     * @return array{?Value, ?Value}
+     */
+    private function parsePositionXY(array $tokens): array
+    {
+        if ($tokens === []) {
+            return [null, null];
+        }
+        $groups = self::splitParenAwareSpaceForm(self::trimWhitespace($tokens));
+        $values = [];
+        foreach ($groups as $group) {
+            $group = self::trimWhitespace($group);
+            if ($group === []) {
+                continue;
+            }
+            // Position keywords (left / center / right / top / bottom).
+            if (count($group) === 1 && $group[0] instanceof IdentToken) {
+                $kw = strtolower($group[0]->value);
+                if (in_array($kw, ['left', 'center', 'right', 'top', 'bottom'], true)) {
+                    $values[] = new Keyword($kw);
+                    continue;
+                }
+            }
+            $value = $this->parseFromString(self::serializeTokens($group));
+            $values[] = $value;
+        }
+        if (count($values) === 1) {
+            return [$values[0], $values[0]];
+        }
+        if (count($values) === 2) {
+            return [$values[0], $values[1]];
+        }
+        return [null, null];
+    }
+
+    /**
+     * Split a token sequence at the first top-level `at` ident.
+     *
+     * @param list<Token> $tokens
+     * @return array{list<Token>, list<Token>}
+     */
+    private static function splitOnAtKeyword(array $tokens): array
+    {
+        $depth = 0;
+        foreach ($tokens as $i => $t) {
+            if ($t instanceof LeftParenToken || $t instanceof FunctionToken) {
+                $depth++;
+                continue;
+            }
+            if ($t instanceof RightParenToken) {
+                $depth--;
+                continue;
+            }
+            if ($depth === 0 && $t instanceof IdentToken && strtolower($t->value) === 'at') {
+                return [
+                    self::trimWhitespace(array_slice($tokens, 0, $i)),
+                    self::trimWhitespace(array_slice($tokens, $i + 1)),
+                ];
+            }
+        }
+        return [self::trimWhitespace($tokens), []];
+    }
+
+    /**
+     * Split a token sequence at the first top-level `round` ident
+     * (CSS Shapes 1 `inset()` round-corner separator).
+     *
+     * @param list<Token> $tokens
+     * @return array{list<Token>, list<Token>}
+     */
+    private static function splitOnRoundKeyword(array $tokens): array
+    {
+        $depth = 0;
+        foreach ($tokens as $i => $t) {
+            if ($t instanceof LeftParenToken || $t instanceof FunctionToken) {
+                $depth++;
+                continue;
+            }
+            if ($t instanceof RightParenToken) {
+                $depth--;
+                continue;
+            }
+            if ($depth === 0 && $t instanceof IdentToken && strtolower($t->value) === 'round') {
+                return [
+                    self::trimWhitespace(array_slice($tokens, 0, $i)),
+                    self::trimWhitespace(array_slice($tokens, $i + 1)),
+                ];
+            }
+        }
+        return [self::trimWhitespace($tokens), []];
     }
 
     // ============================================================

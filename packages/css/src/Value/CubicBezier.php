@@ -22,7 +22,8 @@ final readonly class CubicBezier extends Value
 
     public function toCss(): string
     {
-        return sprintf('cubic-bezier(%s, %s, %s, %s)',
+        return sprintf(
+            'cubic-bezier(%s, %s, %s, %s)',
             self::trim($this->x1),
             self::trim($this->y1),
             self::trim($this->x2),
