@@ -36,6 +36,8 @@ final readonly class ConicGradient extends Gradient
         public ?float $centerY,
         public array $stops,
         public bool $repeating = false,
+        public ?ColorSpace $interpolationSpace = null,
+        public ?HueInterpolation $hueInterpolation = null,
     ) {}
 
     public function toCss(): string
@@ -53,6 +55,12 @@ final readonly class ConicGradient extends Gradient
             $cy = ($this->centerY ?? 0.5) * 100;
             $head[] = 'at ' . (fmod($cx, 1.0) === 0.0 ? (int) $cx : $cx) . '% '
                 . (fmod($cy, 1.0) === 0.0 ? (int) $cy : $cy) . '%';
+        }
+        $method = InterpolationMethodCss::serialise($this->interpolationSpace, $this->hueInterpolation);
+        if ($method !== '') {
+            // Drop leading space — InterpolationMethodCss::serialise
+            // returns " in <space>"; we already join with spaces.
+            $head[] = ltrim($method);
         }
         $stops = implode(', ', array_map(static fn(GradientStop $s): string => $s->toCss(), $this->stops));
         return $head === []

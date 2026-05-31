@@ -1880,15 +1880,49 @@ final class ValueParser
         if (count($groups) < 2) {
             return null;
         }
-        // First group may be the angle/side spec, or directly a colour stop.
+        // First group may be:
+        //   - angle/side spec (`45deg`, `to top right`),
+        //   - interpolation method only (`in oklch`),
+        //   - both combined (`45deg in oklch`),
+        //   - or directly a colour stop.
         $first = self::trimWhitespace($groups[0]);
-        $angleDeg = 180.0; // default: top → bottom
+        $angleDeg = 180.0;
+        $interpSpace = null;
+        $hueInterp = null;
         $stopGroups = $groups;
-        $maybeAngle = $this->parseLinearAngleHeader($first);
-        if ($maybeAngle !== null) {
-            $angleDeg = $maybeAngle;
-            $stopGroups = array_slice($groups, 1);
+
+        // Pull the trailing `in <space> [<hue> hue]` clause off the
+        // first group if it has one. Whether the remainder is an
+        // angle/side header or empty (interpolation-only) drives
+        // the dispatch below.
+        [$headerTokens, $methodTokens] = $this->splitOnInterpolationKeyword($first);
+        if ($methodTokens !== null) {
+            $method = $this->parseColorMixMethod($methodTokens);
+            if ($method === null) {
+                return null;
+            }
+            [$interpSpace, $hueInterp] = $method;
+            $headerTokens = self::trimWhitespace($headerTokens);
+            if ($headerTokens === []) {
+                // Interpolation-only header — default angle, consume
+                // the whole first group.
+                $stopGroups = array_slice($groups, 1);
+            } else {
+                $maybeAngle = $this->parseLinearAngleHeader($headerTokens);
+                if ($maybeAngle === null) {
+                    return null;
+                }
+                $angleDeg = $maybeAngle;
+                $stopGroups = array_slice($groups, 1);
+            }
+        } else {
+            $maybeAngle = $this->parseLinearAngleHeader($first);
+            if ($maybeAngle !== null) {
+                $angleDeg = $maybeAngle;
+                $stopGroups = array_slice($groups, 1);
+            }
         }
+
         $stops = [];
         foreach ($stopGroups as $g) {
             $stop = $this->parseGradientStop($g);
@@ -1900,7 +1934,61 @@ final class ValueParser
         if (count($stops) < 2) {
             return null;
         }
-        return new LinearGradient($angleDeg, $stops, $repeating);
+        return new LinearGradient(
+            angleDeg: $angleDeg,
+            stops: $stops,
+            repeating: $repeating,
+            interpolationSpace: $interpSpace,
+            hueInterpolation: $hueInterp,
+        );
+    }
+
+    /**
+     * Split a token sequence at the first top-level `in` ident
+     * token followed by an ident (i.e. the CSS Images 4 §3.1.2
+     * interpolation-method clause). Returns [headerTokens,
+     * methodTokens] — methodTokens is null when no `in` clause is
+     * present. The returned methodTokens include the `in` keyword
+     * itself so they can be fed straight into
+     * {@see parseColorMixMethod}.
+     *
+     * @param list<Token> $tokens
+     * @return array{0: list<Token>, 1: list<Token>|null}
+     */
+    private function splitOnInterpolationKeyword(array $tokens): array
+    {
+        $depth = 0;
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            $t = $tokens[$i];
+            if ($t instanceof FunctionToken || $t instanceof LeftParenToken) {
+                $depth++;
+                continue;
+            }
+            if ($t instanceof RightParenToken) {
+                $depth--;
+                continue;
+            }
+            if ($depth !== 0) {
+                continue;
+            }
+            if ($t instanceof IdentToken && strtolower($t->value) === 'in') {
+                // Look ahead — must be followed by another ident
+                // (the colorspace name) to count as the interpolation
+                // clause. Bare `in` is unlikely in any other gradient
+                // header but the guard is cheap.
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($tokens[$j] instanceof WhitespaceToken) {
+                        continue;
+                    }
+                    if ($tokens[$j] instanceof IdentToken) {
+                        return [array_slice($tokens, 0, $i), array_slice($tokens, $i)];
+                    }
+                    break;
+                }
+            }
+        }
+        return [$tokens, null];
     }
 
     /**
@@ -1992,15 +2080,34 @@ final class ValueParser
         if (count($groups) < 2) {
             return null;
         }
-        // First group MAY be shape/size [at position]; otherwise it's a stop.
+        // First group MAY be shape/size [at position] [in <space>];
+        // otherwise it's a stop.
         $first = self::trimWhitespace($groups[0]);
         $shape = GradientShape::Ellipse;
         $sizeX = null;
         $sizeY = null;
         $centerX = null;
         $centerY = null;
+        $interpSpace = null;
+        $hueInterp = null;
         $stopGroups = $groups;
-        if ($this->isRadialHeader($first)) {
+        [$headerTokens, $methodTokens] = $this->splitOnInterpolationKeyword($first);
+        if ($methodTokens !== null) {
+            $method = $this->parseColorMixMethod($methodTokens);
+            if ($method === null) {
+                return null;
+            }
+            [$interpSpace, $hueInterp] = $method;
+            $headerTokens = self::trimWhitespace($headerTokens);
+            if ($headerTokens === [] || $this->isRadialHeader($headerTokens)) {
+                if ($headerTokens !== []) {
+                    [$shape, $sizeX, $sizeY, $centerX, $centerY] = $this->parseRadialHeader($headerTokens);
+                }
+                $stopGroups = array_slice($groups, 1);
+            } else {
+                return null;
+            }
+        } elseif ($this->isRadialHeader($first)) {
             [$shape, $sizeX, $sizeY, $centerX, $centerY] = $this->parseRadialHeader($first);
             $stopGroups = array_slice($groups, 1);
         }
@@ -2015,7 +2122,17 @@ final class ValueParser
         if (count($stops) < 2) {
             return null;
         }
-        return new RadialGradient($shape, $sizeX, $sizeY, $centerX, $centerY, $stops, $repeating);
+        return new RadialGradient(
+            shape: $shape,
+            sizeX: $sizeX,
+            sizeY: $sizeY,
+            centerX: $centerX,
+            centerY: $centerY,
+            stops: $stops,
+            repeating: $repeating,
+            interpolationSpace: $interpSpace,
+            hueInterpolation: $hueInterp,
+        );
     }
 
     // ============================================================
@@ -2051,8 +2168,30 @@ final class ValueParser
         $fromAngle = 0.0;
         $centerX = null;
         $centerY = null;
+        $interpSpace = null;
+        $hueInterp = null;
         $stopGroups = $groups;
-        if ($this->isConicHeader($first)) {
+        [$headerTokens, $methodTokens] = $this->splitOnInterpolationKeyword($first);
+        if ($methodTokens !== null) {
+            $method = $this->parseColorMixMethod($methodTokens);
+            if ($method === null) {
+                return null;
+            }
+            [$interpSpace, $hueInterp] = $method;
+            $headerTokens = self::trimWhitespace($headerTokens);
+            if ($headerTokens === [] || $this->isConicHeader($headerTokens)) {
+                if ($headerTokens !== []) {
+                    $header = $this->parseConicHeader($headerTokens);
+                    if ($header === null) {
+                        return null;
+                    }
+                    [$fromAngle, $centerX, $centerY] = $header;
+                }
+                $stopGroups = array_slice($groups, 1);
+            } else {
+                return null;
+            }
+        } elseif ($this->isConicHeader($first)) {
             $header = $this->parseConicHeader($first);
             if ($header === null) {
                 return null;
@@ -2077,6 +2216,8 @@ final class ValueParser
             centerY: $centerY,
             stops: $stops,
             repeating: $repeating,
+            interpolationSpace: $interpSpace,
+            hueInterpolation: $hueInterp,
         );
     }
 

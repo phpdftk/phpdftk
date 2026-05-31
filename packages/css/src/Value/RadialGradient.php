@@ -22,6 +22,8 @@ final readonly class RadialGradient extends Gradient
         public ?Length $centerY,
         public array $stops,
         public bool $repeating = false,
+        public ?ColorSpace $interpolationSpace = null,
+        public ?HueInterpolation $hueInterpolation = null,
     ) {}
 
     public function toCss(): string
@@ -40,6 +42,7 @@ final readonly class RadialGradient extends Gradient
         if ($this->centerX !== null && $this->centerY !== null) {
             $position = ' at ' . $this->centerX->toCss() . ' ' . $this->centerY->toCss();
         }
-        return sprintf('%s(%s%s%s, %s)', $prefix, $shape, $size, $position, $stops);
+        $method = InterpolationMethodCss::serialise($this->interpolationSpace, $this->hueInterpolation);
+        return sprintf('%s(%s%s%s%s, %s)', $prefix, $shape, $size, $position, $method, $stops);
     }
 }
