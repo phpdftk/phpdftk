@@ -79,6 +79,7 @@ use Phpdftk\Css\Value\ListSeparator;
 use Phpdftk\Css\Value\MatrixTransform;
 use Phpdftk\Css\Value\NamedColors;
 use Phpdftk\Css\Value\Number;
+use Phpdftk\Css\Value\PaintFunction;
 use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Css\Value\RadialGradient;
 use Phpdftk\Css\Value\RelativeColor;
@@ -349,6 +350,12 @@ final class ValueParser
             $e = $this->parseElementFunction($tokens);
             if ($e !== null) {
                 return $e;
+            }
+        }
+        if ($name === 'paint') {
+            $p = $this->parsePaintFunction($tokens);
+            if ($p !== null) {
+                return $p;
             }
         }
         if ($name === 'light-dark') {
@@ -3254,6 +3261,35 @@ final class ValueParser
             $target = $kw;
         }
         return new StringFunction($name, $target);
+    }
+
+    // ============================================================
+    // paint() — CSS Painting API Level 1
+    // ============================================================
+    /**
+     * Parse `paint(<name> [, <arg>]*)`. The CSS Houdini paint
+     * worklet is JS-side; for print rendering this is purely
+     * declarative preservation — the cascade keeps the call shape
+     * so external tooling can read it.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parsePaintFunction(array $tokens): ?PaintFunction
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if ($groups === []) {
+            return null;
+        }
+        $nameTokens = self::trimWhitespace($groups[0]);
+        if (count($nameTokens) !== 1 || !($nameTokens[0] instanceof IdentToken)) {
+            return null;
+        }
+        $name = $nameTokens[0]->value;
+        $args = [];
+        for ($i = 1; $i < count($groups); $i++) {
+            $args[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($groups[$i])));
+        }
+        return new PaintFunction($name, $args);
     }
 
     // ============================================================
