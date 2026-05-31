@@ -656,6 +656,13 @@ final class PropertyRegistry
         // that page picks up the named rule's margins / background /
         // margin-boxes. Non-inherited per spec.
         $r->register($initial('page', new Keyword('auto')));
+        // CSS Paged Media 3 §6.4 — `marks` declares trim/cross
+        // marks; `bleed` extends the page area into the bleed
+        // beyond the trim. Both apply inside @page rules; the
+        // cascade stores them so the writer can lay them down
+        // when print profiles request them.
+        $r->register($initial('marks', new Keyword('none')));
+        $r->register($initial('bleed', new Keyword('auto')));
         // CSS Transforms 2 §6 — `transform` accepts a list of
         // transform functions (translate / rotate / scale / skew /
         // matrix and 3D variants); `transform-origin` picks the
