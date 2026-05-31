@@ -537,6 +537,20 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('--fb', $out['position-try-fallbacks']->name);
     }
 
+    public function testCascadeAppliesTransitionShorthand(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            'p { transition: opacity 200ms ease-in 50ms; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $prop = $values->get('transition-property');
+        $dur = $values->get('transition-duration');
+        self::assertInstanceOf(Keyword::class, $prop);
+        self::assertSame('opacity', $prop->name);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Time::class, $dur);
+        self::assertSame(0.2, $dur->toSeconds());
+    }
+
     public function testPositionTryMultiFallbacksJoinAsComma(): void
     {
         $out = $this->expander->expand('position-try', $this->value('--a --b --c'));
