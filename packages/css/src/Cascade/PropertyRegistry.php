@@ -500,6 +500,15 @@ final class PropertyRegistry
         $r->register($initial('container', new Keyword('none')));
         $r->register($initial('container-name', new Keyword('none')));
         $r->register($initial('container-type', new Keyword('normal')));
+        // CSS Containment 3 §2 — `contain` is the umbrella opt-in for
+        // layout / style / paint / size / inline-size containment.
+        // For print, the size / inline-size containment hints feed
+        // intrinsic sizing optimisations; the rest cascade as no-ops.
+        $r->register($initial('contain', new Keyword('none')));
+        // CSS Containment 2 §4 — `content-visibility` is the
+        // visibility-on-scroll optimisation. Static print medium
+        // honours `hidden` (= display: none), `auto` is a no-op.
+        $r->register($initial('content-visibility', new Keyword('visible')));
 
         // CSS Logical Properties 1 §4 — block / inline sizing. The
         // computed value maps to the writing-mode's physical
