@@ -3218,7 +3218,17 @@ final class Painter
             return;
         }
         $widthValue = $box->style->get('outline-width');
-        $width = $widthValue instanceof \Phpdftk\Css\Value\Length ? max(0.0, $widthValue->value) : 0.0;
+        $width = match (true) {
+            $widthValue instanceof \Phpdftk\Css\Value\Length => max(0.0, $widthValue->value),
+            // CSS Backgrounds 3 §4.4 keyword resolution.
+            $widthValue instanceof \Phpdftk\Css\Value\Keyword => match (strtolower($widthValue->name)) {
+                'thin' => 1.0,
+                'medium' => 3.0,
+                'thick' => 5.0,
+                default => 0.0,
+            },
+            default => 0.0,
+        };
         if ($width <= 0.0) {
             return;
         }

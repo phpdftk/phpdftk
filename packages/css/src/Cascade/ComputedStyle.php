@@ -367,22 +367,46 @@ final readonly class ComputedStyle
 
     public function getBorderTopWidth(): Length
     {
-        return $this->expectLength('border-top-width', 0.0);
+        return $this->expectBorderWidth('border-top-width');
     }
 
     public function getBorderRightWidth(): Length
     {
-        return $this->expectLength('border-right-width', 0.0);
+        return $this->expectBorderWidth('border-right-width');
     }
 
     public function getBorderBottomWidth(): Length
     {
-        return $this->expectLength('border-bottom-width', 0.0);
+        return $this->expectBorderWidth('border-bottom-width');
     }
 
     public function getBorderLeftWidth(): Length
     {
-        return $this->expectLength('border-left-width', 0.0);
+        return $this->expectBorderWidth('border-left-width');
+    }
+
+    /**
+     * Resolve `border-*-width` cascaded values to Length per
+     * CSS Backgrounds 3 §4.4. Accepts the named keyword forms
+     * (`thin` = 1px, `medium` = 3px, `thick` = 5px) in addition
+     * to bare Length.
+     */
+    private function expectBorderWidth(string $prop): Length
+    {
+        $v = $this->values->get($prop);
+        if ($v instanceof Length) {
+            return $v;
+        }
+        if ($v instanceof Keyword) {
+            $px = match (strtolower($v->name)) {
+                'thin' => 1.0,
+                'medium' => 3.0,
+                'thick' => 5.0,
+                default => 0.0,
+            };
+            return new Length($px, \Phpdftk\Css\Value\LengthUnit::Px);
+        }
+        return new Length(3.0, \Phpdftk\Css\Value\LengthUnit::Px);
     }
 
     public function getBorderTopStyle(): Keyword

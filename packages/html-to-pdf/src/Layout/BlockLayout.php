@@ -2812,9 +2812,28 @@ final class BlockLayout
         if ($styleValue instanceof Keyword && strtolower($styleValue->name) === 'none') {
             return 0.0;
         }
-        $width = $style->get("border-$side-width");
-        if ($width instanceof Length) {
-            return $width->value;
+        return $this->resolveBorderWidthValue($style->get("border-$side-width"));
+    }
+
+    /**
+     * CSS Backgrounds 3 §4.4 — `border-width` keywords:
+     *   thin   = 1px
+     *   medium = 3px
+     *   thick  = 5px
+     * Length values pass through; other types resolve to 0.
+     */
+    private function resolveBorderWidthValue(?\Phpdftk\Css\Value\Value $v): float
+    {
+        if ($v instanceof Length) {
+            return $v->value;
+        }
+        if ($v instanceof Keyword) {
+            return match (strtolower($v->name)) {
+                'thin' => 1.0,
+                'medium' => 3.0,
+                'thick' => 5.0,
+                default => 0.0,
+            };
         }
         return 0.0;
     }
@@ -4397,8 +4416,7 @@ final class BlockLayout
 
     private function borderDeclaredWidth(Box $box, string $side): float
     {
-        $v = $box->style->get("border-$side-width");
-        return $v instanceof Length ? $v->value : 0.0;
+        return $this->resolveBorderWidthValue($box->style->get("border-$side-width"));
     }
 
     private function borderStylePrecedence(string $style): int

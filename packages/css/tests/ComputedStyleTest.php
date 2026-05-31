@@ -263,6 +263,23 @@ final class ComputedStyleTest extends TestCase
         self::assertSame(0.0, $this->style->getColor()->r);
     }
 
+    public function testBorderWidthKeywordsResolveToPixels(): void
+    {
+        // CSS Backgrounds 3 §4.4 — thin / medium / thick keywords.
+        $this->values->set('border-top-width', new Keyword('thin'));
+        self::assertSame(1.0, $this->style->getBorderTopWidth()->value);
+        $this->values->set('border-top-width', new Keyword('medium'));
+        self::assertSame(3.0, $this->style->getBorderTopWidth()->value);
+        $this->values->set('border-top-width', new Keyword('thick'));
+        self::assertSame(5.0, $this->style->getBorderTopWidth()->value);
+    }
+
+    public function testBorderWidthLengthPassesThrough(): void
+    {
+        $this->values->set('border-top-width', new Length(7.5, LengthUnit::Px));
+        self::assertSame(7.5, $this->style->getBorderTopWidth()->value);
+    }
+
     public function testLightDarkStaysLightWhenBothListed(): void
     {
         $light = new Color(1.0, 1.0, 1.0, 1.0);
