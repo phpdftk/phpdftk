@@ -25,6 +25,8 @@ use Phpdftk\Css\Token\UrlToken;
 use Phpdftk\Css\Token\WhitespaceToken;
 use Phpdftk\Css\Value\AnchorFunction;
 use Phpdftk\Css\Value\AnchorSizeFunction;
+use Phpdftk\Css\Value\AttrFunction;
+use Phpdftk\Css\Value\EnvFunction;
 use Phpdftk\Css\Value\Filter;
 use Phpdftk\Css\Value\FilterFunction;
 use Phpdftk\Css\Value\FilterKind;
@@ -289,6 +291,18 @@ final class ValueParser
             $a = $this->parseAnchorSizeFunction($tokens);
             if ($a !== null) {
                 return $a;
+            }
+        }
+        if ($name === 'attr') {
+            $a = $this->parseAttrFunction($tokens);
+            if ($a !== null) {
+                return $a;
+            }
+        }
+        if ($name === 'env') {
+            $e = $this->parseEnvFunction($tokens);
+            if ($e !== null) {
+                return $e;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -2200,6 +2214,85 @@ final class ValueParser
         return $isSize
             ? new AnchorSizeFunction($anchorName, $side, $fallback)
             : new AnchorFunction($anchorName, $side, $fallback);
+    }
+
+    // ============================================================
+    // attr() — CSS Values 5 §11
+    // ============================================================
+    /** @param list<Token> $tokens */
+    private function parseAttrFunction(array $tokens): ?AttrFunction
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($commaGroups) < 1 || count($commaGroups) > 2) {
+            return null;
+        }
+        $head = self::trimWhitespace($commaGroups[0]);
+        if ($head === []) {
+            return null;
+        }
+        if (!($head[0] instanceof IdentToken)) {
+            return null;
+        }
+        $attributeName = $head[0]->value;
+        $typeOrUnit = null;
+        if (count($head) >= 2) {
+            $rest = self::trimWhitespace(array_slice($head, 1));
+            if ($rest !== []) {
+                // Type/unit hint — accept any single ident or
+                // dimension unit; just serialise verbatim so the
+                // cascade preserves the author's intent.
+                $typeOrUnit = self::serializeTokens($rest);
+            }
+        }
+        $fallback = null;
+        if (count($commaGroups) === 2) {
+            $fbCss = self::serializeTokens(self::trimWhitespace($commaGroups[1]));
+            $fallback = $this->parseFromString($fbCss);
+        }
+        return new AttrFunction($attributeName, $typeOrUnit, $fallback);
+    }
+
+    // ============================================================
+    // env() — CSS Environment Variables 1 §3
+    // ============================================================
+    /** @param list<Token> $tokens */
+    private function parseEnvFunction(array $tokens): ?EnvFunction
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($commaGroups) < 1 || count($commaGroups) > 2) {
+            return null;
+        }
+        $head = self::trimWhitespace($commaGroups[0]);
+        if ($head === []) {
+            return null;
+        }
+        if (!($head[0] instanceof IdentToken)) {
+            return null;
+        }
+        $envName = $head[0]->value;
+        $indices = [];
+        $rest = array_slice($head, 1);
+        foreach ($rest as $t) {
+            if ($t instanceof WhitespaceToken) {
+                continue;
+            }
+            if (!($t instanceof NumberToken)) {
+                return null;
+            }
+            // Indices must be integers per CSS Env Vars 1 §3.
+            if ($t->value !== floor($t->value)) {
+                return null;
+            }
+            $indices[] = (int) $t->value;
+        }
+        $fallback = null;
+        if (count($commaGroups) === 2) {
+            $fbCss = self::serializeTokens(self::trimWhitespace($commaGroups[1]));
+            $fallback = $this->parseFromString($fbCss);
+        }
+        return new EnvFunction($envName, $indices, $fallback);
     }
 
     // ============================================================
