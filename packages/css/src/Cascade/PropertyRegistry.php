@@ -496,6 +496,36 @@ final class PropertyRegistry
         $r->register($initial('border-end-start-radius', $zeroRadius));
         $r->register($initial('border-end-end-radius', $zeroRadius));
 
+        // CSS Motion Path 1 — offset-* family. Animation playback
+        // is gated on `Pdf::renderAnimationsAt(t)`; the declarative
+        // properties cascade so static rendering at t=1 (default)
+        // sees the final offset-path position.
+        $r->register($initial('offset', new Keyword('none')));
+        $r->register($initial('offset-path', new Keyword('none')));
+        $r->register($initial('offset-distance', new Length(0.0, LengthUnit::Px)));
+        $r->register($initial('offset-rotate', new Keyword('auto')));
+        $r->register($initial('offset-anchor', new Keyword('auto')));
+        $r->register($initial('offset-position', new Keyword('normal')));
+
+        // CSS Masking 1 — mask family. Painter dispatches via
+        // `phpdftk/raster` once 4C ships; declarative properties
+        // cascade so author CSS round-trips.
+        $r->register($initial('mask', new Keyword('none')));
+        $r->register($initial('mask-image', new Keyword('none')));
+        $r->register($initial('mask-mode', new Keyword('match-source')));
+        $r->register($initial('mask-repeat', new Keyword('repeat')));
+        $r->register($initial('mask-position', new ValueList(
+            [new Percentage(0.0), new Percentage(0.0)],
+            ListSeparator::Space,
+        )));
+        $r->register($initial('mask-clip', new Keyword('border-box')));
+        $r->register($initial('mask-origin', new Keyword('border-box')));
+        $r->register($initial('mask-size', new Keyword('auto')));
+        $r->register($initial('mask-composite', new Keyword('add')));
+        // mask-type per CSS Masking 1 §10.3 — `luminance` (initial)
+        // or `alpha`. Inherits per spec.
+        $r->register($initial('mask-type', new Keyword('luminance'), true));
+
         // CSS Fragmentation 4 §3 + legacy `page-break-*` aliases.
         $r->register($initial('break-before', new Keyword('auto')));
         $r->register($initial('break-after', new Keyword('auto')));

@@ -139,6 +139,22 @@ final class PropertyRegistryExpansionTest extends TestCase
         ] as $name) {
             yield $name => [$name];
         }
+
+        // CSS Motion Path 1
+        foreach ([
+            'offset', 'offset-path', 'offset-distance', 'offset-rotate',
+            'offset-anchor', 'offset-position',
+        ] as $name) {
+            yield $name => [$name];
+        }
+
+        // CSS Masking 1
+        foreach ([
+            'mask', 'mask-image', 'mask-mode', 'mask-repeat', 'mask-position',
+            'mask-clip', 'mask-origin', 'mask-size', 'mask-composite', 'mask-type',
+        ] as $name) {
+            yield $name => [$name];
+        }
     }
 
     #[DataProvider('newlyRegisteredProperties')]
