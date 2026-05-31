@@ -8,9 +8,6 @@ use Phpdftk\Css\Selector\Matcher;
 use Phpdftk\Css\Selector\SelectorParser;
 use PHPUnit\Framework\TestCase;
 
-// FakeElement lives in MatcherTest.php; pull it in for standalone runs.
-require_once __DIR__ . '/MatcherTest.php';
-
 /**
  * CSS Selectors 4 §13.5 — `:scope` matches the scoping element.
  * Without an explicit @scope root, the document's root element is

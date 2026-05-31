@@ -8,10 +8,6 @@ use Phpdftk\Css\Selector\Matcher;
 use Phpdftk\Css\Selector\SelectorParser;
 use PHPUnit\Framework\TestCase;
 
-// FakeElement lives at the bottom of MatcherTest.php — pull it in
-// so the autoloader sees it even when our test runs in isolation.
-require_once __DIR__ . '/MatcherTest.php';
-
 /**
  * CSS Selectors 4 §17 — `:has()` with relative selectors. The
  * leading combinator constrains which neighbour relationship the

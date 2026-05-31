@@ -9,9 +9,6 @@ use Phpdftk\Css\Cascade\PropertyRegistry;
 use Phpdftk\Css\Parser;
 use PHPUnit\Framework\TestCase;
 
-// FakeElement lives in MatcherTest.php; pull it in for standalone runs.
-require_once __DIR__ . '/MatcherTest.php';
-
 /**
  * CSS Cascade 5 §3 `@layer` + CSS Cascade 6 §3 `@scope` — both
  * land as pass-through at-rules so author CSS inside their blocks
