@@ -258,6 +258,13 @@ final class PropertyRegistry
         // scales raster images. Print rendering treats them as `auto`
         // regardless, but register so author CSS isn't dropped.
         $r->register($initial('image-rendering', new Keyword('auto')));
+        // CSS Images 3 §5 — `image-orientation` accepts `from-image`
+        // (default) to honour EXIF rotation tags, or `none` to ignore.
+        // Inherits per spec.
+        $r->register($initial('image-orientation', new Keyword('from-image'), true));
+        // CSS Images 4 §6.3 — `image-resolution` overrides intrinsic
+        // resolution for raster images. Inherits.
+        $r->register($initial('image-resolution', new Number(1.0), true));
         // CSS Fonts 4 §6.5 — `font-kerning` toggles OpenType kern.
         // `auto` (initial) means the UA decides; inherits.
         $r->register($initial('font-kerning', new Keyword('auto'), true));
