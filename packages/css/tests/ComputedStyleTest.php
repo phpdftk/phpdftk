@@ -242,4 +242,37 @@ final class ComputedStyleTest extends TestCase
         self::assertInstanceOf(Keyword::class, $z);
         self::assertSame('auto', $z->name);
     }
+
+    // ---- light-dark() + color-scheme integration ----------------------
+
+    public function testLightDarkResolvesToLightUnderDefaultScheme(): void
+    {
+        $light = new Color(1.0, 1.0, 1.0, 1.0);
+        $dark = new Color(0.0, 0.0, 0.0, 1.0);
+        $this->values->set('color', new \Phpdftk\Css\Value\LightDark($light, $dark));
+        // No color-scheme set → light branch wins.
+        self::assertSame(1.0, $this->style->getColor()->r);
+    }
+
+    public function testLightDarkResolvesToDarkUnderDarkOnlyScheme(): void
+    {
+        $light = new Color(1.0, 1.0, 1.0, 1.0);
+        $dark = new Color(0.0, 0.0, 0.0, 1.0);
+        $this->values->set('color', new \Phpdftk\Css\Value\LightDark($light, $dark));
+        $this->values->set('color-scheme', new Keyword('dark'));
+        self::assertSame(0.0, $this->style->getColor()->r);
+    }
+
+    public function testLightDarkStaysLightWhenBothListed(): void
+    {
+        $light = new Color(1.0, 1.0, 1.0, 1.0);
+        $dark = new Color(0.0, 0.0, 0.0, 1.0);
+        $this->values->set('color', new \Phpdftk\Css\Value\LightDark($light, $dark));
+        // `color-scheme: light dark` → both supported, prefer light (no UA signal).
+        $this->values->set('color-scheme', new \Phpdftk\Css\Value\ValueList(
+            [new Keyword('light'), new Keyword('dark')],
+            \Phpdftk\Css\Value\ListSeparator::Space,
+        ));
+        self::assertSame(1.0, $this->style->getColor()->r);
+    }
 }

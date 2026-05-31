@@ -741,15 +741,60 @@ final readonly class ComputedStyle
     }
 
     /**
-     * CSS Color 5 §5 — pick the `light` branch of a `light-dark()`
-     * call at computed-value time. The renderer currently treats
-     * the document scheme as light (no color-scheme tracking yet);
-     * the second branch is preserved on the original {@see LightDark}
-     * value if a future re-render needs it.
+     * CSS Color 5 §5 — pick the active branch of a `light-dark()`
+     * call at computed-value time based on the cascaded
+     * `color-scheme` property (CSS Color Adjustment 1 §2.2):
+     *
+     *   - if `color-scheme` lists `dark` and does not list `light`,
+     *     the document opts into the dark branch;
+     *   - otherwise the light branch wins (the document default).
+     *
+     * The original {@see LightDark} value is preserved on the
+     * declaration so a future re-render under a different scheme
+     * is a value-level switch, not a re-cascade.
      */
     private function resolveLightDark(?Value $v): ?Value
     {
-        return $v instanceof LightDark ? $v->light : $v;
+        if (!$v instanceof LightDark) {
+            return $v;
+        }
+        return $this->prefersDarkScheme() ? $v->dark : $v->light;
+    }
+
+    private function prefersDarkScheme(): bool
+    {
+        $scheme = $this->values->get('color-scheme');
+        $hasLight = false;
+        $hasDark = false;
+        foreach ($this->extractSchemeIdents($scheme) as $ident) {
+            $lc = strtolower($ident);
+            if ($lc === 'light') {
+                $hasLight = true;
+            } elseif ($lc === 'dark') {
+                $hasDark = true;
+            }
+        }
+        return $hasDark && !$hasLight;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractSchemeIdents(?Value $value): array
+    {
+        if ($value instanceof Keyword) {
+            return [$value->name];
+        }
+        if ($value instanceof ValueList) {
+            $out = [];
+            foreach ($value->values as $v) {
+                if ($v instanceof Keyword) {
+                    $out[] = $v->name;
+                }
+            }
+            return $out;
+        }
+        return [];
     }
 
     private function expectLength(string $prop, float $fallbackPx): Length
