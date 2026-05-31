@@ -558,6 +558,28 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('currentcolor', $out['text-emphasis-color']->name);
     }
 
+    public function testMaskSingleUrlExpandsToImage(): void
+    {
+        $out = $this->expander->expand('mask', $this->value('url(#m)'));
+        self::assertArrayHasKey('mask-image', $out);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Url::class, $out['mask-image']);
+    }
+
+    public function testMaskKeywordsRouteToCorrectLonghands(): void
+    {
+        $out = $this->expander->expand('mask', $this->value('url(#m) no-repeat luminance add'));
+        self::assertSame('no-repeat', $out['mask-repeat']->name);
+        self::assertSame('luminance', $out['mask-mode']->name);
+        self::assertSame('add', $out['mask-composite']->name);
+    }
+
+    public function testMaskGeometryBoxFirstAssignsBothOriginAndClip(): void
+    {
+        $out = $this->expander->expand('mask', $this->value('url(#m) content-box'));
+        self::assertSame('content-box', $out['mask-origin']->name);
+        self::assertSame('content-box', $out['mask-clip']->name);
+    }
+
     public function testCascadeAppliesTransitionShorthand(): void
     {
         $sheet = $this->parser->parseStylesheet(

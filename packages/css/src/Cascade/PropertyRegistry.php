@@ -602,6 +602,18 @@ final class PropertyRegistry
         // mask-type per CSS Masking 1 §10.3 — `luminance` (initial)
         // or `alpha`. Inherits per spec.
         $r->register($initial('mask-type', new Keyword('luminance'), true));
+        // CSS Backgrounds 3 §6 — border-image family. `border-image`
+        // is the shorthand; the 5 longhands describe the source,
+        // edge slices, displayed width, outward extension, and repeat
+        // policy. Painter integration is tied to the raster
+        // compositor once it lands.
+        $r->register($initial('border-image', new Keyword('none')));
+        $r->register($initial('border-image-source', new Keyword('none')));
+        $r->register($initial('border-image-slice', new Number(100)));
+        $r->register($initial('border-image-width', new Number(1)));
+        $r->register($initial('border-image-outset', new Number(0)));
+        $r->register($initial('border-image-repeat', new Keyword('stretch')));
+
         // CSS Masking 1 §13 — mask-border family (image-based border
         // mask, analogous to border-image). Painter integration is
         // tied to mask-image once the raster pipeline lands.

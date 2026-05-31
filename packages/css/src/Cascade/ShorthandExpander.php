@@ -98,6 +98,7 @@ final class ShorthandExpander
             'animation' => $this->expandAnimation($value),
             'position-try' => $this->expandPositionTry($value),
             'text-emphasis' => $this->expandTextEmphasis($value),
+            'mask' => $this->expandMask($value),
             default => [$property => $value],
         };
     }
@@ -1046,6 +1047,155 @@ final class ShorthandExpander
             'position-try-order' => $order,
             'position-try-fallbacks' => $fallbacks,
         ];
+    }
+
+    /**
+     * CSS Masking 1 §17 — `mask` shorthand. Per the spec each comma-
+     * separated layer carries up to 8 components:
+     *
+     *   <mask-image> || <position> [/ <size>]? || <repeat-style>
+     *     || <geometry-box> [<geometry-box> | no-clip]?
+     *     || <compositing-operator> || <masking-mode>
+     *
+     * This expander handles the practical single-layer subset
+     * authors actually write (the only one any browser ships
+     * end-to-end painting for): pick out the image source (Url /
+     * ImageSet / gradient typed values), the position+size pair,
+     * the repeat keyword, the geometry-box keywords (which assign
+     * to both mask-origin and mask-clip), the compositing operator,
+     * and the masking mode. Anything not recognised at a slot is
+     * left at its registry default.
+     *
+     * @return array<string, Value>
+     */
+    private function expandMask(Value $value): array
+    {
+        $layers = $this->toCommaLayers($value);
+        $images = [];
+        $positions = [];
+        $sizes = [];
+        $repeats = [];
+        $origins = [];
+        $clips = [];
+        $composites = [];
+        $modes = [];
+        $repeatKw = ['repeat', 'repeat-x', 'repeat-y', 'space', 'round', 'no-repeat'];
+        $geoBoxKw = [
+            'border-box', 'padding-box', 'content-box',
+            'margin-box', 'fill-box', 'stroke-box', 'view-box',
+        ];
+        $compositeKw = ['add', 'subtract', 'intersect', 'exclude'];
+        $modeKw = ['match-source', 'alpha', 'luminance'];
+        foreach ($layers as $layer) {
+            $componentsAll = $this->toComponents($layer);
+            $image = null;
+            $position = null;
+            $size = null;
+            $repeat = null;
+            $origin = null;
+            $clip = null;
+            $composite = null;
+            $mode = null;
+
+            // Pull out `<position> / <size>` first if there's a slash
+            // anywhere in the layer. The slash form arrives as a
+            // ValueList(Slash). Other components remain in $rest.
+            $slashLayer = null;
+            $afterSlash = null;
+            $rest = $componentsAll;
+            if ($layer instanceof ValueList && $layer->separator === ListSeparator::Slash) {
+                $slashLayer = $layer->values[0] ?? null;
+                $afterSlash = $layer->values[1] ?? null;
+                $rest = $slashLayer instanceof ValueList
+                    && $slashLayer->separator === ListSeparator::Space
+                        ? $slashLayer->values
+                        : ($slashLayer !== null ? [$slashLayer] : []);
+                $size = $afterSlash;
+            }
+            foreach ($rest as $c) {
+                if ($image === null && $this->looksLikeMaskImage($c)) {
+                    $image = $c;
+                    continue;
+                }
+                if ($repeat === null && $c instanceof Keyword
+                    && in_array(strtolower($c->name), $repeatKw, true)
+                ) {
+                    $repeat = $c;
+                    continue;
+                }
+                if ($c instanceof Keyword
+                    && in_array(strtolower($c->name), $geoBoxKw, true)
+                ) {
+                    // Per spec, first geometry-box → mask-origin AND
+                    // mask-clip; second → mask-clip only.
+                    if ($origin === null) {
+                        $origin = $c;
+                        $clip = $c;
+                    } else {
+                        $clip = $c;
+                    }
+                    continue;
+                }
+                if ($clip === null && $c instanceof Keyword && strtolower($c->name) === 'no-clip') {
+                    $clip = $c;
+                    continue;
+                }
+                if ($composite === null && $c instanceof Keyword
+                    && in_array(strtolower($c->name), $compositeKw, true)
+                ) {
+                    $composite = $c;
+                    continue;
+                }
+                if ($mode === null && $c instanceof Keyword
+                    && in_array(strtolower($c->name), $modeKw, true)
+                ) {
+                    $mode = $c;
+                    continue;
+                }
+                // Anything left is treated as part of the position.
+                if ($position === null) {
+                    $position = $c;
+                } elseif ($position instanceof ValueList && $position->separator === ListSeparator::Space) {
+                    $position = new ValueList(
+                        [...$position->values, $c],
+                        ListSeparator::Space,
+                    );
+                } else {
+                    $position = new ValueList([$position, $c], ListSeparator::Space);
+                }
+            }
+            $images[] = $image ?? new Keyword('none');
+            $positions[] = $position ?? new Keyword('0%');
+            $sizes[] = $size ?? new Keyword('auto');
+            $repeats[] = $repeat ?? new Keyword('repeat');
+            $origins[] = $origin ?? new Keyword('border-box');
+            $clips[] = $clip ?? new Keyword('border-box');
+            $composites[] = $composite ?? new Keyword('add');
+            $modes[] = $mode ?? new Keyword('match-source');
+        }
+        return [
+            'mask-image' => $this->joinComma($images),
+            'mask-position' => $this->joinComma($positions),
+            'mask-size' => $this->joinComma($sizes),
+            'mask-repeat' => $this->joinComma($repeats),
+            'mask-origin' => $this->joinComma($origins),
+            'mask-clip' => $this->joinComma($clips),
+            'mask-composite' => $this->joinComma($composites),
+            'mask-mode' => $this->joinComma($modes),
+        ];
+    }
+
+    /**
+     * Recognise a value that can serve as a mask source: a URL,
+     * an image-set, a gradient (any typed Gradient subclass), or
+     * the `none` keyword (which clears any earlier source).
+     */
+    private function looksLikeMaskImage(Value $v): bool
+    {
+        return $v instanceof \Phpdftk\Css\Value\Url
+            || $v instanceof \Phpdftk\Css\Value\ImageSet
+            || $v instanceof \Phpdftk\Css\Value\Gradient
+            || ($v instanceof Keyword && strtolower($v->name) === 'none');
     }
 
     /**
