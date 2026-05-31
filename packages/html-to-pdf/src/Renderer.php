@@ -120,6 +120,7 @@ final class Renderer
         // during box generation. Page-margin painting reads it to
         // resolve `content: string(name)` references.
         $namedStrings = $this->boxGenerator->getNamedStrings();
+        $runningElements = $this->boxGenerator->getRunningElements();
         if ($root === null) {
             $warnings[] = new Warning(
                 WarningCode::UnsupportedDisplayType,
@@ -347,6 +348,7 @@ final class Renderer
                         marginBottom: $pageMargins['bottom'],
                         marginLeft: $pageMargins['left'],
                         namedStrings: $namedStrings,
+                        runningElements: $runningElements,
                     );
                 }
             }
@@ -2136,15 +2138,21 @@ final class Renderer
             if ($item instanceof \Phpdftk\Css\Value\StringValue) {
                 $parts[] = ['kind' => 'literal', 'value' => $item->value];
             } elseif ($item instanceof \Phpdftk\Css\Value\StringFunction) {
-                // GCPM 3 §5.2 — string(<name> [, <target>]?). Resolved
-                // against the document's named-string store at paint
-                // time. Renderer-side store population is the next
-                // deliverable; for now resolution returns the empty
-                // string, so the part survives shaping with no
-                // visible output but keeps the surrounding literal
-                // parts intact.
+                // GCPM 3 §5.2 — resolved at paint time against the
+                // box generator's named-string store.
                 $parts[] = [
                     'kind' => 'namedstring',
+                    'value' => '',
+                    'name' => $item->name,
+                    'target' => $item->target,
+                ];
+            } elseif ($item instanceof \Phpdftk\Css\Value\ElementFunction) {
+                // GCPM 3 §4.2 — resolved at paint time against the
+                // box generator's running-element store. The store
+                // currently captures element textContent; full
+                // fragment rendering is a future deliverable.
+                $parts[] = [
+                    'kind' => 'runningelement',
                     'value' => '',
                     'name' => $item->name,
                     'target' => $item->target,
@@ -2224,6 +2232,9 @@ final class Renderer
      * @param array<string, string> $namedStrings  GCPM 3 §5 named-string
      *     store accumulated during box generation; resolves
      *     `content: string(name)` parts in page margin boxes.
+     * @param array<string, string> $runningElements  GCPM 3 §4 running-
+     *     element store accumulated during box generation;
+     *     resolves `content: element(name)` parts.
      */
     private function paintPageMarginBoxes(
         \Phpdftk\Pdf\Core\Content\ContentStream $stream,
@@ -2241,6 +2252,7 @@ final class Renderer
         float $marginBottom = 36.0,
         float $marginLeft = 36.0,
         array $namedStrings = [],
+        array $runningElements = [],
     ): void {
         $shaper = new \Phpdftk\Text\Shaper();
         foreach ($boxes as $position => $spec) {
@@ -2262,6 +2274,8 @@ final class Renderer
                     );
                 } elseif ($part['kind'] === 'namedstring') {
                     $text .= $namedStrings[$part['name']] ?? '';
+                } elseif ($part['kind'] === 'runningelement') {
+                    $text .= $runningElements[$part['name']] ?? '';
                 } else {
                     $text .= $part['value'];
                 }

@@ -1483,6 +1483,31 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
     }
 
+    public function testPageMarginBoxesResolveElementFunction(): void
+    {
+        // CSS Generated Content for Paged Media 3 §4 — `position:
+        // running(name)` opts an element out of the body flow into
+        // the running-element store; `content: element(name)` in a
+        // page margin box emits its text content.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'header { position: running(page-header); }'
+            . '@page { @top-center { content: element(page-header); } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><header>Running Hdr</header><p>body</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Element() resolution emits the header text in the top margin band.
+        self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
+    }
+
     public function testBodyBackgroundLinearGradientPaintsShadingPattern(): void
     {
         // `body { background-image: linear-gradient(...) }` should produce

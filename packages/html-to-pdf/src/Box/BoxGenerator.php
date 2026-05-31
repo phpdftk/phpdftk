@@ -54,6 +54,18 @@ final class BoxGenerator
      */
     private array $namedStrings = [];
 
+    /**
+     * CSS Generated Content for Paged Media 3 §4 — running-element
+     * store populated by `position: running(name)` declarations.
+     * Keyed by the running name, value is the element's text
+     * content captured at the point the element was visited.
+     * Page-margin painting reads this via {@see getRunningElements}
+     * to resolve `content: element(name)`.
+     *
+     * @var array<string, string>
+     */
+    private array $runningElements = [];
+
     public function __construct(
         private readonly Cascade $cascade = new Cascade(),
         /**
@@ -80,6 +92,7 @@ final class BoxGenerator
         }
         $this->counters = [];
         $this->namedStrings = [];
+        $this->runningElements = [];
         return $this->buildElementBox($root, $sheets, null);
     }
 
@@ -96,6 +109,18 @@ final class BoxGenerator
         return $this->namedStrings;
     }
 
+    /**
+     * Snapshot of the running-element store. Used by the page-
+     * margin painter to resolve `content: element(name)` against
+     * `position: running(name)` opt-outs in the document body.
+     *
+     * @return array<string, string>
+     */
+    public function getRunningElements(): array
+    {
+        return $this->runningElements;
+    }
+
     /** @param list<Stylesheet> $sheets */
     private function buildElementBox(
         Element $element,
@@ -106,6 +131,16 @@ final class BoxGenerator
         $this->applyPresentationalAttributes($element, $values);
         $display = $this->displayKeyword($values);
         if ($display === 'none') {
+            return null;
+        }
+        // CSS GCPM 3 §4 — `position: running(<name>)` opts the
+        // element out of normal flow and into the running-element
+        // store. No box is generated; the element's text content
+        // becomes available to @page margin boxes via
+        // `content: element(<name>)`.
+        $runningName = $this->extractRunningPositionName($values);
+        if ($runningName !== null) {
+            $this->runningElements[$runningName] = $element->textContent();
             return null;
         }
 
@@ -761,6 +796,29 @@ final class BoxGenerator
         $this->forEachCounterPair($value, function (string $name, int $defaultOrSpecified): void {
             $this->counters[$name] = $defaultOrSpecified;
         }, defaultValue: 0);
+    }
+
+    /**
+     * Extract `<name>` from `position: running(<name>)` when the
+     * cascaded `position` value is a generic CssFunction wrapping
+     * a bare ident argument. Returns null for any other position
+     * value, so normal positioning (static / relative / absolute
+     * / fixed) keeps its existing layout path.
+     */
+    private function extractRunningPositionName(CascadedValues $values): ?string
+    {
+        $pos = $values->get('position');
+        if (!($pos instanceof \Phpdftk\Css\Value\CssFunction)
+            || strtolower($pos->name) !== 'running'
+            || $pos->arguments === []
+        ) {
+            return null;
+        }
+        $arg = $pos->arguments[0];
+        if (!($arg instanceof Keyword)) {
+            return null;
+        }
+        return $arg->name;
     }
 
     /**
