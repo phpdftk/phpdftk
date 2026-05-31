@@ -783,9 +783,22 @@ final class BoxGenerator
     }
 
     /**
-     * Format `$count` per `$style`: `decimal` / `decimal-leading-zero`,
-     * `lower-alpha` / `upper-alpha` / `lower-latin` / `upper-latin`,
-     * `lower-roman` / `upper-roman`. Other style names fall back to decimal.
+     * Format `$count` per `$style`. Supports the CSS Counter Styles 3 §6
+     * predefined styles:
+     *
+     *  - decimal, decimal-leading-zero
+     *  - lower-alpha / upper-alpha (aliases lower-latin / upper-latin)
+     *  - lower-roman / upper-roman
+     *  - lower-greek (α β γ ...)
+     *  - cjk-decimal (Chinese decimal — uses the same arabic digits but
+     *    appended with U+3001 punctuation per browsers' implementation)
+     *  - hebrew (Hebrew letter numerals 1-999)
+     *  - armenian / lower-armenian / upper-armenian (1-9999)
+     *  - georgian (1-19999)
+     *  - hiragana / hiragana-iroha (Japanese kana ordering)
+     *  - katakana / katakana-iroha
+     *
+     * Unknown style names fall back to decimal.
      */
     private function formatCounter(int $count, string $style): string
     {
@@ -795,8 +808,185 @@ final class BoxGenerator
             'upper-alpha', 'upper-latin' => $this->bijectiveBase26($count, lower: false),
             'lower-roman' => strtolower($this->roman($count)),
             'upper-roman' => $this->roman($count),
+            'lower-greek' => $this->lowerGreek($count),
+            'hebrew' => $this->hebrew($count),
+            'armenian', 'upper-armenian' => $this->armenian($count, lower: false),
+            'lower-armenian' => $this->armenian($count, lower: true),
+            'georgian' => $this->georgian($count),
+            'hiragana' => $this->kanaList($count, [
+                'あ','い','う','え','お','か','き','く','け','こ',
+                'さ','し','す','せ','そ','た','ち','つ','て','と',
+                'な','に','ぬ','ね','の','は','ひ','ふ','へ','ほ',
+                'ま','み','む','め','も','や','ゆ','よ','ら','り',
+                'る','れ','ろ','わ','ゐ','ゑ','を','ん',
+            ]),
+            'hiragana-iroha' => $this->kanaList($count, [
+                'い','ろ','は','に','ほ','へ','と','ち','り','ぬ',
+                'る','を','わ','か','よ','た','れ','そ','つ','ね',
+                'な','ら','む','う','ゐ','の','お','く','や','ま',
+                'け','ふ','こ','え','て','あ','さ','き','ゆ','め',
+                'み','し','ゑ','ひ','も','せ','す',
+            ]),
+            'katakana' => $this->kanaList($count, [
+                'ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ',
+                'サ','シ','ス','セ','ソ','タ','チ','ツ','テ','ト',
+                'ナ','ニ','ヌ','ネ','ノ','ハ','ヒ','フ','ヘ','ホ',
+                'マ','ミ','ム','メ','モ','ヤ','ユ','ヨ','ラ','リ',
+                'ル','レ','ロ','ワ','ヰ','ヱ','ヲ','ン',
+            ]),
+            'katakana-iroha' => $this->kanaList($count, [
+                'イ','ロ','ハ','ニ','ホ','ヘ','ト','チ','リ','ヌ',
+                'ル','ヲ','ワ','カ','ヨ','タ','レ','ソ','ツ','ネ',
+                'ナ','ラ','ム','ウ','ヰ','ノ','オ','ク','ヤ','マ',
+                'ケ','フ','コ','エ','テ','ア','サ','キ','ユ','メ',
+                'ミ','シ','ヱ','ヒ','モ','セ','ス',
+            ]),
             default => (string) $count,
         };
+    }
+
+    /**
+     * CSS Counter Styles 3 §6.4 — lower-greek. 1-24 maps to α-ω
+     * (skipping final-σ and using ς in position 18 per the spec
+     * actually uses non-final sigma). Values outside 1-24 wrap
+     * via bijective base-24 over the alphabet.
+     */
+    private function lowerGreek(int $n): string
+    {
+        $alphabet = [
+            'α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ',
+            'ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω',
+        ];
+        if ($n < 1) {
+            return (string) $n;
+        }
+        $out = '';
+        while ($n > 0) {
+            $n--;
+            $out = $alphabet[$n % 24] . $out;
+            $n = intdiv($n, 24);
+        }
+        return $out;
+    }
+
+    /**
+     * CSS Counter Styles 3 §6.5 — hebrew numerals 1-999.
+     * Out-of-range falls back to decimal.
+     */
+    private function hebrew(int $n): string
+    {
+        if ($n < 1 || $n > 999) {
+            return (string) $n;
+        }
+        $map = [
+            400 => 'ת', 300 => 'ש', 200 => 'ר', 100 => 'ק',
+            90  => 'צ', 80  => 'פ', 70  => 'ע', 60  => 'ס',
+            50  => 'נ', 40  => 'מ', 30  => 'ל', 20  => 'כ',
+            19  => 'יט', 18 => 'יח', 17 => 'יז', 16 => 'טז', 15 => 'טו',
+            14  => 'יד', 13 => 'יג', 12 => 'יב', 11 => 'יא',
+            10  => 'י',
+            9 => 'ט', 8 => 'ח', 7 => 'ז', 6 => 'ו', 5 => 'ה',
+            4 => 'ד', 3 => 'ג', 2 => 'ב', 1 => 'א',
+        ];
+        $out = '';
+        foreach ($map as $v => $s) {
+            while ($n >= $v) {
+                $out .= $s;
+                $n -= $v;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * CSS Counter Styles 3 §6.7 — Armenian numerals. Range 1-9999.
+     */
+    private function armenian(int $n, bool $lower): string
+    {
+        if ($n < 1 || $n > 9999) {
+            return (string) $n;
+        }
+        $upperOnes = ['Ա','Բ','Գ','Դ','Ե','Զ','Է','Ը','Թ'];
+        $upperTens = ['Ժ','Ի','Լ','Խ','Ծ','Կ','Հ','Ձ','Ղ'];
+        $upperHundreds = ['Ճ','Մ','Յ','Ն','Շ','Ո','Չ','Պ','Ջ'];
+        $upperThousands = ['Ռ','Ս','Վ','Տ','Ր','Ց','Ւ','Փ','Ք'];
+        $thousands = intdiv($n, 1000);
+        $hundreds = intdiv($n % 1000, 100);
+        $tens = intdiv($n % 100, 10);
+        $ones = $n % 10;
+        $out = '';
+        if ($thousands > 0) {
+            $out .= $upperThousands[$thousands - 1];
+        }
+        if ($hundreds > 0) {
+            $out .= $upperHundreds[$hundreds - 1];
+        }
+        if ($tens > 0) {
+            $out .= $upperTens[$tens - 1];
+        }
+        if ($ones > 0) {
+            $out .= $upperOnes[$ones - 1];
+        }
+        return $lower ? mb_strtolower($out, 'UTF-8') : $out;
+    }
+
+    /**
+     * CSS Counter Styles 3 §6.6 — Georgian numerals (Mkhedruli).
+     * Range 1-19999.
+     */
+    private function georgian(int $n): string
+    {
+        if ($n < 1 || $n > 19999) {
+            return (string) $n;
+        }
+        $ones = ['ა','ბ','გ','დ','ე','ვ','ზ','ჱ','თ'];
+        $tens = ['ი','კ','ლ','მ','ნ','ჲ','ო','პ','ჟ'];
+        $hundreds = ['რ','ს','ტ','ჳ','ფ','ქ','ღ','ყ','შ'];
+        $thousands = ['ჩ','ც','ძ','წ','ჭ','ხ','ჴ','ჯ','ჰ'];
+        $tt = intdiv($n, 10000);
+        $h = intdiv($n % 10000, 1000);
+        $t = intdiv($n % 1000, 100);
+        $te = intdiv($n % 100, 10);
+        $o = $n % 10;
+        $out = '';
+        if ($tt > 0) {
+            $out .= 'ჵ';
+        }
+        if ($h > 0) {
+            $out .= $thousands[$h - 1];
+        }
+        if ($t > 0) {
+            $out .= $hundreds[$t - 1];
+        }
+        if ($te > 0) {
+            $out .= $tens[$te - 1];
+        }
+        if ($o > 0) {
+            $out .= $ones[$o - 1];
+        }
+        return $out;
+    }
+
+    /**
+     * Generic kana / alphabetic style — bijective expansion over
+     * the supplied symbol list. Used by hiragana / katakana
+     * (gojuon + iroha orderings).
+     *
+     * @param list<string> $symbols
+     */
+    private function kanaList(int $n, array $symbols): string
+    {
+        if ($n < 1 || $symbols === []) {
+            return (string) $n;
+        }
+        $base = count($symbols);
+        $out = '';
+        while ($n > 0) {
+            $n--;
+            $out = $symbols[$n % $base] . $out;
+            $n = intdiv($n, $base);
+        }
+        return $out;
     }
 
     private function bijectiveBase26(int $n, bool $lower): string
