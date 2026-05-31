@@ -41,6 +41,9 @@ use Phpdftk\Css\Value\CalcLeaf;
 use Phpdftk\Css\Value\CalcOp;
 use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\ColorMix;
+use Phpdftk\Css\Value\CubicBezier;
+use Phpdftk\Css\Value\StepsEasing;
+use Phpdftk\Css\Value\StepsJumpTerm;
 use Phpdftk\Css\Value\HueInterpolation;
 use Phpdftk\Css\Value\ColorSpace;
 use Phpdftk\Css\Value\CssFunction;
@@ -311,6 +314,18 @@ final class ValueParser
             $le = $this->parseLinearEasingFunction($tokens);
             if ($le !== null) {
                 return $le;
+            }
+        }
+        if ($name === 'cubic-bezier') {
+            $cb = $this->parseCubicBezierFunction($tokens);
+            if ($cb !== null) {
+                return $cb;
+            }
+        }
+        if ($name === 'steps') {
+            $st = $this->parseStepsFunction($tokens);
+            if ($st !== null) {
+                return $st;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -2222,6 +2237,66 @@ final class ValueParser
         return $isSize
             ? new AnchorSizeFunction($anchorName, $side, $fallback)
             : new AnchorFunction($anchorName, $side, $fallback);
+    }
+
+    // ============================================================
+    // cubic-bezier() + steps() — CSS Easing 1 §3.4 / §3.5
+    // ============================================================
+    /** @param list<Token> $tokens */
+    private function parseCubicBezierFunction(array $tokens): ?CubicBezier
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($commaGroups) !== 4) {
+            return null;
+        }
+        $values = [];
+        foreach ($commaGroups as $group) {
+            $g = self::trimWhitespace($group);
+            if (count($g) !== 1 || !($g[0] instanceof NumberToken)) {
+                return null;
+            }
+            $values[] = (float) $g[0]->value;
+        }
+        // CSS Easing 1 §3.4 — x coordinates must be in [0, 1].
+        if ($values[0] < 0.0 || $values[0] > 1.0 || $values[2] < 0.0 || $values[2] > 1.0) {
+            return null;
+        }
+        return new CubicBezier($values[0], $values[1], $values[2], $values[3]);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseStepsFunction(array $tokens): ?StepsEasing
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        if (count($commaGroups) < 1 || count($commaGroups) > 2) {
+            return null;
+        }
+        // Count.
+        $countTokens = self::trimWhitespace($commaGroups[0]);
+        if (count($countTokens) !== 1 || !($countTokens[0] instanceof NumberToken)) {
+            return null;
+        }
+        $countValue = $countTokens[0]->value;
+        if ($countValue !== floor($countValue) || $countValue < 1) {
+            return null;
+        }
+        $count = (int) $countValue;
+        // Optional jump term.
+        $jump = StepsJumpTerm::End;
+        if (count($commaGroups) === 2) {
+            $jumpTokens = self::trimWhitespace($commaGroups[1]);
+            if (count($jumpTokens) !== 1 || !($jumpTokens[0] instanceof IdentToken)) {
+                return null;
+            }
+            $parsed = StepsJumpTerm::tryFrom(strtolower($jumpTokens[0]->value));
+            if ($parsed === null) {
+                return null;
+            }
+            $jump = $parsed;
+        }
+        return new StepsEasing($count, $jump);
     }
 
     // ============================================================
