@@ -9,6 +9,7 @@ use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
+use Phpdftk\Css\Value\LightDark;
 use Phpdftk\Css\Value\Number;
 use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Css\Value\Url;
@@ -729,14 +730,26 @@ final readonly class ComputedStyle
 
     private function expectColor(string $prop, Color $fallback): Color
     {
-        $v = $this->values->get($prop);
+        $v = $this->resolveLightDark($this->values->get($prop));
         return $v instanceof Color ? $v : $fallback;
     }
 
     private function expectColorOrKeyword(string $prop, string $keywordFallback): Color|Keyword
     {
-        $v = $this->values->get($prop);
+        $v = $this->resolveLightDark($this->values->get($prop));
         return $v instanceof Color || $v instanceof Keyword ? $v : new Keyword($keywordFallback);
+    }
+
+    /**
+     * CSS Color 5 §5 — pick the `light` branch of a `light-dark()`
+     * call at computed-value time. The renderer currently treats
+     * the document scheme as light (no color-scheme tracking yet);
+     * the second branch is preserved on the original {@see LightDark}
+     * value if a future re-render needs it.
+     */
+    private function resolveLightDark(?Value $v): ?Value
+    {
+        return $v instanceof LightDark ? $v->light : $v;
     }
 
     private function expectLength(string $prop, float $fallbackPx): Length

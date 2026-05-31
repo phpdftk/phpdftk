@@ -66,6 +66,7 @@ use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\LengthUnit;
+use Phpdftk\Css\Value\LightDark;
 use Phpdftk\Css\Value\LinearEasing;
 use Phpdftk\Css\Value\LinearEasingStop;
 use Phpdftk\Css\Value\LinearGradient;
@@ -324,6 +325,12 @@ final class ValueParser
             $t = $this->parseTargetFunction($name, $tokens);
             if ($t !== null) {
                 return $t;
+            }
+        }
+        if ($name === 'light-dark') {
+            $ld = $this->parseLightDark($tokens);
+            if ($ld !== null) {
+                return $ld;
             }
         }
         if ($name === 'linear') {
@@ -2992,6 +2999,27 @@ final class ValueParser
             return null;
         }
         return new Keyword($trim[0]->value);
+    }
+
+    // ============================================================
+    // light-dark — CSS Color 5 §5
+    // ============================================================
+    /**
+     * Parse `light-dark(<color>, <color>)`. The renderer selects
+     * the active branch at paint time based on the resolved
+     * `color-scheme` for the document / element.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseLightDark(array $tokens): ?LightDark
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if (count($groups) !== 2) {
+            return null;
+        }
+        $light = $this->parseFromString(self::serializeTokens(self::trimWhitespace($groups[0])));
+        $dark = $this->parseFromString(self::serializeTokens(self::trimWhitespace($groups[1])));
+        return new LightDark($light, $dark);
     }
 
     // ============================================================
