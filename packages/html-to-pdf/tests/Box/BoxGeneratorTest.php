@@ -102,6 +102,25 @@ final class BoxGeneratorTest extends TestCase
         self::assertNotNull($p);
     }
 
+    public function testContentVisibilityHiddenSkipsSubtree(): void
+    {
+        // CSS Containment 2 §4 — `content-visibility: hidden` is
+        // equivalent to display: none for static print.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, div, p { display: block; }
+            .cv-hidden { content-visibility: hidden; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="cv-hidden"><p>gone</p></div><p>shown</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $hidden = $this->findFirstByClass($box, 'cv-hidden');
+        self::assertNull($hidden, 'content-visibility:hidden element is omitted');
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+    }
+
     public function testImgPresentationalAttributesSetWidth(): void
     {
         // <img width="120" height="60"> should set the cascade's width/height.

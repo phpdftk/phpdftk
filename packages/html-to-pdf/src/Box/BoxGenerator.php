@@ -133,6 +133,14 @@ final class BoxGenerator
         if ($display === 'none') {
             return null;
         }
+        // CSS Containment 2 §4 — `content-visibility: hidden`
+        // suppresses box generation just like `display: none` for
+        // static print. (`auto` is a runtime-visibility optimisation
+        // with no print equivalent and is treated as `visible`.)
+        $cv = $values->get('content-visibility');
+        if ($cv instanceof Keyword && strtolower($cv->name) === 'hidden') {
+            return null;
+        }
         // CSS GCPM 3 §4 — `position: running(<name>)` opts the
         // element out of normal flow and into the running-element
         // store. No box is generated; the element's text content
