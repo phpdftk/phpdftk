@@ -292,6 +292,12 @@ final class PropertyRegistry
         // CSS Fonts 4 §5 — `font-size-adjust` normalises x-height
         // across font-family fallbacks. `none | <number>+`.
         $r->register($initial('font-size-adjust', new Keyword('none'), true));
+        // CSS Fonts 4 §10 — color-font palette selection. The
+        // declared identifier matches an `@font-palette-values`
+        // at-rule (handled at face load); cascaded value tells
+        // the shaper which palette to use when rendering COLRv1
+        // / SVG color fonts.
+        $r->register($initial('font-palette', new Keyword('normal'), true));
         // CSS Compositing 1 — `isolation` controls stacking context;
         // print medium has no blending compositing layers but register
         // so cascade keeps the value.
