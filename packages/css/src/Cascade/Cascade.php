@@ -334,6 +334,21 @@ final class Cascade
                     // For static print render the starting state
                     // IS the rendered state, so the inner rules
                     // pass through.
+                } elseif ($name === 'container') {
+                    // CSS Containment 3 §4.4 — `@container [name?]
+                    // (query) { ... }`. Container queries resolve
+                    // against the containing element's size at
+                    // layout time. For now we pass-through (rules
+                    // apply unconditionally) so author CSS doesn't
+                    // drop. Full container-query matching needs
+                    // the layout engine to expose containing-block
+                    // sizes back to the cascade.
+                } elseif ($name === 'position-try') {
+                    // CSS Anchor Positioning 1 §8 — `@position-try
+                    // --fallback { ... }` declares positioning
+                    // fallbacks used when the primary position
+                    // overflows. For static print, primary wins;
+                    // pass through so rules cascade.
                 } else {
                     continue;
                 }

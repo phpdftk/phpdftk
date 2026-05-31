@@ -114,4 +114,32 @@ final class LayerScopeTest extends TestCase
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
         self::assertSame(1.0, $values->get('color')->r);
     }
+
+    public function testContainerBlockAppliesPassThrough(): void
+    {
+        // CSS Containment 3 §4.4 — pass-through for now.
+        $sheet = $this->parser->parseStylesheet(
+            '@container (min-width: 400px) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testContainerNamedAppliesPassThrough(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@container card (inline-size > 30em) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testPositionTryBlockAppliesPassThrough(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            '@position-try --fallback { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
 }
