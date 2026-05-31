@@ -876,6 +876,33 @@ final class InlineLayout
     }
 
     /**
+     * Resolve the cascaded `font-stretch` to its percentage value on
+     * the CSS Fonts 4 §3.4 axis (50..200). Accepts the named keyword
+     * forms (`condensed`, `expanded`, ...) and bare percentages.
+     */
+    private function resolveStretch(Box $box): float
+    {
+        $value = $box->style->get('font-stretch');
+        if ($value instanceof \Phpdftk\Css\Value\Keyword) {
+            return match (strtolower($value->name)) {
+                'ultra-condensed' => 50.0,
+                'extra-condensed' => 62.5,
+                'condensed' => 75.0,
+                'semi-condensed' => 87.5,
+                'semi-expanded' => 112.5,
+                'expanded' => 125.0,
+                'extra-expanded' => 150.0,
+                'ultra-expanded' => 200.0,
+                default => 100.0,
+            };
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return max(50.0, min(200.0, (float) $value->value));
+        }
+        return 100.0;
+    }
+
+    /**
      * Combined font/weight/style resolution for the box. Picks the
      * concrete `OpenTypeData` via {@see FontResolver::resolveMatch()} and
      * derives the post-match "still needs synthetic effect" flags by
@@ -887,6 +914,7 @@ final class InlineLayout
     {
         $weight = $this->resolveWeight($box);
         $style = $this->resolveStyle($box);
+        $stretch = $this->resolveStretch($box);
         $requestBold = $weight >= 600;
         $requestItalic = $style !== 'normal';
         $resolver = $this->currentFontResolver;
@@ -894,6 +922,7 @@ final class InlineLayout
             $box->style->get('font-family'),
             $weight,
             $style,
+            $stretch,
         );
         $font = $match?->face->data ?? $fallback;
         $isBold = $requestBold && ($match === null || !$match->matchesWeight);
