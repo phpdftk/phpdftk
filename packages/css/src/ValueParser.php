@@ -55,6 +55,8 @@ use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\LengthUnit;
+use Phpdftk\Css\Value\LinearEasing;
+use Phpdftk\Css\Value\LinearEasingStop;
 use Phpdftk\Css\Value\LinearGradient;
 use Phpdftk\Css\Value\ListSeparator;
 use Phpdftk\Css\Value\MatrixTransform;
@@ -303,6 +305,12 @@ final class ValueParser
             $e = $this->parseEnvFunction($tokens);
             if ($e !== null) {
                 return $e;
+            }
+        }
+        if ($name === 'linear') {
+            $le = $this->parseLinearEasingFunction($tokens);
+            if ($le !== null) {
+                return $le;
             }
         }
         // Generic fallback: each comma-separated group becomes one argument.
@@ -2214,6 +2222,86 @@ final class ValueParser
         return $isSize
             ? new AnchorSizeFunction($anchorName, $side, $fallback)
             : new AnchorFunction($anchorName, $side, $fallback);
+    }
+
+    // ============================================================
+    // linear() — CSS Easing 2 §3.1
+    // ============================================================
+    /**
+     * Parse `linear(<linear-stop-list>)` where each stop is
+     * `<number> [<percentage>]?` (CSS Easing 2 §3.1) or the range
+     * form `<number> <percentage> <percentage>` (§3.2). Returns
+     * null when the stop list is empty or malformed.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseLinearEasingFunction(array $tokens): ?LinearEasing
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $groups = self::splitTopLevel($tokens, CommaToken::class);
+        $stops = [];
+        foreach ($groups as $group) {
+            $group = self::trimWhitespace($group);
+            $parts = self::splitParenAwareSpaceForm($group);
+            if (count($parts) === 0 || count($parts) > 3) {
+                return null;
+            }
+            // First part is the output number.
+            $outputTokens = self::trimWhitespace($parts[0]);
+            if (count($outputTokens) !== 1 || !($outputTokens[0] instanceof NumberToken)) {
+                return null;
+            }
+            $output = (float) $outputTokens[0]->value;
+
+            // Range form: 3 parts (output, percentageFrom, percentageTo)
+            // emits two stops sharing the output.
+            if (count($parts) === 3) {
+                $fromPct = self::extractSinglePercentage(self::trimWhitespace($parts[1]));
+                $toPct = self::extractSinglePercentage(self::trimWhitespace($parts[2]));
+                if ($fromPct === null || $toPct === null) {
+                    return null;
+                }
+                $stops[] = new LinearEasingStop($output, $fromPct);
+                $stops[] = new LinearEasingStop($output, $toPct);
+                continue;
+            }
+
+            // Regular form: 1 or 2 parts (output, optional percentage).
+            $inputPct = null;
+            if (count($parts) === 2) {
+                $pct = self::extractSinglePercentage(self::trimWhitespace($parts[1]));
+                if ($pct === null) {
+                    return null;
+                }
+                $inputPct = $pct;
+            }
+            $stops[] = new LinearEasingStop($output, $inputPct);
+        }
+        if ($stops === []) {
+            return null;
+        }
+        return new LinearEasing($stops);
+    }
+
+    /**
+     * Extract a single percentage value from a token sequence
+     * already trimmed of surrounding whitespace.
+     *
+     * @param list<Token> $tokens
+     */
+    private static function extractSinglePercentage(array $tokens): ?float
+    {
+        if (count($tokens) !== 1) {
+            return null;
+        }
+        $t = $tokens[0];
+        if (!($t instanceof PercentageToken)) {
+            return null;
+        }
+        return (float) $t->value;
     }
 
     // ============================================================
