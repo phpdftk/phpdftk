@@ -31,7 +31,10 @@ use Phpdftk\Css\Value\CircleShape;
 use Phpdftk\Css\Value\EllipseShape;
 use Phpdftk\Css\Value\EnvFunction;
 use Phpdftk\Css\Value\InsetShape;
+use Phpdftk\Css\Value\PathShape;
 use Phpdftk\Css\Value\PolygonShape;
+use Phpdftk\Css\Value\RectShape;
+use Phpdftk\Css\Value\XywhShape;
 use Phpdftk\Css\Value\Filter;
 use Phpdftk\Css\Value\FilterFunction;
 use Phpdftk\Css\Value\FilterKind;
@@ -333,7 +336,7 @@ final class ValueParser
                 return $st;
             }
         }
-        if ($name === 'circle' || $name === 'ellipse' || $name === 'inset' || $name === 'polygon') {
+        if (in_array($name, ['circle', 'ellipse', 'inset', 'polygon', 'rect', 'xywh', 'path'], true)) {
             $shape = $this->parseBasicShape($name, $tokens);
             if ($shape !== null) {
                 return $shape;
@@ -2267,8 +2270,113 @@ final class ValueParser
             'ellipse' => $this->parseEllipseShape($tokens),
             'inset' => $this->parseInsetShape($tokens),
             'polygon' => $this->parsePolygonShape($tokens),
+            'rect' => $this->parseRectShape($tokens),
+            'xywh' => $this->parseXywhShape($tokens),
+            'path' => $this->parsePathShape($tokens),
             default => null,
         };
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseRectShape(array $tokens): ?RectShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        [$edgeTokens, $roundTokens] = self::splitOnRoundKeyword($tokens);
+        $edgeGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($edgeTokens));
+        if (count($edgeGroups) !== 4) {
+            return null;
+        }
+        $edges = [];
+        foreach ($edgeGroups as $group) {
+            $value = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            if (!self::isShapePositionValue($value)
+                && !($value instanceof Keyword && strtolower($value->name) === 'auto')
+            ) {
+                return null;
+            }
+            $edges[] = $value;
+        }
+        $radius = null;
+        if ($roundTokens !== []) {
+            $roundGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($roundTokens));
+            $radius = [];
+            foreach ($roundGroups as $group) {
+                $radius[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            }
+            if ($radius === []) {
+                $radius = null;
+            }
+        }
+        return new RectShape($edges, $radius);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parseXywhShape(array $tokens): ?XywhShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        [$mainTokens, $roundTokens] = self::splitOnRoundKeyword($tokens);
+        $groups = self::splitParenAwareSpaceForm(self::trimWhitespace($mainTokens));
+        if (count($groups) !== 4) {
+            return null;
+        }
+        $values = [];
+        foreach ($groups as $group) {
+            $value = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            if (!self::isShapePositionValue($value)) {
+                return null;
+            }
+            $values[] = $value;
+        }
+        $radius = null;
+        if ($roundTokens !== []) {
+            $roundGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($roundTokens));
+            $radius = [];
+            foreach ($roundGroups as $group) {
+                $radius[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+            }
+            if ($radius === []) {
+                $radius = null;
+            }
+        }
+        return new XywhShape($values[0], $values[1], $values[2], $values[3], $radius);
+    }
+
+    /** @param list<Token> $tokens */
+    private function parsePathShape(array $tokens): ?PathShape
+    {
+        $tokens = self::trimWhitespace($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+        $commaGroups = self::splitTopLevel($tokens, CommaToken::class);
+        $fillRule = 'nonzero';
+        // Optional leading fill-rule ident.
+        if (count($commaGroups) === 2) {
+            $first = self::trimWhitespace($commaGroups[0]);
+            if (count($first) !== 1 || !($first[0] instanceof IdentToken)) {
+                return null;
+            }
+            $rule = strtolower($first[0]->value);
+            if ($rule !== 'nonzero' && $rule !== 'evenodd') {
+                return null;
+            }
+            $fillRule = $rule;
+            $pathGroup = $commaGroups[1];
+        } else {
+            $pathGroup = $commaGroups[0];
+        }
+        // Path data string.
+        $pathTokens = self::trimWhitespace($pathGroup);
+        if (count($pathTokens) !== 1 || !($pathTokens[0] instanceof StringToken)) {
+            return null;
+        }
+        return new PathShape($fillRule, $pathTokens[0]->value);
     }
 
     /** @param list<Token> $tokens */
