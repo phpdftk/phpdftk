@@ -1483,6 +1483,32 @@ final class RendererTest extends TestCase
         self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
     }
 
+    public function testStringSetAcceptsCounterFunction(): void
+    {
+        // CSS GCPM 3 §5.1 — `counter()` inside string-set captures
+        // the current counter value at the element. Demonstrates the
+        // running-section-number-in-header pattern.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'body { counter-reset: section; }'
+            . 'h1 { counter-increment: section; string-set: secno counter(section); }'
+            . '@page { @top-center { content: string(secno); } }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head>'
+            . '<body><h1>A</h1><h1>B</h1></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The last h1 incremented section to 2 — that's what the
+        // top-margin should emit.
+        self::assertMatchesRegularExpression('~ 774 Tm~', $bytes, 'top margin band text matrix');
+    }
+
     public function testPageMarginBoxesResolveElementFunction(): void
     {
         // CSS Generated Content for Paged Media 3 §4 — `position:

@@ -922,6 +922,25 @@ final class BoxGenerator
             }
             return $host->getAttribute($name) ?? '';
         }
+        if ($value instanceof \Phpdftk\Css\Value\CssFunction
+            && strtolower($value->name) === 'counter'
+            && $value->arguments !== []
+        ) {
+            // CSS GCPM 3 §5.1 — `counter(<name> [, <style>]?)` inside
+            // string-set emits the current counter value at this
+            // element. Reuses the existing counter store + formatter.
+            $args = $value->arguments;
+            $head = $args[0];
+            if (!($head instanceof Keyword)) {
+                return '';
+            }
+            $count = $this->counters[$head->name] ?? 0;
+            $style = 'decimal';
+            if (isset($args[1]) && $args[1] instanceof Keyword) {
+                $style = strtolower($args[1]->name);
+            }
+            return $this->formatCounter($count, $style);
+        }
         return '';
     }
 
