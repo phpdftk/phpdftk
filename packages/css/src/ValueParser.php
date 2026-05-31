@@ -83,6 +83,7 @@ use Phpdftk\Css\Value\RelativeColor;
 use Phpdftk\Css\Value\RotateTransform;
 use Phpdftk\Css\Value\ScaleTransform;
 use Phpdftk\Css\Value\SkewTransform;
+use Phpdftk\Css\Value\StringFunction;
 use Phpdftk\Css\Value\StringValue;
 use Phpdftk\Css\Value\TargetFunction;
 use Phpdftk\Css\Value\TargetFunctionKind;
@@ -328,6 +329,12 @@ final class ValueParser
             $t = $this->parseTargetFunction($name, $tokens);
             if ($t !== null) {
                 return $t;
+            }
+        }
+        if ($name === 'string') {
+            $s = $this->parseStringFunction($tokens);
+            if ($s !== null) {
+                return $s;
             }
         }
         if ($name === 'light-dark') {
@@ -3192,6 +3199,41 @@ final class ValueParser
             return null;
         }
         return new Keyword($trim[0]->value);
+    }
+
+    // ============================================================
+    // string() — CSS Generated Content for Paged Media 3 §5.2
+    // ============================================================
+    /**
+     * Parse `string(<name> [, first | start | last | first-except]?)`.
+     * The fetch-target keyword defaults to `first`.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseStringFunction(array $tokens): ?StringFunction
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if (count($groups) < 1 || count($groups) > 2) {
+            return null;
+        }
+        $nameTokens = self::trimWhitespace($groups[0]);
+        if (count($nameTokens) !== 1 || !($nameTokens[0] instanceof IdentToken)) {
+            return null;
+        }
+        $name = $nameTokens[0]->value;
+        $target = 'first';
+        if (count($groups) === 2) {
+            $tgtTokens = self::trimWhitespace($groups[1]);
+            if (count($tgtTokens) !== 1 || !($tgtTokens[0] instanceof IdentToken)) {
+                return null;
+            }
+            $kw = strtolower($tgtTokens[0]->value);
+            if (!in_array($kw, ['first', 'start', 'last', 'first-except'], true)) {
+                return null;
+            }
+            $target = $kw;
+        }
+        return new StringFunction($name, $target);
     }
 
     // ============================================================

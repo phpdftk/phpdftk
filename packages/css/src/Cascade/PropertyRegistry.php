@@ -393,6 +393,16 @@ final class PropertyRegistry
         // counter-increment which only adds).
         $r->register($initial('counter-set', new Keyword('none')));
 
+        // CSS Generated Content for Paged Media 3 §5 — string-set
+        // declares named strings whose value is updated as elements
+        // matching this selector flow through the document. Page
+        // margin boxes consume them via `content: string(name)` —
+        // the canonical "running header showing current chapter
+        // title" pattern. Not inheritable; the cascade carries the
+        // value declaration through, the renderer tracks the
+        // per-document string store.
+        $r->register($initial('string-set', new Keyword('none')));
+
         // CSS UI 4 §3 — appearance. The cascade carries the value
         // forward; form-control rendering opts in via
         // `appearance: auto | none` in the painter.
