@@ -526,6 +526,41 @@ final class PropertyRegistry
         // or `alpha`. Inherits per spec.
         $r->register($initial('mask-type', new Keyword('luminance'), true));
 
+        // CSS Animations 2 — animation-range / animation-composition.
+        // Animation playback gated on `Pdf::renderAnimationsAt(t)`;
+        // properties cascade so declared keyframes can be picked
+        // up by the engine.
+        $r->register($initial('animation-composition', new Keyword('replace')));
+        $r->register($initial('animation-range', new Keyword('normal')));
+        $r->register($initial('animation-range-start', new Keyword('normal')));
+        $r->register($initial('animation-range-end', new Keyword('normal')));
+
+        // CSS Compositing 1 §4 — background-blend-mode. Painter
+        // honours PDF-native blend modes; non-native modes require
+        // 4C raster.
+        $r->register($initial('background-blend-mode', new Keyword('normal')));
+
+        // CSS Shapes 1 — shape-outside / shape-margin /
+        // shape-image-threshold define the shape inline content
+        // wraps around floats. Print rendering can use these for
+        // text-wrap; painter integration TBD.
+        $r->register($initial('shape-outside', new Keyword('none')));
+        $r->register($initial('shape-margin', new Length(0.0, LengthUnit::Px)));
+        $r->register($initial('shape-image-threshold', new Number(0.0)));
+
+        // CSS Text 4 §11 — white-space-collapse + text-wrap-mode +
+        // text-wrap-style work together to refine the legacy
+        // `white-space` shorthand. `white-space-collapse: preserve`
+        // is what `white-space: pre` desugars into.
+        $r->register($initial('white-space-collapse', new Keyword('collapse'), true));
+        $r->register($initial('text-wrap-mode', new Keyword('wrap'), true));
+
+        // CSS View Transitions 1 — declarative properties cascade
+        // even though the actual transition playback is out of
+        // scope (interactive lifecycle).
+        $r->register($initial('view-transition-name', new Keyword('none')));
+        $r->register($initial('view-transition-class', new Keyword('none')));
+
         // CSS Fragmentation 4 §3 + legacy `page-break-*` aliases.
         $r->register($initial('break-before', new Keyword('auto')));
         $r->register($initial('break-after', new Keyword('auto')));

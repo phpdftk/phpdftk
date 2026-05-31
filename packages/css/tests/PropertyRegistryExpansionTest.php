@@ -155,6 +155,31 @@ final class PropertyRegistryExpansionTest extends TestCase
         ] as $name) {
             yield $name => [$name];
         }
+
+        // CSS Animations 2
+        foreach ([
+            'animation-composition', 'animation-range',
+            'animation-range-start', 'animation-range-end',
+        ] as $name) {
+            yield $name => [$name];
+        }
+
+        // CSS Compositing 1
+        yield 'background-blend-mode' => ['background-blend-mode'];
+
+        // CSS Shapes 1
+        foreach (['shape-outside', 'shape-margin', 'shape-image-threshold'] as $name) {
+            yield $name => [$name];
+        }
+
+        // CSS Text 4 §11
+        yield 'white-space-collapse' => ['white-space-collapse'];
+        yield 'text-wrap-mode' => ['text-wrap-mode'];
+
+        // CSS View Transitions 1 — declarative props (playback out
+        // of scope per ledger, but properties cascade)
+        yield 'view-transition-name' => ['view-transition-name'];
+        yield 'view-transition-class' => ['view-transition-class'];
     }
 
     #[DataProvider('newlyRegisteredProperties')]
