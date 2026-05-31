@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Css\Cascade;
 
+use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
@@ -96,6 +97,7 @@ final class ShorthandExpander
             'transition' => $this->expandTransition($value),
             'animation' => $this->expandAnimation($value),
             'position-try' => $this->expandPositionTry($value),
+            'text-emphasis' => $this->expandTextEmphasis($value),
             default => [$property => $value],
         };
     }
@@ -1044,6 +1046,51 @@ final class ShorthandExpander
             'position-try-order' => $order,
             'position-try-fallbacks' => $fallbacks,
         ];
+    }
+
+    /**
+     * CSS Text Decoration 4 §8.6 — `text-emphasis` shorthand for
+     * `text-emphasis-style` + `text-emphasis-color`. Components
+     * may appear in any order; the color component is distinguished
+     * by being a Color value (typed) or `currentcolor` keyword.
+     *
+     * @return array<string, Value>
+     */
+    private function expandTextEmphasis(Value $value): array
+    {
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $style = null;
+        $color = null;
+        foreach ($components as $c) {
+            if ($color === null && $this->isColorComponent($c)) {
+                $color = $c;
+                continue;
+            }
+            $style ??= $c;
+        }
+        $out = [];
+        if ($style !== null) {
+            $out['text-emphasis-style'] = $style;
+        }
+        if ($color !== null) {
+            $out['text-emphasis-color'] = $color;
+        }
+        return $out;
+    }
+
+    private function isColorComponent(Value $v): bool
+    {
+        if ($v instanceof Color) {
+            return true;
+        }
+        if ($v instanceof Keyword) {
+            $lc = strtolower($v->name);
+            return $lc === 'currentcolor' || $lc === 'transparent';
+        }
+        return false;
     }
 
     private function looksLikeFontSize(Value $v): bool

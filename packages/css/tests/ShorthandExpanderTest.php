@@ -537,6 +537,27 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('--fb', $out['position-try-fallbacks']->name);
     }
 
+    public function testTextEmphasisStyleOnly(): void
+    {
+        $out = $this->expander->expand('text-emphasis', $this->value('filled circle'));
+        self::assertArrayHasKey('text-emphasis-style', $out);
+        self::assertArrayNotHasKey('text-emphasis-color', $out);
+    }
+
+    public function testTextEmphasisStyleAndColor(): void
+    {
+        $out = $this->expander->expand('text-emphasis', $this->value('filled circle red'));
+        self::assertArrayHasKey('text-emphasis-style', $out);
+        self::assertArrayHasKey('text-emphasis-color', $out);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-emphasis-color']);
+    }
+
+    public function testTextEmphasisCurrentcolorKeyword(): void
+    {
+        $out = $this->expander->expand('text-emphasis', $this->value('dot currentcolor'));
+        self::assertSame('currentcolor', $out['text-emphasis-color']->name);
+    }
+
     public function testCascadeAppliesTransitionShorthand(): void
     {
         $sheet = $this->parser->parseStylesheet(
