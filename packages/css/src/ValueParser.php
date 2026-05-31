@@ -57,6 +57,7 @@ use Phpdftk\Css\Value\ColorSpace;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\CustomProperty;
 use Phpdftk\Css\Value\DeviceCmyk;
+use Phpdftk\Css\Value\ElementFunction;
 use Phpdftk\Css\Value\Gradient;
 use Phpdftk\Css\Value\ConicGradient;
 use Phpdftk\Css\Value\CrossFade;
@@ -335,6 +336,12 @@ final class ValueParser
             $s = $this->parseStringFunction($tokens);
             if ($s !== null) {
                 return $s;
+            }
+        }
+        if ($name === 'element') {
+            $e = $this->parseElementFunction($tokens);
+            if ($e !== null) {
+                return $e;
             }
         }
         if ($name === 'light-dark') {
@@ -3234,6 +3241,41 @@ final class ValueParser
             $target = $kw;
         }
         return new StringFunction($name, $target);
+    }
+
+    // ============================================================
+    // element() — CSS Generated Content for Paged Media 3 §4.2
+    // ============================================================
+    /**
+     * Parse `element(<name> [, first | start | last | first-except]?)`.
+     * Same grammar shape as `string()` per §4.2.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseElementFunction(array $tokens): ?ElementFunction
+    {
+        $groups = self::splitTopLevel(self::trimWhitespace($tokens), CommaToken::class);
+        if (count($groups) < 1 || count($groups) > 2) {
+            return null;
+        }
+        $nameTokens = self::trimWhitespace($groups[0]);
+        if (count($nameTokens) !== 1 || !($nameTokens[0] instanceof IdentToken)) {
+            return null;
+        }
+        $name = $nameTokens[0]->value;
+        $target = 'first';
+        if (count($groups) === 2) {
+            $tgtTokens = self::trimWhitespace($groups[1]);
+            if (count($tgtTokens) !== 1 || !($tgtTokens[0] instanceof IdentToken)) {
+                return null;
+            }
+            $kw = strtolower($tgtTokens[0]->value);
+            if (!in_array($kw, ['first', 'start', 'last', 'first-except'], true)) {
+                return null;
+            }
+            $target = $kw;
+        }
+        return new ElementFunction($name, $target);
     }
 
     // ============================================================
