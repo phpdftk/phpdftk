@@ -587,6 +587,43 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('pretty', $out['text-wrap-style']->name);
     }
 
+    public function testWhiteSpaceLegacyPreExpandsToPreserveNowrap(): void
+    {
+        $out = $this->expander->expand('white-space', $this->value('pre'));
+        self::assertSame('preserve', $out['white-space-collapse']->name);
+        self::assertSame('nowrap', $out['text-wrap-mode']->name);
+    }
+
+    public function testWhiteSpaceLegacyPreWrapExpandsToPreserveWrap(): void
+    {
+        $out = $this->expander->expand('white-space', $this->value('pre-wrap'));
+        self::assertSame('preserve', $out['white-space-collapse']->name);
+        self::assertSame('wrap', $out['text-wrap-mode']->name);
+    }
+
+    public function testWhiteSpaceLegacyNowrapExpandsToCollapseNowrap(): void
+    {
+        $out = $this->expander->expand('white-space', $this->value('nowrap'));
+        self::assertSame('collapse', $out['white-space-collapse']->name);
+        self::assertSame('nowrap', $out['text-wrap-mode']->name);
+    }
+
+    public function testWhiteSpaceNewTwoKeywordForm(): void
+    {
+        $out = $this->expander->expand('white-space', $this->value('preserve-breaks wrap'));
+        self::assertSame('preserve-breaks', $out['white-space-collapse']->name);
+        self::assertSame('wrap', $out['text-wrap-mode']->name);
+    }
+
+    public function testWhiteSpacePreservesShorthandValueToo(): void
+    {
+        // The original `white-space` value lands on the same key
+        // so reading-back code that doesn't know about the new
+        // longhands still finds the cascaded declaration.
+        $out = $this->expander->expand('white-space', $this->value('pre-line'));
+        self::assertArrayHasKey('white-space', $out);
+    }
+
     public function testBorderAcceptsCurrentcolor(): void
     {
         $out = $this->expander->expand('border', $this->value('1px solid currentcolor'));

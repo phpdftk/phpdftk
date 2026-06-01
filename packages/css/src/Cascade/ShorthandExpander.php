@@ -101,6 +101,7 @@ final class ShorthandExpander
             'mask' => $this->expandMask($value),
             'border-image' => $this->expandBorderImage($value),
             'text-wrap' => $this->expandTextWrap($value),
+            'white-space' => $this->expandWhiteSpace($value),
             default => [$property => $value],
         };
     }
@@ -1328,6 +1329,81 @@ final class ShorthandExpander
             return $values[0];
         }
         return new ValueList(array_values($values), ListSeparator::Space);
+    }
+
+    /**
+     * CSS Text 4 §3.1 — `white-space` shorthand for
+     * `white-space-collapse` + `text-wrap-mode`. Two shapes:
+     *
+     * 1. Legacy single-keyword forms (CSS 2.1):
+     *      normal       → collapse + wrap
+     *      pre          → preserve + nowrap
+     *      pre-wrap     → preserve + wrap
+     *      pre-line     → preserve-breaks + wrap
+     *      nowrap       → collapse + nowrap
+     *      break-spaces → break-spaces + wrap
+     *
+     * 2. New two-keyword form (CSS Text 4):
+     *      <white-space-collapse> || <text-wrap-mode>
+     *
+     * The cascade also keeps `white-space` as a longhand itself
+     * (so reading back the original declaration still works);
+     * downstream layout reads through the new longhands.
+     *
+     * @return array<string, Value>
+     */
+    private function expandWhiteSpace(Value $value): array
+    {
+        $legacyMap = [
+            'normal' => ['collapse', 'wrap'],
+            'pre' => ['preserve', 'nowrap'],
+            'pre-wrap' => ['preserve', 'wrap'],
+            'pre-line' => ['preserve-breaks', 'wrap'],
+            'nowrap' => ['collapse', 'nowrap'],
+            'break-spaces' => ['break-spaces', 'wrap'],
+        ];
+        $collapseKw = ['collapse', 'preserve', 'preserve-breaks', 'preserve-spaces', 'break-spaces'];
+        $modeKw = ['wrap', 'nowrap'];
+
+        $components = $this->toComponents($value);
+        $collapse = null;
+        $mode = null;
+        if (count($components) === 1 && $components[0] instanceof Keyword) {
+            $name = strtolower($components[0]->name);
+            if (isset($legacyMap[$name])) {
+                [$collapseName, $modeName] = $legacyMap[$name];
+                $collapse = new Keyword($collapseName);
+                $mode = new Keyword($modeName);
+            }
+        }
+        if ($collapse === null && $mode === null) {
+            // Two-keyword path; pick one of each by membership.
+            foreach ($components as $c) {
+                if (!($c instanceof Keyword)) {
+                    continue;
+                }
+                $lc = strtolower($c->name);
+                if ($collapse === null && in_array($lc, $collapseKw, true)) {
+                    $collapse = $c;
+                    continue;
+                }
+                if ($mode === null && in_array($lc, $modeKw, true)) {
+                    $mode = $c;
+                }
+            }
+        }
+        $out = [
+            // Preserve the original shorthand value too — some
+            // downstream code reads `white-space` directly.
+            'white-space' => $value,
+        ];
+        if ($collapse !== null) {
+            $out['white-space-collapse'] = $collapse;
+        }
+        if ($mode !== null) {
+            $out['text-wrap-mode'] = $mode;
+        }
+        return $out;
     }
 
     /**
