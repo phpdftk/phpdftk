@@ -566,6 +566,25 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-emphasis-color']);
     }
 
+    public function testBorderAcceptsCurrentcolor(): void
+    {
+        $out = $this->expander->expand('border', $this->value('1px solid currentcolor'));
+        self::assertInstanceOf(Keyword::class, $out['border-top-color']);
+        self::assertSame('currentcolor', $out['border-top-color']->name);
+        // All four sides receive the keyword.
+        self::assertSame('currentcolor', $out['border-bottom-color']->name);
+    }
+
+    public function testBorderAcceptsTransparent(): void
+    {
+        // `transparent` parses as Color(0, 0, 0, 0) so it lands in
+        // the color slot directly. The earlier-failing path was
+        // `currentcolor`, which is a Keyword.
+        $out = $this->expander->expand('border', $this->value('1px solid transparent'));
+        self::assertInstanceOf(Color::class, $out['border-top-color']);
+        self::assertSame(0.0, $out['border-top-color']->a);
+    }
+
     public function testOutlineAcceptsCurrentcolor(): void
     {
         $out = $this->expander->expand('outline', $this->value('1px solid currentcolor'));

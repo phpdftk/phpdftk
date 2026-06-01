@@ -428,7 +428,13 @@ final class ShorthandExpander
 
     private function looksLikeColor(Value $v): bool
     {
-        return $v instanceof \Phpdftk\Css\Value\Color;
+        // Accept typed Color values plus the keyword forms the
+        // shorthand grammar permits everywhere a `<color>` appears
+        // (`currentcolor`, `transparent`). Other Keyword tokens
+        // remain candidates for their own slots (border-style,
+        // -width, etc.) — `isColorComponent` whitelists the two
+        // color-bearing keywords specifically.
+        return $this->isColorComponent($v);
     }
 
     /**
