@@ -247,11 +247,17 @@ final class Matcher
             // reflect the static `readonly` / `disabled` state.
             'read-only' => $this->matchReadOnly($el),
             'read-write' => $this->isFormControl($el) && !$this->matchReadOnly($el),
+            // CSS Selectors 4 §11.7 — `:placeholder-shown` matches a
+            // form control with a `placeholder` attribute and an
+            // empty `value` (= the placeholder is currently visible).
+            // For a static print render the document attribute state
+            // is what we observe.
+            'placeholder-shown' => $this->matchPlaceholderShown($el),
             // Remaining UI-state pseudos: print medium can't observe
             // them. Cascade drops the rule cleanly when these don't
             // match.
             'hover', 'focus', 'focus-within', 'focus-visible', 'active',
-            'placeholder-shown', 'default',
+            'default',
             'valid', 'invalid', 'target', 'visited',
             'user-valid', 'user-invalid' => false,
             default => false,
@@ -386,6 +392,26 @@ final class Matcher
             return $el->hasAttribute('selected');
         }
         return false;
+    }
+
+    /**
+     * `:placeholder-shown` — matches an `<input>` or `<textarea>`
+     * with a non-empty `placeholder` attribute and an empty (or
+     * absent) `value` attribute. For static print rendering the
+     * document's attribute state is what we observe.
+     */
+    private function matchPlaceholderShown(MatchableElement $el): bool
+    {
+        $tag = strtolower($el->localName());
+        if ($tag !== 'input' && $tag !== 'textarea') {
+            return false;
+        }
+        $placeholder = $el->getAttributeValue('placeholder');
+        if ($placeholder === null || $placeholder === '') {
+            return false;
+        }
+        $value = $el->getAttributeValue('value');
+        return $value === null || $value === '';
     }
 
     /**

@@ -450,6 +450,35 @@ final class MatcherTest extends TestCase
         self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':optional'), $opt));
     }
 
+    public function testPlaceholderShownMatchesInputWithEmptyValue(): void
+    {
+        $el = new FakeElement('input', attributes: [
+            'placeholder' => 'Search…',
+        ]);
+        self::assertTrue(
+            $this->matcher->listMatches(SelectorParser::parse(':placeholder-shown'), $el),
+        );
+    }
+
+    public function testPlaceholderShownRejectsInputWithValue(): void
+    {
+        $el = new FakeElement('input', attributes: [
+            'placeholder' => 'Search…',
+            'value' => 'hello',
+        ]);
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse(':placeholder-shown'), $el),
+        );
+    }
+
+    public function testPlaceholderShownRejectsInputWithoutPlaceholder(): void
+    {
+        $el = new FakeElement('input');
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse(':placeholder-shown'), $el),
+        );
+    }
+
     public function testReadOnlyReflectsReadonlyAndDisabled(): void
     {
         $ro = new FakeElement('input', attributes: ['readonly' => '']);
