@@ -622,13 +622,23 @@ final class ShorthandExpander
         $color = null;
         $image = null;
         $repeat = null;
+        $attachment = null;
+        $origin = null;
+        $clip = null;
         $positionParts = [];
+        $geoBoxKw = ['border-box', 'padding-box', 'content-box', 'text'];
         foreach ($components as $c) {
             if ($this->looksLikeColor($c)) {
                 $color = $c;
                 continue;
             }
-            if ($c instanceof \Phpdftk\Css\Value\Url) {
+            // CSS Backgrounds 3 §3.1 — `background-image` accepts
+            // any <image>: url, image-set, gradient, cross-fade.
+            if ($c instanceof \Phpdftk\Css\Value\Url
+                || $c instanceof \Phpdftk\Css\Value\Gradient
+                || $c instanceof \Phpdftk\Css\Value\ImageSet
+                || $c instanceof \Phpdftk\Css\Value\CrossFade
+            ) {
                 $image = $c;
                 continue;
             }
@@ -636,6 +646,20 @@ final class ShorthandExpander
                 $lower = strtolower($c->name);
                 if (in_array($lower, ['repeat', 'no-repeat', 'repeat-x', 'repeat-y', 'round', 'space'], true)) {
                     $repeat = $c;
+                    continue;
+                }
+                if (in_array($lower, ['scroll', 'fixed', 'local'], true)) {
+                    $attachment = $c;
+                    continue;
+                }
+                if (in_array($lower, $geoBoxKw, true)) {
+                    // First geometry-box → origin AND clip; second → clip only.
+                    if ($origin === null) {
+                        $origin = $c;
+                        $clip = $c;
+                    } else {
+                        $clip = $c;
+                    }
                     continue;
                 }
                 if (in_array($lower, ['top', 'bottom', 'left', 'right', 'center'], true)) {
@@ -662,6 +686,15 @@ final class ShorthandExpander
         }
         if ($repeat !== null) {
             $out['background-repeat'] = $repeat;
+        }
+        if ($attachment !== null) {
+            $out['background-attachment'] = $attachment;
+        }
+        if ($origin !== null) {
+            $out['background-origin'] = $origin;
+        }
+        if ($clip !== null) {
+            $out['background-clip'] = $clip;
         }
         if ($position !== null) {
             $out['background-position'] = $position;

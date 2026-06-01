@@ -256,6 +256,32 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('cover', $out['background-size']->name);
     }
 
+    public function testBackgroundAcceptsLinearGradientImage(): void
+    {
+        $out = $this->expander->expand('background', $this->value('linear-gradient(red, blue)'));
+        self::assertInstanceOf(\Phpdftk\Css\Value\LinearGradient::class, $out['background-image']);
+    }
+
+    public function testBackgroundAttachmentKeyword(): void
+    {
+        $out = $this->expander->expand('background', $this->value('url(bg.jpg) fixed'));
+        self::assertSame('fixed', $out['background-attachment']->name);
+    }
+
+    public function testBackgroundGeometryBoxFirstAssignsOriginAndClip(): void
+    {
+        $out = $this->expander->expand('background', $this->value('url(bg.jpg) content-box'));
+        self::assertSame('content-box', $out['background-origin']->name);
+        self::assertSame('content-box', $out['background-clip']->name);
+    }
+
+    public function testBackgroundTwoGeometryBoxesSplitOriginAndClip(): void
+    {
+        $out = $this->expander->expand('background', $this->value('url(bg.jpg) padding-box content-box'));
+        self::assertSame('padding-box', $out['background-origin']->name);
+        self::assertSame('content-box', $out['background-clip']->name);
+    }
+
     public function testTextDecorationSingleLine(): void
     {
         $out = $this->expander->expand('text-decoration', $this->value('underline'));
