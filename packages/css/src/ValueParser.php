@@ -83,6 +83,7 @@ use Phpdftk\Css\Value\PaintFunction;
 use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Css\Value\RadialGradient;
 use Phpdftk\Css\Value\RelativeColor;
+use Phpdftk\Css\Value\ScrollTimeline;
 use Phpdftk\Css\Value\RotateTransform;
 use Phpdftk\Css\Value\ScaleTransform;
 use Phpdftk\Css\Value\SkewTransform;
@@ -97,6 +98,7 @@ use Phpdftk\Css\Value\TransformFunction;
 use Phpdftk\Css\Value\TranslateTransform;
 use Phpdftk\Css\Value\Url;
 use Phpdftk\Css\Value\Value;
+use Phpdftk\Css\Value\ViewTimeline;
 use Phpdftk\Css\Value\ValueList;
 
 /**
@@ -356,6 +358,18 @@ final class ValueParser
             $p = $this->parsePaintFunction($tokens);
             if ($p !== null) {
                 return $p;
+            }
+        }
+        if ($name === 'view') {
+            $v = $this->parseViewTimeline($tokens);
+            if ($v !== null) {
+                return $v;
+            }
+        }
+        if ($name === 'scroll') {
+            $s = $this->parseScrollTimeline($tokens);
+            if ($s !== null) {
+                return $s;
             }
         }
         if ($name === 'light-dark') {
@@ -3261,6 +3275,84 @@ final class ValueParser
             $target = $kw;
         }
         return new StringFunction($name, $target);
+    }
+
+    // ============================================================
+    // view() / scroll() — CSS Scroll-driven Animations 1 §3.2/§4.2
+    // ============================================================
+    /**
+     * Parse `view([<axis>?] [<inset>?])`. Axis is one of
+     * `block | inline | x | y`; inset is one or two
+     * <length-percentage> values.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseViewTimeline(array $tokens): ?ViewTimeline
+    {
+        $trim = self::trimWhitespace($tokens);
+        if ($trim === []) {
+            return new ViewTimeline();
+        }
+        $axisKw = ['block', 'inline', 'x', 'y'];
+        $axis = null;
+        $insetStart = null;
+        $insetEnd = null;
+        $insetCss = [];
+        foreach (self::splitOnWhitespace($trim) as $part) {
+            if ($axis === null && count($part) === 1 && $part[0] instanceof IdentToken
+                && in_array(strtolower($part[0]->value), $axisKw, true)
+            ) {
+                $axis = strtolower($part[0]->value);
+                continue;
+            }
+            // Anything else collects as a length/percentage inset.
+            $value = $this->parseFromString(self::serializeTokens($part));
+            if (!($value instanceof Length) && !($value instanceof Percentage)) {
+                return null;
+            }
+            if ($insetStart === null) {
+                $insetStart = $value;
+            } elseif ($insetEnd === null) {
+                $insetEnd = $value;
+            } else {
+                return null;
+            }
+        }
+        return new ViewTimeline($axis, $insetStart, $insetEnd);
+    }
+
+    /**
+     * Parse `scroll([<scroller>?] [<axis>?])`. Scroller is
+     * `nearest | root | self`; axis is `block | inline | x | y`.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseScrollTimeline(array $tokens): ?ScrollTimeline
+    {
+        $trim = self::trimWhitespace($tokens);
+        if ($trim === []) {
+            return new ScrollTimeline();
+        }
+        $scrollerKw = ['nearest', 'root', 'self'];
+        $axisKw = ['block', 'inline', 'x', 'y'];
+        $scroller = null;
+        $axis = null;
+        foreach (self::splitOnWhitespace($trim) as $part) {
+            if (count($part) !== 1 || !($part[0] instanceof IdentToken)) {
+                return null;
+            }
+            $lc = strtolower($part[0]->value);
+            if ($scroller === null && in_array($lc, $scrollerKw, true)) {
+                $scroller = $lc;
+                continue;
+            }
+            if ($axis === null && in_array($lc, $axisKw, true)) {
+                $axis = $lc;
+                continue;
+            }
+            return null;
+        }
+        return new ScrollTimeline($scroller, $axis);
     }
 
     // ============================================================
