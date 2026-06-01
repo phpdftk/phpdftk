@@ -780,6 +780,34 @@ final class ShorthandExpanderTest extends TestCase
         self::assertArrayHasKey('mask-border-width', $out);
     }
 
+    public function testPageBreakBeforeAliasesToBreakBefore(): void
+    {
+        $out = $this->expander->expand('page-break-before', $this->value('always'));
+        self::assertSame('always', $out['page-break-before']->name);
+        self::assertSame('always', $out['break-before']->name);
+    }
+
+    public function testWordWrapAliasesToOverflowWrap(): void
+    {
+        $out = $this->expander->expand('word-wrap', $this->value('break-word'));
+        self::assertSame('break-word', $out['word-wrap']->name);
+        self::assertSame('break-word', $out['overflow-wrap']->name);
+    }
+
+    public function testGridRowGapAliasesToRowGap(): void
+    {
+        $out = $this->expander->expand('grid-row-gap', $this->value('10px'));
+        self::assertSame(10.0, $out['grid-row-gap']->value);
+        self::assertSame(10.0, $out['row-gap']->value);
+    }
+
+    public function testInsetAreaAliasesToPositionArea(): void
+    {
+        $out = $this->expander->expand('inset-area', $this->value('top'));
+        self::assertSame('top', $out['inset-area']->name);
+        self::assertSame('top', $out['position-area']->name);
+    }
+
     public function testCascadeAppliesTransitionShorthand(): void
     {
         $sheet = $this->parser->parseStylesheet(

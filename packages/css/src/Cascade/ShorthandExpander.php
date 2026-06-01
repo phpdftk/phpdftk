@@ -101,6 +101,17 @@ final class ShorthandExpander
             'mask' => $this->expandMask($value),
             'border-image' => $this->expandBorderImage($value),
             'mask-border' => $this->expandMaskBorder($value),
+            // Legacy property aliases — these write to BOTH the
+            // alias and the modern target so author CSS that still
+            // uses the old name keeps working alongside the new one.
+            'page-break-before' => $this->alias($property, $value, 'break-before'),
+            'page-break-after' => $this->alias($property, $value, 'break-after'),
+            'page-break-inside' => $this->alias($property, $value, 'break-inside'),
+            'inset-area' => $this->alias($property, $value, 'position-area'),
+            'word-wrap' => $this->alias($property, $value, 'overflow-wrap'),
+            'grid-gap' => [...$this->expandGap($value), 'grid-gap' => $value],
+            'grid-row-gap' => $this->alias($property, $value, 'row-gap'),
+            'grid-column-gap' => $this->alias($property, $value, 'column-gap'),
             'text-wrap' => $this->expandTextWrap($value),
             'white-space' => $this->expandWhiteSpace($value),
             'caret' => $this->expandCaret($value),
@@ -1319,6 +1330,22 @@ final class ShorthandExpander
                 : new ValueList($repeats, ListSeparator::Space);
         }
         return $out;
+    }
+
+    /**
+     * Write the value to BOTH the legacy alias and the modern
+     * canonical property name. The modern property is the one the
+     * renderer reads; the legacy name is also retained so any
+     * downstream code reading the original property still sees it.
+     *
+     * @return array<string, Value>
+     */
+    private function alias(string $legacy, Value $value, string $modern): array
+    {
+        return [
+            $legacy => $value,
+            $modern => $value,
+        ];
     }
 
     /**
