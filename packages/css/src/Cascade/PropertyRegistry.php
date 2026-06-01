@@ -480,6 +480,16 @@ final class PropertyRegistry
         // for richer text-cursor styling. Runtime-only; cascades to
         // preserve author CSS.
         $r->register($initial('caret-shape', new Keyword('auto'), true));
+        // CSS UI 4 §5.3 — `caret` shorthand for caret-color + caret-shape.
+        $r->register($initial('caret', new Keyword('auto'), true));
+        // CSS Overflow 4 §4 — `overflow-clip-margin` extends the clip
+        // rect beyond the padding edge. Inherits.
+        $r->register($initial('overflow-clip-margin', new Length(0.0, LengthUnit::Px)));
+        // CSS Scrollbars 1 — declarative scrollbar styling. Print
+        // medium has no scrollbars but cascade-preserve.
+        $r->register($initial('scrollbar-color', new Keyword('auto')));
+        $r->register($initial('scrollbar-gutter', new Keyword('auto')));
+        $r->register($initial('scrollbar-width', new Keyword('auto')));
         // CSS UI 4 §9 — `nav-up | nav-down | nav-left | nav-right`
         // declare focus navigation order. Runtime / no print effect.
         $r->register($initial('nav-up', new Keyword('auto')));

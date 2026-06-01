@@ -615,6 +615,20 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('wrap', $out['text-wrap-mode']->name);
     }
 
+    public function testCaretShorthandColorAndShape(): void
+    {
+        $out = $this->expander->expand('caret', $this->value('red block'));
+        self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['caret-color']);
+        self::assertSame('block', $out['caret-shape']->name);
+    }
+
+    public function testCaretShorthandShapeOnly(): void
+    {
+        $out = $this->expander->expand('caret', $this->value('underscore'));
+        self::assertSame('underscore', $out['caret-shape']->name);
+        self::assertArrayNotHasKey('caret-color', $out);
+    }
+
     public function testWhiteSpacePreservesShorthandValueToo(): void
     {
         // The original `white-space` value lands on the same key

@@ -102,6 +102,7 @@ final class ShorthandExpander
             'border-image' => $this->expandBorderImage($value),
             'text-wrap' => $this->expandTextWrap($value),
             'white-space' => $this->expandWhiteSpace($value),
+            'caret' => $this->expandCaret($value),
             default => [$property => $value],
         };
     }
@@ -1329,6 +1330,42 @@ final class ShorthandExpander
             return $values[0];
         }
         return new ValueList(array_values($values), ListSeparator::Space);
+    }
+
+    /**
+     * CSS UI 4 §5.3 — `caret` shorthand for `caret-color` +
+     * `caret-shape`. Any-order: typed color → caret-color,
+     * recognised shape keyword → caret-shape.
+     *
+     *   caret-shape: auto | bar | block | underscore
+     *
+     * @return array<string, Value>
+     */
+    private function expandCaret(Value $value): array
+    {
+        $shapeKw = ['auto', 'bar', 'block', 'underscore'];
+        $components = $this->toComponents($value);
+        $color = null;
+        $shape = null;
+        foreach ($components as $c) {
+            if ($color === null && $this->isColorComponent($c)) {
+                $color = $c;
+                continue;
+            }
+            if ($shape === null && $c instanceof Keyword
+                && in_array(strtolower($c->name), $shapeKw, true)
+            ) {
+                $shape = $c;
+            }
+        }
+        $out = [];
+        if ($color !== null) {
+            $out['caret-color'] = $color;
+        }
+        if ($shape !== null) {
+            $out['caret-shape'] = $shape;
+        }
+        return $out;
     }
 
     /**
