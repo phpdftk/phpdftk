@@ -718,7 +718,13 @@ final class ShorthandExpander
         foreach ($components as $c) {
             if ($c instanceof Keyword) {
                 $lower = strtolower($c->name);
-                if (in_array($lower, ['underline', 'overline', 'line-through', 'blink', 'none'], true)) {
+                if (in_array($lower, [
+                    'underline', 'overline', 'line-through', 'blink', 'none',
+                    // CSS Text Decoration 4 §2.1 — spelling-error /
+                    // grammar-error are decoration-line keywords drawn
+                    // with the UA's spell/grammar squiggly style.
+                    'spelling-error', 'grammar-error',
+                ], true)) {
                     $lineParts[] = $c;
                     continue;
                 }

@@ -664,6 +664,23 @@ final class PropertyRegistry
         $r->register($initial('animation-range', new Keyword('normal')));
         $r->register($initial('animation-range-start', new Keyword('normal')));
         $r->register($initial('animation-range-end', new Keyword('normal')));
+        // CSS Animations 2 §3 — `animation-timeline` selects which
+        // timeline drives the animation. `auto` uses the document
+        // timeline; named idents reference @scroll-timeline /
+        // @view-timeline rules or `timeline-scope` declarations.
+        $r->register($initial('animation-timeline', new Keyword('auto')));
+        // CSS Scroll-driven Animations 1 §2-3 — view/scroll timeline
+        // declarations. The interactive scrolling part is out of
+        // scope per the print medium ledger; the declarative
+        // properties cascade so author CSS doesn't drop.
+        $r->register($initial('view-timeline', new Keyword('none')));
+        $r->register($initial('view-timeline-name', new Keyword('none')));
+        $r->register($initial('view-timeline-axis', new Keyword('block')));
+        $r->register($initial('view-timeline-inset', new Keyword('auto')));
+        $r->register($initial('scroll-timeline', new Keyword('none')));
+        $r->register($initial('scroll-timeline-name', new Keyword('none')));
+        $r->register($initial('scroll-timeline-axis', new Keyword('block')));
+        $r->register($initial('timeline-scope', new Keyword('none')));
 
         // CSS Transitions 1 + 2 — five per-property longhands. The
         // shorthand `transition` parses into these via the
