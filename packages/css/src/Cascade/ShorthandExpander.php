@@ -64,6 +64,14 @@ final class ShorthandExpander
             ),
             'border-top', 'border-right', 'border-bottom', 'border-left'
                 => $this->expandBorderSide($name, $value),
+            // CSS Logical Properties 1 §7 — `border-block` / `-inline`
+            // shorthand both sides of the axis, each a three-slot
+            // border (width || style || color) shorthand.
+            'border-block' => $this->expandBorderAxis($value, 'block'),
+            'border-inline' => $this->expandBorderAxis($value, 'inline'),
+            'border-block-start', 'border-block-end',
+            'border-inline-start', 'border-inline-end'
+                => $this->expandBorderLogicalSide($name, $value),
             'border' => $this->expandBorder($value),
             'outline' => $this->expandOutline($value),
             'font' => $this->expandFont($value),
@@ -1363,6 +1371,37 @@ final class ShorthandExpander
                 : new ValueList($repeats, ListSeparator::Space);
         }
         return $out;
+    }
+
+    /**
+     * CSS Logical Properties 1 §7 — `border-block` / `border-inline`
+     * fan out the same width/style/color tuple to both sides of
+     * the chosen axis.
+     *
+     * @return array<string, Value>
+     */
+    private function expandBorderAxis(Value $value, string $axis): array
+    {
+        $components = $this->toComponents($value);
+        $sides = $axis === 'block'
+            ? ['block-start', 'block-end']
+            : ['inline-start', 'inline-end'];
+        return $this->classifyBorderComponents($components, $sides);
+    }
+
+    /**
+     * CSS Logical Properties 1 §7 — single-side logical shorthand
+     * (e.g. `border-block-start: 1px solid red`). Same width /
+     * style / color slots, but on one side instead of four.
+     *
+     * @return array<string, Value>
+     */
+    private function expandBorderLogicalSide(string $shorthand, Value $value): array
+    {
+        $components = $this->toComponents($value);
+        // `border-block-start` → side suffix is `block-start`.
+        $side = substr($shorthand, strlen('border-'));
+        return $this->classifyBorderComponents($components, [$side]);
     }
 
     /**

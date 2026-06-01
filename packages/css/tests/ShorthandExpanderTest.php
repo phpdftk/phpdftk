@@ -282,6 +282,26 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('content-box', $out['background-clip']->name);
     }
 
+    public function testBorderBlockSetsBothSidesOfAxis(): void
+    {
+        $out = $this->expander->expand('border-block', $this->value('2px solid red'));
+        self::assertSame(2.0, $out['border-block-start-width']->value);
+        self::assertSame('solid', $out['border-block-start-style']->name);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['border-block-start-color']);
+        // Both sides receive the same triple.
+        self::assertSame(2.0, $out['border-block-end-width']->value);
+        self::assertSame('solid', $out['border-block-end-style']->name);
+    }
+
+    public function testBorderInlineEndSetsOnlyOneSide(): void
+    {
+        $out = $this->expander->expand('border-inline-end', $this->value('1px dotted blue'));
+        self::assertArrayHasKey('border-inline-end-width', $out);
+        self::assertSame(1.0, $out['border-inline-end-width']->value);
+        self::assertSame('dotted', $out['border-inline-end-style']->name);
+        self::assertArrayNotHasKey('border-inline-start-width', $out);
+    }
+
     public function testTextDecorationSingleLine(): void
     {
         $out = $this->expander->expand('text-decoration', $this->value('underline'));
