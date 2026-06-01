@@ -253,11 +253,16 @@ final class Matcher
             // For a static print render the document attribute state
             // is what we observe.
             'placeholder-shown' => $this->matchPlaceholderShown($el),
+            // CSS Selectors 4 §11.4 — `:default`. Matches the
+            // default checkbox / radio / option (those with
+            // `checked` or `selected` set in markup) and the form's
+            // default-submit button. All four are observable from
+            // document attribute state.
+            'default' => $this->matchDefault($el),
             // Remaining UI-state pseudos: print medium can't observe
             // them. Cascade drops the rule cleanly when these don't
             // match.
             'hover', 'focus', 'focus-within', 'focus-visible', 'active',
-            'default',
             'valid', 'invalid', 'target', 'visited',
             'user-valid', 'user-invalid' => false,
             default => false,
@@ -390,6 +395,106 @@ final class Matcher
         }
         if ($tag === 'option') {
             return $el->hasAttribute('selected');
+        }
+        return false;
+    }
+
+    /**
+     * `:default` — matches the default option in a group of related
+     * controls. For static documents this collapses to:
+     *
+     *   - <input type="checkbox|radio"> with `checked` attribute
+     *   - <option> with `selected` attribute
+     *   - <input type="submit"> / <button type="submit"|empty> that
+     *     is the first such submit control inside a form
+     *
+     * The third case is the subtle one — the "default submit
+     * button" is whichever form-submit control appears first in
+     * document order. We approximate by walking the form ancestor
+     * to confirm we ARE the first submit-capable descendant.
+     */
+    private function matchDefault(MatchableElement $el): bool
+    {
+        $tag = strtolower($el->localName());
+        if ($tag === 'option') {
+            return $el->hasAttribute('selected');
+        }
+        if ($tag === 'input') {
+            $type = strtolower($el->getAttributeValue('type') ?? 'text');
+            if ($type === 'checkbox' || $type === 'radio') {
+                return $el->hasAttribute('checked');
+            }
+            if ($type === 'submit' || $type === 'image') {
+                return $this->isFirstSubmitInForm($el);
+            }
+            return false;
+        }
+        if ($tag === 'button') {
+            $type = strtolower($el->getAttributeValue('type') ?? 'submit');
+            if ($type === 'submit') {
+                return $this->isFirstSubmitInForm($el);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Walk to the nearest form ancestor and check whether this
+     * element is the first submit-capable descendant in document
+     * order.
+     */
+    private function isFirstSubmitInForm(MatchableElement $el): bool
+    {
+        $form = $el;
+        while ($form !== null) {
+            if (strtolower($form->localName()) === 'form') {
+                break;
+            }
+            $form = $form->parentElement();
+        }
+        if ($form === null) {
+            return false;
+        }
+        foreach ($this->descendantsInOrder($form) as $candidate) {
+            if ($this->isSubmitControl($candidate)) {
+                return $candidate === $el;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return iterable<MatchableElement>
+     */
+    private function descendantsInOrder(MatchableElement $root): iterable
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            // Pre-order: yield $node first, then push children.
+            // Skip the root itself.
+            if ($node !== $root) {
+                yield $node;
+            }
+            $children = $node->elementChildren();
+            // Prepend in reverse so the first child is processed
+            // first.
+            for ($i = count($children) - 1; $i >= 0; $i--) {
+                array_unshift($stack, $children[$i]);
+            }
+        }
+    }
+
+    private function isSubmitControl(MatchableElement $el): bool
+    {
+        $tag = strtolower($el->localName());
+        if ($tag === 'button') {
+            $type = strtolower($el->getAttributeValue('type') ?? 'submit');
+            return $type === 'submit';
+        }
+        if ($tag === 'input') {
+            $type = strtolower($el->getAttributeValue('type') ?? 'text');
+            return $type === 'submit' || $type === 'image';
         }
         return false;
     }

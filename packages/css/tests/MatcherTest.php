@@ -471,6 +471,31 @@ final class MatcherTest extends TestCase
         );
     }
 
+    public function testDefaultMatchesCheckedCheckbox(): void
+    {
+        $cb = new FakeElement('input', attributes: ['type' => 'checkbox', 'checked' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':default'), $cb));
+        $unchecked = new FakeElement('input', attributes: ['type' => 'checkbox']);
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':default'), $unchecked));
+    }
+
+    public function testDefaultMatchesSelectedOption(): void
+    {
+        $opt = new FakeElement('option', attributes: ['selected' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':default'), $opt));
+    }
+
+    public function testDefaultMatchesFirstSubmitInForm(): void
+    {
+        $form = new FakeElement('form');
+        $first = new FakeElement('input', attributes: ['type' => 'submit']);
+        $second = new FakeElement('input', attributes: ['type' => 'submit']);
+        $form->appendFake($first);
+        $form->appendFake($second);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':default'), $first));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':default'), $second));
+    }
+
     public function testPlaceholderShownRejectsInputWithoutPlaceholder(): void
     {
         $el = new FakeElement('input');
