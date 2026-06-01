@@ -353,6 +353,10 @@ final class Parser
             // list into a typed FontFeatureSettings so the shaper
             // can dispatch by OpenType tag without re-parsing.
             $value = $this->valueParser->postProcessFontFeatureSettings($value);
+        } elseif ($property === 'font-variation-settings') {
+            // CSS Fonts 4 §6.5 — same shape but with float axis
+            // values for variable fonts.
+            $value = $this->valueParser->postProcessFontVariationSettings($value);
         }
         return new Declaration($property, $value, $important);
     }

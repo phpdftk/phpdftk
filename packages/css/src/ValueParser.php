@@ -38,6 +38,8 @@ use Phpdftk\Css\Value\XywhShape;
 use Phpdftk\Css\Value\Filter;
 use Phpdftk\Css\Value\FontFeatureSettings;
 use Phpdftk\Css\Value\FontFeatureValue;
+use Phpdftk\Css\Value\FontVariationSettings;
+use Phpdftk\Css\Value\FontVariationValue;
 use Phpdftk\Css\Value\FilterFunction;
 use Phpdftk\Css\Value\FilterKind;
 use Phpdftk\Css\Value\Angle;
@@ -536,6 +538,58 @@ final class ValueParser
             return $value;
         }
         return new FontFeatureSettings($entries);
+    }
+
+    /**
+     * CSS Fonts 4 §6.5 — counterpart to font-feature-settings for
+     * the variable-font axes. Lifts `<string> <number>` pairs into
+     * {@see FontVariationSettings} entries.
+     *
+     *   font-variation-settings: "wght" 600, "wdth" 95.5;
+     */
+    public function postProcessFontVariationSettings(Value $value): Value
+    {
+        if ($value instanceof FontVariationSettings) {
+            return $value;
+        }
+        if ($value instanceof Keyword && strtolower($value->name) === 'normal') {
+            return $value;
+        }
+        $entries = [];
+        $candidates = $value instanceof ValueList && $value->separator === ListSeparator::Comma
+            ? $value->values
+            : [$value];
+        foreach ($candidates as $entry) {
+            $parsed = $this->parseFontVariationEntry($entry);
+            if ($parsed === null) {
+                return $value;
+            }
+            $entries[] = $parsed;
+        }
+        if ($entries === []) {
+            return $value;
+        }
+        return new FontVariationSettings($entries);
+    }
+
+    private function parseFontVariationEntry(Value $value): ?FontVariationValue
+    {
+        if (!($value instanceof ValueList) || $value->separator !== ListSeparator::Space) {
+            return null;
+        }
+        $parts = $value->values;
+        if (count($parts) !== 2 || !($parts[0] instanceof StringValue)) {
+            return null;
+        }
+        $tag = $parts[0]->value;
+        $val = $parts[1];
+        if ($val instanceof Integer) {
+            return new FontVariationValue($tag, (float) $val->value);
+        }
+        if ($val instanceof Number) {
+            return new FontVariationValue($tag, (float) $val->value);
+        }
+        return null;
     }
 
     private function parseFontFeatureEntry(Value $value): ?FontFeatureValue

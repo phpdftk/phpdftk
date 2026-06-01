@@ -88,4 +88,50 @@ final class FontFeatureSettingsTest extends TestCase
         self::assertInstanceOf(FontFeatureSettings::class, $v);
         self::assertSame('"tnum" 1, "liga" 0', $v->toCss());
     }
+
+    private function variationValueOf(string $css): \Phpdftk\Css\Value\Value
+    {
+        $sheet = $this->parser->parseStylesheet("p { font-variation-settings: $css; }");
+        $rule = $sheet->rules[0];
+        assert($rule instanceof \Phpdftk\Css\Sheet\StyleRule);
+        return $rule->declarations[0]->value;
+    }
+
+    public function testVariationSettingsSingleAxis(): void
+    {
+        $v = $this->variationValueOf('"wght" 600');
+        self::assertInstanceOf(\Phpdftk\Css\Value\FontVariationSettings::class, $v);
+        self::assertCount(1, $v->axes);
+        self::assertSame('wght', $v->axes[0]->tag);
+        self::assertSame(600.0, $v->axes[0]->value);
+    }
+
+    public function testVariationSettingsDecimalValue(): void
+    {
+        $v = $this->variationValueOf('"wdth" 95.5');
+        self::assertInstanceOf(\Phpdftk\Css\Value\FontVariationSettings::class, $v);
+        self::assertSame(95.5, $v->axes[0]->value);
+    }
+
+    public function testVariationSettingsMultipleAxes(): void
+    {
+        $v = $this->variationValueOf('"wght" 600, "wdth" 95.5, "slnt" -10');
+        self::assertInstanceOf(\Phpdftk\Css\Value\FontVariationSettings::class, $v);
+        self::assertCount(3, $v->axes);
+        self::assertSame('slnt', $v->axes[2]->tag);
+        self::assertSame(-10.0, $v->axes[2]->value);
+    }
+
+    public function testVariationSettingsNormalPassesThrough(): void
+    {
+        $v = $this->variationValueOf('normal');
+        self::assertInstanceOf(Keyword::class, $v);
+    }
+
+    public function testVariationSettingsRoundTrip(): void
+    {
+        $v = $this->variationValueOf('"wght" 600, "wdth" 95.5');
+        self::assertInstanceOf(\Phpdftk\Css\Value\FontVariationSettings::class, $v);
+        self::assertSame('"wght" 600, "wdth" 95.5', $v->toCss());
+    }
 }
