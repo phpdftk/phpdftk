@@ -74,7 +74,7 @@ final class InlineLayout
         if ($font === null || $availableWidth <= 0.0) {
             return [[], 0.0];
         }
-        $shapingCtx = new ShapingContext($font, $fontSize);
+        $shapingCtx = new ShapingContext($font, $fontSize, features: $this->resolveOpenTypeFeatures($parent));
         $lineHeight = $this->resolveLineHeight($parent, $fontSize);
         $whiteSpace = $this->whiteSpaceKeyword($parent);
         $allowSoftWrap = $whiteSpace !== 'nowrap' && $whiteSpace !== 'pre';
@@ -897,6 +897,131 @@ final class InlineLayout
             }
         }
         return 'normal';
+    }
+
+    /**
+     * Resolve the cascaded `font-variant-*` family + `font-feature-
+     * settings` into the OpenType feature-tag list the shaper
+     * consumes. Implements the mappings in CSS Fonts 4 §6 from
+     * each high-level value keyword to the underlying OpenType
+     * GSUB / GPOS feature tags.
+     *
+     * Tags from font-variant-* are emitted as bare tag strings
+     * (= "enable"); font-feature-settings entries with a non-1
+     * integer are emitted as `tag=N` so the shaper can encode
+     * the variant index. The default `kern liga` baseline is
+     * always present.
+     *
+     * @return list<string>
+     */
+    private function resolveOpenTypeFeatures(Box $box): array
+    {
+        $tags = ['kern', 'liga'];
+        $add = function (string $tag) use (&$tags): void {
+            if (!in_array($tag, $tags, true)) {
+                $tags[] = $tag;
+            }
+        };
+        $disable = function (string $tag) use (&$tags): void {
+            $tags = array_values(array_filter($tags, fn(string $t) => $t !== $tag));
+            $tags[] = $tag . '=0';
+        };
+        $variantMap = [
+            'font-variant-caps' => [
+                'small-caps' => ['smcp'],
+                'all-small-caps' => ['smcp', 'c2sc'],
+                'petite-caps' => ['pcap'],
+                'all-petite-caps' => ['pcap', 'c2pc'],
+                'unicase' => ['unic'],
+                'titling-caps' => ['titl'],
+            ],
+            'font-variant-numeric' => [
+                'lining-nums' => ['lnum'],
+                'oldstyle-nums' => ['onum'],
+                'proportional-nums' => ['pnum'],
+                'tabular-nums' => ['tnum'],
+                'diagonal-fractions' => ['frac'],
+                'stacked-fractions' => ['afrc'],
+                'ordinal' => ['ordn'],
+                'slashed-zero' => ['zero'],
+            ],
+            'font-variant-position' => [
+                'sub' => ['subs'],
+                'super' => ['sups'],
+            ],
+            'font-variant-east-asian' => [
+                'jis78' => ['jp78'],
+                'jis83' => ['jp83'],
+                'jis90' => ['jp90'],
+                'jis04' => ['jp04'],
+                'simplified' => ['smpl'],
+                'traditional' => ['trad'],
+                'full-width' => ['fwid'],
+                'proportional-width' => ['pwid'],
+                'ruby' => ['ruby'],
+            ],
+        ];
+        foreach ($variantMap as $prop => $kwMap) {
+            $value = $box->style->get($prop);
+            foreach ($this->iterateKeywords($value) as $kw) {
+                foreach ($kwMap[$kw] ?? [] as $tag) {
+                    $add($tag);
+                }
+            }
+        }
+        // font-variant-ligatures has both enable / disable forms.
+        $ligValue = $box->style->get('font-variant-ligatures');
+        foreach ($this->iterateKeywords($ligValue) as $kw) {
+            match ($kw) {
+                'common-ligatures' => $add('liga'),
+                'no-common-ligatures' => $disable('liga'),
+                'discretionary-ligatures' => $add('dlig'),
+                'no-discretionary-ligatures' => $disable('dlig'),
+                'historical-ligatures' => $add('hlig'),
+                'no-historical-ligatures' => $disable('hlig'),
+                'contextual' => $add('calt'),
+                'no-contextual' => $disable('calt'),
+                default => null,
+            };
+        }
+        // font-feature-settings — typed values land as
+        // FontFeatureSettings; pass each entry through.
+        $fss = $box->style->get('font-feature-settings');
+        if ($fss instanceof \Phpdftk\Css\Value\FontFeatureSettings) {
+            foreach ($fss->features as $entry) {
+                if ($entry->value === 1) {
+                    $add($entry->tag);
+                } elseif ($entry->value === 0) {
+                    $disable($entry->tag);
+                } else {
+                    // Variant index — encode as tag=N.
+                    $add($entry->tag . '=' . $entry->value);
+                }
+            }
+        }
+        return $tags;
+    }
+
+    /**
+     * Walk a cascaded value yielding each keyword name it
+     * carries. Handles bare Keyword and Space-separated ValueList
+     * forms (the two shapes font-variant-* values arrive in).
+     *
+     * @return iterable<string>
+     */
+    private function iterateKeywords(?\Phpdftk\Css\Value\Value $value): iterable
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Keyword) {
+            yield strtolower($value->name);
+            return;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\Keyword) {
+                    yield strtolower($v->name);
+                }
+            }
+        }
     }
 
     /**
