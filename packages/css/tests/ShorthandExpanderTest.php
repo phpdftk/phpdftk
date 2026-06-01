@@ -624,6 +624,30 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('none', $out['font-synthesis-position']->name);
     }
 
+    public function testFontVariantNormalCascadesAllLonghandsNormal(): void
+    {
+        $out = $this->expander->expand('font-variant', $this->value('normal'));
+        self::assertSame('normal', $out['font-variant-caps']->name);
+        self::assertSame('normal', $out['font-variant-numeric']->name);
+        self::assertSame('normal', $out['font-variant-ligatures']->name);
+    }
+
+    public function testFontVariantRoutesKeywordsToLonghands(): void
+    {
+        $out = $this->expander->expand('font-variant', $this->value('small-caps tabular-nums slashed-zero'));
+        self::assertSame('small-caps', $out['font-variant-caps']->name);
+        // Two numeric keywords go to the same longhand as a Space list.
+        $num = $out['font-variant-numeric'];
+        self::assertInstanceOf(\Phpdftk\Css\Value\ValueList::class, $num);
+        self::assertCount(2, $num->values);
+    }
+
+    public function testFontVariantPositionKeyword(): void
+    {
+        $out = $this->expander->expand('font-variant', $this->value('super'));
+        self::assertSame('super', $out['font-variant-position']->name);
+    }
+
     public function testFontSynthesisListedAxesAuto(): void
     {
         $out = $this->expander->expand('font-synthesis', $this->value('weight style'));

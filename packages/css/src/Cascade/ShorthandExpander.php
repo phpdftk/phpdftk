@@ -104,6 +104,7 @@ final class ShorthandExpander
             'white-space' => $this->expandWhiteSpace($value),
             'caret' => $this->expandCaret($value),
             'font-synthesis' => $this->expandFontSynthesis($value),
+            'font-variant' => $this->expandFontVariant($value),
             default => [$property => $value],
         };
     }
@@ -1331,6 +1332,110 @@ final class ShorthandExpander
             return $values[0];
         }
         return new ValueList(array_values($values), ListSeparator::Space);
+    }
+
+    /**
+     * CSS Fonts 4 §6.11 — `font-variant` shorthand.
+     *
+     *   font-variant = normal | none | [ <common-lig-values> ||
+     *                  <discretionary-lig-values> || <historical-
+     *                  lig-values> || <contextual-alt-values> ||
+     *                  stylistic(<ident>) || historical-forms ||
+     *                  styleset(<ident>+) || character-variant(...) ||
+     *                  swash(<ident>) || ornaments(<ident>) ||
+     *                  annotation(<ident>) || [ small-caps |
+     *                  all-small-caps | petite-caps | all-petite-caps |
+     *                  unicase | titling-caps ] || <numeric-figure-values>
+     *                  || <numeric-spacing-values> ||
+     *                  <numeric-fraction-values> || ordinal || slashed-zero
+     *                  || <east-asian-variant-values> ||
+     *                  <east-asian-width-values> || ruby || sub | super ]
+     *
+     * Each component routes to its respective longhand by keyword.
+     * `normal` / `none` shortcuts each set all longhands to that
+     * keyword.
+     *
+     * @return array<string, Value>
+     */
+    private function expandFontVariant(Value $value): array
+    {
+        $allLonghands = [
+            'font-variant-ligatures',
+            'font-variant-caps',
+            'font-variant-numeric',
+            'font-variant-east-asian',
+            'font-variant-position',
+            'font-variant-alternates',
+            'font-variant-emoji',
+        ];
+        $components = $this->toComponents($value);
+        // `normal` / `none` shortcuts.
+        if (count($components) === 1 && $components[0] instanceof Keyword) {
+            $kw = strtolower($components[0]->name);
+            if ($kw === 'normal' || $kw === 'none') {
+                $out = [];
+                $target = $kw === 'none'
+                    ? new Keyword('none')
+                    : new Keyword('normal');
+                foreach ($allLonghands as $prop) {
+                    $out[$prop] = $target;
+                }
+                return $out;
+            }
+        }
+        // Per-component routing by keyword vocabulary.
+        $capsKw = [
+            'small-caps', 'all-small-caps', 'petite-caps',
+            'all-petite-caps', 'unicase', 'titling-caps',
+        ];
+        $positionKw = ['sub', 'super'];
+        $ligKw = [
+            'common-ligatures', 'no-common-ligatures',
+            'discretionary-ligatures', 'no-discretionary-ligatures',
+            'historical-ligatures', 'no-historical-ligatures',
+            'contextual', 'no-contextual',
+        ];
+        $numericKw = [
+            'lining-nums', 'oldstyle-nums', 'proportional-nums', 'tabular-nums',
+            'diagonal-fractions', 'stacked-fractions',
+            'ordinal', 'slashed-zero',
+        ];
+        $eastAsianKw = [
+            'jis78', 'jis83', 'jis90', 'jis04',
+            'simplified', 'traditional',
+            'full-width', 'proportional-width', 'ruby',
+        ];
+        $emojiKw = ['text', 'emoji', 'unicode'];
+        $alternatesKw = ['historical-forms'];
+
+        $buckets = [];
+        foreach ($components as $c) {
+            if (!($c instanceof Keyword)) {
+                continue;
+            }
+            $kw = strtolower($c->name);
+            $prop = match (true) {
+                in_array($kw, $capsKw, true) => 'font-variant-caps',
+                in_array($kw, $positionKw, true) => 'font-variant-position',
+                in_array($kw, $ligKw, true) => 'font-variant-ligatures',
+                in_array($kw, $numericKw, true) => 'font-variant-numeric',
+                in_array($kw, $eastAsianKw, true) => 'font-variant-east-asian',
+                in_array($kw, $emojiKw, true) => 'font-variant-emoji',
+                in_array($kw, $alternatesKw, true) => 'font-variant-alternates',
+                default => null,
+            };
+            if ($prop === null) {
+                continue;
+            }
+            $buckets[$prop][] = $c;
+        }
+        $out = [];
+        foreach ($buckets as $prop => $entries) {
+            $out[$prop] = count($entries) === 1
+                ? $entries[0]
+                : new ValueList($entries, ListSeparator::Space);
+        }
+        return $out;
     }
 
     /**
