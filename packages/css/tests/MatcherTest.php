@@ -379,4 +379,44 @@ final class MatcherTest extends TestCase
         $link = new FakeElement('link', attributes: ['href' => 'style.css']);
         self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':link'), $link));
     }
+
+    public function testNthChildIndexesFilteredSubset(): void
+    {
+        // CSS Selectors 4 §6.4 — `:nth-child(an+b of S)` indexes
+        // only siblings matching S. Build [.x][.y][.x][.y][.x] and
+        // verify `:nth-child(2 of .x)` picks the 3rd child (the
+        // 2nd .x), NOT the 2nd child (which is .y).
+        $parent = new FakeElement('div');
+        $x1 = new FakeElement('span', classes: ['x']);
+        $y1 = new FakeElement('span', classes: ['y']);
+        $x2 = new FakeElement('span', classes: ['x']);
+        $y2 = new FakeElement('span', classes: ['y']);
+        $x3 = new FakeElement('span', classes: ['x']);
+        foreach ([$x1, $y1, $x2, $y2, $x3] as $c) {
+            $parent->appendFake($c);
+        }
+        $selector = SelectorParser::parse(':nth-child(2 of .x)');
+        self::assertFalse($this->matcher->listMatches($selector, $x1));
+        self::assertFalse($this->matcher->listMatches($selector, $y1));
+        self::assertTrue($this->matcher->listMatches($selector, $x2));
+        self::assertFalse($this->matcher->listMatches($selector, $y2));
+        self::assertFalse($this->matcher->listMatches($selector, $x3));
+    }
+
+    public function testNthLastChildOfFilteredSubset(): void
+    {
+        $parent = new FakeElement('div');
+        $x1 = new FakeElement('span', classes: ['x']);
+        $y1 = new FakeElement('span', classes: ['y']);
+        $x2 = new FakeElement('span', classes: ['x']);
+        $x3 = new FakeElement('span', classes: ['x']);
+        foreach ([$x1, $y1, $x2, $x3] as $c) {
+            $parent->appendFake($c);
+        }
+        $selector = SelectorParser::parse(':nth-last-child(1 of .x)');
+        // Last `.x` is $x3.
+        self::assertFalse($this->matcher->listMatches($selector, $x1));
+        self::assertFalse($this->matcher->listMatches($selector, $x2));
+        self::assertTrue($this->matcher->listMatches($selector, $x3));
+    }
 }

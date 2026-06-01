@@ -190,8 +190,8 @@ final class Matcher
             'first-of-type' => $el->indexAmongTypeSiblings() === 1,
             'last-of-type' => $el->indexAmongTypeSiblingsFromEnd() === 1,
             'only-of-type' => $el->indexAmongTypeSiblings() === 1 && $el->indexAmongTypeSiblingsFromEnd() === 1,
-            'nth-child' => $this->matchNth($sel, $el, $el->indexAmongSiblings()),
-            'nth-last-child' => $this->matchNth($sel, $el, $el->indexAmongSiblingsFromEnd()),
+            'nth-child' => $this->matchNthChild($sel, $el, fromEnd: false),
+            'nth-last-child' => $this->matchNthChild($sel, $el, fromEnd: true),
             'nth-of-type' => $this->matchNth($sel, $el, $el->indexAmongTypeSiblings()),
             'nth-last-of-type' => $this->matchNth($sel, $el, $el->indexAmongTypeSiblingsFromEnd()),
             'not' => $sel->arguments !== null
@@ -241,6 +241,50 @@ final class Matcher
             return $this->listMatches($sel->arguments, $el);
         }
         return true;
+    }
+
+    /**
+     * CSS Selectors 4 §6.4 — `:nth-child(An+B [of S]?)` /
+     * `:nth-last-child(...)`. When the optional `of S` clause is
+     * present the An+B index is computed over the subset of
+     * siblings that also match S, not over all element children.
+     */
+    private function matchNthChild(PseudoClassSelector $sel, MatchableElement $el, bool $fromEnd): bool
+    {
+        if ($sel->anPlusB === null) {
+            return false;
+        }
+        if ($sel->arguments === null || $sel->arguments->isEmpty()) {
+            $index = $fromEnd
+                ? $el->indexAmongSiblingsFromEnd()
+                : $el->indexAmongSiblings();
+            return $sel->anPlusB->matches($index);
+        }
+        // `of S` form: the element must match S, and its index
+        // within the subset of S-matching siblings is what An+B
+        // compares against.
+        if (!$this->listMatches($sel->arguments, $el)) {
+            return false;
+        }
+        $parent = $el->parentElement();
+        if ($parent === null) {
+            return false;
+        }
+        $siblings = $parent->elementChildren();
+        if ($fromEnd) {
+            $siblings = array_reverse($siblings);
+        }
+        $index = 0;
+        foreach ($siblings as $sibling) {
+            if (!$this->listMatches($sel->arguments, $sibling)) {
+                continue;
+            }
+            $index++;
+            if ($sibling === $el) {
+                return $sel->anPlusB->matches($index);
+            }
+        }
+        return false;
     }
 
     /**
