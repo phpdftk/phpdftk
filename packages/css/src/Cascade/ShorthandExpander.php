@@ -305,7 +305,18 @@ final class ShorthandExpander
                 $width = $c;
                 continue;
             }
-            if ($color === null && $c instanceof \Phpdftk\Css\Value\Color) {
+            if ($color === null && $this->isColorComponent($c)) {
+                $color = $c;
+                continue;
+            }
+            // CSS Basic UI 4 §3.3 — `outline-color: invert` is the
+            // legacy CSS 2.1 keyword that requests xor-blending
+            // against the underlying pixels. Print medium can't
+            // implement it; the cascade preserves it so author CSS
+            // round-trips.
+            if ($color === null && $c instanceof Keyword
+                && strtolower($c->name) === 'invert'
+            ) {
                 $color = $c;
             }
         }

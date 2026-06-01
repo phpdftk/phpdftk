@@ -566,6 +566,21 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-emphasis-color']);
     }
 
+    public function testOutlineAcceptsCurrentcolor(): void
+    {
+        $out = $this->expander->expand('outline', $this->value('1px solid currentcolor'));
+        self::assertSame('solid', $out['outline-style']->name);
+        self::assertInstanceOf(Keyword::class, $out['outline-color']);
+        self::assertSame('currentcolor', $out['outline-color']->name);
+    }
+
+    public function testOutlineAcceptsInvertKeyword(): void
+    {
+        $out = $this->expander->expand('outline', $this->value('1px solid invert'));
+        self::assertInstanceOf(Keyword::class, $out['outline-color']);
+        self::assertSame('invert', $out['outline-color']->name);
+    }
+
     public function testTextEmphasisCurrentcolorKeyword(): void
     {
         $out = $this->expander->expand('text-emphasis', $this->value('dot currentcolor'));
