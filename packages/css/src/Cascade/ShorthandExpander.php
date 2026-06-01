@@ -103,6 +103,7 @@ final class ShorthandExpander
             'text-wrap' => $this->expandTextWrap($value),
             'white-space' => $this->expandWhiteSpace($value),
             'caret' => $this->expandCaret($value),
+            'font-synthesis' => $this->expandFontSynthesis($value),
             default => [$property => $value],
         };
     }
@@ -1330,6 +1331,61 @@ final class ShorthandExpander
             return $values[0];
         }
         return new ValueList(array_values($values), ListSeparator::Space);
+    }
+
+    /**
+     * CSS Fonts 4 §6.7 — `font-synthesis` shorthand for the four
+     * synthesis axis longhands. Two grammar shapes:
+     *
+     *   - `none` → all four longhands become `none` (UA must not
+     *     synthesise anything; respect the font as-shipped).
+     *   - `[ weight || style || small-caps || position ]` → each
+     *     listed axis sets its longhand to `auto`, unlisted axes
+     *     fall to `none`.
+     *
+     * Default for each longhand is `auto`; this shorthand only
+     * fires when authors explicitly opt out via `none` or restrict
+     * the active set.
+     *
+     * @return array<string, Value>
+     */
+    private function expandFontSynthesis(Value $value): array
+    {
+        $longhands = [
+            'weight' => 'font-synthesis-weight',
+            'style' => 'font-synthesis-style',
+            'small-caps' => 'font-synthesis-small-caps',
+            'position' => 'font-synthesis-position',
+        ];
+        $components = $this->toComponents($value);
+        $none = new Keyword('none');
+        $auto = new Keyword('auto');
+        // Single `none` sets every longhand to none.
+        if (count($components) === 1
+            && $components[0] instanceof Keyword
+            && strtolower($components[0]->name) === 'none'
+        ) {
+            $out = [];
+            foreach ($longhands as $prop) {
+                $out[$prop] = $none;
+            }
+            return $out;
+        }
+        $on = [];
+        foreach ($components as $c) {
+            if (!($c instanceof Keyword)) {
+                continue;
+            }
+            $kw = strtolower($c->name);
+            if (isset($longhands[$kw])) {
+                $on[$kw] = true;
+            }
+        }
+        $out = [];
+        foreach ($longhands as $kw => $prop) {
+            $out[$prop] = isset($on[$kw]) ? $auto : $none;
+        }
+        return $out;
     }
 
     /**

@@ -615,6 +615,25 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('wrap', $out['text-wrap-mode']->name);
     }
 
+    public function testFontSynthesisNoneSetsAllAxesToNone(): void
+    {
+        $out = $this->expander->expand('font-synthesis', $this->value('none'));
+        self::assertSame('none', $out['font-synthesis-weight']->name);
+        self::assertSame('none', $out['font-synthesis-style']->name);
+        self::assertSame('none', $out['font-synthesis-small-caps']->name);
+        self::assertSame('none', $out['font-synthesis-position']->name);
+    }
+
+    public function testFontSynthesisListedAxesAuto(): void
+    {
+        $out = $this->expander->expand('font-synthesis', $this->value('weight style'));
+        self::assertSame('auto', $out['font-synthesis-weight']->name);
+        self::assertSame('auto', $out['font-synthesis-style']->name);
+        // Unlisted → none.
+        self::assertSame('none', $out['font-synthesis-small-caps']->name);
+        self::assertSame('none', $out['font-synthesis-position']->name);
+    }
+
     public function testCaretShorthandColorAndShape(): void
     {
         $out = $this->expander->expand('caret', $this->value('red block'));
