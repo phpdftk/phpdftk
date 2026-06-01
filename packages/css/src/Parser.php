@@ -348,6 +348,11 @@ final class Parser
             // CssFunction list into a typed Filter so the painter
             // can dispatch by FilterKind.
             $value = $this->valueParser->postProcessFilter($value);
+        } elseif ($property === 'font-feature-settings') {
+            // CSS Fonts 4 §6.4 — lift the `<feature-tag-value>#`
+            // list into a typed FontFeatureSettings so the shaper
+            // can dispatch by OpenType tag without re-parsing.
+            $value = $this->valueParser->postProcessFontFeatureSettings($value);
         }
         return new Declaration($property, $value, $important);
     }

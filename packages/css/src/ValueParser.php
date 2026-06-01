@@ -36,6 +36,8 @@ use Phpdftk\Css\Value\PolygonShape;
 use Phpdftk\Css\Value\RectShape;
 use Phpdftk\Css\Value\XywhShape;
 use Phpdftk\Css\Value\Filter;
+use Phpdftk\Css\Value\FontFeatureSettings;
+use Phpdftk\Css\Value\FontFeatureValue;
 use Phpdftk\Css\Value\FilterFunction;
 use Phpdftk\Css\Value\FilterKind;
 use Phpdftk\Css\Value\Angle;
@@ -494,6 +496,85 @@ final class ValueParser
             return $value;
         }
         return new Filter($fns);
+    }
+
+    /**
+     * CSS Fonts 4 §6.4 — lift `font-feature-settings`'s
+     * comma-separated `<feature-tag-value>` list into a typed
+     * {@see FontFeatureSettings}. Each entry is a 4-character
+     * OpenType tag (a StringValue) optionally followed by an
+     * integer / `on` / `off`.
+     *
+     *   font-feature-settings: "tnum", "liga" off, "ss01" 1;
+     *
+     * `normal` passes through unchanged; malformed entries cause
+     * the whole declaration to fall back to its original value so
+     * authors don't lose the surrounding context.
+     */
+    public function postProcessFontFeatureSettings(Value $value): Value
+    {
+        if ($value instanceof FontFeatureSettings) {
+            return $value;
+        }
+        if ($value instanceof Keyword && strtolower($value->name) === 'normal') {
+            return $value;
+        }
+        $entries = [];
+        if ($value instanceof ValueList && $value->separator === ListSeparator::Comma) {
+            $candidates = $value->values;
+        } else {
+            $candidates = [$value];
+        }
+        foreach ($candidates as $entry) {
+            $parsed = $this->parseFontFeatureEntry($entry);
+            if ($parsed === null) {
+                return $value;
+            }
+            $entries[] = $parsed;
+        }
+        if ($entries === []) {
+            return $value;
+        }
+        return new FontFeatureSettings($entries);
+    }
+
+    private function parseFontFeatureEntry(Value $value): ?FontFeatureValue
+    {
+        if ($value instanceof StringValue) {
+            return new FontFeatureValue($value->value, 1);
+        }
+        if (!($value instanceof ValueList) || $value->separator !== ListSeparator::Space) {
+            return null;
+        }
+        $parts = $value->values;
+        if (count($parts) < 1 || count($parts) > 2) {
+            return null;
+        }
+        if (!($parts[0] instanceof StringValue)) {
+            return null;
+        }
+        $tag = $parts[0]->value;
+        if (!isset($parts[1])) {
+            return new FontFeatureValue($tag, 1);
+        }
+        $val = $parts[1];
+        if ($val instanceof Keyword) {
+            $kw = strtolower($val->name);
+            if ($kw === 'on') {
+                return new FontFeatureValue($tag, 1);
+            }
+            if ($kw === 'off') {
+                return new FontFeatureValue($tag, 0);
+            }
+            return null;
+        }
+        if ($val instanceof Integer) {
+            return new FontFeatureValue($tag, $val->value);
+        }
+        if ($val instanceof Number && (int) $val->value == $val->value) {
+            return new FontFeatureValue($tag, (int) $val->value);
+        }
+        return null;
     }
 
     private function valueToFilterFunction(Value $value): ?FilterFunction
