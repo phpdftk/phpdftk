@@ -409,6 +409,44 @@ final class BoxGeneratorTest extends TestCase
         self::assertCount(0, $input->children, 'empty value → no TextBox child');
     }
 
+    public function testInputHiddenIsOmitted(): void
+    {
+        $sheet = $this->css->parseStylesheet('html, body, p { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body><p><input type="hidden" name="csrf" value="abc">visible</p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNull($this->findFirstByTag($box, 'input'));
+    }
+
+    public function testInputPasswordRendersBullets(): void
+    {
+        $sheet = $this->css->parseStylesheet('html, body, p { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body><p><input type="password" value="hello"></p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        $text = $input->children[0] ?? null;
+        self::assertInstanceOf(TextBox::class, $text);
+        self::assertSame(str_repeat("\u{2022}", 5), $text->text);
+    }
+
+    public function testInputFileShowsPlaceholderLabel(): void
+    {
+        $sheet = $this->css->parseStylesheet('html, body, p { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body><p><input type="file"></p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $input = $this->findFirstByTag($box, 'input');
+        self::assertNotNull($input);
+        $text = $input->children[0] ?? null;
+        self::assertInstanceOf(TextBox::class, $text);
+        self::assertSame('No file chosen', $text->text);
+    }
+
     public function testImgWithoutAltStaysAtomicInline(): void
     {
         $sheet = $this->css->parseStylesheet(<<<CSS

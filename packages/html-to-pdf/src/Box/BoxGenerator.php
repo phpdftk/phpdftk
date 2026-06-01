@@ -208,6 +208,12 @@ final class BoxGenerator
         // `InlineBox` so the text child flows through inline layout.
         if (strtolower($element->localName) === 'input') {
             $type = strtolower($element->getAttribute('type') ?? 'text');
+            // HTML 5 §4.10.5.1.7 — `<input type=hidden>` is never
+            // rendered, regardless of the `hidden` attribute on
+            // its ancestors.
+            if ($type === 'hidden') {
+                return null;
+            }
             $textTypes = ['text', 'email', 'search', 'tel', 'url', 'number', 'date', 'time', 'datetime-local'];
             if (in_array($type, $textTypes, true)) {
                 $inline = new InlineBox($element, $values);
@@ -215,6 +221,28 @@ final class BoxGenerator
                 if ($value !== '') {
                     $inline->addChild(new TextBox($element, $values, $value));
                 }
+                return $inline;
+            }
+            // HTML 5 §4.10.5.1.15 — password fields render their
+            // value as a sequence of U+2022 bullets so the printed
+            // form keeps a sense of "this field is populated"
+            // without leaking the value.
+            if ($type === 'password') {
+                $inline = new InlineBox($element, $values);
+                $value = $element->getAttribute('value') ?? '';
+                if ($value !== '') {
+                    $masked = str_repeat("\u{2022}", mb_strlen($value, 'UTF-8'));
+                    $inline->addChild(new TextBox($element, $values, $masked));
+                }
+                return $inline;
+            }
+            // HTML 5 §4.10.5.1.21 — `<input type=file>` renders a
+            // placeholder label since the actual file picker is
+            // interactive. The chosen filename never reaches a
+            // server-side print render.
+            if ($type === 'file') {
+                $inline = new InlineBox($element, $values);
+                $inline->addChild(new TextBox($element, $values, 'No file chosen'));
                 return $inline;
             }
             // HTML 5 §4.10.5.1.18: button-type inputs render the
