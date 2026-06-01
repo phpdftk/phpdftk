@@ -401,6 +401,13 @@ final class PropertyRegistry
         $r->register($initial('text-emphasis-style', new Keyword('none'), true));
         // CSS Text Decoration 4 §1.6 — decoration-skip-ink.
         $r->register($initial('text-decoration-skip-ink', new Keyword('auto'), true));
+        // CSS Text Decoration 4 §6.5 — `text-decoration-skip` is
+        // the umbrella opt-out for skipping decorations over
+        // specific text features. Inherits.
+        $r->register($initial('text-decoration-skip', new Keyword('none'), true));
+        // CSS Text Decoration 4 §8.5 — `text-emphasis-skip` lists
+        // which character categories skip emphasis marks. Inherits.
+        $r->register($initial('text-emphasis-skip', new Keyword('spaces punctuation'), true));
 
         // CSS Inline 3 §6 — text-box-trim controls trimming of
         // half-leading space above ascenders / below descenders so
