@@ -100,6 +100,7 @@ final class ShorthandExpander
             'text-emphasis' => $this->expandTextEmphasis($value),
             'mask' => $this->expandMask($value),
             'border-image' => $this->expandBorderImage($value),
+            'text-wrap' => $this->expandTextWrap($value),
             default => [$property => $value],
         };
     }
@@ -1327,6 +1328,49 @@ final class ShorthandExpander
             return $values[0];
         }
         return new ValueList(array_values($values), ListSeparator::Space);
+    }
+
+    /**
+     * CSS Text 4 §11 — `text-wrap` shorthand for
+     * `text-wrap-mode` + `text-wrap-style`. Components may appear
+     * in any order; each routes to its own longhand by keyword.
+     *
+     *   text-wrap-mode:  wrap | nowrap
+     *   text-wrap-style: auto | balance | pretty | stable
+     *
+     * @return array<string, Value>
+     */
+    private function expandTextWrap(Value $value): array
+    {
+        $modeKw = ['wrap', 'nowrap'];
+        $styleKw = ['auto', 'balance', 'pretty', 'stable'];
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $mode = null;
+        $style = null;
+        foreach ($components as $c) {
+            if (!($c instanceof Keyword)) {
+                continue;
+            }
+            $lc = strtolower($c->name);
+            if ($mode === null && in_array($lc, $modeKw, true)) {
+                $mode = $c;
+                continue;
+            }
+            if ($style === null && in_array($lc, $styleKw, true)) {
+                $style = $c;
+            }
+        }
+        $out = [];
+        if ($mode !== null) {
+            $out['text-wrap-mode'] = $mode;
+        }
+        if ($style !== null) {
+            $out['text-wrap-style'] = $style;
+        }
+        return $out;
     }
 
     /**

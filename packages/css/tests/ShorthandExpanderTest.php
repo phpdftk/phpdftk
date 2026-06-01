@@ -566,6 +566,27 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $out['text-emphasis-color']);
     }
 
+    public function testTextWrapModeOnly(): void
+    {
+        $out = $this->expander->expand('text-wrap', $this->value('nowrap'));
+        self::assertSame('nowrap', $out['text-wrap-mode']->name);
+        self::assertArrayNotHasKey('text-wrap-style', $out);
+    }
+
+    public function testTextWrapStyleOnly(): void
+    {
+        $out = $this->expander->expand('text-wrap', $this->value('balance'));
+        self::assertSame('balance', $out['text-wrap-style']->name);
+        self::assertArrayNotHasKey('text-wrap-mode', $out);
+    }
+
+    public function testTextWrapModeAndStyle(): void
+    {
+        $out = $this->expander->expand('text-wrap', $this->value('wrap pretty'));
+        self::assertSame('wrap', $out['text-wrap-mode']->name);
+        self::assertSame('pretty', $out['text-wrap-style']->name);
+    }
+
     public function testBorderAcceptsCurrentcolor(): void
     {
         $out = $this->expander->expand('border', $this->value('1px solid currentcolor'));
