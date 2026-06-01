@@ -752,6 +752,41 @@ final class PropertyRegistry
         // that page picks up the named rule's margins / background /
         // margin-boxes. Non-inherited per spec.
         $r->register($initial('page', new Keyword('auto')));
+        // SVG 2 §13 — presentation attributes that double as CSS
+        // properties when applied to SVG elements. Inheritance
+        // matches SVG semantics. The renderer reads them via the
+        // standard cascade.
+        $r->register($initial('fill', new Color(0.0, 0.0, 0.0, 1.0), true));
+        $r->register($initial('fill-opacity', new Number(1.0), true));
+        $r->register($initial('fill-rule', new Keyword('nonzero'), true));
+        $r->register($initial('stroke', new Keyword('none'), true));
+        $r->register($initial('stroke-opacity', new Number(1.0), true));
+        $r->register($initial('stroke-width', new Length(1.0, LengthUnit::Px), true));
+        $r->register($initial('stroke-linecap', new Keyword('butt'), true));
+        $r->register($initial('stroke-linejoin', new Keyword('miter'), true));
+        $r->register($initial('stroke-miterlimit', new Number(4.0), true));
+        $r->register($initial('stroke-dasharray', new Keyword('none'), true));
+        $r->register($initial('stroke-dashoffset', new Length(0.0, LengthUnit::Px), true));
+        // SVG 2 §17 — colour interpolation / rendering hints.
+        $r->register($initial('color-interpolation', new Keyword('sRGB'), true));
+        $r->register($initial('color-interpolation-filters', new Keyword('linearRGB'), true));
+        $r->register($initial('color-rendering', new Keyword('auto'), true));
+        $r->register($initial('shape-rendering', new Keyword('auto'), true));
+        $r->register($initial('text-rendering', new Keyword('auto'), true));
+        // SVG 2 §6 — vector-effect (`non-scaling-stroke` etc.).
+        $r->register($initial('vector-effect', new Keyword('none')));
+        // SVG 2 §15 — clip-rule (inside <clipPath>) is the fill-rule
+        // analogue for clip masks. Inherits.
+        $r->register($initial('clip-rule', new Keyword('nonzero'), true));
+        // SVG 2 §11 — marker family used by <line>/<polyline>/<path>.
+        $r->register($initial('marker', new Keyword('none'), true));
+        $r->register($initial('marker-start', new Keyword('none'), true));
+        $r->register($initial('marker-mid', new Keyword('none'), true));
+        $r->register($initial('marker-end', new Keyword('none'), true));
+        // SVG 2 §13.2 — paint-order picks the order of fill / stroke
+        // / markers when rendering text and shapes.
+        $r->register($initial('paint-order', new Keyword('normal'), true));
+
         // CSS Paged Media 3 §6.4 — `marks` declares trim/cross
         // marks; `bleed` extends the page area into the bleed
         // beyond the trim. Both apply inside @page rules; the
