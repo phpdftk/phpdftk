@@ -765,6 +765,21 @@ final class ShorthandExpanderTest extends TestCase
         self::assertCount(2, $r->values);
     }
 
+    public function testMaskBorderShorthandSourceAndMode(): void
+    {
+        $out = $this->expander->expand('mask-border', $this->value('url(m.png) luminance round'));
+        self::assertInstanceOf(\Phpdftk\Css\Value\Url::class, $out['mask-border-source']);
+        self::assertSame('luminance', $out['mask-border-mode']->name);
+        self::assertSame('round', $out['mask-border-repeat']->name);
+    }
+
+    public function testMaskBorderSliceAndWidth(): void
+    {
+        $out = $this->expander->expand('mask-border', $this->value('url(m.png) 25 / 2'));
+        self::assertArrayHasKey('mask-border-slice', $out);
+        self::assertArrayHasKey('mask-border-width', $out);
+    }
+
     public function testCascadeAppliesTransitionShorthand(): void
     {
         $sheet = $this->parser->parseStylesheet(

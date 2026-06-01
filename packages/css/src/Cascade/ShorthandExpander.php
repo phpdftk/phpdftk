@@ -100,6 +100,7 @@ final class ShorthandExpander
             'text-emphasis' => $this->expandTextEmphasis($value),
             'mask' => $this->expandMask($value),
             'border-image' => $this->expandBorderImage($value),
+            'mask-border' => $this->expandMaskBorder($value),
             'text-wrap' => $this->expandTextWrap($value),
             'white-space' => $this->expandWhiteSpace($value),
             'caret' => $this->expandCaret($value),
@@ -1316,6 +1317,104 @@ final class ShorthandExpander
             $out['border-image-repeat'] = count($repeats) === 1
                 ? $repeats[0]
                 : new ValueList($repeats, ListSeparator::Space);
+        }
+        return $out;
+    }
+
+    /**
+     * CSS Masking 1 §13 — `mask-border` shorthand, the masking
+     * analogue of `border-image`. Same grammar shape, with an
+     * additional optional `<mask-border-mode>` keyword:
+     *
+     *   mask-border = <source> || <slice> [/ <width> [/ <outset>]?]?
+     *                 || <repeat> || <mode>
+     *
+     *   <mode>: luminance | alpha
+     *
+     * @return array<string, Value>
+     */
+    private function expandMaskBorder(Value $value): array
+    {
+        $repeatKw = ['stretch', 'repeat', 'round', 'space'];
+        $modeKw = ['luminance', 'alpha'];
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $source = null;
+        $repeats = [];
+        $mode = null;
+        $slashChunks = [[]];
+        foreach ($components as $c) {
+            if ($source === null && $this->looksLikeMaskImage($c)) {
+                $source = $c;
+                continue;
+            }
+            if ($mode === null && $c instanceof Keyword
+                && in_array(strtolower($c->name), $modeKw, true)
+            ) {
+                $mode = $c;
+                continue;
+            }
+            if ($c instanceof Keyword
+                && in_array(strtolower($c->name), $repeatKw, true)
+            ) {
+                $repeats[] = $c;
+                continue;
+            }
+            $slashChunks[count($slashChunks) - 1][] = $c;
+        }
+        if ($value instanceof ValueList && $value->separator === ListSeparator::Slash) {
+            // Same slash-chunk explosion border-image uses, then
+            // re-scan the first chunk for source / mode / repeat.
+            $slashChunks = array_map(
+                fn(Value $g) => $g instanceof ValueList && $g->separator === ListSeparator::Space
+                    ? $g->values
+                    : [$g],
+                $value->values,
+            );
+            $reScanned = [];
+            foreach ($slashChunks[0] ?? [] as $c) {
+                if ($source === null && $this->looksLikeMaskImage($c)) {
+                    $source = $c;
+                    continue;
+                }
+                if ($mode === null && $c instanceof Keyword
+                    && in_array(strtolower($c->name), $modeKw, true)
+                ) {
+                    $mode = $c;
+                    continue;
+                }
+                if ($c instanceof Keyword
+                    && in_array(strtolower($c->name), $repeatKw, true)
+                ) {
+                    $repeats[] = $c;
+                    continue;
+                }
+                $reScanned[] = $c;
+            }
+            $slashChunks[0] = $reScanned;
+        }
+        $out = [];
+        if ($source !== null) {
+            $out['mask-border-source'] = $source;
+        }
+        if ($slashChunks[0] !== []) {
+            $out['mask-border-slice'] = $this->joinSpace($slashChunks[0]);
+        }
+        if (isset($slashChunks[1]) && $slashChunks[1] !== []) {
+            $out['mask-border-width'] = $this->joinSpace($slashChunks[1]);
+        }
+        if (isset($slashChunks[2]) && $slashChunks[2] !== []) {
+            $out['mask-border-outset'] = $this->joinSpace($slashChunks[2]);
+        }
+        if ($repeats !== []) {
+            $out['mask-border-repeat'] = count($repeats) === 1
+                ? $repeats[0]
+                : new ValueList($repeats, ListSeparator::Space);
+        }
+        if ($mode !== null) {
+            $out['mask-border-mode'] = $mode;
         }
         return $out;
     }
