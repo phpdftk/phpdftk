@@ -403,6 +403,50 @@ final class MatcherTest extends TestCase
         self::assertFalse($this->matcher->listMatches($selector, $x3));
     }
 
+    public function testDisabledMatchesInputWithDisabledAttribute(): void
+    {
+        $el = new FakeElement('input', attributes: ['disabled' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':disabled'), $el));
+        $el2 = new FakeElement('input');
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':disabled'), $el2));
+    }
+
+    public function testCheckedMatchesCheckboxRadioOption(): void
+    {
+        $cb = new FakeElement('input', attributes: ['type' => 'checkbox', 'checked' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':checked'), $cb));
+        $rd = new FakeElement('input', attributes: ['type' => 'radio', 'checked' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':checked'), $rd));
+        $opt = new FakeElement('option', attributes: ['selected' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':checked'), $opt));
+        $txt = new FakeElement('input', attributes: ['type' => 'text', 'checked' => '']);
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':checked'), $txt));
+    }
+
+    public function testRequiredOptionalReflectAttribute(): void
+    {
+        $req = new FakeElement('input', attributes: ['required' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':required'), $req));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':optional'), $req));
+        $opt = new FakeElement('input');
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':required'), $opt));
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':optional'), $opt));
+    }
+
+    public function testReadOnlyReflectsReadonlyAndDisabled(): void
+    {
+        $ro = new FakeElement('input', attributes: ['readonly' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':read-only'), $ro));
+        $dis = new FakeElement('input', attributes: ['disabled' => '']);
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':read-only'), $dis));
+        $rw = new FakeElement('input');
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':read-write'), $rw));
+        // Non-form controls are always :read-only.
+        $p = new FakeElement('p');
+        self::assertTrue($this->matcher->listMatches(SelectorParser::parse(':read-only'), $p));
+        self::assertFalse($this->matcher->listMatches(SelectorParser::parse(':read-write'), $p));
+    }
+
     public function testNthLastChildOfFilteredSubset(): void
     {
         $parent = new FakeElement('div');

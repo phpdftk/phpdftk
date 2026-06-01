@@ -218,12 +218,30 @@ final class Matcher
             // `:any-link` also matches `:visited`; print medium can't
             // observe visit state so the two collapse here.
             'link', 'any-link' => $this->matchLink($el),
-            // UI-state pseudos: print medium can't observe them. Cascade
-            // drops the rule cleanly when these don't match.
+            // CSS Selectors 4 §11.2 — `:disabled` / `:enabled` are
+            // static attribute-driven on form controls.
+            'disabled' => $this->matchDisabled($el),
+            'enabled' => $this->isFormControl($el) && !$this->matchDisabled($el),
+            // CSS Selectors 4 §11.3 — `:checked` matches a checkbox /
+            // radio / option element with the `checked` (or `selected`
+            // for <option>) attribute set. Static; doesn't need a
+            // user-state observation.
+            'checked' => $this->matchChecked($el),
+            // CSS Selectors 4 §11.5 — `:required` / `:optional` reflect
+            // the static `required` attribute on form controls.
+            'required' => $this->isFormControl($el) && $el->hasAttribute('required'),
+            'optional' => $this->isFormControl($el) && !$el->hasAttribute('required'),
+            // CSS Selectors 4 §11.6 — `:read-only` / `:read-write`
+            // reflect the static `readonly` / `disabled` state.
+            'read-only' => $this->matchReadOnly($el),
+            'read-write' => $this->isFormControl($el) && !$this->matchReadOnly($el),
+            // Remaining UI-state pseudos: print medium can't observe
+            // them. Cascade drops the rule cleanly when these don't
+            // match.
             'hover', 'focus', 'focus-within', 'focus-visible', 'active',
-            'checked', 'disabled', 'enabled', 'required', 'optional',
-            'read-only', 'read-write', 'placeholder-shown', 'default',
-            'valid', 'invalid', 'target', 'visited' => false,
+            'placeholder-shown', 'default',
+            'valid', 'invalid', 'target', 'visited',
+            'user-valid', 'user-invalid' => false,
             default => false,
         };
     }
@@ -285,6 +303,63 @@ final class Matcher
             }
         }
         return false;
+    }
+
+    /**
+     * Form-control element check used by the static UI-state
+     * pseudos (`:enabled`, `:required`, `:optional`, `:read-write`).
+     * Per HTML §15.3 the controllable elements are the form
+     * elements that accept these attributes.
+     */
+    private function isFormControl(MatchableElement $el): bool
+    {
+        return in_array(strtolower($el->localName()), [
+            'input', 'select', 'textarea', 'button',
+            'fieldset', 'option', 'optgroup',
+        ], true);
+    }
+
+    /**
+     * `:disabled` — the element has the `disabled` attribute
+     * present (HTML §15.3) AND is a form control.
+     */
+    private function matchDisabled(MatchableElement $el): bool
+    {
+        return $this->isFormControl($el) && $el->hasAttribute('disabled');
+    }
+
+    /**
+     * `:checked` — checkboxes/radios with the `checked` attribute,
+     * or `<option>` elements with the `selected` attribute.
+     */
+    private function matchChecked(MatchableElement $el): bool
+    {
+        $tag = strtolower($el->localName());
+        if ($tag === 'input') {
+            $type = strtolower($el->getAttributeValue('type') ?? 'text');
+            if ($type === 'checkbox' || $type === 'radio') {
+                return $el->hasAttribute('checked');
+            }
+            return false;
+        }
+        if ($tag === 'option') {
+            return $el->hasAttribute('selected');
+        }
+        return false;
+    }
+
+    /**
+     * `:read-only` — read-write controls become read-only when they
+     * carry `readonly` or `disabled`. Non-form-control elements are
+     * read-only by default (since they're not editable at all),
+     * matching browser behaviour.
+     */
+    private function matchReadOnly(MatchableElement $el): bool
+    {
+        if (!$this->isFormControl($el)) {
+            return true;
+        }
+        return $el->hasAttribute('readonly') || $el->hasAttribute('disabled');
     }
 
     /**
