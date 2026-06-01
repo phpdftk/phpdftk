@@ -2342,7 +2342,7 @@ class GeneratePdfBench
             $annot3d = new ThreeDAnnotation($rect);
             $annot3d->dd = $streamRef;
             $annotRef = $writer->register($annot3d);
-            $page->annots = new PdfArray([$annotRef]);
+            $page->corePage()->annots[] = $annotRef;
 
             $cs = $writer->addContentStream($page);
             $cs->beginText()

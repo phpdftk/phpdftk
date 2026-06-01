@@ -2,11 +2,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+OUT=/tmp/phpdftk_bench_output.txt
+
 echo "Running benchmarks..."
-vendor/bin/phpbench run benchmarks/ --report=aggregate 2>&1 | tee /tmp/phpdftk_bench_output.txt
+# `set -euo pipefail` at the top already ensures a phpbench non-zero
+# exit code through the tee pipeline fails the script.
+vendor/bin/phpbench run benchmarks/ --report=aggregate 2>&1 | tee "$OUT"
+
+# phpbench currently returns 0 even when individual subjects record an
+# `Errors:` count; sanity-check the report.
+if grep -qE "^Subjects: .* Errors: [^0]" "$OUT"; then
+    echo ""
+    echo "ERROR: phpbench reported errored subjects. Re-run the bench(es) marked"
+    echo "       'ERROR' in the verbose output to identify and fix them; the"
+    echo "       aggregate report may be missing entries or absent entirely."
+    grep -oE "Errors: [0-9]+" "$OUT" | head -1
+    exit 1
+fi
 
 echo ""
 echo "Generating docs/generated/benchmarks.md..."
-php scripts/parse-benchmarks.php < /tmp/phpdftk_bench_output.txt
+php scripts/parse-benchmarks.php < "$OUT"
 
 echo "Done. See docs/generated/benchmarks.md"

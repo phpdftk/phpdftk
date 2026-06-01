@@ -24,11 +24,26 @@ foreach ($lines as $line) {
             $headerSkipped = true;
             continue;
         }
+        // Second `+----+` after the data rows = end of table.
+        $inTable = false;
         continue;
     }
     if ($inTable && str_starts_with($line, '|')) {
         $tableLines[] = $line;
     }
+}
+
+// Hard-fail when the aggregate table is missing or empty. The most
+// common cause is phpbench erroring out before printing the report;
+// in that case every downstream table would silently say "_No data_"
+// and obscure a real regression. Surface it loudly instead.
+if ($tableLines === []) {
+    fwrite(STDERR, "ERROR: parse-benchmarks found no aggregate table rows in phpbench output.\n");
+    fwrite(STDERR, "       Either phpbench errored before printing the report, or the\n");
+    fwrite(STDERR, "       expected `| benchmark | subject | ... |` row format changed.\n");
+    fwrite(STDERR, "       Re-run `vendor/bin/phpbench run benchmarks/ --report=aggregate`\n");
+    fwrite(STDERR, "       interactively to find the failing subject.\n");
+    exit(1);
 }
 
 // Parse rows
