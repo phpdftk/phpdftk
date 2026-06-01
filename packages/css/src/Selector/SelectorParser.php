@@ -351,7 +351,11 @@ final class SelectorParser
             throw new SelectorSyntaxException('Expected attribute value');
         }
         $this->skipWhitespace();
-        $ci = false;
+        // Tri-state: explicit `i` / `s` modifiers vs no flag.
+        // Null means "use host-language defaults" (HTML's listed
+        // case-insensitive attribute names apply per Selectors 4
+        // §6.6); explicit flags override.
+        $ci = null;
         $modifier = $this->peek();
         if ($modifier instanceof IdentToken) {
             $lower = strtolower($modifier->value);

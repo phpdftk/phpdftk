@@ -144,7 +144,19 @@ final class Matcher
             return false;
         }
         $target = $sel->value ?? '';
-        if ($sel->caseInsensitive) {
+        // CSS Selectors 4 §6.6 — attribute selectors are case-
+        // sensitive by default but HTML user agents treat a fixed
+        // list of attributes as ASCII-case-insensitive. Tri-state:
+        //   explicit `i` (caseInsensitive=true)   → case-insensitive
+        //   explicit `s` (caseInsensitive=false)  → case-sensitive
+        //   no flag       (caseInsensitive=null)  → HTML list lookup
+        $caseInsensitive = match ($sel->caseInsensitive) {
+            true => true,
+            false => false,
+            null => $sel->value !== null
+                && $this->isHtmlCaseInsensitiveAttribute($el, $sel->name),
+        };
+        if ($caseInsensitive) {
             $value = strtolower($value);
             $target = strtolower($target);
         }
@@ -303,6 +315,34 @@ final class Matcher
             }
         }
         return false;
+    }
+
+    /**
+     * Per HTML §3.2.6.1 (and the Selectors 4 §6.6 cross-reference),
+     * a fixed list of attributes are matched case-insensitively when
+     * the element is in the HTML namespace. Anything outside this
+     * list keeps the default case-sensitive comparison.
+     */
+    private function isHtmlCaseInsensitiveAttribute(MatchableElement $el, string $name): bool
+    {
+        $ns = $el->namespaceUri();
+        if ($ns !== null && $ns !== 'http://www.w3.org/1999/xhtml') {
+            return false;
+        }
+        static $list = null;
+        if ($list === null) {
+            $list = array_flip([
+                'accept', 'accept-charset', 'align', 'alink', 'axis', 'bgcolor',
+                'charset', 'checked', 'clear', 'codetype', 'color', 'compact',
+                'declare', 'defer', 'dir', 'direction', 'disabled', 'enctype',
+                'face', 'frame', 'frameborder', 'hreflang', 'http-equiv',
+                'lang', 'language', 'link', 'media', 'method', 'multiple',
+                'nohref', 'noresize', 'noshade', 'nowrap', 'readonly', 'rel',
+                'rev', 'rules', 'scope', 'scrolling', 'selected', 'shape',
+                'target', 'text', 'type', 'valign', 'valuetype', 'vlink',
+            ]);
+        }
+        return isset($list[strtolower($name)]);
     }
 
     /**

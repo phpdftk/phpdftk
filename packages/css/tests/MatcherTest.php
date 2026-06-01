@@ -116,12 +116,29 @@ final class MatcherTest extends TestCase
 
     public function testAttributeCaseInsensitive(): void
     {
-        $el = new FakeElement('input', attributes: ['type' => 'EMAIL']);
+        // `data-foo` is NOT on HTML's case-insensitive list, so
+        // the default match is case-sensitive — `i` flips it.
+        $el = new FakeElement('input', attributes: ['data-foo' => 'BAR']);
         self::assertTrue(
-            $this->matcher->listMatches(SelectorParser::parse('[type="email" i]'), $el),
+            $this->matcher->listMatches(SelectorParser::parse('[data-foo="bar" i]'), $el),
         );
         self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('[data-foo="bar"]'), $el),
+        );
+    }
+
+    public function testHtmlListedAttributesAreCaseInsensitiveByDefault(): void
+    {
+        // CSS Selectors 4 §6.6 + HTML spec — `type` is on the
+        // case-insensitive attribute list, so `[type="email"]` on
+        // `type="EMAIL"` matches with no `i` modifier required.
+        $el = new FakeElement('input', attributes: ['type' => 'EMAIL']);
+        self::assertTrue(
             $this->matcher->listMatches(SelectorParser::parse('[type="email"]'), $el),
+        );
+        // `s` modifier forces case-sensitive even on the listed attr.
+        self::assertFalse(
+            $this->matcher->listMatches(SelectorParser::parse('[type="email" s]'), $el),
         );
     }
 
