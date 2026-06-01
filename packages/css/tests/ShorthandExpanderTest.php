@@ -436,6 +436,22 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('normal', $out['column-gap']->name);
     }
 
+    public function testCascadeAppliesLegacyPageBreakAlias(): void
+    {
+        // End-to-end: authored `page-break-after: always` should
+        // light up the modern `break-after: always` longhand in
+        // the cascaded bag.
+        $sheet = $this->parser->parseStylesheet('p { page-break-after: always; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $modern = $values->get('break-after');
+        self::assertInstanceOf(Keyword::class, $modern);
+        self::assertSame('always', $modern->name);
+        // The legacy slot also retains the value.
+        $legacy = $values->get('page-break-after');
+        self::assertInstanceOf(Keyword::class, $legacy);
+        self::assertSame('always', $legacy->name);
+    }
+
     public function testCascadeAppliesShorthand(): void
     {
         // End-to-end: a margin shorthand in a stylesheet should land as
