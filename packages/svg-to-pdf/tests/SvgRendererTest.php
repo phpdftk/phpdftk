@@ -307,6 +307,27 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('0 0 10 10 re', $ops);
     }
 
+    public function testForeignObjectChildrenAreSkipped(): void
+    {
+        // `<foreignObject>` holds non-SVG content. Nested GenericElement
+        // children mustn't paint as SVG primitives (they aren't shapes).
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">'
+            . '<rect width="10" height="10" fill="red"/>'
+            . '<foreignObject x="0" y="0" width="100" height="50">'
+            . '<div xmlns="http://www.w3.org/1999/xhtml">html content</div>'
+            . '</foreignObject>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // The sibling rect still paints.
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+        // The foreignObject's body doesn't leak into the stream.
+        self::assertStringNotContainsString('html content', $ops);
+    }
+
     public function testSwitchSystemLanguageMatchesAncestorLang(): void
     {
         // First child requires `de`; document is `en` so it fails.

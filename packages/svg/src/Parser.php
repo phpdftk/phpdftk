@@ -172,6 +172,8 @@ final class Parser
             'desc' => new Desc(),
             // SVG 2 §5.7 — conditional rendering container.
             'switch' => new Switch_(),
+            // SVG 2 §11.6 — foreign-content placeholder.
+            'foreignObject' => new ForeignObject(),
             default => new GenericElement($localName),
         };
     }

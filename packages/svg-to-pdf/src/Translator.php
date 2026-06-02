@@ -720,7 +720,14 @@ final class Translator
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.
             $element instanceof \Phpdftk\Svg\Title,
-            $element instanceof \Phpdftk\Svg\Desc => null,
+            $element instanceof \Phpdftk\Svg\Desc,
+            // SVG 2 §11.6 — `<foreignObject>` holds non-SVG content
+            // (HTML / MathML). Rendering that content requires a
+            // separate pipeline; the typed class lets callers detect
+            // and route it. Inside the SVG dispatch we skip the
+            // foreign tree entirely to avoid painting GenericElement
+            // children that aren't actual SVG shapes.
+            $element instanceof \Phpdftk\Svg\ForeignObject => null,
             // SVG 2 §12.1.1 — `<a>` paints its children. The PDF link
             // annotation (which is what makes the rendered region
             // clickable) is a future concern that needs page-relative

@@ -150,14 +150,31 @@ final class ParserTest extends TestCase
 
     public function testUnknownElementBecomesGenericElement(): void
     {
+        // `<arbitrary>` isn't a known SVG tag; should land as
+        // GenericElement so attribute access still works.
         $doc = $this->parser->parse(
-            '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject x="0" y="0" width="100" height="100"/></svg>',
+            '<svg xmlns="http://www.w3.org/2000/svg"><arbitrary x="0" data-something="hello"/></svg>',
         );
         self::assertCount(1, $doc->children);
         $node = $doc->children[0];
         self::assertInstanceOf(GenericElement::class, $node);
-        self::assertSame('foreignObject', $node->localName);
-        self::assertSame('100', $node->getAttribute('width'));
+        self::assertSame('arbitrary', $node->localName);
+        self::assertSame('hello', $node->getAttribute('data-something'));
+    }
+
+    public function testForeignObjectTypedElement(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<foreignObject x="10" y="20" width="100" height="50"/>'
+            . '</svg>',
+        );
+        $fo = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\ForeignObject::class, $fo);
+        self::assertSame(10.0, $fo->x());
+        self::assertSame(20.0, $fo->y());
+        self::assertSame(100.0, $fo->width());
+        self::assertSame(50.0, $fo->height());
     }
 
     public function testParsesCircle(): void
