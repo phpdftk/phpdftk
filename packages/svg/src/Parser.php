@@ -180,6 +180,19 @@ final class Parser
             'pattern' => new Pattern(),
             // SVG 2 Filter Effects §6.1 — filter graph definition.
             'filter' => new Filter(),
+            // SVG 2 Filter Effects §15 — filter primitives that
+            // live inside `<filter>`. Each lifts to its own typed
+            // class for accessor convenience.
+            'feGaussianBlur' => new Filter\FeGaussianBlur(),
+            'feOffset' => new Filter\FeOffset(),
+            'feFlood' => new Filter\FeFlood(),
+            'feBlend' => new Filter\FeBlend(),
+            'feComposite' => new Filter\FeComposite(),
+            'feMorphology' => new Filter\FeMorphology(),
+            'feMerge' => new Filter\FeMerge(),
+            'feMergeNode' => new Filter\FeMergeNode(),
+            'feColorMatrix' => new Filter\FeColorMatrix(),
+            'feDropShadow' => new Filter\FeDropShadow(),
             // SVG 2 §6.3 — declarative named viewport.
             'view' => new View(),
             // SVG 2 §15.2 — out-of-scope script content; the typed
