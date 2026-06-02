@@ -251,6 +251,23 @@ final class ParserTest extends TestCase
         self::assertSame('3s', $a->dur());
     }
 
+    public function testMetadataAndMPath(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/></metadata>'
+            . '<animateMotion><mpath href="#shape-path"/></animateMotion>'
+            . '</svg>',
+        );
+        $md = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Metadata::class, $md);
+        $am = $doc->children[1];
+        self::assertInstanceOf(\Phpdftk\Svg\AnimateMotion::class, $am);
+        $mpath = $am->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\MPath::class, $mpath);
+        self::assertSame('#shape-path', $mpath->href());
+    }
+
     public function testAnimateTransformAndMotion(): void
     {
         $doc = $this->parser->parse(

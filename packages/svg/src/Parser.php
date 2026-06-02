@@ -222,6 +222,9 @@ final class Parser
             'animateTransform' => new AnimateTransform(),
             'animateMotion' => new AnimateMotion(),
             'set' => new SetElement(),
+            'mpath' => new MPath(),
+            // SVG 2 §6.4 — RDF/metadata, never renders.
+            'metadata' => new Metadata(),
             default => new GenericElement($localName),
         };
     }

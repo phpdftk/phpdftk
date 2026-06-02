@@ -744,6 +744,10 @@ final class Translator
             // nested `<mpath>` etc. that would otherwise fall through
             // to the default container walk.
             $element instanceof \Phpdftk\Svg\Animation => null,
+            // SVG 2 §6.4 — `<metadata>` carries RDF/XML or other
+            // non-render metadata. Skip explicitly so any embedded
+            // RDF text doesn't accidentally leak.
+            $element instanceof \Phpdftk\Svg\Metadata => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.
