@@ -236,6 +236,19 @@ final class ParserTest extends TestCase
         self::assertSame('userSpaceOnUse', $filter->primitiveUnits());
     }
 
+    public function testViewTypedAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<view id="zoom" viewBox="10 10 80 80" preserveAspectRatio="xMidYMid meet"/>'
+            . '</svg>',
+        );
+        $view = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\View::class, $view);
+        self::assertSame([10.0, 10.0, 80.0, 80.0], $view->viewBox());
+        self::assertSame('xMidYMid meet', $view->preserveAspectRatio());
+    }
+
     public function testFilterDefaultRegion(): void
     {
         // Per SVG 2 §6.1 defaults for filterUnits=objectBoundingBox:

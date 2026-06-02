@@ -180,6 +180,8 @@ final class Parser
             'pattern' => new Pattern(),
             // SVG 2 Filter Effects §6.1 — filter graph definition.
             'filter' => new Filter(),
+            // SVG 2 §6.3 — declarative named viewport.
+            'view' => new View(),
             default => new GenericElement($localName),
         };
     }
