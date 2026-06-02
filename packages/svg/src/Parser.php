@@ -193,6 +193,16 @@ final class Parser
             'feMergeNode' => new Filter\FeMergeNode(),
             'feColorMatrix' => new Filter\FeColorMatrix(),
             'feDropShadow' => new Filter\FeDropShadow(),
+            'feTurbulence' => new Filter\FeTurbulence(),
+            'feImage' => new Filter\FeImage(),
+            'feTile' => new Filter\FeTile(),
+            'feDisplacementMap' => new Filter\FeDisplacementMap(),
+            'feConvolveMatrix' => new Filter\FeConvolveMatrix(),
+            'feComponentTransfer' => new Filter\FeComponentTransfer(),
+            'feFuncR' => new Filter\FeFuncR(),
+            'feFuncG' => new Filter\FeFuncG(),
+            'feFuncB' => new Filter\FeFuncB(),
+            'feFuncA' => new Filter\FeFuncA(),
             // SVG 2 §6.3 — declarative named viewport.
             'view' => new View(),
             // SVG 2 §15.2 — out-of-scope script content; the typed

@@ -170,4 +170,122 @@ final class FilterPrimitiveTest extends TestCase
         self::assertSame(100.0, $blur->width());
         self::assertSame(50.0, $blur->height());
     }
+
+    public function testTurbulenceAccessors(): void
+    {
+        $t = $this->firstChild(
+            '<feTurbulence baseFrequency="0.05 0.1" numOctaves="3" seed="42" '
+            . 'stitchTiles="stitch" type="fractalNoise"/>',
+        );
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeTurbulence::class, $t);
+        self::assertSame([0.05, 0.1], $t->baseFrequency());
+        self::assertSame(3, $t->numOctaves());
+        self::assertSame(42.0, $t->seed());
+        self::assertSame('stitch', $t->stitchTiles());
+        self::assertSame('fractalNoise', $t->type());
+    }
+
+    public function testTurbulenceDefaults(): void
+    {
+        $t = $this->firstChild('<feTurbulence/>');
+        self::assertSame([0.0, 0.0], $t->baseFrequency());
+        self::assertSame(1, $t->numOctaves());
+        self::assertSame('noStitch', $t->stitchTiles());
+        self::assertSame('turbulence', $t->type());
+    }
+
+    public function testImageAccessors(): void
+    {
+        $img = $this->firstChild(
+            '<feImage href="https://example.com/x.png" preserveAspectRatio="xMidYMid meet"/>',
+        );
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeImage::class, $img);
+        self::assertSame('https://example.com/x.png', $img->href());
+        self::assertSame('xMidYMid meet', $img->preserveAspectRatio());
+    }
+
+    public function testImageLegacyXlinkHref(): void
+    {
+        $img = $this->firstChild('<feImage xlink:href="local.png"/>');
+        self::assertSame('local.png', $img->href());
+    }
+
+    public function testTileIsTypedPrimitive(): void
+    {
+        $tile = $this->firstChild('<feTile in="src" result="tiled"/>');
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeTile::class, $tile);
+        self::assertSame('src', $tile->in());
+        self::assertSame('tiled', $tile->result());
+    }
+
+    public function testDisplacementMapAccessors(): void
+    {
+        $dm = $this->firstChild(
+            '<feDisplacementMap in="A" in2="noise" scale="20" '
+            . 'xChannelSelector="R" yChannelSelector="G"/>',
+        );
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeDisplacementMap::class, $dm);
+        self::assertSame('A', $dm->in());
+        self::assertSame('noise', $dm->in2());
+        self::assertSame(20.0, $dm->scale());
+        self::assertSame('R', $dm->xChannelSelector());
+        self::assertSame('G', $dm->yChannelSelector());
+    }
+
+    public function testDisplacementMapDefaults(): void
+    {
+        $dm = $this->firstChild('<feDisplacementMap/>');
+        self::assertSame(0.0, $dm->scale());
+        self::assertSame('A', $dm->xChannelSelector());
+        self::assertSame('A', $dm->yChannelSelector());
+    }
+
+    public function testConvolveMatrixAccessors(): void
+    {
+        $cm = $this->firstChild(
+            '<feConvolveMatrix order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" '
+            . 'divisor="1" bias="0" targetX="1" targetY="1" edgeMode="wrap" preserveAlpha="true"/>',
+        );
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeConvolveMatrix::class, $cm);
+        self::assertSame([3, 3], $cm->order());
+        self::assertSame([0.0, -1.0, 0.0, -1.0, 5.0, -1.0, 0.0, -1.0, 0.0], $cm->kernelMatrix());
+        self::assertSame(1.0, $cm->divisor());
+        self::assertSame(0.0, $cm->bias());
+        self::assertSame(1, $cm->targetX());
+        self::assertSame(1, $cm->targetY());
+        self::assertSame('wrap', $cm->edgeMode());
+        self::assertTrue($cm->preserveAlpha());
+    }
+
+    public function testComponentTransferWithFuncChildren(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><filter id="f">'
+            . '<feComponentTransfer>'
+            . '<feFuncR type="gamma" amplitude="1" exponent="0.5" offset="0"/>'
+            . '<feFuncG type="linear" slope="1.5" intercept="-0.25"/>'
+            . '<feFuncB type="discrete" tableValues="0 0.5 1"/>'
+            . '<feFuncA type="identity"/>'
+            . '</feComponentTransfer>'
+            . '</filter></svg>',
+        );
+        $ct = $doc->children[0]->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeComponentTransfer::class, $ct);
+        self::assertCount(4, $ct->children);
+        $r = $ct->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeFuncR::class, $r);
+        self::assertSame('gamma', $r->type());
+        self::assertSame(0.5, $r->exponent());
+        $g = $ct->children[1];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeFuncG::class, $g);
+        self::assertSame('linear', $g->type());
+        self::assertSame(1.5, $g->slope());
+        self::assertSame(-0.25, $g->intercept());
+        $b = $ct->children[2];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeFuncB::class, $b);
+        self::assertSame([0.0, 0.5, 1.0], $b->tableValues());
+        $a = $ct->children[3];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeFuncA::class, $a);
+        self::assertSame('identity', $a->type());
+    }
 }
