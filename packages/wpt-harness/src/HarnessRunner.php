@@ -190,9 +190,22 @@ final class HarnessRunner
     }
 
     /**
-     * WPT reftest convention: the reference sits next to the test
-     * as `<stem>-ref.{png,html,xht,svg}`. PNG wins when both exist
-     * since it short-circuits a re-render.
+     * Locate the reference rendering for a WPT reftest. WPT supports
+     * two conventions:
+     *
+     *  1. **Filename**: a sibling `<stem>-ref.{png,html,xht,svg}`
+     *     file. Simple and unambiguous; PNG wins when both exist
+     *     since it short-circuits a re-render.
+     *
+     *  2. **`<link rel="match" href="…">`** inside the test's
+     *     `<head>`. The actual WPT corpus uses this for the
+     *     majority of tests — the reference often lives in a
+     *     sibling directory, sometimes with a name unrelated to
+     *     the test stem.
+     *
+     * `rel="mismatch"` is the negative variant and is skipped here
+     * — the harness doesn't yet implement "must not match"
+     * semantics (a follow-up).
      */
     private function locateReference(string $testPath): ?string
     {
@@ -210,7 +223,46 @@ final class HarnessRunner
                 return $cand;
             }
         }
-        return null;
+        return $this->locateLinkRelMatchReference($testPath);
+    }
+
+    /**
+     * Parse `<link rel="match" href="…">` from the head of a
+     * `.html` / `.xht` / `.svg` test file and resolve the href to
+     * an on-disk path relative to the test. Returns the first
+     * matching reference; `rel="mismatch"` is intentionally
+     * ignored.
+     *
+     * Read is bounded to the first 64 KB so a malformed test
+     * can't stall the harness — WPT's `<head>` always sits in
+     * the first few hundred bytes anyway.
+     */
+    private function locateLinkRelMatchReference(string $testPath): ?string
+    {
+        $head = @file_get_contents($testPath, false, null, 0, 64 * 1024);
+        if ($head === false || $head === '') {
+            return null;
+        }
+        // Match either single- or double-quoted attribute values
+        // in either attribute order (rel-first or href-first).
+        $pattern = '~<link\s+[^>]*?(?:'
+            . 'rel\s*=\s*["\']match["\']\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']'
+            . '|'
+            . 'href\s*=\s*["\']([^"\']+)["\']\s+[^>]*?rel\s*=\s*["\']match["\']'
+            . ')~i';
+        if (preg_match($pattern, $head, $matches) !== 1) {
+            return null;
+        }
+        $href = ($matches[1] ?? '') !== '' ? $matches[1] : ($matches[2] ?? '');
+        if ($href === '') {
+            return null;
+        }
+        $dir = dirname($testPath);
+        $resolved = str_starts_with($href, '/')
+            ? $this->wptRoot . $href
+            : $dir . '/' . $href;
+        $real = realpath($resolved);
+        return ($real !== false && is_file($real)) ? $real : null;
     }
 
     /**
