@@ -174,6 +174,8 @@ final class Parser
             'switch' => new Switch_(),
             // SVG 2 §11.6 — foreign-content placeholder.
             'foreignObject' => new ForeignObject(),
+            // SVG 2 §11.6 — vertex-marker definition (arrowheads etc.)
+            'marker' => new Marker(),
             default => new GenericElement($localName),
         };
     }

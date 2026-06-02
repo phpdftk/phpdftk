@@ -307,6 +307,26 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('0 0 10 10 re', $ops);
     }
 
+    public function testMarkerDoesNotPaintAtDocumentLevel(): void
+    {
+        // SVG 2 §11.6 — `<marker>` is a reusable definition; it
+        // only paints when referenced via marker-start/-mid/-end.
+        // At the document level its contents must NOT leak into
+        // the output stream.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            . '<marker id="arrow"><path d="M 0 0 L 10 5 L 0 10 z"/></marker>'
+            . '<rect width="50" height="50"/>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // The rect paints; the marker's path doesn't.
+        self::assertStringContainsString('0 0 50 50 re', $ops);
+        self::assertStringNotContainsString('10 5', $ops);
+    }
+
     public function testForeignObjectChildrenAreSkipped(): void
     {
         // `<foreignObject>` holds non-SVG content. Nested GenericElement

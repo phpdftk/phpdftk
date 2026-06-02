@@ -162,6 +162,41 @@ final class ParserTest extends TestCase
         self::assertSame('hello', $node->getAttribute('data-something'));
     }
 
+    public function testMarkerTypedAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<marker id="arrow" viewBox="0 0 10 10" refX="center" refY="5" '
+            . 'markerWidth="6" markerHeight="6" orient="auto" markerUnits="userSpaceOnUse">'
+            . '<path d="M 0 0 L 10 5 L 0 10 z"/>'
+            . '</marker>'
+            . '</svg>',
+        );
+        $marker = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Marker::class, $marker);
+        self::assertSame([0.0, 0.0, 10.0, 10.0], $marker->viewBox());
+        self::assertSame(5.0, $marker->refX()); // center on 0-10 viewBox = 5
+        self::assertSame(5.0, $marker->refY());
+        self::assertSame(6.0, $marker->markerWidth());
+        self::assertSame(6.0, $marker->markerHeight());
+        self::assertSame('auto', $marker->orient());
+        self::assertSame('userSpaceOnUse', $marker->markerUnits());
+    }
+
+    public function testMarkerOrientAcceptsAngles(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<marker id="m" orient="45deg"/>'
+            . '<marker id="m2" orient="0.5turn"/>'
+            . '<marker id="m3" orient="auto-start-reverse"/>'
+            . '</svg>',
+        );
+        self::assertSame(45.0, $doc->children[0]->orient());
+        self::assertSame(180.0, $doc->children[1]->orient());
+        self::assertSame('auto-start-reverse', $doc->children[2]->orient());
+    }
+
     public function testForeignObjectTypedElement(): void
     {
         $doc = $this->parser->parse(

@@ -715,7 +715,12 @@ final class Translator
             $element instanceof Defs,
             $element instanceof Symbol,
             $element instanceof ClipPath,
-            $element instanceof Mask => null,
+            $element instanceof Mask,
+            // SVG 2 §11.6 — `<marker>` is referenced via `marker-*`
+            // properties on shapes; it never paints at the document
+            // level. The painter pulls in a marker when it's
+            // requested at a path vertex (future deliverable).
+            $element instanceof \Phpdftk\Svg\Marker => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.
