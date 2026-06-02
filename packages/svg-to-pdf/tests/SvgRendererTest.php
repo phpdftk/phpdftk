@@ -268,4 +268,62 @@ final class SvgRendererTest extends TestCase
         $ops = implode("\n", $ctx['stream']->getOperators());
         self::assertStringContainsString('0 0 10 10 re', $ops);
     }
+
+    public function testSwitchPicksFirstChildByDefault(): void
+    {
+        // SVG 2 §5.7 — `<switch>` with no conditional attributes on
+        // children paints the first child only.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+            . '<switch>'
+            . '<rect width="10" height="10"/>'
+            . '<rect width="20" height="20"/>'
+            . '</switch>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+        self::assertStringNotContainsString('0 0 20 20 re', $ops);
+    }
+
+    public function testSwitchSkipsChildWithRequiredExtensions(): void
+    {
+        // Any `requiredExtensions` value fails the conditional test
+        // since print medium can't claim any UA-specific extensions.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">'
+            . '<switch>'
+            . '<rect requiredExtensions="https://example.com/ext" width="10" height="10"/>'
+            . '<rect width="20" height="20"/>'
+            . '</switch>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('0 0 20 20 re', $ops);
+        self::assertStringNotContainsString('0 0 10 10 re', $ops);
+    }
+
+    public function testSwitchSystemLanguageMatchesAncestorLang(): void
+    {
+        // First child requires `de`; document is `en` so it fails.
+        // Second child requires `en` and matches the ancestor
+        // `xml:lang`.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en-US" viewBox="0 0 30 30">'
+            . '<switch>'
+            . '<rect systemLanguage="de" width="10" height="10"/>'
+            . '<rect systemLanguage="en" width="20" height="20"/>'
+            . '</switch>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('0 0 20 20 re', $ops);
+        self::assertStringNotContainsString('0 0 10 10 re', $ops);
+    }
 }

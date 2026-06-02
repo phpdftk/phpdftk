@@ -170,6 +170,8 @@ final class Parser
             // SVG 2 §15.3 — accessibility metadata; never paints.
             'title' => new Title(),
             'desc' => new Desc(),
+            // SVG 2 §5.7 — conditional rendering container.
+            'switch' => new Switch_(),
             default => new GenericElement($localName),
         };
     }

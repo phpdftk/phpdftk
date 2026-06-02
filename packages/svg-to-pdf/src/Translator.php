@@ -728,10 +728,93 @@ final class Translator
             // here so the visual stays correct.
             $element instanceof \Phpdftk\Svg\A_
                 => $this->paintChildren($element, $stream),
+            // SVG 2 §5.7 — `<switch>` picks the first child whose
+            // conditional-processing attributes all evaluate true.
+            $element instanceof \Phpdftk\Svg\Switch_
+                => $this->paintSwitch($element, $stream),
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),
         };
+    }
+
+    /**
+     * SVG 2 §5.7 — paint the first child of `<switch>` whose
+     * conditional-processing tests all evaluate true. Empty-test
+     * children always pass. Stops after painting the first
+     * matching child.
+     */
+    private function paintSwitch(\Phpdftk\Svg\Switch_ $switch, ContentStream $stream): void
+    {
+        foreach ($switch->children as $child) {
+            if (!$child instanceof Element) {
+                continue;
+            }
+            if (!$this->switchChildPasses($child)) {
+                continue;
+            }
+            $this->paintElement($child, $stream);
+            return;
+        }
+    }
+
+    /**
+     * Evaluate the conditional-processing attributes on a
+     * `<switch>` child:
+     *
+     *   - `requiredFeatures` — legacy SVG 1.1 list of feature
+     *     URIs. All listed URIs evaluate true here so the test
+     *     never fails (matches major browser behaviour now).
+     *   - `requiredExtensions` — author-supplied extension URIs.
+     *     Any presence fails: print medium can't observe any
+     *     UA-specific extensions.
+     *   - `systemLanguage` — comma-separated BCP 47 tags. The
+     *     test passes when at least one tag prefix-matches the
+     *     `xml:lang` (or `lang`) ancestor chain.
+     */
+    private function switchChildPasses(Element $child): bool
+    {
+        if ($child->hasAttribute('requiredExtensions')) {
+            $exts = trim($child->getAttribute('requiredExtensions') ?? '');
+            if ($exts !== '') {
+                return false;
+            }
+        }
+        if ($child->hasAttribute('systemLanguage')) {
+            $needed = preg_split(
+                '/[\s,]+/',
+                strtolower(trim($child->getAttribute('systemLanguage') ?? '')),
+            ) ?: [];
+            $needed = array_filter($needed, static fn(string $s): bool => $s !== '');
+            $documentLang = $this->resolveSystemLanguage($child);
+            $matched = false;
+            foreach ($needed as $tag) {
+                if ($tag === $documentLang || str_starts_with($documentLang, $tag . '-')) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Walk ancestor `xml:lang` / `lang` attributes. Defaults to
+     * `en` when nothing is set, matching the SVG default UA
+     * behaviour for systemLanguage matching.
+     */
+    private function resolveSystemLanguage(Element $element): string
+    {
+        for ($n = $element; $n !== null; $n = $n->parent) {
+            $lang = $n->getAttribute('xml:lang') ?? $n->getAttribute('lang');
+            if ($lang !== null && $lang !== '') {
+                return strtolower($lang);
+            }
+        }
+        return 'en';
     }
 
     private function paintUse(Use_ $use, ContentStream $stream): void
