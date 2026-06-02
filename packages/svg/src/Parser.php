@@ -182,6 +182,11 @@ final class Parser
             'filter' => new Filter(),
             // SVG 2 §6.3 — declarative named viewport.
             'view' => new View(),
+            // SVG 2 §15.2 — out-of-scope script content; the typed
+            // class lets the Translator skip it explicitly rather
+            // than recursing into any nested `<text>` etc. children
+            // a malicious document might smuggle in.
+            'script' => new Script(),
             default => new GenericElement($localName),
         };
     }

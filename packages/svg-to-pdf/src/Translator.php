@@ -733,7 +733,12 @@ final class Translator
             // SVG 2 §6.3 — `<view>` is a fragment-targeted viewport
             // definition. Activated only when callers pass a view id;
             // never paints at document level.
-            $element instanceof \Phpdftk\Svg\View => null,
+            $element instanceof \Phpdftk\Svg\View,
+            // SVG 2 §15.2 — `<script>` content is JS; never executes
+            // server-side and never paints. Explicit skip prevents
+            // any nested `<text>` etc. children from leaking into the
+            // output stream.
+            $element instanceof \Phpdftk\Svg\Script => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.

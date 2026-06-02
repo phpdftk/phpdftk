@@ -307,6 +307,25 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('0 0 10 10 re', $ops);
     }
 
+    public function testScriptElementIsSkipped(): void
+    {
+        // SVG 2 §15.2 + §17.3 — `<script>` content never executes
+        // server-side and never paints. A malicious document with
+        // `<script><text>...</text></script>` must NOT have the
+        // inner text leak into the output stream.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            . '<script><text>SECRET_PAYLOAD</text></script>'
+            . '<rect width="50" height="50"/>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringNotContainsString('SECRET_PAYLOAD', $ops);
+        self::assertStringContainsString('0 0 50 50 re', $ops);
+    }
+
     public function testMarkerDoesNotPaintAtDocumentLevel(): void
     {
         // SVG 2 §11.6 — `<marker>` is a reusable definition; it
