@@ -192,4 +192,25 @@ The aggregate "% complete" number on the project landing page is the weighted av
 
 For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
 
-Once `composer wpt run` (Phase 4A.2 + 4A.3, just landed) produces real per-test pass rates against the WPT corpus checkout, this number is replaced with the in-scope subset pass rate from `var/wpt/summary.md` and ceases to be a hand-maintained estimate.
+### Validation against real WPT
+
+A first sparse-checkout run of `composer wpt run` against the upstream WPT `css/css-color/` subdirectory (456 test files, 102 in-scope after manifest classification) lands at **55.88% in-scope pass rate** — within rounding of the table-mean estimate above.
+
+That cross-check matters: the per-row estimates aren't internally consistent, they're tracking real renderer behaviour. The gap to WeasyPrint (~19 points) is concentrated in the raster-dependent modules called out per-row (Filter Effects, 3D Transforms, advanced Masking, Page Floats, masonry / subgrid).
+
+```
+WPT harness — corpus: /tmp/wpt-sparse
+  Total tests:        366
+    Pass:             57
+    Fail:             45
+    Out of scope:      0
+    Pending substr.:  35
+    Skipped:          229
+    Harness errors:    0
+  In-scope total:    102
+  In-scope pass:     55.88%
+```
+
+(229 skipped are tests whose `*-ref.{png,html,xht,svg}` sibling wasn't auto-located — the WPT corpus uses richer reference metadata than the file-naming convention currently supports; a follow-up will parse `<link rel=match>` from each test head.)
+
+Once the manifest classifier (4A.4) wires per-module weighting and the corpus walk completes the full WPT in-scope set, this number replaces the table-mean and ceases to be a hand-maintained estimate.
