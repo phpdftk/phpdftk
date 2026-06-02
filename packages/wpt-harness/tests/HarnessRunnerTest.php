@@ -170,19 +170,19 @@ final class HarnessRunnerTest extends TestCase
         self::assertSame('needs 4C', $results[0]->reason);
     }
 
-    public function testUnclassifiedInScopeTestSkippedWithReason(): void
+    public function testUnclassifiedInScopeTestSkippedWhenNoReference(): void
     {
+        // In-scope test without a `-ref.png|.html` sibling — the
+        // harness has nothing to diff against, so it skips with a
+        // descriptive reason.
         $this->fixture('css/css-color/srgb-001.html');
 
-        // Empty manifest — nothing matches → in-scope.
         $results = $this->runner(new Manifest())->run();
 
         self::assertCount(1, $results);
-        // 4A.1 marks in-scope tests as Skipped until 4A.2 + 4A.3
-        // (rasteriser + scorer) land.
         self::assertSame(TestStatus::Skipped, $results[0]->status);
         self::assertNotNull($results[0]->reason);
-        self::assertStringContainsString('4A.2', $results[0]->reason);
+        self::assertStringContainsString('-ref', $results[0]->reason);
     }
 
     // -----------------------------------------------------------------------

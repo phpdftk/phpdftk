@@ -84,18 +84,188 @@ final class HarnessRunner
             );
         }
 
-        // In-scope but the rasteriser / scorer haven't landed yet
-        // (4A.2 / 4A.3). Mark as skipped with a reason so the
-        // dashboard can communicate "blocked on 4A.2" rather than
-        // surfacing as a silent pass.
+        // In-scope: render the test through phpdftk, rasterise via
+        // Ghostscript, visually-diff against the WPT reference.
+        return $this->runRendered($testId);
+    }
+
+    /**
+     * Render an in-scope test, rasterise the resulting PDF, and
+     * visually-diff against its WPT reference. Tests without a
+     * `*-ref.{png,html,xht,svg}` sibling are reported as Skipped
+     * — the harness can't know what "pass" means without one.
+     */
+    private function runRendered(string $testId): TestResult
+    {
+        $rootAbs = realpath($this->wptRoot);
+        if ($rootAbs === false) {
+            return new TestResult(
+                testId: $testId,
+                status: TestStatus::HarnessError,
+                diffScore: 0.0,
+                reason: "wpt root not accessible: $this->wptRoot",
+                diffArtefactPath: null,
+                renderMicros: 0.0,
+            );
+        }
+        $testPath = $this->resolveTestFile($rootAbs, $testId);
+        if ($testPath === null) {
+            return new TestResult(
+                testId: $testId,
+                status: TestStatus::HarnessError,
+                diffScore: 0.0,
+                reason: 'test file not found for ID',
+                diffArtefactPath: null,
+                renderMicros: 0.0,
+            );
+        }
+        $refPath = $this->locateReference($testPath);
+        if ($refPath === null) {
+            return new TestResult(
+                testId: $testId,
+                status: TestStatus::Skipped,
+                diffScore: 0.0,
+                reason: 'no -ref.{png,html,xht,svg} sibling found',
+                diffArtefactPath: null,
+                renderMicros: 0.0,
+            );
+        }
+
+        $start = hrtime(true);
+        try {
+            $renderedPng = $this->renderToPng($testPath);
+        } catch (\Throwable $e) {
+            return new TestResult(
+                testId: $testId,
+                status: TestStatus::Fail,
+                diffScore: 1.0,
+                reason: 'render failed: ' . $e->getMessage(),
+                diffArtefactPath: null,
+                renderMicros: (hrtime(true) - $start) / 1000.0,
+            );
+        }
+        $renderMicros = (hrtime(true) - $start) / 1000.0;
+
+        try {
+            $refPng = str_ends_with(strtolower($refPath), '.png')
+                ? $refPath
+                : $this->renderToPng($refPath);
+        } catch (\Throwable $e) {
+            @unlink($renderedPng);
+            return new TestResult(
+                testId: $testId,
+                status: TestStatus::HarnessError,
+                diffScore: 1.0,
+                reason: 'reference render failed: ' . $e->getMessage(),
+                diffArtefactPath: null,
+                renderMicros: $renderMicros,
+            );
+        }
+
+        $diff = $this->scorer->diff($renderedPng, $refPng);
+        @unlink($renderedPng);
+        if ($refPng !== $refPath) {
+            @unlink($refPng);
+        }
+
         return new TestResult(
             testId: $testId,
-            status: TestStatus::Skipped,
-            diffScore: 0.0,
-            reason: '4A.2 rasteriser + 4A.3 scorer not yet implemented',
-            diffArtefactPath: null,
-            renderMicros: 0.0,
+            status: $diff['passed'] ? TestStatus::Pass : TestStatus::Fail,
+            diffScore: $diff['score'],
+            reason: $diff['reason'],
+            diffArtefactPath: $diff['diffImage'] ?? null,
+            renderMicros: $renderMicros,
         );
+    }
+
+    private function resolveTestFile(string $rootAbs, string $testId): ?string
+    {
+        foreach (self::TEST_EXTENSIONS as $ext) {
+            $candidate = $rootAbs . '/' . $testId . '.' . $ext;
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * WPT reftest convention: the reference sits next to the test
+     * as `<stem>-ref.{png,html,xht,svg}`. PNG wins when both exist
+     * since it short-circuits a re-render.
+     */
+    private function locateReference(string $testPath): ?string
+    {
+        $info = pathinfo($testPath);
+        $dir = $info['dirname'] ?? '.';
+        $stem = $info['filename'] ?? '';
+        $candidates = [
+            $dir . '/' . $stem . '-ref.png',
+            $dir . '/' . $stem . '-ref.html',
+            $dir . '/' . $stem . '-ref.xht',
+            $dir . '/' . $stem . '-ref.svg',
+        ];
+        foreach ($candidates as $cand) {
+            if (is_file($cand)) {
+                return $cand;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Render a single test file through the phpdftk pipeline and
+     * rasterise the first page of the resulting PDF.
+     */
+    private function renderToPng(string $path): string
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $pdfBytes = $ext === 'svg'
+            ? $this->renderSvgToPdf($path)
+            : $this->renderHtmlToPdf($path);
+        $pdfPath = tempnam(sys_get_temp_dir(), 'wpt_pdf_') . '.pdf';
+        file_put_contents($pdfPath, $pdfBytes);
+        try {
+            return $this->rasteriser->rasterise($pdfPath, 0);
+        } finally {
+            @unlink($pdfPath);
+        }
+    }
+
+    private function renderHtmlToPdf(string $path): string
+    {
+        if (!class_exists('Phpdftk\\HtmlToPdf\\Renderer')) {
+            throw new \RuntimeException('phpdftk/html-to-pdf not installed');
+        }
+        $html = file_get_contents($path);
+        if ($html === false) {
+            throw new \RuntimeException("could not read test file: $path");
+        }
+        $renderer = new \Phpdftk\HtmlToPdf\Renderer(
+            new \Phpdftk\HtmlToPdf\RendererOptions(),
+        );
+        $result = $renderer->render($html);
+        return $result->writer->toBytes();
+    }
+
+    private function renderSvgToPdf(string $path): string
+    {
+        if (!class_exists('Phpdftk\\SvgToPdf\\SvgRenderer')
+            || !class_exists('Phpdftk\\Svg\\Parser')
+            || !class_exists('Phpdftk\\Pdf\\Writer\\PdfWriter')
+        ) {
+            throw new \RuntimeException('svg-to-pdf renderer stack not installed');
+        }
+        $svgSource = file_get_contents($path);
+        if ($svgSource === false) {
+            throw new \RuntimeException("could not read test file: $path");
+        }
+        $writer = new \Phpdftk\Pdf\Writer\PdfWriter();
+        $page = $writer->addPage();
+        $svgDoc = (new \Phpdftk\Svg\Parser())->parse($svgSource);
+        $renderer = new \Phpdftk\SvgToPdf\SvgRenderer($page, $writer);
+        $renderer->draw($svgDoc, x: 0, y: 0);
+        return $writer->toBytes();
     }
 
     public function manifest(): Manifest
