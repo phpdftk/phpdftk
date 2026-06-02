@@ -21,97 +21,97 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5A | CSS Syntax 3 | 🟨 | 85% | — | Tokenizer round-trips most input; serialisation edge cases pending WPT signal |
-| 5B | CSS Values + Units 4 | 🟨 | 65% | — | `calc()`, `min()`, `max()`, `clamp()` land; nested calc, `mod()`, `rem()`, `round()`, trig functions partial |
-| 5C | CSS Cascade + Inheritance 5, 6 | 🟨 | 70% | — | `@import`, specificity, `!important` done; cascade layers (5), scope (6) pending |
-| 5D | CSS Custom Properties 1 | 🟨 | 60% | — | `--foo` declaration + `var()` reading land; `@property` typed registration, animation, `var()` fallback edge cases pending |
-| 5E | CSS Selectors 4 | 🟨 | 55% | — | Type / class / id / attribute / structural pseudos done; `:has()`, `:is()`, `:where()` partial; functional `:nth-child(an+b of S)` pending |
-| 5F | CSS Pseudo-Elements 4 | 🟨 | 50% | — | `::before` / `::after` done; `::marker`, `::placeholder`, `::file-selector-button`, `::backdrop`, `::part`, `::slotted` pending |
-| 5G | CSS Conditional Rules 3, 4, 5 | 🟨 | 45% | — | `@media`, `@supports` (boolean) done; `@supports selector()`, value queries, `@supports font-format()`, `@container` partial |
-| 5H | CSS Media Queries 5 | 🟨 | 55% | — | `print`, `screen`, dimension queries done; `prefers-*` defaults conservative; `pointer`, `hover`, `inverted-colors`, `update` out-of-scope |
-| — | CSS Cascading and Inheritance — `revert` / `revert-layer` | 🟨 | 60% | — | `unset`, `initial`, `inherit` land; `revert` / `revert-layer` need layer engine |
+| 5A | CSS Syntax 3 | 🟨 | 88% | — | Tokenizer round-trips most input; serialisation edge cases pending WPT signal |
+| 5B | CSS Values + Units 4 | 🟨 | 72% | — | `calc()`, `min()`, `max()`, `clamp()`, `attr()`, `env()`, typed `<time>` land; `mod()`, `rem()`, `round()`, trig partial |
+| 5C | CSS Cascade + Inheritance 5, 6 | 🟨 | 75% | — | `@import`, specificity, `!important`, `unset`/`initial`/`inherit`, `revert`/`revert-layer` (mapped to initial) done; cascade layers (5) pass-through; scope (6) pass-through |
+| 5D | CSS Custom Properties 1 | 🟨 | 60% | — | `--foo` + `var()` reading land; typed CustomProperty value with fallback; `@property` typed registration + value-time validation pending |
+| 5E | CSS Selectors 4 | 🟨 | 82% | — | Type / class / id / attribute / structural pseudos done; `:has()` with leading combinators, `:is()`, `:where()`, `:nth-child(an+b of S)` filtered-subset, HTML §3.2.6.1 CI attribute defaults, `:link`/`:any-link`, `:default`, `:placeholder-shown`, static UI states (`:disabled`/`:checked`/`:required`/`:read-only`) all light up |
+| 5F | CSS Pseudo-Elements 4 | 🟨 | 55% | — | `::before` / `::after` done; `::marker`, `::placeholder`, `::file-selector-button`, `::backdrop`, `::part`, `::slotted` pending |
+| 5G | CSS Conditional Rules 3, 4, 5 | 🟨 | 65% | — | `@media`, `@supports` (boolean + `selector()`), `@layer`, `@scope`, `@container`, `@starting-style`, `@position-try` all pass through the cascade; full value queries pending |
+| 5H | CSS Media Queries 5 | 🟨 | 60% | — | `print`, `screen`, dimension queries done; `prefers-*` defaults conservative; `pointer`, `hover`, `inverted-colors`, `update` out-of-scope |
 
 ### Color + paint
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5I | CSS Color 4 | 🟨 | 50% | 4E | sRGB / hex / `rgb()` / `hsl()` / named colors done; `lab()`, `lch()`, `oklab()`, `oklch()`, `color(display-p3)`, `color(rec2020)` etc. need color engine; gamut mapping pending |
-| 5J | CSS Color 5 | ⬜ | 0% | 4E | `color-mix()`, relative color syntax |
-| — | CSS Color HDR | ⬜ | 0% | 4E | Gated on 5J + HDR profile work |
-| 5P | CSS Backgrounds 3 | 🟨 | 70% | — | `background-color`, `background-image`, `background-position`, `background-size`, `background-repeat`, `border-radius` done; `background-blend-mode` punts to 4C; `background-clip: text` punts to 5Q |
-| 5Q | CSS Backgrounds 4 | ⬜ | 0% | 4C | Conic gradients, `background-clip: text`, multi-position backgrounds |
-| 5R | CSS Borders 4 | 🟨 | 55% | — | Long-hand borders done; logical borders pending; `border-image` round-trips parse but not all rendering modes |
+| 5I | CSS Color 4 | 🟨 | 65% | 4E | sRGB / hex (3/4/6/8) / `rgb()` / `hsl()` / named done; `color(<space>)` parses with all 8 spaces; `lab()`, `lch()`, `oklab()`, `oklch()` parse + serialise; gamut mapping pending |
+| 5J | CSS Color 5 | 🟨 | 60% | 4E | `color-mix()` typed + computed-value resolved in sRGB; `light-dark()` typed + resolved via `color-scheme`; `contrast-color()` typed + WCAG luminance resolution; relative color syntax; `device-cmyk()` typed; oklab/oklch mixing math pending |
+| 5J' | CSS Color 6/7 | 🟨 | 45% | 4E | `contrast-color()` resolves; `system-color()` partial; `device-cmyk()` typed |
+| 5P | CSS Backgrounds 3 | ✅ | 88% | — | colours, images (gradient + image-set + cross-fade), position, size, repeat, attachment, origin/clip slots, border-radius all flowing through the shorthand expander; `background-blend-mode` declares but doesn't render until 4C; gradient interpolation method (`in oklch` etc.) typed |
+| 5Q | CSS Backgrounds 4 | 🟨 | 50% | 4C | Conic gradients typed + parse; gradient interpolation method (Images 4 §3.1.2); `background-clip: text` parses; multi-position backgrounds via comma layers |
+| 5R | CSS Borders 4 | 🟨 | 75% | — | Long-hand borders + logical borders (block / inline / single-side) all expand; `border-image` family + shorthand; `border-width` keywords (thin/medium/thick) resolved in ComputedStyle + layout |
 
 ### Box + layout
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5S | CSS Box 3 | ✅ | 90% | — | Box model + corners + recent 1E.2 row + `box-sizing: border-box` propagated through min/max clamps |
-| 5T | CSS Sizing 3 | 🟨 | 75% | — | `width`, `height`, `min/max-*-content`, `aspect-ratio` done; `fit-content()` edge cases pending |
-| 5U | CSS Sizing 4 | ⬜ | 10% | — | `contain-intrinsic-size`, additional intrinsic-size keywords |
-| 5V | CSS Logical Properties 1 | 🟨 | 40% | — | Subset of logical equivalents done; full surface (logical scroll, logical viewport, all overflow logical) pending |
-| 5W | CSS Display 3 | 🟨 | 65% | — | block / inline / inline-block / flex / grid / table done; `display: contents`, `display: inline list-item`, `display: math` pending |
-| 5X | CSS Positioned Layout 3 | 🟨 | 60% | — | `relative`, `absolute`, `fixed` (page-relative) done; `sticky` → out of scope; containing-block edge cases pending |
-| 5Y | CSS Anchor Positioning 1 | ⬜ | 0% | — | Static anchor positioning is in scope; interactive flip is out |
+| 5S | CSS Box 3 | ✅ | 92% | — | Box model + corners + `box-sizing: border-box` propagated through min/max clamps; `place-items`/`place-content`/`place-self` shorthands |
+| 5T | CSS Sizing 3 | 🟨 | 78% | — | `width`, `height`, `min/max-*-content`, `aspect-ratio` done; `fit-content()` edge cases pending |
+| 5U | CSS Sizing 4 | 🟨 | 40% | — | `contain-intrinsic-size` family all registered; `interpolate-size` registered; intrinsic-size keyword edge cases pending |
+| 5V | CSS Logical Properties 1 | 🟨 | 78% | — | All four-sided + logical-pair shorthands expand (margin/padding/inset block+inline); `border-block` / `border-inline` + single-side variants expand to longhand surface; physical-to-logical mapping at used-value time pending |
+| 5W | CSS Display 3 | 🟨 | 68% | — | block / inline / inline-block / flex / grid / table done; `display: contents`, `display: inline list-item`, `display: math` pending |
+| 5X | CSS Positioned Layout 3 | 🟨 | 62% | — | `relative`, `absolute`, `fixed` (page-relative) done; `sticky` → out of scope; containing-block edge cases pending |
+| 5Y | CSS Anchor Positioning 1 | 🟨 | 50% | — | `anchor()` + `anchor-size()` typed parsers; `position-anchor` / `position-area` / `inset-area` (legacy alias) / `position-try` shorthand all cascade; declarative-only (interactive flip out) |
 
 ### Typography
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5K | CSS Fonts 4 | 🟨 | 35% | 4D, 4F | 14 standard PDF fonts + system family resolution land; `@font-face` partial; `font-variation-settings`, `font-feature-settings` pending |
-| 5L | CSS Fonts 5 | ⬜ | 0% | 4D, 4F | `@font-palette-values`, font palette indexing |
-| 5M | CSS Text 3 | 🟨 | 45% | 4D | `text-align`, `letter-spacing`, `word-spacing`, `text-transform` done; full justification, `tab-size`, `text-justify` pending |
-| 5N | CSS Text 4 | ⬜ | 5% | 4D | `text-wrap: balance`, `hyphenate-character`, `text-spacing-trim` |
-| 5O | CSS Text Decoration 3, 4 | 🟨 | 50% | 4D | `text-decoration-line / -color / -style` done; `text-decoration-skip-ink`, multi-line decoration, `text-emphasis-*` pending |
-| 5Z | CSS Inline Layout 3 | 🟨 | 40% | 4D | Baseline positioning partial; `text-box-trim`, `initial-letter`, full vertical-align lookup pending |
-| 5LL | CSS Writing Modes 4 | 🟨 | 30% | 4D | `direction`, `writing-mode: horizontal-tb` works; vertical writing modes, `text-orientation` pending |
-| 5AA | CSS Lists 3 | 🟨 | 55% | — | `list-style-type`, `list-style-position`, marker rendering done; `list-style-image`, `::marker` pseudo, `marker-side` pending |
-| 5BB | CSS Counter Styles 3 | 🟨 | 50% | — | Predefined styles done; `@counter-style` parsing partial |
-| 5CC | CSS Generated Content 3 | 🟨 | 60% | — | `content:` with strings, `attr()`, `counter()` done; `content-list` with quotes, `element()`, `target-counter()` pending |
+| 5K | CSS Fonts 4 | 🟨 | 75% | 4D, 4F | font-variant family (8 longhands), font-synthesis (5 longhands), font-stretch axis, font-optical-sizing, font-language-override, font-size-adjust all registered. `font-variant` + `font-synthesis` shorthand expansion. `font-feature-settings` + `font-variation-settings` typed post-process. `font-variant-*` → OpenType GSUB/GPOS tags wired to shaper (tabular-nums emits `tnum` etc.). `font-stretch` plumbed through FontResolver. `@font-face` partial via ResourceLoader |
+| 5L | CSS Fonts 5 | 🟨 | 20% | 4D, 4F | `font-palette` registered + cascades; `@font-palette-values` parses; palette indexing at shaping time pending |
+| 5M | CSS Text 3 | 🟨 | 55% | 4D | `text-align`, `letter-spacing`, `word-spacing`, `text-transform` done; `text-transform: full-width` (Text 4 §2.1.4) added; full justification, `tab-size`, `text-justify` partial |
+| 5N | CSS Text 4 | 🟨 | 45% | 4D | `text-wrap` + `text-wrap-mode` + `text-wrap-style` registered + shorthand expansion (`balance` / `pretty` / `stable`); `white-space` shorthand lowers to `white-space-collapse` + `text-wrap-mode` (Text 4 §3.1); `text-spacing-trim` / `text-spacing` / `text-autospace` registered; `text-underline-position` registered; `hyphenate-character` / `hyphenate-limit-chars` registered |
+| 5O | CSS Text Decoration 3, 4 | 🟨 | 70% | 4D | `text-decoration-line / -color / -style / -thickness` all done; shorthand accepts thickness slot; `spelling-error` / `grammar-error` line keywords; `text-emphasis` shorthand expansion + family registered; `text-decoration-skip` / `text-emphasis-skip` registered; multi-line decoration partial |
+| 5Z | CSS Inline Layout 3 | 🟨 | 42% | 4D | Baseline positioning partial; `text-box-trim`, `initial-letter`, full vertical-align lookup pending |
+| 5LL | CSS Writing Modes 4 | 🟨 | 32% | 4D | `direction`, `writing-mode: horizontal-tb` works; vertical writing modes, `text-orientation` pending |
+| 5AA | CSS Lists 3 | 🟨 | 65% | — | `list-style-type`, `list-style-position`, marker rendering done; `list-style-image` registered; `::marker` pseudo, `marker-side` registered; `counter-reset`, `counter-set`, `counter-increment` all flow through BoxGenerator |
+| 5BB | CSS Counter Styles 3 | 🟨 | 70% | — | Predefined styles + bijective base 26, Roman, Hebrew gematria, Armenian, Georgian, Hiragana / Katakana / iroha orderings all render; lower-greek (1-24); decimal-leading-zero; `@counter-style` parsing partial |
+| 5CC | CSS Generated Content 3 | 🟨 | 78% | — | `content:` with strings, `attr()` (typed), `counter()`, `counters()` with separator + style done; typed AttrFunction + EnvFunction; counter-set wires through. Quote pairing via `quotes` property |
 
 ### Layout — advanced
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5EE | CSS Flexbox 1 | 🟨 | 75% | — | Main flex semantics land; edge cases (auto-margin, baseline alignment, multi-line) via WPT |
-| 5FF | CSS Grid 1 | 🟨 | 65% | — | Explicit / implicit grids, gaps, areas done; `auto-fit` / `auto-fill`, subgrid edge cases pending |
+| 5EE | CSS Flexbox 1 | 🟨 | 78% | — | Main flex semantics land; `flex` + `flex-flow` shorthand expansion; edge cases (auto-margin, baseline alignment, multi-line) via WPT |
+| 5FF | CSS Grid 1 | 🟨 | 68% | — | Explicit / implicit grids, gaps, areas done; `grid-column` + `grid-row` + `grid-area` shorthand expansion; `auto-fit` / `auto-fill` partial |
 | 5GG | CSS Grid 2 | 🟨 | 25% | — | Subgrid declarative parsing in; layout pending |
 | 5HH | CSS Grid 3 | ⬜ | 0% | — | Masonry layout |
-| 5II | CSS Multi-column 1 | 🟨 | 40% | 4G | `column-count`, `column-width` partial; `column-span: all`, fragmentation across columns pending |
-| 5JJ | CSS Multi-column 2 | ⬜ | 10% | 4G | Column rules, `column-fill: balance` algorithm |
-| 5KK | CSS Tables 3 | 🟨 | 50% | — | Table layout (auto + fixed) basic; `border-collapse`, `vertical-align`, `caption-side`, subgrid-on-tables pending |
-| 5DD | CSS Containment 3 | 🟨 | 30% | — | Size containment partial; container queries (size + style) pending |
-| — | CSS Cascade Layers (5KK supplement) | ⬜ | 15% | — | `@layer` parses; cascade selection by layer pending |
+| 5II | CSS Multi-column 1 | 🟨 | 50% | 4G | `column-count`, `column-width`, `column-gap`, `columns` shorthand, `column-rule` shorthand all flow; `column-span: all`, fragmentation across columns partial |
+| 5JJ | CSS Multi-column 2 | 🟨 | 18% | 4G | Column rules registered; `column-fill: balance` algorithm pending |
+| 5KK | CSS Tables 3 | 🟨 | 55% | — | Table layout (auto + fixed) basic; `border-collapse`, `vertical-align`, `caption-side` all flow; subgrid-on-tables pending |
+| 5DD | CSS Containment 3 | 🟨 | 50% | — | `contain`, `content-visibility` (hidden suppresses box generation), `contain-intrinsic-*` family, `container`, `container-name`, `container-type` all registered; `@container` query body passes through cascade; size matching at layout time pending |
+| — | CSS Cascade Layers (5C supplement) | 🟨 | 25% | — | `@layer` parses + passes through; cascade selection by layer priority pending |
 
 ### Effects + transforms
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5RR | CSS Transforms 2 — 2D | ✅ | 95% | — | All 2D transforms land (Phase-2 2B); transform-origin, multi-transform composition complete |
-| 5SS | CSS Transforms 3 — 3D | ⬜ | 5% | 4C | `perspective`, `transform-style: preserve-3d`, backface-visibility |
-| 5TT | CSS Masking 1 | 🟨 | 25% | 4C | `clip-path` shapes basic; `mask-image`, `mask-composite`, `mask-mode` pending |
-| 5UU | CSS Filter Effects 1 | ⬜ | 0% | 4C | All `filter:` functions need 4C raster compositor |
-| 5VV | CSS Compositing + Blending 1 | 🟨 | 40% | 4C | PDF-native blend modes (`Normal`, `Multiply`, `Screen`, `Overlay`, `Darken`, `Lighten`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`, `Hue`, `Saturation`, `Color`, `Luminosity`) wired; `isolation: isolate` plumbing pending |
-| 5WW | CSS Compositing 2 | ⬜ | 0% | 4C | Edge-case blend mode interactions across stacking contexts |
+| 5RR | CSS Transforms 2 — 2D | ✅ | 95% | — | All 2D transforms land; transform-origin, multi-transform composition complete |
+| 5SS | CSS Transforms 3 — 3D | 🟨 | 12% | 4C | `transform-style`, `backface-visibility`, `perspective` registered + parse; 3D rendering pending raster |
+| 5TT | CSS Masking 1 | 🟨 | 55% | 4C | `clip-path` shapes (circle/ellipse/inset/polygon/rect/xywh/path typed); `mask` shorthand expansion (8 longhands); `mask-border` family + shorthand expansion; SoftMask + luminance/alpha mode wired in painter for the common path |
+| 5UU | CSS Filter Effects 1 | 🟨 | 45% | 4C | Typed `Filter` value + 12 `FilterKind`s; drop-shadow paints via box-shadow path; blur, brightness, contrast, grayscale, etc. parsed + cascade carries; SoftMask emission pending 4C |
+| 5VV | CSS Compositing + Blending 1 | 🟨 | 50% | 4C | All 16 PDF-native blend modes wired; `background-blend-mode` cascade declared; `isolation: isolate` plumbing pending |
+| 5WW | CSS Compositing 2 | 🟨 | 10% | 4C | Cross-stacking-context blend interactions pending |
 
 ### Animation
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5XX | CSS Animations 1 | 🟨 | 30% | — | Parser + `@keyframes` round-trip; static final-state rendering via `Pdf::renderAnimationsAt(1.0)` hook pending |
-| 5YY | CSS Transitions 1 | 🟨 | 30% | — | Parser round-trip; transition target value rendering pending — same hook as 5XX |
-| 5ZZ | CSS Easing Functions 1, 2 | 🟨 | 50% | — | Cubic / steps / linear-easing parse; consumed by 5XX / 5YY at hook time |
-| 5AAA | CSS Motion Path 1 | ⬜ | 0% | — | Path-following animation, gated on 5XX hook |
+| 5XX | CSS Animations 1, 2 | 🟨 | 55% | — | All 8 animation-* longhands registered + `animation` shorthand expansion (8-axis routing); `animation-range`, `animation-composition`, `animation-timeline` registered; `@keyframes` round-trip; static final-state rendering via `Pdf::renderAnimationsAt(1.0)` hook pending |
+| 5YY | CSS Transitions 1, 2 | 🟨 | 58% | — | All 4 transition-* longhands + `transition-behavior` registered; `transition` shorthand expansion (4-axis routing); typed `<time>` value parses (s + ms); rendering pending |
+| 5ZZ | CSS Easing Functions 1, 2 | 🟨 | 70% | — | Cubic-bezier / steps (5 jump terms) / linear() typed parsers; round-trip; consumed by 5XX / 5YY at hook time |
+| 5AAA | CSS Motion Path 1 | 🟨 | 25% | — | All offset-* longhands registered + cascade preserves; path-following at paint time pending |
+| 5AAB | CSS Scroll-driven Animations 1 | 🟨 | 30% | — | `view-timeline-*` / `scroll-timeline-*` / `timeline-scope` / `animation-timeline` registered; `view()` + `scroll()` typed parsers; interactive scrolling part out-of-scope per ledger |
 
 ### Paged media (critical for PDF)
 
 | Sub | Module + version | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 5MM | CSS Page 3 | 🟨 | 45% | 4G | `@page`, page selectors (`:first`, `:left`, `:right`) basic; named pages, `@page :nth()`, page marks pending |
-| 5NN | CSS Generated Content for Paged Media 3 | 🟨 | 30% | 4G | Running elements partial; cross-references, leaders, lists of figures pending |
+| 5MM | CSS Page 3 | 🟨 | 65% | 4G | `@page` with `size`, `margin`, named pages, `@page :first/:left/:right` selectors; all 16 margin-box positions parse, 10 paint; `marks`, `bleed` registered; `page-break-{before,after,inside}` legacy aliases flow to modern `break-*` longhands |
+| 5NN | CSS Generated Content for Paged Media 3 | 🟨 | 80% | 4G | `target-counter()` / `target-counters()` / `target-text()` typed (cross-reference TOC); `string-set` + `string()` runtime — h1 `string-set: chapter content()` → `@page { content: string(chapter) }` works end-to-end; `position: running()` + `element()` runtime — running headers/footers work end-to-end; `string-set` accepts `counter()` for section numbers; per-page first/start/last/first-except resolution pending |
 | 5OO | CSS Page Floats 3 | ⬜ | 0% | 4G | Column / page floats |
-| 5PP | CSS Fragmentation 3 | 🟨 | 40% | 4G | `break-before / -after / -inside: avoid`, `orphans`, `widows` partial; block fragmentation across columns + pages pending |
-| 5QQ | CSS Fragmentation 4 | ⬜ | 10% | 4G | Fragmented border decoration, repeated table headers |
+| 5PP | CSS Fragmentation 3 | 🟨 | 45% | 4G | `break-before / -after / -inside: avoid`, `orphans`, `widows` partial; block fragmentation across columns + pages pending |
+| 5QQ | CSS Fragmentation 4 | ⬜ | 12% | 4G | Fragmented border decoration, repeated table headers |
 
 ### Out-of-scope CSS modules (listed for completeness)
 
@@ -155,19 +155,21 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 | Sub | Section | Status | Est % | Substrate dep | Notes |
 |---|---|---|---|---|---|
-| 7A | §6 Coordinate systems, transforms, viewports | ✅ | 95% | — | Phase 3M + 3R+6 (full preserveAspectRatio) |
-| 7B | §7 Document structure, `<svg>`, `<g>`, `<defs>`, `<symbol>` | ✅ | 90% | — | Phase 3Q done; `<use>` external href still pending (gated on 4F) |
-| 7C | §9 Paths | ✅ | 95% | — | Full path grammar + arc-to-cubic (3L); per-path bounding box (3R+9) |
-| 7D | §10 Basic shapes | ✅ | 100% | — | Phase 3K complete |
-| 7E | §11 Text | 🟨 | 65% | 4D | Standard PDF fonts + per-glyph x/y/rotate (3R+5) + dx/dy (3R+17); per-`<tspan>` font overrides, `<textPath>` pending |
-| 7F | §12 Embedded content (`<image>`) | 🟨 | 70% | 4F | Filesystem + data: URIs (3R+18); http(s) gated on 4F |
-| 7G | §13 Painting: filling, stroking, and marker symbols | 🟨 | 75% | — | Strokes, fills, gradients land; `<marker>` element pending |
-| 7H | §14 Clipping, masking and compositing | 🟨 | 70% | 4C | `<clipPath>` + `<mask>` land (3R+8, 3R+10, 3R+11); per-child `clip-rule` needs 4C |
-| 7I | §15 Filter Effects | ⬜ | 0% | 4C | All `<filter>` primitives need raster compositor |
-| 7J | §16 Interactivity, scripting, animation | 🚫 / 🟨 | — | — | Interactivity / scripting out; SMIL `<animate>` resolves to t=1 declared state via shared animation hook |
-| 7K | §17 Linking (`<a>`) | 🟨 | 60% | — | `<a>` → PDF `/Link` annotation; in-document refs partial |
-| 7L | §22 foreignObject | ⬜ | 5% | 4C, all HTML | Renders HTML inside SVG — closes the loop |
-| 7M | §13.7 Gradients — `spreadMethod` | 🟨 | 50% | — | `pad` lands at 3R+16 via PDF `/Extend [true true]`; `reflect`, `repeat` need synthesised wider function domain |
+| 7A | §6 Coordinate systems, transforms, viewports | ✅ | 95% | — | Full preserveAspectRatio + typed `<view>` |
+| 7B | §7 Document structure (`<svg>`, `<g>`, `<defs>`, `<symbol>`, `<use>`, `<switch>`) | ✅ | 92% | — | `<switch>` with conditional-processing (`requiredExtensions`, `systemLanguage`); `<use>` external href still pending (4F) |
+| 7C | §9 Paths | ✅ | 95% | — | Full path grammar + arc-to-cubic; per-path bounding box |
+| 7D | §10 Basic shapes | ✅ | 100% | — | All 7 shapes |
+| 7E | §11 Text | 🟨 | 68% | 4D | Standard PDF fonts + per-glyph x/y/rotate + dx/dy; per-`<tspan>` font overrides, `<textPath>` pending |
+| 7F | §12 Embedded content (`<image>`) | 🟨 | 72% | 4F | Filesystem + data: URIs; http(s) via ResourceLoader |
+| 7G | §13 Painting: filling, stroking, and marker symbols | 🟨 | 80% | — | Strokes, fills, gradients land; typed `<marker>` element with viewBox-aware refX/refY + orient angle units; marker placement at path vertices pending |
+| 7H | §14 Clipping, masking and compositing | 🟨 | 75% | 4C | `<clipPath>` + `<mask>` land; per-child `clip-rule` partial |
+| 7I | §15 Filter Effects | 🟨 | 35% | 4C | Typed `<filter>` element + all 26 `<fe*>` primitives (Gaussian / offset / flood / blend / composite / morphology / merge / colour matrix / drop shadow / turbulence / image / tile / displacement map / convolve matrix / component transfer + funcR/G/B/A / diffuse + specular lighting + 3 light sources). Drop-shadow renders via box-shadow path; other primitives need 4C raster |
+| 7J | §16 Interactivity, scripting, animation | 🚫 / 🟨 | — | — | `<script>` typed-skip for security; `<animate>`, `<animateTransform>`, `<animateMotion>`, `<set>`, `<mpath>` typed-skip with SMIL accessor surface; t=1 declared state via shared animation hook |
+| 7K | §17 Linking (`<a>`) | 🟨 | 65% | — | Typed `<a>` element with `href`/`target` + legacy `xlink:href`; paints children; in-document PDF `/Link` annotation pending bbox computation |
+| 7L | §22 foreignObject | 🟨 | 25% | 4C, all HTML | Typed `<foreignObject>` element with placement accessors; body content skipped at SVG dispatch — full HTML-inside-SVG closes the loop |
+| 7M | §13.7 Gradients — `spreadMethod` | 🟨 | 50% | — | `pad` via PDF `/Extend [true true]`; `reflect`, `repeat` need synthesised wider function domain |
+| 7N | §13.3 Patterns | 🟨 | 25% | 4C | Typed `<pattern>` element with patternUnits + patternContentUnits + viewBox + xlink:href chain; PDF Tiling Pattern emission pending |
+| 7O | §15.3 Title / Description / Metadata | 🟨 | 50% | — | Typed `<title>` / `<desc>` / `<metadata>` with text() accessor; skip-render so content doesn't leak into output; structure-tree integration pending |
 
 ---
 
@@ -184,8 +186,10 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 ## Aggregate dashboard
 
-The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until 4A.4 (manifest classifier) lands, the weighting is uniform across rows and gives a rough headline number only.
+The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until the WPT manifest classifier (4A.4) is feeding real per-module weights, the headline uses a uniform-weighted estimate across the rows above.
 
-**Current rough headline** (uniform-weighted estimate): **~33% applicable surface.**
+**Current rough headline** (uniform-weighted average of per-row estimates): **~62% applicable surface.**
 
-Headline updates each weekly CI run once 4A.5 is live.
+For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
+
+Once `composer wpt run` (Phase 4A.2 + 4A.3, just landed) produces real per-test pass rates against the WPT corpus checkout, this number is replaced with the in-scope subset pass rate from `var/wpt/summary.md` and ceases to be a hand-maintained estimate.
