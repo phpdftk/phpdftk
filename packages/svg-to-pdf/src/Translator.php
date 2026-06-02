@@ -720,7 +720,12 @@ final class Translator
             // properties on shapes; it never paints at the document
             // level. The painter pulls in a marker when it's
             // requested at a path vertex (future deliverable).
-            $element instanceof \Phpdftk\Svg\Marker => null,
+            $element instanceof \Phpdftk\Svg\Marker,
+            // SVG 2 §13.3 — `<pattern>` is referenced via
+            // `fill="url(#id)"` / `stroke="url(#id)"`; the painter
+            // pulls in pattern content when a shape's paint
+            // resolves to a pattern URL (future deliverable).
+            $element instanceof \Phpdftk\Svg\Pattern => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.

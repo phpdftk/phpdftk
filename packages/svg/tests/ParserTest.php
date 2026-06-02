@@ -183,6 +183,40 @@ final class ParserTest extends TestCase
         self::assertSame('userSpaceOnUse', $marker->markerUnits());
     }
 
+    public function testPatternTypedAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<pattern id="p" x="5" y="10" width="20" height="30" '
+            . 'patternUnits="userSpaceOnUse" patternContentUnits="objectBoundingBox" '
+            . 'viewBox="0 0 100 100">'
+            . '<rect width="20" height="30"/>'
+            . '</pattern>'
+            . '</svg>',
+        );
+        $pattern = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Pattern::class, $pattern);
+        self::assertSame(5.0, $pattern->x());
+        self::assertSame(10.0, $pattern->y());
+        self::assertSame(20.0, $pattern->width());
+        self::assertSame(30.0, $pattern->height());
+        self::assertSame('userSpaceOnUse', $pattern->patternUnits());
+        self::assertSame('objectBoundingBox', $pattern->patternContentUnits());
+        self::assertSame([0.0, 0.0, 100.0, 100.0], $pattern->viewBox());
+    }
+
+    public function testPatternHrefAccessor(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+            . '<pattern id="p1" href="#base"/>'
+            . '<pattern id="p2" xlink:href="#base"/>'
+            . '</svg>',
+        );
+        self::assertSame('#base', $doc->children[0]->href());
+        self::assertSame('#base', $doc->children[1]->href());
+    }
+
     public function testMarkerOrientAcceptsAngles(): void
     {
         $doc = $this->parser->parse(

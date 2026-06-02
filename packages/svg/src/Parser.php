@@ -176,6 +176,8 @@ final class Parser
             'foreignObject' => new ForeignObject(),
             // SVG 2 §11.6 — vertex-marker definition (arrowheads etc.)
             'marker' => new Marker(),
+            // SVG 2 §13.3 — tiled fill pattern definition.
+            'pattern' => new Pattern(),
             default => new GenericElement($localName),
         };
     }
