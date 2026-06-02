@@ -320,11 +320,12 @@ final class ParserTest extends TestCase
             '<svg xmlns="http://www.w3.org/2000/svg"><title>my graphic</title></svg>',
         );
         $title = $doc->children[0];
-        self::assertInstanceOf(GenericElement::class, $title);
+        self::assertInstanceOf(\Phpdftk\Svg\Title::class, $title);
         self::assertCount(1, $title->children);
         $text = $title->children[0];
         self::assertInstanceOf(Text::class, $text);
         self::assertSame('my graphic', $text->data);
+        self::assertSame('my graphic', $title->text());
     }
 
     public function testNestedFindByTagReturnsAllDescendantsInDocumentOrder(): void
@@ -467,5 +468,41 @@ final class ParserTest extends TestCase
         $t = $rect->transform();
         self::assertNotNull($t);
         self::assertSame([2.0, 0.0, 0.0, 2.0, 0.0, 0.0], $t->toMatrix());
+    }
+
+    public function testAnchorElementHasTypedHrefAccessor(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<a href="https://example.com" target="_blank">'
+            . '<rect x="0" y="0" width="10" height="10"/>'
+            . '</a></svg>',
+        );
+        $a = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\A_::class, $a);
+        self::assertSame('https://example.com', $a->href());
+        self::assertSame('_blank', $a->target());
+    }
+
+    public function testAnchorElementSupportsLegacyXlinkHref(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+            . '<a xlink:href="https://example.com"><rect width="1" height="1"/></a>'
+            . '</svg>',
+        );
+        $a = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\A_::class, $a);
+        self::assertSame('https://example.com', $a->href());
+    }
+
+    public function testDescTypedElement(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><desc>Long description</desc></svg>',
+        );
+        $desc = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Desc::class, $desc);
+        self::assertSame('Long description', $desc->text());
     }
 }

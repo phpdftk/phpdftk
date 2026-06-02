@@ -164,6 +164,12 @@ final class Parser
             'radialGradient' => new Gradient\RadialGradient(),
             'stop' => new Gradient\Stop(),
             'style' => new StyleElement(),
+            // SVG 2 §12.1.1 — anchor container; PDF maps to a link
+            // annotation when an href is present.
+            'a' => new A_(),
+            // SVG 2 §15.3 — accessibility metadata; never paints.
+            'title' => new Title(),
+            'desc' => new Desc(),
             default => new GenericElement($localName),
         };
     }

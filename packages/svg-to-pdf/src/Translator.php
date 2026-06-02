@@ -716,6 +716,18 @@ final class Translator
             $element instanceof Symbol,
             $element instanceof ClipPath,
             $element instanceof Mask => null,
+            // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
+            // metadata that never renders directly. Skip the recursive
+            // walk so their text content doesn't leak into output.
+            $element instanceof \Phpdftk\Svg\Title,
+            $element instanceof \Phpdftk\Svg\Desc => null,
+            // SVG 2 §12.1.1 — `<a>` paints its children. The PDF link
+            // annotation (which is what makes the rendered region
+            // clickable) is a future concern that needs page-relative
+            // bounding boxes; we paint the inner content faithfully
+            // here so the visual stays correct.
+            $element instanceof \Phpdftk\Svg\A_
+                => $this->paintChildren($element, $stream),
             // `<g>` and any other container fall through here — the
             // recursive walk still descends into their children.
             default => $this->paintChildren($element, $stream),

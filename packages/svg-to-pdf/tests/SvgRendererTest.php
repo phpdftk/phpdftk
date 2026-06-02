@@ -229,4 +229,43 @@ final class SvgRendererTest extends TestCase
         // f = 0 + 100 = 100.
         self::assertStringContainsString('100 0 0 -100 0 100 cm', $ops);
     }
+
+    public function testTitleAndDescDoNotEmitOperators(): void
+    {
+        // SVG 2 §15.3 — `<title>` and `<desc>` are pure accessibility
+        // metadata. Their text content must NOT leak into the rendered
+        // PDF content stream as a Tj or any draw op.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+            . '<title>secret text in title</title>'
+            . '<desc>secret text in desc</desc>'
+            . '<rect width="10" height="10"/>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringNotContainsString('secret text in title', $ops);
+        self::assertStringNotContainsString('secret text in desc', $ops);
+        // The rect still renders.
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+    }
+
+    public function testAnchorChildrenStillPaint(): void
+    {
+        // SVG 2 §12.1.1 — `<a>` is a transparent paint wrapper. Its
+        // children render exactly as if the `<a>` weren't there
+        // (the link annotation itself is a separate concern from the
+        // visual content).
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+            . '<a href="https://example.com">'
+            . '<rect width="10" height="10"/>'
+            . '</a></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+    }
 }
