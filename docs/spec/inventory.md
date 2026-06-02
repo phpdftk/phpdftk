@@ -188,7 +188,7 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until the WPT manifest classifier (4A.4) is feeding real per-module weights, the headline uses a uniform-weighted estimate across the rows above.
 
-**Current rough headline** (uniform-weighted average of per-row estimates): **~62% applicable surface.**
+**Current rough headline** (arithmetic mean of every per-row % across CSS + HTML + SVG, 85 rows): **55.2% applicable surface.**
 
 For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
 
