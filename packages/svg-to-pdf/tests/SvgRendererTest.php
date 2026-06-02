@@ -307,6 +307,27 @@ final class SvgRendererTest extends TestCase
         self::assertStringNotContainsString('0 0 10 10 re', $ops);
     }
 
+    public function testAnimationElementsAreSkipped(): void
+    {
+        // SVG 2 §19 — animation elements (`<animate>`, `<set>`,
+        // `<animateTransform>`, `<animateMotion>`) never paint in
+        // the static print medium. Their text content / nested
+        // elements must not leak into the output stream.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            . '<animate><text>NOPE</text></animate>'
+            . '<set><text>ALSO_NOPE</text></set>'
+            . '<rect width="30" height="30"/>'
+            . '</svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        self::assertStringNotContainsString('NOPE', $ops);
+        self::assertStringNotContainsString('ALSO_NOPE', $ops);
+        self::assertStringContainsString('0 0 30 30 re', $ops);
+    }
+
     public function testScriptElementIsSkipped(): void
     {
         // SVG 2 §15.2 + §17.3 — `<script>` content never executes

@@ -215,6 +215,13 @@ final class Parser
             // than recursing into any nested `<text>` etc. children
             // a malicious document might smuggle in.
             'script' => new Script(),
+            // SVG 2 §19 — animation elements. Out of scope for the
+            // static print medium; typed for explicit Translator
+            // skip and external-tooling recognition.
+            'animate' => new Animate(),
+            'animateTransform' => new AnimateTransform(),
+            'animateMotion' => new AnimateMotion(),
+            'set' => new SetElement(),
             default => new GenericElement($localName),
         };
     }

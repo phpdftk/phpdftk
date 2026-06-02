@@ -236,6 +236,44 @@ final class ParserTest extends TestCase
         self::assertSame('userSpaceOnUse', $filter->primitiveUnits());
     }
 
+    public function testAnimateTypedAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<animate attributeName="fill" from="red" to="blue" dur="3s" begin="0s"/>'
+            . '</svg>',
+        );
+        $a = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Animate::class, $a);
+        self::assertSame('fill', $a->attributeName());
+        self::assertSame('red', $a->from());
+        self::assertSame('blue', $a->to());
+        self::assertSame('3s', $a->dur());
+    }
+
+    public function testAnimateTransformAndMotion(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<animateTransform attributeName="transform" type="rotate" '
+            . 'from="0 50 50" to="360 50 50" dur="2s"/>'
+            . '<animateMotion path="M 0 0 L 100 0" rotate="auto"/>'
+            . '<set attributeName="visibility" to="hidden" begin="2s"/>'
+            . '</svg>',
+        );
+        $t = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\AnimateTransform::class, $t);
+        self::assertSame('rotate', $t->type());
+        $m = $doc->children[1];
+        self::assertInstanceOf(\Phpdftk\Svg\AnimateMotion::class, $m);
+        self::assertSame('M 0 0 L 100 0', $m->path());
+        self::assertSame('auto', $m->rotate());
+        $s = $doc->children[2];
+        self::assertInstanceOf(\Phpdftk\Svg\SetElement::class, $s);
+        self::assertSame('visibility', $s->attributeName());
+        self::assertSame('hidden', $s->to());
+    }
+
     public function testViewTypedAccessors(): void
     {
         $doc = $this->parser->parse(

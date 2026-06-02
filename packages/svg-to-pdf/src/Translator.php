@@ -738,7 +738,12 @@ final class Translator
             // server-side and never paints. Explicit skip prevents
             // any nested `<text>` etc. children from leaking into the
             // output stream.
-            $element instanceof \Phpdftk\Svg\Script => null,
+            $element instanceof \Phpdftk\Svg\Script,
+            // SVG 2 §19 — animation elements never paint at the
+            // static print medium. Skip to avoid recursing into any
+            // nested `<mpath>` etc. that would otherwise fall through
+            // to the default container walk.
+            $element instanceof \Phpdftk\Svg\Animation => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.
