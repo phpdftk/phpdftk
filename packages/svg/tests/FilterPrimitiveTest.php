@@ -257,6 +257,65 @@ final class FilterPrimitiveTest extends TestCase
         self::assertTrue($cm->preserveAlpha());
     }
 
+    public function testDiffuseLightingWithDistantLight(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><filter id="f">'
+            . '<feDiffuseLighting lighting-color="#ffcc88" surfaceScale="2" diffuseConstant="1.5">'
+            . '<feDistantLight azimuth="45" elevation="60"/>'
+            . '</feDiffuseLighting>'
+            . '</filter></svg>',
+        );
+        $diffuse = $doc->children[0]->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeDiffuseLighting::class, $diffuse);
+        self::assertSame('#ffcc88', $diffuse->lightingColor());
+        self::assertSame(2.0, $diffuse->surfaceScale());
+        self::assertSame(1.5, $diffuse->diffuseConstant());
+        $light = $diffuse->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeDistantLight::class, $light);
+        self::assertSame(45.0, $light->azimuth());
+        self::assertSame(60.0, $light->elevation());
+    }
+
+    public function testSpecularLightingWithPointLight(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><filter id="f">'
+            . '<feSpecularLighting specularConstant="0.8" specularExponent="20">'
+            . '<fePointLight x="10" y="20" z="5"/>'
+            . '</feSpecularLighting>'
+            . '</filter></svg>',
+        );
+        $spec = $doc->children[0]->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeSpecularLighting::class, $spec);
+        self::assertSame(0.8, $spec->specularConstant());
+        self::assertSame(20.0, $spec->specularExponent());
+        $light = $spec->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FePointLight::class, $light);
+        self::assertSame(10.0, $light->x());
+        self::assertSame(20.0, $light->y());
+        self::assertSame(5.0, $light->z());
+    }
+
+    public function testSpotLightAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><filter id="f">'
+            . '<feSpecularLighting>'
+            . '<feSpotLight x="0" y="0" z="100" pointsAtX="50" pointsAtY="50" '
+            . 'pointsAtZ="0" specularExponent="4" limitingConeAngle="30"/>'
+            . '</feSpecularLighting>'
+            . '</filter></svg>',
+        );
+        $light = $doc->children[0]->children[0]->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter\FeSpotLight::class, $light);
+        self::assertSame(0.0, $light->x());
+        self::assertSame(100.0, $light->z());
+        self::assertSame(50.0, $light->pointsAtX());
+        self::assertSame(4.0, $light->specularExponent());
+        self::assertSame(30.0, $light->limitingConeAngle());
+    }
+
     public function testComponentTransferWithFuncChildren(): void
     {
         $doc = $this->parser->parse(

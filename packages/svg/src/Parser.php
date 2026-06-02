@@ -203,6 +203,11 @@ final class Parser
             'feFuncG' => new Filter\FeFuncG(),
             'feFuncB' => new Filter\FeFuncB(),
             'feFuncA' => new Filter\FeFuncA(),
+            'feDiffuseLighting' => new Filter\FeDiffuseLighting(),
+            'feSpecularLighting' => new Filter\FeSpecularLighting(),
+            'feDistantLight' => new Filter\FeDistantLight(),
+            'fePointLight' => new Filter\FePointLight(),
+            'feSpotLight' => new Filter\FeSpotLight(),
             // SVG 2 §6.3 — declarative named viewport.
             'view' => new View(),
             // SVG 2 §15.2 — out-of-scope script content; the typed
