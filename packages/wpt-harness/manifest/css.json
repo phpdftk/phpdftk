@@ -92,6 +92,46 @@
         {
             "glob": "css/css-ui/user-select*",
             "reason": "user-select — viewer concern, not renderer"
+        },
+        {
+            "glob": "css/css-color/canvas-*",
+            "reason": "<canvas> element rendering is out of scope per the print medium ledger"
+        },
+        {
+            "glob": "css/css-color/visited*",
+            "reason": ":visited — interactive history state, out of scope"
+        },
+        {
+            "glob": "css/css-color/currentcolor-visited*",
+            "reason": ":visited — interactive history state, out of scope"
+        },
+        {
+            "glob": "css/css-color/parsing/**",
+            "reason": "DOM-level computed-style assertions (getComputedStyle round-trip) — script-driven testharness.js"
+        },
+        {
+            "glob": "css/css-color/parsing-*",
+            "reason": "DOM-level computed-style assertions — script-driven testharness.js"
+        },
+        {
+            "glob": "css/css-color/animation/**",
+            "reason": "Animation playback — gated on Pdf::renderAnimationsAt() hook, animation visibility runtime"
+        },
+        {
+            "glob": "css/css-color/animated-*",
+            "reason": "Animation playback — runtime"
+        },
+        {
+            "glob": "css/css-color/getcomputedstyle*",
+            "reason": "getComputedStyle assertions — script-driven testharness.js"
+        },
+        {
+            "glob": "css/css-color/inheritance*",
+            "reason": "Property-inheritance assertions — script-driven testharness.js"
+        },
+        {
+            "glob": "css/css-color/colorscheme-iframe*",
+            "reason": "<iframe> color-scheme propagation — runtime cross-frame state"
         }
     ],
     "pending-substrate": [
@@ -189,6 +229,96 @@
             "glob": "css/css-color/relative-color*",
             "phase": "4E",
             "reason": "Relative color syntax — needs color engine (CSS Color 5)"
+        },
+        {
+            "glob": "css/css-color/a98rgb-*",
+            "phase": "4E",
+            "reason": "color(a98-rgb …) — wide-gamut painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/display-p3-*",
+            "phase": "4E",
+            "reason": "color(display-p3 …) — wide-gamut painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/prophoto-rgb-*",
+            "phase": "4E",
+            "reason": "color(prophoto-rgb …) — wide-gamut painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/rec2020-*",
+            "phase": "4E",
+            "reason": "color(rec2020 …) — wide-gamut painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/srgb-linear-*",
+            "phase": "4E",
+            "reason": "color(srgb-linear …) — linearised sRGB painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/lch-*",
+            "phase": "4E",
+            "reason": "lch() / oklch() polar colour mixing — needs color engine"
+        },
+        {
+            "glob": "css/css-color/oklch-*",
+            "phase": "4E",
+            "reason": "oklch() polar colour mixing — needs color engine"
+        },
+        {
+            "glob": "css/css-color/xyz-*",
+            "phase": "4E",
+            "reason": "color(xyz …) — XYZ colourspace painting needs color engine"
+        },
+        {
+            "glob": "css/css-color/predefined*",
+            "phase": "4E",
+            "reason": "Predefined colour spaces — needs color engine"
+        },
+        {
+            "glob": "css/css-color/hwb-*",
+            "phase": "4E",
+            "reason": "hwb() — polar colourspace, needs color engine"
+        },
+        {
+            "glob": "css/css-color/contrast-color*",
+            "phase": "4E",
+            "reason": "contrast-color() WCAG resolution — needs color engine"
+        },
+        {
+            "glob": "css/css-color/color-layers*",
+            "phase": "4C",
+            "reason": "Compositing under colour layers — needs raster compositor"
+        },
+        {
+            "glob": "css/css-color/composited-*",
+            "phase": "4C",
+            "reason": "Compositing — needs raster compositor"
+        },
+        {
+            "glob": "css/css-color/clip-opacity-out-of-flow*",
+            "phase": "4C",
+            "reason": "Out-of-flow clipping interaction — needs raster compositor"
+        },
+        {
+            "glob": "css/css-color/transparent-*",
+            "phase": "4C",
+            "reason": "Compositing through transparent layers — needs raster compositor"
+        },
+        {
+            "glob": "css/css-color/system-color*",
+            "phase": "4E",
+            "reason": "System colors — needs print medium mapping"
+        },
+        {
+            "glob": "css/css-color/at-color-profile-*",
+            "phase": "4E",
+            "reason": "@color-profile — needs color engine + ICC handling"
+        },
+        {
+            "glob": "css/css-color/forced-color-adjust*",
+            "phase": "4E",
+            "reason": "forced-color-adjust — needs color engine + forced-colors media context"
         },
         {
             "glob": "css/css-fonts/at-font-face-src-*",
