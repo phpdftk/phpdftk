@@ -178,6 +178,8 @@ final class Parser
             'marker' => new Marker(),
             // SVG 2 §13.3 — tiled fill pattern definition.
             'pattern' => new Pattern(),
+            // SVG 2 Filter Effects §6.1 — filter graph definition.
+            'filter' => new Filter(),
             default => new GenericElement($localName),
         };
     }

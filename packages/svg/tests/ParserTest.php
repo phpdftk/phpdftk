@@ -217,6 +217,40 @@ final class ParserTest extends TestCase
         self::assertSame('#base', $doc->children[1]->href());
     }
 
+    public function testFilterTypedAccessors(): void
+    {
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<filter id="f" x="0" y="0" width="100%" height="100%" '
+            . 'filterUnits="userSpaceOnUse">'
+            . '<feGaussianBlur stdDeviation="2"/>'
+            . '</filter>'
+            . '</svg>',
+        );
+        $filter = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter::class, $filter);
+        self::assertSame(0.0, $filter->x());
+        self::assertSame(0.0, $filter->y());
+        self::assertSame('userSpaceOnUse', $filter->filterUnits());
+        // Default primitiveUnits is userSpaceOnUse.
+        self::assertSame('userSpaceOnUse', $filter->primitiveUnits());
+    }
+
+    public function testFilterDefaultRegion(): void
+    {
+        // Per SVG 2 §6.1 defaults for filterUnits=objectBoundingBox:
+        // x=-10%, y=-10%, width=120%, height=120%.
+        $doc = $this->parser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg"><filter id="f"/></svg>',
+        );
+        $filter = $doc->children[0];
+        self::assertInstanceOf(\Phpdftk\Svg\Filter::class, $filter);
+        self::assertEqualsWithDelta(-0.1, $filter->x(), 1e-6);
+        self::assertEqualsWithDelta(-0.1, $filter->y(), 1e-6);
+        self::assertEqualsWithDelta(1.2, $filter->width(), 1e-6);
+        self::assertEqualsWithDelta(1.2, $filter->height(), 1e-6);
+    }
+
     public function testMarkerOrientAcceptsAngles(): void
     {
         $doc = $this->parser->parse(

@@ -725,7 +725,11 @@ final class Translator
             // `fill="url(#id)"` / `stroke="url(#id)"`; the painter
             // pulls in pattern content when a shape's paint
             // resolves to a pattern URL (future deliverable).
-            $element instanceof \Phpdftk\Svg\Pattern => null,
+            $element instanceof \Phpdftk\Svg\Pattern,
+            // SVG 2 Filter Effects §6.1 — `<filter>` is referenced
+            // via `filter="url(#id)"` and applied via SoftMask. Never
+            // paints at document level.
+            $element instanceof \Phpdftk\Svg\Filter => null,
             // SVG 2 §15.3 — `<title>` and `<desc>` are accessibility
             // metadata that never renders directly. Skip the recursive
             // walk so their text content doesn't leak into output.
