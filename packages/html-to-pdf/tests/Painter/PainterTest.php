@@ -2861,6 +2861,42 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/\nf\n/', $bytes, 'fill operator emitted');
     }
 
+    public function testCurrentColorResolvesToBoxColorOnBackground(): void
+    {
+        // CSS Color 4 §3.6 — `currentcolor` on `background-color`
+        // resolves to the element's own `color` property. A box
+        // styled `color: blue; background-color: currentcolor` paints
+        // its background blue. Without this resolution the cascade
+        // keeps the `currentcolor` Keyword unchanged and the painter
+        // treats it as "no colour", emitting no fill.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { color: blue; background-color: currentcolor;
+                   width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Blue in PDF DeviceRGB is `0 0 1 rg`.
+        self::assertStringContainsString('0 0 1 rg', $bytes, 'currentcolor resolves to blue fill');
+    }
+
     public function testBackgroundSizeAutoDerivesFromIntrinsicRatio(): void
     {
         // CSS Backgrounds 3 §3.9 — for `background-size: auto <length>`

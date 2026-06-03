@@ -205,7 +205,10 @@ final class Painter
             $source = $body;
         }
         $this->propagatedBgBox = $source;
-        $color = $source->style->get('background-color');
+        $color = $this->resolveColorWithCurrentColor(
+            $source->style->get('background-color'),
+            $source,
+        );
         $bgImage = $source->style->get('background-image');
         $hasColor = $color instanceof Color && $color->a > 0.0;
         $hasImage = $bgImage instanceof \Phpdftk\Css\Value\Url;
@@ -244,7 +247,10 @@ final class Painter
 
     private function boxHasPaintableBackground(Box $box): bool
     {
-        $color = $box->style->get('background-color');
+        $color = $this->resolveColorWithCurrentColor(
+            $box->style->get('background-color'),
+            $box,
+        );
         $bgImage = $box->style->get('background-image');
         if ($color instanceof Color && $color->a > 0.0) {
             return true;
@@ -252,6 +258,25 @@ final class Painter
         return $bgImage instanceof \Phpdftk\Css\Value\Url
             || $bgImage instanceof \Phpdftk\Css\Value\LinearGradient
             || $bgImage instanceof \Phpdftk\Css\Value\RadialGradient;
+    }
+
+    /**
+     * If `$value` is the `currentcolor` keyword, resolve it against
+     * the box's `color` property per CSS Color 3 §3.2 / CSS Color 4
+     * §3.6. Other values (already-typed `Color`, `null`, other
+     * keywords) pass through unchanged. The painter calls this at
+     * any property that documents `currentcolor` as a valid value
+     * (`background-color`, `border-*-color` initials, etc.).
+     */
+    private function resolveColorWithCurrentColor(?\Phpdftk\Css\Value\Value $value, Box $box): ?\Phpdftk\Css\Value\Value
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === 'currentcolor'
+        ) {
+            $current = $box->style->get('color');
+            return $current instanceof Color ? $current : null;
+        }
+        return $value;
     }
 
     private function findBodyChild(Box $root): ?Box
@@ -2276,7 +2301,10 @@ final class Painter
         if ($box === $this->propagatedBgBox) {
             return;
         }
-        $color = $box->style->get('background-color');
+        $color = $this->resolveColorWithCurrentColor(
+            $box->style->get('background-color'),
+            $box,
+        );
         $bgImage = $box->style->get('background-image');
         $hasColor = $color instanceof Color && $color->a > 0.0;
         $hasImage = $bgImage instanceof \Phpdftk\Css\Value\Url;
