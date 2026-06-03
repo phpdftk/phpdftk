@@ -114,14 +114,6 @@
             "reason": "DOM-level computed-style assertions — script-driven testharness.js"
         },
         {
-            "glob": "css/css-color/animation/**",
-            "reason": "Animation playback — gated on Pdf::renderAnimationsAt() hook, animation visibility runtime"
-        },
-        {
-            "glob": "css/css-color/animated-*",
-            "reason": "Animation playback — runtime"
-        },
-        {
             "glob": "css/css-color/getcomputedstyle*",
             "reason": "getComputedStyle assertions — script-driven testharness.js"
         },
@@ -354,6 +346,46 @@
             "glob": "css/css-multicol/multicol-rule*",
             "phase": "4G",
             "reason": "Multi-column rules — fragmentation interaction needs paged-media"
+        },
+        {
+            "glob": "css/css-color/animation/**",
+            "phase": "4H",
+            "reason": "Animation playback — gated on Pdf::renderAnimationsAt() hook, animation visibility runtime"
+        },
+        {
+            "glob": "css/css-color/animated-*",
+            "phase": "4H",
+            "reason": "Animation playback — animation runtime"
+        },
+        {
+            "glob": "css/css-backgrounds/animations/**",
+            "phase": "4H",
+            "reason": "background-color / background-image animation playback — animation runtime"
+        },
+        {
+            "glob": "css/css-box/animation/**",
+            "phase": "4H",
+            "reason": "Box-property animation playback — animation runtime"
+        },
+        {
+            "glob": "css/css-display/animations/**",
+            "phase": "4H",
+            "reason": "display-property animation playback — animation runtime"
+        },
+        {
+            "glob": "css/css-sizing/animation/**",
+            "phase": "4H",
+            "reason": "Sizing-property animation interpolation — animation runtime"
+        },
+        {
+            "glob": "css/css-sizing/contain-intrinsic-size/animation/**",
+            "phase": "4H",
+            "reason": "contain-intrinsic-size animation interpolation — animation runtime"
+        },
+        {
+            "glob": "css/css-text/animations/**",
+            "phase": "4H",
+            "reason": "Text-property animation playback — animation runtime"
         }
     ]
 }
