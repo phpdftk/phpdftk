@@ -112,6 +112,33 @@ switch ($subcommand) {
         printf("    Harness errors:   %d\n", $agg['harnessError']);
         printf("\n  In-scope total:    %d\n", $agg['inScopeTotal']);
         printf("  In-scope pass:     %.2f%%\n", $agg['inScopePassRate'] * 100);
+
+        if (!empty($parsed['opts']['show-fails'])) {
+            $fails = array_filter(
+                $results,
+                static fn($r) => $r->status === TestStatus::Fail,
+            );
+            usort(
+                $fails,
+                static fn($a, $b) => $b->diffScore <=> $a->diffScore,
+            );
+            $limit = is_string($parsed['opts']['show-fails'] ?? null)
+                ? (int)$parsed['opts']['show-fails']
+                : 25;
+            printf("\n  Top %d failures (sorted by diff score):\n", min($limit, count($fails)));
+            $i = 0;
+            foreach ($fails as $fail) {
+                printf(
+                    "    %5.2f  %-60s  %s\n",
+                    $fail->diffScore,
+                    $fail->testId,
+                    $fail->reason ?? '',
+                );
+                if (++$i >= $limit) {
+                    break;
+                }
+            }
+        }
         exit(0);
     }
     case 'classify': {

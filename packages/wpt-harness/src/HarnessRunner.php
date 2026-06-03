@@ -243,18 +243,18 @@ final class HarnessRunner
         if ($head === false || $head === '') {
             return null;
         }
-        // Match either single- or double-quoted attribute values
-        // in either attribute order (rel-first or href-first).
-        $pattern = '~<link\s+[^>]*?(?:'
-            . 'rel\s*=\s*["\']match["\']\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']'
-            . '|'
-            . 'href\s*=\s*["\']([^"\']+)["\']\s+[^>]*?rel\s*=\s*["\']match["\']'
-            . ')~i';
-        if (preg_match($pattern, $head, $matches) !== 1) {
-            return null;
+        // Match either attribute order (rel-first or href-first) by trying
+        // two patterns rather than alternation — keeps PHPStan happy and
+        // makes the failure mode obvious.
+        $relFirst = '~<link\s+[^>]*?rel\s*=\s*["\']match["\']\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']~i';
+        $hrefFirst = '~<link\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']\s+[^>]*?rel\s*=\s*["\']match["\']~i';
+        $href = null;
+        if (preg_match($relFirst, $head, $matches) === 1) {
+            $href = $matches[1];
+        } elseif (preg_match($hrefFirst, $head, $matches) === 1) {
+            $href = $matches[1];
         }
-        $href = ($matches[1] ?? '') !== '' ? $matches[1] : ($matches[2] ?? '');
-        if ($href === '') {
+        if ($href === null) {
             return null;
         }
         $dir = dirname($testPath);
