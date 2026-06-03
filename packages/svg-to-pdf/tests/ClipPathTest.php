@@ -168,7 +168,7 @@ final class ClipPathTest extends TestCase
         // The exact serialization rounds to 6 decimal places — match the
         // prefix that's stable across PHP versions.
         self::assertMatchesRegularExpression(
-            '!0\.02 0 0 0\.033333 -0\.2 -0\.666667 cm!',
+            '!0\.02 0 0 0\.0333333333 -0\.2 -0\.6666666667 cm!',
             $ops,
         );
         // The clip rect was emitted in bbox space.
@@ -277,7 +277,7 @@ final class ClipPathTest extends TestCase
         self::assertStringContainsString('2 0 0 2 0 0 cm', $ops);
         // Inverse bbox cm = 0.02 0 0 0.033… -0.2 -0.666… .
         self::assertMatchesRegularExpression(
-            '!0\.02 0 0 0\.033333 -0\.2 -0\.666667 cm!',
+            '!0\.02 0 0 0\.0333333333 -0\.2 -0\.6666666667 cm!',
             $ops,
         );
     }

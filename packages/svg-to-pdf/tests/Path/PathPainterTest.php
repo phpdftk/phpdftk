@@ -106,9 +106,9 @@ final class PathPainterTest extends TestCase
     {
         // Q P0=(0,0) P1=(10,10) P2=(20,0) → C1 = (20/3, 20/3),
         // C2 = (20 + 2/3·(-10), 0 + 2/3·10) = (40/3, 20/3). The
-        // ContentStream serialises floats to 6 decimal places.
+        // ContentStream serialises floats to 10 decimal places.
         $ops = $this->paint('M 0 0 Q 10 10 20 0');
-        self::assertStringContainsString('6.666667 6.666667 13.333333 6.666667 20 0 c', $ops);
+        self::assertStringContainsString('6.6666666667 6.6666666667 13.3333333333 6.6666666667 20 0 c', $ops);
     }
 
     public function testSmoothQuadraticReflectsPreviousQuadraticControl(): void
@@ -120,7 +120,7 @@ final class PathPainterTest extends TestCase
         // C2 = (40,0) + 2/3·((30,-10) - (40,0)) = (100/3, -20/3)
         $ops = $this->paint('M 0 0 Q 10 10 20 0 T 40 0');
         self::assertStringContainsString(
-            '26.666667 -6.666667 33.333333 -6.666667 40 0 c',
+            '26.6666666667 -6.6666666667 33.3333333333 -6.6666666667 40 0 c',
             $ops,
         );
     }

@@ -115,6 +115,20 @@ final class Painter
      */
     private array $imageNameCache = [];
 
+    /**
+     * Cache `src` → parsed SvgDocument (or `false` when parsing failed)
+     * so each unique SVG background-image is only read + parsed once.
+     *
+     * @var array<string, \Phpdftk\Svg\SvgDocument|false>
+     */
+    private array $svgDocumentCache = [];
+
+    /**
+     * Lazy-built SvgRenderer for SVG background-image painting. SVG
+     * resources (gradients, fonts) register on the page on first draw.
+     */
+    private ?\Phpdftk\SvgToPdf\SvgRenderer $svgRenderer = null;
+
     public function __destruct()
     {
         foreach ($this->tempImagePaths as $path) {
@@ -2459,7 +2473,14 @@ final class Painter
             return;
         }
         $src = $url->url;
-        if (isset($this->imageNameCache[$src])) {
+        $svgDoc = null;
+        $name = null;
+        if ($this->isSvgSrc($src)) {
+            $svgDoc = $this->loadSvgDocument($src);
+            if ($svgDoc === null) {
+                return;
+            }
+        } elseif (isset($this->imageNameCache[$src])) {
             $name = $this->imageNameCache[$src];
         } else {
             $resolved = $this->resolveImageSrc($src);
@@ -2551,17 +2572,29 @@ final class Painter
                 if ($tileCount >= $maxTiles) {
                     break 2;
                 }
-                $stream->saveGraphicsState();
-                $stream->concatMatrix(
-                    $tileW,
-                    0.0,
-                    0.0,
-                    $tileH,
-                    $originX + $offsetX,
-                    $originPdfBottom + ($originHeight - $tileH - $offsetY),
-                );
-                $stream->doXObject($name);
-                $stream->restoreGraphicsState();
+                $tileBottomY = $originPdfBottom + ($originHeight - $tileH - $offsetY);
+                if ($svgDoc !== null) {
+                    $this->svgRenderer()->draw(
+                        $svgDoc,
+                        $originX + $offsetX,
+                        $tileBottomY,
+                        $tileW,
+                        $tileH,
+                    );
+                } else {
+                    $stream->saveGraphicsState();
+                    $stream->concatMatrix(
+                        $tileW,
+                        0.0,
+                        0.0,
+                        $tileH,
+                        $originX + $offsetX,
+                        $tileBottomY,
+                    );
+                    assert($name !== null);
+                    $stream->doXObject($name);
+                    $stream->restoreGraphicsState();
+                }
                 $tileCount++;
                 if (!$repeat['x']) {
                     break;
@@ -2823,6 +2856,13 @@ final class Painter
      */
     private function intrinsicSize(string $src): ?array
     {
+        if ($this->isSvgSrc($src)) {
+            $svg = $this->loadSvgDocument($src);
+            if ($svg === null) {
+                return null;
+            }
+            return $this->intrinsicSvgSize($svg);
+        }
         try {
             if (str_starts_with($src, 'data:image/')) {
                 if (preg_match('~^data:image/(png|jpeg|jpg);(base64,)?(.*)$~s', $src, $m) !== 1) {
@@ -2846,6 +2886,142 @@ final class Painter
             return null;
         }
         return [$info->width, $info->height];
+    }
+
+    /**
+     * Detect SVG background sources: `.svg` URLs and `data:image/svg+xml`
+     * URIs. Case-insensitive on the extension to match CSS / file-system
+     * conventions.
+     */
+    private function isSvgSrc(string $src): bool
+    {
+        if (str_starts_with(strtolower($src), 'data:image/svg+xml')) {
+            return true;
+        }
+        $path = parse_url($src, PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            $path = $src;
+        }
+        return strtolower((string) pathinfo($path, PATHINFO_EXTENSION)) === 'svg';
+    }
+
+    /**
+     * Parse an SVG background source into an `SvgDocument`, memoising by
+     * `$src` so each unique URL is read + parsed once per Painter. Returns
+     * `null` on read / parse failure (the caller paints nothing — same
+     * fallback as raster sources that fail to parse).
+     */
+    private function loadSvgDocument(string $src): ?\Phpdftk\Svg\SvgDocument
+    {
+        if (array_key_exists($src, $this->svgDocumentCache)) {
+            $cached = $this->svgDocumentCache[$src];
+            return $cached === false ? null : $cached;
+        }
+        $bytes = null;
+        try {
+            if (str_starts_with($src, 'data:')) {
+                $bytes = $this->decodeSvgDataUri($src);
+            } else {
+                $resolved = $this->resolveImageSrc($src);
+                if ($resolved !== null) {
+                    $bytes = \Phpdftk\Filesystem\LocalFilesystem::readFile($resolved, 'SVG background-image');
+                }
+            }
+            if ($bytes === null || $bytes === '') {
+                $this->svgDocumentCache[$src] = false;
+                return null;
+            }
+            $doc = (new \Phpdftk\Svg\Parser())->parse($bytes);
+        } catch (\Throwable) {
+            $this->svgDocumentCache[$src] = false;
+            return null;
+        }
+        $this->svgDocumentCache[$src] = $doc;
+        return $doc;
+    }
+
+    private function decodeSvgDataUri(string $src): ?string
+    {
+        if (preg_match('~^data:image/svg\+xml(?:;[^,]*)?,(.*)$~is', $src, $m) !== 1) {
+            return null;
+        }
+        $payload = $m[1];
+        if (str_contains(strtolower($src), ';base64,')) {
+            $decoded = base64_decode($payload, strict: true);
+            return $decoded === false ? null : $decoded;
+        }
+        return rawurldecode($payload);
+    }
+
+    /**
+     * Derive an intrinsic pixel size from an `<svg>` element per
+     * CSS Images 3 §5.2:
+     *   - both width + height set in absolute units    → use them
+     *   - only width  + intrinsic aspect ratio         → (w, w/aspect)
+     *   - only height + intrinsic aspect ratio         → (h*aspect, h)
+     *   - viewBox only                                 → viewBox dims
+     *   - nothing at all                               → default object
+     *     size 300×150 (CSS Images 3 §5.3)
+     *
+     * Returns `[int, int]` so the result plugs straight into the existing
+     * `resolveBackgroundSize` math, which assumes integer pixels.
+     *
+     * @return array{int, int}
+     */
+    private function intrinsicSvgSize(\Phpdftk\Svg\SvgDocument $svg): array
+    {
+        $w = self::parseSvgLengthAttribute($svg->widthAttribute());
+        $h = self::parseSvgLengthAttribute($svg->heightAttribute());
+        $viewBox = $svg->viewBox();
+        $aspect = null;
+        if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
+            $aspect = $viewBox[2] / $viewBox[3];
+        } elseif ($w !== null && $h !== null && $h > 0.0) {
+            $aspect = $w / $h;
+        }
+        if ($w !== null && $h !== null) {
+            return [max(1, (int) round($w)), max(1, (int) round($h))];
+        }
+        if ($w !== null && $aspect !== null && $aspect > 0.0) {
+            return [max(1, (int) round($w)), max(1, (int) round($w / $aspect))];
+        }
+        if ($h !== null && $aspect !== null && $aspect > 0.0) {
+            return [max(1, (int) round($h * $aspect)), max(1, (int) round($h))];
+        }
+        if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
+            return [max(1, (int) round($viewBox[2])), max(1, (int) round($viewBox[3]))];
+        }
+        return [300, 150];
+    }
+
+    /**
+     * Parse an SVG length attribute like `"8"`, `"8px"`, `"50%"`. Returns
+     * a float when the value is an absolute length (with no unit or `px`);
+     * returns null for percentages, em / rem / vw etc. — those aren't
+     * intrinsic for sizing purposes (CSS Images 3 §5.2).
+     */
+    private static function parseSvgLengthAttribute(?string $raw): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+        if (preg_match('/^(-?\d+(?:\.\d+)?)(px)?$/', $raw, $m) !== 1) {
+            return null;
+        }
+        return (float) $m[1];
+    }
+
+    private function svgRenderer(): \Phpdftk\SvgToPdf\SvgRenderer
+    {
+        if ($this->svgRenderer === null) {
+            assert($this->page !== null && $this->writer !== null);
+            $this->svgRenderer = new \Phpdftk\SvgToPdf\SvgRenderer($this->page, $this->writer);
+        }
+        return $this->svgRenderer;
     }
 
     private function paintBorders(Box $box, ContentStream $stream): void

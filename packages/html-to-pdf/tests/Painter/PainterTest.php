@@ -473,8 +473,8 @@ final class PainterTest extends TestCase
             '',
         );
         // Base colour (200/255 ≈ 0.78431) and darkened (× 0.5 ≈ 0.39216).
-        self::assertStringContainsString('0.784314 0 0 rg', $bytes, 'base colour for bottom/right');
-        self::assertStringContainsString('0.392157 0 0 rg', $bytes, 'darkened colour for top/left');
+        self::assertStringContainsString('0.7843137255 0 0 rg', $bytes, 'base colour for bottom/right');
+        self::assertStringContainsString('0.3921568627 0 0 rg', $bytes, 'darkened colour for top/left');
     }
 
     public function testOutsetBorderDarkensBottomAndRightSides(): void
@@ -503,8 +503,8 @@ final class PainterTest extends TestCase
         );
         // Same pattern as inset, but inverted side assignment — both
         // colours still appear in the stream.
-        self::assertStringContainsString('0.784314 0 0 rg', $bytes);
-        self::assertStringContainsString('0.392157 0 0 rg', $bytes);
+        self::assertStringContainsString('0.7843137255 0 0 rg', $bytes);
+        self::assertStringContainsString('0.3921568627 0 0 rg', $bytes);
     }
 
     public function testGrooveBorderProducesLightAndDarkSides(): void
@@ -532,9 +532,9 @@ final class PainterTest extends TestCase
             '',
         );
         // Darker: 128/255 × 0.5 ≈ 0.25098.
-        self::assertStringContainsString('0.25098 0.25098 0.25098 rg', $bytes, 'darker on top/left');
+        self::assertStringContainsString('0.2509803922 0.2509803922 0.2509803922 rg', $bytes, 'darker on top/left');
         // Lighter: 0.501961 + (1 - 0.501961) × 0.3 ≈ 0.651373
-        self::assertStringContainsString('0.651373 0.651373 0.651373 rg', $bytes, 'lighter on bottom/right');
+        self::assertStringContainsString('0.651372549 0.651372549 0.651372549 rg', $bytes, 'lighter on bottom/right');
     }
 
     public function testRidgeBorderInvertsGroovePattern(): void
@@ -562,8 +562,8 @@ final class PainterTest extends TestCase
             '',
         );
         // Both variants appear regardless of orientation.
-        self::assertStringContainsString('0.25098 0.25098 0.25098 rg', $bytes);
-        self::assertStringContainsString('0.651373 0.651373 0.651373 rg', $bytes);
+        self::assertStringContainsString('0.2509803922 0.2509803922 0.2509803922 rg', $bytes);
+        self::assertStringContainsString('0.651372549 0.651372549 0.651372549 rg', $bytes);
     }
 
     public function testInsetOnSingleSideUsesDarkenedColor(): void
@@ -622,8 +622,8 @@ final class PainterTest extends TestCase
             static fn($acc, $op) => $acc . $op . "\n",
             '',
         );
-        self::assertStringContainsString('0.784314 0 0 rg', $bytes, 'base colour');
-        self::assertStringNotContainsString('0.392157 0 0 rg', $bytes, 'no darkened variant');
+        self::assertStringContainsString('0.7843137255 0 0 rg', $bytes, 'base colour');
+        self::assertStringNotContainsString('0.3921568627 0 0 rg', $bytes, 'no darkened variant');
     }
 
     public function testZeroThicknessDashedNoOp(): void
@@ -788,7 +788,7 @@ final class PainterTest extends TestCase
         // no even-odd path emitted from the shadow code.
         self::assertStringNotContainsString('f*', $bytes, 'collapsed inner skips even-odd');
         // Green emitted as a fill color.
-        self::assertStringContainsString('0 0.501961 0 rg', $bytes, 'green shadow color emitted');
+        self::assertStringContainsString('0 0.5019607843 0 rg', $bytes, 'green shadow color emitted');
     }
 
     public function testInsetBoxShadowZeroDimensionsIsNoOp(): void
@@ -2789,6 +2789,45 @@ final class PainterTest extends TestCase
         $bytes = $writer->toBytes();
         self::assertStringStartsWith('%PDF-', $bytes);
         self::assertStringContainsString('%%EOF', $bytes);
+    }
+
+    public function testSvgDataUriBackgroundEmitsSvgPaintOperators(): void
+    {
+        // Lime-filled SVG passed as a data: URI background. The painter
+        // should route through svg-to-pdf rather than the raster XObject
+        // path — i.e. emit a fill rule and lime colour operator, not a
+        // `Do` XObject reference.
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+            . '<rect width="100%" height="100%" fill="lime"/></svg>';
+        $dataUri = 'data:image/svg+xml,' . rawurlencode($svg);
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { width: 100px; height: 100px;
+                   background-image: url("' . $dataUri . '"); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(
+            pageHeight: 792.0,
+            page: $page,
+            writer: $writer,
+        ))->paint($root, $stream);
+
+        $bytes = $writer->toBytes();
+        // Lime in PDF DeviceRGB: 0/255, 255/255, 0/255 → "0 1 0 rg".
+        self::assertStringContainsString('0 1 0 rg', $bytes, 'lime fill emitted');
+        // Filled rect operator — proves we walked through paintRect.
+        self::assertMatchesRegularExpression('/ re\n/', $bytes, 'rect operator emitted');
+        self::assertMatchesRegularExpression('/\nf\n/', $bytes, 'fill operator emitted');
     }
 
     /**

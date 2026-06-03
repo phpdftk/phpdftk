@@ -1002,7 +1002,13 @@ class ContentStream extends PdfStream
         if (is_int($n)) {
             return (string) $n;
         }
-        $s = rtrim(rtrim(sprintf('%.6f', $n), '0'), '.');
+        // 10 fractional digits keeps `cm` accurate through SVG-to-PDF
+        // scale ratios up to ~1e-10 — six wasn't enough for viewport →
+        // extreme-viewBox mappings (e.g. painting a 256-pt box from a
+        // 2.1-billion-wide viewBox truncates `scaleX` to 0 at %.6f). PDF
+        // reals can't carry scientific notation, so fixed point is the
+        // only option (ISO 32000-2 §7.3.3).
+        $s = rtrim(rtrim(sprintf('%.10f', $n), '0'), '.');
         return $s === '' || $s === '-0' ? '0' : $s;
     }
 

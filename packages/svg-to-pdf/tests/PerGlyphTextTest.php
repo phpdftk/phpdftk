@@ -108,7 +108,7 @@ final class PerGlyphTextTest extends TestCase
         // cos(45°) = sin(45°) ≈ 0.707107. Without flip: a=cos, b=sin,
         // c=-sin, d=cos.
         self::assertMatchesRegularExpression(
-            '!0\.707107 0\.707107 -0\.707107 0\.707107 50 50 Tm!',
+            '!0\.7071067812 0\.7071067812 -0\.7071067812 0\.7071067812 50 50 Tm!',
             $ops,
         );
     }

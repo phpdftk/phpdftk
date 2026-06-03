@@ -557,11 +557,68 @@ final class Translator
 
     private function emitRectPath(Rect $rect, ContentStream $stream): void
     {
-        $w = $rect->width();
-        $h = $rect->height();
+        $vp = $this->currentViewport();
+        $x = $this->resolvePercentLength($rect->getAttribute('x'), $vp['w'], $rect->x());
+        $y = $this->resolvePercentLength($rect->getAttribute('y'), $vp['h'], $rect->y());
+        $w = $this->resolvePercentLength($rect->getAttribute('width'), $vp['w'], $rect->width());
+        $h = $this->resolvePercentLength($rect->getAttribute('height'), $vp['h'], $rect->height());
         if ($w > 0.0 && $h > 0.0) {
-            $stream->rectangle($rect->x(), $rect->y(), $w, $h);
+            $stream->rectangle($x, $y, $w, $h);
         }
+    }
+
+    /**
+     * Resolve a length attribute against the current viewport. SVG 2 §10.3:
+     * percentage values resolve against the relevant viewport dimension
+     * (`%` width → viewport width, `%` height → viewport height). Anything
+     * else falls back to `$plain` — the shape's existing unit-stripped
+     * float, which is what every shape accessor returned before this method
+     * existed.
+     */
+    private function resolvePercentLength(?string $raw, float $viewport, float $plain): float
+    {
+        if ($raw === null || trim($raw) === '') {
+            return 0.0;
+        }
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)(\s*%)/', $raw, $m) !== 1) {
+            return $plain;
+        }
+        return ((float) $m[1]) / 100.0 * $viewport;
+    }
+
+    /**
+     * Width / height of the current viewport in viewBox units. Falls back
+     * to the root SVG width/height attributes when no `viewBox` is set, and
+     * to zero when neither is available — matching SVG 2's "no useful
+     * viewport" outcome (percentages collapse to 0). Nested `<svg>` /
+     * `<symbol>` viewports land later; this picks the document root, which
+     * is what `background-image: url(...svg)` paints into.
+     *
+     * @return array{w: float, h: float}
+     */
+    private function currentViewport(): array
+    {
+        if ($this->document === null) {
+            return ['w' => 0.0, 'h' => 0.0];
+        }
+        $viewBox = $this->document->viewBox();
+        if ($viewBox !== null) {
+            return ['w' => $viewBox[2], 'h' => $viewBox[3]];
+        }
+        $w = self::parseLengthPrefixForViewport($this->document->widthAttribute());
+        $h = self::parseLengthPrefixForViewport($this->document->heightAttribute());
+        return ['w' => $w ?? 0.0, 'h' => $h ?? 0.0];
+    }
+
+    private static function parseLengthPrefixForViewport(?string $raw): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+))/', $raw, $m) !== 1) {
+            return null;
+        }
+        return (float) $m[1];
     }
 
     private function emitCirclePath(Circle $circle, ContentStream $stream): void
@@ -1509,10 +1566,15 @@ final class Translator
 
     private function paintRect(Rect $rect, ContentStream $stream): void
     {
-        if ($rect->width() <= 0.0 || $rect->height() <= 0.0) {
+        $vp = $this->currentViewport();
+        $x = $this->resolvePercentLength($rect->getAttribute('x'), $vp['w'], $rect->x());
+        $y = $this->resolvePercentLength($rect->getAttribute('y'), $vp['h'], $rect->y());
+        $w = $this->resolvePercentLength($rect->getAttribute('width'), $vp['w'], $rect->width());
+        $h = $this->resolvePercentLength($rect->getAttribute('height'), $vp['h'], $rect->height());
+        if ($w <= 0.0 || $h <= 0.0) {
             return;
         }
-        $stream->rectangle($rect->x(), $rect->y(), $rect->width(), $rect->height());
+        $stream->rectangle($x, $y, $w, $h);
         $this->applyFillAndStroke($rect, $stream);
     }
 
