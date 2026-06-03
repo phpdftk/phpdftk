@@ -72,6 +72,31 @@ class ObjectRegistryAndXrefTest extends TestCase
         self::assertStringContainsString('0000000000 00000 n', $result);
     }
 
+    public function testCrossReferenceTableEntriesAreExactly20Bytes(): void
+    {
+        // ISO 32000-2 §7.5.4 requires each xref entry to be exactly 20
+        // bytes so readers can seek directly by index. The two-character
+        // EOL must therefore be `CR LF` (no trailing space) or `SP CR` /
+        // `SP LF` (single-char EOL).
+        $xref = new CrossReferenceTable();
+        $xref->add(1, 15);
+        $xref->add(2, 200);
+        $result = $xref->build(3);
+        // Drop the "xref\n" + "0 3\n" header lines.
+        $body = substr($result, (int) strpos($result, "\n", (int) strpos($result, "\n") + 1) + 1);
+        $entries = explode("\r\n", $body);
+        // Last element is empty (trailing terminator); drop it.
+        array_pop($entries);
+        self::assertCount(3, $entries);
+        foreach ($entries as $entry) {
+            self::assertSame(
+                18,
+                strlen($entry),
+                "Each xref entry's visible body must be 18 bytes (+2-byte CRLF = 20-byte total): got [$entry]",
+            );
+        }
+    }
+
     // -----------------------------------------------------------------------
     // ObjectRegistry
     // -----------------------------------------------------------------------
