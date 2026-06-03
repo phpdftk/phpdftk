@@ -2861,6 +2861,34 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/\nf\n/', $bytes, 'fill operator emitted');
     }
 
+    public function testGradientBackgroundSizeHonored(): void
+    {
+        // CSS Backgrounds 3 §3.9 — `background-size: 200px auto` on a
+        // gradient (no intrinsic ratio) resolves to width=200,
+        // height=100% of the bg-positioning area. With
+        // `background-origin: content-box`, the positioning area is
+        // 400×400 (the box's content area), so the tile is 200×400
+        // centred within content-box → offset (100, 0) within content-box.
+        //
+        // The previous painter ignored bg-size for gradients entirely
+        // and filled the whole bg-clip rect with the gradient.
+        $reflectMethod = new \ReflectionMethod(Painter::class, 'computeGradientTileRect');
+        $painter = new Painter(792.0);
+        $size = new \Phpdftk\Css\Value\ValueList(
+            [new \Phpdftk\Css\Value\Length(200.0, \Phpdftk\Css\Value\LengthUnit::Px),
+                new \Phpdftk\Css\Value\Keyword('auto')],
+            \Phpdftk\Css\Value\ListSeparator::Space,
+        );
+        $position = new \Phpdftk\Css\Value\Keyword('center');
+        $origin = ['x' => 48.0, 'top' => 48.0, 'width' => 400.0, 'height' => 400.0];
+        $tile = $reflectMethod->invoke($painter, $size, $position, $origin);
+        self::assertIsArray($tile);
+        self::assertEqualsWithDelta(148.0, $tile['x'], 0.001, 'centred horizontally: 48 + 100');
+        self::assertEqualsWithDelta(48.0, $tile['top'], 0.001, 'top: 48 + 0 (auto height fills exactly)');
+        self::assertEqualsWithDelta(200.0, $tile['w'], 0.001, 'explicit width');
+        self::assertEqualsWithDelta(400.0, $tile['h'], 0.001, 'auto height = positioning area height');
+    }
+
     public function testCurrentColorResolvesToBoxColorOnBackground(): void
     {
         // CSS Color 4 §3.6 — `currentcolor` on `background-color`

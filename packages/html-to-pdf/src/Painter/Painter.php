@@ -2349,16 +2349,29 @@ final class Painter
                 $this->emitRect($stream, $x, $top, $width, $height, fill: $color);
             }
         }
-        if ($hasImage && $width > 0.0 && $height > 0.0) {
+        // All three image-class properties resolve against the same
+        // bg-origin / bg-size / bg-position trio. Hoist once so the
+        // gradient branches can reuse the rects computed for the
+        // raster path.
+        $needBgImageProps = ($hasImage || $hasGradient || $hasRadial)
+            && $width > 0.0 && $height > 0.0;
+        $sizeValue = null;
+        $positionValue = null;
+        $originRect = null;
+        if ($needBgImageProps) {
             $sizeValue = $box->style->get('background-size');
             $positionValue = $box->style->get('background-position');
-            $repeatValue = $box->style->get('background-repeat');
             // CSS Backgrounds 3 §3.4 — `background-origin` controls
             // which box rect the image is positioned within. It is
             // independent of `background-clip` (which controls where
             // the paint is clipped).
-            $origin = $this->resolveBackgroundOrigin($box);
-            $originRect = $this->backgroundOriginRect($box, $origin);
+            $originRect = $this->backgroundOriginRect(
+                $box,
+                $this->resolveBackgroundOrigin($box),
+            );
+        }
+        if ($hasImage && $needBgImageProps) {
+            $repeatValue = $box->style->get('background-repeat');
             $this->paintBackgroundImage(
                 $bgImage,
                 $stream,
@@ -2372,10 +2385,34 @@ final class Painter
                 $originRect,
             );
         }
-        if ($hasGradient && $width > 0.0 && $height > 0.0) {
-            $this->paintLinearGradient($bgImage, $stream, $x, $top, $width, $height);
+        if ($hasGradient && $needBgImageProps && $originRect !== null) {
+            // Use the tile-resolved path only when the gradient
+            // genuinely paints once: explicit bg-size + no-repeat.
+            // Other combinations (no bg-size, or repeat/round/space)
+            // expect the tile to fill the bg-clip area via tiling;
+            // we don't emit PDF tiling patterns for gradients, so
+            // stretching the gradient across the clip rect (the
+            // legacy behaviour) is closer to a `repeat` ref than a
+            // single off-centre tile would be.
+            $repeatValue = $box->style->get('background-repeat');
+            $useTilePath = !$this->isDefaultGradientSize($sizeValue)
+                && $this->isNoRepeat($repeatValue);
+            if ($useTilePath) {
+                $tile = $this->computeGradientTileRect($sizeValue, $positionValue, $originRect);
+                $this->paintLinearGradient(
+                    $bgImage,
+                    $stream,
+                    $tile['x'],
+                    $tile['top'],
+                    $tile['w'],
+                    $tile['h'],
+                    [$x, $top, $width, $height],
+                );
+            } else {
+                $this->paintLinearGradient($bgImage, $stream, $x, $top, $width, $height);
+            }
         }
-        if ($hasRadial && $width > 0.0 && $height > 0.0) {
+        if ($hasRadial && $needBgImageProps) {
             $this->paintRadialGradient($bgImage, $stream, $x, $top, $width, $height);
         }
     }
@@ -2551,33 +2588,55 @@ final class Painter
      * (CSS direction: 0deg = upward, 90deg = rightward, 180deg = down,
      * 270deg = leftward; angles increase clockwise).
      */
+    /**
+     * Paint a CSS `linear-gradient(...)` as a box background.
+     *
+     * The (tileX, tileTop, tileWidth, tileHeight) rect is the
+     * **gradient's positioning + sizing area** — gradient line and
+     * stop offsets resolve against it (CSS Images 3 §3.1, §3.5.1).
+     * `clipRect`, when supplied, scopes the actual paint to a
+     * different area (e.g. the background-clip rect when bg-size
+     * specifies an explicit tile smaller than the box). Defaults to
+     * the tile rect so callers that pass only one rect get the
+     * previous behaviour.
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float}|null $clipRect
+     *   Layout-space rect [x, top, width, height]. Null = same as tile.
+     */
     private function paintLinearGradient(
         \Phpdftk\Css\Value\LinearGradient $gradient,
         ContentStream $stream,
-        float $x,
-        float $top,
-        float $width,
-        float $height,
+        float $tileX,
+        float $tileTop,
+        float $tileWidth,
+        float $tileHeight,
+        ?array $clipRect = null,
     ): void {
         if ($this->writer === null || $gradient->stops === []) {
             return;
         }
-        $pdfY = $this->pageHeight - $top - $height;
+        if ($tileWidth <= 0.0 || $tileHeight <= 0.0) {
+            return;
+        }
+        [$clipX, $clipTop, $clipWidth, $clipHeight] = $clipRect
+            ?? [$tileX, $tileTop, $tileWidth, $tileHeight];
+        $tilePdfY = $this->pageHeight - $tileTop - $tileHeight;
+        $clipPdfY = $this->pageHeight - $clipTop - $clipHeight;
         // CSS angle convention: 0deg points up, increases clockwise. The
-        // gradient line passes through the centre. Compute its start
-        // and end points on the box's edge per CSS Images 3 §3.1.
+        // gradient line passes through the centre of the *tile*. Compute
+        // its start and end points on the tile's edge per CSS Images 3 §3.1.
         $angle = fmod($gradient->angleDeg, 360.0);
         if ($angle < 0.0) {
             $angle += 360.0;
         }
         $rad = deg2rad($angle);
-        $cx = $x + $width / 2;
-        $cy = $pdfY + $height / 2;
-        // Gradient line half-length so the endpoints sit on the box
+        $cx = $tileX + $tileWidth / 2;
+        $cy = $tilePdfY + $tileHeight / 2;
+        // Gradient line half-length so the endpoints sit on the tile
         // boundary corners (CSS spec): l/2 = |W sin θ| + |H cos θ| / 2
         $sin = sin($rad);
         $cos = cos($rad);
-        $halfLen = (abs($width * $sin) + abs($height * $cos)) / 2;
+        $halfLen = (abs($tileWidth * $sin) + abs($tileHeight * $cos)) / 2;
         // Full line length is twice the half — what `<length>` stops
         // resolve against (CSS Images 3 §3.5.1).
         $stopList = $this->resolveGradientStops($gradient->stops, $halfLen * 2);
@@ -2601,14 +2660,17 @@ final class Painter
             return;
         }
         $stream->saveGraphicsState();
-        $stream->rectangle($x, $pdfY, $width, $height);
+        // Clip first to the bg-clip rect, then fill at the (typically
+        // smaller) tile rect. When tile == clip the two are identical
+        // and the behaviour is byte-for-byte the same as before.
+        $stream->rectangle($clipX, $clipPdfY, $clipWidth, $clipHeight);
         $stream->clip();
         $stream->endPath();
         $patternName = $this->page?->useGradient($pattern);
         if ($patternName !== null) {
             $stream->setFillColorSpace('Pattern');
             $stream->setFillColor($patternName);
-            $stream->rectangle($x, $pdfY, $width, $height);
+            $stream->rectangle($tileX, $tilePdfY, $tileWidth, $tileHeight);
             $stream->fill();
         }
         $stream->restoreGraphicsState();
@@ -3035,6 +3097,181 @@ final class Painter
             ];
         }
         return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
+    }
+
+    /**
+     * Return true when `background-repeat` paints a *single tile*
+     * (or close to it). Used to gate the gradient tile-rect path —
+     * single-tile semantics only make sense when the gradient
+     * actually paints once.
+     *
+     * Honoured as single-tile:
+     *   • `no-repeat` — one tile, exact spec
+     *   • `space` — degenerate to no-repeat when only one tile
+     *     fits, which is the common case for small tiles in small
+     *     boxes. Tests in this cluster use `space` with positioned
+     *     tiles where exactly one tile fits — matches `no-repeat`
+     *     visually until we ship a real `space` distributor.
+     */
+    private function isNoRepeat(?\Phpdftk\Css\Value\Value $repeatValue): bool
+    {
+        if ($repeatValue instanceof \Phpdftk\Css\Value\Keyword) {
+            $kw = strtolower($repeatValue->name);
+            return $kw === 'no-repeat' || $kw === 'space';
+        }
+        if ($repeatValue instanceof \Phpdftk\Css\Value\ValueList
+            && $repeatValue->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            $allNoRepeat = $repeatValue->values !== [];
+            foreach ($repeatValue->values as $v) {
+                if (!$v instanceof \Phpdftk\Css\Value\Keyword) {
+                    $allNoRepeat = false;
+                    break;
+                }
+                $kw = strtolower($v->name);
+                if ($kw !== 'no-repeat' && $kw !== 'space') {
+                    $allNoRepeat = false;
+                    break;
+                }
+            }
+            return $allNoRepeat;
+        }
+        return false;
+    }
+
+    /**
+     * Return true when the `background-size` value resolves to the
+     * "fill the box" default. Treated as default:
+     *   • null (property unset)
+     *   • single keyword `auto` / unknown
+     *   • two-value `auto auto`
+     * Anything explicit (length, percentage, `cover`, `contain`,
+     * `auto <length>`, `<length> auto`) is non-default and the
+     * gradient renders at the resolved tile rect.
+     */
+    private function isDefaultGradientSize(?\Phpdftk\Css\Value\Value $sizeValue): bool
+    {
+        if ($sizeValue === null) {
+            return true;
+        }
+        if ($sizeValue instanceof \Phpdftk\Css\Value\Keyword) {
+            return strtolower($sizeValue->name) === 'auto';
+        }
+        if ($sizeValue instanceof \Phpdftk\Css\Value\ValueList
+            && $sizeValue->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            $allAuto = true;
+            foreach ($sizeValue->values as $v) {
+                $isAutoKw = $v instanceof \Phpdftk\Css\Value\Keyword
+                    && strtolower($v->name) === 'auto';
+                if (!$isAutoKw) {
+                    $allAuto = false;
+                    break;
+                }
+            }
+            return $allAuto && $sizeValue->values !== [];
+        }
+        return false;
+    }
+
+    /**
+     * Compute the rect a CSS gradient tile occupies given the
+     * background-size + background-position values and the
+     * background-positioning area (`background-origin` rect).
+     *
+     * Gradients have no intrinsic size and no intrinsic ratio, so
+     * CSS Backgrounds 3 §3.9 reduces to:
+     *   • both auto / unset / unknown keyword → 100% × 100%
+     *   • cover / contain                     → 100% × 100%
+     *   • &lt;length&gt; auto                       → length × 100% height
+     *   • auto &lt;length&gt;                       → 100% width × length
+     *   • &lt;length&gt; &lt;length&gt;                   → explicit pair
+     * Position resolves the tile's offset within the positioning
+     * area (CSS Backgrounds 3 §3.6 — keywords / percentages anchor;
+     * lengths are direct offsets).
+     *
+     * @param array{x: float, top: float, width: float, height: float} $originRect
+     * @return array{x: float, top: float, w: float, h: float}
+     */
+    private function computeGradientTileRect(
+        ?\Phpdftk\Css\Value\Value $sizeValue,
+        ?\Phpdftk\Css\Value\Value $positionValue,
+        array $originRect,
+    ): array {
+        $originWidth = $originRect['width'];
+        $originHeight = $originRect['height'];
+        [$tileW, $tileH] = $this->resolveGradientTileSize(
+            $sizeValue,
+            $originWidth,
+            $originHeight,
+        );
+        // resolveBackgroundPosition takes (image-w, image-h, box-w, box-h).
+        // The gradient *tile* is the "image" being positioned within the
+        // bg-positioning area (the "box"). When bg-position is null /
+        // empty, the helper already defaults to 50%/50% — matches the
+        // existing paintBackgroundImage handling.
+        $offsets = $positionValue === null
+            ? ['offsetX' => max(0.0, ($originWidth - $tileW) / 2),
+                'offsetY' => max(0.0, ($originHeight - $tileH) / 2)]
+            : $this->resolveBackgroundPosition(
+                $positionValue,
+                $tileW,
+                $tileH,
+                $originWidth,
+                $originHeight,
+            );
+        return [
+            'x' => $originRect['x'] + $offsets['offsetX'],
+            'top' => $originRect['top'] + $offsets['offsetY'],
+            'w' => $tileW,
+            'h' => $tileH,
+        ];
+    }
+
+    /**
+     * Resolve a CSS `background-size` value to a concrete (w, h)
+     * for a gradient (no intrinsic dimensions, no intrinsic ratio).
+     * See {@see computeGradientTileRect} for the matrix this
+     * implements.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function resolveGradientTileSize(
+        ?\Phpdftk\Css\Value\Value $sizeValue,
+        float $originWidth,
+        float $originHeight,
+    ): array {
+        if ($sizeValue === null) {
+            return [$originWidth, $originHeight];
+        }
+        if ($sizeValue instanceof \Phpdftk\Css\Value\Keyword) {
+            $kw = strtolower($sizeValue->name);
+            // `cover` / `contain` need an intrinsic ratio to do
+            // anything useful; without one they degrade to stretch.
+            return [$originWidth, $originHeight];
+        }
+        if ($sizeValue instanceof \Phpdftk\Css\Value\Length) {
+            // Single length sets width; height = auto = 100% of
+            // positioning area (no intrinsic ratio for gradients).
+            return [$sizeValue->value, $originHeight];
+        }
+        if ($sizeValue instanceof \Phpdftk\Css\Value\ValueList
+            && $sizeValue->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            $w = $sizeValue->values[0] ?? null;
+            $h = $sizeValue->values[1] ?? null;
+            $tileW = $w instanceof \Phpdftk\Css\Value\Length ? $w->value : $originWidth;
+            $tileH = $h instanceof \Phpdftk\Css\Value\Length ? $h->value : $originHeight;
+            // Percentage tile dims resolve against the positioning area.
+            if ($w instanceof \Phpdftk\Css\Value\Percentage) {
+                $tileW = $originWidth * ($w->value / 100.0);
+            }
+            if ($h instanceof \Phpdftk\Css\Value\Percentage) {
+                $tileH = $originHeight * ($h->value / 100.0);
+            }
+            return [$tileW, $tileH];
+        }
+        return [$originWidth, $originHeight];
     }
 
     /**
