@@ -227,6 +227,18 @@ final class TokenizerTest extends TestCase
         self::assertInstanceOf(CdcToken::class, $tokens[2]);
     }
 
+    public function testXhtmlCdataSectionDelimitersAreSilentlyConsumed(): void
+    {
+        // XHTML stylesheets wrap their contents in `<![CDATA[ ... ]]>`.
+        // Browsers strip the delimiters when parsing the CSS; we do too,
+        // so the inner declarations tokenise as if the brackets weren't
+        // there. Anything else would drop the whole stylesheet.
+        $tokens = $this->withoutWhitespace($this->tokenize('<![CDATA[ foo ]]>'));
+        self::assertInstanceOf(IdentToken::class, $tokens[0]);
+        self::assertSame('foo', $tokens[0]->value);
+        self::assertInstanceOf(EofToken::class, $tokens[1]);
+    }
+
     public function testPunctuators(): void
     {
         $tokens = $this->tokenize('{};,():');

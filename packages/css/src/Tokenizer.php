@@ -183,6 +183,25 @@ final class Tokenizer
                 $this->emit(new CdoToken());
                 return;
             }
+            // XHTML CDATA section opener: `<![CDATA[`. CSS Syntax doesn't
+            // tokenise these but browsers ignore the brackets when parsing
+            // an XHTML stylesheet, so consume + emit nothing — the inner
+            // body tokenises as normal CSS.
+            if (
+                $this->peek(1) === '!'
+                && $this->peek(2) === '['
+                && $this->peek(3) === 'C'
+                && $this->peek(4) === 'D'
+                && $this->peek(5) === 'A'
+                && $this->peek(6) === 'T'
+                && $this->peek(7) === 'A'
+                && $this->peek(8) === '['
+            ) {
+                for ($i = 0; $i < 9; $i++) {
+                    $this->advance();
+                }
+                return;
+            }
             $this->advance();
             $this->emit(new DelimToken('<'));
             return;
@@ -204,6 +223,14 @@ final class Tokenizer
             return;
         }
         if ($c === ']') {
+            // XHTML CDATA section closer: `]]>`. Mirror the opener — eat
+            // the three characters silently so the stylesheet body parses.
+            if ($this->peek(1) === ']' && $this->peek(2) === '>') {
+                $this->advance();
+                $this->advance();
+                $this->advance();
+                return;
+            }
             $this->advance();
             $this->emit(new RightBracketToken());
             return;
