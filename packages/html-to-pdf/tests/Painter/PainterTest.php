@@ -2861,6 +2861,30 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/\nf\n/', $bytes, 'fill operator emitted');
     }
 
+    public function testBackgroundSizeAutoDerivesFromIntrinsicRatio(): void
+    {
+        // CSS Backgrounds 3 §3.9 — for `background-size: auto <length>`
+        // (or `<length> auto`) and an image with an intrinsic ratio,
+        // `auto` derives from the explicit side via the ratio. Here
+        // we use a 40×10 SVG (ratio 4:1) and `background-size: auto
+        // 20px` — the painter should compute width = 20 * 4 = 80px,
+        // not stretch to the full box width.
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="10">'
+            . '<rect width="100%" height="100%" fill="lime"/></svg>';
+        $dataUri = 'data:image/svg+xml,' . rawurlencode($svg);
+
+        // Inspect the resolved tile size directly via the private
+        // helper: bg-size: auto 20px on a 40×10 SVG (ratio 4:1) →
+        // width = 20 × (40/10) = 80; height = 20. With the old buggy
+        // behaviour, width would fall back to the 400px box width.
+        $reflectMethod = new \ReflectionMethod(Painter::class, 'resolveAutoSizePair');
+        $painter = new Painter(792.0);
+        $result = $reflectMethod->invoke($painter, null, 20.0, $dataUri, 400.0, 200.0);
+        self::assertIsArray($result);
+        self::assertEqualsWithDelta(80.0, $result[0], 0.001, 'width derived from intrinsic ratio (40/10) × 20');
+        self::assertEqualsWithDelta(20.0, $result[1], 0.001, 'height = explicit 20px');
+    }
+
     public function testBodyBackgroundPropagatesToCanvasWhenRootTransparent(): void
     {
         // CSS Backgrounds 3 §3.11.2 — for HTML documents, when the root

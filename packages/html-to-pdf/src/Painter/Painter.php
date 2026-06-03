@@ -2962,15 +2962,25 @@ final class Painter
             ];
         }
         // `<length> <length>` — explicit dimensions in a 2-element
-        // space-separated ValueList. Single value sets width, height auto
-        // (which we resolve to the natural aspect).
+        // space-separated ValueList. Per CSS Backgrounds 3 §3.9, when
+        // one component is `auto`:
+        //   • image has intrinsic ratio → derive from the other side
+        //   • image has no intrinsic ratio → use 100% of the
+        //     corresponding bg-positioning area dimension
         if ($sizeValue instanceof \Phpdftk\Css\Value\ValueList
             && $sizeValue->separator === \Phpdftk\Css\Value\ListSeparator::Space
         ) {
             $w = $sizeValue->values[0] ?? null;
             $h = $sizeValue->values[1] ?? null;
-            $finalW = $w instanceof \Phpdftk\Css\Value\Length ? $w->value : $boxWidth;
-            $finalH = $h instanceof \Phpdftk\Css\Value\Length ? $h->value : $boxHeight;
+            $explicitW = $w instanceof \Phpdftk\Css\Value\Length ? $w->value : null;
+            $explicitH = $h instanceof \Phpdftk\Css\Value\Length ? $h->value : null;
+            [$finalW, $finalH] = $this->resolveAutoSizePair(
+                $explicitW,
+                $explicitH,
+                $src,
+                $boxWidth,
+                $boxHeight,
+            );
             return [
                 'w' => $finalW,
                 'h' => $finalH,
@@ -2979,12 +2989,16 @@ final class Painter
             ];
         }
         if ($sizeValue instanceof \Phpdftk\Css\Value\Length) {
-            // Single length sets width; height = natural aspect.
-            $intrinsic = $this->intrinsicSize($src);
-            $finalW = $sizeValue->value;
-            $finalH = $intrinsic !== null && $intrinsic[0] > 0
-                ? $finalW * ($intrinsic[1] / $intrinsic[0])
-                : $boxHeight;
+            // Single length sets width; height = auto (derive from
+            // intrinsic ratio if present, else 100% of bg-positioning
+            // area). Reuses the auto-resolution helper for parity.
+            [$finalW, $finalH] = $this->resolveAutoSizePair(
+                $sizeValue->value,
+                null,
+                $src,
+                $boxWidth,
+                $boxHeight,
+            );
             return [
                 'w' => $finalW,
                 'h' => $finalH,
@@ -2993,6 +3007,50 @@ final class Painter
             ];
         }
         return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
+    }
+
+    /**
+     * Resolve a two-component `background-size` where one or both
+     * sides may be `auto`. Implements CSS Backgrounds 3 §3.9 auto
+     * resolution: intrinsic ratio derives the missing side; if no
+     * ratio, auto resolves to 100% of the positioning area.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function resolveAutoSizePair(
+        ?float $explicitW,
+        ?float $explicitH,
+        string $src,
+        float $boxWidth,
+        float $boxHeight,
+    ): array {
+        if ($explicitW !== null && $explicitH !== null) {
+            return [$explicitW, $explicitH];
+        }
+        $intrinsic = $this->intrinsicSize($src);
+        // Both auto: use intrinsic if available, else box.
+        if ($explicitW === null && $explicitH === null) {
+            if ($intrinsic !== null) {
+                return [(float) $intrinsic[0], (float) $intrinsic[1]];
+            }
+            return [$boxWidth, $boxHeight];
+        }
+        $hasRatio = $intrinsic !== null && $intrinsic[0] > 0 && $intrinsic[1] > 0;
+        if ($explicitW !== null) {
+            // Width given, height auto.
+            $finalW = $explicitW;
+            $finalH = $hasRatio
+                ? $finalW * ($intrinsic[1] / $intrinsic[0])
+                : $boxHeight;
+            return [$finalW, $finalH];
+        }
+        // Height given, width auto.
+        $finalH = $explicitH;
+        assert($finalH !== null);
+        $finalW = $hasRatio
+            ? $finalH * ($intrinsic[0] / $intrinsic[1])
+            : $boxWidth;
+        return [$finalW, $finalH];
     }
 
     /**
