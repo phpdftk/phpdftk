@@ -149,38 +149,52 @@ final class Painter
     public array $collectedLinks = [];
 
     /**
-     * Root box for the current paint pass. CSS Backgrounds 3 §3.11.2
-     * propagates the root element's background to the canvas (the page
-     * rect), and `paintBackground` suppresses the root's own paint to
-     * avoid double-painting at the box's geometry.
+     * Box whose background was propagated to the canvas this paint
+     * pass (CSS Backgrounds 3 §3.11.2) — either the root or, when the
+     * root's background is transparent and the root is an HTML
+     * document, the first body child. `paintBackground` skips this box
+     * to avoid double-painting at the box's geometry.
      */
-    private ?Box $rootBox = null;
+    private ?Box $propagatedBgBox = null;
 
     public function paint(Box $root, ContentStream $stream): void
     {
         $this->collectedLinks = [];
         $this->imageNameCache = [];
-        $this->rootBox = $root;
         // CSS Backgrounds 3 §3.11.2 — if the root has a non-transparent
         // background, paint the entire canvas with it BEFORE walking the
-        // tree (so descendants paint on top). The root's own
-        // paint-background pass is suppressed by the rootBox check.
+        // tree (so descendants paint on top). When the root is
+        // transparent but its body child carries a background, the body
+        // propagates to the canvas instead. The propagated box's own
+        // paint-background pass is suppressed by the propagatedBgBox check.
         $this->paintCanvasBackgroundFromRoot($root, $stream);
         $this->paintBox($root, $stream);
-        $this->rootBox = null;
+        $this->propagatedBgBox = null;
     }
 
     private function paintCanvasBackgroundFromRoot(Box $root, ContentStream $stream): void
     {
-        $color = $root->style->get('background-color');
-        $bgImage = $root->style->get('background-image');
+        $source = $root;
+        if (!$this->boxHasPaintableBackground($source)) {
+            // CSS Backgrounds 3 §3.11.2 second paragraph — when the root
+            // element of an HTML/XHTML document has a transparent
+            // background, the canvas uses the *first body child's*
+            // background instead, and the body itself paints
+            // transparent. Skipping the body lookup for non-HTML root
+            // elements is harmless: only HTML structure has a `<body>`.
+            $body = $this->findBodyChild($root);
+            if ($body === null || !$this->boxHasPaintableBackground($body)) {
+                return;
+            }
+            $source = $body;
+        }
+        $this->propagatedBgBox = $source;
+        $color = $source->style->get('background-color');
+        $bgImage = $source->style->get('background-image');
         $hasColor = $color instanceof Color && $color->a > 0.0;
         $hasImage = $bgImage instanceof \Phpdftk\Css\Value\Url;
         $hasGradient = $bgImage instanceof \Phpdftk\Css\Value\LinearGradient;
         $hasRadial = $bgImage instanceof \Phpdftk\Css\Value\RadialGradient;
-        if (!$hasColor && !$hasImage && !$hasGradient && !$hasRadial) {
-            return;
-        }
         // The canvas rect is the entire page in PDF user-space — the
         // painter's `pageHeight` is the top, `pageWidth` the right edge.
         // Layout-Y 0 corresponds to the page top; emitRect handles the
@@ -189,9 +203,9 @@ final class Painter
             $this->emitRect($stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight, fill: $color);
         }
         if ($hasImage) {
-            $sizeValue = $root->style->get('background-size');
-            $positionValue = $root->style->get('background-position');
-            $repeatValue = $root->style->get('background-repeat');
+            $sizeValue = $source->style->get('background-size');
+            $positionValue = $source->style->get('background-position');
+            $repeatValue = $source->style->get('background-repeat');
             $this->paintBackgroundImage(
                 $bgImage,
                 $stream,
@@ -210,6 +224,28 @@ final class Painter
         if ($hasRadial) {
             $this->paintRadialGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
         }
+    }
+
+    private function boxHasPaintableBackground(Box $box): bool
+    {
+        $color = $box->style->get('background-color');
+        $bgImage = $box->style->get('background-image');
+        if ($color instanceof Color && $color->a > 0.0) {
+            return true;
+        }
+        return $bgImage instanceof \Phpdftk\Css\Value\Url
+            || $bgImage instanceof \Phpdftk\Css\Value\LinearGradient
+            || $bgImage instanceof \Phpdftk\Css\Value\RadialGradient;
+    }
+
+    private function findBodyChild(Box $root): ?Box
+    {
+        foreach ($root->children as $child) {
+            if ($child->element !== null && strtolower($child->element->localName) === 'body') {
+                return $child;
+            }
+        }
+        return null;
     }
 
     private function paintBox(Box $box, ContentStream $stream): void
@@ -2183,10 +2219,11 @@ final class Painter
         ) {
             return;
         }
-        // CSS Backgrounds 3 §3.11.2 — the root element's background was
-        // already painted across the entire canvas before the tree walk;
-        // skip the root's own per-box paint to avoid double-fill.
-        if ($box === $this->rootBox) {
+        // CSS Backgrounds 3 §3.11.2 — the background-source box (root,
+        // or the body when the root is transparent) was already painted
+        // across the entire canvas before the tree walk; skip its own
+        // per-box paint to avoid double-fill.
+        if ($box === $this->propagatedBgBox) {
             return;
         }
         $color = $box->style->get('background-color');

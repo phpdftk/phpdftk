@@ -2861,6 +2861,91 @@ final class PainterTest extends TestCase
         self::assertMatchesRegularExpression('/\nf\n/', $bytes, 'fill operator emitted');
     }
 
+    public function testBodyBackgroundPropagatesToCanvasWhenRootTransparent(): void
+    {
+        // CSS Backgrounds 3 §3.11.2 — for HTML documents, when the root
+        // element has a transparent background, the *body*'s background
+        // propagates to the canvas, and the body itself paints
+        // transparently. Concretely: a small 100×100 body with
+        // background-color: yellow should produce a single full-page
+        // (612×792) yellow rect — not a 100×100 rect at body's geometry.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             body { background-color: yellow; width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        $rects = array_values(array_filter(
+            $ops,
+            static fn($op) => str_ends_with(rtrim($op), ' re'),
+        ));
+        // Exactly one rect (the propagated canvas paint) — not also a
+        // body-sized rect.
+        self::assertCount(1, $rects, 'one canvas-sized rect, not a body-sized double-paint');
+        // Yellow in PDF DeviceRGB: 1 1 0 rg.
+        $bytes = (string) array_reduce(
+            $ops,
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringContainsString('1 1 0 rg', $bytes, 'yellow fill emitted');
+        // Rect covers the whole page (Painter's pageWidth × pageHeight),
+        // not the body box (100 × 100). pageWidth defaults to 100000 when
+        // not passed; pageHeight is 792 here.
+        self::assertStringContainsString(' 792 re', $rects[0], 'canvas rect uses pageHeight not bodyHeight');
+        self::assertStringNotContainsString('100 100 re', $rects[0], 'not body-sized');
+    }
+
+    public function testRootBackgroundWinsOverBodyBackgroundOnCanvas(): void
+    {
+        // When the root has its own background, the body's background
+        // does NOT propagate to the canvas — root wins (CSS Backgrounds 3
+        // §3.11.2 first paragraph). The body's own bg still paints at its
+        // geometry, so we should see two rect/fill pairs: one for the
+        // canvas (root) and one for the body box.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             html { background-color: red; }
+             body { background-color: yellow; width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Red — the propagated canvas paint (root wins).
+        self::assertStringContainsString('1 0 0 rg', $bytes, 'red root paint on canvas');
+        // Yellow — the body's own paint at its own geometry.
+        self::assertStringContainsString('1 1 0 rg', $bytes, 'body bg still paints at body geometry');
+    }
+
     /**
      * Pull the last whitespace-separated token out of each operator line —
      * that's the PDF operator code (e.g. `re`, `f`, `rg`).

@@ -188,25 +188,25 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until the WPT manifest classifier (4A.4) is feeding real per-module weights, the headline uses a uniform-weighted estimate across the rows above.
 
-**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **77.37% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
+**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **77.48% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
 
 For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
 
 ### Validation against real WPT
 
-A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **77.37% in-scope pass rate**:
+A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **77.48% in-scope pass rate**:
 
 ```
 WPT harness — corpus: /tmp/wpt-sparse (7 CSS modules, 5250 files)
   Total tests:        5250
-    Pass:             2099
-    Fail:             614
+    Pass:             2102
+    Fail:             611
     Out of scope:     47
     Pending substr.:  317
     Skipped:          2173
     Harness errors:   0
   In-scope total:    2713
-  In-scope pass:     77.37%
+  In-scope pass:     77.48%
 ```
 
 The css-color subset alone (366 files, where the manifest carries the most pending-substrate rules) lands at **59.65%**:
@@ -223,7 +223,7 @@ Filter: css/css-color/**
   In-scope pass:     59.65%
 ```
 
-Nine measurement tightenings landed in sequence to get here:
+Ten measurement tightenings landed in sequence to get here:
 
 1. Wired the real render → Ghostscript-rasterise → ImageMagick-diff pipeline (Phase 4A.2/4A.3) — replacing the "not yet implemented" stub.
 2. Added `<link rel="match" href="…">` parsing to the harness's reference locator — closed the original 229-test "no ref sibling" gap.
@@ -234,6 +234,7 @@ Nine measurement tightenings landed in sequence to get here:
 7. **Animation reclassification**: moved `css-backgrounds/animations/`, `css-box/animation/`, `css-display/animations/`, `css-sizing/animation/`, `css-sizing/contain-intrinsic-size/animation/`, and `css-text/animations/` to pending Phase 4H (animation runtime) — these were honest-fail tests we'd been counting as in-scope failures, plus a handful of lucky-pass tests (snapshot at time 0 happened to match the ref) properly demoted.
 8. **Transparent border short-circuit**: `border: 10px solid transparent` was rendering as black bars because the visibility check only consulted `border-style`. CSS Backgrounds 3 §4.4 — fully-transparent border colour contributes nothing visible. Painter now skips the side fill when alpha = 0. Unblocked the three `clip-border-area-on-root` reftests (and a long tail of "transparent border around a coloured area" tests) at a stroke.
 9. **Canvas background propagation**: CSS Backgrounds 3 §3.11.2 — when the root element has a non-transparent background, paint the entire canvas (page rect) with it, not just the root's own box rect. The renderer was matching the box geometry only, so an empty document with `:root { background: green }` rendered as 0×0 nothing. Now lands exactly on the spec'd canvas paint. Slight net dip in raw pass count (-0.07 pp) — some tests that fit the old behaviour by accident were "lucky-pass" cases; the spec'd behaviour is what Chrome / Firefox emit.
+10. **Body→canvas background fallback**: CSS Backgrounds 3 §3.11.2 second paragraph — when the root has a transparent background AND there's an HTML body child, the body's background propagates to the canvas instead, and the body itself paints transparently. Stylesheets that put backgrounds on `<body>` (the conventional HTML idiom) now paint canvas-wide rather than at the body's box rect. Unlocks the `background-color-body-propagation` cluster.
 
 The gap to WeasyPrint (~13 points on the broad corpus, ~28 points on css-color) is concentrated in the raster-dependent modules called out per-row (Filter Effects, 3D Transforms, advanced Masking, Page Floats, masonry / subgrid) and the colour engine (Phase 4E).
 

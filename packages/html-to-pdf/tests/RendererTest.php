@@ -1643,14 +1643,15 @@ final class RendererTest extends TestCase
         // 0.4 in the PDF Type-3 stitching function's `/Bounds`.
         $renderer = new Renderer();
         $writer = new PdfWriter(compressStreams: false);
-        // body height + width are set so the gradient line is
-        // predictable. The default linear-gradient direction is
-        // `to bottom` (180deg) — vertical, line length = height.
-        $css = 'body { background-image: linear-gradient(red, yellow 40px, green); '
+        // Use a `<div>` rather than `<body>` — CSS Backgrounds 3
+        // §3.11.2 propagates body backgrounds to the canvas, which
+        // would make the gradient line length equal to the page
+        // height, not the 100px we want to test against.
+        $css = 'div.box { background-image: linear-gradient(red, yellow 40px, green); '
             . 'width: 100pt; height: 100px; }';
         $renderer->renderInto(
             $writer,
-            '<html><head><style>' . $css . '</style></head><body></body></html>',
+            '<html><head><style>' . $css . '</style></head><body><div class="box"></div></body></html>',
         );
         $bytes = $writer->toBytes();
         self::assertStringContainsString('/FunctionType 3', $bytes, 'three-stop stitching');
