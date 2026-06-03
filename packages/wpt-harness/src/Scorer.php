@@ -33,10 +33,16 @@ final class Scorer
      * exist; if either is missing the scorer returns `1.0` (max diff)
      * with a non-zero `$reason`.
      *
+     * `$maxAllowedPixels` overrides the per-test pass threshold when
+     * the test carries a WPT `<meta name="fuzzy">` annotation — the
+     * upper bound from `totalPixels=lo-hi` is passed straight through.
+     * Anything `<=` that count passes; `null` falls back to the
+     * scorer's configured fractional threshold.
+     *
      * @return array{score: float, passed: bool, reason: string|null,
      *               diffImage: string|null}
      */
-    public function diff(string $renderedPath, string $referencePath): array
+    public function diff(string $renderedPath, string $referencePath, ?int $maxAllowedPixels = null): array
     {
         if (!is_file($renderedPath)) {
             return [
@@ -88,9 +94,12 @@ final class Scorer
             ];
         }
         $score = min(1.0, $errorPixels / $totalPixels);
+        $passed = $maxAllowedPixels !== null
+            ? $errorPixels <= $maxAllowedPixels
+            : $score <= $this->passThreshold;
         return [
             'score' => $score,
-            'passed' => $score <= $this->passThreshold,
+            'passed' => $passed,
             'reason' => null,
             'diffImage' => is_file($diffImage) ? $diffImage : null,
         ];

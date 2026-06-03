@@ -162,7 +162,8 @@ final class HarnessRunner
             );
         }
 
-        $diff = $this->scorer->diff($renderedPng, $refPng);
+        $fuzzy = $this->parseFuzzyMeta($testPath);
+        $diff = $this->scorer->diff($renderedPng, $refPng, $fuzzy['maxPixels']);
         @unlink($renderedPng);
         if ($refPng !== $refPath) {
             @unlink($refPng);
@@ -176,6 +177,51 @@ final class HarnessRunner
             diffArtefactPath: $diff['diffImage'] ?? null,
             renderMicros: $renderMicros,
         );
+    }
+
+    /**
+     * Parse the WPT `<meta name="fuzzy">` annotation from a test file.
+     *
+     * Format (CSS-WG convention):
+     *   maxDifference=A-B; totalPixels=C-D
+     *   maxDifference=A-B;totalPixels=C-D
+     *   A-B;C-D                              (positional shorthand)
+     *
+     * Both ranges are inclusive bounds; the *upper* bound is the one
+     * the renderer must respect. We surface the upper-bound pixel
+     * count to the Scorer so tests with relaxed tolerances (e.g.
+     * `totalPixels=0-127500`) pass when our renderer is within
+     * spec-allowed difference but not pixel-perfect.
+     *
+     * Returns `['maxPixels' => null]` when no annotation is present;
+     * `null` tells the Scorer to use its default threshold.
+     *
+     * @return array{maxPixels: int|null}
+     */
+    private function parseFuzzyMeta(string $testPath): array
+    {
+        $head = @file_get_contents($testPath, false, null, 0, 64 * 1024);
+        if ($head === false || $head === '') {
+            return ['maxPixels' => null];
+        }
+        if (preg_match(
+            '~<meta\s+[^>]*?name\s*=\s*["\']fuzzy["\']\s+[^>]*?content\s*=\s*["\']([^"\']+)["\']~i',
+            $head,
+            $m,
+        ) !== 1) {
+            return ['maxPixels' => null];
+        }
+        $content = trim($m[1]);
+        // Look for `totalPixels=<lo>-<hi>` first; fall back to the last
+        // semicolon-separated range in positional shorthand.
+        if (preg_match('~totalPixels\s*=\s*\d+\s*-\s*(\d+)~i', $content, $m2) === 1) {
+            return ['maxPixels' => (int) $m2[1]];
+        }
+        $parts = array_map('trim', explode(';', $content));
+        if (count($parts) >= 2 && preg_match('~^\d+\s*-\s*(\d+)$~', $parts[1], $m3) === 1) {
+            return ['maxPixels' => (int) $m3[1]];
+        }
+        return ['maxPixels' => null];
     }
 
     private function resolveTestFile(string $rootAbs, string $testId): ?string
