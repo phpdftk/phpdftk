@@ -148,11 +148,68 @@ final class Painter
      */
     public array $collectedLinks = [];
 
+    /**
+     * Root box for the current paint pass. CSS Backgrounds 3 §3.11.2
+     * propagates the root element's background to the canvas (the page
+     * rect), and `paintBackground` suppresses the root's own paint to
+     * avoid double-painting at the box's geometry.
+     */
+    private ?Box $rootBox = null;
+
     public function paint(Box $root, ContentStream $stream): void
     {
         $this->collectedLinks = [];
         $this->imageNameCache = [];
+        $this->rootBox = $root;
+        // CSS Backgrounds 3 §3.11.2 — if the root has a non-transparent
+        // background, paint the entire canvas with it BEFORE walking the
+        // tree (so descendants paint on top). The root's own
+        // paint-background pass is suppressed by the rootBox check.
+        $this->paintCanvasBackgroundFromRoot($root, $stream);
         $this->paintBox($root, $stream);
+        $this->rootBox = null;
+    }
+
+    private function paintCanvasBackgroundFromRoot(Box $root, ContentStream $stream): void
+    {
+        $color = $root->style->get('background-color');
+        $bgImage = $root->style->get('background-image');
+        $hasColor = $color instanceof Color && $color->a > 0.0;
+        $hasImage = $bgImage instanceof \Phpdftk\Css\Value\Url;
+        $hasGradient = $bgImage instanceof \Phpdftk\Css\Value\LinearGradient;
+        $hasRadial = $bgImage instanceof \Phpdftk\Css\Value\RadialGradient;
+        if (!$hasColor && !$hasImage && !$hasGradient && !$hasRadial) {
+            return;
+        }
+        // The canvas rect is the entire page in PDF user-space — the
+        // painter's `pageHeight` is the top, `pageWidth` the right edge.
+        // Layout-Y 0 corresponds to the page top; emitRect handles the
+        // CSS-to-PDF Y flip internally.
+        if ($hasColor) {
+            $this->emitRect($stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight, fill: $color);
+        }
+        if ($hasImage) {
+            $sizeValue = $root->style->get('background-size');
+            $positionValue = $root->style->get('background-position');
+            $repeatValue = $root->style->get('background-repeat');
+            $this->paintBackgroundImage(
+                $bgImage,
+                $stream,
+                0.0,
+                0.0,
+                $this->pageWidth,
+                $this->pageHeight,
+                $sizeValue,
+                $positionValue,
+                $repeatValue,
+            );
+        }
+        if ($hasGradient) {
+            $this->paintLinearGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
+        }
+        if ($hasRadial) {
+            $this->paintRadialGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
+        }
     }
 
     private function paintBox(Box $box, ContentStream $stream): void
@@ -2124,6 +2181,12 @@ final class Painter
             || $box instanceof \Phpdftk\HtmlToPdf\Box\TextBox
             || $box instanceof \Phpdftk\HtmlToPdf\Box\LineBreakBox
         ) {
+            return;
+        }
+        // CSS Backgrounds 3 §3.11.2 — the root element's background was
+        // already painted across the entire canvas before the tree walk;
+        // skip the root's own per-box paint to avoid double-fill.
+        if ($box === $this->rootBox) {
             return;
         }
         $color = $box->style->get('background-color');
