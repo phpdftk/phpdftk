@@ -175,6 +175,15 @@ final class Painter
     private function paintCanvasBackgroundFromRoot(Box $root, ContentStream $stream): void
     {
         $source = $root;
+        // CSS Containment 3 §4.4 — `contain: paint` (or `contain:
+        // layout`, which implies paint containment in the propagation
+        // sense) on the root element creates a stacking + paint
+        // boundary, so neither the root's nor the body's background
+        // propagates to the canvas. Bail out before doing any canvas
+        // paint when the root is paint-contained.
+        if ($this->boxIsPaintContained($source)) {
+            return;
+        }
         if (!$this->boxHasPaintableBackground($source)) {
             // CSS Backgrounds 3 §3.11.2 second paragraph — when the root
             // element of an HTML/XHTML document has a transparent
@@ -183,7 +192,14 @@ final class Painter
             // transparent. Skipping the body lookup for non-HTML root
             // elements is harmless: only HTML structure has a `<body>`.
             $body = $this->findBodyChild($root);
-            if ($body === null || !$this->boxHasPaintableBackground($body)) {
+            if ($body === null
+                || !$this->boxHasPaintableBackground($body)
+                // CSS Containment 3 §4.4 — a paint-contained body does
+                // not propagate either. The body's bg paints at the
+                // body's own geometry, and the canvas stays at the
+                // initial value (transparent).
+                || $this->boxIsPaintContained($body)
+            ) {
                 return;
             }
             $source = $body;
@@ -246,6 +262,40 @@ final class Painter
             }
         }
         return null;
+    }
+
+    /**
+     * Return true when the box's `contain` property includes a value
+     * that creates a paint-containment boundary — either `paint` or
+     * `strict` or `content` (which include paint by definition), or
+     * the multi-keyword shorthand listing one of those terms. CSS
+     * Containment 3 §2.4 / §4.4. Per CSS Backgrounds 3 §3.11.2, when
+     * the root or body is paint-contained the body→canvas background
+     * propagation is suppressed.
+     */
+    private function boxIsPaintContained(Box $box): bool
+    {
+        $contain = $box->style->get('contain');
+        if ($contain instanceof \Phpdftk\Css\Value\Keyword) {
+            return $this->containKeywordImpliesPaint($contain->name);
+        }
+        if ($contain instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($contain->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\Keyword
+                    && $this->containKeywordImpliesPaint($v->name)
+                ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private function containKeywordImpliesPaint(string $keyword): bool
+    {
+        // `paint` opts in directly. `strict` = layout+paint+style+size
+        // (CSS Containment 3 §2.4). `content` = layout+paint+style.
+        return $keyword === 'paint' || $keyword === 'strict' || $keyword === 'content';
     }
 
     private function paintBox(Box $box, ContentStream $stream): void

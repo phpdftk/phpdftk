@@ -2909,6 +2909,44 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString('100 100 re', $rects[0], 'not body-sized');
     }
 
+    public function testContainPaintOnBodySuppressesPropagation(): void
+    {
+        // CSS Containment 3 §4.4 + CSS Backgrounds 3 §3.11.2 — a
+        // paint-contained body forms a paint boundary and its background
+        // does NOT propagate to the canvas. With root transparent and
+        // body { background: green; contain: paint }, the canvas paints
+        // nothing; the body's bg paints at its own geometry.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             body { background-color: green; contain: paint;
+                    width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        $rects = array_values(array_filter(
+            $ops,
+            static fn($op) => str_ends_with(rtrim($op), ' re'),
+        ));
+        // Exactly one rect — the body's own background paint at body
+        // geometry. No second canvas-sized rect (the propagation is
+        // suppressed by contain: paint).
+        self::assertCount(1, $rects, 'no canvas-sized rect — propagation suppressed');
+        self::assertStringNotContainsString(' 792 re', $rects[0], 'rect is body-sized, not canvas-sized');
+    }
+
     public function testRootBackgroundWinsOverBodyBackgroundOnCanvas(): void
     {
         // When the root has its own background, the body's background
