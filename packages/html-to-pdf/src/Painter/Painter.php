@@ -3533,7 +3533,14 @@ final class Painter
             return false;
         }
         $lower = strtolower($style->name);
-        return $lower !== 'none' && $lower !== 'hidden';
+        if ($lower === 'none' || $lower === 'hidden') {
+            return false;
+        }
+        // CSS Backgrounds 3 §4.4: a fully transparent border colour
+        // contributes nothing visible — skipping the paint avoids drawing
+        // a black bar where the alpha=0 value would otherwise resolve
+        // through the DeviceRGB `rg` operator (which has no alpha).
+        return $this->borderColor($box, $side)->a > 0.0;
     }
 
     private function borderColor(Box $box, string $side): Color

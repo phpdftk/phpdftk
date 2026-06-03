@@ -2791,6 +2791,37 @@ final class PainterTest extends TestCase
         self::assertStringContainsString('%%EOF', $bytes);
     }
 
+    public function testTransparentBorderEmitsNoStroke(): void
+    {
+        // CSS Backgrounds 3 §4.4: a fully transparent border colour
+        // contributes nothing visible. Painter must skip the side fill
+        // rather than fall through to DeviceRGB (which has no alpha) and
+        // render the colour as black.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { width: 100px; height: 100px;
+                   border: 10px solid transparent; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        self::assertStringNotContainsString('0 0 0 rg', $bytes, 'no spurious black border stroke');
+    }
+
     public function testSvgDataUriBackgroundEmitsSvgPaintOperators(): void
     {
         // Lime-filled SVG passed as a data: URI background. The painter
