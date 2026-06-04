@@ -2823,12 +2823,19 @@ final class Painter
                 }
                 $tileBottomY = $originPdfBottom + ($originHeight - $tileH - $offsetY);
                 if ($svgDoc !== null) {
+                    // Route the SVG draw through the caller's stream so
+                    // it lands INSIDE the bg-clip `q ... clip ... Q`
+                    // scope this method opened above. Without this the
+                    // page would attach a fresh content stream and the
+                    // SVG paint (e.g. a `cover`-overflowed 768×3072
+                    // tile) escapes the box clip.
                     $this->svgRenderer()->draw(
                         $svgDoc,
                         $originX + $offsetX,
                         $tileBottomY,
                         $tileW,
                         $tileH,
+                        stream: $stream,
                     );
                 } else {
                     $stream->saveGraphicsState();

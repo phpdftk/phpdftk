@@ -88,14 +88,25 @@ final class SvgRenderer
      * space mapped to the rectangle `(x, y) … (x + width, y + height)`.
      * Omitting `$width` / `$height` keeps the source's natural size.
      */
+    /**
+     * @param ContentStream|null $stream Override the page's primary
+     *   content stream. When omitted, falls back to
+     *   `$this->page->contentStream()` — the legacy behaviour. Callers
+     *   that have already opened a graphics-state scope on a specific
+     *   stream (a `q ... clip ... Q` wrap from a host renderer) must
+     *   pass that stream here so the SVG draw appears inside the
+     *   wrap; otherwise the page may attach a second content stream
+     *   and the SVG paints outside the caller's clip context.
+     */
     public function draw(
         SvgDocument $svg,
         float $x,
         float $y,
         ?float $width = null,
         ?float $height = null,
+        ?ContentStream $stream = null,
     ): void {
-        $stream = $this->page->contentStream();
+        $stream ??= $this->page->contentStream();
         [$srcMinX, $srcMinY, $srcWidth, $srcHeight, $srcSynthetic] = self::resolveSourceRect($svg, $width, $height);
 
         $dstWidth = $width ?? $srcWidth;

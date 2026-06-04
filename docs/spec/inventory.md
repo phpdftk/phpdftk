@@ -188,25 +188,25 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until the WPT manifest classifier (4A.4) is feeding real per-module weights, the headline uses a uniform-weighted estimate across the rows above.
 
-**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **78.40% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
+**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **79.21% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
 
 For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
 
 ### Validation against real WPT
 
-A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **78.40% in-scope pass rate**:
+A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **79.21% in-scope pass rate**:
 
 ```
 WPT harness — corpus: /tmp/wpt-sparse (7 CSS modules, 5250 files)
   Total tests:        5250
-    Pass:             2127
-    Fail:             586
+    Pass:             2149
+    Fail:             564
     Out of scope:     47
     Pending substr.:  317
     Skipped:          2173
     Harness errors:   0
   In-scope total:    2713
-  In-scope pass:     78.40%
+  In-scope pass:     79.21%
 ```
 
 The css-color subset alone (366 files, where the manifest carries the most pending-substrate rules) lands at **59.65%**:
@@ -223,7 +223,7 @@ Filter: css/css-color/**
   In-scope pass:     59.65%
 ```
 
-Sixteen measurement tightenings landed in sequence to get here:
+Seventeen measurement tightenings landed in sequence to get here:
 
 1. Wired the real render → Ghostscript-rasterise → ImageMagick-diff pipeline (Phase 4A.2/4A.3) — replacing the "not yet implemented" stub.
 2. Added `<link rel="match" href="…">` parsing to the harness's reference locator — closed the original 229-test "no ref sibling" gap.
@@ -241,6 +241,7 @@ Sixteen measurement tightenings landed in sequence to get here:
 14. **Extreme-aspect SVG `contain`**: SVGs whose intrinsic ratio derives from an extreme viewBox aspect (e.g. `viewBox="0 0 2147483647 1"`) collapse one side to a rounding-to-zero pixel count. `intrinsicSvgSize` now lets the derived dimension fall to zero (instead of clamping to one), and `resolveBackgroundSize` guards `cover` with a degenerate-axis stretch fallback while letting `contain` resolve via INF-on-the-impossible-axis. The four `tall`/`wide`--`contain`--`height`/`width` reftests use the spec's "extreme aspect → vanishingly small tile" outcome on the ref side; matching it gets all four into passing.
 15. **`background-size: auto` honours intrinsic dimensions**: CSS Backgrounds 3 §3.9 — when both axes resolve to `auto` and the image has an intrinsic size, the tile size is that intrinsic size (not the bg-positioning area). Previously every `auto` resolution returned box dims, masking the spec's intrinsic-size case across the whole vector cluster. Now SVGs with viewBox-derived intrinsics paint at their natural pixel size and tile per `background-repeat`. Closes 12 vector reftests in the `--auto--` row plus two collateral wins (`background-attachment-local-positioning-5`, `background-position-subpixel-at-border.tentative`).
 16. **`background-repeat: round` scales tiles to fit**: CSS Backgrounds 3 §3.7 — `round` per axis chooses a tile size that divides the positioning area evenly: `tileDim = originDim / round(originDim / naturalTileDim)`. The previous implementation fell through to plain `repeat` semantics with the natural tile size, producing clipped partial tiles instead of the spec's scaled whole-number fit. `repeatModes` now exposes per-axis modes (`repeat` / `no-repeat` / `round` / `space`) and `roundTileDim` applies the scale-to-fit rescale before the tile loop runs. Closes the 3 raster `background-repeat-round-1b/1d/1e` reftests; the round-2 / round-3 gradient variants still need the analogous fix on the gradient path.
+17. **SVG bg routes through the painter's content stream**: `SvgRenderer::draw` previously took its content stream from `Page::contentStream()`, which lazily allocates and attaches a *separate* content stream to the page. So when the painter opened a `q ... rect W ... ... Q` clip wrap around an SVG background-image tile, the SVG paint actually landed in a fresh second content stream — outside the wrap — and the bg-clip rect was effectively unused. `cover` mode (e.g. tile 768×3072 in a 768×256 box) painted the overflow across the whole page. Routing the SVG draw through the caller's stream (new `stream:` parameter on `SvgRenderer::draw`) keeps it inside the clip wrap. +22 tests, no regressions — the single highest-leverage fix of the session.
 
 The gap to WeasyPrint (~13 points on the broad corpus, ~28 points on css-color) is concentrated in the raster-dependent modules called out per-row (Filter Effects, 3D Transforms, advanced Masking, Page Floats, masonry / subgrid) and the colour engine (Phase 4E).
 
