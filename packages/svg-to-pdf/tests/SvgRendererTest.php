@@ -217,17 +217,24 @@ final class SvgRendererTest extends TestCase
         self::assertStringContainsString('1 0 0 -1 320 700 cm', $bytes);
     }
 
-    public function testSvgWithoutAnyDimensionsFallsBackToUnitSource(): void
+    public function testSvgWithoutAnyDimensionsUsesDestinationAsSource(): void
     {
+        // CSS Images 3 §5.2 — an SVG with no width / height / viewBox
+        // adopts the caller's destination as its source viewport so
+        // inner percentage attributes resolve against the area the
+        // SVG actually paints into. Earlier phases used a 1×1 unit
+        // fallback (which forced an explicit `100 0 0 -100 0 100 cm`
+        // scale to fit a 100×100 dst), but that misroutes percentage-
+        // sized children to vanishing tile dimensions.
         $ctx = $this->renderer();
         $svg = $this->svgParser->parse(
             '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>',
         );
         $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
         $ops = implode("\n", $ctx['stream']->getOperators());
-        // Source 1×1, dest 100×100 → uniform scale 100, effectiveH 100,
-        // f = 0 + 100 = 100.
-        self::assertStringContainsString('100 0 0 -100 0 100 cm', $ops);
+        // Source rect = dst rect → 1:1 scale, y-flip only.
+        // cm = `1 0 0 -1 0 100`.
+        self::assertStringContainsString('1 0 0 -1 0 100 cm', $ops);
     }
 
     public function testTitleAndDescDoNotEmitOperators(): void

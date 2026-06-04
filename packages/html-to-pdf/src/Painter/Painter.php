@@ -3095,11 +3095,28 @@ final class Painter
             || ($sizeValue instanceof \Phpdftk\Css\Value\Keyword
                 && strtolower($sizeValue->name) === 'auto');
         if ($isAuto) {
+            // Per CSS Backgrounds 3 §3.9 — both auto and the image
+            // has full intrinsic w+h (raster, or SVG with both axes
+            // either fixed or derived from viewBox) → use those.
             $intrinsic = $this->intrinsicSize($src);
             if ($intrinsic !== null && $intrinsic[0] > 0 && $intrinsic[1] > 0) {
                 return [
                     'w' => (float) $intrinsic[0],
                     'h' => (float) $intrinsic[1],
+                    'offsetX' => 0.0,
+                    'offsetY' => 0.0,
+                ];
+            }
+            // Partial intrinsic (SVG with one fixed dim + no
+            // viewBox): missing axes fall back to the bg-positioning
+            // area dimension (CSS Images 3 §5.2 default object size).
+            $partial = $this->intrinsicSizePartial($src);
+            $w = $partial['w'];
+            $h = $partial['h'];
+            if ($w !== null || $h !== null) {
+                return [
+                    'w' => $w ?? $boxWidth,
+                    'h' => $h ?? $boxHeight,
                     'offsetX' => 0.0,
                     'offsetY' => 0.0,
                 ];
@@ -3381,30 +3398,77 @@ final class Painter
         if ($explicitW !== null && $explicitH !== null) {
             return [$explicitW, $explicitH];
         }
+        // Prefer the FULL intrinsic (raster, or SVG with both axes
+        // either fixed or derivable from viewBox). Only fall to the
+        // partial helper when no complete intrinsic is available —
+        // e.g. an SVG with just one fixed axis and no viewBox.
         $intrinsic = $this->intrinsicSize($src);
-        // Both auto: use intrinsic if available, else box.
-        if ($explicitW === null && $explicitH === null) {
-            if ($intrinsic !== null) {
-                return [(float) $intrinsic[0], (float) $intrinsic[1]];
+        $hasFullIntrinsic = $intrinsic !== null && $intrinsic[0] > 0 && $intrinsic[1] > 0;
+        if ($hasFullIntrinsic) {
+            $natW = (float) $intrinsic[0];
+            $natH = (float) $intrinsic[1];
+            if ($explicitW === null && $explicitH === null) {
+                return [$natW, $natH];
             }
-            return [$boxWidth, $boxHeight];
+            if ($explicitW !== null) {
+                return [$explicitW, $explicitW * ($natH / $natW)];
+            }
+            assert($explicitH !== null);
+            return [$explicitH * ($natW / $natH), $explicitH];
         }
-        $hasRatio = $intrinsic !== null && $intrinsic[0] > 0 && $intrinsic[1] > 0;
+        $partial = $this->intrinsicSizePartial($src);
+        $intW = $partial['w'];
+        $intH = $partial['h'];
+        if ($explicitW === null && $explicitH === null) {
+            return [$intW ?? $boxWidth, $intH ?? $boxHeight];
+        }
         if ($explicitW !== null) {
-            // Width given, height auto.
-            $finalW = $explicitW;
-            $finalH = $hasRatio
-                ? $finalW * ($intrinsic[1] / $intrinsic[0])
-                : $boxHeight;
-            return [$finalW, $finalH];
+            return [$explicitW, $intH ?? $boxHeight];
         }
-        // Height given, width auto.
-        $finalH = $explicitH;
-        assert($finalH !== null);
-        $finalW = $hasRatio
-            ? $finalH * ($intrinsic[0] / $intrinsic[1])
-            : $boxWidth;
-        return [$finalW, $finalH];
+        assert($explicitH !== null);
+        return [$intW ?? $boxWidth, $explicitH];
+    }
+
+    /**
+     * Partial intrinsic dimensions of an image. Unlike
+     * {@see intrinsicSize}, this returns nullable per-axis values
+     * plus a `hasRatio` flag so callers (notably the `bg-size: auto`
+     * branches of {@see resolveBackgroundSize} / {@see resolveAutoSizePair})
+     * can honour SVGs that declare only one of width / height /
+     * viewBox per CSS Backgrounds 3 §3.9. For raster images the
+     * shape is always full (both axes set, hasRatio derived).
+     *
+     * @return array{w: ?float, h: ?float, hasRatio: bool}
+     */
+    private function intrinsicSizePartial(string $src): array
+    {
+        if ($this->isSvgSrc($src)) {
+            $svg = $this->loadSvgDocument($src);
+            if ($svg === null) {
+                return ['w' => null, 'h' => null, 'hasRatio' => false];
+            }
+            $w = self::parseSvgLengthAttribute($svg->widthAttribute());
+            $h = self::parseSvgLengthAttribute($svg->heightAttribute());
+            $viewBox = $svg->viewBox();
+            // A ratio comes from any of: viewBox, fixed width+height,
+            // or viewBox alone — anything that gives both axes
+            // mathematically. The earlier `intrinsicSvgSize` already
+            // backfills missing axes from ratio, so by the time
+            // we're here for "partial intrinsic" we typically have
+            // at most one fixed dim. Mirror the same ratio sources.
+            $hasRatio = ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0)
+                || ($w !== null && $h !== null && $h > 0.0);
+            return ['w' => $w, 'h' => $h, 'hasRatio' => $hasRatio];
+        }
+        $intrinsic = $this->intrinsicSize($src);
+        if ($intrinsic === null) {
+            return ['w' => null, 'h' => null, 'hasRatio' => false];
+        }
+        return [
+            'w' => (float) $intrinsic[0],
+            'h' => (float) $intrinsic[1],
+            'hasRatio' => $intrinsic[0] > 0 && $intrinsic[1] > 0,
+        ];
     }
 
     /**

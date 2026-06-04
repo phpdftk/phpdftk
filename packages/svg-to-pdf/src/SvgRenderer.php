@@ -352,27 +352,23 @@ final class SvgRenderer
         if ($w !== null && $h !== null) {
             return [0.0, 0.0, $w, $h, false];
         }
-        // Detect a percentage-style attribute (e.g. `width="50%"`).
-        // That signals the SVG wants its viewport supplied externally
-        // — fall the destination through so inner percentages resolve.
-        $hasPercentDimension = self::isPercentageAttribute($widthAttr)
-            || self::isPercentageAttribute($heightAttr);
-        if ($hasPercentDimension && $dstWidth !== null && $dstHeight !== null) {
+        // CSS Images 3 §5.2 — when the SVG doesn't have both a
+        // fixed width AND fixed height (and no viewBox to imply a
+        // ratio), use the caller's destination as the source
+        // viewport. This covers: partial fixed dims, percentage
+        // attributes, fully-omitted dims, and any combination of
+        // those. Inner percentage attributes resolve against the
+        // dst, matching browsers' "default object size" outcome
+        // for `background-image: url(svg)`.
+        if ($dstWidth !== null && $dstHeight !== null) {
             return [0.0, 0.0, $dstWidth, $dstHeight, true];
         }
-        // Fully-omitted dims → legacy unit-square fallback (preserved
-        // so callers using `draw(width=N, height=N)` on a content-only
-        // SVG get the prior `dst / 1` scale behaviour).
+        // No dst supplied (standalone draw with no width/height) and
+        // no SVG-supplied dims either — fall back to a unit square
+        // so the caller at least produces a finite-sized render.
         return [0.0, 0.0, $w ?? 1.0, $h ?? 1.0, false];
     }
 
-    private static function isPercentageAttribute(?string $raw): bool
-    {
-        if ($raw === null) {
-            return false;
-        }
-        return preg_match('/^\s*[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?\s*%/', $raw) === 1;
-    }
 
     /**
      * SVG 2 §7.10 viewport / viewBox alignment. Returns
