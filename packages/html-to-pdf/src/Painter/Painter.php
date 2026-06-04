@@ -3049,8 +3049,20 @@ final class Painter
                 return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
             }
             [$natW, $natH] = $intrinsic;
-            $scaleW = $boxWidth / $natW;
-            $scaleH = $boxHeight / $natH;
+            // Extreme viewBox aspect ratios can collapse one axis to
+            // zero (CSS Backgrounds 3 §3.9 considers the ratio
+            // well-defined, but the derived dimension rounds to 0).
+            // `contain` resolves cleanly via INF on the impossible
+            // axis — min picks the finite scale and the zero side
+            // stays zero — but `cover` would otherwise produce INF
+            // dimensions. For cover with a degenerate axis, degrade
+            // to stretch so the box is at least covered with finite
+            // dimensions.
+            if ($keyword === 'cover' && ($natW === 0 || $natH === 0)) {
+                return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
+            }
+            $scaleW = $natW > 0 ? $boxWidth / $natW : INF;
+            $scaleH = $natH > 0 ? $boxHeight / $natH : INF;
             $scale = $keyword === 'cover' ? max($scaleW, $scaleH) : min($scaleW, $scaleH);
             $finalW = $natW * $scale;
             $finalH = $natH * $scale;
@@ -3470,11 +3482,20 @@ final class Painter
         if ($w !== null && $h !== null) {
             return [max(1, (int) round($w)), max(1, (int) round($h))];
         }
+        // Derived-from-aspect: keep the clamp on the *explicit* side
+        // (so a real `width="8"` survives rounding), but let the
+        // derived side fall to zero when an extreme viewBox aspect
+        // (e.g. `2147483647:1`) makes the other dimension
+        // mathematically negligible. CSS Backgrounds 3 §3.9 then
+        // resolves `contain` to a zero-extent tile — matching the
+        // browser-visible "renders as empty" outcome that the
+        // `tall--contain--height` / `wide--contain--height` reftests
+        // expect for SVGs with extreme viewBox aspect ratios.
         if ($w !== null && $aspect !== null && $aspect > 0.0) {
-            return [max(1, (int) round($w)), max(1, (int) round($w / $aspect))];
+            return [max(1, (int) round($w)), max(0, (int) round($w / $aspect))];
         }
         if ($h !== null && $aspect !== null && $aspect > 0.0) {
-            return [max(1, (int) round($h * $aspect)), max(1, (int) round($h))];
+            return [max(0, (int) round($h * $aspect)), max(1, (int) round($h))];
         }
         if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
             return [max(1, (int) round($viewBox[2])), max(1, (int) round($viewBox[3]))];
