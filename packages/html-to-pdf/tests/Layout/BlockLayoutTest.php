@@ -2279,6 +2279,58 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(30.0, $div->geometry->y);
     }
 
+    public function testAbsoluteCornerAnchorsDeriveWidthAndHeight(): void
+    {
+        // CSS 2.1 §10.3.7 / §10.6.4 — `width: auto` + both left/right set
+        // → width = cb_width - left - right. Same for height with
+        // top/bottom. The `top: 0; left: 0; right: 0; bottom: 0`
+        // viewport-fill pattern only renders correctly when both pairs
+        // resolve from the containing block.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="abs" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        // Containing block: 600 wide × 800 tall (the default test ctx).
+        $this->layout->layout($box, $this->defaultCtx);
+        $abs = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('abs', $child->element->classes(), true)) {
+                $abs = $child;
+                break;
+            }
+        }
+        self::assertNotNull($abs);
+        self::assertSame(0.0, $abs->geometry->x, 'left:0 places at origin x');
+        self::assertSame(0.0, $abs->geometry->y, 'top:0 places at origin y');
+        self::assertSame(600.0, $abs->geometry->width, 'width = cb_width - left - right');
+        self::assertSame(800.0, $abs->geometry->height, 'height = cb_height - top - bottom');
+    }
+
+    public function testAbsoluteExplicitWidthIgnoresRightAnchor(): void
+    {
+        // CSS 2.1 §10.3.7 — when `width` is explicit, the box is
+        // over-constrained and the `right` anchor is ignored. The box
+        // keeps its declared width.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div class="abs" style="position: absolute; top: 0; left: 0; right: 0; width: 100px; height: 50px"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $abs = null;
+        foreach ($this->find($box, 'body')->children as $child) {
+            if ($child->element !== null && in_array('abs', $child->element->classes(), true)) {
+                $abs = $child;
+                break;
+            }
+        }
+        self::assertNotNull($abs);
+        self::assertSame(100.0, $abs->geometry->width, 'explicit width wins');
+    }
+
     public function testAbsoluteAfterFlowSiblingsHonorsParentTop(): void
     {
         // Absolute box's `top: N` is measured from parent's content

@@ -705,6 +705,73 @@ final class BlockLayout
     }
 
     /**
+     * Apply CSS 2.1 §10.3.7 (width) and §10.6.4 (height) corner-anchor
+     * resolution to an absolutely-positioned box. When both opposing
+     * edge anchors are set AND the corresponding size is `auto`, the
+     * size is derived from `containing-block-size - start - end`. We
+     * mutate the child's cascaded `width` / `height` so the standard
+     * box-layout path picks up the resolved size; the existing
+     * `resolveAbsoluteOffsets` then aligns left/top while right/bottom
+     * are implicitly satisfied by the size.
+     *
+     * Phase-1 scope: ignore margins (treat as 0 in the size calculation).
+     * Margins on absolute boxes are a rarely-used edge case; the
+     * common pattern is `top:0; left:0; right:0; bottom:0` with no
+     * margins.
+     */
+    private function applyAbsoluteCornerAnchorSize(Box $child, LayoutContext $childContext): void
+    {
+        $style = $child->style;
+        $cbWidth = $childContext->containingBlockWidth;
+        $cbHeight = $childContext->containingBlockHeight;
+        $left = $style->get('left');
+        $right = $style->get('right');
+        $top = $style->get('top');
+        $bottom = $style->get('bottom');
+        $borderBox = $this->isBorderBoxSizing($style);
+        if ($this->isAuto($style->get('width'))
+            && !$this->isAuto($left)
+            && !$this->isAuto($right)
+        ) {
+            $leftPx = $this->resolveLength($left, $cbWidth);
+            $rightPx = $this->resolveLength($right, $cbWidth);
+            $available = max(0.0, $cbWidth - $leftPx - $rightPx);
+            // The `width` property describes the box's content area
+            // under content-box sizing (default) or its border-box
+            // under border-box sizing. CSS 2.1 §10.3.7 derives the
+            // *content* size from the containing block, so under
+            // content-box sizing we subtract the box's own borders +
+            // padding (margins are 0 in this phase).
+            if (!$borderBox) {
+                $borderLeft = $this->resolveBorderWidth($style, 'left');
+                $borderRight = $this->resolveBorderWidth($style, 'right');
+                $paddingLeft = $this->resolveLength($style->get('padding-left'), $cbWidth);
+                $paddingRight = $this->resolveLength($style->get('padding-right'), $cbWidth);
+                $available = max(0.0, $available - $borderLeft - $borderRight - $paddingLeft - $paddingRight);
+            }
+            $style->set('width', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
+        }
+        if ($this->isAuto($style->get('height'))
+            && !$this->isAuto($top)
+            && !$this->isAuto($bottom)
+        ) {
+            $topPx = $this->resolveLength($top, $cbHeight);
+            $bottomPx = $this->resolveLength($bottom, $cbHeight);
+            $available = max(0.0, $cbHeight - $topPx - $bottomPx);
+            if (!$borderBox) {
+                $borderTop = $this->resolveBorderWidth($style, 'top');
+                $borderBottom = $this->resolveBorderWidth($style, 'bottom');
+                // Percentage padding on vertical axis resolves against
+                // the containing-block *width* per CSS 2.1 §8.4.
+                $paddingTop = $this->resolveLength($style->get('padding-top'), $cbWidth);
+                $paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbWidth);
+                $available = max(0.0, $available - $borderTop - $borderBottom - $paddingTop - $paddingBottom);
+            }
+            $style->set('height', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
+        }
+    }
+
+    /**
      * Resolve the (dx, dy) shift needed to move a freshly-laid-out
      * absolutely-positioned `$child` from its in-flow `cursorY` position
      * to its absolute target position per CSS 2.1 §9.6.
@@ -3177,6 +3244,13 @@ final class BlockLayout
             // the cursor advancement so siblings stack as if it weren't
             // here.
             if ($this->isOutOfFlow($child)) {
+                // CSS 2.1 §10.3.7 / §10.6.4 — when both opposing edge
+                // anchors are set (left+right or top+bottom) AND the
+                // corresponding size property is `auto`, the size is
+                // derived from the containing block minus both
+                // anchors. Resolve here BEFORE laying out so the
+                // child's geometry reflects the corner-anchored size.
+                $this->applyAbsoluteCornerAnchorSize($child, $childContext);
                 $absCtx = $childContext->withOrigin($originX, $cursorY);
                 $this->layoutBox($child, $absCtx);
                 [$dx, $dy] = $this->resolveAbsoluteOffsets(
