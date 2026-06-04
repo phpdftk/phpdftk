@@ -2775,12 +2775,21 @@ final class Painter
         // `repeat-y` tile across the relevant axes. The painter's box
         // clip handles edge tiles that extend past the box rect.
         $repeat = $this->repeatAxes($repeatValue);
+        $repeatModes = $this->repeatModes($repeatValue);
         $tileW = $paint['w'];
         $tileH = $paint['h'];
         if ($tileW <= 0.0 || $tileH <= 0.0) {
             $stream->restoreGraphicsState();
             return;
         }
+        // CSS Backgrounds 3 §3.7 — `round` per axis scales the tile
+        // so a whole number of tiles fits the positioning area. Apply
+        // before computing tile offsets so subsequent positioning + the
+        // repeat loop see the rescaled tile dims.
+        $tileW = $this->roundTileDim($repeatModes['x'], $tileW, $originWidth);
+        $tileH = $this->roundTileDim($repeatModes['y'], $tileH, $originHeight);
+        $paint['w'] = $tileW;
+        $paint['h'] = $tileH;
         // Start positions: shift the anchor backwards by whole tile
         // widths until the leftmost / topmost tile sits at or before
         // the origin box (NOT the clip box — tiles anchor against
@@ -2851,23 +2860,42 @@ final class Painter
 
     /**
      * Resolve a CSS `background-repeat` value to a `{x: bool, y: bool}`
-     * pair indicating whether each axis should tile.
+     * pair indicating whether each axis should tile (true for all
+     * non-`no-repeat` modes; the per-axis `round` / `space` math
+     * folds back into the caller via {@see repeatModes}).
      *
      * Phase-1 handles the simple keyword set:
      *   - `repeat` (default) → both axes
      *   - `repeat-x` → x only
      *   - `repeat-y` → y only
      *   - `no-repeat` → neither
+     *   - `round` / `space` → both axes (loop-active; the actual
+     *     scale-to-fit / distribute-spacing math is layered on top
+     *     of the loop)
      *   - two-value form (e.g. `repeat no-repeat`): per-axis keywords
-     * The `space` / `round` per-axis variants land later — they need
-     * extra-spacing / scaling math beyond the simple loop.
      *
      * @return array{x: bool, y: bool}
      */
     private function repeatAxes(?\Phpdftk\Css\Value\Value $value): array
     {
+        $modes = $this->repeatModes($value);
+        return [
+            'x' => $modes['x'] !== 'no-repeat',
+            'y' => $modes['y'] !== 'no-repeat',
+        ];
+    }
+
+    /**
+     * Per-axis `background-repeat` mode (the richer view repeatAxes
+     * collapses to bools). Returns one of `repeat` / `repeat-x` (collapsed
+     * to a single bool above) / `no-repeat` / `round` / `space` per axis.
+     *
+     * @return array{x: string, y: string}
+     */
+    private function repeatModes(?\Phpdftk\Css\Value\Value $value): array
+    {
         if ($value === null) {
-            return ['x' => true, 'y' => true];
+            return ['x' => 'repeat', 'y' => 'repeat'];
         }
         $items = $value instanceof \Phpdftk\Css\Value\ValueList
             && $value->separator === \Phpdftk\Css\Value\ListSeparator::Space
@@ -2878,19 +2906,39 @@ final class Painter
             && $items[1] instanceof \Phpdftk\Css\Value\Keyword
         ) {
             return [
-                'x' => strtolower($items[0]->name) !== 'no-repeat',
-                'y' => strtolower($items[1]->name) !== 'no-repeat',
+                'x' => strtolower($items[0]->name),
+                'y' => strtolower($items[1]->name),
             ];
         }
         if ($items[0] instanceof \Phpdftk\Css\Value\Keyword) {
             return match (strtolower($items[0]->name)) {
-                'repeat-x' => ['x' => true, 'y' => false],
-                'repeat-y' => ['x' => false, 'y' => true],
-                'no-repeat' => ['x' => false, 'y' => false],
-                default => ['x' => true, 'y' => true],
+                'repeat-x' => ['x' => 'repeat', 'y' => 'no-repeat'],
+                'repeat-y' => ['x' => 'no-repeat', 'y' => 'repeat'],
+                'no-repeat' => ['x' => 'no-repeat', 'y' => 'no-repeat'],
+                'round' => ['x' => 'round', 'y' => 'round'],
+                'space' => ['x' => 'space', 'y' => 'space'],
+                default => ['x' => 'repeat', 'y' => 'repeat'],
             };
         }
-        return ['x' => true, 'y' => true];
+        return ['x' => 'repeat', 'y' => 'repeat'];
+    }
+
+    /**
+     * CSS Backgrounds 3 §3.7 `round` per-axis rescale: scale the
+     * tile so a whole number of tiles fits the positioning area,
+     * preserving aspect when possible. Returns the rescaled tile
+     * size; passthrough when the mode isn't `round` or the natural
+     * tile dim is non-positive.
+     */
+    private function roundTileDim(string $mode, float $tileDim, float $originDim): float
+    {
+        if ($mode !== 'round' || $tileDim <= 0.0 || $originDim <= 0.0) {
+            return $tileDim;
+        }
+        // CSS spec: number of tiles = round(originDim / tileDim).
+        // At least 1 — a tile larger than the box still emits once.
+        $n = max(1, (int) round($originDim / $tileDim));
+        return $originDim / $n;
     }
 
     /**
