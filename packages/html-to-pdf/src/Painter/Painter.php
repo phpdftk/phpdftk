@@ -67,6 +67,13 @@ final class Painter
          */
         private readonly ?string $baseDir = null,
         /**
+         * Optional broader sandbox the resolved path must remain
+         * under. Defaults to `baseDir`. Set wider when relative
+         * URLs are expected to escape `baseDir` via `..` walks —
+         * e.g. WPT refs in `reference/` loading `../support/img.png`.
+         */
+        private readonly ?string $sandboxRoot = null,
+        /**
          * Map of `postScriptName → RegisteredFont` keyed by the font's
          * raw PS name. Used to switch `Tf` per fragment when an inline
          * subtree shaped against an alternate font from the `FontResolver`.
@@ -878,7 +885,7 @@ final class Painter
         if (str_starts_with($src, 'http://') || str_starts_with($src, 'https://')) {
             return $this->fetchHttpSrc($src);
         }
-        return (new \Phpdftk\Filesystem\ResourceLoader($this->baseDir))
+        return (new \Phpdftk\Filesystem\ResourceLoader($this->baseDir, $this->sandboxRoot))
             ->resolveLocalPath($src);
     }
 

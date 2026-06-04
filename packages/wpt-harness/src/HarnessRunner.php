@@ -339,9 +339,15 @@ final class HarnessRunner
         if ($html === false) {
             throw new \RuntimeException("could not read test file: $path");
         }
+        // Sandbox to the WPT corpus root so refs in `reference/`
+        // subdirs can resolve `../support/img.png` siblings of the
+        // test directory. baseDir alone is too tight — the default
+        // ResourceLoader sandbox is the same as baseDir, which
+        // rejects any `..` walk.
         $renderer = new \Phpdftk\HtmlToPdf\Renderer(
             (new \Phpdftk\HtmlToPdf\RendererOptions())
-                ->withBaseDir(dirname($path)),
+                ->withBaseDir(dirname($path))
+                ->withSandboxRoot($this->wptRoot),
         );
         $result = $renderer->render($html);
         return $result->writer->toBytes();

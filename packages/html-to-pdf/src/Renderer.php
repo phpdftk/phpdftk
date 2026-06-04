@@ -62,7 +62,11 @@ final class Renderer
                 $this->options->pageWidth * $cssPxPerPt,
                 $this->options->pageHeight * $cssPxPerPt,
             );
-        $this->boxGenerator = new BoxGenerator($this->cascade, $this->options->baseDir);
+        $this->boxGenerator = new BoxGenerator(
+            $this->cascade,
+            $this->options->baseDir,
+            $this->options->sandboxRoot,
+        );
         $this->layout = new BlockLayout($this->cascade);
     }
 
@@ -306,6 +310,7 @@ final class Renderer
                 pageRangeEnd: ($i + 1) * $pageHeight,
                 writer: $writer,
                 baseDir: $this->options->baseDir,
+                sandboxRoot: $this->options->sandboxRoot,
                 registeredFonts: $registeredMap,
                 pageWidth: $pageWidth,
                 resourceLoader: $this->options->resourceLoader,
@@ -724,7 +729,10 @@ final class Renderer
     private function resourceLoader(): \Phpdftk\Filesystem\ResourceLoader
     {
         return $this->cachedResourceLoader
-            ??= new \Phpdftk\Filesystem\ResourceLoader($this->options->baseDir);
+            ??= new \Phpdftk\Filesystem\ResourceLoader(
+                $this->options->baseDir,
+                $this->options->sandboxRoot,
+            );
     }
 
     /**

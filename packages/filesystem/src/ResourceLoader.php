@@ -32,7 +32,19 @@ namespace Phpdftk\Filesystem;
  */
 final readonly class ResourceLoader
 {
-    public function __construct(public ?string $baseDir = null) {}
+    /**
+     * @param ?string $baseDir Root used to resolve relative URLs.
+     * @param ?string $sandboxRoot Broader sandbox boundary that the
+     *   resolved path must remain under. Defaults to `$baseDir` —
+     *   the historical behaviour, where a relative URL can't escape
+     *   the resolution root. When set wider (e.g. the entire WPT
+     *   test corpus while `$baseDir` is the individual test's dir),
+     *   `../sibling-dir/x.png` resolves correctly.
+     */
+    public function __construct(
+        public ?string $baseDir = null,
+        public ?string $sandboxRoot = null,
+    ) {}
 
     /**
      * Resolve `$url` to its raw bytes. Returns null when:
@@ -88,12 +100,12 @@ final readonly class ResourceLoader
             ? $url
             : $this->baseDir . DIRECTORY_SEPARATOR . $url;
         $resolved = realpath($candidate);
-        $base = realpath($this->baseDir);
-        if ($resolved === false || $base === false) {
+        $sandbox = realpath($this->sandboxRoot ?? $this->baseDir);
+        if ($resolved === false || $sandbox === false) {
             return null;
         }
-        if (!str_starts_with($resolved, $base . DIRECTORY_SEPARATOR)
-            && $resolved !== $base
+        if (!str_starts_with($resolved, $sandbox . DIRECTORY_SEPARATOR)
+            && $resolved !== $sandbox
         ) {
             return null;
         }

@@ -40,6 +40,17 @@ final readonly class RendererOptions
          */
         public ?string $baseDir = null,
         /**
+         * Broader filesystem sandbox the resolved path must remain
+         * under. Defaults to `$baseDir`. Setting it wider (e.g. an
+         * entire test-corpus root while `$baseDir` is the individual
+         * test's directory) lets `../sibling-dir/x.png` resolve
+         * correctly — the WPT pattern where a ref under `reference/`
+         * loads `../support/img.png`. Authors using the public
+         * Renderer API should leave this as null; the harness sets
+         * it explicitly.
+         */
+        public ?string $sandboxRoot = null,
+        /**
          * Additional fonts available for `font-family` selection, keyed
          * by family name (case-insensitive). When a cascaded `font-family`
          * names one of these, that font shapes the run; otherwise the
@@ -88,6 +99,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
@@ -103,6 +115,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
@@ -118,6 +131,7 @@ final readonly class RendererOptions
             $css,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
@@ -133,6 +147,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
@@ -148,6 +163,23 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $baseDir,
+            $this->sandboxRoot,
+            $this->fontMap,
+            $this->faceMap,
+            $this->resourceLoader,
+        );
+    }
+
+    public function withSandboxRoot(?string $sandboxRoot): self
+    {
+        return new self(
+            $this->pageWidth,
+            $this->pageHeight,
+            $this->defaultFont,
+            $this->userAgentStylesheet,
+            $this->strict,
+            $this->baseDir,
+            $sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
@@ -171,6 +203,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $this->faceMap,
             $loader,
@@ -226,6 +259,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $normalised,
             $this->faceMap,
             $this->resourceLoader,
@@ -272,6 +306,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $this->fontMap,
             $merged,
             $this->resourceLoader,
@@ -316,6 +351,7 @@ final readonly class RendererOptions
             $this->userAgentStylesheet,
             $this->strict,
             $this->baseDir,
+            $this->sandboxRoot,
             $merged,
             $this->faceMap,
             $this->resourceLoader,

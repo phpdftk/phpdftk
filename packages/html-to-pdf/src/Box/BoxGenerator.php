@@ -76,6 +76,12 @@ final class BoxGenerator
          * relative paths and rejects any escape via `realpath()`.
          */
         private readonly ?string $baseDir = null,
+        /**
+         * Optional broader sandbox the resolved path must remain
+         * under (mirrors Painter / RendererOptions). Defaults to
+         * `baseDir`.
+         */
+        private readonly ?string $sandboxRoot = null,
     ) {}
 
     /**
@@ -1480,7 +1486,7 @@ final class BoxGenerator
      */
     private function resolveLocalImagePath(string $src): ?string
     {
-        return (new \Phpdftk\Filesystem\ResourceLoader($this->baseDir))
+        return (new \Phpdftk\Filesystem\ResourceLoader($this->baseDir, $this->sandboxRoot))
             ->resolveLocalPath($src);
     }
 
