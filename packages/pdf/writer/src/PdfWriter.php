@@ -530,6 +530,40 @@ class PdfWriter
             default => null,
         };
 
+        // PNG: extract the DEFLATE-compressed IDAT data and tell the
+        // PDF reader to FlateDecode it with the PNG-style predictor
+        // (15 = "PNG up", which PNG IDAT effectively uses). PDF
+        // doesn't natively grok the PNG container, so we strip the
+        // PNG wrapper but keep the compressed pixel data verbatim —
+        // no intermediate raw-RGB buffer needed.
+        //
+        // Skipped for color types 3 (indexed — needs PLTE chunk),
+        // 4 / 6 (alpha — needs SMask), and bit depths != 8 (rarely
+        // used in WPT). Those fall back to the raw-embed path the
+        // historical writer used; rendering is broken but the
+        // XObject still exists for refcount / metadata.
+        if ($info->format === 'png' && $info->bitsPerComponent === 8 && !$info->hasAlpha) {
+            $idat = \Phpdftk\ImageMetadata\PngParser::extractIdatData($data);
+            $components = match ($info->colorSpace) {
+                'DeviceGray' => 1,
+                'DeviceCMYK' => 4,
+                default => 3, // DeviceRGB
+            };
+            if ($idat !== null) {
+                $dict->set('Filter', new PdfName('FlateDecode'));
+                $dict->set(
+                    'DecodeParms',
+                    new PdfDictionary([
+                        'Predictor' => new PdfNumber(15),
+                        'Colors' => new PdfNumber($components),
+                        'BitsPerComponent' => new PdfNumber(8),
+                        'Columns' => new PdfNumber($info->width),
+                    ]),
+                );
+                $data = $idat;
+            }
+        }
+
         // If the image has an embedded ICC profile, replace the color space
         // with an ICCBased color space reference
         if ($info->iccProfile !== null) {

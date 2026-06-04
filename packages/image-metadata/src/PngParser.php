@@ -25,6 +25,39 @@ final class PngParser
         return self::parse($data);
     }
 
+    /**
+     * Extract the concatenated `IDAT` chunk payload from a PNG.
+     * The payload is already DEFLATE-compressed PNG-filter-coded
+     * pixel data, suitable for embedding in a PDF Image XObject
+     * with `/Filter /FlateDecode` + `/DecodeParms <<Predictor 15
+     * Columns W Colors N BitsPerComponent B>>` — PDF readers
+     * decompress + unfilter via the predictor without an
+     * intermediate raw-RGB buffer.
+     *
+     * Returns null when the PNG signature is invalid or no IDAT
+     * chunks are present.
+     */
+    public static function extractIdatData(string $data): ?string
+    {
+        $len = strlen($data);
+        if ($len < 8 || substr($data, 0, 8) !== "\x89PNG\r\n\x1A\n") {
+            return null;
+        }
+        $pos = 8;
+        $idat = '';
+        while ($pos + 12 <= $len) {
+            $chunkLen = unpack('N', substr($data, $pos, 4))[1];
+            $chunkType = substr($data, $pos + 4, 4);
+            if ($chunkType === 'IDAT' && $chunkLen > 0) {
+                $idat .= substr($data, $pos + 8, $chunkLen);
+            } elseif ($chunkType === 'IEND') {
+                break;
+            }
+            $pos += 12 + $chunkLen;
+        }
+        return $idat === '' ? null : $idat;
+    }
+
     public static function parse(string $data): ImageInfo
     {
         $len = strlen($data);
