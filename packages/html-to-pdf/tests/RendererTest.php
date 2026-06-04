@@ -1693,11 +1693,13 @@ final class RendererTest extends TestCase
         }
     }
 
-    public function testBackgroundSizeContainPreservesAspectAndCentres(): void
+    public function testBackgroundSizeContainPreservesAspectAndTopLeftAligns(): void
     {
         // A 4×2 PNG (2:1 aspect) in a 200px × 60px box. `contain` picks
-        // min(200/4, 60/2) = min(50, 30) = 30, so final = 120×60,
-        // centred at x = (200-120)/2 = 40.
+        // min(200/4, 60/2) = min(50, 30) = 30, so final = 120×60.
+        // CSS Backgrounds 3 §3.6 — initial `background-position` is
+        // `0% 0%` (top-left), so the 120×60 image anchors at x=0
+        // leaving 80px of background-color on the right.
         $png4x2 = hex2bin(
             '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
             . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
@@ -1715,16 +1717,19 @@ final class RendererTest extends TestCase
         );
         $bytes = $writer->toBytes();
         self::assertMatchesRegularExpression(
-            '~120 0 0 60 40 [\d.]+ cm~',
+            '~120 0 0 60 0 [\d.]+ cm~',
             $bytes,
-            'contain scales 4:2 image to 120×60 inside 200×60 box, offsetX=40',
+            'contain scales 4:2 image to 120×60 anchored at top-left (offsetX=0)',
         );
     }
 
     public function testBackgroundSizeCoverFillsBoxWithOverflow(): void
     {
         // 4×2 PNG in a 100×100 box: cover picks max(100/4, 100/2) = 50,
-        // so final = 200×100 (overflows horizontally), centred at x=-50.
+        // so final = 200×100 (overflows horizontally). Per CSS
+        // Backgrounds 3 §3.6 default position `0% 0%`, the image
+        // anchors at top-left (x=0); the right half overflows past
+        // the box and is clipped by the bg-clip rect.
         $png4x2 = hex2bin(
             '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
             . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
@@ -1742,9 +1747,9 @@ final class RendererTest extends TestCase
         );
         $bytes = $writer->toBytes();
         self::assertMatchesRegularExpression(
-            '~200 0 0 100 -50 [\d.]+ cm~',
+            '~200 0 0 100 0 [\d.]+ cm~',
             $bytes,
-            'cover overflows symmetrically (offsetX = -50)',
+            'cover overflows right at top-left anchor (offsetX = 0)',
         );
     }
 

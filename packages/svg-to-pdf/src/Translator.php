@@ -126,17 +126,26 @@ final class Translator
      * fills fall back to no paint per SVG 2's "invalid → no paint"
      * semantics.
      */
+    /**
+     * @param array{w: float, h: float}|null $effectiveViewport
+     *   Override viewport for inner percentage-attribute resolution
+     *   when the document's own width/height/viewBox don't yield
+     *   useful dimensions. Set by `SvgRenderer::draw` when it
+     *   synthesises a source rect from the destination.
+     */
     public function paint(
         SvgDocument $document,
         ContentStream $stream,
         ?Page $page = null,
         ?PdfWriter $writer = null,
         bool $compensateTextFlip = false,
+        ?array $effectiveViewport = null,
     ): void {
         $this->page = $page;
         $this->writer = $writer;
         $this->document = $document;
         $this->compensateTextFlip = $compensateTextFlip;
+        $this->effectiveViewport = $effectiveViewport;
         $this->gradientPainter = $page !== null && $writer !== null
             ? new GradientPainter($writer, $page, $document)
             : null;
@@ -167,11 +176,14 @@ final class Translator
             $this->gradientPainter = null;
             $this->fontResolver = null;
             $this->compensateTextFlip = false;
+            $this->effectiveViewport = null;
         }
     }
 
     private ?Page $page = null;
     private ?PdfWriter $writer = null;
+    /** @var array{w: float, h: float}|null */
+    private ?array $effectiveViewport = null;
     private ?SvgDocument $document = null;
     private ?GradientPainter $gradientPainter = null;
     private ?FontResolver $fontResolver = null;
@@ -607,6 +619,16 @@ final class Translator
         }
         $w = self::parseLengthPrefixForViewport($this->document->widthAttribute());
         $h = self::parseLengthPrefixForViewport($this->document->heightAttribute());
+        if ($w !== null && $h !== null) {
+            return ['w' => $w, 'h' => $h];
+        }
+        // Fall back to the caller's effective viewport (the destination
+        // rect from `SvgRenderer::draw`) when document attributes alone
+        // can't give a useful viewport — e.g. an SVG with only a
+        // percentage `width` and no `height` or `viewBox`.
+        if ($this->effectiveViewport !== null) {
+            return $this->effectiveViewport;
+        }
         return ['w' => $w ?? 0.0, 'h' => $h ?? 0.0];
     }
 

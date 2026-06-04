@@ -96,7 +96,7 @@ final class SvgRenderer
         ?float $height = null,
     ): void {
         $stream = $this->page->contentStream();
-        [$srcMinX, $srcMinY, $srcWidth, $srcHeight] = self::resolveSourceRect($svg);
+        [$srcMinX, $srcMinY, $srcWidth, $srcHeight, $srcSynthetic] = self::resolveSourceRect($svg, $width, $height);
 
         $dstWidth = $width ?? $srcWidth;
         $dstHeight = $height ?? $srcHeight;
@@ -134,12 +134,24 @@ final class SvgRenderer
             $x + $offsetX - $srcMinX * $scaleX,
             $y + $offsetY + $effectiveH + $srcMinY * $scaleY,
         );
+        // When the source rect was synthesised from the destination
+        // (SVG had no viewBox and no parseable fixed dims), the
+        // Translator's `currentViewport` would otherwise fall back to
+        // the document's own width/height attributes — which for
+        // percentage-only SVGs return zero/garbage and collapse
+        // percentage-sized children. Pass the source rect so inner
+        // percentage attributes resolve against the area the SVG
+        // actually paints into.
+        $effectiveViewport = $srcSynthetic
+            ? ['w' => $srcWidth, 'h' => $srcHeight]
+            : null;
         $this->translator->paint(
             $svg,
             $stream,
             $this->page,
             $this->writer,
             compensateTextFlip: true,
+            effectiveViewport: $effectiveViewport,
         );
         $stream->restoreGraphicsState();
     }
@@ -301,18 +313,54 @@ final class SvgRenderer
     }
 
     /**
-     * @return array{0: float, 1: float, 2: float, 3: float}
-     *         minX, minY, width, height
+     * Resolve the SVG's source-coordinate rectangle. Returns a fifth
+     * element `synthetic` — true when the source rect was derived
+     * from the destination because the document carried at least one
+     * percentage-style dimension attribute (`width="50%"`, etc.) but
+     * no parseable fixed pair. The caller uses this to propagate the
+     * destination as the effective viewport for inner percentage
+     * attributes. When the document has no width/height/viewBox at
+     * all, the legacy unit-square fallback is preserved.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: bool}
+     *         minX, minY, width, height, synthetic
      */
-    private static function resolveSourceRect(SvgDocument $svg): array
-    {
+    private static function resolveSourceRect(
+        SvgDocument $svg,
+        ?float $dstWidth = null,
+        ?float $dstHeight = null,
+    ): array {
         $viewBox = $svg->viewBox();
         if ($viewBox !== null) {
-            return $viewBox;
+            return [$viewBox[0], $viewBox[1], $viewBox[2], $viewBox[3], false];
         }
-        $w = self::parseLengthPrefix($svg->widthAttribute()) ?? 1.0;
-        $h = self::parseLengthPrefix($svg->heightAttribute()) ?? 1.0;
-        return [0.0, 0.0, $w, $h];
+        $widthAttr = $svg->widthAttribute();
+        $heightAttr = $svg->heightAttribute();
+        $w = self::parseLengthPrefix($widthAttr);
+        $h = self::parseLengthPrefix($heightAttr);
+        if ($w !== null && $h !== null) {
+            return [0.0, 0.0, $w, $h, false];
+        }
+        // Detect a percentage-style attribute (e.g. `width="50%"`).
+        // That signals the SVG wants its viewport supplied externally
+        // — fall the destination through so inner percentages resolve.
+        $hasPercentDimension = self::isPercentageAttribute($widthAttr)
+            || self::isPercentageAttribute($heightAttr);
+        if ($hasPercentDimension && $dstWidth !== null && $dstHeight !== null) {
+            return [0.0, 0.0, $dstWidth, $dstHeight, true];
+        }
+        // Fully-omitted dims → legacy unit-square fallback (preserved
+        // so callers using `draw(width=N, height=N)` on a content-only
+        // SVG get the prior `dst / 1` scale behaviour).
+        return [0.0, 0.0, $w ?? 1.0, $h ?? 1.0, false];
+    }
+
+    private static function isPercentageAttribute(?string $raw): bool
+    {
+        if ($raw === null) {
+            return false;
+        }
+        return preg_match('/^\s*[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?\s*%/', $raw) === 1;
     }
 
     /**

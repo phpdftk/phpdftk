@@ -2920,7 +2920,12 @@ final class Painter
             && $value->separator === \Phpdftk\Css\Value\ListSeparator::Space
                 ? $value->values
                 : [$value];
-        // Default both axes to centre (`50%`).
+        // 50% default applies only when entering the single-keyword
+        // branch below: per CSS Backgrounds 3 §3.6, a single keyword
+        // (e.g. `top`, `left`) pins one axis and centres the other.
+        // The two-value / empty path enters `else` and lets
+        // `axisOffsetFromValue` resolve each side from its own value
+        // (or its null-default of 0%, the spec's initial value).
         $xPercent = 0.5;
         $yPercent = 0.5;
         $xLength = null;
@@ -2976,8 +2981,13 @@ final class Painter
         ?\Phpdftk\Css\Value\Value $value,
         bool $isHorizontal,
     ): array {
+        // CSS Backgrounds 3 §3.6 — `background-position` initial value
+        // is `0% 0%` (top-left). A missing axis falls back to that
+        // initial; the previous default of 50% (centre) misrouted any
+        // explicit-tile case (e.g. `background-size: 12px auto`
+        // without an explicit position) to centre instead of top-left.
         if ($value === null) {
-            return ['percent' => 0.5, 'length' => null];
+            return ['percent' => 0.0, 'length' => null];
         }
         if ($value instanceof \Phpdftk\Css\Value\Keyword) {
             $kw = strtolower($value->name);
@@ -3433,15 +3443,20 @@ final class Painter
      *   - only width  + intrinsic aspect ratio         → (w, w/aspect)
      *   - only height + intrinsic aspect ratio         → (h*aspect, h)
      *   - viewBox only                                 → viewBox dims
-     *   - nothing at all                               → default object
-     *     size 300×150 (CSS Images 3 §5.3)
+     *   - nothing useful                               → null
      *
-     * Returns `[int, int]` so the result plugs straight into the existing
-     * `resolveBackgroundSize` math, which assumes integer pixels.
+     * Returns null when the SVG has no intrinsic dimensions AND no
+     * intrinsic ratio. The caller (`resolveBackgroundSize` / friends)
+     * then falls back to the background-positioning area for `cover`
+     * / `contain` (CSS Backgrounds 3 §3.9 — "no intrinsic ratio →
+     * 100% × 100% of the positioning area"). Earlier this method
+     * returned `[300, 150]` (the CSS Images 3 §5.3 default object
+     * size), but that constant misroutes the cover/contain math for
+     * SVGs without intrinsic information.
      *
-     * @return array{int, int}
+     * @return array{int, int}|null
      */
-    private function intrinsicSvgSize(\Phpdftk\Svg\SvgDocument $svg): array
+    private function intrinsicSvgSize(\Phpdftk\Svg\SvgDocument $svg): ?array
     {
         $w = self::parseSvgLengthAttribute($svg->widthAttribute());
         $h = self::parseSvgLengthAttribute($svg->heightAttribute());
@@ -3464,7 +3479,7 @@ final class Painter
         if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
             return [max(1, (int) round($viewBox[2])), max(1, (int) round($viewBox[3]))];
         }
-        return [300, 150];
+        return null;
     }
 
     /**

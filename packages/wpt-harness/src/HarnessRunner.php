@@ -340,7 +340,8 @@ final class HarnessRunner
             throw new \RuntimeException("could not read test file: $path");
         }
         $renderer = new \Phpdftk\HtmlToPdf\Renderer(
-            new \Phpdftk\HtmlToPdf\RendererOptions(),
+            (new \Phpdftk\HtmlToPdf\RendererOptions())
+                ->withBaseDir(dirname($path)),
         );
         $result = $renderer->render($html);
         return $result->writer->toBytes();
