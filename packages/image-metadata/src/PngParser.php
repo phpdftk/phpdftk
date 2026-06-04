@@ -26,6 +26,127 @@ final class PngParser
     }
 
     /**
+     * Decode an 8-bit alpha PNG (color type 4 = grayscale+alpha,
+     * type 6 = RGB+alpha) into separate colour and alpha streams.
+     * The PDF caller then emits the colour as the main Image
+     * XObject and the alpha as an `/SMask` reference attached to
+     * it. Returns null for non-alpha PNGs, non-8-bit depths, or
+     * any decode failure (corrupt IDAT, bad filter byte, etc.).
+     *
+     * Output streams are raw (uncompressed) per-pixel bytes —
+     * colour: 1 byte/px (grayscale) or 3 bytes/px (RGB).
+     * alpha:  1 byte/px (grayscale always).
+     *
+     * The caller is expected to FlateDecode-compress them before
+     * embedding in the PDF.
+     *
+     * @return array{colour: string, alpha: string, width: int, height: int, components: int}|null
+     */
+    public static function decodeAlphaPng(string $data): ?array
+    {
+        $info = self::parse($data);
+        $colorType = self::peekColorType($data);
+        if ($colorType === null || $info->bitsPerComponent !== 8) {
+            return null;
+        }
+        $components = match ($colorType) {
+            4 => 1, // grayscale + alpha → 2 bpp
+            6 => 3, // RGB + alpha       → 4 bpp
+            default => null,
+        };
+        if ($components === null) {
+            return null;
+        }
+        $idat = self::extractIdatData($data);
+        if ($idat === null) {
+            return null;
+        }
+        $decompressed = @gzuncompress($idat);
+        if ($decompressed === false) {
+            return null;
+        }
+        $bpp = $components + 1; // colour bytes + 1 alpha byte
+        $stride = $info->width * $bpp;
+        $expected = ($stride + 1) * $info->height;
+        if (strlen($decompressed) < $expected) {
+            return null;
+        }
+        $colour = '';
+        $alpha = '';
+        $prev = str_repeat("\x00", $stride);
+        $offset = 0;
+        for ($y = 0; $y < $info->height; $y++) {
+            $filter = ord($decompressed[$offset]);
+            $offset++;
+            $current = '';
+            for ($x = 0; $x < $stride; $x++) {
+                $px = ord($decompressed[$offset + $x]);
+                $left = $x >= $bpp ? ord($current[$x - $bpp]) : 0;
+                $up = ord($prev[$x]);
+                $upLeft = $x >= $bpp ? ord($prev[$x - $bpp]) : 0;
+                $unfiltered = match ($filter) {
+                    0 => $px,
+                    1 => ($px + $left) & 0xFF,
+                    2 => ($px + $up) & 0xFF,
+                    3 => ($px + (($left + $up) >> 1)) & 0xFF,
+                    4 => ($px + self::paeth($left, $up, $upLeft)) & 0xFF,
+                    default => -1,
+                };
+                if ($unfiltered < 0) {
+                    return null;
+                }
+                $current .= chr($unfiltered);
+            }
+            $offset += $stride;
+            // Split the unfiltered row into colour + alpha bytes.
+            for ($x = 0; $x < $info->width; $x++) {
+                $pxBase = $x * $bpp;
+                $colour .= substr($current, $pxBase, $components);
+                $alpha .= $current[$pxBase + $components];
+            }
+            $prev = $current;
+        }
+        return [
+            'colour' => $colour,
+            'alpha' => $alpha,
+            'width' => $info->width,
+            'height' => $info->height,
+            'components' => $components,
+        ];
+    }
+
+    /**
+     * Peek the PNG's color type without re-running the full parser.
+     * IHDR is always the first chunk after the 8-byte signature, so
+     * we read it directly.
+     */
+    private static function peekColorType(string $data): ?int
+    {
+        if (strlen($data) < 8 + 8 + 13 || substr($data, 0, 8) !== "\x89PNG\r\n\x1A\n") {
+            return null;
+        }
+        if (substr($data, 12, 4) !== 'IHDR') {
+            return null;
+        }
+        return ord($data[8 + 8 + 9]);
+    }
+
+    private static function paeth(int $a, int $b, int $c): int
+    {
+        $p = $a + $b - $c;
+        $pa = abs($p - $a);
+        $pb = abs($p - $b);
+        $pc = abs($p - $c);
+        if ($pa <= $pb && $pa <= $pc) {
+            return $a;
+        }
+        if ($pb <= $pc) {
+            return $b;
+        }
+        return $c;
+    }
+
+    /**
      * Extract the concatenated `IDAT` chunk payload from a PNG.
      * The payload is already DEFLATE-compressed PNG-filter-coded
      * pixel data, suitable for embedding in a PDF Image XObject

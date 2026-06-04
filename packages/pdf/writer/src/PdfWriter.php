@@ -537,31 +537,64 @@ class PdfWriter
         // PNG wrapper but keep the compressed pixel data verbatim —
         // no intermediate raw-RGB buffer needed.
         //
-        // Skipped for color types 3 (indexed — needs PLTE chunk),
-        // 4 / 6 (alpha — needs SMask), and bit depths != 8 (rarely
-        // used in WPT). Those fall back to the raw-embed path the
-        // historical writer used; rendering is broken but the
-        // XObject still exists for refcount / metadata.
-        if ($info->format === 'png' && $info->bitsPerComponent === 8 && !$info->hasAlpha) {
-            $idat = \Phpdftk\ImageMetadata\PngParser::extractIdatData($data);
+        // Skipped for color type 3 (indexed — needs PLTE chunk)
+        // and bit depths != 8 (rarely used in WPT). Those fall
+        // back to the raw-embed path the historical writer used;
+        // rendering is broken but the XObject still exists for
+        // refcount / metadata.
+        $smaskRef = null;
+        if ($info->format === 'png' && $info->bitsPerComponent === 8) {
             $components = match ($info->colorSpace) {
                 'DeviceGray' => 1,
                 'DeviceCMYK' => 4,
                 default => 3, // DeviceRGB
             };
-            if ($idat !== null) {
-                $dict->set('Filter', new PdfName('FlateDecode'));
-                $dict->set(
-                    'DecodeParms',
-                    new PdfDictionary([
-                        'Predictor' => new PdfNumber(15),
-                        'Colors' => new PdfNumber($components),
-                        'BitsPerComponent' => new PdfNumber(8),
-                        'Columns' => new PdfNumber($info->width),
-                    ]),
-                );
-                $data = $idat;
+            if ($info->hasAlpha) {
+                // Color types 4 / 6 — decode pixel data fully, split
+                // into colour + alpha, emit alpha as SMask. Skips
+                // gzcompress on the alpha stream when zlib refuses
+                // (very-tiny images can produce empty streams) and
+                // falls back to a raw embed in that case.
+                $decoded = \Phpdftk\ImageMetadata\PngParser::decodeAlphaPng($data);
+                if ($decoded !== null) {
+                    $colourCompressed = @gzcompress($decoded['colour']);
+                    $alphaCompressed = @gzcompress($decoded['alpha']);
+                    if ($colourCompressed !== false && $alphaCompressed !== false) {
+                        $smaskDict = new PdfDictionary([
+                            'Type' => new PdfName('XObject'),
+                            'Subtype' => new PdfName('Image'),
+                            'Width' => new PdfNumber($decoded['width']),
+                            'Height' => new PdfNumber($decoded['height']),
+                            'ColorSpace' => new PdfName('DeviceGray'),
+                            'BitsPerComponent' => new PdfNumber(8),
+                            'Filter' => new PdfName('FlateDecode'),
+                        ]);
+                        $smaskStream = new PdfStream($smaskDict, $alphaCompressed);
+                        $this->file->register($smaskStream);
+                        $smaskRef = new PdfReference($smaskStream->objectNumber);
+                        $dict->set('Filter', new PdfName('FlateDecode'));
+                        $data = $colourCompressed;
+                    }
+                }
+            } else {
+                $idat = \Phpdftk\ImageMetadata\PngParser::extractIdatData($data);
+                if ($idat !== null) {
+                    $dict->set('Filter', new PdfName('FlateDecode'));
+                    $dict->set(
+                        'DecodeParms',
+                        new PdfDictionary([
+                            'Predictor' => new PdfNumber(15),
+                            'Colors' => new PdfNumber($components),
+                            'BitsPerComponent' => new PdfNumber(8),
+                            'Columns' => new PdfNumber($info->width),
+                        ]),
+                    );
+                    $data = $idat;
+                }
             }
+        }
+        if ($smaskRef !== null) {
+            $dict->set('SMask', $smaskRef);
         }
 
         // If the image has an embedded ICC profile, replace the color space
