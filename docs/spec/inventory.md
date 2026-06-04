@@ -188,25 +188,25 @@ This is the operational ledger for the 100% roadmap (`docs/plans/full-spec-compl
 
 The aggregate "% complete" number on the project landing page is the weighted average of every in-scope row, weighted by the WPT test count for that module. Until the WPT manifest classifier (4A.4) is feeding real per-module weights, the headline uses a uniform-weighted estimate across the rows above.
 
-**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **77.99% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
+**Real WPT-validated headline** (across seven CSS modules, 5,250 test files): **78.29% in-scope pass rate** — replacing the prior table-mean estimate of 55.2%. The cross-check showed our renderer is materially stronger than the per-row estimates implied.
 
 For calibration: WeasyPrint after ~13 years ≈ 75%; Prince (~20yr commercial) ≈ 87%; headless Chromium (thousands of engineer-years) ≈ 99%.
 
 ### Validation against real WPT
 
-A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **77.99% in-scope pass rate**:
+A sparse-checkout run of `composer wpt run` against the upstream WPT corpus across seven CSS modules (`css-color`, `css-backgrounds`, `css-borders`, `css-text`, `css-display`, `css-box`, `css-sizing`, plus `css-fonts/parsing` + `css-fonts/at-font-face-descriptors`) — 5,250 test files — lands at **78.29% in-scope pass rate**:
 
 ```
 WPT harness — corpus: /tmp/wpt-sparse (7 CSS modules, 5250 files)
   Total tests:        5250
-    Pass:             2116
-    Fail:             597
+    Pass:             2124
+    Fail:             589
     Out of scope:     47
     Pending substr.:  317
     Skipped:          2173
     Harness errors:   0
   In-scope total:    2713
-  In-scope pass:     77.99%
+  In-scope pass:     78.29%
 ```
 
 The css-color subset alone (366 files, where the manifest carries the most pending-substrate rules) lands at **59.65%**:
@@ -223,7 +223,7 @@ Filter: css/css-color/**
   In-scope pass:     59.65%
 ```
 
-Fourteen measurement tightenings landed in sequence to get here:
+Fifteen measurement tightenings landed in sequence to get here:
 
 1. Wired the real render → Ghostscript-rasterise → ImageMagick-diff pipeline (Phase 4A.2/4A.3) — replacing the "not yet implemented" stub.
 2. Added `<link rel="match" href="…">` parsing to the harness's reference locator — closed the original 229-test "no ref sibling" gap.
@@ -239,6 +239,7 @@ Fourteen measurement tightenings landed in sequence to get here:
 12. **`position: absolute` corner-anchor layout**: CSS 2.1 §10.3.7 / §10.6.4 — when both opposing edge anchors are set (`left+right` or `top+bottom`) and the corresponding size is `auto`, the box's size is derived from `cb_size - start - end - margins - borders - padding` (the borders/padding subtraction depends on `box-sizing`). The previous layout ignored corner anchors entirely; `top:0; left:0; right:0; bottom:0` rendered as a zero-sized strip instead of filling its containing block. Reftests across `background-margin-root`, `background-attachment-margin-root`, `background-repeat-round`, and others use this idiom on the ref side — fixing it unlocked the whole cluster.
 13. **SVG-background pipeline + harness `baseDir`**: three coupled fixes land together so the harness can finally resolve relative `<img src>` / `background-image: url(...)` URLs against the WPT corpus the way browsers resolve them against `location.href`. (1) `Painter::intrinsicSvgSize` returns `null` when the SVG carries no useful intrinsic info, so `cover` / `contain` fall back to the bg-positioning area (CSS Backgrounds 3 §3.9). (2) `SvgRenderer::draw` + `Translator::paint` synthesise a viewport from the destination rect when the SVG declares percentage-style dimensions, so inner percentage attributes resolve against the area the SVG actually paints into. (3) `background-position` initial value now resolves to `0% 0%` (top-left) per CSS Backgrounds 3 §3.6, replacing the previous `50%` default that was misrouting explicit-tile renders. Net WPT: roughly even (~29 SVG-vector tests gain, balanced by the same number of tests that previously passed only because the image silently failed to load). The architectural payoff is access to the entire image-loading code path, which had been dormant.
 14. **Extreme-aspect SVG `contain`**: SVGs whose intrinsic ratio derives from an extreme viewBox aspect (e.g. `viewBox="0 0 2147483647 1"`) collapse one side to a rounding-to-zero pixel count. `intrinsicSvgSize` now lets the derived dimension fall to zero (instead of clamping to one), and `resolveBackgroundSize` guards `cover` with a degenerate-axis stretch fallback while letting `contain` resolve via INF-on-the-impossible-axis. The four `tall`/`wide`--`contain`--`height`/`width` reftests use the spec's "extreme aspect → vanishingly small tile" outcome on the ref side; matching it gets all four into passing.
+15. **`background-size: auto` honours intrinsic dimensions**: CSS Backgrounds 3 §3.9 — when both axes resolve to `auto` and the image has an intrinsic size, the tile size is that intrinsic size (not the bg-positioning area). Previously every `auto` resolution returned box dims, masking the spec's intrinsic-size case across the whole vector cluster. Now SVGs with viewBox-derived intrinsics paint at their natural pixel size and tile per `background-repeat`. Closes 12 vector reftests in the `--auto--` row plus two collateral wins (`background-attachment-local-positioning-5`, `background-position-subpixel-at-border.tentative`).
 
 The gap to WeasyPrint (~13 points on the broad corpus, ~28 points on css-color) is concentrated in the raster-dependent modules called out per-row (Filter Effects, 3D Transforms, advanced Masking, Page Floats, masonry / subgrid) and the colour engine (Phase 4E).
 

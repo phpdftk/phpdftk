@@ -3032,11 +3032,23 @@ final class Painter
         float $boxWidth,
         float $boxHeight,
     ): array {
-        // Default / unset / `auto`: legacy stretch behaviour.
+        // Default / unset / `auto`: CSS Backgrounds 3 §3.9 — when both
+        // axes are `auto` and the image has intrinsic dimensions, use
+        // those dimensions; only fall back to box dims when the image
+        // has no intrinsic info.
         $isAuto = $sizeValue === null
             || ($sizeValue instanceof \Phpdftk\Css\Value\Keyword
                 && strtolower($sizeValue->name) === 'auto');
         if ($isAuto) {
+            $intrinsic = $this->intrinsicSize($src);
+            if ($intrinsic !== null && $intrinsic[0] > 0 && $intrinsic[1] > 0) {
+                return [
+                    'w' => (float) $intrinsic[0],
+                    'h' => (float) $intrinsic[1],
+                    'offsetX' => 0.0,
+                    'offsetY' => 0.0,
+                ];
+            }
             return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
         }
         $keyword = $sizeValue instanceof \Phpdftk\Css\Value\Keyword

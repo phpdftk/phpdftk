@@ -2309,11 +2309,13 @@ final class RendererTest extends TestCase
         );
     }
 
-    public function testBackgroundSizeAutoKeepsStretchBehaviour(): void
+    public function testBackgroundSizeAutoUsesIntrinsicDimsAndTiles(): void
     {
-        // Unset → keep the pre-feature stretch behaviour so existing
-        // fixtures stay stable. Without `background-size` the cm matrix
-        // covers the full box (100×100), no aspect preservation.
+        // CSS Backgrounds 3 §3.9 — unset / `auto` `background-size`
+        // with an image that has intrinsic dimensions uses those
+        // dimensions for the tile. With `background-repeat: repeat`
+        // (default), the 4×2 PNG tiles across the 100×100 box,
+        // emitting one `cm` placement per tile at scale 4×2.
         $png4x2 = hex2bin(
             '89504e470d0a1a0a0000000d4948445200000004000000020802000000f0caea34'
             . '000000097048597300000ec400000ec401952b0e1b00000012494441540899'
@@ -2330,10 +2332,17 @@ final class RendererTest extends TestCase
             . '<body><div></div></body></html>',
         );
         $bytes = $writer->toBytes();
+        // Each tile is 4×2 with translation; check that we emit
+        // tile-scale `cm` matrices (not the legacy stretched 100×100).
         self::assertMatchesRegularExpression(
-            '~100 0 0 100 0 [\d.]+ cm~',
+            '~4 0 0 2 \d+ [\d.]+ cm~',
             $bytes,
-            'unset background-size keeps stretch behaviour',
+            'auto bg-size uses intrinsic 4×2 dims and tiles',
+        );
+        self::assertDoesNotMatchRegularExpression(
+            '~100 0 0 100 [\d.]+ [\d.]+ cm~',
+            $bytes,
+            'no legacy 100×100 stretch matrix',
         );
     }
 
