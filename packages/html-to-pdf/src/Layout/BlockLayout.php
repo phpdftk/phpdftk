@@ -496,7 +496,13 @@ final class BlockLayout
         $heightValue = $style->get('height');
         $heightIsAuto = $this->isAuto($heightValue);
         if ($heightIsAuto) {
-            $geo->height = $childTotal;
+            // CSS Containment 3 §4.5 — `contain: size` (or `strict` /
+            // `content` aliases) makes the box's intrinsic size NOT
+            // depend on its children. CSS Sizing 4 §6 substitutes the
+            // `contain-intrinsic-size` value (or zero when unset /
+            // `none` / `auto`).
+            $containedHeight = $this->resolveContainIntrinsicHeight($style, $context);
+            $geo->height = $containedHeight ?? $childTotal;
         } else {
             $geo->height = $this->resolveLength($heightValue, $context->containingBlockHeight);
             if ($borderBox) {
@@ -2957,6 +2963,91 @@ final class BlockLayout
     {
         return $value instanceof Keyword && strtolower($value->name) === 'auto';
     }
+
+    /**
+     * CSS Containment 3 §2.4 — returns true when `contain` enables
+     * size containment on this axis. `size` covers both axes;
+     * `inline-size` covers the inline axis only; `strict` (=
+     * layout|paint|style|size) and `content` (= layout|paint|style)
+     * imply the broader set. Phase-1 assumes horizontal writing
+     * mode so inline-axis == width-axis.
+     *
+     * @param 'block'|'inline' $axis
+     */
+    private function containsSize(CascadedValues $style, string $axis): bool
+    {
+        $value = $style->get('contain');
+        if (!$value instanceof Keyword && !($value instanceof \Phpdftk\Css\Value\ValueList)) {
+            return false;
+        }
+        $keywords = $value instanceof Keyword
+            ? [strtolower($value->name)]
+            : array_filter(
+                array_map(
+                    static fn($v) => $v instanceof Keyword ? strtolower($v->name) : null,
+                    $value->values,
+                ),
+                static fn($v) => $v !== null,
+            );
+        foreach ($keywords as $kw) {
+            if ($kw === 'strict') {
+                return true;
+            }
+            if ($kw === 'size') {
+                return true;
+            }
+            // CSS Containment 3 §4.6 — `inline-size` contains the
+            // inline axis only. Block axis containment isn't
+            // toggled by `inline-size` alone.
+            if ($kw === 'inline-size' && $axis === 'inline') {
+                return true;
+            }
+            // `content` doesn't include `size` per §2.4 (only
+            // layout+paint+style), so it does NOT trigger size
+            // containment. (Common confusion — keep this branch
+            // explicit so a future reader doesn't add it.)
+        }
+        return false;
+    }
+
+    /**
+     * CSS Sizing 4 §6.1 — resolve `contain-intrinsic-height` (or
+     * the second component of the `contain-intrinsic-size`
+     * shorthand) to a concrete pixel height, when size
+     * containment applies. Returns null when the box isn't
+     * size-contained on the block axis or the value resolves to
+     * `none` / `auto` (per §6.1, `auto` defers to a last-known
+     * size which the static print medium can't supply, so it
+     * collapses to zero).
+     */
+    private function resolveContainIntrinsicHeight(CascadedValues $style, LayoutContext $context): ?float
+    {
+        if (!$this->containsSize($style, 'block')) {
+            return null;
+        }
+        $heightLonghand = $style->get('contain-intrinsic-height');
+        if ($heightLonghand instanceof Length) {
+            return $heightLonghand->value;
+        }
+        $blockSize = $style->get('contain-intrinsic-block-size');
+        if ($blockSize instanceof Length) {
+            return $blockSize->value;
+        }
+        // Phase-1 shorthand inline-parse: `contain-intrinsic-size:
+        // <l1>` → both axes; `<l1> <l2>` → l1 = width, l2 = height.
+        $shorthand = $style->get('contain-intrinsic-size');
+        if ($shorthand instanceof Length) {
+            return $shorthand->value;
+        }
+        if ($shorthand instanceof \Phpdftk\Css\Value\ValueList && count($shorthand->values) >= 2) {
+            $second = $shorthand->values[1];
+            if ($second instanceof Length) {
+                return $second->value;
+            }
+        }
+        return 0.0;
+    }
+
 
     /**
      * Shift `$box` and every descendant's geometry by `$dy` along Y, and
