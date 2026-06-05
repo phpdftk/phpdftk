@@ -571,6 +571,15 @@ final class BoxGenerator
             return null;
         }
         $display = $this->displayKeyword($pseudoValues);
+        // CSS Display 3 §3.2 — `display: contents` on a pseudo-element
+        // suppresses its box entirely; its generated `content` flows
+        // into the parent as if it were a plain text node carrying
+        // the pseudo's inherited text styles. Skip the box wrap and
+        // return a TextBox directly so the pseudo's border / background
+        // / etc. don't paint (the pseudo has no box).
+        if ($display === 'contents') {
+            return $text === '' ? null : new TextBox($element, $pseudoValues, $text);
+        }
         // Pseudo-elements default to `inline` when no `display` rule fires.
         $pseudo = $this->makeBox($element, $pseudoValues, $display);
         if ($text !== '') {
