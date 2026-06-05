@@ -147,6 +147,131 @@ final class PngParser
     }
 
     /**
+     * Decode an 8-bit indexed-colour PNG (color type 3) into the
+     * separate colour + alpha streams a PDF Image XObject embeds.
+     * Walks the IDAT data through PNG filter reversal, indexes each
+     * pixel into the PLTE palette, and (when the optional tRNS
+     * chunk is present) looks up per-palette-index alpha.
+     *
+     * Returns null for non-indexed PNGs, non-8-bit depths, missing
+     * PLTE, or any decode failure.
+     *
+     * Output: colour = 3 bytes/px (RGB). alpha = 1 byte/px when
+     * tRNS is present; null when the palette is fully opaque (the
+     * caller skips the SMask).
+     *
+     * @return array{colour: string, alpha: ?string, width: int, height: int}|null
+     */
+    public static function decodeIndexedPng(string $data): ?array
+    {
+        $info = self::parse($data);
+        $colorType = self::peekColorType($data);
+        if ($colorType !== 3 || $info->bitsPerComponent !== 8) {
+            return null;
+        }
+        $palette = self::extractChunk($data, 'PLTE');
+        if ($palette === null || strlen($palette) % 3 !== 0 || $palette === '') {
+            return null;
+        }
+        $trns = self::extractChunk($data, 'tRNS');
+        $idat = self::extractIdatData($data);
+        if ($idat === null) {
+            return null;
+        }
+        $decompressed = @gzuncompress($idat);
+        if ($decompressed === false) {
+            return null;
+        }
+        $stride = $info->width; // 1 byte/px (8-bit index)
+        $expected = ($stride + 1) * $info->height;
+        if (strlen($decompressed) < $expected) {
+            return null;
+        }
+        $bpp = 1;
+        $colour = '';
+        $alpha = '';
+        $hasTransparent = false;
+        $prev = str_repeat("\x00", $stride);
+        $offset = 0;
+        for ($y = 0; $y < $info->height; $y++) {
+            $filter = ord($decompressed[$offset]);
+            $offset++;
+            $current = '';
+            for ($x = 0; $x < $stride; $x++) {
+                $px = ord($decompressed[$offset + $x]);
+                $left = $x >= $bpp ? ord($current[$x - $bpp]) : 0;
+                $up = ord($prev[$x]);
+                $upLeft = $x >= $bpp ? ord($prev[$x - $bpp]) : 0;
+                $unfiltered = match ($filter) {
+                    0 => $px,
+                    1 => ($px + $left) & 0xFF,
+                    2 => ($px + $up) & 0xFF,
+                    3 => ($px + (($left + $up) >> 1)) & 0xFF,
+                    4 => ($px + self::paeth($left, $up, $upLeft)) & 0xFF,
+                    default => -1,
+                };
+                if ($unfiltered < 0) {
+                    return null;
+                }
+                $current .= chr($unfiltered);
+            }
+            $offset += $stride;
+            // Walk pixel indices and look up RGB / alpha.
+            for ($x = 0; $x < $info->width; $x++) {
+                $idx = ord($current[$x]);
+                $paletteOffset = $idx * 3;
+                if ($paletteOffset + 3 > strlen($palette)) {
+                    // Out-of-range index — paint with palette[0] as
+                    // a tolerant fallback (matches some browsers'
+                    // recovery posture).
+                    $paletteOffset = 0;
+                }
+                $colour .= substr($palette, $paletteOffset, 3);
+                if ($trns !== null) {
+                    $a = $idx < strlen($trns) ? ord($trns[$idx]) : 0xFF;
+                    $alpha .= chr($a);
+                    if ($a !== 0xFF) {
+                        $hasTransparent = true;
+                    }
+                }
+            }
+            $prev = $current;
+        }
+        return [
+            'colour' => $colour,
+            'alpha' => $hasTransparent ? $alpha : null,
+            'width' => $info->width,
+            'height' => $info->height,
+        ];
+    }
+
+    /**
+     * Find and return the first matching chunk payload. Used for
+     * one-off lookups (`PLTE`, `tRNS`) that don't appear in the
+     * critical IHDR + IDAT + IEND path the full parser walks.
+     */
+    private static function extractChunk(string $data, string $chunkType): ?string
+    {
+        $len = strlen($data);
+        if ($len < 8 || substr($data, 0, 8) !== "\x89PNG\r\n\x1A\n") {
+            return null;
+        }
+        $pos = 8;
+        while ($pos + 12 <= $len) {
+            $chunkLen = unpack('N', substr($data, $pos, 4))[1];
+            $type = substr($data, $pos + 4, 4);
+            if ($type === $chunkType) {
+                return substr($data, $pos + 8, $chunkLen);
+            }
+            if ($type === 'IEND') {
+                return null;
+            }
+            $pos += 12 + $chunkLen;
+        }
+        return null;
+    }
+
+    /**
      * Extract the concatenated `IDAT` chunk payload from a PNG.
      * The payload is already DEFLATE-compressed PNG-filter-coded
      * pixel data, suitable for embedding in a PDF Image XObject

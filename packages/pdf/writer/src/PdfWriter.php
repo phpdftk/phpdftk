@@ -549,7 +549,44 @@ class PdfWriter
                 'DeviceCMYK' => 4,
                 default => 3, // DeviceRGB
             };
-            if ($info->hasAlpha) {
+            // Detect indexed (color type 3) — the parser maps its
+            // colourspace to DeviceRGB for metadata purposes but the
+            // IDAT data is palette indices, not RGB samples. Route
+            // through the indexed decoder so the palette lookup
+            // happens here instead of being misinterpreted as raw
+            // pixel data.
+            $pngColorType = strlen($data) >= 8 + 8 + 10
+                && substr($data, 12, 4) === 'IHDR'
+                ? ord($data[8 + 8 + 9])
+                : null;
+            if ($pngColorType === 3) {
+                $decoded = \Phpdftk\ImageMetadata\PngParser::decodeIndexedPng($data);
+                if ($decoded !== null) {
+                    $colourCompressed = @gzcompress($decoded['colour']);
+                    if ($colourCompressed !== false) {
+                        $dict->set('Filter', new PdfName('FlateDecode'));
+                        $dict->set('ColorSpace', new PdfName('DeviceRGB'));
+                        $data = $colourCompressed;
+                        if ($decoded['alpha'] !== null) {
+                            $alphaCompressed = @gzcompress($decoded['alpha']);
+                            if ($alphaCompressed !== false) {
+                                $smaskDict = new PdfDictionary([
+                                    'Type' => new PdfName('XObject'),
+                                    'Subtype' => new PdfName('Image'),
+                                    'Width' => new PdfNumber($decoded['width']),
+                                    'Height' => new PdfNumber($decoded['height']),
+                                    'ColorSpace' => new PdfName('DeviceGray'),
+                                    'BitsPerComponent' => new PdfNumber(8),
+                                    'Filter' => new PdfName('FlateDecode'),
+                                ]);
+                                $smaskStream = new PdfStream($smaskDict, $alphaCompressed);
+                                $this->file->register($smaskStream);
+                                $smaskRef = new PdfReference($smaskStream->objectNumber);
+                            }
+                        }
+                    }
+                }
+            } elseif ($info->hasAlpha) {
                 // Color types 4 / 6 — decode pixel data fully, split
                 // into colour + alpha, emit alpha as SMask. Skips
                 // gzcompress on the alpha stream when zlib refuses
