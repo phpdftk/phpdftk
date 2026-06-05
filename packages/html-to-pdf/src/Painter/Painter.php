@@ -1171,6 +1171,13 @@ final class Painter
                 continue;
             }
             $color = $shadow['color'] ?? $textColor;
+            // CSS Backgrounds 3 §6 — a fully-transparent shadow colour
+            // contributes nothing visible; skip the paint so the
+            // alpha=0 colour doesn't resolve through the DeviceRGB
+            // `rg` operator (which has no alpha) and render as black.
+            if ($color->a <= 0.0) {
+                continue;
+            }
             $spread = $shadow['spread'];
             if ($shadow['inset']) {
                 $this->paintInsetShadow($geo, $shadow, $color, $stream);
