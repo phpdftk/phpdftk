@@ -961,7 +961,14 @@ final class Painter
             return 'border-box';
         }
         $name = strtolower($value->name);
-        if (in_array($name, ['border-box', 'padding-box', 'content-box'], true)) {
+        // CSS Backgrounds 4 §3.5 — `border-area` paints only inside
+        // the border ring (border-box ∖ padding-box). The bg-clip
+        // resolution still hands back the OUTER bounding rect
+        // (border-box dimensions) so the caller computes positions
+        // against that, but the actual paint is intersected with
+        // the ring path; the special-case emission lives in
+        // `paintBackground`.
+        if (in_array($name, ['border-box', 'padding-box', 'content-box', 'border-area'], true)) {
             return $name;
         }
         return 'border-box';
@@ -2340,7 +2347,7 @@ final class Painter
                 $width = $geo->paddingLeft + $geo->width + $geo->paddingRight;
                 $height = $geo->paddingTop + $geo->height + $geo->paddingBottom;
                 break;
-            default: // 'border-box'
+            default: // 'border-box' or 'border-area' — both use border-box dims as the bounding rect
                 $x = $geo->x - $geo->paddingLeft - $geo->borderLeft;
                 $top = $geo->y - $geo->paddingTop - $geo->borderTop;
                 $width = $geo->paddingLeft + $geo->width + $geo->paddingRight
@@ -2350,7 +2357,26 @@ final class Painter
         }
         if ($hasColor) {
             $radii = $this->borderRadii($box);
-            if (array_sum($radii) > 0.0) {
+            // CSS Backgrounds 4 — `background-clip: border-area`
+            // paints only on the border ring. Emit border-box rect
+            // ∪ padding-box rect with the even-odd fill rule so the
+            // inner padding-box is left unfilled (a ring of bg).
+            // Radii are ignored on this branch — rounded-corner
+            // ring support is a follow-up.
+            if ($clip === 'border-area') {
+                $padX = $geo->x - $geo->paddingLeft;
+                $padTop = $geo->y - $geo->paddingTop;
+                $padWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+                $padHeight = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+                $outerPdfY = $this->pageHeight - $top - $height;
+                $padPdfY = $this->pageHeight - $padTop - $padHeight;
+                $stream->saveGraphicsState();
+                $stream->setFillColorRGB($color->r, $color->g, $color->b);
+                $stream->rectangle($x, $outerPdfY, $width, $height);
+                $stream->rectangle($padX, $padPdfY, $padWidth, $padHeight);
+                $stream->fillEvenOdd();
+                $stream->restoreGraphicsState();
+            } elseif (array_sum($radii) > 0.0) {
                 $this->emitRoundedFill($stream, $x, $top, $width, $height, $radii, $color);
             } else {
                 $this->emitRect($stream, $x, $top, $width, $height, fill: $color);
