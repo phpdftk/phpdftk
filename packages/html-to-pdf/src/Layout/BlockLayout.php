@@ -494,7 +494,7 @@ final class BlockLayout
         // the declared height includes border + padding, so subtract
         // them to get the content height.
         $heightValue = $style->get('height');
-        $heightIsAuto = $this->isAuto($heightValue);
+        $heightIsAuto = $this->isHeightAutoLike($heightValue);
         if ($heightIsAuto) {
             // CSS Containment 3 §4.5 — `contain: size` (or `strict` /
             // `content` aliases) makes the box's intrinsic size NOT
@@ -757,7 +757,7 @@ final class BlockLayout
             }
             $style->set('width', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
         }
-        if ($this->isAuto($style->get('height'))
+        if ($this->isHeightAutoLike($style->get('height'))
             && !$this->isAuto($top)
             && !$this->isAuto($bottom)
         ) {
@@ -2962,6 +2962,29 @@ final class BlockLayout
     private function isAuto(?\Phpdftk\Css\Value\Value $value): bool
     {
         return $value instanceof Keyword && strtolower($value->name) === 'auto';
+    }
+
+    /**
+     * CSS Sizing 4 §3 — `max-content`, `min-content`, `fit-content`,
+     * and `stretch` are sizing keywords that, for the block-axis in
+     * block-flow layout, all reduce to the children-derived size.
+     * Treating them as "auto-like" here lets boxes that opt into
+     * those keywords lay out at the children-summed height rather
+     * than the `0` the unknown-keyword path produces. The width
+     * axis keeps strict `auto` semantics — width keywords have
+     * spec-distinct behaviour (min-content shrink-wrap, etc.) and
+     * widening them blindly regresses min/max-content shrink-wrap
+     * tests. Width-side refinement is tracked in #17 follow-ups.
+     */
+    private function isHeightAutoLike(?\Phpdftk\Css\Value\Value $value): bool
+    {
+        if (!$value instanceof Keyword) {
+            return false;
+        }
+        return match (strtolower($value->name)) {
+            'auto', 'max-content', 'min-content', 'fit-content', 'stretch' => true,
+            default => false,
+        };
     }
 
     /**
