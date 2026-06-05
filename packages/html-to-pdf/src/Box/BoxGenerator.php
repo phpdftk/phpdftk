@@ -139,6 +139,17 @@ final class BoxGenerator
         if ($display === 'none') {
             return null;
         }
+        // CSS Display 3 §3.2.1 — `display: contents` on the root
+        // element is "blockified": the value is treated as `block`
+        // so the root still generates a box and its background /
+        // borders still propagate to the canvas. The caller (the
+        // top-level `generate()` entry) hits this for the document
+        // root only; in-tree `display: contents` is handled by the
+        // expansion in the child-collection loop below.
+        if ($display === 'contents' && $parentValues === null) {
+            $values->set('display', new Keyword('block'));
+            $display = 'block';
+        }
         // CSS Containment 2 §4 — `content-visibility: hidden`
         // suppresses box generation just like `display: none` for
         // static print. (`auto` is a runtime-visibility optimisation
@@ -344,6 +355,20 @@ final class BoxGenerator
         }
         for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
             if ($n instanceof Element) {
+                // CSS Display 3 §3.2 — `display: contents` makes the
+                // element generate no box of its own; its children
+                // render as if they were direct children of this
+                // element's parent (i.e. the box we're currently
+                // building). Recurse via the helper so nested
+                // `display: contents` chains flatten cleanly.
+                $childCascade = $this->cascade->computeFor($sheets, $n, $values);
+                $this->applyPresentationalAttributes($n, $childCascade);
+                if ($this->displayKeyword($childCascade) === 'contents') {
+                    foreach ($this->expandDisplayContents($n, $sheets, $values) as $grandchild) {
+                        $rawChildren[] = $grandchild;
+                    }
+                    continue;
+                }
                 $child = $this->buildElementBox($n, $sheets, $values);
                 if ($child !== null) {
                     $rawChildren[] = $child;
@@ -1327,6 +1352,70 @@ final class BoxGenerator
             return strtolower($display->name);
         }
         return 'inline';
+    }
+
+    /**
+     * CSS Display 3 §3.2 — expand a `display: contents` element's
+     * children as if they were direct children of the parent that
+     * called us. Nested `display: contents` elements flatten
+     * recursively. Text node children become {@see TextBox}es
+     * attached to the parent's text cascade (the parent passed in
+     * `$parentValues`).
+     *
+     * Pseudo-element generation (`::before` / `::after`) on a
+     * `display: contents` element is honoured because the cascade
+     * runs as normal — the pseudos generate boxes which get
+     * collected here just like any other child.
+     *
+     * @param list<Stylesheet> $sheets
+     * @return list<Box>
+     */
+    private function expandDisplayContents(
+        Element $element,
+        array $sheets,
+        CascadedValues $parentValues,
+    ): array {
+        $values = $this->cascade->computeFor($sheets, $element, $parentValues);
+        $this->applyPresentationalAttributes($element, $values);
+        $result = [];
+        // `::before` generated content participates in the flattened
+        // child stream — it's defined on the display:contents element
+        // so it visually still attaches "at" that element's position.
+        $before = $this->makePseudoBox($element, $sheets, $values, 'before');
+        if ($before !== null) {
+            $result[] = $before;
+        }
+        for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
+            if ($n instanceof Element) {
+                $childCascade = $this->cascade->computeFor($sheets, $n, $values);
+                $this->applyPresentationalAttributes($n, $childCascade);
+                if ($this->displayKeyword($childCascade) === 'contents') {
+                    foreach ($this->expandDisplayContents($n, $sheets, $values) as $g) {
+                        $result[] = $g;
+                    }
+                    continue;
+                }
+                $box = $this->buildElementBox($n, $sheets, $values);
+                if ($box !== null) {
+                    $result[] = $box;
+                }
+            } elseif ($n instanceof Text) {
+                if ($n->data === '') {
+                    continue;
+                }
+                // Text node children of a display:contents element
+                // attach as TextBoxes using the element's own cascade
+                // (so the contents-styled element's inherited
+                // text properties still apply, even though the
+                // element itself produces no box).
+                $result[] = new TextBox($element, $values, $n->data);
+            }
+        }
+        $after = $this->makePseudoBox($element, $sheets, $values, 'after');
+        if ($after !== null) {
+            $result[] = $after;
+        }
+        return $result;
     }
 
     /**

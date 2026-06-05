@@ -102,6 +102,51 @@ final class BoxGeneratorTest extends TestCase
         self::assertNotNull($p);
     }
 
+    public function testDisplayContentsFlattensChildrenIntoParent(): void
+    {
+        // CSS Display 3 §3.2 — the element styled display:contents
+        // generates no box of its own; its children become direct
+        // children of this element's parent in the box tree.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, div, p { display: block; }
+            .contents { display: contents; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="contents"><p>inner</p></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        // The display:contents div should NOT appear in the tree;
+        // the <p> should be a direct child of <body>.
+        $contentsDiv = $this->findFirstByClass($box, 'contents');
+        self::assertNull($contentsDiv, 'display:contents element produces no box');
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        $p = null;
+        foreach ($body->children as $child) {
+            if ($child->element !== null && $child->element->localName === 'p') {
+                $p = $child;
+                break;
+            }
+        }
+        self::assertNotNull($p, '<p> is a direct child of <body>, not wrapped by the contents div');
+    }
+
+    public function testDisplayContentsOnRootBlockifies(): void
+    {
+        // CSS Display 3 §3.2.1 — `display: contents` on the root
+        // element is treated as `block` so the root still generates
+        // a box and its background can still propagate to the canvas.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html { display: contents; }
+            body { display: block; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p>x</p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box, 'root display:contents blockifies to block — root box still exists');
+        self::assertSame('html', $box->element?->localName);
+    }
+
     public function testContentVisibilityHiddenSkipsSubtree(): void
     {
         // CSS Containment 2 §4 — `content-visibility: hidden` is
