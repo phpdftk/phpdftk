@@ -3662,6 +3662,322 @@ final class Painter
         return (float) $m[1];
     }
 
+    /**
+     * Paint a CSS `border-image` 9-slice grid in place of the per-side
+     * border colours/styles (CSS Backgrounds 3 §6). Returns true when
+     * a border-image was painted; the caller skips legacy border
+     * painting in that case.
+     *
+     * Phase-1 scope:
+     *   • `border-image-source`: `url(...)` raster (PNG/JPG) only
+     *   • `border-image-slice`: a single number (px from each edge)
+     *     or `<n> fill` — single-percentage and four-value variants
+     *     are a follow-up
+     *   • `border-image-width`: implicit (use the box's border-width)
+     *   • `border-image-outset`: implicit (zero)
+     *   • `border-image-repeat`: `stretch` (initial), `repeat`, `round`
+     *
+     * Anything outside that surface falls through to the legacy
+     * paint-borders path.
+     */
+    private function paintBorderImage(Box $box, ContentStream $stream): bool
+    {
+        if ($this->writer === null || $this->page === null) {
+            return false;
+        }
+        $source = $box->style->get('border-image-source');
+        if (!$source instanceof \Phpdftk\Css\Value\Url) {
+            return false;
+        }
+        // Raster only for the first cut — SVG border-image needs the
+        // SvgRenderer slicing path, deferred.
+        if ($this->isSvgSrc($source->url)) {
+            return false;
+        }
+        if (isset($this->imageNameCache[$source->url])) {
+            $name = $this->imageNameCache[$source->url];
+        } else {
+            $resolved = $this->resolveImageSrc($source->url);
+            if ($resolved === null) {
+                return false;
+            }
+            try {
+                $name = $this->writer->addImage($resolved, $this->page);
+            } catch (\Throwable) {
+                return false;
+            }
+            $this->imageNameCache[$source->url] = $name;
+        }
+        $intrinsic = $this->intrinsicSize($source->url);
+        if ($intrinsic === null) {
+            return false;
+        }
+        [$srcW, $srcH] = $intrinsic;
+        if ($srcW <= 0 || $srcH <= 0) {
+            return false;
+        }
+        // Slice dimensions: support the single-number form `<n>` and
+        // the `<n> fill` two-value form. Number is in source px.
+        $sliceValue = $box->style->get('border-image-slice');
+        $sliceN = $this->parseBorderImageSliceNumber($sliceValue);
+        if ($sliceN === null || $sliceN <= 0.0) {
+            return false;
+        }
+        $st = min($sliceN, (float) $srcH / 2.0);
+        $sr = min($sliceN, (float) $srcW / 2.0);
+        $sb = $st;
+        $sl = $sr;
+
+        $repeatMode = $this->parseBorderImageRepeat($box->style->get('border-image-repeat'));
+
+        // Destination border area: the box's border-box rect.
+        $geo = $box->geometry;
+        $bx = $geo->x - $geo->paddingLeft - $geo->borderLeft;
+        $by = $geo->y - $geo->paddingTop - $geo->borderTop;
+        $bw = $geo->paddingLeft + $geo->width + $geo->paddingRight
+            + $geo->borderLeft + $geo->borderRight;
+        $bh = $geo->paddingTop + $geo->height + $geo->paddingBottom
+            + $geo->borderTop + $geo->borderBottom;
+        $bt = $geo->borderTop;
+        $br = $geo->borderRight;
+        $bb = $geo->borderBottom;
+        $bl = $geo->borderLeft;
+        if ($bw <= 0.0 || $bh <= 0.0) {
+            return false;
+        }
+
+        // 9 destination + source rects. Source coords use the SVG/PNG
+        // convention: (0, 0) top-left, y grows down. Destination coords
+        // here are layout-space (Y down too); we convert to PDF
+        // (Y up) inside `emitImageSlice`.
+        $midSrcW = max(0.0, (float) $srcW - $sl - $sr);
+        $midSrcH = max(0.0, (float) $srcH - $st - $sb);
+        $midDstW = max(0.0, $bw - $bl - $br);
+        $midDstH = max(0.0, $bh - $bt - $bb);
+
+        // Corners — always stretched (no tile / round per spec §6.3).
+        $this->emitImageSlice($stream, $name, $srcW, $srcH, 0.0, 0.0, $sl, $st, $bx, $by, $bl, $bt);
+        $this->emitImageSlice($stream, $name, $srcW, $srcH, (float) $srcW - $sr, 0.0, $sr, $st, $bx + $bw - $br, $by, $br, $bt);
+        $this->emitImageSlice($stream, $name, $srcW, $srcH, 0.0, (float) $srcH - $sb, $sl, $sb, $bx, $by + $bh - $bb, $bl, $bb);
+        $this->emitImageSlice($stream, $name, $srcW, $srcH, (float) $srcW - $sr, (float) $srcH - $sb, $sr, $sb, $bx + $bw - $br, $by + $bh - $bb, $br, $bb);
+
+        // Edges — apply repeat mode to the tile axis only.
+        if ($midSrcW > 0.0 && $midDstW > 0.0 && $bt > 0.0) {
+            $this->emitImageEdge(
+                $stream,
+                $name,
+                $srcW,
+                $srcH,
+                $sl,
+                0.0,
+                $midSrcW,
+                $st,
+                $bx + $bl,
+                $by,
+                $midDstW,
+                $bt,
+                $repeatMode,
+                horizontal: true,
+            );
+        }
+        if ($midSrcW > 0.0 && $midDstW > 0.0 && $bb > 0.0) {
+            $this->emitImageEdge(
+                $stream,
+                $name,
+                $srcW,
+                $srcH,
+                $sl,
+                (float) $srcH - $sb,
+                $midSrcW,
+                $sb,
+                $bx + $bl,
+                $by + $bh - $bb,
+                $midDstW,
+                $bb,
+                $repeatMode,
+                horizontal: true,
+            );
+        }
+        if ($midSrcH > 0.0 && $midDstH > 0.0 && $bl > 0.0) {
+            $this->emitImageEdge(
+                $stream,
+                $name,
+                $srcW,
+                $srcH,
+                0.0,
+                $st,
+                $sl,
+                $midSrcH,
+                $bx,
+                $by + $bt,
+                $bl,
+                $midDstH,
+                $repeatMode,
+                horizontal: false,
+            );
+        }
+        if ($midSrcH > 0.0 && $midDstH > 0.0 && $br > 0.0) {
+            $this->emitImageEdge(
+                $stream,
+                $name,
+                $srcW,
+                $srcH,
+                (float) $srcW - $sr,
+                $st,
+                $sr,
+                $midSrcH,
+                $bx + $bw - $br,
+                $by + $bt,
+                $br,
+                $midDstH,
+                $repeatMode,
+                horizontal: false,
+            );
+        }
+        return true;
+    }
+
+    /**
+     * Emit a single image slice — the source rect (sx, sy, sw, sh) in
+     * source pixel coords lands at destination rect (dx, dy, dw, dh)
+     * in layout coords. Stretched (no tiling) — used for corners.
+     */
+    private function emitImageSlice(
+        ContentStream $stream,
+        string $imageName,
+        int $srcW,
+        int $srcH,
+        float $sx,
+        float $sy,
+        float $sw,
+        float $sh,
+        float $dx,
+        float $dy,
+        float $dw,
+        float $dh,
+    ): void {
+        if ($sw <= 0.0 || $sh <= 0.0 || $dw <= 0.0 || $dh <= 0.0) {
+            return;
+        }
+        // PDF y is up; image unit-y=0 is bottom (after the y-flip
+        // implicit in addImage). Source rect's bottom in source-px:
+        // `srcH - (sy + sh)`. Place the FULL image such that this
+        // bottom-of-slice falls on PDF dy.
+        $pdfDy = $this->pageHeight - $dy - $dh;
+        $sliceBotSrc = (float) $srcH - $sy - $sh;
+        $scaleX = $dw * (float) $srcW / $sw;
+        $scaleY = $dh * (float) $srcH / $sh;
+        $tx = $dx - $dw * $sx / $sw;
+        $ty = $pdfDy - $dh * $sliceBotSrc / $sh;
+        $stream->saveGraphicsState();
+        $stream->rectangle($dx, $pdfDy, $dw, $dh);
+        $stream->clip();
+        $stream->endPath();
+        $stream->concatMatrix($scaleX, 0.0, 0.0, $scaleY, $tx, $ty);
+        $stream->doXObject($imageName);
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Emit an edge slice (top/right/bottom/left) of a border-image.
+     * `horizontal: true` tiles along the X axis; false tiles along Y.
+     * `repeatMode`: 'stretch' (default) — single stretched draw;
+     * 'repeat' — tile at natural size from the leading edge; 'round'
+     * — scale-to-fit-whole-tiles.
+     */
+    private function emitImageEdge(
+        ContentStream $stream,
+        string $imageName,
+        int $srcW,
+        int $srcH,
+        float $sx,
+        float $sy,
+        float $sw,
+        float $sh,
+        float $dx,
+        float $dy,
+        float $dw,
+        float $dh,
+        string $repeatMode,
+        bool $horizontal,
+    ): void {
+        if ($repeatMode === 'stretch') {
+            $this->emitImageSlice($stream, $imageName, $srcW, $srcH, $sx, $sy, $sw, $sh, $dx, $dy, $dw, $dh);
+            return;
+        }
+        // Tile dim along the variable axis; the other dim is fixed
+        // (border thickness).
+        $tileLen = $horizontal ? $dh * $sw / $sh : $dw * $sh / $sw;
+        $axisDest = $horizontal ? $dw : $dh;
+        if ($tileLen <= 0.0 || $axisDest <= 0.0) {
+            return;
+        }
+        if ($repeatMode === 'round') {
+            $n = max(1, (int) round($axisDest / $tileLen));
+            $tileLen = $axisDest / $n;
+        }
+        // Iterate tiles. Clip to the destination edge so partial
+        // tiles get cropped cleanly.
+        $pdfDy = $this->pageHeight - $dy - $dh;
+        $stream->saveGraphicsState();
+        $stream->rectangle($dx, $pdfDy, $dw, $dh);
+        $stream->clip();
+        $stream->endPath();
+        $maxTiles = 4096;
+        $count = 0;
+        if ($horizontal) {
+            $cursor = 0.0;
+            while ($cursor < $dw && $count++ < $maxTiles) {
+                $this->emitImageSlice($stream, $imageName, $srcW, $srcH, $sx, $sy, $sw, $sh, $dx + $cursor, $dy, $tileLen, $dh);
+                $cursor += $tileLen;
+            }
+        } else {
+            $cursor = 0.0;
+            while ($cursor < $dh && $count++ < $maxTiles) {
+                $this->emitImageSlice($stream, $imageName, $srcW, $srcH, $sx, $sy, $sw, $sh, $dx, $dy + $cursor, $dw, $tileLen);
+                $cursor += $tileLen;
+            }
+        }
+        $stream->restoreGraphicsState();
+    }
+
+    private function parseBorderImageSliceNumber(?\Phpdftk\Css\Value\Value $value): ?float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Number
+            || $value instanceof \Phpdftk\Css\Value\Integer
+        ) {
+            return (float) $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        // Single number wrapped in a ValueList with an optional `fill`
+        // keyword — accept the leading number; the `fill` middle paint
+        // is a follow-up.
+        if ($value instanceof \Phpdftk\Css\Value\ValueList && $value->values !== []) {
+            return $this->parseBorderImageSliceNumber($value->values[0]);
+        }
+        return null;
+    }
+
+    private function parseBorderImageRepeat(?\Phpdftk\Css\Value\Value $value): string
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Keyword) {
+            $kw = strtolower($value->name);
+            return match ($kw) {
+                'repeat' => 'repeat',
+                'round' => 'round',
+                'space' => 'repeat', // approximate — true space distribution is a follow-up
+                'stretch' => 'stretch',
+                default => 'stretch',
+            };
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList && $value->values !== []) {
+            return $this->parseBorderImageRepeat($value->values[0]);
+        }
+        return 'stretch';
+    }
+
     private function svgRenderer(): \Phpdftk\SvgToPdf\SvgRenderer
     {
         if ($this->svgRenderer === null) {
@@ -3673,6 +3989,13 @@ final class Painter
 
     private function paintBorders(Box $box, ContentStream $stream): void
     {
+        // CSS Backgrounds 3 §6 — when `border-image-source` is set and
+        // successfully loaded, it REPLACES the per-side border paint.
+        // We delegate to the 9-slice painter and skip the legacy
+        // border-colour/style rendering for this box.
+        if ($this->paintBorderImage($box, $stream)) {
+            return;
+        }
         $geo = $box->geometry;
         $outerX = $geo->x - $geo->paddingLeft - $geo->borderLeft;
         $outerY = $geo->y - $geo->paddingTop - $geo->borderTop;
