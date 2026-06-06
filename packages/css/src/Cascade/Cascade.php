@@ -949,16 +949,22 @@ final class Cascade
         // Resolve font-size first, using the parent's font-size as the em basis.
         $fontSize = $values->get('font-size');
         $currentFontSize = $context->parentFontSize;
+        $emCtx = new LengthContext(
+            parentFontSize: $context->parentFontSize,
+            currentFontSize: $context->parentFontSize,
+            rootFontSize: $context->rootFontSize,
+            viewportWidth: $context->viewportWidth,
+            viewportHeight: $context->viewportHeight,
+        );
         if ($fontSize instanceof Length) {
-            $emCtx = new LengthContext(
-                parentFontSize: $context->parentFontSize,
-                currentFontSize: $context->parentFontSize,
-                rootFontSize: $context->rootFontSize,
-                viewportWidth: $context->viewportWidth,
-                viewportHeight: $context->viewportHeight,
-            );
             $currentFontSize = LengthResolver::toPx($fontSize, $emCtx);
             $values->set('font-size', new Length($currentFontSize, LengthUnit::Px));
+        } elseif ($fontSize instanceof \Phpdftk\Css\Value\Calc) {
+            $resolved = CalcEvaluator::resolveValue($fontSize, $emCtx);
+            if ($resolved instanceof Length) {
+                $currentFontSize = $resolved->value;
+                $values->set('font-size', $resolved);
+            }
         }
         $bodyCtx = $context->withCurrentFontSize($currentFontSize);
 
@@ -966,13 +972,46 @@ final class Cascade
             if ($name === 'font-size') {
                 continue;
             }
-            if ($value instanceof Length) {
-                $values->set(
-                    $name,
-                    new Length(LengthResolver::toPx($value, $bodyCtx), LengthUnit::Px),
-                );
+            $resolved = $this->resolveValueLengths($value, $bodyCtx);
+            if ($resolved !== $value) {
+                $values->set($name, $resolved);
             }
         }
         return $values;
+    }
+
+    /**
+     * Walk a property value tree and replace Length / Calc nodes with
+     * absolute-pixel Lengths. ValueLists are rebuilt with their elements
+     * resolved recursively (so e.g. `box-shadow: calc(1em + 10px)
+     * calc(2em + 11px) 4px black` lands at the painter as a list of
+     * pixel Lengths plus the colour).
+     *
+     * Leaves the value untouched when it isn't a Length / Calc / ValueList
+     * — Keywords, Colors, Urls, etc. don't need length resolution.
+     */
+    private function resolveValueLengths(
+        \Phpdftk\Css\Value\Value $value,
+        LengthContext $ctx,
+    ): \Phpdftk\Css\Value\Value {
+        if ($value instanceof Length) {
+            return new Length(LengthResolver::toPx($value, $ctx), LengthUnit::Px);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Calc) {
+            return CalcEvaluator::resolveValue($value, $ctx);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $children = [];
+            $changed = false;
+            foreach ($value->values as $v) {
+                $rv = $this->resolveValueLengths($v, $ctx);
+                if ($rv !== $v) {
+                    $changed = true;
+                }
+                $children[] = $rv;
+            }
+            return $changed ? new \Phpdftk\Css\Value\ValueList($children, $value->separator) : $value;
+        }
+        return $value;
     }
 }
