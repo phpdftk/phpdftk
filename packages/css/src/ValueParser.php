@@ -274,6 +274,9 @@ final class ValueParser
         if ($name === 'hsl' || $name === 'hsla') {
             return $this->parseHslFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
         }
+        if ($name === 'hwb') {
+            return $this->parseHwbFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
+        }
         if ($name === 'var') {
             return $this->parseVarFunction($tokens) ?? new CssFunction($name, $this->parseArgs($tokens));
         }
@@ -980,6 +983,51 @@ final class ValueParser
         }
         [$r, $g, $b] = self::hslToRgb($h, $s, $l);
         return new Color($r, $g, $b, $a);
+    }
+
+    /**
+     * CSS Color 4 §6 — `hwb(<hue> <whiteness>% <blackness>% [/ <alpha>])`.
+     * Whiteness/blackness sum >= 1 collapses to a grey; otherwise we mix
+     * the pure-saturation hue with white and black per the spec formula
+     * and store the result as sRGB.
+     *
+     * @param list<Token> $tokens
+     */
+    private function parseHwbFunction(array $tokens): ?Color
+    {
+        $tokens = self::trimWhitespace($tokens);
+        $groups = self::splitRgbSpaceForm($tokens);
+        $count = count($groups);
+        if ($count < 3 || $count > 4) {
+            return null;
+        }
+        $h = $this->extractHueComponent($groups[0]);
+        $w = $this->extractPercentageComponent($groups[1]);
+        $b = $this->extractPercentageComponent($groups[2]);
+        if ($h === null || $w === null || $b === null) {
+            return null;
+        }
+        $a = $count === 4 ? $this->extractAlphaComponent($groups[3]) : 1.0;
+        if ($a === null) {
+            return null;
+        }
+        // extractHueComponent returns the hue normalised to [0, 1). Scale
+        // back to degrees so the converter can do its standard hue→rgb.
+        $hDeg = $h * 360.0;
+        if ($w + $b >= 1.0) {
+            $gray = $w / ($w + $b);
+            return new Color($gray, $gray, $gray, $a);
+        }
+        [$rh, $gh, $bh] = self::hslToRgb($h, 1.0, 0.5);
+        $r = $rh * (1.0 - $w - $b) + $w;
+        $g = $gh * (1.0 - $w - $b) + $w;
+        $b2 = $bh * (1.0 - $w - $b) + $w;
+        return new Color(
+            max(0.0, min(1.0, $r)),
+            max(0.0, min(1.0, $g)),
+            max(0.0, min(1.0, $b2)),
+            $a,
+        );
     }
 
     /** @param list<Token> $group */

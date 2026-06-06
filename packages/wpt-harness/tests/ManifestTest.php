@@ -298,7 +298,7 @@ final class ManifestTest extends TestCase
 
         foreach ([
             'css/filter-effects/filter-blur-001' => '4C',
-            'css/css-color/lab-001' => '4E',
+            'css/css-color/relative-color-001' => '4E',
             'css/css-fonts/at-font-face-src-url' => '4F',
             'css/css-page/at-page-margin' => '4G',
             'svg/filters/filter-displacement-map-01' => '4C',

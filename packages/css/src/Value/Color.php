@@ -64,6 +64,7 @@ final readonly class Color extends Value
             ColorSpace::XYZ => 'xyz',
             ColorSpace::XYZD50 => 'xyz-d50',
             ColorSpace::XYZD65 => 'xyz-d65',
+            ColorSpace::HWB => 'hwb',
         };
     }
 

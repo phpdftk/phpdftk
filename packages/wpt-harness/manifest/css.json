@@ -198,79 +198,14 @@
             "reason": "text-emphasis — needs ideographic shaping"
         },
         {
-            "glob": "css/css-color/lab-*",
-            "phase": "4E",
-            "reason": "lab() / lch() — needs color engine"
-        },
-        {
-            "glob": "css/css-color/oklab-*",
-            "phase": "4E",
-            "reason": "oklab() / oklch() — needs color engine"
-        },
-        {
-            "glob": "css/css-color/color-function-*",
-            "phase": "4E",
-            "reason": "color() with wide-gamut spaces — needs color engine"
-        },
-        {
             "glob": "css/css-color/color-mix*",
             "phase": "4E",
-            "reason": "color-mix() — needs color engine (CSS Color 5)"
+            "reason": "color-mix() — needs interpolation engine (CSS Color 5)"
         },
         {
             "glob": "css/css-color/relative-color*",
             "phase": "4E",
-            "reason": "Relative color syntax — needs color engine (CSS Color 5)"
-        },
-        {
-            "glob": "css/css-color/a98rgb-*",
-            "phase": "4E",
-            "reason": "color(a98-rgb …) — wide-gamut painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/display-p3-*",
-            "phase": "4E",
-            "reason": "color(display-p3 …) — wide-gamut painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/prophoto-rgb-*",
-            "phase": "4E",
-            "reason": "color(prophoto-rgb …) — wide-gamut painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/rec2020-*",
-            "phase": "4E",
-            "reason": "color(rec2020 …) — wide-gamut painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/srgb-linear-*",
-            "phase": "4E",
-            "reason": "color(srgb-linear …) — linearised sRGB painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/lch-*",
-            "phase": "4E",
-            "reason": "lch() / oklch() polar colour mixing — needs color engine"
-        },
-        {
-            "glob": "css/css-color/oklch-*",
-            "phase": "4E",
-            "reason": "oklch() polar colour mixing — needs color engine"
-        },
-        {
-            "glob": "css/css-color/xyz-*",
-            "phase": "4E",
-            "reason": "color(xyz …) — XYZ colourspace painting needs color engine"
-        },
-        {
-            "glob": "css/css-color/predefined*",
-            "phase": "4E",
-            "reason": "Predefined colour spaces — needs color engine"
-        },
-        {
-            "glob": "css/css-color/hwb-*",
-            "phase": "4E",
-            "reason": "hwb() — polar colourspace, needs color engine"
+            "reason": "Relative color syntax — needs late-bound currentColor (CSS Color 5)"
         },
         {
             "glob": "css/css-color/contrast-color*",

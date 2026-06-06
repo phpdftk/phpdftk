@@ -281,7 +281,15 @@ final class Painter
             && strtolower($value->name) === 'currentcolor'
         ) {
             $current = $box->style->get('color');
-            return $current instanceof Color ? $current : null;
+            $value = $current instanceof Color ? $current : null;
+        }
+        if ($value instanceof Color && $value->space !== \Phpdftk\Css\Value\ColorSpace::sRGB) {
+            // CSS Color 4 §17 — every wide-gamut / polar / Lab-family
+            // value stores its native components on the Color struct
+            // (`color(display-p3 …)` etc.). Convert to sRGB before the
+            // painter emits `rg` so PDF's DeviceRGB sees in-gamut
+            // values; out-of-gamut components clip at the boundary.
+            return \Phpdftk\Css\Value\ColorConverter::toSrgb($value);
         }
         return $value;
     }

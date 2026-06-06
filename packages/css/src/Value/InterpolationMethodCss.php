@@ -34,6 +34,7 @@ final class InterpolationMethodCss
             ColorSpace::XYZ => 'xyz',
             ColorSpace::XYZD50 => 'xyz-d50',
             ColorSpace::XYZD65 => 'xyz-d65',
+            ColorSpace::HWB => 'hwb',
         };
         $out = ' in ' . $name;
         if ($hue !== null) {

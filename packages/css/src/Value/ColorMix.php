@@ -53,6 +53,7 @@ final readonly class ColorMix extends Value
             ColorSpace::OKLCH => 'oklch',
             ColorSpace::XYZ, ColorSpace::XYZD65 => 'xyz-d65',
             ColorSpace::XYZD50 => 'xyz-d50',
+            ColorSpace::HWB => 'hwb',
         };
         return sprintf(
             'color-mix(in %s%s, %s %s%%, %s %s%%)',

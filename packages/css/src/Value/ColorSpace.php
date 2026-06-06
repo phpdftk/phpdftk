@@ -19,4 +19,5 @@ enum ColorSpace
     case XYZD50;
     case XYZD65;
     case sRGBLinear;
+    case HWB;
 }
