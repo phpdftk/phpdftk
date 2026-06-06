@@ -2326,12 +2326,15 @@ final class Painter
             $box->style->get('background-color'),
             $box,
         );
+        // CSS Backgrounds 3 §2.1 — `background-image` may resolve to a
+        // comma-separated list of images (layers). The first-listed image
+        // paints on top; later images paint below. Build the layer list
+        // and reject any non-paintable entries (e.g. `none`).
         $bgImage = $box->style->get('background-image');
+        $layers = $this->extractBackgroundLayers($bgImage);
         $hasColor = $color instanceof Color && $color->a > 0.0;
-        $hasImage = $bgImage instanceof \Phpdftk\Css\Value\Url;
-        $hasGradient = $bgImage instanceof \Phpdftk\Css\Value\LinearGradient;
-        $hasRadial = $bgImage instanceof \Phpdftk\Css\Value\RadialGradient;
-        if (!$hasColor && !$hasImage && !$hasGradient && !$hasRadial) {
+        $hasAnyLayer = $layers !== [];
+        if (!$hasColor && !$hasAnyLayer) {
             return;
         }
         $geo = $box->geometry;
@@ -2393,68 +2396,117 @@ final class Painter
         // bg-origin / bg-size / bg-position trio. Hoist once so the
         // gradient branches can reuse the rects computed for the
         // raster path.
-        $needBgImageProps = ($hasImage || $hasGradient || $hasRadial)
-            && $width > 0.0 && $height > 0.0;
-        $sizeValue = null;
-        $positionValue = null;
-        $originRect = null;
+        $needBgImageProps = $hasAnyLayer && $width > 0.0 && $height > 0.0;
         if ($needBgImageProps) {
-            $sizeValue = $box->style->get('background-size');
-            $positionValue = $box->style->get('background-position');
-            // CSS Backgrounds 3 §3.4 — `background-origin` controls
-            // which box rect the image is positioned within. It is
-            // independent of `background-clip` (which controls where
-            // the paint is clipped).
+            // Per CSS 2.1 §14.2.1, when fewer values are supplied than
+            // images the values cycle. Split each property into a comma
+            // list and index modulo its length.
+            $sizeList = $this->extractCommaList($box->style->get('background-size'));
+            $positionList = $this->extractCommaList($box->style->get('background-position'));
+            $repeatList = $this->extractCommaList($box->style->get('background-repeat'));
             $originRect = $this->backgroundOriginRect(
                 $box,
                 $this->resolveBackgroundOrigin($box),
             );
-        }
-        if ($hasImage && $needBgImageProps) {
-            $repeatValue = $box->style->get('background-repeat');
-            $this->paintBackgroundImage(
-                $bgImage,
-                $stream,
-                $x,
-                $top,
-                $width,
-                $height,
-                $sizeValue,
-                $positionValue,
-                $repeatValue,
-                $originRect,
-            );
-        }
-        if ($hasGradient && $needBgImageProps && $originRect !== null) {
-            // Use the tile-resolved path only when the gradient
-            // genuinely paints once: explicit bg-size + no-repeat.
-            // Other combinations (no bg-size, or repeat/round/space)
-            // expect the tile to fill the bg-clip area via tiling;
-            // we don't emit PDF tiling patterns for gradients, so
-            // stretching the gradient across the clip rect (the
-            // legacy behaviour) is closer to a `repeat` ref than a
-            // single off-centre tile would be.
-            $repeatValue = $box->style->get('background-repeat');
-            $useTilePath = !$this->isDefaultGradientSize($sizeValue)
-                && $this->isNoRepeat($repeatValue);
-            if ($useTilePath) {
-                $tile = $this->computeGradientTileRect($sizeValue, $positionValue, $originRect);
-                $this->paintLinearGradient(
-                    $bgImage,
-                    $stream,
-                    $tile['x'],
-                    $tile['top'],
-                    $tile['w'],
-                    $tile['h'],
-                    [$x, $top, $width, $height],
-                );
-            } else {
-                $this->paintLinearGradient($bgImage, $stream, $x, $top, $width, $height);
+            // CSS Backgrounds 3 §3.10 — first-listed image is topmost;
+            // walk the layer list in reverse so the topmost ends up
+            // painted last.
+            $count = count($layers);
+            for ($i = $count - 1; $i >= 0; $i--) {
+                $layer = $layers[$i];
+                $sizeValue = $sizeList === [] ? null : $sizeList[$i % count($sizeList)];
+                $positionValue = $positionList === [] ? null : $positionList[$i % count($positionList)];
+                $repeatValue = $repeatList === [] ? null : $repeatList[$i % count($repeatList)];
+                if ($layer instanceof \Phpdftk\Css\Value\Url) {
+                    $this->paintBackgroundImage(
+                        $layer,
+                        $stream,
+                        $x,
+                        $top,
+                        $width,
+                        $height,
+                        $sizeValue,
+                        $positionValue,
+                        $repeatValue,
+                        $originRect,
+                    );
+                } elseif ($layer instanceof \Phpdftk\Css\Value\LinearGradient) {
+                    $useTilePath = !$this->isDefaultGradientSize($sizeValue)
+                        && $this->isNoRepeat($repeatValue);
+                    if ($useTilePath) {
+                        $tile = $this->computeGradientTileRect($sizeValue, $positionValue, $originRect);
+                        $this->paintLinearGradient(
+                            $layer,
+                            $stream,
+                            $tile['x'],
+                            $tile['top'],
+                            $tile['w'],
+                            $tile['h'],
+                            [$x, $top, $width, $height],
+                        );
+                    } else {
+                        $this->paintLinearGradient($layer, $stream, $x, $top, $width, $height);
+                    }
+                } elseif ($layer instanceof \Phpdftk\Css\Value\RadialGradient) {
+                    $this->paintRadialGradient($layer, $stream, $x, $top, $width, $height);
+                }
             }
         }
-        if ($hasRadial && $needBgImageProps) {
-            $this->paintRadialGradient($bgImage, $stream, $x, $top, $width, $height);
+    }
+
+    /**
+     * Flatten a `background-image` value into the list of paintable
+     * layers (Url / LinearGradient / RadialGradient). A bare value
+     * becomes a single-element list; a comma-separated `ValueList`
+     * is expanded. `none` keywords and other unsupported entries
+     * are skipped.
+     *
+     * @return list<\Phpdftk\Css\Value\Url|\Phpdftk\Css\Value\LinearGradient|\Phpdftk\Css\Value\RadialGradient>
+     */
+    private function extractBackgroundLayers(mixed $value): array
+    {
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Comma
+        ) {
+            $layers = [];
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\Url
+                    || $v instanceof \Phpdftk\Css\Value\LinearGradient
+                    || $v instanceof \Phpdftk\Css\Value\RadialGradient
+                ) {
+                    $layers[] = $v;
+                }
+            }
+            return $layers;
         }
+        if ($value instanceof \Phpdftk\Css\Value\Url
+            || $value instanceof \Phpdftk\Css\Value\LinearGradient
+            || $value instanceof \Phpdftk\Css\Value\RadialGradient
+        ) {
+            return [$value];
+        }
+        return [];
+    }
+
+    /**
+     * Split a CSS property value into a list of per-layer values. A
+     * comma `ValueList` is exploded into its components; any other
+     * value is wrapped in a single-element list. Null inputs return
+     * an empty list so the caller can detect "no value supplied".
+     *
+     * @return list<\Phpdftk\Css\Value\Value>
+     */
+    private function extractCommaList(mixed $value): array
+    {
+        if (!$value instanceof \Phpdftk\Css\Value\Value) {
+            return [];
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Comma
+        ) {
+            return array_values($value->values);
+        }
+        return [$value];
     }
 
     /**
@@ -2783,15 +2835,15 @@ final class Painter
         // Resolve final paint rect (final size + offset within the
         // positioning area).
         $paint = $this->resolveBackgroundSize($sizeValue, $src, $originWidth, $originHeight);
-        // Author `background-position` may override the size resolver's
-        // default centred offset. `auto` size keeps the stretch
-        // behaviour so positioning has no effect (the rect equals the
-        // origin box). For non-auto sizes, apply the position formula:
-        // offset = (box - image) × percent.
-        $isAuto = $sizeValue === null
-            || ($sizeValue instanceof \Phpdftk\Css\Value\Keyword
-                && strtolower($sizeValue->name) === 'auto');
-        if (!$isAuto && $positionValue !== null) {
+        // CSS Backgrounds 3 §3.6 — `background-position` resolves
+        // against the positioning area regardless of whether the tile
+        // is smaller or larger than the area; for an oversized tile,
+        // the position still anchors its origin (e.g. `0% 0%`
+        // keeps the tile's top-left at the area's top-left, even if
+        // the tile overflows). Reapply the author position whenever
+        // it is supplied so it overrides the size resolver's default
+        // centred offset.
+        if ($positionValue !== null) {
             $pos = $this->resolveBackgroundPosition(
                 $positionValue,
                 $paint['w'],
