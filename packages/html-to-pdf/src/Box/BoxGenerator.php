@@ -1332,7 +1332,16 @@ final class BoxGenerator
         if ($inlineGroup === []) {
             return;
         }
-        $anon = new AnonymousBlockBox(null, $values);
+        // CSS Display 3 §3.4 — anonymous block boxes have no element
+        // and inherit only the inheritable properties from their
+        // parent. Crucially, non-inherited properties (background,
+        // width, height, border, padding, margin, …) MUST stay at
+        // their initial values; otherwise an anonymous wrapper around
+        // a run of whitespace text inside a `width: 100px; height:
+        // 100px; background: black` parent would paint a second
+        // 100×100 black rect at the cursor.
+        $anonValues = $this->cascade->anonymousFromParent($values);
+        $anon = new AnonymousBlockBox(null, $anonValues);
         foreach ($inlineGroup as $c) {
             $anon->addChild($c);
         }

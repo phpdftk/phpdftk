@@ -146,6 +146,27 @@ final class Cascade
     }
 
     /**
+     * Build the cascaded-values bag for an anonymous box (CSS Display 3
+     * §3.4). The box has no element of its own, so it has no author
+     * rules to match. Per spec the box takes the parent's *inherited*
+     * properties (font, color, line-height, …) and leaves every
+     * non-inherited property at its registry-defined initial value
+     * (so e.g. `background-color`, `width`, `height`, `border-*`,
+     * `padding-*`, `margin-*` come out at their initial values
+     * regardless of what the parent declared).
+     *
+     * Custom properties always inherit (CSS Custom Properties §3) and
+     * are copied straight across.
+     */
+    public function anonymousFromParent(?CascadedValues $parentValues): CascadedValues
+    {
+        $values = new CascadedValues($this->registry);
+        $this->applyInheritance($values, $parentValues);
+        $this->inheritCustomProperties($values, $parentValues);
+        return $values;
+    }
+
+    /**
      * Run the cascade for one element. `$parentValues` is the already-
      * computed result for the element's parent — used for inheritance.
      * Pass `null` for the root element.
