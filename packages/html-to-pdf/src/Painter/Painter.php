@@ -3823,17 +3823,25 @@ final class Painter
         if ($srcW <= 0 || $srcH <= 0) {
             return false;
         }
-        // Slice dimensions: support the single-number form `<n>` and
-        // the `<n> fill` two-value form. Number is in source px.
+        // Slice dimensions: 1–4 values in `<number>` / `<length>` /
+        // `<percentage>`, applied to top/right/bottom/left in the
+        // standard "TRBL fill-in" rule (CSS Backgrounds 3 §6.4.3).
+        // Horizontal slices (top, bottom) resolve their percentages
+        // against the image's height; vertical slices (left, right)
+        // resolve against width.
         $sliceValue = $box->style->get('border-image-slice');
-        $sliceN = $this->parseBorderImageSliceNumber($sliceValue);
-        if ($sliceN === null || $sliceN <= 0.0) {
+        $slices = $this->resolveBorderImageSliceSides($sliceValue, (float) $srcW, (float) $srcH);
+        if ($slices === null) {
             return false;
         }
-        $st = min($sliceN, (float) $srcH / 2.0);
-        $sr = min($sliceN, (float) $srcW / 2.0);
-        $sb = $st;
-        $sl = $sr;
+        [$st, $sr, $sb, $sl] = $slices;
+        $st = min($st, (float) $srcH / 2.0);
+        $sb = min($sb, (float) $srcH / 2.0);
+        $sl = min($sl, (float) $srcW / 2.0);
+        $sr = min($sr, (float) $srcW / 2.0);
+        if ($st <= 0.0 && $sr <= 0.0 && $sb <= 0.0 && $sl <= 0.0) {
+            return false;
+        }
 
         $repeatMode = $this->parseBorderImageRepeat($box->style->get('border-image-repeat'));
 
@@ -4065,6 +4073,81 @@ final class Painter
             return $this->parseBorderImageSliceNumber($value->values[0]);
         }
         return null;
+    }
+
+    /**
+     * Resolve a single `border-image-slice` component (number, length
+     * or percentage). Percentages resolve against the supplied axis
+     * extent per CSS Backgrounds 3 §6.4.3. Returns null when the value
+     * isn't a slice-shape we recognise.
+     */
+    private function resolveBorderImageSliceComponent(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $axisExtent,
+    ): ?float {
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $axisExtent;
+        }
+        return $this->parseBorderImageSliceNumber($value);
+    }
+
+    /**
+     * Expand the 1–4-value `border-image-slice` shorthand into the
+     * per-side `[top, right, bottom, left]` tuple. Drops a trailing
+     * `fill` keyword (handled separately when middle-fill paint
+     * lands).
+     *
+     * @return array{0:float, 1:float, 2:float, 3:float}|null
+     */
+    private function resolveBorderImageSliceSides(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $srcW,
+        float $srcH,
+    ): ?array {
+        $components = [];
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\Keyword
+                    && strtolower($v->name) === 'fill'
+                ) {
+                    continue;
+                }
+                $components[] = $v;
+            }
+        } elseif ($value !== null) {
+            $components[] = $value;
+        }
+        if ($components === []) {
+            return null;
+        }
+        // Horizontal slices (top, bottom) resolve `%` against srcH;
+        // vertical (right, left) against srcW.
+        $sides = [
+            'top' => $this->resolveBorderImageSliceComponent($components[0], $srcH),
+        ];
+        if (isset($components[1])) {
+            $sides['right'] = $this->resolveBorderImageSliceComponent($components[1], $srcW);
+        } else {
+            $sides['right'] = $sides['top'];
+        }
+        if (isset($components[2])) {
+            $sides['bottom'] = $this->resolveBorderImageSliceComponent($components[2], $srcH);
+        } else {
+            $sides['bottom'] = $sides['top'];
+        }
+        if (isset($components[3])) {
+            $sides['left'] = $this->resolveBorderImageSliceComponent($components[3], $srcW);
+        } else {
+            $sides['left'] = $sides['right'];
+        }
+        foreach ($sides as $side) {
+            if ($side === null) {
+                return null;
+            }
+        }
+        return [$sides['top'], $sides['right'], $sides['bottom'], $sides['left']];
     }
 
     private function parseBorderImageRepeat(?\Phpdftk\Css\Value\Value $value): string
