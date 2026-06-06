@@ -248,6 +248,25 @@ The engine-acquisition layer **cannot** be "Playwright + page.pdf()" as initiall
 - `scripts/cross-browser/README.md` — usage + the engine-acquisition matrix.
 - Smoke: `node render.mjs chromium <fixture> --output=cr.pdf` → 11 KB PDF; diff vs our render ≈ 0.99% pixel AE on background-image-001.
 
+### What landed in Phase A2
+
+- `scripts/cross-browser/Dockerfile` — `mcr.microsoft.com/playwright:v1.49.1-jammy` base, pinned `--platform=linux/amd64` (Mozilla doesn't ship Linux arm64 binaries via the canonical download URL), Mozilla's official Firefox tarball pulled in alongside Playwright, Xvfb installed for headless renderer init.
+- `scripts/cross-browser/render-docker.sh` — host wrapper that builds the image on first invoke, mounts the fixture's parent dir read-only + an output dir, runs the engine CLI inside the container.
+- `scripts/cross-browser/render.mjs` — Firefox dispatch routed to upstream Firefox CLI (`/usr/local/bin/firefox-cli`) instead of Playwright's bundled Firefox. Wraps with `xvfb-run` when available; respects `FIREFOX_USE_XVFB=0` / `FIREFOX_CLI=` env overrides for hosts that supply their own Firefox.
+
+### Phase A2 findings — additional blockers
+
+1. **Playwright-bundled Firefox strips `--print-to-pdf`.** Stderr: `Warning: unrecognized command line flag -print-to-pdf`. The Playwright Firefox build is custom-patched for protocol-only control. Resolution: install upstream Firefox in the container; ignore the Playwright-bundled binary for Gecko PDF generation.
+2. **Mozilla ships no Linux arm64 Firefox binary at the canonical URL.** Building the image as `linux/arm64` and pulling `?os=linux64` returns the amd64 binary; running it natively on arm64 fails. Resolution: pin the image platform to `linux/amd64` and accept Rosetta emulation cost on Apple Silicon hosts.
+3. **Firefox under Rosetta-emulated `linux/amd64` on Apple Silicon hosts can't initialise its software renderer.** Stderr: `[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer`. Even wrapping with `xvfb-run` doesn't get the SWGL backend to attach. This is a Rosetta-specific failure mode; the same image is expected to work natively on GitHub Actions `ubuntu-latest` runners (x86_64 Linux). Resolution: document the asymmetry; verify in Phase D when CI runs through real Linux.
+
+### Phase A2 status
+
+- **Build artifacts** — green. The Dockerfile builds without errors; the image carries upstream Firefox + Xvfb + Playwright bundled Chromium.
+- **Macros host smoke** — blocked by Rosetta + Firefox SWGL. Documented constraint; not a phase blocker.
+- **CI smoke** — pending Phase D's GHA wiring; the unit `docker run … firefox` is expected to succeed on `ubuntu-latest` since the SWGL issue is Rosetta-specific.
+- Decision: continue to Phase A3 (WebKit) rather than blocking on local-host Firefox; the cross-browser oracle is fundamentally a CI feature, not a dev-loop feature, and CI is Linux.
+
 ## Risks
 
 - **WebKit-Linux PDF gaps** — biggest unknown. Spike in Phase A.
