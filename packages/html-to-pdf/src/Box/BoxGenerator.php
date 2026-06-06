@@ -1332,6 +1332,16 @@ final class BoxGenerator
         if ($inlineGroup === []) {
             return;
         }
+        // CSS 2.1 §9.2.2.1 / Display 3 §3.4 — anonymous block boxes that
+        // contain only whitespace text are removed during box generation.
+        // The whitespace was already going to collapse to nothing in
+        // inline layout, but keeping the wrapper as an empty box still
+        // breaks adjacent-sibling margin collapse on the parent (the
+        // first sibling's `margin-bottom` no longer adjoins the next
+        // sibling's `margin-top`).
+        if ($this->onlyCollapsibleWhitespace($inlineGroup, $values)) {
+            return;
+        }
         // CSS Display 3 §3.4 — anonymous block boxes have no element
         // and inherit only the inheritable properties from their
         // parent. Crucially, non-inherited properties (background,
@@ -1346,6 +1356,35 @@ final class BoxGenerator
             $anon->addChild($c);
         }
         $parent->addChild($anon);
+    }
+
+    /**
+     * True when every entry in `$inlineGroup` is a TextBox carrying only
+     * ASCII / Unicode collapsible whitespace — and the parent's
+     * `white-space` value lets that whitespace collapse. Whitespace-
+     * preserving values (`pre`, `pre-wrap`, `pre-line`, `break-spaces`)
+     * keep the run, since the spec says we have to lay them out.
+     *
+     * @param list<Box> $inlineGroup
+     */
+    private function onlyCollapsibleWhitespace(array $inlineGroup, CascadedValues $values): bool
+    {
+        $whiteSpace = $values->get('white-space');
+        if ($whiteSpace instanceof Keyword) {
+            $kw = strtolower($whiteSpace->name);
+            if ($kw === 'pre' || $kw === 'pre-wrap' || $kw === 'pre-line' || $kw === 'break-spaces') {
+                return false;
+            }
+        }
+        foreach ($inlineGroup as $box) {
+            if (!$box instanceof TextBox) {
+                return false;
+            }
+            if (preg_match('/^[\s\x{200B}]*$/u', $box->text) !== 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function makeBox(Element $element, CascadedValues $values, string $display): Box
