@@ -1,0 +1,17 @@
+{
+  "name": "phpdftk-cross-browser",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Cross-browser PDF oracle for the WPT harness. Renders test fixtures through WebKit / Blink / Gecko via Playwright; the PHP harness in packages/wpt-harness consumes the resulting PDFs as ground-truth signals.",
+  "scripts": {
+    "render": "node render.mjs",
+    "postinstall": "npx --yes playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

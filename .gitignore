@@ -50,3 +50,8 @@ composer.phar
 # Claude
 .claude/
 
+# Cross-browser oracle (Node dep tree + browser-render cache)
+/scripts/cross-browser/node_modules/
+/scripts/cross-browser/package-lock.json
+/var/wpt/browser-cache/
+
