@@ -3260,8 +3260,8 @@ final class Painter
         ) {
             $w = $sizeValue->values[0] ?? null;
             $h = $sizeValue->values[1] ?? null;
-            $explicitW = $w instanceof \Phpdftk\Css\Value\Length ? $w->value : null;
-            $explicitH = $h instanceof \Phpdftk\Css\Value\Length ? $h->value : null;
+            $explicitW = $this->backgroundSizeAxisLength($w, $boxWidth);
+            $explicitH = $this->backgroundSizeAxisLength($h, $boxHeight);
             [$finalW, $finalH] = $this->resolveAutoSizePair(
                 $explicitW,
                 $explicitH,
@@ -3276,12 +3276,14 @@ final class Painter
                 'offsetY' => max(0.0, ($boxHeight - $finalH) / 2),
             ];
         }
-        if ($sizeValue instanceof \Phpdftk\Css\Value\Length) {
-            // Single length sets width; height = auto (derive from
-            // intrinsic ratio if present, else 100% of bg-positioning
-            // area). Reuses the auto-resolution helper for parity.
+        // Single-value `background-size`: a bare `<length>` or
+        // `<percentage>` sets the width; the second axis defaults to
+        // `auto` per CSS Backgrounds 3 §3.9 (derive from intrinsic
+        // ratio, or fall back to the bg-positioning-area height).
+        $singleW = $this->backgroundSizeAxisLength($sizeValue, $boxWidth);
+        if ($singleW !== null) {
             [$finalW, $finalH] = $this->resolveAutoSizePair(
-                $sizeValue->value,
+                $singleW,
                 null,
                 $src,
                 $boxWidth,
@@ -3295,6 +3297,26 @@ final class Painter
             ];
         }
         return ['w' => $boxWidth, 'h' => $boxHeight, 'offsetX' => 0.0, 'offsetY' => 0.0];
+    }
+
+    /**
+     * Resolve one axis of `background-size` from a single value to a
+     * concrete pixel length. Lengths come through as-is; percentages
+     * resolve against the bg-positioning area axis (CSS Backgrounds 3
+     * §3.9). Any other value (including `auto` keywords) returns null
+     * so the caller can route to the intrinsic-ratio path.
+     */
+    private function backgroundSizeAxisLength(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $axisExtent,
+    ): ?float {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $axisExtent;
+        }
+        return null;
     }
 
     /**
