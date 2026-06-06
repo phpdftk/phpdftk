@@ -464,7 +464,14 @@ final class SvgRenderer
         if ($raw === null) {
             return null;
         }
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*([%a-zA-Z]*)/', $raw, $m) !== 1) {
+            return null;
+        }
+        // Percentage values carry no intrinsic dimension — CSS Images
+        // 3 §5.2 treats `<svg width="50%">` as having no intrinsic
+        // width. Reject so the caller can fall back to the dst
+        // viewport as the source rect.
+        if ($m[2] === '%') {
             return null;
         }
         $value = (float) $m[1];

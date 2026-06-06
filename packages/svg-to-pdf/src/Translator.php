@@ -637,7 +637,15 @@ final class Translator
         if ($raw === null) {
             return null;
         }
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+))/', $raw, $m) !== 1) {
+        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*([%a-zA-Z]*)/', $raw, $m) !== 1) {
+            return null;
+        }
+        // Percentage attributes carry no intrinsic viewport extent — they
+        // resolve against the caller-supplied effective viewport (CSS
+        // Images 3 §5.2). Reject so the fallback path picks up the
+        // dst-derived viewport instead of mis-anchoring to the bare
+        // percentage value.
+        if ($m[2] === '%') {
             return null;
         }
         return (float) $m[1];
