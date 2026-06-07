@@ -55,6 +55,10 @@ use Phpdftk\WptHarness\TestStatus;
 $subcommand = $argv[1] ?? 'help';
 $args = array_slice($argv, 2);
 
+/**
+ * @param  list<string> $args
+ * @return array{opts: array<string, string|true>, positional: list<string>}
+ */
 function parseOptions(array $args): array
 {
     $opts = [];
@@ -82,6 +86,100 @@ function manifestDir(): string
 function defaultWptRoot(): string
 {
     return getcwd() . '/vendor-data/wpt';
+}
+
+/**
+ * Walk a WPT root for renderable test fixtures. Skips `-ref.*` files
+ * (those are the reference renderings, not the tests under test),
+ * anything under a `support/` directory (helpers), and anything that
+ * doesn't carry a recognised extension. `--include` / `--exclude`
+ * globs match against the path RELATIVE to root.
+ *
+ * @param list<string> $includes
+ * @param list<string> $excludes
+ * @return list<string>
+ */
+function discoverFixturesForSweep(string $root, array $includes, array $excludes): array
+{
+    if (!is_dir($root)) {
+        return [];
+    }
+    $rootReal = realpath($root) ?: $root;
+    $rootPrefixLen = strlen($rootReal) + 1;
+    $out = [];
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
+        $rootReal,
+        FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS,
+    ));
+    foreach ($it as $entry) {
+        if (!$entry->isFile()) {
+            continue;
+        }
+        $name = $entry->getFilename();
+        if (preg_match('/-ref\.(html?|xht)$/i', $name)) {
+            continue;
+        }
+        if (!preg_match('/\.(html?|xht)$/i', $name)) {
+            continue;
+        }
+        $path = $entry->getPathname();
+        if (str_contains($path, '/support/')) {
+            continue;
+        }
+        $rel = substr($path, $rootPrefixLen);
+        if ($includes !== []) {
+            $matched = false;
+            foreach ($includes as $glob) {
+                // Treat a bare directory name as `<dir>/**` so users
+                // can pass `--include=css/css-borders` without
+                // remembering the glob syntax.
+                $pattern = str_contains($glob, '*') ? $glob : $glob . '/*';
+                if (fnmatch($pattern, $rel) || str_starts_with($rel, $glob . '/')) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                continue;
+            }
+        }
+        if ($excludes !== []) {
+            $skip = false;
+            foreach ($excludes as $glob) {
+                $pattern = str_contains($glob, '*') ? $glob : $glob . '/*';
+                if (fnmatch($pattern, $rel) || str_starts_with($rel, $glob . '/')) {
+                    $skip = true;
+                    break;
+                }
+            }
+            if ($skip) {
+                continue;
+            }
+        }
+        $out[] = $path;
+    }
+    sort($out);
+    return $out;
+}
+
+/**
+ * Truncate a relative path to its first `$depth` path components,
+ * used as the aggregation key in `cb-sweep`. A WPT fixture like
+ * `css/css-borders/parsing/border-color.html` at depth 2 collapses to
+ * `css/css-borders`; at depth 3 it stays under
+ * `css/css-borders/parsing`.
+ */
+function sweepDirKey(string $relPath, int $depth): string
+{
+    $dir = dirname($relPath);
+    if ($dir === '' || $dir === '.') {
+        return '(root)';
+    }
+    $parts = explode('/', $dir);
+    if (count($parts) <= $depth) {
+        return $dir;
+    }
+    return implode('/', array_slice($parts, 0, $depth));
 }
 
 switch ($subcommand) {
@@ -127,7 +225,7 @@ switch ($subcommand) {
                 static fn($a, $b) => $b->diffScore <=> $a->diffScore,
             );
             $limit = is_string($parsed['opts']['show-fails'] ?? null)
-                ? (int)$parsed['opts']['show-fails']
+                ? (int) $parsed['opts']['show-fails']
                 : 25;
             printf("\n  Top %d failures (sorted by diff score):\n", min($limit, count($fails)));
             $i = 0;
@@ -391,6 +489,268 @@ switch ($subcommand) {
         exit($tallies['fail'] > 0 ? 1 : 0);
     }
 
+    case 'cb-sweep': {
+        // Walk a WPT directory tree, render every reftest through our
+        // engine plus the available browser engines, and report mean
+        // pixel-AE per engine per directory. Where `cross-browser`
+        // answers "do the three engines + ours agree on this curated
+        // list?", this subcommand answers "across this whole corpus
+        // slice, how close does our renderer sit to each engine?" —
+        // useful for tracking compliance progress against the real
+        // WPT corpus rather than a hand-curated subset.
+        $parsed = parseOptions($args);
+        $opts = $parsed['opts'];
+        $root = isset($opts['root']) && is_string($opts['root'])
+            ? $opts['root']
+            : defaultWptRoot();
+        if (!is_dir($root)) {
+            fwrite(STDERR, "wpt cb-sweep: corpus not found at $root\n");
+            fwrite(STDERR, "  Pass --root=<path> or vendor WPT at vendor-data/wpt.\n");
+            exit(2);
+        }
+
+        // --include / --exclude accept comma-separated globs (relative
+        // to root). Without --include we walk the entire root, which
+        // for a full WPT checkout is tens of thousands of files; pair
+        // with --max to bound runtime.
+        $includes = isset($opts['include']) && is_string($opts['include'])
+            ? array_values(array_filter(array_map('trim', explode(',', $opts['include']))))
+            : [];
+        $excludes = isset($opts['exclude']) && is_string($opts['exclude'])
+            ? array_values(array_filter(array_map('trim', explode(',', $opts['exclude']))))
+            : [];
+        $maxFixtures = isset($opts['max']) && (is_string($opts['max']) || is_int($opts['max']))
+            ? max(0, (int) $opts['max'])
+            : 0;
+        $showWorst = isset($opts['show-worst']) && (is_string($opts['show-worst']) || is_int($opts['show-worst']))
+            ? max(0, (int) $opts['show-worst'])
+            : 0;
+        // Aggregation depth — 1 collapses everything under each top-level
+        // dir into one row, 2 keeps `css/css-borders` separate from
+        // `css/css-box`, etc. Default 2 matches the natural WPT layout.
+        $depth = isset($opts['depth']) && (is_string($opts['depth']) || is_int($opts['depth']))
+            ? max(1, (int) $opts['depth'])
+            : 2;
+
+        $enginesOpt = isset($opts['engines']) && is_string($opts['engines'])
+            ? array_values(array_filter(array_map('trim', explode(',', $opts['engines']))))
+            : null;
+        if ($enginesOpt !== null) {
+            putenv('PHPDFTK_CROSS_BROWSER_ENGINES=' . implode(',', $enginesOpt));
+        }
+
+        // Shard predicate matches the `cross-browser` semantics so
+        // sweep + curated runs can share the same shard map.
+        $shardSpec = isset($opts['shard']) && is_string($opts['shard'])
+            ? $opts['shard']
+            : '1/1';
+        if (!preg_match('#^(\d+)/(\d+)$#', $shardSpec, $shm)) {
+            fwrite(STDERR, "wpt cb-sweep: --shard must look like K/N (got: $shardSpec)\n");
+            exit(2);
+        }
+        $shardIndex = (int) $shm[1];
+        $shardCount = (int) $shm[2];
+
+        $jsonOut = isset($opts['json']) && is_string($opts['json']) ? $opts['json'] : null;
+
+        // Discover fixtures. Walks recursively from `$root`; honours
+        // `--include` (paths must match at least one) and `--exclude`
+        // (path matching any is dropped). The standard WPT layout
+        // keeps reference renders alongside the test with the
+        // `-ref.*` suffix and helpers under `support/`; we drop both
+        // since neither is a renderable test in their own right.
+        $fixtures = discoverFixturesForSweep($root, $includes, $excludes);
+        if ($shardCount > 1) {
+            $fixtures = array_values(array_filter(
+                $fixtures,
+                static fn(string $p): bool =>
+                    (crc32($p) % $shardCount) + 1 === $shardIndex,
+            ));
+        }
+        if ($maxFixtures > 0 && count($fixtures) > $maxFixtures) {
+            $fixtures = array_slice($fixtures, 0, $maxFixtures);
+        }
+        if ($fixtures === []) {
+            fwrite(STDERR, "wpt cb-sweep: no fixtures matched\n");
+            exit(0);
+        }
+
+        $oracle = new BrowserOracle();
+        $availability = [];
+        foreach (['chromium', 'firefox', 'webkit'] as $e) {
+            $availability[$e] = $oracle->isAvailable($e);
+        }
+        $resolvedEngines = $enginesOpt !== null
+            ? array_values(array_filter(
+                $enginesOpt,
+                static fn(string $e): bool => $availability[$e] ?? false,
+            ))
+            : array_keys(array_filter($availability));
+
+        printf("WPT cross-browser sweep — corpus: %s\n", $root);
+        if ($includes !== []) {
+            printf("  includes: %s\n", implode(', ', $includes));
+        }
+        if ($excludes !== []) {
+            printf("  excludes: %s\n", implode(', ', $excludes));
+        }
+        printf("  engines:  %s\n", implode(', ', $resolvedEngines) ?: '(none)');
+        if ($shardCount > 1) {
+            printf("  shard:    %d/%d\n", $shardIndex, $shardCount);
+        }
+        printf("  fixtures: %d\n\n", count($fixtures));
+
+        $runner = new CrossBrowserRunner();
+        // Aggregation buckets keyed by directory (depth-truncated
+        // relative to root). Each bucket tracks (count, sums[engine],
+        // engineCounts[engine]) so the final mean is sum / engineCount.
+        $perDir = [];
+        $perFixture = [];
+        $oursErrors = 0;
+        $tStart = microtime(true);
+
+        foreach ($fixtures as $i => $fixturePath) {
+            $relPath = ltrim(str_replace($root, '', $fixturePath), '/');
+            $dirKey = sweepDirKey($relPath, $depth);
+            if (!isset($perDir[$dirKey])) {
+                $perDir[$dirKey] = [
+                    'count' => 0,
+                    'sums' => [],
+                    'engineCounts' => [],
+                ];
+            }
+
+            try {
+                $result = $runner->runOne($relPath, $fixturePath, ConsensusScorer::OURS_FUZZ_GEOMETRY);
+            } catch (\Throwable $err) {
+                $oursErrors++;
+                printf("  ⚠ %-60s  %s\n", $relPath, $err->getMessage());
+                continue;
+            }
+            $perDir[$dirKey]['count']++;
+            $aeByEngine = $result['ours'];
+            foreach ($aeByEngine as $engine => $ae) {
+                $perDir[$dirKey]['sums'][$engine] = ($perDir[$dirKey]['sums'][$engine] ?? 0.0) + $ae;
+                $perDir[$dirKey]['engineCounts'][$engine] = ($perDir[$dirKey]['engineCounts'][$engine] ?? 0) + 1;
+            }
+            $perFixture[] = [
+                'path' => $relPath,
+                'dir' => $dirKey,
+                'ours' => $aeByEngine,
+                'engineMissing' => $result['engineMissing'],
+            ];
+            $runner->cleanupResult($result);
+
+            if ((($i + 1) % 25) === 0) {
+                printf(
+                    "  ...%4d/%-4d   %.0fs elapsed\n",
+                    $i + 1,
+                    count($fixtures),
+                    microtime(true) - $tStart,
+                );
+            }
+        }
+
+        // Pretty-print the directory roll-up.
+        $headerCols = array_merge(['directory', 'fixtures'], $resolvedEngines);
+        $dirWidth = max(20, max(array_map('strlen', array_keys($perDir))) + 2);
+        $line = sprintf("%-{$dirWidth}s %8s", $headerCols[0], $headerCols[1]);
+        foreach ($resolvedEngines as $e) {
+            $line .= sprintf(" %10s", $e);
+        }
+        echo "\n" . str_repeat('=', strlen($line)) . "\n";
+        echo $line . "\n";
+        echo str_repeat('-', strlen($line)) . "\n";
+        ksort($perDir);
+        $overallCount = 0;
+        $overallSums = [];
+        $overallEngineCounts = [];
+        foreach ($perDir as $dir => $stat) {
+            $overallCount += $stat['count'];
+            $row = sprintf("%-{$dirWidth}s %8d", $dir, $stat['count']);
+            foreach ($resolvedEngines as $e) {
+                $c = $stat['engineCounts'][$e] ?? 0;
+                $row .= sprintf(
+                    " %10s",
+                    $c === 0
+                        ? '-'
+                        : sprintf('%.2f%%', ($stat['sums'][$e] / $c) * 100),
+                );
+                $overallSums[$e] = ($overallSums[$e] ?? 0.0) + ($stat['sums'][$e] ?? 0.0);
+                $overallEngineCounts[$e] = ($overallEngineCounts[$e] ?? 0) + $c;
+            }
+            echo $row . "\n";
+        }
+        echo str_repeat('-', strlen($line)) . "\n";
+        $row = sprintf("%-{$dirWidth}s %8d", 'OVERALL', $overallCount);
+        foreach ($resolvedEngines as $e) {
+            $c = $overallEngineCounts[$e] ?? 0;
+            $row .= sprintf(
+                " %10s",
+                $c === 0
+                    ? '-'
+                    : sprintf('%.2f%%', ($overallSums[$e] / $c) * 100),
+            );
+        }
+        echo $row . "\n";
+        echo str_repeat('=', strlen($line)) . "\n";
+        printf("\n  ours-render errors: %d\n", $oursErrors);
+        printf("  wall time:          %.0fs\n", microtime(true) - $tStart);
+
+        if ($showWorst > 0) {
+            foreach ($resolvedEngines as $engine) {
+                $rows = array_values(array_filter(
+                    $perFixture,
+                    static fn(array $r): bool => isset($r['ours'][$engine]),
+                ));
+                usort(
+                    $rows,
+                    static fn(array $a, array $b): int =>
+                        $b['ours'][$engine] <=> $a['ours'][$engine],
+                );
+                $rows = array_slice($rows, 0, $showWorst);
+                if ($rows === []) {
+                    continue;
+                }
+                printf("\nTop %d worst fixtures vs %s:\n", count($rows), $engine);
+                foreach ($rows as $r) {
+                    printf("  %6.2f%%  %s\n", $r['ours'][$engine] * 100, $r['path']);
+                }
+            }
+        }
+
+        if ($jsonOut !== null) {
+            $jsonPerDir = [];
+            foreach ($perDir as $dir => $stat) {
+                $means = [];
+                foreach ($resolvedEngines as $e) {
+                    $c = $stat['engineCounts'][$e] ?? 0;
+                    $means[$e] = $c === 0 ? null : $stat['sums'][$e] / $c;
+                }
+                $jsonPerDir[$dir] = ['count' => $stat['count'], 'means' => $means];
+            }
+            $overallMeans = [];
+            foreach ($resolvedEngines as $e) {
+                $c = $overallEngineCounts[$e] ?? 0;
+                $overallMeans[$e] = $c === 0 ? null : $overallSums[$e] / $c;
+            }
+            file_put_contents($jsonOut, (string) json_encode([
+                'root' => $root,
+                'includes' => $includes,
+                'excludes' => $excludes,
+                'engines' => $resolvedEngines,
+                'shard' => ['index' => $shardIndex, 'count' => $shardCount],
+                'fixtures' => count($fixtures),
+                'ours_errors' => $oursErrors,
+                'per_directory' => $jsonPerDir,
+                'overall' => ['count' => $overallCount, 'means' => $overallMeans],
+                'fixtures_detail' => $perFixture,
+            ], JSON_PRETTY_PRINT));
+        }
+
+        exit(0);
+    }
+
     case 'help':
     case '--help':
     case '-h':
@@ -411,6 +771,21 @@ Subcommands:
                                            webkit} to consult, `--json` writes a
                                            per-shard result dump for the
                                            aggregator.
+  cb-sweep [--root=<path>] [--include=<csv-globs>] [--exclude=<csv-globs>]
+           [--depth=<N>] [--max=<N>] [--shard=K/N] [--engines=<csv>]
+           [--show-worst=<N>] [--json=<path>]
+                                           Walk the WPT corpus (defaults to the
+                                           tree at --root, typically
+                                           vendor-data/wpt), render every
+                                           non-`-ref` fixture through ours +
+                                           each engine, and report mean pixel-AE
+                                           per engine, grouped by directory at
+                                           the chosen depth (default 2). Use
+                                           `--show-worst=N` to also list the N
+                                           worst-scoring fixtures per engine,
+                                           `--json=<path>` to dump the full
+                                           result set (including per-fixture AE)
+                                           for downstream slice/dice.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 
