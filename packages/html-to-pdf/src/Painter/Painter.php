@@ -2681,6 +2681,158 @@ final class Painter
     }
 
     /**
+     * Resolve the stop list of a `repeating-linear-gradient` to one
+     * cycle of in-cycle offsets ∈ [0, 1], the cycle length in absolute
+     * pixels along the gradient line, and the first stop's absolute
+     * pixel position. Returns `null` when the cycle is degenerate
+     * (zero-length or fewer than two stops) — callers fall through to
+     * the non-repeating path.
+     *
+     * Mirrors the position-resolution algorithm in
+     * {@see resolveGradientStops()} but keeps positions in absolute
+     * px (length stops can exceed the gradient line length when an
+     * author writes `… 100px` on a 50-px ray) rather than clamping to
+     * [0, 1].
+     *
+     * @param  list<\Phpdftk\Css\Value\GradientStop> $stops
+     * @return array{list<array{offset: float, rgb: array{float, float, float}}>, float, float}|null
+     */
+    private function resolveRepeatingLinearCycle(array $stops, float $gradientLineLength): ?array
+    {
+        $count = count($stops);
+        if ($count < 2) {
+            return null;
+        }
+        $positions = array_fill(0, $count, null);
+        foreach ($stops as $i => $s) {
+            if ($s->position instanceof \Phpdftk\Css\Value\Length) {
+                $positions[$i] = $s->position->value;
+            } elseif ($s->position instanceof \Phpdftk\Css\Value\Percentage) {
+                $positions[$i] = $s->position->value / 100.0 * $gradientLineLength;
+            }
+        }
+        if ($positions[0] === null) {
+            $positions[0] = 0.0;
+        }
+        if ($positions[$count - 1] === null) {
+            $positions[$count - 1] = $gradientLineLength;
+        }
+        // Monotonic clamp — each explicit position must be ≥ prior.
+        $prev = -INF;
+        foreach ($positions as $i => $p) {
+            if ($p !== null) {
+                $positions[$i] = max($p, $prev);
+                $prev = $positions[$i];
+            }
+        }
+        // Interpolate runs of unset positions between anchored stops.
+        $i = 0;
+        while ($i < $count) {
+            if ($positions[$i] !== null) {
+                $i++;
+                continue;
+            }
+            $start = $i - 1;
+            $end = $i;
+            while ($end < $count && $positions[$end] === null) {
+                $end++;
+            }
+            $span = $positions[$end] - $positions[$start];
+            $gap = $end - $start;
+            for ($j = $start + 1; $j < $end; $j++) {
+                $positions[$j] = $positions[$start] + $span * ($j - $start) / $gap;
+            }
+            $i = $end;
+        }
+        $firstPos = (float) $positions[0];
+        $lastPos = (float) $positions[$count - 1];
+        $cycleLength = $lastPos - $firstPos;
+        if ($cycleLength <= 0.0) {
+            return null;
+        }
+        $inCycle = [];
+        foreach ($stops as $i => $s) {
+            $inCycle[] = [
+                'offset' => ((float) $positions[$i] - $firstPos) / $cycleLength,
+                'rgb' => [$s->color->r, $s->color->g, $s->color->b],
+            ];
+        }
+        return [$inCycle, $cycleLength, $firstPos];
+    }
+
+    /**
+     * Extend the gradient axis to cover the clip rect's projection onto
+     * the gradient line in whole cycles, and emit a stop list that
+     * replicates the in-cycle stops once per cycle across the extended
+     * [0, 1] domain.
+     *
+     * @param  array{list<array{offset: float, rgb: array{float, float, float}}>, float, float} $cycle
+     * @return array{float, float, float, float, list<array{offset: float, rgb: array{float, float, float}}>}
+     */
+    private function buildRepeatingLinearAxis(
+        array $cycle,
+        float $startPdfX,
+        float $startPdfY,
+        float $dx,
+        float $dy,
+        float $clipX,
+        float $clipPdfY,
+        float $clipWidth,
+        float $clipHeight,
+    ): array {
+        [$inCycleStops, $cycleLength, $firstPos] = $cycle;
+        $tMin = INF;
+        $tMax = -INF;
+        foreach (
+            [
+                [$clipX,             $clipPdfY],
+                [$clipX + $clipWidth, $clipPdfY],
+                [$clipX,             $clipPdfY + $clipHeight],
+                [$clipX + $clipWidth, $clipPdfY + $clipHeight],
+            ] as [$px, $py]
+        ) {
+            $t = ($px - $startPdfX) * $dx + ($py - $startPdfY) * $dy;
+            if ($t < $tMin) {
+                $tMin = $t;
+            }
+            if ($t > $tMax) {
+                $tMax = $t;
+            }
+        }
+        $kMin = (int) floor(($tMin - $firstPos) / $cycleLength);
+        $kMax = (int) ceil(($tMax - $firstPos) / $cycleLength) - 1;
+        if ($kMax < $kMin) {
+            $kMax = $kMin;
+        }
+        // Defensive cap. A clip-extent / cycle ratio over 500 means
+        // either a wildly short cycle or a huge clip rect; either way
+        // the result is visually indistinguishable past that count and
+        // not worth the pattern bytes.
+        $maxCycles = 500;
+        $cycles = $kMax - $kMin + 1;
+        if ($cycles > $maxCycles) {
+            $kMax = $kMin + $maxCycles - 1;
+            $cycles = $maxCycles;
+        }
+        $extStartPos = $firstPos + $kMin * $cycleLength;
+        $extEndPos = $firstPos + ($kMax + 1) * $cycleLength;
+        $extStartX = $startPdfX + $extStartPos * $dx;
+        $extStartY = $startPdfY + $extStartPos * $dy;
+        $extEndX = $startPdfX + $extEndPos * $dx;
+        $extEndY = $startPdfY + $extEndPos * $dy;
+        $stopList = [];
+        for ($k = 0; $k < $cycles; $k++) {
+            foreach ($inCycleStops as $s) {
+                $stopList[] = [
+                    'offset' => ($k + $s['offset']) / $cycles,
+                    'rgb' => $s['rgb'],
+                ];
+            }
+        }
+        return [$extStartX, $extStartY, $extEndX, $extEndY, $stopList];
+    }
+
+    /**
      * Paint a CSS `linear-gradient(<angle>|to <side>, <stops>)` as the
      * box's background. Phase-1 simplification: only the first and last
      * stop colours are honoured (PDF's basic shading dictionary is
@@ -2739,7 +2891,7 @@ final class Painter
         $halfLen = (abs($tileWidth * $sin) + abs($tileHeight * $cos)) / 2;
         // Full line length is twice the half — what `<length>` stops
         // resolve against (CSS Images 3 §3.5.1).
-        $stopList = $this->resolveGradientStops($gradient->stops, $halfLen * 2);
+        $lineLength = $halfLen * 2;
         // The CSS convention rotates the gradient line such that 0deg
         // points UP (towards the box top). In PDF space the y-axis
         // grows upward already (after our flip), so "up" is +y.
@@ -2749,6 +2901,31 @@ final class Painter
         $startPdfY = $cy - $dy * $halfLen;
         $endPdfX = $cx + $dx * $halfLen;
         $endPdfY = $cy + $dy * $halfLen;
+        // CSS Images 4 §6.4 — `repeating-linear-gradient` replays the
+        // stop list at `(lastStopPos - firstStopPos)` intervals along
+        // the gradient ray, infinitely. We approximate that by
+        // extending the axis to cover the clip projection in whole
+        // cycles and feeding the shading a stop list that replicates
+        // the in-cycle stops once per cycle.
+        $stopList = null;
+        if ($gradient->repeating) {
+            $cycle = $this->resolveRepeatingLinearCycle($gradient->stops, $lineLength);
+            if ($cycle !== null) {
+                $extended = $this->buildRepeatingLinearAxis(
+                    $cycle,
+                    $startPdfX,
+                    $startPdfY,
+                    $dx,
+                    $dy,
+                    $clipX,
+                    $clipPdfY,
+                    $clipWidth,
+                    $clipHeight,
+                );
+                [$startPdfX, $startPdfY, $endPdfX, $endPdfY, $stopList] = $extended;
+            }
+        }
+        $stopList ??= $this->resolveGradientStops($gradient->stops, $lineLength);
         try {
             $doc = \Phpdftk\Pdf\Writer\PdfDoc::wrap($this->writer);
             $pattern = $doc->addLinearGradientStops(

@@ -333,6 +333,32 @@ final class AdvancedValueParserTest extends TestCase
         self::assertTrue($v->repeating);
     }
 
+    public function testGradientStopTwoPositionShorthandExpands(): void
+    {
+        // CSS Images 4 §3.5.1 — a stop with two positions is shorthand
+        // for two stops carrying the same colour. The shorthand is
+        // canonical in `repeating-linear-gradient(45deg, #fff 0 24px,
+        // #226 24px 48px)` patterns.
+        $v = $this->parser->parseFromString('linear-gradient(45deg, red 0px 50px, blue 50px 100px)');
+        self::assertInstanceOf(LinearGradient::class, $v);
+        self::assertCount(4, $v->stops);
+        self::assertSame(0.0, $v->stops[0]->position?->value);
+        self::assertSame(50.0, $v->stops[1]->position?->value);
+        self::assertSame(50.0, $v->stops[2]->position?->value);
+        self::assertSame(100.0, $v->stops[3]->position?->value);
+    }
+
+    public function testGradientStopAcceptsUnitlessZero(): void
+    {
+        // CSS Values 4 §5.2 — bare `0` is a valid `<length>` everywhere
+        // a length is accepted. The grammar in §3.5.1 also expects to
+        // pick `0` up as a stop position, not silently drop it.
+        $v = $this->parser->parseFromString('linear-gradient(red 0, blue 100px)');
+        self::assertInstanceOf(LinearGradient::class, $v);
+        self::assertCount(2, $v->stops);
+        self::assertSame(0.0, $v->stops[0]->position?->value);
+    }
+
     // ============================================================
     // radial-gradient
     // ============================================================

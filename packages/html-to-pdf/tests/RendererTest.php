@@ -1594,6 +1594,36 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('/FunctionType 2', $bytes, 'Type-2 used directly');
     }
 
+    public function testRepeatingLinearGradientReplicatesStopCycle(): void
+    {
+        // CSS Images 4 §6.4 — `repeating-linear-gradient` tiles the
+        // stop list along the gradient axis. The painter extends the
+        // shading axis to cover the clip area in whole cycles and
+        // emits one in-cycle stop set per cycle, so a four-stop input
+        // becomes a much larger stitching function — many more
+        // sub-functions than the non-repeating cousin.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $css = 'html, body { margin: 0; padding: 0; height: 100%; } '
+            . 'body { background: repeating-linear-gradient(45deg, #fff 0 24px, #226 24px 48px); }';
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>' . $css . '</style></head><body></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('/FunctionType 3', $bytes, 'stitching function emitted');
+        self::assertStringContainsString('/ShadingType 2', $bytes, 'axial shading still in play');
+        // Default Letter page (612 × 792 pt) at 45° gives a gradient
+        // line ≈ 992 pt; one 48-pt cycle fits ~20 times so the
+        // stitching function should reference well over 20 child
+        // sub-functions.
+        self::assertMatchesRegularExpression(
+            '~/Functions\s*\[\s*(?:\d+\s+0\s+R\s+){40,}\]~',
+            $bytes,
+            'stitching function references at least 40 sub-functions (≥ 10 cycles × 4 stops)',
+        );
+    }
+
     public function testLinearGradientStopsWithExplicitPositions(): void
     {
         // `linear-gradient(red, yellow 30%, green 70%, blue)` — four

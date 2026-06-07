@@ -2200,11 +2200,13 @@ final class ValueParser
 
         $stops = [];
         foreach ($stopGroups as $g) {
-            $stop = $this->parseGradientStop($g);
-            if ($stop === null) {
+            $parsed = $this->parseGradientStop($g);
+            if ($parsed === null) {
                 return null;
             }
-            $stops[] = $stop;
+            foreach ($parsed as $stop) {
+                $stops[] = $stop;
+            }
         }
         if (count($stops) < 2) {
             return null;
@@ -2322,29 +2324,71 @@ final class ValueParser
     }
 
     /** @param list<Token> $tokens */
-    private function parseGradientStop(array $tokens): ?GradientStop
+    /**
+     * Parse one comma-delimited segment of a gradient's stop list. Per
+     * CSS Images 4 §3.5.1 the grammar admits two position slots:
+     *
+     *   <linear-color-stop> := <color> [<length-percentage>]{0,2}
+     *
+     * Two positions are shorthand for a doubled stop carrying the same
+     * colour at each — `red 0% 50%` is equivalent to `red 0%, red 50%`.
+     * Returning a list lets callers splat the result so the rest of the
+     * gradient pipeline never needs to care that the shorthand existed.
+     *
+     * @param  list<Token> $tokens
+     * @return list<GradientStop>|null
+     */
+    private function parseGradientStop(array $tokens): ?array
     {
         $tokens = self::trimWhitespace($tokens);
         if ($tokens === []) {
             return null;
         }
-        // Split by whitespace: <color> [<position>]
         $parts = self::splitOnWhitespace($tokens);
-        if (count($parts) === 0) {
+        if ($parts === []) {
             return null;
         }
         $colorValue = $this->parseSingle($parts[0]);
         if (!$colorValue instanceof Color) {
             return null;
         }
-        $position = null;
-        if (count($parts) >= 2) {
-            $posVal = $this->parseSingle($parts[1]);
-            if ($posVal instanceof Length || $posVal instanceof Percentage) {
-                $position = $posVal;
-            }
+        $position1 = $this->parseStopPosition($parts[1] ?? null);
+        $position2 = $position1 !== null
+            ? $this->parseStopPosition($parts[2] ?? null)
+            : null;
+        if ($position2 !== null) {
+            return [
+                new GradientStop($colorValue, $position1),
+                new GradientStop($colorValue, $position2),
+            ];
         }
-        return new GradientStop($colorValue, $position);
+        return [new GradientStop($colorValue, $position1)];
+    }
+
+    /**
+     * Resolve a gradient stop position token list. Accepts `<length>` /
+     * `<percentage>` and the unitless-zero form CSS Values 4 §5.2
+     * carves out as a valid length. Returns `null` for absent or
+     * unrecognised tokens (caller keeps the stop with no position).
+     *
+     * @param list<Token>|null $tokens
+     */
+    private function parseStopPosition(?array $tokens): Length|Percentage|null
+    {
+        if ($tokens === null) {
+            return null;
+        }
+        $val = $this->parseSingle($tokens);
+        if ($val instanceof Length || $val instanceof Percentage) {
+            return $val;
+        }
+        if ($val instanceof Integer && $val->value === 0) {
+            return new Length(0.0, LengthUnit::Px);
+        }
+        if ($val instanceof Number && $val->value === 0.0) {
+            return new Length(0.0, LengthUnit::Px);
+        }
+        return null;
     }
 
     /** @param list<Token> $tokens */
@@ -2388,11 +2432,13 @@ final class ValueParser
         }
         $stops = [];
         foreach ($stopGroups as $g) {
-            $stop = $this->parseGradientStop($g);
-            if ($stop === null) {
+            $parsed = $this->parseGradientStop($g);
+            if ($parsed === null) {
                 return null;
             }
-            $stops[] = $stop;
+            foreach ($parsed as $stop) {
+                $stops[] = $stop;
+            }
         }
         if (count($stops) < 2) {
             return null;
@@ -2479,11 +2525,13 @@ final class ValueParser
         }
         $stops = [];
         foreach ($stopGroups as $g) {
-            $stop = $this->parseGradientStop($g);
-            if ($stop === null) {
+            $parsed = $this->parseGradientStop($g);
+            if ($parsed === null) {
                 return null;
             }
-            $stops[] = $stop;
+            foreach ($parsed as $stop) {
+                $stops[] = $stop;
+            }
         }
         return new ConicGradient(
             fromAngleDeg: $fromAngle,
