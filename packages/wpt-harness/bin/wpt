@@ -41,6 +41,10 @@ if ($autoload === null) {
 }
 require $autoload;
 
+use Phpdftk\WptHarness\BrowserOracle;
+use Phpdftk\WptHarness\ConsensusScorer;
+use Phpdftk\WptHarness\ConsensusVerdict;
+use Phpdftk\WptHarness\CrossBrowserRunner;
 use Phpdftk\WptHarness\HarnessRunner;
 use Phpdftk\WptHarness\Manifest;
 use Phpdftk\WptHarness\Rasteriser;
@@ -171,6 +175,112 @@ switch ($subcommand) {
         fwrite(STDERR, "wpt $subcommand: not yet implemented (lands at 4A.5)\n");
         exit(2);
 
+    case 'cross-browser': {
+        // Cross-browser PDF oracle: render the requested fixtures
+        // through WebKit / Blink / Gecko + ours, score via consensus.
+        // See docs/plans/cross-browser-oracle.md.
+        $parsed = parseOptions($args);
+        // Default to the curated smoke fixtures shipped with the
+        // harness so `wpt cross-browser` works without the WPT
+        // corpus checked out. Pass `--root=path/to/wpt` to point at
+        // the corpus when the curated manifest references real WPT
+        // test IDs.
+        $root = isset($parsed['opts']['root']) && is_string($parsed['opts']['root'])
+            ? $parsed['opts']['root']
+            : __DIR__ . '/../curated/smoke';
+        $manifestFile = __DIR__ . '/../curated/manifest.json';
+        if (!is_file($manifestFile)) {
+            fwrite(STDERR, "wpt cross-browser: curated manifest missing at $manifestFile\n");
+            exit(2);
+        }
+        $manifest = json_decode((string) file_get_contents($manifestFile), associative: true);
+        if (!is_array($manifest) || !isset($manifest['tests']) || !is_array($manifest['tests'])) {
+            fwrite(STDERR, "wpt cross-browser: curated manifest malformed\n");
+            exit(2);
+        }
+        /** @var list<array{id: string, fuzz?: string}> $entries */
+        $entries = $manifest['tests'];
+
+        $filter = isset($parsed['opts']['filter']) && is_string($parsed['opts']['filter'])
+            ? $parsed['opts']['filter']
+            : null;
+        if ($filter !== null) {
+            $entries = array_values(array_filter(
+                $entries,
+                static fn(array $e) => fnmatch($filter, $e['id']),
+            ));
+        }
+
+        if ($entries === []) {
+            fwrite(STDERR, "wpt cross-browser: no fixtures match the curated manifest"
+                . ($filter !== null ? " + filter $filter" : '') . "\n");
+            exit(2);
+        }
+
+        $runner = new CrossBrowserRunner();
+
+        printf("WPT cross-browser oracle — corpus: %s\n", $root);
+        printf("Curated subset: %d fixture%s\n\n", count($entries), count($entries) === 1 ? '' : 's');
+
+        $tallies = ['pass' => 0, 'fail' => 0, 'skip_disagree' => 0, 'insufficient_engines' => 0, 'harness_error' => 0];
+        foreach ($entries as $entry) {
+            $testId = $entry['id'];
+            $fixturePath = $root . '/' . ltrim($testId, '/');
+            $candidates = [$fixturePath, $fixturePath . '.html', $fixturePath . '.htm', $fixturePath . '.xht'];
+            $resolved = null;
+            foreach ($candidates as $c) {
+                if (is_file($c)) {
+                    $resolved = $c;
+                    break;
+                }
+            }
+            if ($resolved === null) {
+                $tallies['harness_error']++;
+                printf("  ⚠️  %s — fixture not found\n", $testId);
+                continue;
+            }
+            $budget = match ($entry['fuzz'] ?? 'geometry') {
+                'text' => ConsensusScorer::OURS_FUZZ_TEXT,
+                default => ConsensusScorer::OURS_FUZZ_GEOMETRY,
+            };
+            try {
+                $result = $runner->runOne($testId, $resolved, $budget);
+            } catch (\Throwable $err) {
+                $tallies['harness_error']++;
+                printf("  ⚠️  %s — %s\n", $testId, $err->getMessage());
+                continue;
+            }
+            $tallies[$result['verdict']->value]++;
+            $icon = match ($result['verdict']) {
+                ConsensusVerdict::Pass => '✓',
+                ConsensusVerdict::Fail => '✗',
+                ConsensusVerdict::SkipDisagree => '·',
+                ConsensusVerdict::InsufficientEngines => '?',
+            };
+            printf(
+                "  %s  %-60s  %s\n",
+                $icon,
+                $testId,
+                $result['reason'],
+            );
+            $runner->cleanupResult($result);
+        }
+        printf("\nResults:\n");
+        printf("  pass:                  %d\n", $tallies['pass']);
+        printf("  fail:                  %d\n", $tallies['fail']);
+        printf("  skip (browsers disagree): %d\n", $tallies['skip_disagree']);
+        printf("  insufficient engines:  %d\n", $tallies['insufficient_engines']);
+        printf("  harness errors:        %d\n", $tallies['harness_error']);
+
+        $oracle = new BrowserOracle();
+        $availability = array_map(
+            static fn($e) => sprintf('%s=%s', $e, $oracle->isAvailable($e) ? '✓' : '✗'),
+            ['chromium', 'firefox', 'webkit'],
+        );
+        printf("\nEngines available: %s\n", implode('  ', $availability));
+        exit($tallies['fail'] > 0 ? 1 : 0);
+    }
+
     case 'help':
     case '--help':
     case '-h':
@@ -181,6 +291,9 @@ Usage: wpt <subcommand> [options]
 Subcommands:
   run [--root=<path>] [--filter=<glob>]   Classify the corpus + print summary
   classify <test-id>                       Show verdict for one ID
+  cross-browser [--root=<path>] [--filter=<glob>]
+                                           Run the cross-browser PDF oracle
+                                           over the curated subset.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 

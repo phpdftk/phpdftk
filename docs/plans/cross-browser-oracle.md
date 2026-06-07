@@ -338,6 +338,51 @@ Three-engine consensus needs Linux Docker (Chromium + Firefox) plus macOS (WebKi
 
 Done-criterion satisfied at the synthetic level. Curated-fixture validation moves to Phase C.
 
+### What landed in Phase C
+
+- `packages/wpt-harness/src/BrowserOracle.php` — engine acquisition wrapper. Lazy-availability probes (`command -v node`, `docker info`, file-exists on `webkit-render`). File-based cache keyed on `sha256(test_bytes) + cache_generation + engine`; cache_generation is a single string knob that invalidates everything when any browser version moves. Atomic write via `tmp + rename`.
+- `packages/wpt-harness/src/CrossBrowserRunner.php` — orchestrator. Renders ours through the PHP `Renderer` in-process, hits the oracle for each engine PDF, rasterises everything via the existing `Rasteriser`, hands the PNGs to `ConsensusScorer`. Surfaces per-test result + reason + timing.
+- `packages/wpt-harness/bin/wpt cross-browser` — new subcommand. Loads `packages/wpt-harness/curated/manifest.json`, walks entries, prints per-test verdicts + summary tally + per-engine availability footer. Honours `--root=` (defaults to `curated/smoke/` so it works without a WPT checkout) and `--filter=<glob>`. Honours `PHPDFTK_CROSS_BROWSER_ENGINES=` env var to skip engines that are unrunnable on the current host (e.g. Firefox on Rosetta-bound macOS).
+- `packages/wpt-harness/curated/manifest.json` + `packages/wpt-harness/curated/smoke/` — three self-contained smoke fixtures (full-page solid colour, flex-based stripes, centred text on coloured panel) so the harness works out of the box. Real WPT subset curation is the next milestone in Phase C+.
+
+### Phase C smoke
+
+```
+WPT cross-browser oracle — corpus: packages/wpt-harness/curated/smoke
+Curated subset: 3 fixtures
+
+  ✓  solid-rect      ours agrees with chromium + webkit within 0.50% (worst: chromium at 0.000%)
+  ✓  three-stripes   ours agrees with chromium + webkit within 0.50% (worst: chromium at 0.000%)
+  ·  centered-text   browsers disagree (chromium vs webkit at 8.700% AE > 2.00%)
+
+Results:
+  pass:                  2
+  fail:                  0
+  skip (browsers disagree): 1
+  insufficient engines:  0
+  harness errors:        0
+
+Engines available: chromium=✓  firefox=✓  webkit=✓
+```
+
+`centered-text` reads SKIP-DISAGREE because the engines render text at different sizes — WebKit at 612 CSS px viewport produces taller text than Chromium at 816 CSS px (Phase B's documented layout-viewport asymmetry). For the smoke this is the correct verdict; in production we'll either curate around it or sink time into the WebKit private-API workaround.
+
+### Phase C status
+
+| Component                        | Status |
+|----------------------------------|--------|
+| BrowserOracle (engine wrapper)   | done |
+| File-based cache                 | done; 3-min cold → 0.9-s warm on the 3-fixture smoke |
+| CrossBrowserRunner (orchestrator) | done |
+| `wpt cross-browser` subcommand   | done |
+| Curated manifest + smoke fixtures | done (3 fixtures) |
+| Engine env-var override          | done (`PHPDFTK_CROSS_BROWSER_ENGINES=chromium,webkit`) |
+| Layer-1 context parallelism (`pool.mjs`) | deferred |
+| `--all` flag (full WPT corpus)   | deferred |
+| Real WPT curation                | follow-up (sparse-checkout needs re-pulling) |
+
+Phase D (GHA CI matrix + workflow file) is unblocked.
+
 ## Risks
 
 - **WebKit-Linux PDF gaps** — biggest unknown. Spike in Phase A.

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cross-browser smoke: three full-page stripes</title>
+<style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    .stripe { flex: 1 1 0; }
+    .a { background-color: #226699; }
+    .b { background-color: #d44515; }
+    .c { background-color: #2a8c4a; }
+</style>
+<div class="stripe a"></div>
+<div class="stripe b"></div>
+<div class="stripe c"></div>

@@ -128,7 +128,7 @@ final class ConsensusScorer
         // Ours vs each consensus engine.
         $ours = [];
         $worst = 0.0;
-        $worstEngine = '';
+        $worstEngine = $consensus[0];
         foreach ($consensus as $engine) {
             $score = $this->compareScore($oursPng, $engines[$engine]);
             $ours[$engine] = $score;

@@ -1,0 +1,17 @@
+{
+    "$schema_comment": "Curated subset for the cross-browser PDF oracle. Each entry names a fixture relative to the corpus root + a fuzz budget: `geometry` for pure shape/colour fixtures, `text` for fixtures containing rendered text. Fixtures should avoid hard-pixel widths > 612 (Letter at 72pt) so the Phase B WebKit-layout-viewport asymmetry doesn't dominate the budget — see docs/plans/cross-browser-oracle.md § Phase B limitations. The default root for `wpt cross-browser` is this directory's `smoke/` subdir; pass `--root=path/to/wpt-corpus` to point at a real WPT checkout. Each id is resolved by appending `.html`, `.htm`, `.xht` in that order to the root + id.",
+    "tests": [
+        {
+            "id": "solid-rect",
+            "fuzz": "geometry"
+        },
+        {
+            "id": "three-stripes",
+            "fuzz": "geometry"
+        },
+        {
+            "id": "centered-text",
+            "fuzz": "text"
+        }
+    ]
+}
