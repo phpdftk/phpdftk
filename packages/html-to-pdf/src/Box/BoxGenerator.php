@@ -386,6 +386,16 @@ final class BoxGenerator
             $rawChildren[] = $after;
         }
 
+        // CSS Flexbox 1 §4 / CSS Grid Layout 2 §6: an anonymous flex /
+        // grid item that contains only whitespace is not rendered (as
+        // if its text nodes were `display: none`). Without this filter
+        // the trailing `\n` after `<div class="box"></div>` becomes a
+        // second flex item and consumes the slack `justify-content`
+        // would otherwise distribute.
+        if ($box instanceof FlexBox || $box instanceof GridBox) {
+            $rawChildren = $this->stripWhitespaceTextChildren($rawChildren, $values);
+        }
+
         // Anonymous-block wrapping per CSS Display 3 §3.4: only inside
         // block-context parents whose children mix block + inline.
         $needsAnonymous = $box instanceof BlockBox && $this->mixesBlockAndInline($rawChildren);
@@ -1385,6 +1395,36 @@ final class BoxGenerator
             }
         }
         return true;
+    }
+
+    /**
+     * Drop direct TextBox children whose text is entirely collapsible
+     * whitespace when the parent is a flex / grid container, matching
+     * the "anonymous whitespace flex item is not rendered" rule in
+     * CSS Flexbox 1 §4 (echoed by CSS Grid Layout 2 §6).
+     *
+     * @param  list<Box> $rawChildren
+     * @return list<Box>
+     */
+    private function stripWhitespaceTextChildren(array $rawChildren, CascadedValues $values): array
+    {
+        $whiteSpace = $values->get('white-space');
+        if ($whiteSpace instanceof Keyword) {
+            $kw = strtolower($whiteSpace->name);
+            if ($kw === 'pre' || $kw === 'pre-wrap' || $kw === 'pre-line' || $kw === 'break-spaces') {
+                return $rawChildren;
+            }
+        }
+        $out = [];
+        foreach ($rawChildren as $child) {
+            if ($child instanceof TextBox
+                && preg_match('/^[\s\x{200B}]*$/u', $child->text) === 1
+            ) {
+                continue;
+            }
+            $out[] = $child;
+        }
+        return $out;
     }
 
     private function makeBox(Element $element, CascadedValues $values, string $display): Box

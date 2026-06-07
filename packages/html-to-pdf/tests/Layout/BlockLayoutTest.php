@@ -4074,6 +4074,32 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($tall->geometry->y + 30.0, $short->geometry->y, 0.001);
     }
 
+    public function testFlexContainerDropsWhitespaceOnlyTextChildren(): void
+    {
+        // CSS Flexbox 1 §4 — anonymous whitespace flex items are not
+        // rendered. Issue #25: `<div></div>\n` produced a phantom
+        // whitespace flex item that absorbed all justify-content slack,
+        // leaving the actual item top-left instead of centred.
+        $box = $this->buildTreeWithUa(
+            "<html><body><div class=\"box\"></div>\n</body></html>",
+            'html, body { margin: 0; padding: 0; height: 100%; }
+             body { display: flex; align-items: center; justify-content: center; }
+             .box { width: 50%; height: 50%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $body = $this->find($box, 'body');
+        self::assertNotNull($body);
+        // After whitespace stripping the body has exactly one flex item.
+        self::assertCount(1, $body->children);
+        $item = $body->children[0];
+        // 50% × default ctx (600 × 800) → 300 × 400, centred at
+        // x = (600 - 300) / 2 = 150, y = (800 - 400) / 2 = 200.
+        self::assertEqualsWithDelta(300.0, $item->geometry->width, 0.001);
+        self::assertEqualsWithDelta(400.0, $item->geometry->height, 0.001);
+        self::assertEqualsWithDelta(150.0, $item->geometry->x, 0.001);
+        self::assertEqualsWithDelta(200.0, $item->geometry->y, 0.001);
+    }
+
     public function testFlexEmptyContainerHasNoChildren(): void
     {
         // Negative: empty flex container produces a box with zero
