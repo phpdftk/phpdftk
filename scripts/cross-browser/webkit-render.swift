@@ -51,10 +51,21 @@ let parentDir = inputUrl.deletingLastPathComponent()
 // Print-options contract — keep in lockstep with
 // scripts/cross-browser/print-options.mjs.
 //
-// Letter @ 96 CSS px/in: 816×1056 px view. WKWebView's createPDF()
-// inflates that to the PDF coordinate system at 72 pt/in → 612×792 pt,
-// which matches our DefaultMediaBox.
-let viewportSize = CGSize(width: 816, height: 1056)
+// WKWebView's createPDF() writes the view frame as PDF points
+// (no scale option), so view bounds == output PDF page extent.
+// Setting view = 612×792 pt yields a Letter-sized PDF — same as
+// Chromium's `format: 'Letter'` and our DefaultMediaBox.
+//
+// Caveat: the CSS layout viewport ends up at 612 CSS px wide
+// (WKWebView treats 1 pt = 1 CSS px on macOS, and desktop WebKit
+// doesn't honour `<meta name="viewport">` overrides). Chromium
+// renders the same fixture at 816 CSS px wide. The viewport-meta
+// injection below is best-effort — it matters for fixtures that
+// inspect the meta directly, but doesn't move WebKit's layout
+// viewport. Tracked as a known asymmetry in docs/plans/
+// cross-browser-oracle.md § Phase B limitations.
+let viewportSize = CGSize(width: 612, height: 792)
+let layoutViewportCssPx: CGFloat = 816
 
 final class Driver: NSObject, WKNavigationDelegate {
     let webView: WKWebView
@@ -65,6 +76,41 @@ final class Driver: NSObject, WKNavigationDelegate {
         self.outputPath = outputPath
         let configuration = WKWebViewConfiguration()
         configuration.suppressesIncrementalRendering = false
+
+        // Two injections at document-start:
+        //
+        // 1. A `<meta name="viewport" content="width=N">` so WebKit's
+        //    layout viewport is N CSS px wide regardless of the
+        //    (smaller) view frame. This lets a Letter-sized
+        //    (612 pt) WKWebView lay out content at the canonical
+        //    816 CSS px (Letter at 96 px/in).
+        // 2. A zero-margin `@page` rule + `body { margin: 0 }` to
+        //    mirror Playwright's `preferCSSPageSize: true` + margin
+        //    0 contract.
+        let layoutWidth = Int(layoutViewportCssPx)
+        let pageCss = "@page { size: 8.5in 11in; margin: 0; } "
+            + "@media print { html, body { margin: 0; } }"
+        let escaped = pageCss
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let injection = """
+        (function () {
+            var meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=\(layoutWidth)';
+            (document.head || document.documentElement).appendChild(meta);
+            var s = document.createElement('style');
+            s.appendChild(document.createTextNode("\(escaped)"));
+            (document.head || document.documentElement).appendChild(s);
+        })();
+        """
+        let script = WKUserScript(
+            source: injection,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        configuration.userContentController.addUserScript(script)
+
         self.webView = WKWebView(
             frame: CGRect(origin: .zero, size: viewportSize),
             configuration: configuration

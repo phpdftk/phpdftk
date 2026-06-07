@@ -296,6 +296,48 @@ Those numbers are larger than Phase B's fuzz budgets because the print-options c
 
 Phase B (consensus scorer + fuzz budgets) is unblocked.
 
+### What landed in Phase B
+
+- `packages/wpt-harness/src/ConsensusScorer.php` — three-way consensus scorer with greedy maximal-clique selection, three named fuzz budgets (`BROWSER_AGREE_FUZZ` 2%, `OURS_FUZZ_GEOMETRY` 0.5%, `OURS_FUZZ_TEXT` 5%), reuses the existing `Scorer::diff()` ImageMagick wrapper.
+- `packages/wpt-harness/src/ConsensusVerdict.php` — `Pass` / `Fail` / `SkipDisagree` / `InsufficientEngines` enum.
+- `packages/wpt-harness/tests/ConsensusScorerTest.php` — 8 unit tests over fabricated 100×100 PNGs with controlled pixel AE; every branch of the decision tree exercised.
+- `scripts/cross-browser/webkit-render.swift` — WKWebView frame pinned to 612 × 792 pt so `createPDF()` emits Letter; injected `<meta viewport>` + zero-margin `@page` at document-start as best-effort layout-viewport hint.
+
+### Phase B limitations (recorded during the spike)
+
+The ConsensusScorer ships and unit-tests pass. The engine-side print-options enforcement is partially solved; two asymmetries surfaced during Phase B that are documented gaps because they don't have a public-API fix today:
+
+#### WebKit's CSS layout viewport is fixed at view bounds
+
+`WKWebView.createPDF()` emits a PDF whose page size equals the view bounds in PDF points. To produce a Letter-sized PDF (612 × 792 pt) we have to set the view frame to 612 × 792 pt — which means the CSS layout viewport ends up at 612 CSS px wide. Chromium and our engine both lay out at 816 CSS px (canonical Letter at 96 px/in).
+
+Attempts that don't fix it:
+
+- `<meta name="viewport" content="width=816">` injected at document-start — desktop macOS WebKit ignores it.
+- `html { zoom: 0.75 | 1.333 }` — `zoom` changes scale but not the layout-viewport-vs-view ratio.
+- `transform: scale(...)` on `<html>` — visual-only; doesn't change layout.
+- `WKWebView.pageZoom` / `WKWebView.magnification` — scale rendered content within the same layout viewport.
+- `window.devicePixelRatio` override via JS — read-only on macOS WebKit.
+
+Practical consequence: fixtures whose layout depends on viewport width (`@media (min-width: 800px)`, `width: 50vw`, hard-pixel widths assuming a 816 px viewport) land differently in WebKit than in Chromium / ours. The Phase A3 smoke fixture sits at ~14 % AE between WebKit and Chromium for exactly this reason.
+
+Curation strategy: Phase C picks initial fixtures that avoid viewport-dependent layout (favour percentage / em / rem / auto units, avoid hard-pixel widths beyond 612 px). The proper long-term fix is either a WKWebView subclass that overrides `_layoutSize`, or a Core Graphics wrapper that scales the PDF page geometry after `createPDF()` returns — both are private-API territory and deferred.
+
+#### Firefox CLI on macOS Rosetta is unrunnable (carried from A2)
+
+Three-engine consensus needs Linux Docker (Chromium + Firefox) plus macOS (WebKit) — i.e. genuinely cross-OS CI matrix. Phase D wires that. Local dev loops on macOS host see two engines (Chromium + WebKit).
+
+### Phase B status
+
+| Component                | Status |
+|--------------------------|--------|
+| ConsensusScorer + verdict enum | done |
+| 8 unit tests             | passing |
+| Engine-side print options | best-effort (WebKit layout viewport asymmetry remains) |
+| Real-fixture validation  | Phase C |
+
+Done-criterion satisfied at the synthetic level. Curated-fixture validation moves to Phase C.
+
 ## Risks
 
 - **WebKit-Linux PDF gaps** — biggest unknown. Spike in Phase A.
