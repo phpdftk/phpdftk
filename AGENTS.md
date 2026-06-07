@@ -187,11 +187,11 @@ A feature is **not done** until all four exist:
 
 ### Issue tracker
 
-Issues live in Linear (`https://linear.app/phpdftk`), accessed via the Linear MCP server. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues at `https://github.com/phpdftk/phpdftk/issues`, accessed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five canonical triage roles map onto Linear workflow states (Triage / Backlog / Cancelled), not labels. See `docs/agents/triage-labels.md`.
+The five canonical triage roles map onto GitHub labels (plus the open/closed bit for `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
