@@ -211,18 +211,87 @@ switch ($subcommand) {
             ));
         }
 
+        // Process-level shard. `--shard=K/N` says "I'm shard K of N,
+        // total". K is 1-indexed for ergonomics on the CLI; the
+        // bucketing predicate is `(crc32(testId) % N) + 1 === K`.
+        // Deterministic on test ID so re-runs across the matrix never
+        // shuffle which shard owns which test — important for the
+        // browser-cache hit rate when each runner restores its own
+        // shard-keyed cache subset. Defaults to "1/1" (no sharding).
+        $shardSpec = isset($parsed['opts']['shard']) && is_string($parsed['opts']['shard'])
+            ? $parsed['opts']['shard']
+            : '1/1';
+        if (!preg_match('#^(\d+)/(\d+)$#', $shardSpec, $m)) {
+            fwrite(STDERR, "wpt cross-browser: --shard must look like K/N (got: $shardSpec)\n");
+            exit(2);
+        }
+        $shardIndex = (int) $m[1];
+        $shardCount = (int) $m[2];
+        if ($shardCount < 1 || $shardIndex < 1 || $shardIndex > $shardCount) {
+            fwrite(STDERR, "wpt cross-browser: --shard=$shardSpec out of range\n");
+            exit(2);
+        }
+        if ($shardCount > 1) {
+            $entries = array_values(array_filter(
+                $entries,
+                static fn(array $e) => (crc32($e['id']) % $shardCount) + 1 === $shardIndex,
+            ));
+        }
+
+        // Engine override on the CLI for hosts that can't run one of
+        // the three (e.g. Firefox on a Rosetta-bound macOS box). The
+        // env var still works; the flag wins when both are set.
+        $enginesOpt = isset($parsed['opts']['engines']) && is_string($parsed['opts']['engines'])
+            ? array_values(array_filter(array_map('trim', explode(',', $parsed['opts']['engines']))))
+            : null;
+        if ($enginesOpt !== null) {
+            putenv('PHPDFTK_CROSS_BROWSER_ENGINES=' . implode(',', $enginesOpt));
+        }
+
+        // Optional JSON dump of the per-shard result so CI can fold N
+        // shards into one PR comment. Schema is documented in
+        // scripts/cross-browser/aggregate.php.
+        $jsonOut = isset($parsed['opts']['json']) && is_string($parsed['opts']['json'])
+            ? $parsed['opts']['json']
+            : null;
+
         if ($entries === []) {
             fwrite(STDERR, "wpt cross-browser: no fixtures match the curated manifest"
-                . ($filter !== null ? " + filter $filter" : '') . "\n");
-            exit(2);
+                . ($filter !== null ? " + filter $filter" : '')
+                . ($shardCount > 1 ? " + shard $shardSpec" : '')
+                . "\n");
+            // No fixtures in this shard isn't a failure — when the
+            // curated subset is small and the matrix is wide some
+            // shards legitimately get zero tests. Emit an empty JSON
+            // (if requested) and exit 0 so CI sees it as "ran fine,
+            // had nothing to do".
+            if ($jsonOut !== null) {
+                $oracle = new BrowserOracle();
+                $availability = [];
+                foreach (['chromium', 'firefox', 'webkit'] as $e) {
+                    $availability[$e] = $oracle->isAvailable($e);
+                }
+                file_put_contents($jsonOut, (string) json_encode([
+                    'shard' => ['index' => $shardIndex, 'count' => $shardCount],
+                    'engines_available' => $availability,
+                    'tallies' => ['pass' => 0, 'fail' => 0, 'skip_disagree' => 0, 'insufficient_engines' => 0, 'harness_error' => 0],
+                    'results' => [],
+                ], JSON_PRETTY_PRINT));
+            }
+            exit(0);
         }
 
         $runner = new CrossBrowserRunner();
 
         printf("WPT cross-browser oracle — corpus: %s\n", $root);
-        printf("Curated subset: %d fixture%s\n\n", count($entries), count($entries) === 1 ? '' : 's');
+        printf("Curated subset: %d fixture%s", count($entries), count($entries) === 1 ? '' : 's');
+        if ($shardCount > 1) {
+            printf(" (shard %d/%d)", $shardIndex, $shardCount);
+        }
+        printf("\n\n");
 
         $tallies = ['pass' => 0, 'fail' => 0, 'skip_disagree' => 0, 'insufficient_engines' => 0, 'harness_error' => 0];
+        $resultsRecord = [];
         foreach ($entries as $entry) {
             $testId = $entry['id'];
             $fixturePath = $root . '/' . ltrim($testId, '/');
@@ -237,6 +306,14 @@ switch ($subcommand) {
             if ($resolved === null) {
                 $tallies['harness_error']++;
                 printf("  ⚠️  %s — fixture not found\n", $testId);
+                $resultsRecord[] = [
+                    'testId' => $testId,
+                    'verdict' => 'harness_error',
+                    'reason' => 'fixture not found',
+                    'consensus' => [],
+                    'ours' => [],
+                    'pairs' => [],
+                ];
                 continue;
             }
             $budget = match ($entry['fuzz'] ?? 'geometry') {
@@ -248,6 +325,14 @@ switch ($subcommand) {
             } catch (\Throwable $err) {
                 $tallies['harness_error']++;
                 printf("  ⚠️  %s — %s\n", $testId, $err->getMessage());
+                $resultsRecord[] = [
+                    'testId' => $testId,
+                    'verdict' => 'harness_error',
+                    'reason' => $err->getMessage(),
+                    'consensus' => [],
+                    'ours' => [],
+                    'pairs' => [],
+                ];
                 continue;
             }
             $tallies[$result['verdict']->value]++;
@@ -263,6 +348,17 @@ switch ($subcommand) {
                 $testId,
                 $result['reason'],
             );
+            $resultsRecord[] = [
+                'testId' => $testId,
+                'verdict' => $result['verdict']->value,
+                'reason' => $result['reason'],
+                'consensus' => $result['consensus'],
+                'ours' => $result['ours'],
+                'pairs' => $result['pairs'],
+                'engineMissing' => $result['engineMissing'],
+                'renderMicros' => $result['renderMicros'],
+                'fuzzBudget' => $budget,
+            ];
             $runner->cleanupResult($result);
         }
         printf("\nResults:\n");
@@ -273,11 +369,25 @@ switch ($subcommand) {
         printf("  harness errors:        %d\n", $tallies['harness_error']);
 
         $oracle = new BrowserOracle();
-        $availability = array_map(
-            static fn($e) => sprintf('%s=%s', $e, $oracle->isAvailable($e) ? '✓' : '✗'),
+        $availability = [];
+        foreach (['chromium', 'firefox', 'webkit'] as $e) {
+            $availability[$e] = $oracle->isAvailable($e);
+        }
+        $footer = array_map(
+            static fn($e) => sprintf('%s=%s', $e, $availability[$e] ? '✓' : '✗'),
             ['chromium', 'firefox', 'webkit'],
         );
-        printf("\nEngines available: %s\n", implode('  ', $availability));
+        printf("\nEngines available: %s\n", implode('  ', $footer));
+
+        if ($jsonOut !== null) {
+            file_put_contents($jsonOut, (string) json_encode([
+                'shard' => ['index' => $shardIndex, 'count' => $shardCount],
+                'engines_available' => $availability,
+                'tallies' => $tallies,
+                'results' => $resultsRecord,
+            ], JSON_PRETTY_PRINT));
+        }
+
         exit($tallies['fail'] > 0 ? 1 : 0);
     }
 
@@ -292,8 +402,15 @@ Subcommands:
   run [--root=<path>] [--filter=<glob>]   Classify the corpus + print summary
   classify <test-id>                       Show verdict for one ID
   cross-browser [--root=<path>] [--filter=<glob>]
+                [--shard=K/N] [--engines=<csv>] [--json=<path>]
                                            Run the cross-browser PDF oracle
-                                           over the curated subset.
+                                           over the curated subset. `--shard`
+                                           selects 1/N of the manifest by
+                                           deterministic test-ID hash, `--engines`
+                                           picks the subset of {chromium,firefox,
+                                           webkit} to consult, `--json` writes a
+                                           per-shard result dump for the
+                                           aggregator.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 

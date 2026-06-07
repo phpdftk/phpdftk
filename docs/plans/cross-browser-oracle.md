@@ -383,6 +383,26 @@ Engines available: chromium=✓  firefox=✓  webkit=✓
 
 Phase D (GHA CI matrix + workflow file) is unblocked.
 
+### What landed in Phase D
+
+- `packages/wpt-harness/bin/wpt cross-browser` — new flags: `--shard=K/N` (deterministic test-ID hash bucketing, 1-indexed K), `--engines=<csv>` (CLI override for the env var; useful in CI matrix steps where each engine has its own availability story), `--json=<path>` (per-shard result dump in the schema the aggregator consumes). Empty shards exit 0 with an empty JSON instead of erroring — when the curated set is small and the matrix is wide some shards legitimately get nothing.
+- `scripts/cross-browser/aggregate.php` — fold N per-shard JSON dumps into one Markdown report. Total tallies + engine-availability matrix + top-K regressions sorted by worst-of-ours AE. Writes a `verdict.json` sibling (informational only; `overall_failed=false` always — the oracle is not a merge gate today).
+- `.github/workflows/cross-browser.yml` — nightly cron (`30 4 * * *`), `workflow_dispatch` (filter + shard count inputs), PR trigger on `packages/html-to-pdf/**` / `packages/css/**` / `packages/wpt-harness/**` / `scripts/cross-browser/**`. 4-shard `ubuntu-latest` matrix runs Chromium + Firefox (WebKit Swift binary isn't built on Linux; consensus collapses to two-of-two). Each shard restores its own slice of `var/wpt/browser-cache/` via `actions/cache@v4` keyed on `CACHE_GENERATION + curated_manifest_hash + shard`, with a cross-shard restore-key fallback so layout changes don't blow up the cache. Aggregator job downloads every shard artefact, builds the Markdown comment, posts / updates it on the PR. Hard shard crashes (no JSON produced) fail the shard job; everything else flows through to the aggregator.
+
+### Phase D status
+
+| Component                              | Status |
+|----------------------------------------|--------|
+| `--shard` / `--engines` / `--json` flags | done |
+| Aggregator (`scripts/cross-browser/aggregate.php`) | done |
+| GHA workflow (nightly + dispatch + PR)  | landed; awaiting first nightly run |
+| Cache wiring (`actions/cache@v4`)      | landed |
+| PR-comment marker `<!-- cross-browser-oracle -->` | landed |
+| WebKit in CI matrix (macos-latest)     | deferred — Phase B layout-viewport asymmetry first |
+| Two consecutive green nightly runs     | pending (first run is the morning after merge) |
+
+Phase D's done-criterion ("nightly CI green for two consecutive runs on the curated subset") only opens after the workflow is live for ≥2 calendar days. The remaining substrate — flag wiring, aggregation, cache layout — is in place; the next signal comes from the actions runner.
+
 ## Risks
 
 - **WebKit-Linux PDF gaps** — biggest unknown. Spike in Phase A.
