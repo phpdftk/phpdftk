@@ -20,10 +20,14 @@
 #     node render.mjs firefox /in/fixture.html --output=/out/firefox.pdf
 #
 # Reference: docs/plans/cross-browser-oracle.md § Phase A2
-# Pin to linux/amd64 because Mozilla doesn't ship arm64 Linux Firefox
-# binaries from download.mozilla.org. CI runners are x86_64; macOS
-# arm64 hosts run this via Docker's Rosetta emulation.
-FROM --platform=linux/amd64 mcr.microsoft.com/playwright:v1.49.1-jammy
+# Mozilla ships both linux64 (x86_64) and linux64-aarch64 (arm64)
+# tarballs from download.mozilla.org. Letting BuildKit pick the right
+# arch via $TARGETARCH means the image runs natively on x86_64 CI
+# runners *and* on M-series macOS hosts, sidestepping the Rosetta
+# emulation that breaks Firefox's headless GFX bring-up.
+FROM mcr.microsoft.com/playwright:v1.49.1-jammy
+
+ARG TARGETARCH
 
 # Playwright's bundled Firefox is a custom patched build that strips
 # `--print-to-pdf` (the binary writes "unrecognized command line flag
@@ -40,10 +44,15 @@ RUN set -eux; \
         wget ca-certificates xz-utils libgtk-3-0 libdbus-glib-1-2 libasound2 \
         xvfb; \
     rm -rf /var/lib/apt/lists/*; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64)  MOZ_OS=linux64 ;; \
+        arm64)  MOZ_OS=linux64-aarch64 ;; \
+        *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
+    esac; \
     mkdir -p "$FIREFOX_CLI_DIR"; \
     cd /tmp; \
     wget --quiet -O firefox.tar.xz \
-        "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-US"; \
+        "https://download.mozilla.org/?product=firefox-latest-ssl&os=${MOZ_OS}&lang=en-US"; \
     tar -xJf firefox.tar.xz -C "$FIREFOX_CLI_DIR" --strip-components=1; \
     rm firefox.tar.xz; \
     ln -sf "$FIREFOX_CLI_DIR/firefox" /usr/local/bin/firefox-cli; \

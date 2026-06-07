@@ -93,32 +93,71 @@ async function renderFirefox(file) {
     // `--print-to-pdf` (and `page.pdf()` is Chromium-only anyway). We
     // shell out to upstream Firefox CLI installed alongside Playwright.
     // The image's Dockerfile installs Mozilla's official tarball at
-    // /usr/local/bin/firefox-cli; on a host that runs Linux with
-    // upstream Firefox in $PATH, that symlink resolves; on macOS host
-    // this code path isn't reachable anyway (use render-docker.sh).
-    const ffExe = process.env.FIREFOX_CLI ?? '/usr/local/bin/firefox-cli';
+    // /usr/local/bin/firefox-cli; on a macOS host we expect the system
+    // Firefox.app under /Applications.
+    const ffExe = process.env.FIREFOX_CLI
+        ?? (existsSync('/usr/local/bin/firefox-cli')
+            ? '/usr/local/bin/firefox-cli'
+            : (process.platform === 'darwin'
+                ? '/Applications/Firefox.app/Contents/MacOS/firefox'
+                : '/usr/local/bin/firefox-cli'));
     if (!existsSync(ffExe)) {
-        die(2, `firefox CLI not found at ${ffExe}. Run via scripts/cross-browser/render-docker.sh, or set FIREFOX_CLI to an upstream Firefox build.`);
+        die(2, `firefox CLI not found at ${ffExe}. Install Firefox.app (macOS) or run via render-docker.sh, or set FIREFOX_CLI to an upstream Firefox build.`);
     }
     const profileDir = mkdtempSync(join(tmpdir(), 'cross-browser-ff-'));
-    const outPath = join(profileDir, 'out.pdf');
+    // macOS Firefox.app hangs in `--print-to-pdf` headless mode (the
+    // SWGL framebuffer never attaches, `[GFX1-]: RenderCompositorSWGL
+    // failed mapping default framebuffer, no dt`). `--screenshot` uses
+    // a different code path that DOES come up cleanly — we take the
+    // screenshot at the print viewport size and wrap it in a single-
+    // page PDF downstream so the rest of the oracle pipeline doesn't
+    // care which capture path produced the bytes.
+    const useScreenshot = process.platform === 'darwin'
+        && process.env.FIREFOX_USE_PRINT === undefined;
+    const outPath = join(profileDir, useScreenshot ? 'out.png' : 'out.pdf');
     // Firefox's headless renderer (SWGL) needs to attach to a display
     // target — on a true headless Linux container that means wrapping
     // with xvfb-run, which spins up a virtual X server in-process. The
     // wrapper is preinstalled in our Docker image; outside Docker we
     // expect FIREFOX_USE_XVFB=0 + a system that already has a display.
-    const useXvfb = process.env.FIREFOX_USE_XVFB !== '0' && existsSync('/usr/bin/xvfb-run');
+    const useXvfb = !useScreenshot
+        && process.env.FIREFOX_USE_XVFB !== '0'
+        && existsSync('/usr/bin/xvfb-run');
     const cmd = useXvfb ? '/usr/bin/xvfb-run' : ffExe;
+    const captureArg = useScreenshot
+        ? `--screenshot=${outPath}`
+        : `--print-to-pdf=${outPath}`;
+    const sizingArgs = useScreenshot
+        // 816 × 1056 = 8.5" × 11" × 96 CSS px/in, matching the print
+        // viewport our Chromium path emulates and our renderer cascades
+        // for `@media print`.
+        ? ['--window-size=816,1056']
+        : [];
     const cmdArgs = useXvfb
         ? ['--auto-servernum', '--server-args=-screen 0 1280x1024x24', ffExe,
             '--headless', '--no-remote', '-profile', profileDir,
-            `--print-to-pdf=${outPath}`, pathToFileURL(file).href]
+            ...sizingArgs, captureArg, pathToFileURL(file).href]
         : ['--headless', '--no-remote', '-profile', profileDir,
-            `--print-to-pdf=${outPath}`, pathToFileURL(file).href];
+            ...sizingArgs, captureArg, pathToFileURL(file).href];
     try {
         await spawnPromise(cmd, cmdArgs, { timeoutMs: 60000 });
-        const pdfBytes = readFileSync(outPath);
-        return pdfBytes;
+        if (useScreenshot) {
+            // Firefox's `--screenshot` on macOS captures at the host's
+            // effective device pixel ratio, so a 816×1056 window can land
+            // anywhere from 816×1056 to 2032×2112. Normalise to the print
+            // viewport before wrapping in a single-page PDF so the
+            // downstream rasteriser's AE comparison stays apples-to-apples
+            // with the Chromium / WebKit PDF path.
+            const pdfPath = join(profileDir, 'out.pdf');
+            await spawnPromise(
+                'magick',
+                [outPath, '-resize', '816x1056!', '-units', 'PixelsPerInch',
+                    '-density', '96', pdfPath],
+                { timeoutMs: 30000 },
+            );
+            return readFileSync(pdfPath);
+        }
+        return readFileSync(outPath);
     } catch (err) {
         die(3, `firefox render failed: ${err.message}`);
     } finally {

@@ -89,8 +89,11 @@ final class BrowserOracle
      *  - `chromium` — node + render.mjs + Playwright's bundled Chromium.
      *    We check node exists; the Playwright install is a hard
      *    runtime error if it's missing, which is sensible.
-     *  - `firefox`  — docker daemon must be reachable. The first call
-     *    builds the image (~3 min); subsequent ones reuse it.
+     *  - `firefox`  — on macOS hosts, the system Firefox.app is used
+     *    directly (`--screenshot` path in render.mjs because
+     *    `--print-to-pdf` hangs the SWGL compositor on arm64). On
+     *    everything else, the docker daemon must be reachable so
+     *    render-docker.sh can drop into the Linux container.
      *  - `webkit`   — `webkit-render` binary at the configured path
      *    (defaults to `/usr/local/bin/webkit-render`; override with
      *    the `WEBKIT_CLI` env in render.mjs).
@@ -99,13 +102,34 @@ final class BrowserOracle
     {
         return match ($engine) {
             'chromium' => $this->binaryAvailable($this->nodeBinary),
-            'firefox' => $this->binaryAvailable($this->dockerBinary)
-                && $this->dockerDaemonRunning(),
+            'firefox' => $this->firefoxAvailable(),
             'webkit' => is_file(
                 getenv('WEBKIT_CLI') ?: '/usr/local/bin/webkit-render',
             ),
             default => false,
         };
+    }
+
+    private function firefoxAvailable(): bool
+    {
+        if ($this->macFirefoxPath() !== null) {
+            return $this->binaryAvailable($this->nodeBinary);
+        }
+        return $this->binaryAvailable($this->dockerBinary)
+            && $this->dockerDaemonRunning();
+    }
+
+    private function macFirefoxPath(): ?string
+    {
+        if (PHP_OS_FAMILY !== 'Darwin') {
+            return null;
+        }
+        $envBin = getenv('FIREFOX_CLI');
+        if (is_string($envBin) && $envBin !== '' && is_file($envBin)) {
+            return $envBin;
+        }
+        $app = '/Applications/Firefox.app/Contents/MacOS/firefox';
+        return is_file($app) ? $app : null;
     }
 
     /**
@@ -157,6 +181,20 @@ final class BrowserOracle
                 );
                 break;
             case 'firefox':
+                $macFf = $this->macFirefoxPath();
+                if ($macFf !== null) {
+                    // macOS hosts run Firefox natively through render.mjs;
+                    // render-docker.sh is the Linux fallback.
+                    $env = 'FIREFOX_CLI=' . escapeshellarg($macFf) . ' ';
+                    $cmd = $env . sprintf(
+                        '%s %s firefox %s --output=%s 2>&1',
+                        escapeshellcmd($this->nodeBinary),
+                        escapeshellarg($this->scriptDir . '/render.mjs'),
+                        escapeshellarg($testPath),
+                        escapeshellarg($outPath),
+                    );
+                    break;
+                }
                 $cmd = sprintf(
                     '%s %s %s %s 2>&1',
                     escapeshellcmd($this->scriptDir . '/render-docker.sh'),
