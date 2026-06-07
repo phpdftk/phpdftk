@@ -390,8 +390,13 @@ final class PainterTest extends TestCase
         self::assertContains('d', $opcodes, 'dash pattern set');
     }
 
-    public function testDottedBorderEmitsDottedDashPattern(): void
+    public function testDottedBorderEmitsRoundCapPointDashPattern(): void
     {
+        // CSS Backgrounds 3 §5 — `dotted` renders as a series of round
+        // dots. We get the dots by setting the line cap to round (`1 J`)
+        // and feeding a zero-length on-segment dash pattern (`[ 0 P ] 0 d`):
+        // each "on" boundary draws a half-circle of radius lineWidth/2 at
+        // its position, so a 0-length on-segment shows as a full circle.
         $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
         $sheet = $this->css->parseStylesheet(
             'html, body, div { display: block; }
@@ -412,8 +417,49 @@ final class PainterTest extends TestCase
             static fn($acc, $op) => $acc . $op . "\n",
             '',
         );
-        // Dotted pattern is [thickness, thickness] = [2, 2].
-        self::assertMatchesRegularExpression('/\[ 2 2 \] 0 d/', $bytes);
+        self::assertStringContainsString('1 J', $bytes, 'round line cap set for dotted dots');
+        // Period is rounded to fit the edge in whole cycles; just assert
+        // the zero-length on-segment leads the pattern.
+        self::assertMatchesRegularExpression('/\[ 0(?:\.0)? \S+ \] 0 d/', $bytes);
+    }
+
+    public function testDashedBorderEmitsTwoToOneRatioPattern(): void
+    {
+        // CSS Backgrounds 3 §5 — `dashed` uses an implementation-defined
+        // segment length. We follow the Chromium / WebKit convention of
+        // dash:gap = 2:1 (period 3w), perfect-fit so dashes stay
+        // symmetric across the corners.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { width: 120px; height: 30px; border: 10px dashed red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $bytes = (string) array_reduce(
+            $stream->getOperators(),
+            static fn($acc, $op) => $acc . $op . "\n",
+            '',
+        );
+        // Inspect every dash array. Each should hold a 2:1 dash-to-gap
+        // ratio (i.e. dash ≈ 2*gap), with both segments derived from a
+        // 3w-targeted period that's been rounded to fit the edge.
+        preg_match_all('/\[ ([\d.]+) ([\d.]+) \] 0 d/', $bytes, $matches, PREG_SET_ORDER);
+        self::assertNotEmpty($matches, 'dash pattern emitted');
+        foreach ($matches as $m) {
+            $dash = (float) $m[1];
+            $gap = (float) $m[2];
+            self::assertGreaterThan(0.0, $gap, 'dash array carries a non-zero gap');
+            self::assertEqualsWithDelta(2.0, $dash / $gap, 0.001, 'dash:gap ≈ 2:1');
+        }
     }
 
     public function testMixedDashedAndSolidSidesIndependent(): void

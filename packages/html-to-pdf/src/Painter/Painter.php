@@ -4522,12 +4522,21 @@ final class Painter
 
     /**
      * Stroke one side of a border as a dashed / dotted line at the
-     * centerline of the side, at line-width = thickness. PDF's `d`
-     * operator takes a `[on, off]` array + phase; we use:
-     *   - dashed: `[thickness*3, thickness*2]`
-     *   - dotted: `[thickness, thickness]` (PDF strokes with square
-     *     caps so dotted shows as squares the size of thickness;
-     *     close enough to CSS dotted in print rendering).
+     * centerline of the side, at line-width = thickness. CSS
+     * Backgrounds 3 §5 says the dash / dot geometry is
+     * implementation-defined; we follow the Chromium + WebKit
+     * convention:
+     *   - dashed: dash-length = 2w, gap = w (period 3w, butt cap).
+     *   - dotted: round-capped point-dashes spaced 2w apart, so each
+     *     "dot" renders as a circle of diameter = thickness. The
+     *     stroke is inset by half the thickness on each end so the
+     *     leading dot sits at the centre-line crossing of the two
+     *     meeting borders (matching the corner geometry browsers
+     *     emit).
+     * The period for both styles is rounded to fit the edge in whole
+     * cycles so dashes / dots stay symmetric across the corner; this
+     * is what closes the residual ~14% pixel-AE vs Chromium on the
+     * dashed / dotted fixtures (issue #27).
      */
     private function paintDashedDottedSide(
         ContentStream $stream,
@@ -4543,28 +4552,80 @@ final class Painter
         if ($thickness <= 0.0) {
             return;
         }
+        $edgeLength = $axis === 'horizontal' ? $width : $height;
+        if ($edgeLength <= 0.0) {
+            return;
+        }
         $stream->saveGraphicsState();
         $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
         $stream->setLineWidth($thickness);
-        $pattern = $styleName === 'dotted'
-            ? [$thickness, $thickness]
-            : [$thickness * 3, $thickness * 2];
-        $stream->setDashPattern($pattern, 0);
-        if ($axis === 'horizontal') {
-            // Stroke from (x, midY) to (x+width, midY). PDF Y is
-            // inverted; midY in PDF coords = pageHeight - (y + height/2).
-            $midPdfY = $this->pageHeight - ($y + $height / 2.0);
-            $stream->moveTo($x, $midPdfY);
-            $stream->lineTo($x + $width, $midPdfY);
+
+        if ($styleName === 'dotted') {
+            // Round-capped point-dash → each "on" of length 0 paints a
+            // full-thickness circle. Inset by thickness/2 so the first
+            // and last dot land on the corner of the two borders'
+            // centre-lines.
+            $insetEdge = max($edgeLength - $thickness, 0.0);
+            $targetPeriod = $thickness * 2.0;
+            $count = max(1, (int) round($insetEdge / $targetPeriod));
+            $period = $count > 0 ? $insetEdge / $count : $targetPeriod;
+            $stream->setLineCap(1);
+            $stream->setDashPattern([0.0, $period], 0);
+            [$startX, $startY, $endX, $endY] = $this->dashedSideEndpoints(
+                $axis,
+                $x,
+                $y,
+                $width,
+                $height,
+                $thickness / 2.0,
+            );
         } else {
-            $midX = $x + $width / 2.0;
-            $topPdfY = $this->pageHeight - $y;
-            $bottomPdfY = $this->pageHeight - ($y + $height);
-            $stream->moveTo($midX, $topPdfY);
-            $stream->lineTo($midX, $bottomPdfY);
+            // Dashed — dash:gap = 2:1, period rounded to whole cycles.
+            $targetPeriod = $thickness * 3.0;
+            $count = max(1, (int) round($edgeLength / $targetPeriod));
+            $period = $edgeLength / $count;
+            $dash = $period * 2.0 / 3.0;
+            $gap = $period - $dash;
+            $stream->setDashPattern([$dash, $gap], 0);
+            [$startX, $startY, $endX, $endY] = $this->dashedSideEndpoints(
+                $axis,
+                $x,
+                $y,
+                $width,
+                $height,
+                0.0,
+            );
         }
+        $stream->moveTo($startX, $startY);
+        $stream->lineTo($endX, $endY);
         $stream->stroke();
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Compute the PDF-space stroke endpoints for one dashed / dotted
+     * border side, optionally inset by `$inset` units along the axis
+     * (so the leading dot of a dotted edge sits at the corner of the
+     * two borders' centre-lines rather than poking past it).
+     *
+     * @return array{float, float, float, float}
+     */
+    private function dashedSideEndpoints(
+        string $axis,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        float $inset,
+    ): array {
+        if ($axis === 'horizontal') {
+            $midPdfY = $this->pageHeight - ($y + $height / 2.0);
+            return [$x + $inset, $midPdfY, $x + $width - $inset, $midPdfY];
+        }
+        $midX = $x + $width / 2.0;
+        $topPdfY = $this->pageHeight - $y - $inset;
+        $bottomPdfY = $this->pageHeight - ($y + $height) + $inset;
+        return [$midX, $topPdfY, $midX, $bottomPdfY];
     }
 
     /**
