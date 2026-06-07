@@ -1,25 +1,33 @@
 # Cross-browser PDF oracle (driver)
 
-Renders WPT fixtures through WebKit, Blink, and Gecko via Playwright. The PHP
-harness in `packages/wpt-harness/` consumes the PDFs as a ground-truth signal
-for the test loop.
+Renders WPT fixtures through WebKit, Blink, and Gecko. The PHP harness in
+`packages/wpt-harness/` consumes the PDFs as a ground-truth signal for the
+test loop.
 
 See `docs/plans/cross-browser-oracle.md` for the full plan.
 
 ## Install
 
+### One-time
+
 ```sh
 cd scripts/cross-browser
-npm install
+npm install            # installs Playwright + Playwright's bundled Chromium
+./build-webkit.sh      # macOS only — compiles webkit-render to /usr/local/bin
 ```
 
-The `postinstall` hook fetches **Firefox only** during the Phase-A spike;
-adding Chromium and WebKit is a Phase-B step.
+### Linux (CI) Firefox path
+
+Firefox runs inside a Docker image; the first invocation of
+`./render-docker.sh firefox …` builds it (~3 min cold, cached afterwards).
+You don't need anything else installed on the host.
 
 ## Manual smoke
 
 ```sh
-node render.mjs firefox /path/to/test.html --output=ff.pdf
+node render.mjs chromium /path/to/fixture.html --output=cr.pdf
+./render-docker.sh firefox /path/to/fixture.html /path/to/ff.pdf
+node render.mjs webkit /path/to/fixture.html --output=wk.pdf  # macOS only
 ```
 
 Use `--output=path` to write to disk, or omit it to stream the PDF on stdout
@@ -35,24 +43,30 @@ Use `--output=path` to write to disk, or omit it to stream the PDF on stdout
 
 ## Engines and identifiers
 
-| Identifier | Engine | Branding | Acquisition | Works today? |
-|------------|--------|----------|-------------|--------------|
-| `chromium` | Blink  | Chrome   | Playwright `page.pdf()` | yes (macOS host, Linux Docker) |
-| `firefox`  | Gecko  | Firefox  | `firefox --headless --print-to-pdf=` (NOT via Playwright — `page.pdf()` is Chromium-only) | Linux Docker only; macOS host fails with `RenderCompositorSWGL` |
-| `webkit`   | WebKit | Safari   | TBD — Swift `WKWebView.createPDF` wrapper on macOS, or `webkit2gtk` binding on Linux | not wired in Phase A |
+| Identifier | Engine | Branding | Acquisition                                | macOS host | Linux Docker |
+|------------|--------|----------|--------------------------------------------|------------|--------------|
+| `chromium` | Blink  | Chrome   | Playwright `page.pdf()`                    | ✓          | ✓            |
+| `firefox`  | Gecko  | Firefox  | Mozilla's `firefox --headless --print-to-pdf=` (NOT via Playwright — `page.pdf()` is Chromium-only; NOT via Playwright's bundled Firefox — the bundled build strips `--print-to-pdf`) | ✗ (Rosetta + SWGL init fails) | ✓ via Docker |
+| `webkit`   | WebKit | Safari   | Swift `WKWebView.createPDF` wrapper (`scripts/cross-browser/webkit-render.swift`) | ✓ via `build-webkit.sh` | ✗ |
 
 Blink is NOT WebKit — they share a common ancestor (KHTML → WebKit → 2013
 Blink fork) but have diverged for over a decade. We treat them as three
 independent engines for consensus scoring.
 
-Phase A scope is `chromium` only; `firefox` arrives in Phase A2 (Linux Docker);
-`webkit` arrives in Phase A3 via the Swift wrapper. See
-`docs/plans/cross-browser-oracle.md` §"Phase A findings".
+## Environment overrides
+
+| Variable           | Meaning                                                              |
+|--------------------|----------------------------------------------------------------------|
+| `FIREFOX_CLI`      | Path to an upstream Firefox binary. Defaults to `/usr/local/bin/firefox-cli`. Set to use a different build (e.g. on a Linux host with system Firefox in `/usr/bin/firefox`). |
+| `FIREFOX_USE_XVFB` | `0` to skip wrapping Firefox with `xvfb-run`. Defaults to `1` when `/usr/bin/xvfb-run` exists. |
+| `WEBKIT_CLI`       | Path to the compiled `webkit-render` Swift binary. Defaults to `/usr/local/bin/webkit-render`. |
 
 ## Print-options contract
 
 `print-options.mjs` is the single source of truth for how every engine
 prints. Anything that has to agree between PHP and Node lives there. Do
 not patch options at the call site — change the constants in
-`print-options.mjs` and mirror the change in
-`packages/wpt-harness/src/BrowserOracle.php`.
+`print-options.mjs` and mirror the change in:
+
+- the Swift WebKit wrapper (`webkit-render.swift` constants);
+- `packages/wpt-harness/src/BrowserOracle.php` once Phase B lands.

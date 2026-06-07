@@ -126,6 +126,33 @@ async function renderFirefox(file) {
     }
 }
 
+async function renderWebKit(file) {
+    // WebKit's `WKWebView.createPDF()` is the only durable way to get
+    // a PDF out of WebKit; Playwright's `page.pdf()` is Chromium-only,
+    // and no Linux WebKit CLI ships `--print-to-pdf`. The Swift
+    // wrapper at scripts/cross-browser/webkit-render.swift exposes it
+    // as a one-shot CLI; compile once with
+    //   swiftc -O webkit-render.swift -o /usr/local/bin/webkit-render
+    // (or set WEBKIT_CLI to point at an existing build).
+    //
+    // macOS-only — Linux runners skip the WebKit engine and the
+    // ConsensusScorer treats them as two-of-two.
+    const wkExe = process.env.WEBKIT_CLI ?? '/usr/local/bin/webkit-render';
+    if (!existsSync(wkExe)) {
+        die(2, `webkit CLI not found at ${wkExe}. Build with \`swiftc -O scripts/cross-browser/webkit-render.swift -o /usr/local/bin/webkit-render\` (macOS) or set WEBKIT_CLI=path.`);
+    }
+    const profileDir = mkdtempSync(join(tmpdir(), 'cross-browser-wk-'));
+    const outPath = join(profileDir, 'out.pdf');
+    try {
+        await spawnPromise(wkExe, [file, outPath], { timeoutMs: 60000 });
+        return readFileSync(outPath);
+    } catch (err) {
+        die(3, `webkit render failed: ${err.message}`);
+    } finally {
+        rmSync(profileDir, { recursive: true, force: true });
+    }
+}
+
 function spawnPromise(cmd, args, { timeoutMs }) {
     return new Promise((resolve, reject) => {
         const proc = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -165,7 +192,8 @@ switch (args.engine) {
         pdfBytes = await renderFirefox(args.file);
         break;
     case 'webkit':
-        die(5, 'webkit not implemented yet (Phase A3 — see docs/plans/cross-browser-oracle.md)');
+        pdfBytes = await renderWebKit(args.file);
+        break;
 }
 
 if (!pdfBytes || pdfBytes.length === 0) {

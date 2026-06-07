@@ -267,6 +267,35 @@ The engine-acquisition layer **cannot** be "Playwright + page.pdf()" as initiall
 - **CI smoke** — pending Phase D's GHA wiring; the unit `docker run … firefox` is expected to succeed on `ubuntu-latest` since the SWGL issue is Rosetta-specific.
 - Decision: continue to Phase A3 (WebKit) rather than blocking on local-host Firefox; the cross-browser oracle is fundamentally a CI feature, not a dev-loop feature, and CI is Linux.
 
+### What landed in Phase A3
+
+- `scripts/cross-browser/webkit-render.swift` — ~140 lines of Swift. Spins up `WKWebView` inside a minimal `NSApplication` event loop, loads a `file://` URL, waits for `didFinish navigation`, calls `createPDF(configuration:)`, writes bytes to the requested output path. Viewport constants (`816×1056`) mirror `print-options.mjs`.
+- `scripts/cross-browser/build-webkit.sh` — one-shot build helper. `swiftc -O` produces `/usr/local/bin/webkit-render` (~63 KB); falls back to `~/.local/bin/webkit-render` when the install dir isn't writable.
+- `scripts/cross-browser/render.mjs` — `webkit` dispatch wired. Honours `WEBKIT_CLI=` env override. Fails fast with a clear error when the binary isn't built (Linux runners hit this; the Phase B ConsensusScorer will treat that as "two-of-two consensus on Chromium + Gecko", not "engines disagreed").
+- `scripts/cross-browser/README.md` — full engine matrix + env override list + per-engine build instructions.
+
+### Phase A3 smoke
+
+`/tmp/cb-smoke.html` is a tiny three-coloured-rect fixture with one heading. All three engines produce real PDFs; the three-way diff at 96 DPI is:
+
+```
+Chromium vs WebKit:  119 042 px (~7.8 % AE)
+Ours     vs Chromium:  67 231 px (~7.8 % AE)
+Ours     vs WebKit:    94 509 px (~6.2 % AE)
+```
+
+Those numbers are larger than Phase B's fuzz budgets because the print-options contract isn't yet enforced at the engine level — the engines disagree on default margins, page extent, and font metrics. Phase B locks the contract and tunes the budgets; today the result is "all three pipelines produce PDFs", which is the Phase A3 done criterion.
+
+### Phase A status — summary
+
+| Sub-phase | Engine   | Status               | Smoke                |
+|-----------|----------|----------------------|----------------------|
+| A1        | Chromium | done                 | ~1.0 % AE vs ours    |
+| A2        | Firefox  | build green, CI-only | (CI-pending)         |
+| A3        | WebKit   | done (macOS host)    | three-way diff above |
+
+Phase B (consensus scorer + fuzz budgets) is unblocked.
+
 ## Risks
 
 - **WebKit-Linux PDF gaps** — biggest unknown. Spike in Phase A.
