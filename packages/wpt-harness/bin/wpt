@@ -134,15 +134,18 @@ function discoverFixturesForSweep(string $root, array $includes, array $excludes
         if (str_contains($path, '/support/')) {
             continue;
         }
-        // WPT `crashtests/` directories are torture tests designed to
-        // crash browsers (e.g. `padding: 2880804336vmax 854269137%`).
-        // They have nothing to do with rendering correctness — they
-        // gate browser regression-fixes for crash bugs — but our
-        // renderer allocates proportionally to the input and OOMs.
-        // Skip them by default; opt back in via $skipCrashtests=false
-        // if a caller really wants the masochism.
+        // WPT `crashtests/` directories AND `*-crash.html` sibling
+        // files are torture tests designed to crash browsers (e.g.
+        // `padding: 2880804336vmax 854269137%`). They have nothing to
+        // do with rendering correctness — they gate browser
+        // regression-fixes for crash bugs — but our renderer
+        // allocates proportionally to the input and OOMs. Some teams
+        // use the subdir convention, others sidecar with the suffix;
+        // skip both. Opt back in via `--include-crashtests` if a
+        // caller really wants the masochism.
         if (!isset($GLOBALS['cb_sweep_include_crashtests'])
-            && str_contains($path, '/crashtests/')
+            && (str_contains($path, '/crashtests/')
+                || preg_match('/-crash\.html?$/i', $name))
         ) {
             continue;
         }
