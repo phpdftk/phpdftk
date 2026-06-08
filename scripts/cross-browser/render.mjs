@@ -105,6 +105,44 @@ async function renderFirefox(file) {
         die(2, `firefox CLI not found at ${ffExe}. Install Firefox.app (macOS) or run via render-docker.sh, or set FIREFOX_CLI to an upstream Firefox build.`);
     }
     const profileDir = mkdtempSync(join(tmpdir(), 'cross-browser-ff-'));
+    // WPT fixtures often link to external schemes (mailto:, tel:, http://
+    // canonical URLs) or fire popups during load. Without locking the
+    // profile down Firefox punts those to the macOS LaunchServices
+    // handler, which throws "macOS doesn't know how to open …" dialogs
+    // and steals focus per fixture. Seed user.js with prefs that:
+    //
+    //   - block popups (`dom.disable_open_during_load`, `dom.popup_*`),
+    //   - reject every external protocol handler (the
+    //     `network.protocol-handler.*` family),
+    //   - silence onbeforeunload + tab-close confirmation prompts.
+    //
+    // This is a profile-local override, so it doesn't touch the user's
+    // real Firefox profile.
+    writeFileSync(join(profileDir, 'user.js'), [
+        'user_pref("dom.disable_open_during_load", true);',
+        'user_pref("dom.popup_maximum", 0);',
+        'user_pref("dom.popup_allowed_events", "");',
+        'user_pref("dom.disable_beforeunload", true);',
+        'user_pref("browser.tabs.warnOnClose", false);',
+        'user_pref("browser.tabs.warnOnCloseOtherTabs", false);',
+        'user_pref("browser.sessionstore.resume_from_crash", false);',
+        // External-protocol handlers — refuse every scheme + suppress
+        // the launch-helper warning that otherwise hits the OS.
+        'user_pref("network.protocol-handler.external-default", false);',
+        'user_pref("network.protocol-handler.warn-external-default", false);',
+        'user_pref("network.protocol-handler.expose-all", false);',
+        ...['mailto', 'tel', 'sms', 'callto', 'news', 'snews', 'nntp',
+            'ftp', 'webcal', 'irc', 'ircs', 'feed', 'feeds',
+            'magnet', 'matrix', 'tg', 'skype', 'zoommtg', 'msteams']
+            .flatMap((s) => [
+                `user_pref("network.protocol-handler.external.${s}", false);`,
+                `user_pref("network.protocol-handler.expose.${s}", false);`,
+            ]),
+        // Don't ask the OS about unknown content types either.
+        'user_pref("browser.helperApps.deleteTempFileOnExit", true);',
+        'user_pref("browser.download.useDownloadDir", true);',
+        `user_pref("browser.download.dir", "${profileDir.replace(/"/g, '\\"')}");`,
+    ].join('\n'));
     // macOS Firefox.app hangs in `--print-to-pdf` headless mode (the
     // SWGL framebuffer never attaches, `[GFX1-]: RenderCompositorSWGL
     // failed mapping default framebuffer, no dt`). `--screenshot` uses
