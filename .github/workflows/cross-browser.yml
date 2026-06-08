@@ -81,6 +81,27 @@ jobs:
             fonts-liberation fonts-dejavu-core fonts-noto-core \
             imagemagick ghostscript
 
+      - name: Install geckodriver
+        # Used by scripts/cross-browser/render.mjs's WebDriver Print
+        # path on macOS. Not on the critical path for this Linux
+        # workflow today (the Firefox-via-Docker fallback handles
+        # Linux), but installing it here keeps the dev / CI host
+        # surface area consistent with what
+        # scripts/bootstrap-cross-browser.sh provisions.
+        run: |
+          set -eux
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64)  GECKO_OS=linux64 ;;
+            aarch64) GECKO_OS=linux-aarch64 ;;
+            *) echo "unsupported arch $ARCH" >&2; exit 1 ;;
+          esac
+          GECKO_VER=v0.37.0
+          curl -fsSL "https://github.com/mozilla/geckodriver/releases/download/${GECKO_VER}/geckodriver-${GECKO_VER}-${GECKO_OS}.tar.gz" \
+            | sudo tar xz -C /usr/local/bin geckodriver
+          sudo chmod +x /usr/local/bin/geckodriver
+          geckodriver --version | head -1
+
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 

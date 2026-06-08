@@ -8,19 +8,31 @@ See `docs/plans/cross-browser-oracle.md` for the full plan.
 
 ## Install
 
-### One-time
+One step: `scripts/bootstrap-cross-browser.sh` from the repo root. It
+installs every dependency the oracle needs on macOS (via Homebrew) or
+Debian / Ubuntu Linux (via apt + the Mozilla geckodriver release tarball):
 
-```sh
-cd scripts/cross-browser
-npm install            # installs Playwright + Playwright's bundled Chromium
-./build-webkit.sh      # macOS only — compiles webkit-render to /usr/local/bin
-```
+- Node 22, ImageMagick, Ghostscript
+- geckodriver
+- Playwright + bundled Chromium
+- `webkit-render` (Swift WKWebView wrapper, macOS only — built via `build-webkit.sh`)
+
+Run `scripts/bootstrap-cross-browser.sh --check` first to see what's
+already in place.
 
 ### Linux (CI) Firefox path
 
 Firefox runs inside a Docker image; the first invocation of
 `./render-docker.sh firefox …` builds it (~3 min cold, cached afterwards).
-You don't need anything else installed on the host.
+The bootstrap doesn't install Docker for you; see Docker Desktop on macOS
+or your distro's instructions.
+
+### macOS Firefox path
+
+Driven over geckodriver's WebDriver `Print` endpoint. `--print-to-pdf`
+on macOS arm64 hangs in headless mode (SWGL framebuffer never attaches);
+geckodriver exercises a different print path that comes up cleanly and
+produces a multi-page PDF matching what Chromium's `page.pdf()` emits.
 
 ## Manual smoke
 
