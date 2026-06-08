@@ -95,11 +95,19 @@ function defaultWptRoot(): string
  * doesn't carry a recognised extension. `--include` / `--exclude`
  * globs match against the path RELATIVE to root.
  *
- * @param list<string> $includes
- * @param list<string> $excludes
+ * `--skip-testharness` filters out tests whose head pulls in WPT's
+ * `testharness.js` / `testharnessreport.js` / `testdriver.js` —
+ * those rely on JS execution to construct the test (or to even
+ * report a result), so they can't be compared as static renders
+ * across engines. Scripted reftests (`class="reftest-wait"` +
+ * `<link rel="match">`) are not affected because they don't pull
+ * the testharness machinery in.
+ *
+ * @param  list<string> $includes
+ * @param  list<string> $excludes
  * @return list<string>
  */
-function discoverFixturesForSweep(string $root, array $includes, array $excludes): array
+function discoverFixturesForSweep(string $root, array $includes, array $excludes, bool $skipTestHarness = false): array
 {
     if (!is_dir($root)) {
         return [];
@@ -156,10 +164,35 @@ function discoverFixturesForSweep(string $root, array $includes, array $excludes
                 continue;
             }
         }
+        if ($skipTestHarness && fixtureUsesTestHarness($path)) {
+            continue;
+        }
         $out[] = $path;
     }
     sort($out);
     return $out;
+}
+
+/**
+ * Detect whether a WPT fixture pulls in `testharness.js` (or one of
+ * its siblings) — the canonical signal that a test runs JS to
+ * construct content / assert results, and so can't be compared as a
+ * static render across engines.
+ *
+ * Read is bounded to the first 16 KB; WPT keeps the harness includes
+ * in the `<head>` so this catches every well-formed testharness test
+ * without paying the cost of scanning multi-megabyte fixtures.
+ */
+function fixtureUsesTestHarness(string $path): bool
+{
+    $head = @file_get_contents($path, false, null, 0, 16 * 1024);
+    if ($head === false || $head === '') {
+        return false;
+    }
+    return (bool) preg_match(
+        '~<script[^>]*\\bsrc\\s*=\\s*["\'][^"\']*?/(?:testharness(?:report)?|testdriver)(?:-[\w-]+)?\\.js~i',
+        $head,
+    );
 }
 
 /**
@@ -553,13 +586,20 @@ switch ($subcommand) {
 
         $jsonOut = isset($opts['json']) && is_string($opts['json']) ? $opts['json'] : null;
 
+        // testharness.js tests rely on JS execution to construct
+        // content / report results — they don't survive a static
+        // PDF-render comparison. `--skip-testharness` drops them at
+        // discovery time so the sweep only walks fixtures that can
+        // legitimately be scored across engines.
+        $skipTestHarness = !empty($opts['skip-testharness']);
+
         // Discover fixtures. Walks recursively from `$root`; honours
         // `--include` (paths must match at least one) and `--exclude`
         // (path matching any is dropped). The standard WPT layout
         // keeps reference renders alongside the test with the
         // `-ref.*` suffix and helpers under `support/`; we drop both
         // since neither is a renderable test in their own right.
-        $fixtures = discoverFixturesForSweep($root, $includes, $excludes);
+        $fixtures = discoverFixturesForSweep($root, $includes, $excludes, $skipTestHarness);
         if ($shardCount > 1) {
             $fixtures = array_values(array_filter(
                 $fixtures,
@@ -773,7 +813,7 @@ Subcommands:
                                            aggregator.
   cb-sweep [--root=<path>] [--include=<csv-globs>] [--exclude=<csv-globs>]
            [--depth=<N>] [--max=<N>] [--shard=K/N] [--engines=<csv>]
-           [--show-worst=<N>] [--json=<path>]
+           [--skip-testharness] [--show-worst=<N>] [--json=<path>]
                                            Walk the WPT corpus (defaults to the
                                            tree at --root, typically
                                            vendor-data/wpt), render every
@@ -781,11 +821,15 @@ Subcommands:
                                            each engine, and report mean pixel-AE
                                            per engine, grouped by directory at
                                            the chosen depth (default 2). Use
-                                           `--show-worst=N` to also list the N
-                                           worst-scoring fixtures per engine,
-                                           `--json=<path>` to dump the full
-                                           result set (including per-fixture AE)
-                                           for downstream slice/dice.
+                                           `--skip-testharness` to drop the
+                                           JS-driven testharness.js tests
+                                           (which can't be compared as static
+                                           renders), `--show-worst=N` to list
+                                           the N worst-scoring fixtures per
+                                           engine, `--json=<path>` to dump the
+                                           full result set (including
+                                           per-fixture AE) for downstream
+                                           slice/dice.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 
