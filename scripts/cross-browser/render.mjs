@@ -104,6 +104,20 @@ async function renderFirefox(file) {
     if (!existsSync(ffExe)) {
         die(2, `firefox CLI not found at ${ffExe}. Install Firefox.app (macOS) or run via render-docker.sh, or set FIREFOX_CLI to an upstream Firefox build.`);
     }
+    // On macOS, the `--print-to-pdf` CLI flag hangs in SWGL-headless mode
+    // ("RenderCompositorSWGL failed mapping default framebuffer, no dt").
+    // We can drive Firefox over geckodriver's WebDriver protocol instead
+    // — `POST /session/:id/print` exercises a different print code path
+    // that comes up cleanly and produces a real, multi-page PDF (so the
+    // downstream rasteriser sees the same kind of output Chromium's
+    // `page.pdf()` emits).
+    const geckoExe = process.env.GECKODRIVER ?? '/opt/homebrew/bin/geckodriver';
+    const useGeckodriver = process.platform === 'darwin'
+        && existsSync(geckoExe)
+        && process.env.FIREFOX_USE_PRINT === undefined;
+    if (useGeckodriver) {
+        return renderFirefoxViaGeckodriver(file, ffExe, geckoExe);
+    }
     const profileDir = mkdtempSync(join(tmpdir(), 'cross-browser-ff-'));
     // WPT fixtures often link to external schemes (mailto:, tel:, http://
     // canonical URLs) or fire popups during load. Without locking the
@@ -200,6 +214,169 @@ async function renderFirefox(file) {
         die(3, `firefox render failed: ${err.message}`);
     } finally {
         rmSync(profileDir, { recursive: true, force: true });
+    }
+}
+
+/**
+ * Drive Firefox over geckodriver's WebDriver session to get a real
+ * print PDF on macOS. WebDriver Print spec:
+ *   https://w3c.github.io/webdriver/#print
+ *
+ * Page dimensions in WebDriver Print are in CENTIMETRES; Letter is
+ * 8.5" × 11" = 21.59 × 27.94 cm. We ask for zero margins so the page
+ * fills 612 × 792 pt (matching Chromium's `page.pdf()`).
+ */
+async function renderFirefoxViaGeckodriver(file, ffExe, geckoExe) {
+    const profileDir = mkdtempSync(join(tmpdir(), 'cross-browser-ff-'));
+    // Same external-protocol / popup lockdown we use on the CLI path.
+    writeFileSync(join(profileDir, 'user.js'), [
+        'user_pref("dom.disable_open_during_load", true);',
+        'user_pref("dom.popup_maximum", 0);',
+        'user_pref("network.protocol-handler.external-default", false);',
+        'user_pref("network.protocol-handler.warn-external-default", false);',
+        'user_pref("network.protocol-handler.expose-all", false);',
+        'user_pref("browser.tabs.warnOnClose", false);',
+        'user_pref("dom.disable_beforeunload", true);',
+    ].join('\n'));
+
+    const port = await pickEphemeralPort();
+    const driver = spawn(geckoExe, [
+        `--port=${port}`,
+        '--log=warn',
+        '--allow-hosts=127.0.0.1',
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    // Geckodriver prints status to stderr; capture for diagnostics but
+    // don't gate readiness on a particular log line — we poll its HTTP
+    // status endpoint instead.
+    let driverStderr = '';
+    driver.stderr.on('data', (chunk) => { driverStderr += chunk.toString('utf8'); });
+    driver.on('error', () => { /* surfaced via the connect timeout */ });
+
+    let sessionId = null;
+    try {
+        await waitForGeckodriver(port, 10000, driver);
+        const sessionRes = await fetchJson(`http://127.0.0.1:${port}/session`, {
+            method: 'POST',
+            body: {
+                capabilities: {
+                    alwaysMatch: {
+                        browserName: 'firefox',
+                        'moz:firefoxOptions': {
+                            binary: ffExe,
+                            args: ['--headless'],
+                            prefs: {
+                                'dom.disable_open_during_load': true,
+                                'dom.popup_maximum': 0,
+                                'network.protocol-handler.external-default': false,
+                                'network.protocol-handler.warn-external-default': false,
+                                'network.protocol-handler.expose-all': false,
+                                'browser.tabs.warnOnClose': false,
+                                'dom.disable_beforeunload': true,
+                                // Allow file:// to read sibling files
+                                // (image references inside fixtures).
+                                'privacy.file_unique_origin': false,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        sessionId = sessionRes.value.sessionId;
+        await fetchJson(`http://127.0.0.1:${port}/session/${sessionId}/url`, {
+            method: 'POST',
+            body: { url: pathToFileURL(file).href },
+        });
+        // WebDriver `Print` returns base64 PDF bytes.
+        const printRes = await fetchJson(`http://127.0.0.1:${port}/session/${sessionId}/print`, {
+            method: 'POST',
+            body: {
+                // Letter, cm. Matches Chromium's `page.pdf()` output.
+                page: { width: 21.59, height: 27.94 },
+                margin: { top: 0, right: 0, bottom: 0, left: 0 },
+                orientation: 'portrait',
+                background: true,
+                scale: 1.0,
+                shrinkToFit: false,
+            },
+        });
+        return Buffer.from(printRes.value, 'base64');
+    } catch (err) {
+        die(3, `firefox (geckodriver) render failed: ${err.message}${driverStderr ? '\n  geckodriver stderr: ' + driverStderr.split('\n').slice(-5).join(' | ') : ''}`);
+    } finally {
+        if (sessionId !== null) {
+            await fetch(`http://127.0.0.1:${port}/session/${sessionId}`, { method: 'DELETE' })
+                .catch(() => {});
+        }
+        driver.kill('SIGTERM');
+        rmSync(profileDir, { recursive: true, force: true });
+    }
+}
+
+/**
+ * Ask the OS for a free TCP port and immediately close it; the small
+ * race window (something else binds before geckodriver starts) is
+ * acceptable for a one-shot CLI.
+ */
+function pickEphemeralPort() {
+    return new Promise((resolve, reject) => {
+        import('node:net').then(({ createServer }) => {
+            const srv = createServer();
+            srv.listen(0, '127.0.0.1', () => {
+                const { port } = srv.address();
+                srv.close(() => resolve(port));
+            });
+            srv.on('error', reject);
+        });
+    });
+}
+
+/**
+ * Poll geckodriver's /status endpoint until it returns ready, or
+ * fail after `timeoutMs` (also fails fast if geckodriver dies).
+ */
+async function waitForGeckodriver(port, timeoutMs, driverProc) {
+    const deadline = Date.now() + timeoutMs;
+    let lastErr = null;
+    while (Date.now() < deadline) {
+        if (driverProc.exitCode !== null) {
+            throw new Error(`geckodriver exited early (code ${driverProc.exitCode})`);
+        }
+        try {
+            const res = await fetch(`http://127.0.0.1:${port}/status`, {
+                signal: AbortSignal.timeout(1000),
+            });
+            if (res.ok) {
+                const body = await res.json();
+                if (body.value?.ready === true) {
+                    return;
+                }
+            }
+        } catch (err) {
+            lastErr = err;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error(`geckodriver didn't come up within ${timeoutMs}ms: ${lastErr?.message ?? 'unknown'}`);
+}
+
+/**
+ * Tiny WebDriver-shaped fetch helper: JSON in, JSON out, throws on
+ * non-2xx with the body included so failures surface up the stack.
+ */
+async function fetchJson(url, { method, body }) {
+    const res = await fetch(url, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+        throw new Error(`${method} ${url} → HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+    try {
+        return JSON.parse(text);
+    } catch {
+        throw new Error(`${method} ${url} returned non-JSON: ${text.slice(0, 300)}`);
     }
 }
 
