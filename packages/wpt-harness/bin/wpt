@@ -134,6 +134,18 @@ function discoverFixturesForSweep(string $root, array $includes, array $excludes
         if (str_contains($path, '/support/')) {
             continue;
         }
+        // WPT `crashtests/` directories are torture tests designed to
+        // crash browsers (e.g. `padding: 2880804336vmax 854269137%`).
+        // They have nothing to do with rendering correctness — they
+        // gate browser regression-fixes for crash bugs — but our
+        // renderer allocates proportionally to the input and OOMs.
+        // Skip them by default; opt back in via $skipCrashtests=false
+        // if a caller really wants the masochism.
+        if (!isset($GLOBALS['cb_sweep_include_crashtests'])
+            && str_contains($path, '/crashtests/')
+        ) {
+            continue;
+        }
         $rel = substr($path, $rootPrefixLen);
         if ($includes !== []) {
             $matched = false;
@@ -615,6 +627,12 @@ switch ($subcommand) {
         // discovery time so the sweep only walks fixtures that can
         // legitimately be scored across engines.
         $skipTestHarness = !empty($opts['skip-testharness']);
+        // WPT `crashtests/` are skipped by default (see the discovery
+        // helper). `--include-crashtests` opts back in for callers
+        // who really want to test against adversarial input.
+        if (!empty($opts['include-crashtests'])) {
+            $GLOBALS['cb_sweep_include_crashtests'] = true;
+        }
 
         // Discover fixtures. Walks recursively from `$root`; honours
         // `--include` (paths must match at least one) and `--exclude`
@@ -836,8 +854,8 @@ Subcommands:
                                            aggregator.
   cb-sweep [--root=<path>] [--scope=<name>] [--include=<csv-globs>]
            [--exclude=<csv-globs>] [--depth=<N>] [--max=<N>] [--shard=K/N]
-           [--engines=<csv>] [--skip-testharness] [--show-worst=<N>]
-           [--json=<path>]
+           [--engines=<csv>] [--skip-testharness] [--include-crashtests]
+           [--show-worst=<N>] [--json=<path>]
                                            Walk the WPT corpus (defaults to the
                                            tree at --root, typically
                                            vendor-data/wpt), render every
