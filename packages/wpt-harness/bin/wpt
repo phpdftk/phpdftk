@@ -552,6 +552,29 @@ switch ($subcommand) {
         $excludes = isset($opts['exclude']) && is_string($opts['exclude'])
             ? array_values(array_filter(array_map('trim', explode(',', $opts['exclude']))))
             : [];
+        // --scope=<name> loads a curated directory list from
+        // packages/wpt-harness/scope/<name>.json and merges it onto
+        // --include. Lets us version-control "these are the WPT
+        // top-level directories actually relevant to a PDF renderer"
+        // instead of forcing every caller to remember a 30-item
+        // glob list. Unknown scope names fail loudly.
+        if (isset($opts['scope']) && is_string($opts['scope'])) {
+            $scopePath = __DIR__ . '/../scope/' . $opts['scope'] . '.json';
+            if (!is_file($scopePath)) {
+                fwrite(STDERR, "wpt cb-sweep: --scope={$opts['scope']} not found (looked for $scopePath)\n");
+                exit(2);
+            }
+            $scopeData = json_decode((string) file_get_contents($scopePath), associative: true);
+            if (!is_array($scopeData) || !isset($scopeData['include']) || !is_array($scopeData['include'])) {
+                fwrite(STDERR, "wpt cb-sweep: --scope={$opts['scope']} malformed (missing `include` array)\n");
+                exit(2);
+            }
+            foreach ($scopeData['include'] as $entry) {
+                if (is_string($entry) && $entry !== '' && !in_array($entry, $includes, true)) {
+                    $includes[] = $entry;
+                }
+            }
+        }
         $maxFixtures = isset($opts['max']) && (is_string($opts['max']) || is_int($opts['max']))
             ? max(0, (int) $opts['max'])
             : 0;
@@ -811,25 +834,29 @@ Subcommands:
                                            webkit} to consult, `--json` writes a
                                            per-shard result dump for the
                                            aggregator.
-  cb-sweep [--root=<path>] [--include=<csv-globs>] [--exclude=<csv-globs>]
-           [--depth=<N>] [--max=<N>] [--shard=K/N] [--engines=<csv>]
-           [--skip-testharness] [--show-worst=<N>] [--json=<path>]
+  cb-sweep [--root=<path>] [--scope=<name>] [--include=<csv-globs>]
+           [--exclude=<csv-globs>] [--depth=<N>] [--max=<N>] [--shard=K/N]
+           [--engines=<csv>] [--skip-testharness] [--show-worst=<N>]
+           [--json=<path>]
                                            Walk the WPT corpus (defaults to the
                                            tree at --root, typically
                                            vendor-data/wpt), render every
                                            non-`-ref` fixture through ours +
                                            each engine, and report mean pixel-AE
                                            per engine, grouped by directory at
-                                           the chosen depth (default 2). Use
-                                           `--skip-testharness` to drop the
+                                           the chosen depth (default 2).
+                                           `--scope=<name>` loads a curated
+                                           top-level directory list from
+                                           packages/wpt-harness/scope/<name>.json
+                                           (current presets: `rendering`).
+                                           `--skip-testharness` drops the
                                            JS-driven testharness.js tests
                                            (which can't be compared as static
-                                           renders), `--show-worst=N` to list
-                                           the N worst-scoring fixtures per
-                                           engine, `--json=<path>` to dump the
-                                           full result set (including
-                                           per-fixture AE) for downstream
-                                           slice/dice.
+                                           renders). `--show-worst=N` lists the
+                                           N worst-scoring fixtures per engine.
+                                           `--json=<path>` dumps the full
+                                           result set (including per-fixture
+                                           AE) for downstream slice/dice.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 

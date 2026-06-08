@@ -1,0 +1,46 @@
+{
+    "$schema_comment": "WPT top-level directories that are in scope for a static-PDF renderer + tagged-PDF accessibility. Loaded by `wpt cb-sweep --scope=rendering`. Edit when you decide to in/out a directory; the cb-sweep code is generic over the file's contents.",
+    "description": "Static-render + tagged-PDF accessibility WPT scope (KEEP only, BORDERLINE and SKIP omitted)",
+    "include": [
+        "css",
+        "html",
+        "svg",
+        "mathml",
+        "html-ruby-extensions",
+        "print",
+
+        "accessibility",
+        "accname",
+        "wai-aria",
+        "core-aam",
+        "html-aam",
+        "svg-aam",
+        "graphics-aam",
+        "graphics-aria",
+        "dpub-aam",
+        "dpub-aria",
+        "html-longdesc",
+
+        "conformance-checkers",
+        "domparsing",
+        "xml",
+        "encoding",
+        "encoding-detection",
+
+        "compat",
+        "quirks",
+        "old-tests",
+        "acid",
+        "forced-colors-mode",
+
+        "png",
+        "apng",
+        "jpegxl",
+        "gif",
+        "avif",
+
+        "dom",
+        "shadow-dom",
+        "custom-elements"
+    ]
+}
