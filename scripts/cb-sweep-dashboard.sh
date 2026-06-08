@@ -67,11 +67,19 @@ while true; do
         [[ -f "$log" ]] || continue
 
         # Most recent progress line: `  ... 1234/4567   89s elapsed`
+        # — the leading `...` may sit alone or stuck to the count
+        # depending on the printf padding, so parse with a regex
+        # rather than positional awk.
         last=$(grep -E "^\s+\.\.\." "$log" 2>/dev/null | tail -1)
-        cur=$(echo "$last" | awk '{print $1}' | awk -F/ '{print $1}' | tr -d '.')
-        total=$(echo "$last" | awk '{print $1}' | awk -F/ '{print $2}')
-        elapsed=$(echo "$last" | awk '{print $2}' | tr -d 's')
-        : "${cur:=0}" "${total:=0}" "${elapsed:=0}"
+        if [[ "$last" =~ ([0-9]+)/([0-9]+)[[:space:]]+([0-9]+)s ]]; then
+            cur="${BASH_REMATCH[1]}"
+            total="${BASH_REMATCH[2]}"
+            elapsed="${BASH_REMATCH[3]}"
+        else
+            cur=0
+            total=0
+            elapsed=0
+        fi
 
         state="run"
         if [[ -f "$json" ]] && command -v jq >/dev/null 2>&1 \
