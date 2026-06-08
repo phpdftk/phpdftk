@@ -183,6 +183,28 @@ final class Renderer
 
         $totalHeight = max($pageHeight, $root->geometry->outerHeight());
         $pageCount = (int) max(1, ceil($totalHeight / $pageHeight));
+        // Cap the page count at a sane maximum so adversarial CSS
+        // (`height: 12345678901234px`, deeply nested multicol balance
+        // with extreme dimensions) can't paginate into hundreds of
+        // thousands of pages — each Page allocates closures + a per-
+        // page resolver and the cumulative cost OOMs the renderer
+        // long before the PDF would be useful. Real documents
+        // dwarfed by this number genuinely have a bug or attack
+        // upstream. See phpdftk/phpdftk#28.
+        $MAX_PAGE_COUNT = 10000;
+        if ($pageCount > $MAX_PAGE_COUNT) {
+            $warnings[] = new Warning(
+                WarningCode::UnsupportedDisplayType,
+                sprintf(
+                    'Computed %d pages exceeds the %d-page safety cap; truncating. '
+                    . 'This usually means an unbounded height / aspect-ratio fed into layout.',
+                    $pageCount,
+                    $MAX_PAGE_COUNT,
+                ),
+                WarningSeverity::Warning,
+            );
+            $pageCount = $MAX_PAGE_COUNT;
+        }
 
         // CSS Paged Media 3 §3.4: when a block declares `page: foo`,
         // the page containing its first fragment is tagged "foo" and

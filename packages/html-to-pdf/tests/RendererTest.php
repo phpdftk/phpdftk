@@ -133,6 +133,33 @@ final class RendererTest extends TestCase
         self::assertNotContains(\Phpdftk\HtmlToPdf\WarningCode::MissingFont, $codes);
     }
 
+    public function testAdversarialHeightTriggersPageCountCapAndWarns(): void
+    {
+        // Pattern from WPT `*-crash.html` fixtures: a `height` value
+        // so large that paginating it would allocate hundreds of
+        // thousands of Page objects. Layout clamps the length itself
+        // (see LengthResolver::MAX_PX), and the renderer caps page
+        // count at 10,000 so adversarial input can't OOM the
+        // process. We expect: a non-empty PDF + a warning announcing
+        // the cap.
+        $renderer = new Renderer();
+        $writer = new PdfWriter();
+        $warnings = $renderer->renderInto(
+            $writer,
+            '<html><body>'
+            . '<div style="height: 12345678901234px"></div>'
+            . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        $messages = array_map(static fn($w) => $w->message, $warnings);
+        self::assertCount(
+            1,
+            array_filter($messages, static fn(string $m) => str_contains($m, 'safety cap')),
+            'one safety-cap warning expected',
+        );
+    }
+
     public function testRenderIntoExistingWriter(): void
     {
         $writer = new PdfWriter();

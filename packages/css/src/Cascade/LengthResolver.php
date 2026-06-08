@@ -26,6 +26,52 @@ use Phpdftk\Css\Value\Value;
 final class LengthResolver
 {
     /**
+     * Maximum absolute pixel value that layout will operate on,
+     * mirroring browser conventions: Blink caps at `LayoutUnit::Max`
+     * (~16.7M CSS px from the int32 fixed-point representation),
+     * WebKit clamps `kFixedPointDenominator * INT_MAX / ...` to the
+     * same neighbourhood. Beyond this:
+     *
+     *  - float-precision is gone (mantissa is 24 bits, so values
+     *    above 2^24 lose integer accuracy);
+     *  - layout math becomes meaningless to a reader;
+     *  - downstream code sized to these dimensions (content streams,
+     *    column-balance arrays, paint-region rects) allocates
+     *    gigabytes and OOMs on adversarial CSS like
+     *    `padding: 2880804336vmax 854269137% 347744005in 2487922492pt`
+     *    or `aspect-ratio: 1/0.00000000000001`.
+     *
+     * Authored CSS values stay untouched on the parsed Length /
+     * Percentage objects; this constant only bounds the floats that
+     * enter layout via {@see toPx()} / {@see resolveValue()}.
+     *
+     * Reference: WPT crashtests + `*-crash.html` fixtures (1,012
+     * corpus-wide as of WPT @ 2026-06-08). See phpdftk/phpdftk#28.
+     */
+    public const MAX_PX = 16777216.0;   // 2^24
+
+    /**
+     * Clamp a resolved pixel value into the safe layout range.
+     * NaN collapses to 0 (CSS Values 4 §6 treats undefined-typed
+     * results as the property's initial value, and the call sites
+     * here would otherwise propagate NaN through arithmetic until
+     * a comparison fails). ±Inf clamps to ±{@see MAX_PX}.
+     */
+    public static function clampPx(float $px): float
+    {
+        if (is_nan($px)) {
+            return 0.0;
+        }
+        if ($px > self::MAX_PX) {
+            return self::MAX_PX;
+        }
+        if ($px < -self::MAX_PX) {
+            return -self::MAX_PX;
+        }
+        return $px;
+    }
+
+    /**
      * 1 inch = 96 CSS pixels (CSS Values 4 §6.2). Derived conversions:
      *  1 pt = 96 / 72  ≈ 1.3333 px
      *  1 pc = 16       px
@@ -36,7 +82,7 @@ final class LengthResolver
     public static function toPx(Length $length, LengthContext $ctx): float
     {
         $v = $length->value;
-        return match ($length->unit) {
+        $px = match ($length->unit) {
             LengthUnit::Px => $v,
             LengthUnit::Pt => $v * (96.0 / 72.0),
             LengthUnit::Pc => $v * 16.0,
@@ -60,6 +106,7 @@ final class LengthResolver
             LengthUnit::Vi => $v * ($ctx->viewportWidth / 100.0),  // assumes horizontal-tb
             LengthUnit::Vb => $v * ($ctx->viewportHeight / 100.0),
         };
+        return self::clampPx($px);
     }
 
     /**
@@ -78,7 +125,10 @@ final class LengthResolver
             if ($ctx->percentageBasis === 0.0) {
                 return $value;
             }
-            return new Length($value->value / 100.0 * $ctx->percentageBasis, LengthUnit::Px);
+            return new Length(
+                self::clampPx($value->value / 100.0 * $ctx->percentageBasis),
+                LengthUnit::Px,
+            );
         }
         return $value;
     }

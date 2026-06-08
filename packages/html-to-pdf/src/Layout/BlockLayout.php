@@ -525,14 +525,19 @@ final class BlockLayout
         // is ignored (declared dimensions take precedence).
         $ratio = $this->resolveAspectRatio($style);
         if ($ratio !== null && $ratio > 0.0) {
+            // Inputs like `aspect-ratio: 1/0.00000000000001` produce
+            // a ~1e14 ratio and a 14-digit pixel dimension that OOMs
+            // any subsequent layout / paint sized to it. Clamp the
+            // computed side to the same browser-style ceiling we use
+            // for resolved Lengths.
             if ($heightIsAuto && !$widthAuto && $geo->width > 0.0) {
-                $geo->height = $geo->width / $ratio;
+                $geo->height = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio);
             } elseif ($widthAuto && !$heightIsAuto && $geo->height > 0.0) {
-                $geo->width = $geo->height * $ratio;
+                $geo->width = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->height * $ratio);
             } elseif ($heightIsAuto && $geo->width > 0.0) {
                 // Both auto path retained for the historic case
                 // where height defaults to width / ratio.
-                $geo->height = $geo->width / $ratio;
+                $geo->height = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio);
             }
         }
         // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
@@ -2871,10 +2876,18 @@ final class BlockLayout
             return 0.0;
         }
         if ($value instanceof Length) {
-            return $value->value;
+            // Already-resolved Lengths went through LengthResolver::toPx
+            // upstream so they're clamped, but Percentages computed
+            // here haven't been — clamp on the way out so adversarial
+            // CSS (`margin: 5307% 18446744073709551526px`) can't push
+            // layout into multi-terabyte dimensions. See
+            // {@see \Phpdftk\Css\Cascade\LengthResolver::MAX_PX}.
+            return \Phpdftk\Css\Cascade\LengthResolver::clampPx($value->value);
         }
         if ($value instanceof Percentage) {
-            return $value->value / 100.0 * $percentageBasis;
+            return \Phpdftk\Css\Cascade\LengthResolver::clampPx(
+                $value->value / 100.0 * $percentageBasis,
+            );
         }
         return 0.0;
     }
@@ -2898,7 +2911,7 @@ final class BlockLayout
     private function resolveBorderWidthValue(?\Phpdftk\Css\Value\Value $v): float
     {
         if ($v instanceof Length) {
-            return $v->value;
+            return \Phpdftk\Css\Cascade\LengthResolver::clampPx($v->value);
         }
         if ($v instanceof Keyword) {
             return match (strtolower($v->name)) {
