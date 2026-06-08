@@ -134,16 +134,16 @@ function discoverFixturesForSweep(string $root, array $includes, array $excludes
         if (str_contains($path, '/support/')) {
             continue;
         }
-        // WPT `crashtests/` directories AND `*-crash.html` sibling
-        // files are torture tests designed to crash browsers (e.g.
-        // `padding: 2880804336vmax 854269137%`). They have nothing to
-        // do with rendering correctness — they gate browser
-        // regression-fixes for crash bugs — but our renderer
-        // allocates proportionally to the input and OOMs. Some teams
-        // use the subdir convention, others sidecar with the suffix;
-        // skip both. Opt back in via `--include-crashtests` if a
-        // caller really wants the masochism.
-        if (!isset($GLOBALS['cb_sweep_include_crashtests'])
+        // WPT `crashtests/` directories AND `*-crash.html` sidecar
+        // files are torture tests designed to crash browsers. We
+        // include them by default — the renderer clamps pathological
+        // length values (LengthResolver::MAX_PX) and caps page count
+        // (Renderer::MAX_PAGE_COUNT) so they no longer OOM us, and
+        // including them is the only way to track conformity across
+        // the WHOLE corpus rather than a curated subset.
+        // `--skip-crashtests` opts out when a caller wants a quick
+        // sweep that drops the ~1,800 crashtest fixtures.
+        if (isset($GLOBALS['cb_sweep_skip_crashtests'])
             && (str_contains($path, '/crashtests/')
                 || preg_match('/-crash\.html?$/i', $name))
         ) {
@@ -630,11 +630,12 @@ switch ($subcommand) {
         // discovery time so the sweep only walks fixtures that can
         // legitimately be scored across engines.
         $skipTestHarness = !empty($opts['skip-testharness']);
-        // WPT `crashtests/` are skipped by default (see the discovery
-        // helper). `--include-crashtests` opts back in for callers
-        // who really want to test against adversarial input.
-        if (!empty($opts['include-crashtests'])) {
-            $GLOBALS['cb_sweep_include_crashtests'] = true;
+        // WPT `crashtests/` and `*-crash.html` are INCLUDED by
+        // default — see the discovery helper for the rationale.
+        // `--skip-crashtests` opts out for callers who want a quick
+        // sweep that drops the ~1,800 adversarial-input fixtures.
+        if (!empty($opts['skip-crashtests'])) {
+            $GLOBALS['cb_sweep_skip_crashtests'] = true;
         }
 
         // Discover fixtures. Walks recursively from `$root`; honours
@@ -857,7 +858,7 @@ Subcommands:
                                            aggregator.
   cb-sweep [--root=<path>] [--scope=<name>] [--include=<csv-globs>]
            [--exclude=<csv-globs>] [--depth=<N>] [--max=<N>] [--shard=K/N]
-           [--engines=<csv>] [--skip-testharness] [--include-crashtests]
+           [--engines=<csv>] [--skip-testharness] [--skip-crashtests]
            [--show-worst=<N>] [--json=<path>]
                                            Walk the WPT corpus (defaults to the
                                            tree at --root, typically
