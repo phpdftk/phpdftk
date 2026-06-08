@@ -28,13 +28,22 @@ echo
 
 START_TS=$(date +%s)
 
+# Each shard renders thousands of fixtures in one process. The
+# default PHP memory limit (128 MB) runs out around 3–4k fixtures —
+# the Renderer / PdfWriter / Cascade aren't strictly leak-free across
+# calls. Bump to 2 GB so a full-corpus shard makes it to the end.
+# Override via $CB_SWEEP_MEMORY_LIMIT if you want headroom for a
+# specific scope.
+PHP_BIN="${PHP_BIN:-php}"
+MEM_LIMIT="${CB_SWEEP_MEMORY_LIMIT:-2G}"
+
 PIDS=()
 for k in $(seq 1 "$SHARD_COUNT"); do
     LOG="$OUT_DIR/shard-$k.log"
     JSON="$OUT_DIR/shard-$k.json"
     (
         WEBKIT_CLI="${WEBKIT_CLI:-/Users/troymccabe/.local/bin/webkit-render}" \
-            "$BIN" cb-sweep \
+            "$PHP_BIN" -d "memory_limit=$MEM_LIMIT" "$BIN" cb-sweep \
                 --shard="$k/$SHARD_COUNT" \
                 --json="$JSON" \
                 "${EXTRA_ARGS[@]}" \
