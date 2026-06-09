@@ -29,6 +29,7 @@
         "phpdftk/font-parser": "^1.0",
         "phpdftk/html": "^1.0",
         "phpdftk/image-metadata": "^1.0",
+        "phpdftk/mathml": "^1.0",
         "phpdftk/pdf-writer": "^1.0",
         "phpdftk/resource-loader": "^1.0",
         "phpdftk/svg": "^1.0",

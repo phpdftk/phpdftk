@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-refactor/shared-xml-utilities",
+            "version": "dev-feat/inline-mathml-adapter",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
@@ -2238,7 +2238,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/html-to-pdf",
-                "reference": "761412091b849250c80db5a3127200e544de037e"
+                "reference": "4350294d29e6358ffeccd89d861b53beb116c2e3"
             },
             "require": {
                 "ext-intl": "*",
@@ -2249,6 +2249,7 @@
                 "phpdftk/font-parser": "^1.0",
                 "phpdftk/html": "^1.0",
                 "phpdftk/image-metadata": "^1.0",
+                "phpdftk/mathml": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
                 "phpdftk/resource-loader": "^1.0",
                 "phpdftk/svg": "^1.0",
