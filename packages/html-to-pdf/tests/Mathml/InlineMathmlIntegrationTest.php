@@ -94,11 +94,12 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
-    public function testMalformedInlineMathSkipsRatherThanCrashes(): void
+    public function testInlineMfracRendersNumeratorAndDenominator(): void
     {
-        // An <math> with a child that the MathML parser would still
-        // accept (parser falls back to GenericElement) — the render
-        // must produce a valid PDF either way.
+        // <mfrac> is now a typed class with vertical-stacking paint.
+        // Numerator + denominator both reach the content stream and
+        // the Translator emits >= 3 Td operations (centred numerator,
+        // shift to centred denominator, advance to fraction right).
         $writer = new PdfWriter(compressStreams: false);
         (new Renderer())->renderInto(
             $writer,
@@ -115,11 +116,13 @@ final class InlineMathmlIntegrationTest extends TestCase
         );
         $bytes = $writer->toBytes();
         self::assertStringStartsWith('%PDF-', $bytes);
-        // mfrac isn't a typed class yet — round-trips through
-        // GenericElement, whose paint walks children. So we still
-        // see the '1' and '2' tokens emitted.
         self::assertMatchesRegularExpression('/\(1\)\s+Tj/', $bytes);
         self::assertMatchesRegularExpression('/\(2\)\s+Tj/', $bytes);
+        // Confirm vertical stacking happened — the Td operation count
+        // is the canary that the Translator did its mfrac-specific
+        // repositioning rather than walking children inline.
+        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        self::assertGreaterThanOrEqual(3, $tdCount);
     }
 
     public function testMultipleInlineMathsRenderIndependently(): void

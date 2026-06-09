@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-feat/inline-mathml-adapter",
+            "version": "dev-feat/mathml-mfrac",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",

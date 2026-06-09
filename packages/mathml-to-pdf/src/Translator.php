@@ -6,6 +6,7 @@ namespace Phpdftk\MathmlToPdf;
 
 use Phpdftk\Mathml\Element;
 use Phpdftk\Mathml\GenericElement;
+use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
 use Phpdftk\Mathml\Mn;
 use Phpdftk\Mathml\Mo;
@@ -41,6 +42,7 @@ final class Translator
             $element instanceof Mo      => $this->paintMo($element, $stream),
             $element instanceof Ms      => $this->paintMs($element, $stream),
             $element instanceof Mtext   => $this->paintMtext($element, $stream),
+            $element instanceof Mfrac   => $this->paintMfrac($element, $stream, $upright, $italic, $fontSize),
             $element instanceof Mrow    => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
             $element instanceof GenericElement => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
             // MathmlDocument flows through here too — its base class
@@ -48,6 +50,89 @@ final class Translator
             // tracer-bullet slice, so children walk like an <mrow>.
             default => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
         };
+    }
+
+    /**
+     * Paint `<mfrac>` as a vertically stacked numerator + denominator.
+     *
+     * Uses PDF text-matrix repositioning (`Td`) plus text rise to
+     * place numerator above the surrounding baseline and denominator
+     * below, centring each within the wider of the two. The pen
+     * advances past the fraction's right edge so subsequent tokens
+     * flow correctly.
+     *
+     * Width estimation: each child's `textContent()` character count
+     * times an `~0.5em` advance. This is approximate for Times-Roman
+     * (good for digits and lowercase, off for uppercase wide glyphs)
+     * and acceptable for the tracer-bullet. Real glyph-derived
+     * widths land once the renderer learns to measure its own output.
+     *
+     * NOT YET DRAWN: the horizontal fraction bar between numerator
+     * and denominator. Drawing it requires breaking out of the
+     * BT/ET text block to emit path operators, which in turn means
+     * threading the absolute fraction coordinates through the
+     * Translator. Deferred to a follow-up. The
+     * `linethickness="0"` form (binomial coefficients — no bar by
+     * spec) renders correctly today.
+     *
+     * Invalid `<mfrac>` with anything other than exactly two element
+     * children walks all children inline as a fallback so malformed
+     * markup doesn't drop content.
+     */
+    private function paintMfrac(
+        Mfrac $mfrac,
+        ContentStream $stream,
+        Font $upright,
+        Font $italic,
+        float $fontSize,
+    ): void {
+        $children = array_values(array_filter(
+            $mfrac->children,
+            static fn($c) => $c instanceof Element,
+        ));
+        if (count($children) !== 2) {
+            $this->walkChildren($mfrac, $stream, $upright, $italic, $fontSize);
+            return;
+        }
+        [$numerator, $denominator] = [$children[0], $children[1]];
+
+        $charWidth = $fontSize * 0.5;
+        $numWidth = mb_strlen($numerator->textContent(), 'UTF-8') * $charWidth;
+        $denWidth = mb_strlen($denominator->textContent(), 'UTF-8') * $charWidth;
+        $fracWidth = max($numWidth, $denWidth);
+        if ($fracWidth < 0.001) {
+            return;
+        }
+
+        // Baseline offsets above/below the surrounding line. ~0.4em
+        // each puts the numerator and denominator about 4/5 of a line
+        // apart — visually closer than two normal lines, which is
+        // what mfrac wants.
+        $raise = $fontSize * 0.4;
+        $drop = $fontSize * 0.4;
+
+        $numLead = ($fracWidth - $numWidth) / 2.0;
+        $denLead = ($fracWidth - $denWidth) / 2.0;
+
+        // Numerator: shift line origin into the centred position on
+        // the raised baseline, emit children, leave pen where Tj left
+        // it (at numLead + numWidth past the fraction's left edge,
+        // on the raised baseline).
+        $stream->moveTextPosition($numLead, $raise);
+        $this->paint($numerator, $stream, $upright, $italic, $fontSize);
+
+        // Denominator: shift line origin from where it is now to the
+        // centred position on the lowered baseline. moveTextPosition
+        // (Td) is relative to the current line matrix — the pen
+        // resets to the new origin so we don't have to compensate
+        // for whatever horizontal advance the numerator emitted.
+        $stream->moveTextPosition($denLead - $numLead, -$drop - $raise);
+        $this->paint($denominator, $stream, $upright, $italic, $fontSize);
+
+        // Advance to the right edge of the fraction on the original
+        // baseline so subsequent tokens (`<mfrac><mrow>1</mrow>...
+        // </mfrac><mo>+</mo>…`) flow correctly.
+        $stream->moveTextPosition($fracWidth - $denLead, $drop);
     }
 
     private function walkChildren(
