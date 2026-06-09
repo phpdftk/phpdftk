@@ -5,25 +5,20 @@ declare(strict_types=1);
 namespace Phpdftk\Mathml;
 
 use Phpdftk\Mathml\Exception\InvalidMathmlException;
+use Phpdftk\Xml\Exception\InvalidXmlException;
+use Phpdftk\Xml\HardenedLoader;
+use Phpdftk\Xml\TreeWalker;
 
 /**
  * Secure MathML-to-typed-tree parser. Consumes a string of MathML XML
- * (or a fragment that the host wrapped in an explicit `<math>` root)
  * and returns a {@see MathmlDocument}.
  *
- * Security posture (mirrors {@see \Phpdftk\Svg\Parser}):
- *
- *  - **External entities disabled.** `LIBXML_NOENT` is INTENTIONALLY
- *    omitted from the libxml flags so the parser never substitutes
- *    `<!ENTITY x SYSTEM "file:///…">` references. XXE attack vector
- *    closed.
- *  - **No network access.** `LIBXML_NONET` blocks any URL fetch the
- *    parser might otherwise perform for DTDs.
- *  - **XInclude rejected.** We never call `DOMDocument::xinclude()`.
- *
- * Unknown elements outside the implemented v1 subset are preserved
- * as {@see GenericElement} instances so callers (sanitisers, format
- * converters) can inspect them without losing the subtree.
+ * Routes through {@see HardenedLoader} + {@see TreeWalker} so the
+ * libxml security boundary (no entity substitution, no network
+ * fetches, no XInclude) is shared with the SVG parser and cannot
+ * drift between them. This parser's only format-specific code is the
+ * root validation (must be `<math>` in `MATHML_NS`) and the
+ * `makeElementForName` typed-element factory.
  *
  * Scope note: the v1 element set covers MathML Core tokens
  * (`<mn>`, `<mi>`, `<mo>`, `<ms>`, `<mtext>`) plus `<mrow>`. Fractions,
@@ -35,35 +30,26 @@ final class Parser
     /** MathML namespace URI per spec. */
     public const string MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
 
+    public function __construct(
+        private readonly HardenedLoader $loader = new HardenedLoader(),
+        private readonly TreeWalker $walker = new TreeWalker(),
+    ) {}
+
     public function parse(string $xml): MathmlDocument
     {
-        if (trim($xml) === '') {
-            throw new InvalidMathmlException('Cannot parse an empty MathML document.');
-        }
-
-        $previousUseErrors = libxml_use_internal_errors(true);
-        libxml_clear_errors();
         try {
-            $dom = new \DOMDocument();
-            $dom->preserveWhiteSpace = true;
-            $dom->resolveExternals = false;
-            $dom->substituteEntities = false;
-            $loaded = $dom->loadXML(
-                $xml,
-                LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING,
+            $dom = $this->loader->load($xml);
+        } catch (InvalidXmlException $e) {
+            // Re-cast the loader's generic message into a MathML-flavoured
+            // one so the consumer's error text mentions the format.
+            // The original libxml diagnostic is kept via the previous
+            // exception.
+            $message = str_replace(
+                'parse XML',
+                'parse MathML XML',
+                $e->getMessage(),
             );
-            if (!$loaded) {
-                $errors = libxml_get_errors();
-                $first = $errors[0] ?? null;
-                throw new InvalidMathmlException(
-                    $first === null
-                        ? 'Failed to parse MathML XML.'
-                        : sprintf('Failed to parse MathML XML: %s', trim($first->message)),
-                );
-            }
-        } finally {
-            libxml_clear_errors();
-            libxml_use_internal_errors($previousUseErrors);
+            throw new InvalidMathmlException($message, 0, $e);
         }
 
         $root = $dom->documentElement;
@@ -84,53 +70,15 @@ final class Parser
         }
 
         $doc = new MathmlDocument();
-        $this->copyAttributes($root, $doc);
-        $this->copyChildren($root, $doc);
+        $this->walker->walk(
+            $root,
+            $doc,
+            createElement: fn(string $localName) => $this->makeElementForName($localName),
+            createText: static fn(string $data) => new Text($data),
+            setAttribute: static fn(Element $el, string $name, string $value) => $el->setAttribute($name, $value),
+            appendChild: static fn(Element $parent, Node $child) => $parent->appendChild($child),
+        );
         return $doc;
-    }
-
-    private function copyAttributes(\DOMElement $src, Element $dest): void
-    {
-        foreach ($src->attributes as $attr) {
-            if (!$attr instanceof \DOMAttr) {
-                continue;
-            }
-            // Strip xmlns declarations — implied by namespaceURI on
-            // each node and we don't need them in the typed tree.
-            if ($attr->prefix === 'xmlns' || $attr->name === 'xmlns') {
-                continue;
-            }
-            $dest->attributes[$attr->nodeName] = $attr->value;
-        }
-    }
-
-    private function copyChildren(\DOMElement $src, Element $dest): void
-    {
-        foreach ($src->childNodes as $child) {
-            if ($child instanceof \DOMText) {
-                // Token elements preserve their character data
-                // verbatim — math syntax distinguishes `<mn>2</mn>`
-                // from `<mn> 2 </mn>` only in attribute-derived
-                // presentation, so we keep whitespace as-is and let
-                // the painter decide.
-                $dest->appendChild(new Text($child->data));
-                continue;
-            }
-            if ($child instanceof \DOMElement) {
-                $dest->appendChild($this->buildElement($child));
-            }
-            // Comments / processing instructions / CDATA — drop.
-            // MathML Core doesn't carry semantic meaning in any of
-            // them at the parser level.
-        }
-    }
-
-    private function buildElement(\DOMElement $src): Element
-    {
-        $node = $this->makeElementForName($src->localName);
-        $this->copyAttributes($src, $node);
-        $this->copyChildren($src, $node);
-        return $node;
     }
 
     private function makeElementForName(string $localName): Element

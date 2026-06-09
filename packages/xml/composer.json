@@ -1,14 +1,14 @@
 {
-    "name": "phpdftk/mathml",
-    "description": "Pure-PHP MathML Core parser: typed tree, token + container elements, presentation-attribute resolution. Sibling to phpdftk/svg.",
+    "name": "phpdftk/xml",
+    "description": "Shared XML loading + DOM walking helpers for typed-tree parsers. Centralises the libxml security boundary (XXE, network, XInclude) so any consumer (phpdftk/svg, phpdftk/mathml, …) cannot drift.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/phpdftk/phpdftk",
     "keywords": [
-        "mathml",
+        "xml",
+        "libxml",
         "parser",
-        "math",
-        "typesetting"
+        "security"
     ],
     "authors": [
         {
@@ -22,17 +22,16 @@
     "require": {
         "php": "^8.4",
         "ext-dom": "*",
-        "ext-libxml": "*",
-        "phpdftk/xml": "^1.0"
+        "ext-libxml": "*"
     },
     "autoload": {
         "psr-4": {
-            "Phpdftk\\Mathml\\": "src/"
+            "Phpdftk\\Xml\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Phpdftk\\Mathml\\Tests\\": "tests/"
+            "Phpdftk\\Xml\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "dev",
