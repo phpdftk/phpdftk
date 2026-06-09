@@ -99,8 +99,16 @@ final class Parser
             'munder' => new Munder(),
             'mover' => new Mover(),
             'munderover' => new Munderover(),
-            // Future slices land typed classes for `<mmultiscripts>`,
-            // `<mtable>`, `<mtr>`, `<mtd>`, `<mpadded>`, `<mspace>`,
+            'mmultiscripts' => new Mmultiscripts(),
+            // Mprescripts and NoneElement are children of
+            // mmultiscripts — they don't render on their own but
+            // they need typed identity so the painter can scan
+            // mmultiscripts's child list for the separator and
+            // for absent-script placeholders.
+            'mprescripts' => new Mprescripts(),
+            'none' => new NoneElement(),
+            // Future slices land typed classes for `<mtable>`,
+            // `<mtr>`, `<mtd>`, `<mpadded>`, `<mspace>`,
             // `<menclose>`. Until then they round-trip through
             // GenericElement so a future Translator can recognise
             // them without a parser revision.
