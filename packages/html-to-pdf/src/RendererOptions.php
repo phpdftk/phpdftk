@@ -393,7 +393,7 @@ final readonly class RendererOptions
             del, ins, q, abbr, cite, var, kbd, samp, time, output {
                 display: inline;
             }
-            img, button, input, select, textarea, svg { display: inline-block; }
+            img, button, input, select, textarea, svg, math { display: inline-block; }
             input, select, textarea {
                 border: 1px solid #888;
                 padding: 2pt 4pt;

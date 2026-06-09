@@ -136,6 +136,29 @@ final class Painter
      */
     private ?\Phpdftk\SvgToPdf\SvgRenderer $svgRenderer = null;
 
+    /**
+     * Lazy-built adapter that converts an inline-SVG HTML DOM subtree
+     * into a typed SvgDocument the renderer can paint. Caches its
+     * results by element identity so a multi-page document only pays
+     * the parse cost once per inline SVG.
+     */
+    private ?\Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter $inlineSvgAdapter = null;
+
+    /**
+     * Sibling of $inlineSvgAdapter for MathML. Both adapters share
+     * {@see \Phpdftk\HtmlToPdf\ForeignContent\DomXmlSerializer} but
+     * keep their own caches so a fixture with both inline SVG and
+     * inline MathML doesn't conflate them.
+     */
+    private ?\Phpdftk\HtmlToPdf\Mathml\InlineMathmlAdapter $inlineMathmlAdapter = null;
+
+    /**
+     * Lazy-built MathML renderer. Same lifecycle as $svgRenderer —
+     * holds a reference to the writer + page once, registers the
+     * standard fonts on first draw.
+     */
+    private ?\Phpdftk\MathmlToPdf\MathmlRenderer $mathmlRenderer = null;
+
     public function __destruct()
     {
         foreach ($this->tempImagePaths as $path) {
@@ -725,7 +748,27 @@ final class Painter
             return;
         }
         $element = $box->element;
-        if ($element === null || strtolower($element->localName) !== 'img') {
+        if ($element === null) {
+            return;
+        }
+        // Inline foreign content (`<svg>` / `<math>`): the parser
+        // tagged the subtree with its namespace, but our
+        // AtomicInlineBox path historically only knew about `<img>`.
+        // Detect each foreign namespace and route to the dedicated
+        // painter before the img-src lookup.
+        if ($element->namespaceUri() === \Phpdftk\Svg\Parser::SVG_NS
+            && strtolower($element->localName) === 'svg'
+        ) {
+            $this->paintInlineSvg($element, $box, $stream);
+            return;
+        }
+        if ($element->namespaceUri() === \Phpdftk\Mathml\Parser::MATHML_NS
+            && strtolower($element->localName) === 'math'
+        ) {
+            $this->paintInlineMath($element, $box, $stream);
+            return;
+        }
+        if (strtolower($element->localName) !== 'img') {
             return;
         }
         $src = $element->getAttribute('src');
@@ -4360,6 +4403,268 @@ final class Painter
             $this->svgRenderer = new \Phpdftk\SvgToPdf\SvgRenderer($this->page, $this->writer);
         }
         return $this->svgRenderer;
+    }
+
+    private function inlineSvgAdapter(): \Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter
+    {
+        if ($this->inlineSvgAdapter === null) {
+            $this->inlineSvgAdapter = new \Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter();
+        }
+        return $this->inlineSvgAdapter;
+    }
+
+    private function inlineMathmlAdapter(): \Phpdftk\HtmlToPdf\Mathml\InlineMathmlAdapter
+    {
+        if ($this->inlineMathmlAdapter === null) {
+            $this->inlineMathmlAdapter = new \Phpdftk\HtmlToPdf\Mathml\InlineMathmlAdapter();
+        }
+        return $this->inlineMathmlAdapter;
+    }
+
+    private function mathmlRenderer(): \Phpdftk\MathmlToPdf\MathmlRenderer
+    {
+        if ($this->mathmlRenderer === null) {
+            assert($this->page !== null && $this->writer !== null);
+            $this->mathmlRenderer = new \Phpdftk\MathmlToPdf\MathmlRenderer($this->page, $this->writer);
+        }
+        return $this->mathmlRenderer;
+    }
+
+    /**
+     * Paint an inline `<math>` HTML element by adapting its subtree
+     * into a typed MathmlDocument and handing the result to the
+     * MathmlRenderer.
+     *
+     * Sizing precedence mirrors the inline-SVG painter (CSS Display
+     * §3.5):
+     *
+     *   1. Box geometry from the CSS-cascaded `width` / `height` —
+     *      only populated when InlineLayout actually laid the box
+     *      out (see #39).
+     *   2. Cascade values read directly (covers the no-font case
+     *      where InlineLayout returns early).
+     *
+     * MathML doesn't have a viewBox or intrinsic-attribute shortcut
+     * the way SVG does — when nothing in the cascade declares a
+     * size, math content has an intrinsic size derived from its
+     * glyph metrics. For the tracer-bullet renderer we default to
+     * a one-line strip the same height as the renderer's default
+     * font (12 pt × 1 line ≈ 14 pt) and an arbitrary width band
+     * (200 pt) so a sized-from-glyphs <math> still produces output.
+     * Real intrinsic sizing lands once MathmlRenderer learns to
+     * measure its own glyphs (separate follow-up).
+     *
+     * A parse failure here is swallowed and the MathML silently
+     * skipped — one malformed inline expression shouldn't poison
+     * the whole page render.
+     */
+    private function paintInlineMath(
+        \Phpdftk\Html\Dom\Element $element,
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        ContentStream $stream,
+    ): void {
+        $geo = $box->geometry;
+        $width = $geo->width;
+        $height = $geo->height;
+        // Layer 2: read directly from the cascade when layout left
+        // geometry zero. Same fix the SVG painter applies for the
+        // no-font case (#39).
+        if ($width <= 0.0) {
+            $cascaded = $box->style->get('width');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $width = $cascaded->value;
+            }
+        }
+        if ($height <= 0.0) {
+            $cascaded = $box->style->get('height');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $height = $cascaded->value;
+            }
+        }
+        // Final fallback: a typographically sensible default sized
+        // strip. 14 pt tall is one line of 12 pt math + a sliver
+        // of leading; 200 pt wide is wider than any common single-
+        // expression token sequence but the renderer just stops
+        // emitting glyphs when content runs out.
+        if ($height <= 0.0) {
+            $height = 14.0;
+        }
+        if ($width <= 0.0) {
+            $width = 200.0;
+        }
+        try {
+            $mathDoc = $this->inlineMathmlAdapter()->adapt($element);
+        } catch (\Throwable) {
+            return;
+        }
+        $pdfY = $this->pageHeight - $geo->y - $height;
+        $this->mathmlRenderer()->draw(
+            $mathDoc,
+            $geo->x,
+            $pdfY,
+            $width,
+            $height,
+            stream: $stream,
+        );
+    }
+
+    /**
+     * Paint an inline `<svg>` HTML element by adapting its subtree
+     * into a typed SvgDocument and handing the result to the existing
+     * SvgRenderer.
+     *
+     * Dimensions: prefer the box's resolved geometry (CSS-cascaded
+     * `width` / `height` win over intrinsic). If geometry is zero
+     * because the cascade left dimensions unresolved, fall back to
+     * the `<svg width="…" height="…">` attributes (treated as CSS
+     * pixels) — same precedence the inline-SVG sizing algorithm uses
+     * in CSS Display §3.5.
+     *
+     * A parse failure here is swallowed and the SVG silently skipped
+     * — one malformed inline-SVG shouldn't poison the whole page
+     * render. The pdf consumer sees an empty box where the SVG would
+     * have been; the rest of the document is unaffected.
+     */
+    private function paintInlineSvg(
+        \Phpdftk\Html\Dom\Element $element,
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        ContentStream $stream,
+    ): void {
+        $geo = $box->geometry;
+        $width = $geo->width;
+        $height = $geo->height;
+        // Sizing precedence for the inline SVG:
+        //   1. Box geometry from CSS-cascaded width/height — only
+        //      populated when InlineLayout actually laid the box out.
+        //   2. Cascade values read directly (covers the no-font case
+        //      where InlineLayout returns early before tokenisation,
+        //      but the cascade still has Length values from author CSS).
+        //   3. The svg element's own `width` / `height` attributes,
+        //      parsed as CSS pixels.
+        // Without precedence #2 a document with `#s { width: 50pt }`
+        // and no embedded font would render the SVG at zero size.
+        // Precedence #3 catches the bare `<svg width="80" height="60">`
+        // case where neither CSS nor the cascade has a Length.
+        if ($width <= 0.0) {
+            $cascaded = $box->style->get('width');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $width = $cascaded->value;
+            }
+        }
+        if ($height <= 0.0) {
+            $cascaded = $box->style->get('height');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $height = $cascaded->value;
+            }
+        }
+        if ($width <= 0.0) {
+            $attr = $element->getAttribute('width');
+            if ($attr !== null) {
+                $width = $this->parseSvgLength($attr);
+            }
+        }
+        if ($height <= 0.0) {
+            $attr = $element->getAttribute('height');
+            if ($attr !== null) {
+                $height = $this->parseSvgLength($attr);
+            }
+        }
+        // Final fallback: intrinsic dimensions from the viewBox's
+        // width/height columns. SVG 2 §8.2 — when neither CSS nor a
+        // width/height attr declares a size, the viewBox supplies the
+        // intrinsic aspect ratio AND, in browsers, an intrinsic
+        // pixel size for replaced-element layout (third + fourth
+        // viewBox values treated as CSS pixels). The viewBox parser
+        // lives in `ViewportElement::viewBox()` but we duplicate the
+        // tiny extraction here to avoid forcing the SVG parser to
+        // run on a zero-size SVG we'd otherwise have dropped.
+        if ($width <= 0.0 || $height <= 0.0) {
+            $vb = $this->parseViewBox($element->getAttribute('viewBox'));
+            if ($vb !== null) {
+                if ($width <= 0.0) {
+                    $width = $vb[0] * 0.75;
+                }
+                if ($height <= 0.0) {
+                    $height = $vb[1] * 0.75;
+                }
+            }
+        }
+        if ($width <= 0.0 || $height <= 0.0) {
+            return;
+        }
+        try {
+            $svgDoc = $this->inlineSvgAdapter()->adapt($element);
+        } catch (\Throwable) {
+            return;
+        }
+        // PDF y-axis runs bottom-up; the box geometry's `y` is the
+        // top edge in CSS coords, so we flip relative to pageHeight.
+        $pdfY = $this->pageHeight - $geo->y - $height;
+        $this->svgRenderer()->draw(
+            $svgDoc,
+            $geo->x,
+            $pdfY,
+            $width,
+            $height,
+            stream: $stream,
+        );
+    }
+
+    /**
+     * Pull the width/height columns out of an SVG `viewBox` attribute
+     * for the intrinsic-sizing fallback. Returns `[width, height]` in
+     * CSS pixels (viewBox values are unitless user-space coordinates,
+     * which in the absence of any other sizing input are interpreted
+     * as CSS pixels per SVG 2 §8.2). Returns null on parse failure.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function parseViewBox(?string $raw): ?array
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $parts = preg_split('/[\s,]+/', trim($raw)) ?: [];
+        if (count($parts) !== 4) {
+            return null;
+        }
+        foreach ($parts as $p) {
+            if (!is_numeric($p)) {
+                return null;
+            }
+        }
+        $w = (float) $parts[2];
+        $h = (float) $parts[3];
+        if ($w <= 0.0 || $h <= 0.0) {
+            return null;
+        }
+        return [$w, $h];
+    }
+
+    /**
+     * Tiny SVG-length parser used by the inline-SVG fallback path.
+     * Strips an optional `px` / `pt` suffix and clamps to a non-
+     * negative float. We accept only `px` and `pt` for now — any
+     * other unit (cm, em, %) returns 0 and lets the dimension lookup
+     * fall through to "skip".
+     */
+    private function parseSvgLength(string $value): float
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return 0.0;
+        }
+        if (preg_match('/^([\d.]+)\s*(px|pt)?$/i', $trimmed, $m) !== 1) {
+            return 0.0;
+        }
+        $n = (float) $m[1];
+        if ($n <= 0.0) {
+            return 0.0;
+        }
+        // `pt` arrives as PDF points already; `px` and the bare form
+        // are CSS pixels at 96 dpi, which is 0.75 pt per px.
+        $unit = isset($m[2]) ? strtolower($m[2]) : 'px';
+        return $unit === 'pt' ? $n : $n * 0.75;
     }
 
     private function paintBorders(Box $box, ContentStream $stream): void
