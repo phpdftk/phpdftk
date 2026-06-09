@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "acfd69fc022b637f0004b3caba70802e",
+    "content-hash": "fd67481d53c691db111af00666fd2d0c",
     "packages": [],
     "packages-dev": [
         {
@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-feat/mathml-scaffolding",
+            "version": "dev-refactor/shared-xml-utilities",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
@@ -2355,12 +2355,13 @@
             "dist": {
                 "type": "path",
                 "url": "packages/mathml",
-                "reference": "251fec2cf4afc5e4fe7dcd9d052ddd941785f90e"
+                "reference": "ad58a1dedeb03576cd7917a64047cff18e471bc0"
             },
             "require": {
                 "ext-dom": "*",
                 "ext-libxml": "*",
-                "php": "^8.4"
+                "php": "^8.4",
+                "phpdftk/xml": "^1.0"
             },
             "type": "library",
             "extra": {
@@ -2959,13 +2960,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/svg",
-                "reference": "47035e7c58bfd98ca74b0b70ab7d794c99390640"
+                "reference": "d8ff11b1e0d58707eb8455ffacb209a806fac35c"
             },
             "require": {
                 "ext-simplexml": "*",
                 "php": "^8.4",
                 "phpdftk/color": "^1.0",
-                "phpdftk/geometry": "^1.0"
+                "phpdftk/geometry": "^1.0",
+                "phpdftk/xml": "^1.0"
             },
             "require-dev": {
                 "phpdftk/css": "^1.0"
@@ -3180,6 +3182,59 @@
                 "svg",
                 "web-platform-tests",
                 "wpt"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/xml",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/xml",
+                "reference": "77e1fe98ec559f27bde14043f296d6352a90d6a9"
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-libxml": "*",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Xml\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Xml\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Shared XML loading + DOM walking helpers for typed-tree parsers. Centralises the libxml security boundary (XXE, network, XInclude) so any consumer (phpdftk/svg, phpdftk/mathml, …) cannot drift.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "libxml",
+                "parser",
+                "security",
+                "xml"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7716,6 +7771,7 @@
         "phpdftk/svg-to-pdf": 20,
         "phpdftk/text": 20,
         "phpdftk/wpt-harness": 20,
+        "phpdftk/xml": 20,
         "phpdftk/xmp": 20
     },
     "prefer-stable": true,
