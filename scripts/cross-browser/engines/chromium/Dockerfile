@@ -22,7 +22,7 @@ WORKDIR /opt/daemon
 COPY package.json ./
 RUN npm install --no-audit --no-fund --omit=dev
 
-COPY server.mjs print-options.mjs ./
+COPY server.mjs lib.mjs print-options.mjs ./
 
 ENV PORT=9101 \
     WPT_ROOT=/wpt \
