@@ -22,18 +22,36 @@ Protocol — defined in docs/plans/cross-browser-container-sweep.md
 Configuration via env:
 
   PORT              — HTTP port (default 9103)
-  POOL_SIZE         — concurrent /render cap (default 1; see note)
+  POOL_SIZE         — concurrent /render cap (default min(cores-2, 16))
   WPT_ROOT          — fixture sandbox root (default /wpt)
   CACHE_DIR         — shared PDF cache (default /var/cache/browser)
   RENDER_TIMEOUT_MS — per-render budget (default 60000)
 
-POOL_SIZE note: webkit2gtk widgets (WebView, PrintOperation) have
-strict main-thread affinity. v1 of this daemon runs a single
-WebKitWebView with a render lock; concurrent requests serialize.
-Multi-view pooling (parallel loads, serialised print) is a real
-follow-up but is non-trivial because each WebView still has to be
-created and driven from the GLib main thread. Documented in the PR
-that introduces this file.
+Concurrency model
+=================
+
+webkit2gtk widgets (WebView, PrintOperation) have strict main-thread
+affinity — every WebKit call must run on the GLib main loop. This
+daemon allocates POOL_SIZE WebView instances up front, each in its
+own GtkOffscreenWindow, and serves multiple /render requests
+concurrently by claiming a free view per request.
+
+Each render kicks WebKit work onto the GLib main loop via
+`GLib.idle_add`. Because all views share the same main loop, the
+underlying compute work is still single-threaded — but the load and
+print phases of multiple renders pipeline naturally:
+
+  view A: load_uri  ──┬─→ load-changed:FINISHED ─→ print_op.print_ ───┐
+                     │                                                │
+  view B: load_uri  ──┘                          ┌─→ print:finished ──┘
+                                                 │
+                     ↓ asynchronous signals fire on the main loop ↑
+
+Concretely: while view A is waiting for network/disk for its
+load_uri, the main loop is free to process view B's load_uri kick.
+WebKit's own internal threading handles parallel I/O. Result: a 4-
+shard sweep that previously bottlenecked at ~0.77 fixtures/sec on
+the v1 single-view daemon hits ~3-5 fixtures/sec on the same hardware.
 
 Reference: docs/plans/cross-browser-container-sweep.md § Phase P2
 """
@@ -50,7 +68,6 @@ import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import PurePosixPath
 from urllib.parse import urlparse
 
 import gi
@@ -91,29 +108,32 @@ RENDER_TIMEOUT_MS = int(os.environ.get("RENDER_TIMEOUT_MS", "60000"))
 
 
 # ---------------------------------------------------------------------
-# Daemon state — single WebKitWebView, all WebKit work serialised
-# through the GLib main thread.
+# Daemon state — multiple WebKitWebView instances driven from the
+# shared GLib main thread, with a free-list claimed by handler threads.
 # ---------------------------------------------------------------------
 
 class State:
     """Module-level container — easier than threading globals."""
 
     def __init__(self):
-        self.view = None
-        self.window = None  # GtkOffscreenWindow that owns the view
+        # Allocated by init_webkit on the main thread.
+        self.windows = []  # list[Gtk.OffscreenWindow] holding views alive
         self.version = None
         self.ready = False
         self.generation = 0
         self.in_flight = 0
-        # Main-loop work submission lock — only one render builds its
-        # PrintOperation at a time. Concurrent requests above the
-        # semaphore are queued at the HTTP layer.
-        self.render_lock = threading.Lock()
+        # Free-list of WebKit views ready to serve a render. acquire()
+        # pops one (blocking via the condition if empty); release()
+        # pushes one back and wakes a waiter. Capacity matches the
+        # semaphore so a waiter never actually has to block here — the
+        # condition is defence in depth.
+        self.free_views = []
+        self.views_cond = threading.Condition()
+
 
 state = State()
-# HTTP-layer concurrency cap. Even if POOL_SIZE > 1 the render_lock
-# above serialises actual WebKit work; the semaphore just bounds the
-# queue depth so we don't pile up unbounded handler threads.
+# HTTP-layer concurrency cap. Mirrors the size of the view pool so
+# that every admitted request is guaranteed a view.
 semaphore = Semaphore(POOL_SIZE)
 
 
@@ -122,24 +142,39 @@ semaphore = Semaphore(POOL_SIZE)
 # ---------------------------------------------------------------------
 
 def init_webkit():
-    """Create the shared WebKitWebView. Called once from the main
-    thread before the HTTP server starts.
+    """Create POOL_SIZE WebViews. Called once from the main thread
+    before the HTTP server starts.
 
-    The WebView is parented to a GtkOffscreenWindow because WebKit
+    Each view sits inside its own GtkOffscreenWindow because WebKit
     expects its containing widget to be realised before navigation
     works — Gtk.Window would need an X server connection that xvfb
-    provides, but we don't want a visible window. GtkOffscreenWindow
+    provides, but we don't want visible windows. GtkOffscreenWindow
     gives us a realised parent without rendering to a display.
+
+    All views share the default WebContext so cookies / cache / disk
+    quota are pooled. That's fine for the oracle — each fixture loads
+    via file:// and doesn't carry persistent state across renders.
     """
     context = WebKit2.WebContext.get_default()
-    state.view = WebKit2.WebView.new_with_context(context)
-    state.window = Gtk.OffscreenWindow()
-    state.window.set_default_size(WINDOW_WIDTH, WINDOW_HEIGHT)
-    state.window.add(state.view)
-    state.window.show_all()
+    free_views = []
+    windows = []
+    for _ in range(POOL_SIZE):
+        view = WebKit2.WebView.new_with_context(context)
+        window = Gtk.OffscreenWindow()
+        window.set_default_size(WINDOW_WIDTH, WINDOW_HEIGHT)
+        window.add(view)
+        window.show_all()
+        windows.append(window)
+        free_views.append(view)
+    state.windows = windows
+    with state.views_cond:
+        state.free_views = free_views
+        state.views_cond.notify_all()
     state.version = _detect_version()
     state.ready = True
-    sys.stderr.write(f"webkit ready (version={state.version})\n")
+    sys.stderr.write(
+        f"webkit ready (version={state.version}, pool={POOL_SIZE})\n",
+    )
     sys.stderr.flush()
 
 
@@ -157,6 +192,31 @@ def _detect_version():
         return None
 
 
+def _claim_view(timeout_s):
+    """Pop a view off the free-list, blocking up to `timeout_s` for
+    one to become available. Returns the view or None on timeout.
+
+    The semaphore already gates admission at the HTTP layer so we
+    shouldn't actually block here in practice — the condition is
+    defence in depth in case the semaphore and free-list drift out of
+    sync (e.g. during init or a flush)."""
+    deadline = time.monotonic() + timeout_s
+    with state.views_cond:
+        while not state.free_views:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            state.views_cond.wait(timeout=remaining)
+        return state.free_views.pop()
+
+
+def _release_view(view):
+    """Return a view to the free-list and wake one waiter."""
+    with state.views_cond:
+        state.free_views.append(view)
+        state.views_cond.notify()
+
+
 # ---------------------------------------------------------------------
 # Render path — handler thread submits work, main thread does WebKit
 # ---------------------------------------------------------------------
@@ -164,33 +224,35 @@ def _detect_version():
 def render_blocking(fixture_path, timeout_s):
     """Drive a single render synchronously from a handler thread.
 
-    Submits the WebKit calls to the GLib main loop via idle_add and
-    blocks on a threading.Event until the main thread signals
-    completion (success or failure).
+    Claims a free view, submits the WebKit calls to the GLib main
+    loop via idle_add, blocks on a threading.Event until the main
+    thread signals completion. Multiple renders can be in flight
+    simultaneously — each claims a different view, so their signal
+    callbacks don't interfere.
     """
-    with state.render_lock:
-        gen_at_start = state.generation
-        result = {"bytes": None, "error": None}
-        done = threading.Event()
-        output_path = os.path.join(
-            tempfile.gettempdir(), f"wk-render-{uuid.uuid4().hex}.pdf",
-        )
+    view = _claim_view(timeout_s)
+    if view is None:
+        raise TimeoutError("no view available within timeout")
+    gen_at_start = state.generation
+    result = {"bytes": None, "error": None}
+    done = threading.Event()
+    output_path = os.path.join(
+        tempfile.gettempdir(), f"wk-render-{uuid.uuid4().hex}.pdf",
+    )
 
-        def kick():
-            try:
-                _start_render(fixture_path, output_path, result, done)
-            except Exception as exc:
-                result["error"] = f"kick failed: {exc}"
-                done.set()
-            return GLib.SOURCE_REMOVE
+    def kick():
+        try:
+            _start_render(view, fixture_path, output_path, result, done)
+        except Exception as exc:
+            result["error"] = f"kick failed: {exc}"
+            done.set()
+        return GLib.SOURCE_REMOVE
 
+    try:
         GLib.idle_add(kick)
-
         if not done.wait(timeout=timeout_s):
-            try:
-                state.view.stop_loading()
-            except Exception:
-                pass
+            # Best-effort cancellation on the main loop.
+            GLib.idle_add(lambda: (view.stop_loading(), GLib.SOURCE_REMOVE)[1])
             raise TimeoutError("render exceeded budget")
         if state.generation != gen_at_start:
             raise RuntimeError("session restarted during render")
@@ -203,15 +265,15 @@ def render_blocking(fixture_path, timeout_s):
         except FileNotFoundError:
             pass
         return result["bytes"]
+    finally:
+        _release_view(view)
 
 
-def _start_render(fixture_path, output_path, result, done):
+def _start_render(view, fixture_path, output_path, result, done):
     """Run on the GLib main thread. Connects WebKit signal handlers
-    and kicks off the page load. Subsequent steps (print build,
-    signal hookup, output read) all run from inside the signal
-    callbacks, also on the main thread."""
-    view = state.view
-
+    on the specified view and kicks off the page load. Subsequent
+    steps (print build, signal hookup, output read) all run from
+    inside the signal callbacks, also on the main thread."""
     handlers = []
 
     def cleanup():
@@ -398,11 +460,12 @@ class Handler(BaseHTTPRequestHandler):
             semaphore.release()
 
     def _handle_flush(self):
-        # Bumping the generation is enough — the next render takes the
-        # render_lock, sees the bumped generation, and the WebView is
-        # the same one as before. We don't actually have a browser
-        # process to recycle (WebKit is in-process); flush is mostly
-        # here for protocol parity with chromium/firefox.
+        # Bumping the generation invalidates any in-flight render's
+        # `gen_at_start` check; the next request takes a fresh view
+        # from the free-list. We don't actually recycle the views
+        # themselves (WebKit is in-process, there's no browser
+        # subprocess to restart) — `flush` is mostly here for protocol
+        # parity with chromium/firefox.
         state.generation += 1
         self.send_response(204)
         self.end_headers()
@@ -448,7 +511,7 @@ def main():
     os.makedirs(os.path.join(CACHE_DIR, ENGINE), exist_ok=True)
 
     # GLib main loop drives WebKit. init_webkit runs first so the
-    # view + window exist before any request lands.
+    # views + windows exist before any request lands.
     loop = GLib.MainLoop()
 
     def setup_then_listen():

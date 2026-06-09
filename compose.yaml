@@ -36,9 +36,14 @@ services:
       PORT: "9101"
       WPT_ROOT: /wpt
       CACHE_DIR: /var/cache/browser
-      # POOL_SIZE — leave unset to let the daemon pick min(cores−2, 16)
-      # based on the container's reported parallelism. Override for
-      # local dev or CI matrix shards that want a different cap.
+      # POOL_SIZE — explicit so we don't depend on the container's
+      # cgroup-reported parallelism. On macOS Docker Desktop, the VM
+      # often exposes 1 CPU to a container, which would clamp the
+      # auto-detected pool to 1 and serialize every request through
+      # one BrowserContext. Playwright's chromium can handle dozens
+      # of concurrent contexts; 8 is a comfortable cap that keeps
+      # memory bounded while letting a 4-shard sweep parallelize.
+      POOL_SIZE: "8"
     init: true
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9101/status').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
@@ -66,7 +71,13 @@ services:
       PORT: "9102"
       WPT_ROOT: /wpt
       CACHE_DIR: /var/cache/browser
-      # POOL_SIZE — leave unset to let the daemon pick min(cores−2, 16).
+      # POOL_SIZE — explicit override (see chromium comment).
+      # Geckodriver serializes session commands internally, but the
+      # window-pool still pipelines navigation: window B can load
+      # page B's URL while window A is being printed. 8 windows is
+      # the sweet spot — more than that and the load-step pipelining
+      # gains are eaten by geckodriver queueing overhead.
+      POOL_SIZE: "8"
       # FIREFOX_BIN / GECKODRIVER_BIN — Mozilla tarball + release binary
       # are installed at /usr/local/bin/firefox-cli + /usr/local/bin/
       # geckodriver in the Dockerfile; the daemon defaults to those.
@@ -101,9 +112,14 @@ services:
       PORT: "9103"
       WPT_ROOT: /wpt
       CACHE_DIR: /var/cache/browser
-      # POOL_SIZE — current v1 daemon serialises renders behind a
-      # single WebKitWebView (multi-view pool deferred). Leave unset
-      # to use the default; override for diagnostics.
+      # POOL_SIZE — multi-view pool: the daemon allocates this many
+      # WebKitWebView instances at startup, each rendering its own
+      # /render request concurrently on the GLib main loop. With
+      # pool=1 (the v1 default) the sweep was bottlenecked at ~0.77
+      # fixtures/sec across all shards because every render had to
+      # serialize through one view. Pool=8 lets the load and print
+      # phases of multiple renders interleave properly.
+      POOL_SIZE: "8"
     init: true
     healthcheck:
       # WebKit + xvfb bring-up is slower than Chromium (the X server
