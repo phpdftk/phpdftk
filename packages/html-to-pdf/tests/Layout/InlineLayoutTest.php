@@ -79,6 +79,30 @@ final class InlineLayoutTest extends TestCase
         self::assertSame([], $p->lineBoxes);
     }
 
+    public function testNoFontAtomicChildGetsGeometryFromCascade(): void
+    {
+        // #39: when defaultFont is null, the layout used to early-
+        // return before setting AtomicInlineBox geometry, which left
+        // inline-replaced content (img, svg, math) at (0, 0, 0, 0)
+        // and silently skipped by the painter. The atomic-only
+        // fallback path now reads cascade width/height and sets
+        // geometry directly.
+        $box = $this->buildTree(
+            '<html><body><div class="atom"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .atom { display: inline-block; width: 50pt; height: 40pt; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $atom = $this->find($box, 'div');
+        self::assertNotNull($atom);
+        // Cascade resolves pt → px at 96 dpi, so 50pt → 66.67px and
+        // 40pt → 53.33px. Exact float comparison via assertEquals
+        // with the default ε.
+        self::assertEqualsWithDelta(50.0 * 96.0 / 72.0, $atom->geometry->width, 0.001);
+        self::assertEqualsWithDelta(40.0 * 96.0 / 72.0, $atom->geometry->height, 0.001);
+    }
+
     public function testSingleLineProducesOneLineBox(): void
     {
         $this->skipIfNoFont();
