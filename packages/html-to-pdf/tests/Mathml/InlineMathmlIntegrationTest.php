@@ -94,6 +94,32 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMphantomReservesSpaceWithoutGlyphs(): void
+    {
+        // <mphantom> inside a fraction - classic alignment trick.
+        // The phantom XXX reserves bar width without rendering, the
+        // visible numerator 1 still emits, and the bar still draws.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <mfrac>
+                  <mrow><mphantom><mi>XXX</mi></mphantom><mn>1</mn></mrow>
+                  <mn>2</mn>
+                </mfrac>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertMatchesRegularExpression('/\(1\)\s+Tj/', $bytes);
+        self::assertMatchesRegularExpression('/\(2\)\s+Tj/', $bytes);
+        self::assertDoesNotMatchRegularExpression('/\(XXX\)\s+Tj/', $bytes);
+    }
+
     public function testInlineMtableMatrixRenders(): void
     {
         // 2×2 matrix through the full HTML pipeline. All four cells

@@ -20,6 +20,9 @@ use Phpdftk\Mathml\Msqrt;
 use Phpdftk\Mathml\Msub;
 use Phpdftk\Mathml\Msubsup;
 use Phpdftk\Mathml\Msup;
+use Phpdftk\Mathml\Mpadded;
+use Phpdftk\Mathml\Mphantom;
+use Phpdftk\Mathml\Mspace;
 use Phpdftk\Mathml\Mtable;
 use Phpdftk\Mathml\Mtd;
 use Phpdftk\Mathml\Mtext;
@@ -46,6 +49,7 @@ use Phpdftk\Mathml\NoneElement;
  *   - `<munder>` / `<mover>` / `<munderover>` (under / over)
  *   - `<mmultiscripts>` (arbitrary pre/post script pairs)
  *   - `<mtable>` / `<mtr>` / `<mtd>` (2-D grid layout)
+ *   - `<mspace>` / `<mpadded>` / `<mphantom>` (spacing primitives)
  *
  * GenericElement (unknown / future tags) recurses into children so a
  * stray container doesn't drop everything inside it on the floor. All
@@ -83,6 +87,9 @@ final class Translator
             $element instanceof Munderover => $this->paintMunderover($element, $ctx),
             $element instanceof Mmultiscripts => $this->paintMmultiscripts($element, $ctx),
             $element instanceof Mtable  => $this->paintMtable($element, $ctx),
+            $element instanceof Mspace  => $this->paintMspace($element, $ctx),
+            $element instanceof Mpadded => $this->paintMpadded($element, $ctx),
+            $element instanceof Mphantom => $this->paintMphantom($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -891,6 +898,98 @@ final class Translator
         );
         $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
         $ctx->cursorX = $constructRightX;
+    }
+
+    // -----------------------------------------------------------------
+    // Spacing primitives (mspace / mpadded / mphantom)
+    // -----------------------------------------------------------------
+
+    /**
+     * Default width when `<mspace>` has no `width` attribute. MathML
+     * Core gives `0` as the default, but most renderers (and the
+     * tracer-bullet here) treat an absent width as "thin space" so
+     * an attribute-less `<mspace/>` produces something visible.
+     */
+    private const float MSPACE_DEFAULT_WIDTH_EM = 0.2;
+
+    /**
+     * Paint `<mspace>` — advance the cursor by `width` (in em). No
+     * glyph output. Negative widths shift the cursor backward (used
+     * to back-up over previous content, occasionally seen for tight
+     * kerning hacks).
+     */
+    private function paintMspace(Mspace $mspace, MathmlPaintContext $ctx): void
+    {
+        $widthEm = $mspace->widthEm() ?? self::MSPACE_DEFAULT_WIDTH_EM;
+        $widthPt = $widthEm * $ctx->fontSize;
+        if ($widthPt === 0.0) {
+            return;
+        }
+        $ctx->stream->moveTextPosition($widthPt, 0.0);
+        $ctx->cursorX += $widthPt;
+    }
+
+    /**
+     * Paint `<mpadded>` — wrap a child element and apply `lspace`
+     * before, then constrain the total advance to `width` after.
+     *
+     * Algorithm:
+     *   1. Apply `lspace` shift (positive moves content right). The
+     *      cursor advances by `lspace` before children paint.
+     *   2. Paint children inline as a transparent group (like
+     *      `<mrow>`).
+     *   3. If `width` is set, force the cursor to
+     *      `pre_lspace_x + width` (which may pull it back if width is
+     *      narrower than natural content, or push it forward if
+     *      wider).
+     *
+     * The vertical attributes (`height`, `depth`, `voffset`) are
+     * round-tripped by the parser but ignored by the v1 painter.
+     */
+    private function paintMpadded(Mpadded $mpadded, MathmlPaintContext $ctx): void
+    {
+        $startX = $ctx->cursorX;
+        $lspaceEm = $mpadded->lspaceEm() ?? 0.0;
+        $lspacePt = $lspaceEm * $ctx->fontSize;
+        if ($lspacePt !== 0.0) {
+            $ctx->stream->moveTextPosition($lspacePt, 0.0);
+            $ctx->cursorX += $lspacePt;
+        }
+
+        $this->walkChildren($mpadded, $ctx);
+
+        $widthEm = $mpadded->widthEm();
+        if ($widthEm !== null) {
+            $targetX = $startX + $widthEm * $ctx->fontSize;
+            $delta = $targetX - $ctx->cursorX;
+            if ($delta !== 0.0) {
+                $ctx->stream->moveTextPosition($delta, 0.0);
+                $ctx->cursorX = $targetX;
+            }
+        }
+    }
+
+    /**
+     * Paint `<mphantom>` — reserve space for the children's natural
+     * width without emitting any glyphs.
+     *
+     * Tracer-bullet approach: estimate the children's width via
+     * `estimateWidth()` and advance the cursor by that amount.
+     * Skipping the children's `paint()` call entirely means nested
+     * path operators (fraction bars, vinculums) aren't emitted
+     * either — pure space reservation. A follow-up that adds a
+     * "rendering-mode: invisible" flag to the paint context can
+     * paint the full subtree while suppressing only the Tj/path
+     * emission, restoring spec-correct behaviour for paths.
+     */
+    private function paintMphantom(Mphantom $mphantom, MathmlPaintContext $ctx): void
+    {
+        $width = $this->estimateWidth($mphantom, $ctx->fontSize);
+        if ($width === 0.0) {
+            return;
+        }
+        $ctx->stream->moveTextPosition($width, 0.0);
+        $ctx->cursorX += $width;
     }
 
     // -----------------------------------------------------------------

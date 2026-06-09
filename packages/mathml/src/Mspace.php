@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phpdftk\Mathml;
+
+/**
+ * `<mspace>` - empty box with explicit dimensions (MathML Core 3.2.7).
+ *
+ * Renders nothing - purely a layout primitive that reserves
+ * horizontal (and conceptually vertical) space between siblings.
+ *
+ * Attributes:
+ *   - width  - horizontal advance.
+ *   - height - ascent above baseline. (Painter ignores for v1.)
+ *   - depth  - descent below baseline. (Painter ignores for v1.)
+ *
+ * Each is a CSS length (e.g. 1em, 5px, 0.5ex). Unknown units default
+ * to em. Negative widths shift the cursor backward.
+ *
+ * Per Core, mspace has no children; any present round-trip but
+ * don't render.
+ */
+final class Mspace extends Element
+{
+    public function __construct()
+    {
+        parent::__construct('mspace');
+    }
+
+    public function widthEm(): ?float
+    {
+        return $this->parseLengthEm($this->attributes['width'] ?? null);
+    }
+
+    public function heightEm(): ?float
+    {
+        return $this->parseLengthEm($this->attributes['height'] ?? null);
+    }
+
+    public function depthEm(): ?float
+    {
+        return $this->parseLengthEm($this->attributes['depth'] ?? null);
+    }
+
+    private function parseLengthEm(?string $raw): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (!preg_match('/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/', $trimmed, $m)) {
+            return null;
+        }
+        $value = (float) $m[1];
+        $unit = strtolower($m[2]);
+        if ($unit === 'em' || $unit === '') {
+            return $value;
+        }
+        if ($unit === 'ex') {
+            return $value * 0.5;
+        }
+        if ($unit === 'px') {
+            return $value / 16.0;
+        }
+        if ($unit === 'pt') {
+            return $value / 12.0;
+        }
+        return null;
+    }
+}
