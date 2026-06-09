@@ -136,6 +136,14 @@ final class Painter
      */
     private ?\Phpdftk\SvgToPdf\SvgRenderer $svgRenderer = null;
 
+    /**
+     * Lazy-built adapter that converts an inline-SVG HTML DOM subtree
+     * into a typed SvgDocument the renderer can paint. Caches its
+     * results by element identity so a multi-page document only pays
+     * the parse cost once per inline SVG.
+     */
+    private ?\Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter $inlineSvgAdapter = null;
+
     public function __destruct()
     {
         foreach ($this->tempImagePaths as $path) {
@@ -725,7 +733,20 @@ final class Painter
             return;
         }
         $element = $box->element;
-        if ($element === null || strtolower($element->localName) !== 'img') {
+        if ($element === null) {
+            return;
+        }
+        // Inline `<svg>` in HTML: the parser tagged the subtree with
+        // SVG_NS but our AtomicInlineBox path historically only knew
+        // about `<img>`. Detect the SVG namespace and route to the
+        // dedicated inline-SVG painter before the img-src lookup.
+        if ($element->namespaceUri() === \Phpdftk\Svg\Parser::SVG_NS
+            && strtolower($element->localName) === 'svg'
+        ) {
+            $this->paintInlineSvg($element, $box, $stream);
+            return;
+        }
+        if (strtolower($element->localName) !== 'img') {
             return;
         }
         $src = $element->getAttribute('src');
@@ -4360,6 +4381,98 @@ final class Painter
             $this->svgRenderer = new \Phpdftk\SvgToPdf\SvgRenderer($this->page, $this->writer);
         }
         return $this->svgRenderer;
+    }
+
+    private function inlineSvgAdapter(): \Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter
+    {
+        if ($this->inlineSvgAdapter === null) {
+            $this->inlineSvgAdapter = new \Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter();
+        }
+        return $this->inlineSvgAdapter;
+    }
+
+    /**
+     * Paint an inline `<svg>` HTML element by adapting its subtree
+     * into a typed SvgDocument and handing the result to the existing
+     * SvgRenderer.
+     *
+     * Dimensions: prefer the box's resolved geometry (CSS-cascaded
+     * `width` / `height` win over intrinsic). If geometry is zero
+     * because the cascade left dimensions unresolved, fall back to
+     * the `<svg width="…" height="…">` attributes (treated as CSS
+     * pixels) — same precedence the inline-SVG sizing algorithm uses
+     * in CSS Display §3.5.
+     *
+     * A parse failure here is swallowed and the SVG silently skipped
+     * — one malformed inline-SVG shouldn't poison the whole page
+     * render. The pdf consumer sees an empty box where the SVG would
+     * have been; the rest of the document is unaffected.
+     */
+    private function paintInlineSvg(
+        \Phpdftk\Html\Dom\Element $element,
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        ContentStream $stream,
+    ): void {
+        $geo = $box->geometry;
+        $width = $geo->width;
+        $height = $geo->height;
+        if ($width <= 0.0) {
+            $attr = $element->getAttribute('width');
+            if ($attr !== null) {
+                $width = $this->parseSvgLength($attr);
+            }
+        }
+        if ($height <= 0.0) {
+            $attr = $element->getAttribute('height');
+            if ($attr !== null) {
+                $height = $this->parseSvgLength($attr);
+            }
+        }
+        if ($width <= 0.0 || $height <= 0.0) {
+            return;
+        }
+        try {
+            $svgDoc = $this->inlineSvgAdapter()->adapt($element);
+        } catch (\Throwable) {
+            return;
+        }
+        // PDF y-axis runs bottom-up; the box geometry's `y` is the
+        // top edge in CSS coords, so we flip relative to pageHeight.
+        $pdfY = $this->pageHeight - $geo->y - $height;
+        $this->svgRenderer()->draw(
+            $svgDoc,
+            $geo->x,
+            $pdfY,
+            $width,
+            $height,
+            stream: $stream,
+        );
+    }
+
+    /**
+     * Tiny SVG-length parser used by the inline-SVG fallback path.
+     * Strips an optional `px` / `pt` suffix and clamps to a non-
+     * negative float. We accept only `px` and `pt` for now — any
+     * other unit (cm, em, %) returns 0 and lets the dimension lookup
+     * fall through to "skip".
+     */
+    private function parseSvgLength(string $value): float
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return 0.0;
+        }
+        if (preg_match('/^([\d.]+)\s*(px|pt)?$/i', $trimmed, $m) !== 1) {
+            return 0.0;
+        }
+        $n = (float) $m[1];
+        if ($n <= 0.0) {
+            return 0.0;
+        }
+        // `pt` arrives as PDF points already; `px` and the bare form
+        // are CSS pixels at 96 dpi, which is 0.75 pt per px.
+        $unit = isset($m[2]) ? strtolower($m[2]) : 'px';
+        return $unit === 'pt' ? $n : $n * 0.75;
     }
 
     private function paintBorders(Box $box, ContentStream $stream): void
