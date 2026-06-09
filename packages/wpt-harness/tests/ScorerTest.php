@@ -32,6 +32,12 @@ final class ScorerTest extends TestCase
 
     protected function tearDown(): void
     {
+        // If setUp() skipped the test (no `compare` binary), the typed
+        // properties were never assigned — accessing them here would
+        // throw "must not be accessed before initialization".
+        if (!isset($this->renderedPng)) {
+            return;
+        }
         foreach ([$this->renderedPng, $this->referencePng, $this->diffyPng] as $p) {
             if (is_file($p)) {
                 @unlink($p);
