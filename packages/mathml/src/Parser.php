@@ -91,13 +91,14 @@ final class Parser
             'mtext' => new Mtext(),
             'mrow' => new Mrow(),
             'mfrac' => new Mfrac(),
-            // Future slices land typed classes for `<msqrt>`,
-            // `<mroot>`, `<msub>`, `<msup>`, `<msubsup>`, `<munder>`,
-            // `<mover>`, `<munderover>`, `<mmultiscripts>`,
-            // `<mtable>`, `<mtr>`, `<mtd>`, `<mpadded>`, `<mspace>`,
-            // `<menclose>`. Until then they round-trip through
-            // GenericElement so a future Translator can recognise
-            // them without a parser revision.
+            'msqrt' => new Msqrt(),
+            'mroot' => new Mroot(),
+            // Future slices land typed classes for `<msub>`, `<msup>`,
+            // `<msubsup>`, `<munder>`, `<mover>`, `<munderover>`,
+            // `<mmultiscripts>`, `<mtable>`, `<mtr>`, `<mtd>`,
+            // `<mpadded>`, `<mspace>`, `<menclose>`. Until then they
+            // round-trip through GenericElement so a future Translator
+            // can recognise them without a parser revision.
             default => new GenericElement($localName),
         };
     }

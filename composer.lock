@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-feat/mathml-mfrac",
+            "version": "dev-feat/mathml-bar-and-radicals",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
