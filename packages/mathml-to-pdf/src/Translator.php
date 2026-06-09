@@ -10,11 +10,17 @@ use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
 use Phpdftk\Mathml\Mn;
 use Phpdftk\Mathml\Mo;
+use Phpdftk\Mathml\Mover;
 use Phpdftk\Mathml\Mroot;
 use Phpdftk\Mathml\Mrow;
 use Phpdftk\Mathml\Ms;
 use Phpdftk\Mathml\Msqrt;
+use Phpdftk\Mathml\Msub;
+use Phpdftk\Mathml\Msubsup;
+use Phpdftk\Mathml\Msup;
 use Phpdftk\Mathml\Mtext;
+use Phpdftk\Mathml\Munder;
+use Phpdftk\Mathml\Munderover;
 
 /**
  * Per-element paint dispatcher. The {@see MathmlRenderer} owns the
@@ -30,6 +36,8 @@ use Phpdftk\Mathml\Mtext;
  *   - `<mfrac>` (vertical-stacked numerator/denominator with bar)
  *   - `<msqrt>` (radical with vinculum — no √ glyph yet)
  *   - `<mroot>` (radical with vinculum + small index)
+ *   - `<msub>` / `<msup>` / `<msubsup>` (subscript / superscript)
+ *   - `<munder>` / `<mover>` / `<munderover>` (under / over)
  *
  * GenericElement (unknown / future tags) recurses into children so a
  * stray container doesn't drop everything inside it on the floor. All
@@ -59,6 +67,12 @@ final class Translator
             $element instanceof Mfrac   => $this->paintMfrac($element, $ctx),
             $element instanceof Msqrt   => $this->paintMsqrt($element, $ctx),
             $element instanceof Mroot   => $this->paintMroot($element, $ctx),
+            $element instanceof Msub    => $this->paintMsub($element, $ctx),
+            $element instanceof Msup    => $this->paintMsup($element, $ctx),
+            $element instanceof Msubsup => $this->paintMsubsup($element, $ctx),
+            $element instanceof Munder  => $this->paintMunder($element, $ctx),
+            $element instanceof Mover   => $this->paintMover($element, $ctx),
+            $element instanceof Munderover => $this->paintMunderover($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -251,6 +265,292 @@ final class Translator
 
         $vinculumY = $ctx->baselineY + $ctx->fontSize * 0.85;
         $this->drawHorizontalRule($ctx, $baseLeftX, $vinculumY, $baseWidth, 0.75);
+    }
+
+    // -----------------------------------------------------------------
+    // Scripts (msub / msup / msubsup) — attached at base right edge
+    // -----------------------------------------------------------------
+
+    /** Approximate scaled font size for subscript / superscript children. */
+    private const float SCRIPT_FONT_SCALE = 0.7;
+
+    /** Baseline raise for superscripts, in em. */
+    private const float SUP_RAISE_EM = 0.5;
+
+    /** Baseline drop for subscripts, in em (positive value, used negated). */
+    private const float SUB_DROP_EM = 0.3;
+
+    /**
+     * Paint `<msub>` as base followed by a smaller subscript at
+     * lower-right. Two element children expected.
+     */
+    private function paintMsub(Msub $msub, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($msub);
+        if (count($children) !== 2) {
+            $this->walkChildren($msub, $ctx);
+            return;
+        }
+        [$base, $sub] = [$children[0], $children[1]];
+        $this->paint($base, $ctx);
+        $this->paintScript($sub, $ctx, -$ctx->fontSize * self::SUB_DROP_EM);
+    }
+
+    /**
+     * Paint `<msup>` as base followed by a smaller superscript at
+     * upper-right. Two element children expected.
+     */
+    private function paintMsup(Msup $msup, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($msup);
+        if (count($children) !== 2) {
+            $this->walkChildren($msup, $ctx);
+            return;
+        }
+        [$base, $sup] = [$children[0], $children[1]];
+        $this->paint($base, $ctx);
+        $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+    }
+
+    /**
+     * Paint `<msubsup>` as base followed by both subscript and
+     * superscript attached at the same x (the base right edge).
+     * Three element children expected.
+     *
+     * After painting both scripts, the cursor advances to
+     * `base_right + max(sub_width, sup_width)` so subsequent siblings
+     * flow correctly.
+     */
+    private function paintMsubsup(Msubsup $msubsup, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($msubsup);
+        if (count($children) !== 3) {
+            $this->walkChildren($msubsup, $ctx);
+            return;
+        }
+        [$base, $sub, $sup] = [$children[0], $children[1], $children[2]];
+        $this->paint($base, $ctx);
+        $attachX = $ctx->cursorX;
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $subWidth = $this->estimateWidth($sub, $scriptFontSize);
+        $supWidth = $this->estimateWidth($sup, $scriptFontSize);
+
+        // Sup first at raised baseline.
+        $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+        // After paintScript, cursor advanced by supWidth. Back up
+        // horizontally to the attach point, then drop to the
+        // subscript baseline.
+        $backup = $attachX - $ctx->cursorX;
+        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * self::SUB_DROP_EM);
+        $subCtx = new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $scriptFontSize,
+            cursorX: $attachX,
+            baselineY: $ctx->baselineY - $ctx->fontSize * self::SUB_DROP_EM,
+        );
+        $this->paint($sub, $subCtx);
+        // Restore to the construct's right edge on the main baseline.
+        $rightEdge = $attachX + max($subWidth, $supWidth);
+        $ctx->stream->moveTextPosition(
+            $rightEdge - $subCtx->cursorX,
+            $ctx->fontSize * self::SUB_DROP_EM,
+        );
+        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        $ctx->cursorX = $rightEdge;
+    }
+
+    /**
+     * Shared subscript / superscript renderer. Switches font, shifts
+     * baseline by `$yOffset` (positive = raise, negative = lower),
+     * renders the script via a nested context, then restores.
+     *
+     * Caller is responsible for positioning the cursor before this
+     * call — it doesn't adjust horizontal placement, only the
+     * baseline + font.
+     */
+    private function paintScript(
+        Element $script,
+        MathmlPaintContext $ctx,
+        float $yOffset,
+    ): void {
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $ctx->stream->moveTextPosition(0.0, $yOffset);
+        $scriptCtx = new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $scriptFontSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY + $yOffset,
+        );
+        $this->paint($script, $scriptCtx);
+        $ctx->cursorX = $scriptCtx->cursorX;
+        $ctx->stream->moveTextPosition(0.0, -$yOffset);
+        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+    }
+
+    // -----------------------------------------------------------------
+    // Under / over (munder / mover / munderover) — centred above/below
+    // -----------------------------------------------------------------
+
+    /** Vertical raise for overscripts, in em. */
+    private const float OVER_RAISE_EM = 0.85;
+
+    /** Vertical drop for underscripts, in em (positive value, negated when used). */
+    private const float UNDER_DROP_EM = 0.5;
+
+    /** Paint `<munder>` — base with element centred below. */
+    private function paintMunder(Munder $munder, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($munder);
+        if (count($children) !== 2) {
+            $this->walkChildren($munder, $ctx);
+            return;
+        }
+        [$base, $under] = [$children[0], $children[1]];
+        $this->paintUnderOver(
+            base: $base,
+            under: $under,
+            over: null,
+            ctx: $ctx,
+        );
+    }
+
+    /** Paint `<mover>` — base with element centred above. */
+    private function paintMover(Mover $mover, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($mover);
+        if (count($children) !== 2) {
+            $this->walkChildren($mover, $ctx);
+            return;
+        }
+        [$base, $over] = [$children[0], $children[1]];
+        $this->paintUnderOver(
+            base: $base,
+            under: null,
+            over: $over,
+            ctx: $ctx,
+        );
+    }
+
+    /** Paint `<munderover>` — base with elements both above and below. */
+    private function paintMunderover(Munderover $mu, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($mu);
+        if (count($children) !== 3) {
+            $this->walkChildren($mu, $ctx);
+            return;
+        }
+        [$base, $under, $over] = [$children[0], $children[1], $children[2]];
+        $this->paintUnderOver(
+            base: $base,
+            under: $under,
+            over: $over,
+            ctx: $ctx,
+        );
+    }
+
+    /**
+     * Shared paint for `<munder>` / `<mover>` / `<munderover>`.
+     *
+     * Renders the base first, then positions any over/under scripts
+     * centred horizontally on the base. The construct's total width
+     * is the max of base, under, and over widths so all three
+     * variants share the cursor-advance logic.
+     */
+    private function paintUnderOver(
+        Element $base,
+        ?Element $under,
+        ?Element $over,
+        MathmlPaintContext $ctx,
+    ): void {
+        $baseLeftX = $ctx->cursorX;
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $baseWidth = $this->estimateWidth($base, $ctx->fontSize);
+        $overWidth = $over !== null ? $this->estimateWidth($over, $scriptFontSize) : 0.0;
+        $underWidth = $under !== null ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
+        $constructWidth = max($baseWidth, $overWidth, $underWidth);
+
+        $this->paint($base, $ctx);
+        // Cursor now at baseLeftX + baseWidth.
+
+        if ($over !== null && $overWidth > 0.0) {
+            $this->placeCentredScript(
+                script: $over,
+                ctx: $ctx,
+                baseLeftX: $baseLeftX,
+                baseWidth: $baseWidth,
+                constructWidth: $constructWidth,
+                yOffset: $ctx->fontSize * self::OVER_RAISE_EM,
+            );
+        }
+
+        if ($under !== null && $underWidth > 0.0) {
+            $this->placeCentredScript(
+                script: $under,
+                ctx: $ctx,
+                baseLeftX: $baseLeftX,
+                baseWidth: $baseWidth,
+                constructWidth: $constructWidth,
+                yOffset: -$ctx->fontSize * self::UNDER_DROP_EM,
+            );
+        }
+
+        // Ensure the cursor advances past the construct even if both
+        // scripts were absent / zero-width (rare malformed inputs).
+        if ($ctx->cursorX < $baseLeftX + $constructWidth) {
+            $ctx->stream->moveTextPosition(
+                $baseLeftX + $constructWidth - $ctx->cursorX,
+                0.0,
+            );
+            $ctx->cursorX = $baseLeftX + $constructWidth;
+        }
+    }
+
+    /**
+     * Position a small overscript or underscript centred horizontally
+     * over/under the base, at the requested vertical offset. Restores
+     * the cursor to the construct's right edge on the original
+     * baseline.
+     */
+    private function placeCentredScript(
+        Element $script,
+        MathmlPaintContext $ctx,
+        float $baseLeftX,
+        float $baseWidth,
+        float $constructWidth,
+        float $yOffset,
+    ): void {
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptWidth = $this->estimateWidth($script, $scriptFontSize);
+        $scriptStartX = $baseLeftX + ($baseWidth - $scriptWidth) / 2.0;
+        $deltaX = $scriptStartX - $ctx->cursorX;
+
+        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $ctx->stream->moveTextPosition($deltaX, $yOffset);
+        $scriptCtx = new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $scriptFontSize,
+            cursorX: $scriptStartX,
+            baselineY: $ctx->baselineY + $yOffset,
+        );
+        $this->paint($script, $scriptCtx);
+
+        // Restore: end at the construct's right edge on the original
+        // baseline so subsequent siblings flow correctly.
+        $constructRightX = $baseLeftX + $constructWidth;
+        $ctx->stream->moveTextPosition(
+            $constructRightX - $scriptCtx->cursorX,
+            -$yOffset,
+        );
+        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        $ctx->cursorX = $constructRightX;
     }
 
     // -----------------------------------------------------------------

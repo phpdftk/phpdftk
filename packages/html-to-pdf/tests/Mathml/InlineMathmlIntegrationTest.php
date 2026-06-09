@@ -94,6 +94,30 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMsupRendersXSquared(): void
+    {
+        // x² — the canonical superscript case, end-to-end through
+        // the HTML pipeline.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <msup><mi>x</mi><mn>2</mn></msup>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
+        self::assertMatchesRegularExpression('/\(2\)\s+Tj/', $bytes);
+        // The superscript uses a smaller font — confirm via multiple
+        // Tf calls.
+        self::assertGreaterThanOrEqual(3, preg_match_all('/\s+Tf\b/', $bytes));
+    }
+
     public function testInlineMfracRendersNumeratorAndDenominator(): void
     {
         // <mfrac> is now a typed class with vertical-stacking paint.
