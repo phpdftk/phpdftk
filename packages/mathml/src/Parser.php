@@ -107,11 +107,13 @@ final class Parser
             // for absent-script placeholders.
             'mprescripts' => new Mprescripts(),
             'none' => new NoneElement(),
-            // Future slices land typed classes for `<mtable>`,
-            // `<mtr>`, `<mtd>`, `<mpadded>`, `<mspace>`,
-            // `<menclose>`. Until then they round-trip through
-            // GenericElement so a future Translator can recognise
-            // them without a parser revision.
+            'mtable' => new Mtable(),
+            'mtr' => new Mtr(),
+            'mtd' => new Mtd(),
+            // Future slices land typed classes for `<mpadded>`,
+            // `<mspace>`, `<menclose>`. Until then they round-trip
+            // through GenericElement so a future Translator can
+            // recognise them without a parser revision.
             default => new GenericElement($localName),
         };
     }

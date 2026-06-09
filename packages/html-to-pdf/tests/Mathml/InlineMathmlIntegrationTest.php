@@ -94,6 +94,35 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMtableMatrixRenders(): void
+    {
+        // 2×2 matrix through the full HTML pipeline. All four cells
+        // reach the content stream.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <mtable>
+                  <mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd></mtr>
+                  <mtr><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd></mtr>
+                </mtable>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        foreach (['1', '2', '3', '4'] as $glyph) {
+            self::assertMatchesRegularExpression(
+                '/\(' . $glyph . '\)\s+Tj/',
+                $bytes,
+                "expected '$glyph' in stream",
+            );
+        }
+    }
+
     public function testInlineMmultiscriptsChristoffelStructureRenders(): void
     {
         // ᵏΓᵢⱼ-style multi-script structure through the full HTML
