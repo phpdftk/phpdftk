@@ -64,6 +64,9 @@ final class InlineLayout
     public function layout(Box $parent, float $availableWidth, LayoutContext $context): array
     {
         $this->currentFontResolver = $context->fontResolver;
+        if ($availableWidth <= 0.0) {
+            return [[], 0.0];
+        }
         // Resolve the shaping font + post-match synthetic-effect flags via
         // CSS Fonts 4 §6 weight/style matching. When a real face matches
         // the cascaded weight/style, `isBold`/`isItalic` come back false so
@@ -71,8 +74,18 @@ final class InlineLayout
         $parentMatch = $this->resolveBoxFont($parent, $context->defaultFont);
         $font = $parentMatch['font'];
         $fontSize = $this->dominantFontSize($parent, $context);
-        if ($font === null || $availableWidth <= 0.0) {
-            return [[], 0.0];
+        if ($font === null) {
+            // No font means text shaping is impossible — but inline
+            // replaced content (img, svg, math, inline-block divs)
+            // doesn't need a font for layout. Fall back to a minimal
+            // atomic-only pass that pulls width / height off the
+            // cascade so paintImage and the foreign-content painters
+            // (paintInlineSvg, paintInlineMath) see real geometry
+            // instead of the (0, 0, 0, 0) box the full early return
+            // used to produce. Closes #39 for the atomic-content
+            // case; text-bearing documents still need an explicit
+            // default font.
+            return $this->layoutAtomicOnly($parent);
         }
         $shapingCtx = new ShapingContext($font, $fontSize, features: $this->resolveOpenTypeFeatures($parent));
         $lineHeight = $this->resolveLineHeight($parent, $fontSize);
@@ -210,6 +223,61 @@ final class InlineLayout
 
         $lines = $this->applyTextAlign($lines, $availableWidth, $parent);
         return [$lines, $y];
+    }
+
+    /**
+     * Fallback layout for blocks whose inline-formatting context has
+     * no shaping font available. Closes the geometry gap from #39 for
+     * documents that contain only inline replaced content (img, svg,
+     * math, inline-block divs) and never registered a default font.
+     *
+     * Walks the parent's direct children, reads cascaded width /
+     * height off each AtomicInlineBox, sets its geometry, and
+     * advances a cursor. No line wrapping — atoms that overflow the
+     * available width stack anyway (the painter clips per-page).
+     * Non-atomic children (TextBox, InlineBox, LineBreakBox) are
+     * skipped because they need a font to lay out.
+     *
+     * Returns no LineBox: the painter doesn't iterate lines to find
+     * an AtomicInlineBox, it walks the box tree top-down, so setting
+     * geometry directly is sufficient for paintImage's namespace
+     * dispatch (paintInlineSvg / paintInlineMath) to render.
+     *
+     * @return array{list<LineBox>, float}
+     */
+    private function layoutAtomicOnly(Box $parent): array
+    {
+        $currentX = 0.0;
+        $maxHeight = 0.0;
+        foreach ($parent->children as $child) {
+            if (!($child instanceof AtomicInlineBox)) {
+                continue;
+            }
+            $widthValue = $child->style->get('width');
+            $width = $widthValue instanceof Length && $widthValue->value > 0.0
+                ? $widthValue->value
+                : 0.0;
+            if ($width <= 0.0) {
+                // Atomic-content painters have their own intrinsic-
+                // size fallbacks (svg attrs / viewBox; math defaults).
+                // Don't second-guess them here — leave geometry at 0
+                // so the painter's fallback chain still runs.
+                continue;
+            }
+            $heightValue = $child->style->get('height');
+            $height = $heightValue instanceof Length && $heightValue->value > 0.0
+                ? $heightValue->value
+                : $width;
+            $child->geometry->x = $parent->geometry->x + $currentX;
+            $child->geometry->y = $parent->geometry->y;
+            $child->geometry->width = $width;
+            $child->geometry->height = $height;
+            $currentX += $width;
+            if ($height > $maxHeight) {
+                $maxHeight = $height;
+            }
+        }
+        return [[], $maxHeight];
     }
 
     /**
