@@ -1,0 +1,44 @@
+{
+    "name": "phpdftk/mathml",
+    "description": "Pure-PHP MathML Core parser: typed tree, token + container elements, presentation-attribute resolution. Sibling to phpdftk/svg.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/phpdftk/phpdftk",
+    "keywords": [
+        "mathml",
+        "parser",
+        "math",
+        "typesetting"
+    ],
+    "authors": [
+        {
+            "name": "Troy McCabe",
+            "email": "troymccabe@gmail.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/phpdftk/phpdftk/issues"
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-dom": "*",
+        "ext-libxml": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phpdftk\\Mathml\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phpdftk\\Mathml\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        }
+    }
+}

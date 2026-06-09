@@ -64,11 +64,17 @@
         <testsuite name="svg">
             <directory>packages/svg/tests</directory>
         </testsuite>
+        <testsuite name="mathml">
+            <directory>packages/mathml/tests</directory>
+        </testsuite>
         <testsuite name="html-to-pdf">
             <directory>packages/html-to-pdf/tests</directory>
         </testsuite>
         <testsuite name="svg-to-pdf">
             <directory>packages/svg-to-pdf/tests</directory>
+        </testsuite>
+        <testsuite name="mathml-to-pdf">
+            <directory>packages/mathml-to-pdf/tests</directory>
         </testsuite>
         <testsuite name="resource-loader">
             <directory>packages/resource-loader/tests</directory>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "18b528ca521a14d085ab6397ca663398",
+    "content-hash": "acfd69fc022b637f0004b3caba70802e",
     "packages": [],
     "packages-dev": [
         {
@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-main",
+            "version": "dev-feat/mathml-scaffolding",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
@@ -2238,7 +2238,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/html-to-pdf",
-                "reference": "335ea069e2e5ad634e42794e5a1dd2beb2fd27ff"
+                "reference": "761412091b849250c80db5a3127200e544de037e"
             },
             "require": {
                 "ext-intl": "*",
@@ -2251,6 +2251,8 @@
                 "phpdftk/image-metadata": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
                 "phpdftk/resource-loader": "^1.0",
+                "phpdftk/svg": "^1.0",
+                "phpdftk/svg-to-pdf": "^1.0",
                 "phpdftk/text": "^1.0"
             },
             "type": "library",
@@ -2339,6 +2341,114 @@
                 "jpeg",
                 "metadata",
                 "png"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/mathml",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/mathml",
+                "reference": "251fec2cf4afc5e4fe7dcd9d052ddd941785f90e"
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-libxml": "*",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\Mathml\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\Mathml\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Pure-PHP MathML Core parser: typed tree, token + container elements, presentation-attribute resolution. Sibling to phpdftk/svg.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "math",
+                "mathml",
+                "parser",
+                "typesetting"
+            ],
+            "support": {
+                "issues": "https://github.com/phpdftk/phpdftk/issues"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "phpdftk/mathml-to-pdf",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/mathml-to-pdf",
+                "reference": "f35e2754b8796d77d5bdaec0f64ceafd12877690"
+            },
+            "require": {
+                "php": "^8.4",
+                "phpdftk/mathml": "^1.0",
+                "phpdftk/pdf-writer": "^1.0",
+                "phpdftk/text": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Phpdftk\\MathmlToPdf\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Phpdftk\\MathmlToPdf\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Troy McCabe",
+                    "email": "troymccabe@gmail.com"
+                }
+            ],
+            "description": "Render MathML Core to PDF — token + container layout against the existing text shaper. Sibling to phpdftk/svg-to-pdf.",
+            "homepage": "https://github.com/phpdftk/phpdftk",
+            "keywords": [
+                "math",
+                "mathml",
+                "mathml-to-pdf",
+                "pdf",
+                "renderer"
             ],
             "support": {
                 "issues": "https://github.com/phpdftk/phpdftk/issues"
@@ -7591,6 +7701,8 @@
         "phpdftk/html": 20,
         "phpdftk/html-to-pdf": 20,
         "phpdftk/image-metadata": 20,
+        "phpdftk/mathml": 20,
+        "phpdftk/mathml-to-pdf": 20,
         "phpdftk/paged-media": 20,
         "phpdftk/pdf": 20,
         "phpdftk/pdf-conformance": 20,
