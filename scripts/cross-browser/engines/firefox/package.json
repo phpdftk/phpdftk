@@ -1,0 +1,14 @@
+{
+  "name": "phpdftk-cross-browser-firefox-daemon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Persistent Firefox PDF render daemon for the cross-browser oracle. HTTP/JSON on port 9102. One long-lived geckodriver session driven via WebDriver Print, with a window pool sized to the host's parallelism.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test 'test/*.test.mjs'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -6,8 +6,8 @@
 # talks to these daemons over loopback HTTP instead of forking a fresh
 # `node render.mjs` per fixture.
 #
-# Phase P0 ships only the chromium service; firefox and webkit land
-# under their own issues (#32, #33) and add their services here.
+# Phase P0 shipped the chromium service; P1 adds firefox. WebKit
+# lands under #33.
 #
 # Reference: docs/plans/cross-browser-container-sweep.md
 #
@@ -47,6 +47,41 @@ services:
       timeout: 3s
       retries: 12
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    restart: unless-stopped
+
+  firefox:
+    build:
+      context: ./scripts/cross-browser/engines/firefox
+    image: phpdftk/firefox-daemon:dev
+    container_name: phpdftk-firefox-daemon
+    ports:
+      - "127.0.0.1:9102:9102"
+    volumes:
+      - ./vendor-data/wpt:/wpt:ro
+      - ./var/wpt/browser-cache:/var/cache/browser
+    environment:
+      PORT: "9102"
+      WPT_ROOT: /wpt
+      CACHE_DIR: /var/cache/browser
+      # POOL_SIZE — leave unset to let the daemon pick min(cores−2, 16).
+      # FIREFOX_BIN / GECKODRIVER_BIN — Mozilla tarball + release binary
+      # are installed at /usr/local/bin/firefox-cli + /usr/local/bin/
+      # geckodriver in the Dockerfile; the daemon defaults to those.
+    init: true
+    healthcheck:
+      # Geckodriver's initial session bring-up takes ~4-6 s on first
+      # boot (Firefox profile creation, GFX bring-up). The 60 s
+      # start_period covers it; once warm the daemon answers /status
+      # in milliseconds.
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9102/status').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 60s
     deploy:
       resources:
         limits:

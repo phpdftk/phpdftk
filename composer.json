@@ -115,8 +115,8 @@
         "wpt": "packages/wpt-harness/bin/wpt",
         "wpt:smoke": "packages/wpt-harness/bin/wpt run --root=packages/wpt-harness/fixtures/smoke",
         "cb-sweep:daemon": [
-            "docker compose up -d --wait chromium",
-            "@php packages/wpt-harness/bin/wpt cb-sweep --daemon-base=http://127.0.0.1:910 --engines=chromium --scope=rendering --skip-testharness",
+            "docker compose up -d --wait chromium firefox",
+            "@php packages/wpt-harness/bin/wpt cb-sweep --daemon-base=http://127.0.0.1:910 --engines=chromium,firefox --scope=rendering --skip-testharness",
             "docker compose down"
         ]
     },

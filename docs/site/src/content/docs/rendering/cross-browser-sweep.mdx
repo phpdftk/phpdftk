@@ -18,13 +18,16 @@ The daemon launches the browser once at the start of the sweep and recycles `Bro
 ## Bring it up
 
 ```sh
-docker compose up -d --wait chromium
-curl http://127.0.0.1:9101/status
+docker compose up -d --wait chromium firefox
+curl http://127.0.0.1:9101/status   # chromium
+curl http://127.0.0.1:9102/status   # firefox
 ```
 
-The first build is ~3 min; subsequent runs hit the docker layer cache and come up in a few seconds. The compose file lives at the repo root.
+The first build is ~3 min for chromium, ~3–4 min for firefox (Mozilla tarball download adds a layer). Subsequent runs hit the docker layer cache and come up in a few seconds. The compose file lives at the repo root.
 
-To stop it:
+The chromium daemon is ready in ~1 s after the container starts (Chromium launches eagerly). Firefox is slower — geckodriver + Firefox profile bring-up adds ~3–5 s. Both `start_period` healthcheck windows account for the difference.
+
+To stop everything:
 
 ```sh
 docker compose down
@@ -38,7 +41,7 @@ Tell `wpt cb-sweep` (or `wpt cross-browser`) to route through the daemon cluster
 composer wpt -- cb-sweep \
     --scope=rendering \
     --skip-testharness \
-    --engines=chromium \
+    --engines=chromium,firefox \
     --daemon-base=http://127.0.0.1:910
 ```
 
@@ -88,23 +91,33 @@ The `fixture` path is interpreted **inside the container**, where the WPT corpus
 
 ## Daemon lifecycle
 
-The daemon launches Chromium lazily on the first `/render` (the lazy start lets `/status` answer quickly while the build is still warming). After that, the browser stays up for the daemon's lifetime. If Chromium dies — OOM, segfault, anything — the daemon catches the `disconnected` event and the next request triggers a relaunch. In-flight requests during the disconnect window receive a 502 and the orchestrator retries.
+Both daemons eagerly bring up their browser at startup so `/status` flips to `ready: true` before any request lands — the PHP `BrowserOracle::isAvailable()` probe would otherwise reject a perfectly usable daemon on the first call.
 
-`POST /flush` does a controlled restart: drain in-flight, close the browser, bump the generation counter. Useful when you've bumped the cache generation and want every render to come from a fresh process.
+- **Chromium** launches via Playwright. If the browser process dies — OOM, segfault, anything — the daemon catches Playwright's `disconnected` event and the next request triggers a relaunch.
+- **Firefox** is driven over geckodriver's WebDriver protocol. The daemon spawns geckodriver once, creates a single Firefox session, and pre-allocates the window pool via WebDriver `POST /session/:id/window/new` (`type: "tab"`). Each `/render` claims a window handle from the free-list, navigates that tab via `POST /session/:id/url`, prints via `POST /session/:id/print`, and returns the handle. If geckodriver exits, the daemon notices via the child-process `exit` event and re-ensures the whole stack lazily on the next request.
+
+In both cases, in-flight requests during the crash window receive a 502 and the orchestrator can retry. `POST /flush` does a controlled restart: drain in-flight, close the browser, bump the generation counter. Useful after bumping the cache generation.
+
+### Geckodriver serialisation note
+
+WebDriver session commands are serialised inside geckodriver — multiple concurrent `/render` calls on the same Firefox session don't actually run in parallel. The window-pool design is forward-looking: it pipelines the navigation step (window B can load page B's URL while window A is being printed), which is a real win even though print itself stays sequential.
 
 ## Troubleshooting
 
-- **`docker compose up -d --wait chromium` hangs** — the healthcheck waits 30 s on `start_period` before counting failures. If the build itself is slow, run `docker compose up chromium` (no `-d`) once to see the build logs.
-- **`/status` returns ready: false** — Chromium hasn't launched yet. Fire one `POST /render` request and `/status` should flip on the next call.
+- **`docker compose up -d --wait <service>` hangs** — the healthcheck waits 30 s (chromium) or 60 s (firefox) on `start_period` before counting failures. If the build itself is slow, run `docker compose up <service>` (no `-d`) once to see the build logs.
+- **chromium `/status` returns ready: false right after start** — fixed in the daemon (Chromium launches eagerly), but if it ever regresses, fire one `POST /render` to warm it.
+- **firefox `/status` returns ready: false right after start** — geckodriver/session creation failed. Tail `docker logs phpdftk-firefox-daemon` for the geckodriver stderr; the most common cause is a Firefox binary mismatch with the geckodriver version.
 - **`/render` returns 400 "fixture must be inside /wpt"** — the path you sent isn't under the WPT bind mount. Double-check the mount in `compose.yaml` and that you're using the in-container `/wpt/...` path, not the host path.
-- **Daemon eats memory** — the issue most likely lies with a leak in Playwright contexts. The container memory cap is 4 GB; the OOMKiller bounces the daemon and your sweep continues. Track the leak through issue [#29](https://github.com/phpdftk/phpdftk/issues/29).
+- **Daemon eats memory** — likely a leak in the browser-side process pool. Container memory cap is 4 GB per service; the OOMKiller bounces the daemon and your sweep continues. Track at issue [#29](https://github.com/phpdftk/phpdftk/issues/29).
 
-## What this slice ships
+## What's shipped
 
-Phase P0 of the [container sweep plan](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-container-sweep.md):
+| Phase | Engine | Issue | Status |
+|---|---|---|---|
+| P0 | chromium (Blink) | [#31](https://github.com/phpdftk/phpdftk/issues/31) | shipped |
+| P1 | firefox (Gecko) | [#32](https://github.com/phpdftk/phpdftk/issues/32) | shipped |
+| P2 | webkit (via webkit2gtk on Linux) | [#33](https://github.com/phpdftk/phpdftk/issues/33) | pending |
+| P3 | compose orchestration, font pinning | — | pending |
+| P4 | CI cutover (3-engine consensus on Linux) | — | pending |
 
-- `scripts/cross-browser/engines/chromium/` — Dockerfile + `server.mjs` daemon + `lib.mjs` primitives + `test/`
-- `compose.yaml` at the repo root — chromium service only (firefox + webkit land under [#32](https://github.com/phpdftk/phpdftk/issues/32) and [#33](https://github.com/phpdftk/phpdftk/issues/33))
-- `BrowserOracle` daemon-mode dispatch + `--daemon-base` flag on `wpt cb-sweep` and `wpt cross-browser`
-- Unit tests for the daemon primitives + PHP-side daemon-mode tests
-- Integration script at `scripts/cross-browser/engines/chromium/test/integration.sh`
+The full architectural design is at [docs/plans/cross-browser-container-sweep.md](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-container-sweep.md).
