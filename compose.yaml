@@ -6,8 +6,7 @@
 # talks to these daemons over loopback HTTP instead of forking a fresh
 # `node render.mjs` per fixture.
 #
-# Phase P0 shipped the chromium service; P1 adds firefox. WebKit
-# lands under #33.
+# All three engines: chromium (P0/#31), firefox (P1/#32), webkit (P2/#33).
 #
 # Reference: docs/plans/cross-browser-container-sweep.md
 #
@@ -82,6 +81,41 @@ services:
       timeout: 3s
       retries: 12
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    restart: unless-stopped
+
+  webkit:
+    build:
+      context: ./scripts/cross-browser/engines/webkit
+    image: phpdftk/webkit-daemon:dev
+    container_name: phpdftk-webkit-daemon
+    ports:
+      - "127.0.0.1:9103:9103"
+    volumes:
+      - ./vendor-data/wpt:/wpt:ro
+      - ./var/wpt/browser-cache:/var/cache/browser
+    environment:
+      PORT: "9103"
+      WPT_ROOT: /wpt
+      CACHE_DIR: /var/cache/browser
+      # POOL_SIZE — current v1 daemon serialises renders behind a
+      # single WebKitWebView (multi-view pool deferred). Leave unset
+      # to use the default; override for diagnostics.
+    init: true
+    healthcheck:
+      # WebKit + xvfb bring-up is slower than Chromium (the X server
+      # has to start) but faster than Firefox (no geckodriver session
+      # creation). 45 s start_period covers cold-boot comfortably.
+      # The healthcheck runs in-container Python rather than node
+      # (no node in this image) — urllib is stdlib so no extra deps.
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9103/status', timeout=2).status==200 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 45s
     deploy:
       resources:
         limits:

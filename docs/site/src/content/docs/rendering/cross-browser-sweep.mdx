@@ -18,14 +18,23 @@ The daemon launches the browser once at the start of the sweep and recycles `Bro
 ## Bring it up
 
 ```sh
-docker compose up -d --wait chromium firefox
+docker compose up -d --wait chromium firefox webkit
 curl http://127.0.0.1:9101/status   # chromium
 curl http://127.0.0.1:9102/status   # firefox
+curl http://127.0.0.1:9103/status   # webkit
 ```
 
-The first build is ~3 min for chromium, ~3–4 min for firefox (Mozilla tarball download adds a layer). Subsequent runs hit the docker layer cache and come up in a few seconds. The compose file lives at the repo root.
+The first build is ~3 min per engine. Subsequent runs hit the docker layer cache and come up in seconds. The compose file lives at the repo root.
 
-The chromium daemon is ready in ~1 s after the container starts (Chromium launches eagerly). Firefox is slower — geckodriver + Firefox profile bring-up adds ~3–5 s. Both `start_period` healthcheck windows account for the difference.
+Bring-up times after the container starts:
+
+| Engine | Cold ready | Why |
+|---|---|---|
+| chromium | ~1 s | Playwright launches Chromium eagerly |
+| firefox | ~3–5 s | Geckodriver session + Firefox profile creation |
+| webkit | ~2–3 s | Xvfb + GLib main loop + WebKitWebContext bring-up |
+
+The `start_period` on each service's healthcheck accounts for the difference.
 
 To stop everything:
 
@@ -41,7 +50,7 @@ Tell `wpt cb-sweep` (or `wpt cross-browser`) to route through the daemon cluster
 composer wpt -- cb-sweep \
     --scope=rendering \
     --skip-testharness \
-    --engines=chromium,firefox \
+    --engines=chromium,firefox,webkit \
     --daemon-base=http://127.0.0.1:910
 ```
 
@@ -91,22 +100,28 @@ The `fixture` path is interpreted **inside the container**, where the WPT corpus
 
 ## Daemon lifecycle
 
-Both daemons eagerly bring up their browser at startup so `/status` flips to `ready: true` before any request lands — the PHP `BrowserOracle::isAvailable()` probe would otherwise reject a perfectly usable daemon on the first call.
+All three daemons eagerly bring up their browser at startup so `/status` flips to `ready: true` before any request lands — the PHP `BrowserOracle::isAvailable()` probe would otherwise reject a perfectly usable daemon on the first call.
 
 - **Chromium** launches via Playwright. If the browser process dies — OOM, segfault, anything — the daemon catches Playwright's `disconnected` event and the next request triggers a relaunch.
-- **Firefox** is driven over geckodriver's WebDriver protocol. The daemon spawns geckodriver once, creates a single Firefox session, and pre-allocates the window pool via WebDriver `POST /session/:id/window/new` (`type: "tab"`). Each `/render` claims a window handle from the free-list, navigates that tab via `POST /session/:id/url`, prints via `POST /session/:id/print`, and returns the handle. If geckodriver exits, the daemon notices via the child-process `exit` event and re-ensures the whole stack lazily on the next request.
+- **Firefox** is driven over geckodriver's WebDriver protocol. The daemon spawns geckodriver once, creates a single Firefox session, and pre-allocates a window pool via `POST /session/:id/window/new` (`type: "tab"`). Each `/render` claims a window handle from the free-list, navigates via `POST /session/:id/url`, prints via `POST /session/:id/print`, and returns the handle. If geckodriver exits, the next request lazily re-ensures the whole stack.
+- **WebKit** runs entirely in-process via webkit2gtk + PyGObject. The daemon spawns under `xvfb-run` to give WebKit a display target, then drives a single `WebKitWebView` via the GLib main loop. Each `/render` posts work to the main thread via `GLib.idle_add`, the load-finished and print-finished signals drive completion, and a threading.Event signals back to the HTTP handler thread. There's no browser child process to restart — webkit2gtk is a library inside the daemon process — so a crash takes the whole daemon down and the container restart-policy revives it.
 
-In both cases, in-flight requests during the crash window receive a 502 and the orchestrator can retry. `POST /flush` does a controlled restart: drain in-flight, close the browser, bump the generation counter. Useful after bumping the cache generation.
+In all three cases, in-flight requests during a crash window receive a 502 and the orchestrator can retry. `POST /flush` does a controlled restart (or for webkit, bumps the generation counter for protocol parity).
 
-### Geckodriver serialisation note
+### Engine-specific quirks worth knowing
 
-WebDriver session commands are serialised inside geckodriver — multiple concurrent `/render` calls on the same Firefox session don't actually run in parallel. The window-pool design is forward-looking: it pipelines the navigation step (window B can load page B's URL while window A is being printed), which is a real win even though print itself stays sequential.
+- **Geckodriver serialises session commands**: multiple concurrent `/render` calls on the same Firefox session don't actually run in parallel. The window-pool design is forward-looking — it pipelines the navigation step (window B can load page B's URL while window A is being printed), which is a real win even though print itself stays sequential.
+- **WebKit currently uses a single WebView (pool size = 1)**: webkit2gtk widgets have strict main-thread affinity and need to be created and driven from the GLib main loop. Multi-view pooling is a real follow-up but non-trivial — pull requests welcome. The persistent-process benefit (no cold launch per fixture) is still the dominant win even with serialised renders.
+- **WebKit needs `GTK_PRINT_BACKENDS=file` and an explicit `Print to File` printer name**: GTK's default print backend tries to enumerate CUPS printers and fails with "Printer not found" in containers without cupsd. The Dockerfile sets the env var; the daemon pins the printer name in `Gtk.PrintSettings.set_printer()`. Both are required.
+- **WebKit PyGObject quirk**: `WebKit2.PrintOperation.print` is exposed as `print_` because the unsuffixed name collides with Python's `print` builtin. The daemon calls `print_op.print_()`.
 
 ## Troubleshooting
 
-- **`docker compose up -d --wait <service>` hangs** — the healthcheck waits 30 s (chromium) or 60 s (firefox) on `start_period` before counting failures. If the build itself is slow, run `docker compose up <service>` (no `-d`) once to see the build logs.
+- **`docker compose up -d --wait <service>` hangs** — the healthcheck waits 30 s (chromium), 60 s (firefox), or 45 s (webkit) on `start_period` before counting failures. If the build itself is slow, run `docker compose up <service>` (no `-d`) once to see the build logs.
 - **chromium `/status` returns ready: false right after start** — fixed in the daemon (Chromium launches eagerly), but if it ever regresses, fire one `POST /render` to warm it.
 - **firefox `/status` returns ready: false right after start** — geckodriver/session creation failed. Tail `docker logs phpdftk-firefox-daemon` for the geckodriver stderr; the most common cause is a Firefox binary mismatch with the geckodriver version.
+- **webkit `/status` returns 503 with "missing state"** — usually means xvfb didn't start. Tail `docker logs phpdftk-webkit-daemon` for the `xvfb-run` stderr; the most common cause is missing `xauth` (already installed in the Dockerfile, but worth checking if you've forked the image).
+- **webkit `/render` returns 500 with "print failed: Printer not found"** — the GTK file print backend didn't initialise. Confirm `GTK_PRINT_BACKENDS=file` is set in the container env AND that the daemon calls `settings.set_printer("Print to File")` — both are required.
 - **`/render` returns 400 "fixture must be inside /wpt"** — the path you sent isn't under the WPT bind mount. Double-check the mount in `compose.yaml` and that you're using the in-container `/wpt/...` path, not the host path.
 - **Daemon eats memory** — likely a leak in the browser-side process pool. Container memory cap is 4 GB per service; the OOMKiller bounces the daemon and your sweep continues. Track at issue [#29](https://github.com/phpdftk/phpdftk/issues/29).
 
@@ -116,8 +131,8 @@ WebDriver session commands are serialised inside geckodriver — multiple concur
 |---|---|---|---|
 | P0 | chromium (Blink) | [#31](https://github.com/phpdftk/phpdftk/issues/31) | shipped |
 | P1 | firefox (Gecko) | [#32](https://github.com/phpdftk/phpdftk/issues/32) | shipped |
-| P2 | webkit (via webkit2gtk on Linux) | [#33](https://github.com/phpdftk/phpdftk/issues/33) | pending |
-| P3 | compose orchestration, font pinning | — | pending |
+| P2 | webkit (via webkit2gtk on Linux) | [#33](https://github.com/phpdftk/phpdftk/issues/33) | shipped |
+| P3 | font pinning, persistent bind-mount tuning | — | pending |
 | P4 | CI cutover (3-engine consensus on Linux) | — | pending |
 
 The full architectural design is at [docs/plans/cross-browser-container-sweep.md](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-container-sweep.md).
