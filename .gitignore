@@ -55,5 +55,7 @@ composer.phar
 /scripts/cross-browser/package-lock.json
 /scripts/cross-browser/engines/*/node_modules/
 /scripts/cross-browser/engines/*/package-lock.json
+/scripts/cross-browser/engines/*/__pycache__/
+/scripts/cross-browser/engines/*/test/__pycache__/
 /var/wpt/browser-cache/
 
