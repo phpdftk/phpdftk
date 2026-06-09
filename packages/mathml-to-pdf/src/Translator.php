@@ -8,9 +8,11 @@ use Phpdftk\Mathml\Element;
 use Phpdftk\Mathml\GenericElement;
 use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
+use Phpdftk\Mathml\Mmultiscripts;
 use Phpdftk\Mathml\Mn;
 use Phpdftk\Mathml\Mo;
 use Phpdftk\Mathml\Mover;
+use Phpdftk\Mathml\Mprescripts;
 use Phpdftk\Mathml\Mroot;
 use Phpdftk\Mathml\Mrow;
 use Phpdftk\Mathml\Ms;
@@ -21,6 +23,7 @@ use Phpdftk\Mathml\Msup;
 use Phpdftk\Mathml\Mtext;
 use Phpdftk\Mathml\Munder;
 use Phpdftk\Mathml\Munderover;
+use Phpdftk\Mathml\NoneElement;
 
 /**
  * Per-element paint dispatcher. The {@see MathmlRenderer} owns the
@@ -38,6 +41,7 @@ use Phpdftk\Mathml\Munderover;
  *   - `<mroot>` (radical with vinculum + small index)
  *   - `<msub>` / `<msup>` / `<msubsup>` (subscript / superscript)
  *   - `<munder>` / `<mover>` / `<munderover>` (under / over)
+ *   - `<mmultiscripts>` (arbitrary pre/post script pairs)
  *
  * GenericElement (unknown / future tags) recurses into children so a
  * stray container doesn't drop everything inside it on the floor. All
@@ -73,6 +77,7 @@ final class Translator
             $element instanceof Munder  => $this->paintMunder($element, $ctx),
             $element instanceof Mover   => $this->paintMover($element, $ctx),
             $element instanceof Munderover => $this->paintMunderover($element, $ctx),
+            $element instanceof Mmultiscripts => $this->paintMmultiscripts($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -391,6 +396,202 @@ final class Translator
         $ctx->cursorX = $scriptCtx->cursorX;
         $ctx->stream->moveTextPosition(0.0, -$yOffset);
         $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+    }
+
+    // -----------------------------------------------------------------
+    // mmultiscripts — arbitrary pre/post script pairs
+    // -----------------------------------------------------------------
+
+    /**
+     * Paint `<mmultiscripts>` per MathML Core §3.3.6.2.
+     *
+     * Child shape:
+     *
+     *   base
+     *   (postSub postSup)*
+     *   [ <mprescripts/>
+     *     (preSub preSup)* ]
+     *
+     * Either side may have any number of pairs, including zero.
+     * `<none/>` ({@see NoneElement}) stands in for an absent script
+     * slot within a pair.
+     *
+     * Algorithm:
+     *   1. Split element children at the {@see Mprescripts} marker.
+     *   2. Validate that each list has an even count (each pair has
+     *      both a sub and a sup, even if either is `<none/>`).
+     *   3. Compute total prescript width so the base shifts right by
+     *      that amount.
+     *   4. Render prescripts in REVERSE source order — the first pair
+     *      in source is closest to the base (rightmost prescript), so
+     *      we paint left-to-right starting from the outermost (last
+     *      source pair).
+     *   5. Render base.
+     *   6. Render postscripts in source order — first pair attaches
+     *      immediately to base, subsequent pairs stack rightward.
+     *
+     * Falls back to inline `walkChildren` on malformed structure
+     * (odd script count on either side).
+     */
+    private function paintMmultiscripts(
+        Mmultiscripts $mu,
+        MathmlPaintContext $ctx,
+    ): void {
+        $children = $this->elementChildren($mu);
+        if ($children === []) {
+            return;
+        }
+        $base = $children[0];
+        $rest = array_slice($children, 1);
+
+        // Split at <mprescripts/>.
+        $boundary = -1;
+        foreach ($rest as $i => $c) {
+            if ($c instanceof Mprescripts) {
+                $boundary = $i;
+                break;
+            }
+        }
+        if ($boundary === -1) {
+            $postRaw = $rest;
+            $preRaw = [];
+        } else {
+            $postRaw = array_slice($rest, 0, $boundary);
+            $preRaw = array_slice($rest, $boundary + 1);
+        }
+
+        if (count($postRaw) % 2 !== 0 || count($preRaw) % 2 !== 0) {
+            $this->walkChildren($mu, $ctx);
+            return;
+        }
+
+        $postPairs = $this->pairUpScripts($postRaw);
+        $prePairs = $this->pairUpScripts($preRaw);
+
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $totalPreWidth = 0.0;
+        foreach ($prePairs as $pair) {
+            $totalPreWidth += $this->scriptPairWidth($pair, $scriptFontSize);
+        }
+
+        if ($totalPreWidth > 0.0) {
+            // Reverse source order: the last pair in source is the
+            // outermost (leftmost) prescript visually, so paint it
+            // first as we sweep left-to-right toward the base.
+            foreach (array_reverse($prePairs) as $pair) {
+                $this->paintScriptPair($pair, $ctx);
+            }
+        }
+
+        $this->paint($base, $ctx);
+
+        foreach ($postPairs as $pair) {
+            $this->paintScriptPair($pair, $ctx);
+        }
+    }
+
+    /**
+     * Pair up a flat list of script elements into [sub, sup] tuples.
+     * Caller has already validated that the count is even.
+     *
+     * @param  list<Element>     $scripts
+     * @return list<array{0: Element, 1: Element}>
+     */
+    private function pairUpScripts(array $scripts): array
+    {
+        $pairs = [];
+        $count = count($scripts);
+        for ($i = 0; $i + 1 < $count; $i += 2) {
+            $pairs[] = [$scripts[$i], $scripts[$i + 1]];
+        }
+        return $pairs;
+    }
+
+    /**
+     * Width budget for a [sub, sup] pair at the given script font
+     * size. {@see NoneElement} slots contribute zero width.
+     *
+     * @param array{0: Element, 1: Element} $pair
+     */
+    private function scriptPairWidth(array $pair, float $scriptFontSize): float
+    {
+        [$sub, $sup] = $pair;
+        $subWidth = $sub instanceof NoneElement
+            ? 0.0
+            : $this->estimateWidth($sub, $scriptFontSize);
+        $supWidth = $sup instanceof NoneElement
+            ? 0.0
+            : $this->estimateWidth($sup, $scriptFontSize);
+        return max($subWidth, $supWidth);
+    }
+
+    /**
+     * Paint a [sub, sup] pair stacked at the current cursor X. The
+     * pair occupies `max(subWidth, supWidth)` horizontally and
+     * advances the cursor by that amount.
+     *
+     * Handles {@see NoneElement} slots by skipping the corresponding
+     * sub or sup but still advancing the cursor by the pair width
+     * (so adjacent pairs align with the pair-grid, not just the
+     * rendered content).
+     *
+     * @param array{0: Element, 1: Element} $pair
+     */
+    private function paintScriptPair(array $pair, MathmlPaintContext $ctx): void
+    {
+        [$sub, $sup] = $pair;
+        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $hasSub = !$sub instanceof NoneElement;
+        $hasSup = !$sup instanceof NoneElement;
+        if (!$hasSub && !$hasSup) {
+            return;
+        }
+        $subWidth = $hasSub ? $this->estimateWidth($sub, $scriptFontSize) : 0.0;
+        $supWidth = $hasSup ? $this->estimateWidth($sup, $scriptFontSize) : 0.0;
+        $pairWidth = max($subWidth, $supWidth);
+        if ($pairWidth < 0.001) {
+            return;
+        }
+        $attachX = $ctx->cursorX;
+
+        if ($hasSup && $supWidth > 0.0) {
+            $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+            // Cursor now at attachX + supWidth on original baseline.
+        }
+
+        if ($hasSub && $subWidth > 0.0) {
+            // Back up to attachX, drop to sub baseline.
+            $backup = $attachX - $ctx->cursorX;
+            $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+            $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * self::SUB_DROP_EM);
+            $subCtx = new MathmlPaintContext(
+                stream: $ctx->stream,
+                upright: $ctx->upright,
+                italic: $ctx->italic,
+                fontSize: $scriptFontSize,
+                cursorX: $attachX,
+                baselineY: $ctx->baselineY - $ctx->fontSize * self::SUB_DROP_EM,
+            );
+            $this->paint($sub, $subCtx);
+            // End at the pair's right edge on the original baseline.
+            $ctx->stream->moveTextPosition(
+                $attachX + $pairWidth - $subCtx->cursorX,
+                $ctx->fontSize * self::SUB_DROP_EM,
+            );
+            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+            $ctx->cursorX = $attachX + $pairWidth;
+            return;
+        }
+
+        // Sup-only with sup narrower than pairWidth would leave the
+        // cursor short; pad to the pair's right edge.
+        if ($ctx->cursorX < $attachX + $pairWidth) {
+            $ctx->stream->moveTextPosition(
+                $attachX + $pairWidth - $ctx->cursorX,
+                0.0,
+            );
+            $ctx->cursorX = $attachX + $pairWidth;
+        }
     }
 
     // -----------------------------------------------------------------

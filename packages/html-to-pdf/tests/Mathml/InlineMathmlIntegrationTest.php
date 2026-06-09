@@ -94,6 +94,39 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMmultiscriptsChristoffelStructureRenders(): void
+    {
+        // ᵏΓᵢⱼ-style multi-script structure through the full HTML
+        // pipeline. Prescripts on the left of base, postscripts on
+        // the right. With NoneElement for absent slots.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <mmultiscripts>
+                  <mi>R</mi>
+                  <mi>j</mi><mi>k</mi>
+                  <mprescripts/>
+                  <none/><mi>l</mi>
+                </mmultiscripts>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Base + post-sub + post-sup + pre-sup all reach the stream.
+        foreach (['R', 'j', 'k', 'l'] as $glyph) {
+            self::assertMatchesRegularExpression(
+                '/\(' . $glyph . '\)\s+Tj/',
+                $bytes,
+                "expected '$glyph' in stream",
+            );
+        }
+    }
+
     public function testInlineMsupRendersXSquared(): void
     {
         // x² — the canonical superscript case, end-to-end through
