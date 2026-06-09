@@ -20,7 +20,10 @@ use Phpdftk\Mathml\Msqrt;
 use Phpdftk\Mathml\Msub;
 use Phpdftk\Mathml\Msubsup;
 use Phpdftk\Mathml\Msup;
+use Phpdftk\Mathml\Mtable;
+use Phpdftk\Mathml\Mtd;
 use Phpdftk\Mathml\Mtext;
+use Phpdftk\Mathml\Mtr;
 use Phpdftk\Mathml\Munder;
 use Phpdftk\Mathml\Munderover;
 use Phpdftk\Mathml\NoneElement;
@@ -42,6 +45,7 @@ use Phpdftk\Mathml\NoneElement;
  *   - `<msub>` / `<msup>` / `<msubsup>` (subscript / superscript)
  *   - `<munder>` / `<mover>` / `<munderover>` (under / over)
  *   - `<mmultiscripts>` (arbitrary pre/post script pairs)
+ *   - `<mtable>` / `<mtr>` / `<mtd>` (2-D grid layout)
  *
  * GenericElement (unknown / future tags) recurses into children so a
  * stray container doesn't drop everything inside it on the floor. All
@@ -78,6 +82,7 @@ final class Translator
             $element instanceof Mover   => $this->paintMover($element, $ctx),
             $element instanceof Munderover => $this->paintMunderover($element, $ctx),
             $element instanceof Mmultiscripts => $this->paintMmultiscripts($element, $ctx),
+            $element instanceof Mtable  => $this->paintMtable($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -591,6 +596,140 @@ final class Translator
                 0.0,
             );
             $ctx->cursorX = $attachX + $pairWidth;
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Table layout (mtable / mtr / mtd) — 2-D grid
+    // -----------------------------------------------------------------
+
+    /**
+     * Horizontal padding between adjacent columns, in em. MathML Core's
+     * default `columnspacing` is `0.8em`; we approximate with a uniform
+     * gutter pending real attribute support.
+     */
+    private const float MTABLE_COL_GAP_EM = 0.8;
+
+    /**
+     * Vertical padding between adjacent rows, in em. Core default
+     * `rowspacing` is `1.0ex` (≈ 0.5em); we approximate uniformly.
+     */
+    private const float MTABLE_ROW_GAP_EM = 0.5;
+
+    /**
+     * Paint `<mtable>` as a 2-D grid (MathML Core §3.3.7).
+     *
+     * Layout algorithm:
+     *
+     *   1. Walk the table's typed children, gather rows ({@see Mtr}).
+     *      Non-`Mtr` direct children are skipped — Core requires `Mtr`
+     *      as the only direct child class of `Mtable`.
+     *   2. For each row, gather its cells ({@see Mtd}). Non-`Mtd`
+     *      children of an `Mtr` are skipped.
+     *   3. Compute column widths: `colWidth[j] = max(width(cell[i][j]))`
+     *      across all rows.
+     *   4. Compute row heights: tracer-bullet uses uniform `fontSize`
+     *      per row. Real per-row maxima land with proper bbox tracking.
+     *   5. Paint cells column-by-column within each row, horizontally
+     *      centred in their column, vertically anchored at the row's
+     *      baseline (centred on the math axis approximated as
+     *      `baselineY + fontSize/4`).
+     *   6. Advance cursor by `tableWidth` so trailing siblings flow.
+     *
+     * Empty tables (no rows or all rows empty) emit nothing and don't
+     * advance the cursor.
+     */
+    private function paintMtable(Mtable $mtable, MathmlPaintContext $ctx): void
+    {
+        $rows = [];
+        foreach ($this->elementChildren($mtable) as $rowEl) {
+            if ($rowEl instanceof Mtr) {
+                $rows[] = $this->elementChildren($rowEl);
+            }
+        }
+        if ($rows === []) {
+            // No <mtr>s at all — degrade to inline walk so any stray
+            // content under <mtable> still reaches the stream.
+            $this->walkChildren($mtable, $ctx);
+            return;
+        }
+
+        $colCount = 0;
+        foreach ($rows as $row) {
+            $colCount = max($colCount, count($row));
+        }
+        if ($colCount === 0) {
+            return;
+        }
+
+        // Column widths: max(cellWidth) per column across rows.
+        $colWidths = array_fill(0, $colCount, 0.0);
+        foreach ($rows as $row) {
+            foreach ($row as $col => $cell) {
+                $w = $this->estimateWidth($cell, $ctx->fontSize);
+                if ($w > $colWidths[$col]) {
+                    $colWidths[$col] = $w;
+                }
+            }
+        }
+
+        $colGap = $ctx->fontSize * self::MTABLE_COL_GAP_EM;
+        $rowGap = $ctx->fontSize * self::MTABLE_ROW_GAP_EM;
+        $rowHeight = $ctx->fontSize;
+
+        $tableWidth = 0.0;
+        foreach ($colWidths as $w) {
+            $tableWidth += $w;
+        }
+        $tableWidth += $colGap * max(0, $colCount - 1);
+
+        $tableLeftX = $ctx->cursorX;
+        $rowCount = count($rows);
+
+        // Vertical layout: centre the table on the math axis. With N
+        // rows of height H plus (N-1) row-gaps G, the table occupies
+        // N*H + (N-1)*G vertically. Top row's baseline sits at
+        // baselineY + ((N-1)/2) * (H + G); bottom row at the inverse.
+        $rowPitch = $rowHeight + $rowGap;
+        $topRowOffset = ($rowCount - 1) * $rowPitch / 2.0;
+
+        foreach ($rows as $rowIdx => $row) {
+            $rowBaselineOffset = $topRowOffset - $rowIdx * $rowPitch;
+            // Column x cursor starts at tableLeftX for every row.
+            $colX = $tableLeftX;
+            foreach ($row as $col => $cell) {
+                $cellWidth = $this->estimateWidth($cell, $ctx->fontSize);
+                $cellLeadX = $colX + ($colWidths[$col] - $cellWidth) / 2.0;
+
+                $deltaX = $cellLeadX - $ctx->cursorX;
+                // We always end the prior cell back on the parent
+                // baseline (see the symmetric moveTextPosition below),
+                // so the per-cell Y delta is just rowBaselineOffset.
+                $ctx->stream->moveTextPosition($deltaX, $rowBaselineOffset);
+                $cellCtx = new MathmlPaintContext(
+                    stream: $ctx->stream,
+                    upright: $ctx->upright,
+                    italic: $ctx->italic,
+                    fontSize: $ctx->fontSize,
+                    cursorX: $cellLeadX,
+                    baselineY: $ctx->baselineY + $rowBaselineOffset,
+                );
+                $this->paint($cell, $cellCtx);
+                // Return to the parent baseline; we'll re-shift when we
+                // move into the next cell.
+                $ctx->stream->moveTextPosition(0.0, -$rowBaselineOffset);
+                $ctx->cursorX = $cellCtx->cursorX;
+
+                $colX += $colWidths[$col] + $colGap;
+            }
+        }
+
+        // Advance cursor to the table's right edge so following
+        // siblings flow correctly.
+        $tableRightX = $tableLeftX + $tableWidth;
+        if ($ctx->cursorX < $tableRightX) {
+            $ctx->stream->moveTextPosition($tableRightX - $ctx->cursorX, 0.0);
+            $ctx->cursorX = $tableRightX;
         }
     }
 
