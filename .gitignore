@@ -53,5 +53,7 @@ composer.phar
 # Cross-browser oracle (Node dep tree + browser-render cache)
 /scripts/cross-browser/node_modules/
 /scripts/cross-browser/package-lock.json
+/scripts/cross-browser/engines/*/node_modules/
+/scripts/cross-browser/engines/*/package-lock.json
 /var/wpt/browser-cache/
 

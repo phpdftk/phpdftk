@@ -1,0 +1,54 @@
+# Container-hosted cross-browser sweep.
+#
+# Brings up one persistent engine daemon per browser, all sharing the
+# WPT corpus (read-only) and the sha256-keyed PDF cache (read-write).
+# The PHP sweep (`wpt cb-sweep --daemon-base=http://127.0.0.1:910`)
+# talks to these daemons over loopback HTTP instead of forking a fresh
+# `node render.mjs` per fixture.
+#
+# Phase P0 ships only the chromium service; firefox and webkit land
+# under their own issues (#32, #33) and add their services here.
+#
+# Reference: docs/plans/cross-browser-container-sweep.md
+#
+# Common operations:
+#
+#   docker compose up -d --wait chromium
+#   curl http://127.0.0.1:9101/status
+#   docker compose down
+#
+# The fonts mount is optional — if vendor-data/fonts/ doesn't exist
+# the engine falls back to the host system fonts that ship in the
+# Playwright base image. Once we settle the font-pinning question
+# (open in the plan, deferred to Phase P3) this will become required.
+
+services:
+  chromium:
+    build:
+      context: ./scripts/cross-browser/engines/chromium
+    image: phpdftk/chromium-daemon:dev
+    container_name: phpdftk-chromium-daemon
+    ports:
+      - "127.0.0.1:9101:9101"
+    volumes:
+      - ./vendor-data/wpt:/wpt:ro
+      - ./var/wpt/browser-cache:/var/cache/browser
+    environment:
+      PORT: "9101"
+      WPT_ROOT: /wpt
+      CACHE_DIR: /var/cache/browser
+      # POOL_SIZE — leave unset to let the daemon pick min(cores−2, 16)
+      # based on the container's reported parallelism. Override for
+      # local dev or CI matrix shards that want a different cap.
+    init: true
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9101/status').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    restart: unless-stopped

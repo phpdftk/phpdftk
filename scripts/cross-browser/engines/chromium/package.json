@@ -1,0 +1,17 @@
+{
+  "name": "phpdftk-cross-browser-chromium-daemon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Persistent Chromium PDF render daemon for the cross-browser oracle. HTTP/JSON on port 9101; one long-lived browser process with a BrowserContext pool. Replaces the per-fixture node render.mjs fork.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
