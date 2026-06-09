@@ -104,7 +104,15 @@ final class MathmlRenderer
         $stream->setFont($upright, $fontSize);
         $stream->moveTextPosition($x, $baselineY);
 
-        $this->translator->paint($math, $stream, $upright, $italic, $fontSize);
+        $ctx = new MathmlPaintContext(
+            stream: $stream,
+            upright: $upright,
+            italic: $italic,
+            fontSize: $fontSize,
+            cursorX: $x,
+            baselineY: $baselineY,
+        );
+        $this->translator->paint($math, $ctx);
 
         $stream->endText();
         $stream->restoreGraphicsState();

@@ -10,141 +10,304 @@ use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
 use Phpdftk\Mathml\Mn;
 use Phpdftk\Mathml\Mo;
+use Phpdftk\Mathml\Mroot;
 use Phpdftk\Mathml\Mrow;
 use Phpdftk\Mathml\Ms;
+use Phpdftk\Mathml\Msqrt;
 use Phpdftk\Mathml\Mtext;
-use Phpdftk\Pdf\Core\Content\ContentStream;
-use Phpdftk\Pdf\Writer\Font;
 
 /**
  * Per-element paint dispatcher. The {@see MathmlRenderer} owns the
- * BT/ET text block and the font resources; the translator just walks
- * the typed tree and emits the right `Tf` / `Tj` operators.
+ * BT/ET text block and the font resources; the translator walks the
+ * typed tree and emits the right `Tf` / `Tj` / path operators against
+ * a {@see MathmlPaintContext} that carries the active stream + fonts
+ * + cursor state.
  *
- * v1 scope: tokens (Mn, Mi, Mo, Ms, Mtext) + `<mrow>` + the document
- * root. GenericElement (unknown / future tags) recurses into children
- * so a stray container doesn't drop everything inside it on the
- * floor. All other tags route to GenericElement at parse time, so
- * they all reach this fallback.
+ * v1 scope:
+ *
+ *   - Tokens (Mn, Mi, Mo, Ms, Mtext)
+ *   - `<mrow>` (transparent container — children render inline)
+ *   - `<mfrac>` (vertical-stacked numerator/denominator with bar)
+ *   - `<msqrt>` (radical with vinculum — no √ glyph yet)
+ *   - `<mroot>` (radical with vinculum + small index)
+ *
+ * GenericElement (unknown / future tags) recurses into children so a
+ * stray container doesn't drop everything inside it on the floor. All
+ * tags outside this set route to GenericElement at parse time, so
+ * they all reach the fallback.
+ *
+ * Width estimation note: every paint method uses ~0.5em per character
+ * as the advance width for glyphs (Times-Roman digits and lowercase
+ * average close to this). Wide glyphs / italics / uppercase will be
+ * slightly under-estimated; this is acceptable for the tracer-bullet
+ * stage. Real glyph-derived widths land when the renderer learns to
+ * read Type1 AFM metrics.
  */
 final class Translator
 {
-    public function paint(
-        Element $element,
-        ContentStream $stream,
-        Font $upright,
-        Font $italic,
-        float $fontSize,
-    ): void {
+    /** Approximate em-fraction width per character for Times-Roman. */
+    private const float CHAR_EM_WIDTH = 0.5;
+
+    public function paint(Element $element, MathmlPaintContext $ctx): void
+    {
         match (true) {
-            $element instanceof Mn      => $this->paintMn($element, $stream),
-            $element instanceof Mi      => $this->paintMi($element, $stream, $upright, $italic, $fontSize),
-            $element instanceof Mo      => $this->paintMo($element, $stream),
-            $element instanceof Ms      => $this->paintMs($element, $stream),
-            $element instanceof Mtext   => $this->paintMtext($element, $stream),
-            $element instanceof Mfrac   => $this->paintMfrac($element, $stream, $upright, $italic, $fontSize),
-            $element instanceof Mrow    => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
-            $element instanceof GenericElement => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
+            $element instanceof Mn      => $this->paintMn($element, $ctx),
+            $element instanceof Mi      => $this->paintMi($element, $ctx),
+            $element instanceof Mo      => $this->paintMo($element, $ctx),
+            $element instanceof Ms      => $this->paintMs($element, $ctx),
+            $element instanceof Mtext   => $this->paintMtext($element, $ctx),
+            $element instanceof Mfrac   => $this->paintMfrac($element, $ctx),
+            $element instanceof Msqrt   => $this->paintMsqrt($element, $ctx),
+            $element instanceof Mroot   => $this->paintMroot($element, $ctx),
+            $element instanceof Mrow    => $this->walkChildren($element, $ctx),
+            $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
             // is Element with no special painter behaviour for the
             // tracer-bullet slice, so children walk like an <mrow>.
-            default => $this->walkChildren($element, $stream, $upright, $italic, $fontSize),
+            default => $this->walkChildren($element, $ctx),
         };
     }
 
+    // -----------------------------------------------------------------
+    // Vertical-stacking constructs (fractions, radicals)
+    // -----------------------------------------------------------------
+
     /**
-     * Paint `<mfrac>` as a vertically stacked numerator + denominator.
+     * Paint `<mfrac>` as a vertically stacked numerator + denominator
+     * with a horizontal bar between them.
      *
-     * Uses PDF text-matrix repositioning (`Td`) plus text rise to
-     * place numerator above the surrounding baseline and denominator
-     * below, centring each within the wider of the two. The pen
-     * advances past the fraction's right edge so subsequent tokens
-     * flow correctly.
+     * Steps:
+     *   1. Centre numerator within `fracWidth`, raise the baseline,
+     *      emit children.
+     *   2. Centre denominator on the lowered baseline, emit children.
+     *   3. Break out of the text block, draw the bar at midline,
+     *      restart the text block, restore position past the fraction.
      *
-     * Width estimation: each child's `textContent()` character count
-     * times an `~0.5em` advance. This is approximate for Times-Roman
-     * (good for digits and lowercase, off for uppercase wide glyphs)
-     * and acceptable for the tracer-bullet. Real glyph-derived
-     * widths land once the renderer learns to measure its own output.
-     *
-     * NOT YET DRAWN: the horizontal fraction bar between numerator
-     * and denominator. Drawing it requires breaking out of the
-     * BT/ET text block to emit path operators, which in turn means
-     * threading the absolute fraction coordinates through the
-     * Translator. Deferred to a follow-up. The
-     * `linethickness="0"` form (binomial coefficients — no bar by
-     * spec) renders correctly today.
+     * The bar is skipped when `linethickness="0"` (binomial form per
+     * Core §3.3.2).
      *
      * Invalid `<mfrac>` with anything other than exactly two element
      * children walks all children inline as a fallback so malformed
      * markup doesn't drop content.
      */
-    private function paintMfrac(
-        Mfrac $mfrac,
-        ContentStream $stream,
-        Font $upright,
-        Font $italic,
-        float $fontSize,
-    ): void {
-        $children = array_values(array_filter(
-            $mfrac->children,
-            static fn($c) => $c instanceof Element,
-        ));
+    private function paintMfrac(Mfrac $mfrac, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($mfrac);
         if (count($children) !== 2) {
-            $this->walkChildren($mfrac, $stream, $upright, $italic, $fontSize);
+            $this->walkChildren($mfrac, $ctx);
             return;
         }
         [$numerator, $denominator] = [$children[0], $children[1]];
 
-        $charWidth = $fontSize * 0.5;
-        $numWidth = mb_strlen($numerator->textContent(), 'UTF-8') * $charWidth;
-        $denWidth = mb_strlen($denominator->textContent(), 'UTF-8') * $charWidth;
+        $numWidth = $this->estimateWidth($numerator, $ctx->fontSize);
+        $denWidth = $this->estimateWidth($denominator, $ctx->fontSize);
         $fracWidth = max($numWidth, $denWidth);
         if ($fracWidth < 0.001) {
             return;
         }
 
-        // Baseline offsets above/below the surrounding line. ~0.4em
-        // each puts the numerator and denominator about 4/5 of a line
-        // apart — visually closer than two normal lines, which is
-        // what mfrac wants.
-        $raise = $fontSize * 0.4;
-        $drop = $fontSize * 0.4;
-
+        $raise = $ctx->fontSize * 0.4;
+        $drop = $ctx->fontSize * 0.4;
         $numLead = ($fracWidth - $numWidth) / 2.0;
         $denLead = ($fracWidth - $denWidth) / 2.0;
+        $fracLeftX = $ctx->cursorX;
 
-        // Numerator: shift line origin into the centred position on
-        // the raised baseline, emit children, leave pen where Tj left
-        // it (at numLead + numWidth past the fraction's left edge,
-        // on the raised baseline).
-        $stream->moveTextPosition($numLead, $raise);
-        $this->paint($numerator, $stream, $upright, $italic, $fontSize);
+        // Numerator: shift line origin into centred-on-raised position
+        $ctx->stream->moveTextPosition($numLead, $raise);
+        $this->paint($numerator, $ctx);
 
-        // Denominator: shift line origin from where it is now to the
-        // centred position on the lowered baseline. moveTextPosition
-        // (Td) is relative to the current line matrix — the pen
-        // resets to the new origin so we don't have to compensate
-        // for whatever horizontal advance the numerator emitted.
-        $stream->moveTextPosition($denLead - $numLead, -$drop - $raise);
-        $this->paint($denominator, $stream, $upright, $italic, $fontSize);
+        // Denominator: shift from current line origin to centred-on-
+        // lowered position. moveTextPosition (Td) is relative to
+        // current line matrix; resets pen to the new origin so we
+        // don't have to compensate for the numerator's Tj advance.
+        $ctx->stream->moveTextPosition($denLead - $numLead, -$drop - $raise);
+        $this->paint($denominator, $ctx);
 
-        // Advance to the right edge of the fraction on the original
-        // baseline so subsequent tokens (`<mfrac><mrow>1</mrow>...
-        // </mfrac><mo>+</mo>…`) flow correctly.
-        $stream->moveTextPosition($fracWidth - $denLead, $drop);
+        // Advance to the fraction's right edge on the original
+        // baseline so subsequent siblings flow correctly.
+        $ctx->stream->moveTextPosition($fracWidth - $denLead, $drop);
+        $ctx->cursorX = $fracLeftX + $fracWidth;
+
+        // Bar: spec default is 1 CSS pixel ≈ 0.75 pt. `linethickness="0"`
+        // suppresses the bar (binomial form). The Translator can now
+        // break out of the text block thanks to the absolute coords
+        // in ctx — see drawHorizontalRule.
+        $barThickness = $mfrac->linethickness();
+        if ($barThickness === null) {
+            $barThickness = 0.75;
+        } elseif ($barThickness === 0.0) {
+            return;
+        } else {
+            $barThickness *= 0.75; // CSS px → PDF points
+        }
+        // Bar Y: roughly half-em above the surrounding baseline —
+        // matches where the eye expects a fraction line to sit.
+        $barY = $ctx->baselineY + $ctx->fontSize * 0.3;
+        $this->drawHorizontalRule(
+            $ctx,
+            $fracLeftX,
+            $barY,
+            $fracWidth,
+            $barThickness,
+        );
     }
 
-    private function walkChildren(
-        Element $parent,
-        ContentStream $stream,
-        Font $upright,
-        Font $italic,
-        float $fontSize,
-    ): void {
+    /**
+     * Paint `<msqrt>` as content under a horizontal vinculum (overline).
+     *
+     * Tracer-bullet limitation: the radical sign √ itself is NOT drawn.
+     * The standard Type1 Times-Roman font ships without the
+     * U+221A glyph in StandardEncoding, so emitting it as text would
+     * fail. The vinculum alone is recognisable as a radical from
+     * context (`√x` reads correctly as "x under an overline"). Adding
+     * the √ stroke is a follow-up gated on Symbol-font integration or
+     * a math font.
+     *
+     * Children are walked as a transparent group (like `<mrow>`) — any
+     * combination of tokens / containers under the vinculum is valid.
+     */
+    private function paintMsqrt(Msqrt $msqrt, MathmlPaintContext $ctx): void
+    {
+        $contentWidth = $this->estimateWidth($msqrt, $ctx->fontSize);
+        if ($contentWidth < 0.001) {
+            return;
+        }
+        $radLeftX = $ctx->cursorX;
+        // Render content first — vinculum draws on top.
+        $this->walkChildren($msqrt, $ctx);
+        // Cursor should now be at radLeftX + contentWidth (approximately,
+        // by estimation). Force-set so subsequent siblings flow
+        // predictably even if estimation drifted.
+        $ctx->cursorX = $radLeftX + $contentWidth;
+
+        // Vinculum: thin horizontal rule above the content. Position
+        // it ~1.0em above the baseline so it sits just above the
+        // x-height of the content.
+        $vinculumY = $ctx->baselineY + $ctx->fontSize * 0.85;
+        $this->drawHorizontalRule(
+            $ctx,
+            $radLeftX,
+            $vinculumY,
+            $contentWidth,
+            0.75,
+        );
+    }
+
+    /**
+     * Paint `<mroot>` as base under vinculum, with a small superscript-
+     * sized index at the upper-left.
+     *
+     * Per Core §3.3.4 / §3.3.5, `<mroot>` has exactly two element
+     * children: `<mroot>BASE INDEX</mroot>`. The base goes under the
+     * vinculum; the index sits to the upper-left, at scriptlevel +1
+     * (~0.7em font size, raised by ~0.5em).
+     *
+     * Invalid `<mroot>` with anything other than two element children
+     * falls back to inline walk so content isn't dropped.
+     */
+    private function paintMroot(Mroot $mroot, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($mroot);
+        if (count($children) !== 2) {
+            $this->walkChildren($mroot, $ctx);
+            return;
+        }
+        [$base, $index] = [$children[0], $children[1]];
+
+        // Index: small font, raised. Emit first so it sits to the
+        // upper-left of the base. Approximate width = base * 0.7.
+        $indexFontSize = $ctx->fontSize * 0.7;
+        $indexWidth = $this->estimateWidth($index, $indexFontSize);
+        $indexRaise = $ctx->fontSize * 0.5;
+        $rootLeftX = $ctx->cursorX;
+
+        if ($indexWidth >= 0.001) {
+            $ctx->stream->setFont($ctx->upright, $indexFontSize);
+            $ctx->stream->moveTextPosition(0, $indexRaise);
+            $indexCtx = new MathmlPaintContext(
+                stream: $ctx->stream,
+                upright: $ctx->upright,
+                italic: $ctx->italic,
+                fontSize: $indexFontSize,
+                cursorX: $ctx->cursorX,
+                baselineY: $ctx->baselineY + $indexRaise,
+            );
+            $this->paint($index, $indexCtx);
+            // Drop back to base baseline + restore main font size.
+            $ctx->stream->moveTextPosition(0, -$indexRaise);
+            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+            $ctx->cursorX += $indexWidth;
+        }
+
+        // Base under vinculum (same shape as msqrt body, without the
+        // recursive call into paintMsqrt — we already have the index).
+        $baseLeftX = $ctx->cursorX;
+        $baseWidth = $this->estimateWidth($base, $ctx->fontSize);
+        if ($baseWidth < 0.001) {
+            return;
+        }
+        $this->paint($base, $ctx);
+        $ctx->cursorX = $baseLeftX + $baseWidth;
+
+        $vinculumY = $ctx->baselineY + $ctx->fontSize * 0.85;
+        $this->drawHorizontalRule($ctx, $baseLeftX, $vinculumY, $baseWidth, 0.75);
+    }
+
+    // -----------------------------------------------------------------
+    // Tokens
+    // -----------------------------------------------------------------
+
+    private function paintMn(Mn $mn, MathmlPaintContext $ctx): void
+    {
+        $this->emitText($mn->textContent(), $ctx);
+    }
+
+    private function paintMi(Mi $mi, MathmlPaintContext $ctx): void
+    {
+        $content = $mi->textContent();
+        if ($content === '') {
+            return;
+        }
+        // Core §3.2.3: single-character <mi> renders italic by default.
+        $useItalic = $this->isSingleVisibleChar($content) && $mi->mathvariant() === null;
+        if ($useItalic) {
+            $ctx->stream->setFont($ctx->italic, $ctx->fontSize);
+        }
+        $this->emitText($content, $ctx);
+        if ($useItalic) {
+            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        }
+    }
+
+    private function paintMo(Mo $mo, MathmlPaintContext $ctx): void
+    {
+        // Operator spacing (lspace / rspace from the dictionary) is
+        // deferred to the follow-up that ports the MathML Operator
+        // Dictionary. Tracer-bullet emits the glyph(s) verbatim.
+        $this->emitText($mo->textContent(), $ctx);
+    }
+
+    private function paintMs(Ms $ms, MathmlPaintContext $ctx): void
+    {
+        // <ms> wraps its content in lquote / rquote characters; the
+        // typed accessors fall back to ASCII " when absent.
+        $this->emitText($ms->lquote() . $ms->textContent() . $ms->rquote(), $ctx);
+    }
+
+    private function paintMtext(Mtext $mtext, MathmlPaintContext $ctx): void
+    {
+        $this->emitText($mtext->textContent(), $ctx);
+    }
+
+    // -----------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------
+
+    private function walkChildren(Element $parent, MathmlPaintContext $ctx): void
+    {
         foreach ($parent->children as $child) {
             if ($child instanceof Element) {
-                $this->paint($child, $stream, $upright, $italic, $fontSize);
+                $this->paint($child, $ctx);
             }
             // Text children outside token elements are not part of
             // the MathML content model; we ignore them rather than
@@ -152,69 +315,64 @@ final class Translator
         }
     }
 
-    private function paintMn(Mn $mn, ContentStream $stream): void
+    private function emitText(string $content, MathmlPaintContext $ctx): void
     {
-        $content = $mn->textContent();
         if ($content === '') {
             return;
         }
-        // <mn> is always upright per Core §3.2.4; the outer setFont
-        // (upright) is already active, so we just emit the glyphs.
-        $stream->showText($content);
+        $ctx->stream->showText($content);
+        $ctx->cursorX += mb_strlen($content, 'UTF-8') * $ctx->fontSize * self::CHAR_EM_WIDTH;
     }
 
-    private function paintMi(
-        Mi $mi,
-        ContentStream $stream,
-        Font $upright,
-        Font $italic,
-        float $fontSize,
+    /**
+     * Break out of the BT/ET text block, draw a horizontal rule at
+     * absolute coords, restart the text block at the original cursor
+     * position. Used for fraction bars and radical vinculums.
+     *
+     * Restoring the text position is critical — without it, subsequent
+     * tokens would draw from (0, 0) in absolute coords. We use
+     * setTextMatrix (Tm) for an absolute reset rather than Td chains.
+     */
+    private function drawHorizontalRule(
+        MathmlPaintContext $ctx,
+        float $x,
+        float $y,
+        float $width,
+        float $thickness,
     ): void {
-        $content = $mi->textContent();
-        if ($content === '') {
-            return;
-        }
-        // Core §3.2.3: single-character `<mi>` renders italic by
-        // default; multi-character content (`sin`, `log`) renders
-        // upright. `mathvariant` would override this; deferred to a
-        // follow-up that wires the full variant table.
-        $useItalic = $this->isSingleVisibleChar($content) && $mi->mathvariant() === null;
-        $face = $useItalic ? $italic : $upright;
-        $stream->setFont($face, $fontSize);
-        $stream->showText($content);
-        // Restore upright for whatever runs after this <mi>.
-        if ($useItalic) {
-            $stream->setFont($upright, $fontSize);
-        }
+        $stream = $ctx->stream;
+        $stream->endText();
+        $stream->saveGraphicsState();
+        $stream->setLineWidth($thickness);
+        $stream->moveTo($x, $y);
+        $stream->lineTo($x + $width, $y);
+        $stream->stroke();
+        $stream->restoreGraphicsState();
+        $stream->beginText();
+        $stream->setFont($ctx->upright, $ctx->fontSize);
+        // Tm — absolute text matrix. Identity rotation/scale, translate
+        // to (cursorX, baselineY). Subsequent Tj advances the pen
+        // from there.
+        $stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $ctx->cursorX, $ctx->baselineY);
     }
 
-    private function paintMo(Mo $mo, ContentStream $stream): void
+    /**
+     * Rough width estimate based on flattened text content. Wide
+     * glyphs, italics, and uppercase will be under-estimated; this
+     * is acceptable for the tracer-bullet positioning math.
+     */
+    private function estimateWidth(Element $element, float $fontSize): float
     {
-        $content = $mo->textContent();
-        if ($content === '') {
-            return;
-        }
-        // Operator spacing (lspace / rspace from the dictionary) is
-        // deferred to the follow-up that ports the MathML Operator
-        // Dictionary. Tracer-bullet emits the glyph(s) verbatim.
-        $stream->showText($content);
+        return mb_strlen($element->textContent(), 'UTF-8') * $fontSize * self::CHAR_EM_WIDTH;
     }
 
-    private function paintMs(Ms $ms, ContentStream $stream): void
+    /** @return list<Element> */
+    private function elementChildren(Element $parent): array
     {
-        $content = $ms->textContent();
-        // <ms> wraps its content in lquote / rquote characters; the
-        // typed accessors fall back to ASCII " when absent.
-        $stream->showText($ms->lquote() . $content . $ms->rquote());
-    }
-
-    private function paintMtext(Mtext $mtext, ContentStream $stream): void
-    {
-        $content = $mtext->textContent();
-        if ($content === '') {
-            return;
-        }
-        $stream->showText($content);
+        return array_values(array_filter(
+            $parent->children,
+            static fn($c) => $c instanceof Element,
+        ));
     }
 
     /**
