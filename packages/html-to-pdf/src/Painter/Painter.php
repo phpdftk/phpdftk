@@ -4416,6 +4416,30 @@ final class Painter
         $geo = $box->geometry;
         $width = $geo->width;
         $height = $geo->height;
+        // Sizing precedence for the inline SVG:
+        //   1. Box geometry from CSS-cascaded width/height — only
+        //      populated when InlineLayout actually laid the box out.
+        //   2. Cascade values read directly (covers the no-font case
+        //      where InlineLayout returns early before tokenisation,
+        //      but the cascade still has Length values from author CSS).
+        //   3. The svg element's own `width` / `height` attributes,
+        //      parsed as CSS pixels.
+        // Without precedence #2 a document with `#s { width: 50pt }`
+        // and no embedded font would render the SVG at zero size.
+        // Precedence #3 catches the bare `<svg width="80" height="60">`
+        // case where neither CSS nor the cascade has a Length.
+        if ($width <= 0.0) {
+            $cascaded = $box->style->get('width');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $width = $cascaded->value;
+            }
+        }
+        if ($height <= 0.0) {
+            $cascaded = $box->style->get('height');
+            if ($cascaded instanceof \Phpdftk\Css\Value\Length && $cascaded->value > 0.0) {
+                $height = $cascaded->value;
+            }
+        }
         if ($width <= 0.0) {
             $attr = $element->getAttribute('width');
             if ($attr !== null) {
@@ -4426,6 +4450,26 @@ final class Painter
             $attr = $element->getAttribute('height');
             if ($attr !== null) {
                 $height = $this->parseSvgLength($attr);
+            }
+        }
+        // Final fallback: intrinsic dimensions from the viewBox's
+        // width/height columns. SVG 2 §8.2 — when neither CSS nor a
+        // width/height attr declares a size, the viewBox supplies the
+        // intrinsic aspect ratio AND, in browsers, an intrinsic
+        // pixel size for replaced-element layout (third + fourth
+        // viewBox values treated as CSS pixels). The viewBox parser
+        // lives in `ViewportElement::viewBox()` but we duplicate the
+        // tiny extraction here to avoid forcing the SVG parser to
+        // run on a zero-size SVG we'd otherwise have dropped.
+        if ($width <= 0.0 || $height <= 0.0) {
+            $vb = $this->parseViewBox($element->getAttribute('viewBox'));
+            if ($vb !== null) {
+                if ($width <= 0.0) {
+                    $width = $vb[0] * 0.75;
+                }
+                if ($height <= 0.0) {
+                    $height = $vb[1] * 0.75;
+                }
             }
         }
         if ($width <= 0.0 || $height <= 0.0) {
@@ -4447,6 +4491,37 @@ final class Painter
             $height,
             stream: $stream,
         );
+    }
+
+    /**
+     * Pull the width/height columns out of an SVG `viewBox` attribute
+     * for the intrinsic-sizing fallback. Returns `[width, height]` in
+     * CSS pixels (viewBox values are unitless user-space coordinates,
+     * which in the absence of any other sizing input are interpreted
+     * as CSS pixels per SVG 2 §8.2). Returns null on parse failure.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    private function parseViewBox(?string $raw): ?array
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $parts = preg_split('/[\s,]+/', trim($raw)) ?: [];
+        if (count($parts) !== 4) {
+            return null;
+        }
+        foreach ($parts as $p) {
+            if (!is_numeric($p)) {
+                return null;
+            }
+        }
+        $w = (float) $parts[2];
+        $h = (float) $parts[3];
+        if ($w <= 0.0 || $h <= 0.0) {
+            return null;
+        }
+        return [$w, $h];
     }
 
     /**
