@@ -394,6 +394,13 @@ switch ($subcommand) {
             putenv('PHPDFTK_CROSS_BROWSER_ENGINES=' . implode(',', $enginesOpt));
         }
 
+        // --daemon-base routes BrowserOracle through the persistent
+        // engine daemons instead of forking node render.mjs per
+        // fixture. See docs/plans/cross-browser-container-sweep.md.
+        $daemonBase = isset($parsed['opts']['daemon-base']) && is_string($parsed['opts']['daemon-base'])
+            ? $parsed['opts']['daemon-base']
+            : null;
+
         // Optional JSON dump of the per-shard result so CI can fold N
         // shards into one PR comment. Schema is documented in
         // scripts/cross-browser/aggregate.php.
@@ -412,7 +419,7 @@ switch ($subcommand) {
             // (if requested) and exit 0 so CI sees it as "ran fine,
             // had nothing to do".
             if ($jsonOut !== null) {
-                $oracle = new BrowserOracle();
+                $oracle = new BrowserOracle(daemonBase: $daemonBase);
                 $availability = [];
                 foreach (['chromium', 'firefox', 'webkit'] as $e) {
                     $availability[$e] = $oracle->isAvailable($e);
@@ -427,7 +434,9 @@ switch ($subcommand) {
             exit(0);
         }
 
-        $runner = new CrossBrowserRunner();
+        $runner = new CrossBrowserRunner(
+            oracle: new BrowserOracle(daemonBase: $daemonBase),
+        );
 
         printf("WPT cross-browser oracle — corpus: %s\n", $root);
         printf("Curated subset: %d fixture%s", count($entries), count($entries) === 1 ? '' : 's');
@@ -514,7 +523,7 @@ switch ($subcommand) {
         printf("  insufficient engines:  %d\n", $tallies['insufficient_engines']);
         printf("  harness errors:        %d\n", $tallies['harness_error']);
 
-        $oracle = new BrowserOracle();
+        $oracle = new BrowserOracle(daemonBase: $daemonBase);
         $availability = [];
         foreach (['chromium', 'firefox', 'webkit'] as $e) {
             $availability[$e] = $oracle->isAvailable($e);
@@ -610,6 +619,12 @@ switch ($subcommand) {
             putenv('PHPDFTK_CROSS_BROWSER_ENGINES=' . implode(',', $enginesOpt));
         }
 
+        // --daemon-base routes BrowserOracle through the persistent
+        // engine daemons. See docs/plans/cross-browser-container-sweep.md.
+        $daemonBase = isset($opts['daemon-base']) && is_string($opts['daemon-base'])
+            ? $opts['daemon-base']
+            : null;
+
         // Shard predicate matches the `cross-browser` semantics so
         // sweep + curated runs can share the same shard map.
         $shardSpec = isset($opts['shard']) && is_string($opts['shard'])
@@ -660,7 +675,7 @@ switch ($subcommand) {
             exit(0);
         }
 
-        $oracle = new BrowserOracle();
+        $oracle = new BrowserOracle(daemonBase: $daemonBase);
         $availability = [];
         foreach (['chromium', 'firefox', 'webkit'] as $e) {
             $availability[$e] = $oracle->isAvailable($e);
@@ -685,7 +700,7 @@ switch ($subcommand) {
         }
         printf("  fixtures: %d\n\n", count($fixtures));
 
-        $runner = new CrossBrowserRunner();
+        $runner = new CrossBrowserRunner(oracle: $oracle);
         // Aggregation buckets keyed by directory (depth-truncated
         // relative to root). Each bucket tracks (count, sums[engine],
         // engineCounts[engine]) so the final mean is sum / engineCount.
@@ -848,6 +863,7 @@ Subcommands:
   classify <test-id>                       Show verdict for one ID
   cross-browser [--root=<path>] [--filter=<glob>]
                 [--shard=K/N] [--engines=<csv>] [--json=<path>]
+                [--daemon-base=<url>]
                                            Run the cross-browser PDF oracle
                                            over the curated subset. `--shard`
                                            selects 1/N of the manifest by
@@ -855,10 +871,17 @@ Subcommands:
                                            picks the subset of {chromium,firefox,
                                            webkit} to consult, `--json` writes a
                                            per-shard result dump for the
-                                           aggregator.
+                                           aggregator. `--daemon-base=<url>`
+                                           routes through persistent engine
+                                           daemons (`docker compose up -d`)
+                                           instead of forking node render.mjs
+                                           per fixture — typical value:
+                                           `http://127.0.0.1:910` (engines map
+                                           to ports 9101/9102/9103).
   cb-sweep [--root=<path>] [--scope=<name>] [--include=<csv-globs>]
            [--exclude=<csv-globs>] [--depth=<N>] [--max=<N>] [--shard=K/N]
-           [--engines=<csv>] [--skip-testharness] [--skip-crashtests]
+           [--engines=<csv>] [--daemon-base=<url>]
+           [--skip-testharness] [--skip-crashtests]
            [--show-worst=<N>] [--json=<path>]
                                            Walk the WPT corpus (defaults to the
                                            tree at --root, typically
@@ -879,6 +902,9 @@ Subcommands:
                                            `--json=<path>` dumps the full
                                            result set (including per-fixture
                                            AE) for downstream slice/dice.
+                                           `--daemon-base=<url>` routes through
+                                           persistent engine daemons — see
+                                           docs/plans/cross-browser-container-sweep.md.
   status                                   Show last run (4A.5)
   diff <test-id>                           Open failure artefacts (4A.5)
 

@@ -1,0 +1,110 @@
+---
+title: Cross-browser WPT sweep
+description: Running the entire WPT corpus through Blink, Gecko, and WebKit via persistent engine daemons in Docker.
+---
+
+The cross-browser PDF oracle renders WPT fixtures through three real browser engines — Blink (Chromium), Gecko (Firefox), and WebKit — and asserts our renderer's output matches the engines' consensus. The sweep is how we measure that against the entire WPT corpus.
+
+This page covers the **container-hosted sweep** that uses persistent engine daemons. The legacy per-fixture path (`scripts/cross-browser/render.mjs`) still works and is the right choice for one-off renders during dev, but for a full-corpus sweep the persistent-daemon path is 5–10× faster.
+
+Background: the oracle's *what* lives in [docs/plans/cross-browser-oracle.md](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-oracle.md); the container architecture is in [docs/plans/cross-browser-container-sweep.md](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-container-sweep.md).
+
+## Why daemons
+
+A one-shot `node render.mjs chromium fixture.html` cold-launches Chromium (~400 ms) before doing the actual render (~50–500 ms). Over the ~28 000 fixtures in a `--scope=rendering --skip-testharness` sweep × 3 engines, that's about 9 hours of pure process startup wasted.
+
+The daemon launches the browser once at the start of the sweep and recycles `BrowserContext`s from a pool. Startup cost amortizes to nothing; the only per-fixture cost is the actual render.
+
+## Bring it up
+
+```sh
+docker compose up -d --wait chromium
+curl http://127.0.0.1:9101/status
+```
+
+The first build is ~3 min; subsequent runs hit the docker layer cache and come up in a few seconds. The compose file lives at the repo root.
+
+To stop it:
+
+```sh
+docker compose down
+```
+
+## Run the sweep against the daemon
+
+Tell `wpt cb-sweep` (or `wpt cross-browser`) to route through the daemon cluster:
+
+```sh
+composer wpt -- cb-sweep \
+    --scope=rendering \
+    --skip-testharness \
+    --engines=chromium \
+    --daemon-base=http://127.0.0.1:910
+```
+
+`--daemon-base` is a single URL prefix. The oracle appends an engine offset:
+
+| Engine | Port |
+|---|---|
+| chromium | 9101 |
+| firefox | 9102 |
+| webkit | 9103 |
+
+So `--daemon-base=http://127.0.0.1:910` resolves to `9101`, `9102`, `9103` for the three engines respectively. The corresponding compose services have to be up; engines whose daemon doesn't answer are skipped silently.
+
+When `--daemon-base` is unset, the oracle falls back to the legacy per-fixture path. Dev hosts that don't want to run Docker keep working without changing anything.
+
+## Cache
+
+Both the host PHP shards and the daemon share `var/wpt/browser-cache/` via a single bind mount. The cache is keyed on `sha256(fixture_bytes) + cache_generation + engine` — same scheme either path uses. Writes are atomic (`tmp + rename`). A cache hit short-circuits the daemon roundtrip entirely; on warm cache, a full sweep finishes in seconds.
+
+Bump the cache generation when any browser version moves — there's a single `cacheGeneration` knob in `BrowserOracle::__construct()`.
+
+## Protocol surface
+
+Each engine daemon speaks the same HTTP/JSON protocol on its loopback port:
+
+```
+GET  /status   → 200 { engine, version, ready, pool: { size, in_flight, queued } }
+POST /render   → 200 { pdf_bytes_base64, ms, from_cache }
+                 4xx { error }  on bad fixture / missing field
+                 408 { error }  on render timeout
+                 502 { error }  during a browser-crash window
+POST /flush    → 204             drain in-flight, restart browser
+```
+
+`POST /render` request body:
+
+```json
+{
+  "fixture":    "/wpt/css/css-flexbox/align-items-001.html",
+  "cache_key":  "<first 64 hex chars of sha256 hash>",
+  "viewport":   { "width": 816, "height": 1056 },
+  "timeout_ms": 60000
+}
+```
+
+The `fixture` path is interpreted **inside the container**, where the WPT corpus is bind-mounted at `/wpt/`. The daemon rejects any path that doesn't resolve into the WPT mount.
+
+## Daemon lifecycle
+
+The daemon launches Chromium lazily on the first `/render` (the lazy start lets `/status` answer quickly while the build is still warming). After that, the browser stays up for the daemon's lifetime. If Chromium dies — OOM, segfault, anything — the daemon catches the `disconnected` event and the next request triggers a relaunch. In-flight requests during the disconnect window receive a 502 and the orchestrator retries.
+
+`POST /flush` does a controlled restart: drain in-flight, close the browser, bump the generation counter. Useful when you've bumped the cache generation and want every render to come from a fresh process.
+
+## Troubleshooting
+
+- **`docker compose up -d --wait chromium` hangs** — the healthcheck waits 30 s on `start_period` before counting failures. If the build itself is slow, run `docker compose up chromium` (no `-d`) once to see the build logs.
+- **`/status` returns ready: false** — Chromium hasn't launched yet. Fire one `POST /render` request and `/status` should flip on the next call.
+- **`/render` returns 400 "fixture must be inside /wpt"** — the path you sent isn't under the WPT bind mount. Double-check the mount in `compose.yaml` and that you're using the in-container `/wpt/...` path, not the host path.
+- **Daemon eats memory** — the issue most likely lies with a leak in Playwright contexts. The container memory cap is 4 GB; the OOMKiller bounces the daemon and your sweep continues. Track the leak through issue [#29](https://github.com/phpdftk/phpdftk/issues/29).
+
+## What this slice ships
+
+Phase P0 of the [container sweep plan](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/cross-browser-container-sweep.md):
+
+- `scripts/cross-browser/engines/chromium/` — Dockerfile + `server.mjs` daemon + `lib.mjs` primitives + `test/`
+- `compose.yaml` at the repo root — chromium service only (firefox + webkit land under [#32](https://github.com/phpdftk/phpdftk/issues/32) and [#33](https://github.com/phpdftk/phpdftk/issues/33))
+- `BrowserOracle` daemon-mode dispatch + `--daemon-base` flag on `wpt cb-sweep` and `wpt cross-browser`
+- Unit tests for the daemon primitives + PHP-side daemon-mode tests
+- Integration script at `scripts/cross-browser/engines/chromium/test/integration.sh`
