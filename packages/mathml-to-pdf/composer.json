@@ -22,6 +22,8 @@
     },
     "require": {
         "php": "^8.4",
+        "phpdftk/encoding": "^1.0",
+        "phpdftk/font-metrics": "^1.0",
         "phpdftk/mathml": "^1.0",
         "phpdftk/pdf-writer": "^1.0",
         "phpdftk/text": "^1.0"

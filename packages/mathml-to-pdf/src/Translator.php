@@ -60,18 +60,15 @@ use Phpdftk\Pdf\Core\Content\ContentStream;
  * tags outside this set route to GenericElement at parse time, so
  * they all reach the fallback.
  *
- * Width estimation note: every paint method uses ~0.5em per character
- * as the advance width for glyphs (Times-Roman digits and lowercase
- * average close to this). Wide glyphs / italics / uppercase will be
- * slightly under-estimated; this is acceptable for the tracer-bullet
- * stage. Real glyph-derived widths land when the renderer learns to
- * read Type1 AFM metrics.
+ * Width estimation uses real AFM glyph widths from
+ * {@see MathmlGlyphMetrics} - Times-Roman for the upright face,
+ * Times-Italic for the italic face used on single-character `<mi>`.
+ * Characters outside WinAnsi fall back to the font's .notdef width;
+ * those characters would render as `?` in the standard fonts anyway,
+ * pending the OpenType MATH-table font work.
  */
 final class Translator
 {
-    /** Approximate em-fraction width per character for Times-Roman. */
-    private const float CHAR_EM_WIDTH = 0.5;
-
     /**
      * Paint one element. `$operatorForm`, when supplied, hints the
      * default form for an `<mo>` whose own `form` attribute is
@@ -1206,7 +1203,7 @@ final class Translator
         if ($useItalic) {
             $ctx->stream->setFont($ctx->italic, $ctx->fontSize);
         }
-        $this->emitText($content, $ctx);
+        $this->emitText($content, $ctx, $useItalic);
         if ($useItalic) {
             $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
         }
@@ -1380,13 +1377,19 @@ final class Translator
         return 'infix';
     }
 
-    private function emitText(string $content, MathmlPaintContext $ctx): void
+    /**
+     * Emit `$content` and advance the cursor by its real rendered
+     * width. `$italic` chooses the metrics table when the painter
+     * just emitted with the italic face (single-char `<mi>`); upright
+     * elsewhere.
+     */
+    private function emitText(string $content, MathmlPaintContext $ctx, bool $italic = false): void
     {
         if ($content === '') {
             return;
         }
         $ctx->stream->showText($content);
-        $ctx->cursorX += mb_strlen($content, 'UTF-8') * $ctx->fontSize * self::CHAR_EM_WIDTH;
+        $ctx->cursorX += MathmlGlyphMetrics::measure($content, $ctx->fontSize, $italic);
     }
 
     /**
@@ -1422,13 +1425,23 @@ final class Translator
     }
 
     /**
-     * Rough width estimate based on flattened text content. Wide
-     * glyphs, italics, and uppercase will be under-estimated; this
-     * is acceptable for the tracer-bullet positioning math.
+     * Width estimate based on flattened text content measured against
+     * the upright (Times-Roman) AFM widths.
+     *
+     * Italic-vs-upright correctness: single-char `<mi>` renders in
+     * Times-Italic but we still use the upright width here. Italic
+     * Latin glyphs are ~5% narrower; the drift is small enough that
+     * keeping `estimateWidth` font-agnostic is a fair trade for not
+     * threading face state through every sub-call. The actual
+     * cursor advance in {@see emitText()} uses the right face.
      */
     private function estimateWidth(Element $element, float $fontSize): float
     {
-        return mb_strlen($element->textContent(), 'UTF-8') * $fontSize * self::CHAR_EM_WIDTH;
+        return MathmlGlyphMetrics::measure(
+            $element->textContent(),
+            $fontSize,
+            italic: false,
+        );
     }
 
     /** @return list<Element> */
