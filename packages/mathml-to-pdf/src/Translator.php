@@ -20,6 +20,7 @@ use Phpdftk\Mathml\Msqrt;
 use Phpdftk\Mathml\Msub;
 use Phpdftk\Mathml\Msubsup;
 use Phpdftk\Mathml\Msup;
+use Phpdftk\Mathml\Menclose;
 use Phpdftk\Mathml\Mpadded;
 use Phpdftk\Mathml\Mphantom;
 use Phpdftk\Mathml\Mspace;
@@ -30,6 +31,7 @@ use Phpdftk\Mathml\Mtr;
 use Phpdftk\Mathml\Munder;
 use Phpdftk\Mathml\Munderover;
 use Phpdftk\Mathml\NoneElement;
+use Phpdftk\Pdf\Core\Content\ContentStream;
 
 /**
  * Per-element paint dispatcher. The {@see MathmlRenderer} owns the
@@ -50,6 +52,7 @@ use Phpdftk\Mathml\NoneElement;
  *   - `<mmultiscripts>` (arbitrary pre/post script pairs)
  *   - `<mtable>` / `<mtr>` / `<mtd>` (2-D grid layout)
  *   - `<mspace>` / `<mpadded>` / `<mphantom>` (spacing primitives)
+ *   - `<menclose>` (notation framers: box, longdiv, strikes, edges)
  *
  * GenericElement (unknown / future tags) recurses into children so a
  * stray container doesn't drop everything inside it on the floor. All
@@ -90,6 +93,7 @@ final class Translator
             $element instanceof Mspace  => $this->paintMspace($element, $ctx),
             $element instanceof Mpadded => $this->paintMpadded($element, $ctx),
             $element instanceof Mphantom => $this->paintMphantom($element, $ctx),
+            $element instanceof Menclose => $this->paintMenclose($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -990,6 +994,185 @@ final class Translator
         }
         $ctx->stream->moveTextPosition($width, 0.0);
         $ctx->cursorX += $width;
+    }
+
+    // -----------------------------------------------------------------
+    // menclose - notation framers (box, longdiv, strikes, edges)
+    // -----------------------------------------------------------------
+
+    /** Notation stroke thickness, in PDF points. */
+    private const float MENCLOSE_STROKE_PT = 0.75;
+
+    /**
+     * Padding around the enclosed content, in em. Visually separates
+     * the notation strokes from the glyphs they enclose.
+     */
+    private const float MENCLOSE_PAD_EM = 0.1;
+
+    /**
+     * Paint `<menclose>` - render children inline, then overlay each
+     * requested notation decoration. Unknown notations no-op.
+     *
+     * Bounding box:
+     *
+     *   left   = startX
+     *   right  = startX + contentWidth + 2 * pad
+     *   bottom = baselineY - 0.2 * fontSize        (descender slop)
+     *   top    = baselineY + 0.9 * fontSize        (ascender + cap)
+     *
+     * Each notation's stroke draws against this box. The content
+     * itself paints with the natural `pad` left-padding so glyphs
+     * don't kiss the frame.
+     */
+    private function paintMenclose(Menclose $menclose, MathmlPaintContext $ctx): void
+    {
+        $startX = $ctx->cursorX;
+        $padPt = $ctx->fontSize * self::MENCLOSE_PAD_EM;
+
+        // Shift content right by pad before paint so glyphs sit
+        // inside the frame.
+        if ($padPt > 0.0) {
+            $ctx->stream->moveTextPosition($padPt, 0.0);
+            $ctx->cursorX += $padPt;
+        }
+
+        $this->walkChildren($menclose, $ctx);
+
+        // Pad on the right side too.
+        if ($padPt > 0.0) {
+            $ctx->stream->moveTextPosition($padPt, 0.0);
+            $ctx->cursorX += $padPt;
+        }
+
+        $left = $startX;
+        $right = $ctx->cursorX;
+        $bottom = $ctx->baselineY - $ctx->fontSize * 0.2;
+        $top = $ctx->baselineY + $ctx->fontSize * 0.9;
+
+        // Single graphics-state save covers every notation in the
+        // list, then restores once at the end.
+        $stream = $ctx->stream;
+        $stream->endText();
+        $stream->saveGraphicsState();
+        $stream->setLineWidth(self::MENCLOSE_STROKE_PT);
+
+        foreach ($menclose->notations() as $notation) {
+            $this->drawNotation(
+                $stream,
+                $notation,
+                $left,
+                $bottom,
+                $right,
+                $top,
+            );
+        }
+
+        $stream->restoreGraphicsState();
+        $stream->beginText();
+        $stream->setFont($ctx->upright, $ctx->fontSize);
+        // Tm - absolute reset so the next emit picks up at the right
+        // place. Same pattern as drawHorizontalRule.
+        $stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $ctx->cursorX, $ctx->baselineY);
+    }
+
+    /**
+     * Emit the path operators for a single notation keyword against
+     * the menclose bounding box (left, bottom, right, top). Caller
+     * has already broken out of BT/ET and set the line width.
+     */
+    private function drawNotation(
+        ContentStream $stream,
+        string $notation,
+        float $left,
+        float $bottom,
+        float $right,
+        float $top,
+    ): void {
+        $midX = ($left + $right) / 2.0;
+        $midY = ($bottom + $top) / 2.0;
+
+        switch ($notation) {
+            case 'box':
+            case 'roundedbox':
+                // Four edges. Rounded variant ignores the corner
+                // radius for v1.
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($right, $bottom);
+                $stream->lineTo($right, $top);
+                $stream->lineTo($left, $top);
+                $stream->lineTo($left, $bottom);
+                $stream->stroke();
+                return;
+
+            case 'longdiv':
+                // Top edge + left edge (open on the right).
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($left, $top);
+                $stream->lineTo($right, $top);
+                $stream->stroke();
+                return;
+
+            case 'actuarial':
+                // Top edge + right edge.
+                $stream->moveTo($left, $top);
+                $stream->lineTo($right, $top);
+                $stream->lineTo($right, $bottom);
+                $stream->stroke();
+                return;
+
+            case 'top':
+                $stream->moveTo($left, $top);
+                $stream->lineTo($right, $top);
+                $stream->stroke();
+                return;
+
+            case 'bottom':
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($right, $bottom);
+                $stream->stroke();
+                return;
+
+            case 'left':
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($left, $top);
+                $stream->stroke();
+                return;
+
+            case 'right':
+                $stream->moveTo($right, $bottom);
+                $stream->lineTo($right, $top);
+                $stream->stroke();
+                return;
+
+            case 'horizontalstrike':
+                $stream->moveTo($left, $midY);
+                $stream->lineTo($right, $midY);
+                $stream->stroke();
+                return;
+
+            case 'verticalstrike':
+                $stream->moveTo($midX, $bottom);
+                $stream->lineTo($midX, $top);
+                $stream->stroke();
+                return;
+
+            case 'updiagonalstrike':
+                // Bottom-left to top-right.
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($right, $top);
+                $stream->stroke();
+                return;
+
+            case 'downdiagonalstrike':
+                // Top-left to bottom-right.
+                $stream->moveTo($left, $top);
+                $stream->lineTo($right, $bottom);
+                $stream->stroke();
+                return;
+
+                // circle, radical, madruwb, phasorangle, downdiagonalarrow,
+                // updiagonalarrow - no-op for v1. Content still renders.
+        }
     }
 
     // -----------------------------------------------------------------
