@@ -142,6 +142,71 @@ final class SpacingRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\(y\)\s+Tj/', $bytes);
     }
 
+    public function testMpaddedVoffsetShiftsContentVertically(): void
+    {
+        // voffset adds a Y component to the inner Td. The cursor
+        // should return to the original baseline after children
+        // paint so trailing siblings flow correctly.
+        $bytes = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mrow>'
+                . '<mi>a</mi>'
+                . '<mpadded voffset="0.5em"><mi>x</mi></mpadded>'
+                . '<mi>b</mi>'
+                . '</mrow>'
+                . '</math>',
+        );
+        self::assertMatchesRegularExpression('/\(a\)\s+Tj/', $bytes);
+        self::assertMatchesRegularExpression('/\(b\)\s+Tj/', $bytes);
+        self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
+        // Td count should include the voffset shift + the restore
+        // counter-shift around the children.
+        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        self::assertGreaterThanOrEqual(2, $tdCount);
+    }
+
+    public function testMpaddedVoffsetAbsentMatchesZero(): void
+    {
+        // voffset omitted vs voffset="0em" should produce the same
+        // Td sequence - no extra Td(0,0).
+        $without = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        $voffsetZero = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded voffset="0em"><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        self::assertSame(
+            preg_match_all('/\s+Td\b/', $without),
+            preg_match_all('/\s+Td\b/', $voffsetZero),
+        );
+    }
+
+    public function testMpaddedVoffsetSignFlipsYDeltas(): void
+    {
+        // Positive vs negative voffset produces opposite Y deltas.
+        $negative = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded voffset="-0.5em"><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        $positive = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded voffset="0.5em"><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        preg_match_all('/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b/', $negative, $m1);
+        preg_match_all('/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b/', $positive, $m2);
+        self::assertNotSame(
+            $m1[2],
+            $m2[2],
+            'Sign-flipped voffset should produce opposite Y deltas',
+        );
+    }
+
     public function testMphantomReservesSpaceWithoutEmittingGlyphs(): void
     {
         // <mphantom>X</mphantom> reserves the same horizontal space

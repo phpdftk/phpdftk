@@ -1247,7 +1247,21 @@ final class Translator
             $ctx->cursorX += $lspacePt;
         }
 
+        // voffset raises (positive) or lowers (negative) the
+        // content's baseline. Apply the shift before walking
+        // children and restore it after so subsequent siblings
+        // flow on the original baseline.
+        $voffsetEm = $mpadded->voffsetEm() ?? 0.0;
+        $voffsetPt = $voffsetEm * $ctx->fontSize;
+        if ($voffsetPt !== 0.0) {
+            $ctx->stream->moveTextPosition(0.0, $voffsetPt);
+        }
+
         $this->walkChildren($mpadded, $ctx);
+
+        if ($voffsetPt !== 0.0) {
+            $ctx->stream->moveTextPosition(0.0, -$voffsetPt);
+        }
 
         $widthEm = $mpadded->widthEm();
         if ($widthEm !== null) {

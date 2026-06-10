@@ -17,8 +17,9 @@ namespace Phpdftk\Mathml;
  *   - `depth`   — descent below baseline. (Painter ignores for v1.)
  *   - `lspace`  — pad on the LEFT before the content (shifts content
  *     right; cursor advances accordingly).
- *   - `voffset` — vertical shift of the content. (Painter ignores
- *     for v1.)
+ *   - `voffset` — vertical shift of the content (positive raises,
+ *     negative lowers). Painter applies this around the children's
+ *     paint so subsequent siblings flow on the original baseline.
  *
  * The relative forms (e.g. `width="+1em"`) modify the intrinsic
  * value. The v1 painter honours `width` and `lspace` as absolute
@@ -52,6 +53,18 @@ final class Mpadded extends Element
     public function lspaceEm(): ?float
     {
         return $this->parseAbsoluteLengthEm($this->attributes['lspace'] ?? null);
+    }
+
+    /**
+     * Absolute `voffset` in em. Positive values raise the content
+     * above its natural baseline; negative values lower it. The
+     * painter applies the offset around the children's paint and
+     * restores the cursor to the original baseline afterward so
+     * subsequent siblings flow correctly.
+     */
+    public function voffsetEm(): ?float
+    {
+        return $this->parseAbsoluteLengthEm($this->attributes['voffset'] ?? null);
     }
 
     /**
