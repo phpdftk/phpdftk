@@ -107,6 +107,43 @@ final class SpacingTest extends TestCase
         self::assertNull($mspace->widthEm());
     }
 
+    public function testMpaddedExposesVoffset(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded voffset="0.3em"><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        $el = $this->firstElement($doc->children);
+        self::assertInstanceOf(Mpadded::class, $el);
+        self::assertSame(0.3, $el->voffsetEm());
+    }
+
+    public function testMpaddedVoffsetSupportsNegativeAndPx(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded voffset="-16px"><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        $el = $this->firstElement($doc->children);
+        self::assertInstanceOf(Mpadded::class, $el);
+        // 16px = 1em (CSS px / 16). Negative drops the content.
+        self::assertSame(-1.0, $el->voffsetEm());
+    }
+
+    public function testMpaddedVoffsetAbsentReturnsNull(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded><mi>x</mi></mpadded>'
+                . '</math>',
+        );
+        $el = $this->firstElement($doc->children);
+        self::assertInstanceOf(Mpadded::class, $el);
+        self::assertNull($el->voffsetEm());
+    }
+
     public function testMpaddedExposesLspaceAndWidth(): void
     {
         $doc = $this->parser->parse(
