@@ -121,6 +121,7 @@
         "compliance": "scripts/compliance",
         "examples": "@php examples/run-all.php",
         "phpdoc": "scripts/phpdoc",
+        "fetch:math-font": "@php scripts/fetch-math-font.php",
         "wpt": "packages/wpt-harness/bin/wpt",
         "wpt:smoke": "packages/wpt-harness/bin/wpt run --root=packages/wpt-harness/fixtures/smoke",
         "cb-sweep:daemon": [
