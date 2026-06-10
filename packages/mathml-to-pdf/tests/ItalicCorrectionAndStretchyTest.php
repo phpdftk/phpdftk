@@ -105,6 +105,44 @@ final class ItalicCorrectionAndStretchyTest extends TestCase
         }
     }
 
+    public function testGlyphAssemblyEmitsMultipleHexGlyphsForVeryTallContent(): void
+    {
+        // axisheight5000-verticalarrow14000.woff has both pre-drawn
+        // variants AND an assembly recipe for U+21A8. The largest
+        // variant has advance ~14001 FUnits, so wrapping content
+        // taller than 14em forces the painter past the variant
+        // chain into the assembly path - which emits multiple hex
+        // glyphs (one fixed top + k extender repeats) for that
+        // single <mo>.
+        //
+        // A 10-row mtable has estimated height 10 × (1.0 em row +
+        // 0.5 em gap) = 15 em > 14 em, which exceeds the largest
+        // variant and falls into assembly.
+        $font = $this->wpt('axisheight5000-verticalarrow14000.woff');
+        $rows = '';
+        for ($i = 0; $i < 10; $i++) {
+            $rows .= '<mtr><mtd><mn>' . $i . '</mn></mtd></mtr>';
+        }
+        $bytes = $this->render(
+            '<mrow>'
+                . '<mo stretchy="true">' . "\u{21A8}" . '</mo>'
+                . '<mtable>' . $rows . '</mtable>'
+                . '</mrow>',
+            $font,
+        );
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // Hex GID emissions for the stretchy operator. We expect
+        // the assembly's fixed part + at least one extender
+        // repetition - so > 1 hex Tj.
+        $hexCount = preg_match_all('/<[0-9A-F]+>\s+Tj/', $bytes);
+        self::assertGreaterThan(
+            1,
+            $hexCount,
+            'Assembly path should emit multiple hex Tj operations '
+            . 'for a single stretchy operator',
+        );
+    }
+
     public function testMathFontPathRenderingDoesntRegressMrowParensAroundMfrac(): void
     {
         $font = $this->wpt('fraction-rulethickness10000.woff');
