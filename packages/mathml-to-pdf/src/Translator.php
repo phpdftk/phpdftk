@@ -31,6 +31,7 @@ use Phpdftk\Mathml\Mtr;
 use Phpdftk\Mathml\Munder;
 use Phpdftk\Mathml\Munderover;
 use Phpdftk\Mathml\NoneElement;
+use Phpdftk\Mathml\OperatorDictionary;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 
 /**
@@ -71,12 +72,22 @@ final class Translator
     /** Approximate em-fraction width per character for Times-Roman. */
     private const float CHAR_EM_WIDTH = 0.5;
 
-    public function paint(Element $element, MathmlPaintContext $ctx): void
-    {
+    /**
+     * Paint one element. `$operatorForm`, when supplied, hints the
+     * default form for an `<mo>` whose own `form` attribute is
+     * absent — the painter computes it from sibling position in
+     * {@see walkChildren}. Outside `<mo>` paint, the parameter is
+     * ignored.
+     */
+    public function paint(
+        Element $element,
+        MathmlPaintContext $ctx,
+        ?string $operatorForm = null,
+    ): void {
         match (true) {
             $element instanceof Mn      => $this->paintMn($element, $ctx),
             $element instanceof Mi      => $this->paintMi($element, $ctx),
-            $element instanceof Mo      => $this->paintMo($element, $ctx),
+            $element instanceof Mo      => $this->paintMo($element, $ctx, $operatorForm),
             $element instanceof Ms      => $this->paintMs($element, $ctx),
             $element instanceof Mtext   => $this->paintMtext($element, $ctx),
             $element instanceof Mfrac   => $this->paintMfrac($element, $ctx),
@@ -1201,12 +1212,72 @@ final class Translator
         }
     }
 
-    private function paintMo(Mo $mo, MathmlPaintContext $ctx): void
-    {
-        // Operator spacing (lspace / rspace from the dictionary) is
-        // deferred to the follow-up that ports the MathML Operator
-        // Dictionary. Tracer-bullet emits the glyph(s) verbatim.
-        $this->emitText($mo->textContent(), $ctx);
+    private function paintMo(
+        Mo $mo,
+        MathmlPaintContext $ctx,
+        ?string $form = null,
+    ): void {
+        $text = $mo->textContent();
+        if ($text === '') {
+            return;
+        }
+
+        $effectiveForm = $form ?? $mo->form() ?? 'infix';
+
+        // Author-supplied lspace / rspace attributes win over the
+        // dictionary's default. They are CSS lengths but the v1
+        // painter only honours em / unitless; everything else falls
+        // back to the dictionary value.
+        $entry = OperatorDictionary::lookup($text, $effectiveForm);
+        $lspaceEm = $this->resolveOperatorSpacing(
+            $mo->attributes['lspace'] ?? null,
+            $entry['lspace'],
+        );
+        $rspaceEm = $this->resolveOperatorSpacing(
+            $mo->attributes['rspace'] ?? null,
+            $entry['rspace'],
+        );
+
+        if ($lspaceEm > 0.0) {
+            $shift = $lspaceEm * $ctx->fontSize;
+            $ctx->stream->moveTextPosition($shift, 0.0);
+            $ctx->cursorX += $shift;
+        }
+
+        $this->emitText($text, $ctx);
+
+        if ($rspaceEm > 0.0) {
+            $shift = $rspaceEm * $ctx->fontSize;
+            $ctx->stream->moveTextPosition($shift, 0.0);
+            $ctx->cursorX += $shift;
+        }
+    }
+
+    /**
+     * Resolve `<mo>`'s `lspace` / `rspace` attribute. Author values
+     * in em / unitless override the dictionary default; anything else
+     * (px, pt, junk, absent) falls through to the dictionary.
+     */
+    private function resolveOperatorSpacing(
+        ?string $raw,
+        float $dictionaryDefault,
+    ): float {
+        if ($raw === null) {
+            return $dictionaryDefault;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return $dictionaryDefault;
+        }
+        if (!preg_match('/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/', $trimmed, $m)) {
+            return $dictionaryDefault;
+        }
+        $unit = strtolower($m[2]);
+        if ($unit !== 'em' && $unit !== '') {
+            return $dictionaryDefault;
+        }
+        $value = (float) $m[1];
+        return $value >= 0.0 ? $value : $dictionaryDefault;
     }
 
     private function paintMs(Ms $ms, MathmlPaintContext $ctx): void
@@ -1227,14 +1298,53 @@ final class Translator
 
     private function walkChildren(Element $parent, MathmlPaintContext $ctx): void
     {
+        // Materialise the element children once so we can look up
+        // siblings while computing the operator form for any <mo>.
+        $elementChildren = $this->elementChildren($parent);
+        $count = count($elementChildren);
+        $elementIndex = 0;
         foreach ($parent->children as $child) {
-            if ($child instanceof Element) {
-                $this->paint($child, $ctx);
+            if (!$child instanceof Element) {
+                // Text children outside token elements are not part of
+                // the MathML content model; ignore them.
+                continue;
             }
-            // Text children outside token elements are not part of
-            // the MathML content model; we ignore them rather than
-            // pollute the rendered output.
+            $form = null;
+            if ($child instanceof Mo) {
+                $form = $this->effectiveOperatorForm($child, $elementIndex, $count);
+            }
+            $this->paint($child, $ctx, $form);
+            $elementIndex++;
         }
+    }
+
+    /**
+     * Compute the effective form for an `<mo>` based on its sibling
+     * position when the element has no explicit `form` attribute.
+     * The Core dictionary keys spacing by form, so this determines
+     * which spacing rule fires.
+     *
+     * Heuristic from Core §3.2.5.7:
+     *   - First child of a row → prefix.
+     *   - Last child of a row → postfix.
+     *   - Anywhere else (including single-child) → infix.
+     */
+    private function effectiveOperatorForm(Mo $mo, int $index, int $count): string
+    {
+        $explicit = $mo->form();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+        if ($count <= 1) {
+            return 'infix';
+        }
+        if ($index === 0) {
+            return 'prefix';
+        }
+        if ($index === $count - 1) {
+            return 'postfix';
+        }
+        return 'infix';
     }
 
     private function emitText(string $content, MathmlPaintContext $ctx): void

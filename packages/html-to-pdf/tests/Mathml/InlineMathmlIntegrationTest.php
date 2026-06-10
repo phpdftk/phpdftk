@@ -94,6 +94,36 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMrowWithOperatorSpacingFlowsCleanly(): void
+    {
+        // `x = y + 1` end-to-end through the HTML pipeline. With the
+        // operator dictionary live, `=` and `+` each contribute
+        // medium / thick spacing on either side via Td.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <mrow><mi>x</mi><mo>=</mo><mi>y</mi><mo>+</mo><mn>1</mn></mrow>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        foreach (['x', '=', 'y', '+', '1'] as $glyph) {
+            self::assertMatchesRegularExpression(
+                '/\(' . preg_quote($glyph, '/') . '\)\s+Tj/',
+                $bytes,
+                "expected '$glyph' in stream",
+            );
+        }
+        // Operator-spacing Tds plus glyph-flow Tds: at least 4 Tds.
+        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        self::assertGreaterThanOrEqual(4, $tdCount);
+    }
+
     public function testInlineMencloseBoxAroundExpression(): void
     {
         // <menclose notation="box"> around an expression - common in
