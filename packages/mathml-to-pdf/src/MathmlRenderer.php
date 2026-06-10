@@ -160,6 +160,49 @@ final class MathmlRenderer
     }
 
     /**
+     * Intrinsic size of a MathML document in PDF user-space points.
+     * Returns `[width, height]` based on the Translator's layout
+     * estimators, using the same default font size and standard
+     * fonts the painter would otherwise use.
+     *
+     * Called by the html-to-pdf inline-math painter before laying
+     * out the surrounding atomic-inline box, so the box can match
+     * the math content's natural footprint instead of a hardcoded
+     * 200×14 pt fallback. The numbers here are intentionally
+     * conservative - we use the standard Times metrics + the
+     * tracer-bullet math metrics adapter so the size is stable
+     * regardless of whether a math font is later loaded for the
+     * actual draw() call.
+     *
+     * @return array{0: float, 1: float}
+     */
+    public function intrinsicSize(MathmlDocument $math): array
+    {
+        $fontSize = self::DEFAULT_FONT_SIZE;
+        $upright = $this->writer->addFont(
+            new Type1Font(StandardFont::TimesRoman),
+            $this->corePage(),
+        );
+        $italic = $this->writer->addFont(
+            new Type1Font(StandardFont::TimesItalic),
+            $this->corePage(),
+        );
+        $ctx = new MathmlPaintContext(
+            stream: $this->page->contentStream(),
+            upright: $upright,
+            italic: $italic,
+            fontSize: $fontSize,
+            cursorX: 0.0,
+            baselineY: 0.0,
+            direction: $math->dir() ?? 'ltr',
+            displayStyle: $math->displaystyle()
+                ?? ($math->display() === 'block'),
+            scriptLevel: $math->scriptlevel() ?? 0,
+        );
+        return $this->translator->measure($math, $ctx);
+    }
+
+    /**
      * Load the math font (if configured), pre-scan the document for
      * used codepoints, register a Type 0 / CIDFontType0 stack
      * against the writer, and return both the math-font handle and
