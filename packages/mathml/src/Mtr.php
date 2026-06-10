@@ -20,7 +20,7 @@ namespace Phpdftk\Mathml;
  *     this row only.
  *   - `rowalign` — overrides this row's vertical alignment.
  */
-final class Mtr extends Element
+class Mtr extends Element
 {
     public function __construct()
     {

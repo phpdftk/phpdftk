@@ -149,7 +149,9 @@ final class MathmlRenderer
             direction: $math->dir() ?? 'ltr',
             metrics: $effectiveMetrics,
             mathFont: $mathFont,
-            displayStyle: $math->display() === 'block',
+            displayStyle: $math->displaystyle()
+                ?? ($math->display() === 'block'),
+            scriptLevel: $math->scriptlevel() ?? 0,
         );
         $this->translator->paint($math, $ctx);
 

@@ -8,6 +8,7 @@ use Phpdftk\Mathml\Element;
 use Phpdftk\Mathml\GenericElement;
 use Phpdftk\Mathml\Maction;
 use Phpdftk\Mathml\Merror;
+use Phpdftk\Mathml\Mlabeledtr;
 use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
 use Phpdftk\Mathml\Mmultiscripts;
@@ -101,6 +102,10 @@ final class Translator
             $element instanceof Mover   => $this->paintMover($element, $ctx),
             $element instanceof Munderover => $this->paintMunderover($element, $ctx),
             $element instanceof Mmultiscripts => $this->paintMmultiscripts($element, $ctx),
+            // Mlabeledtr extends Mtr; check it first so the
+            // bare-row path (paintMlabeledtrInline) wins over
+            // the generic walkChildren fallback.
+            $element instanceof Mlabeledtr => $this->paintMlabeledtrInline($element, $ctx),
             $element instanceof Mtable  => $this->paintMtable($element, $ctx),
             $element instanceof Mspace  => $this->paintMspace($element, $ctx),
             $element instanceof Mpadded => $this->paintMpadded($element, $ctx),
@@ -812,7 +817,16 @@ final class Translator
         $rowEls = [];
         $rows = [];
         foreach ($this->elementChildren($mtable) as $rowEl) {
-            if ($rowEl instanceof Mtr) {
+            // Mlabeledtr extends Mtr, so check it first: per the
+            // legacy MathML 3 spec it renders as an <mtr> with the
+            // first child (the label) removed. The label could be
+            // drawn in a side margin in a future pass; for v1 it's
+            // just dropped.
+            if ($rowEl instanceof Mlabeledtr) {
+                $children = $this->elementChildren($rowEl);
+                $rowEls[] = $rowEl;
+                $rows[] = array_slice($children, 1);
+            } elseif ($rowEl instanceof Mtr) {
                 $rowEls[] = $rowEl;
                 $rows[] = $this->elementChildren($rowEl);
             }
@@ -1730,7 +1744,12 @@ final class Translator
 
     private function paintMn(Mn $mn, MathmlPaintContext $ctx): void
     {
-        $this->emitText($this->withMathvariant($mn, $mn->textContent()), $ctx);
+        $tokenCtx = $this->withMathsize($mn, $ctx);
+        $this->emitText(
+            $this->withMathvariant($mn, $mn->textContent()),
+            $tokenCtx,
+        );
+        $this->restoreMathsize($ctx, $tokenCtx);
     }
 
     private function paintMi(Mi $mi, MathmlPaintContext $ctx): void
@@ -1739,6 +1758,7 @@ final class Translator
         if ($content === '') {
             return;
         }
+        $tokenCtx = $this->withMathsize($mi, $ctx);
         // Core §3.2.3: single-character <mi> renders italic by default.
         // When a math font is active, the upright math font already
         // carries the italic-shaped letters in the Math Italic Unicode
@@ -1748,19 +1768,23 @@ final class Translator
         // font for emitText's hex emission.
         $useItalic = $this->isSingleVisibleChar($content)
             && $mi->mathvariant() === null
-            && $ctx->mathFont === null;
+            && $tokenCtx->mathFont === null;
         if ($useItalic) {
-            $ctx->stream->setFont($ctx->italic, $ctx->fontSize);
+            $tokenCtx->stream->setFont($tokenCtx->italic, $tokenCtx->fontSize);
         }
         // Apply mathvariant transform (no-op for auto-italic mi
         // because mathvariant is null in that branch). When set,
         // it maps ASCII letters/digits into Mathematical
         // Alphanumeric Symbols (U+1D400+).
         $emitContent = $this->withMathvariant($mi, $content);
-        $this->emitText($emitContent, $ctx, $useItalic);
+        $this->emitText($emitContent, $tokenCtx, $useItalic);
         if ($useItalic) {
-            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
+            $tokenCtx->stream->setFont(
+                $this->activeFont($tokenCtx),
+                $tokenCtx->fontSize,
+            );
         }
+        $this->restoreMathsize($ctx, $tokenCtx);
     }
 
     private function paintMo(
@@ -1772,6 +1796,9 @@ final class Translator
         if ($text === '') {
             return;
         }
+
+        $parentCtx = $ctx;
+        $ctx = $this->withMathsize($mo, $parentCtx);
 
         $effectiveForm = $form ?? $mo->form() ?? 'infix';
 
@@ -1823,6 +1850,7 @@ final class Translator
             $ctx->stream->moveTextPosition($shift, 0.0);
             $ctx->cursorX += $shift;
         }
+        $this->restoreMathsize($parentCtx, $ctx);
     }
 
     /**
@@ -2176,16 +2204,20 @@ final class Translator
         // <ms> wraps its content in lquote / rquote characters; the
         // typed accessors fall back to ASCII " when absent. Quotes
         // pass through the mathvariant transform unchanged.
+        $tokenCtx = $this->withMathsize($ms, $ctx);
         $content = $ms->lquote() . $ms->textContent() . $ms->rquote();
-        $this->emitText($this->withMathvariant($ms, $content), $ctx);
+        $this->emitText($this->withMathvariant($ms, $content), $tokenCtx);
+        $this->restoreMathsize($ctx, $tokenCtx);
     }
 
     private function paintMtext(Mtext $mtext, MathmlPaintContext $ctx): void
     {
+        $tokenCtx = $this->withMathsize($mtext, $ctx);
         $this->emitText(
             $this->withMathvariant($mtext, $mtext->textContent()),
-            $ctx,
+            $tokenCtx,
         );
+        $this->restoreMathsize($ctx, $tokenCtx);
     }
 
     // -----------------------------------------------------------------
@@ -2348,7 +2380,7 @@ final class Translator
         if ($element instanceof Mtable) {
             $rowCount = 0;
             foreach ($children as $row) {
-                if ($row instanceof Mtr) {
+                if ($row instanceof Mtr || $row instanceof Mlabeledtr) {
                     $rowCount++;
                 }
             }
@@ -2758,6 +2790,58 @@ final class Translator
         return MathvariantTransform::apply($content, $variant);
     }
 
+    /**
+     * Apply the element's `mathsize` attribute (if any), emitting a
+     * Tf to the new font size and returning a fresh context with
+     * that size threaded through. Returns the original context
+     * unchanged when no attribute is set or the result is the same
+     * as the current size. The caller MUST emit a Tf back to
+     * `$ctx->fontSize` after token emission when this helper
+     * returned a different context, so siblings see the original
+     * size.
+     */
+    private function withMathsize(Element $el, MathmlPaintContext $ctx): MathmlPaintContext
+    {
+        $spec = $el->mathsize();
+        if ($spec === null) {
+            return $ctx;
+        }
+        [$mode, $value] = $spec;
+        $newSize = $mode === 'absolute' ? $value : $ctx->fontSize * $value;
+        if (abs($newSize - $ctx->fontSize) < 0.001) {
+            return $ctx;
+        }
+        $ctx->stream->setFont($this->activeFont($ctx), $newSize);
+        return new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $newSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY,
+            direction: $ctx->direction,
+            metrics: $ctx->metrics,
+            mathFont: $ctx->mathFont,
+            stretchTargetEm: $ctx->stretchTargetEm,
+            displayStyle: $ctx->displayStyle,
+            scriptLevel: $ctx->scriptLevel,
+        );
+    }
+
+    /**
+     * Restore the parent context's font size after a token painter
+     * applied {@see withMathsize()}. No-op when the size hasn't
+     * changed.
+     */
+    private function restoreMathsize(MathmlPaintContext $parent, MathmlPaintContext $child): void
+    {
+        if (abs($parent->fontSize - $child->fontSize) < 0.001) {
+            return;
+        }
+        $parent->stream->setFont($this->activeFont($parent), $parent->fontSize);
+        $parent->cursorX = $child->cursorX;
+    }
+
     private function emitText(string $content, MathmlPaintContext $ctx, bool $italic = false): void
     {
         if ($content === '') {
@@ -2910,6 +2994,20 @@ final class Translator
             $index = 0;
         }
         $this->paint($children[$index], $ctx);
+    }
+
+    /**
+     * Paint a stray `<mlabeledtr>` outside an `<mtable>` parent.
+     * Per the legacy MathML 3 rule, the first child is the label
+     * (dropped) and the rest render as content. Inside a table,
+     * paintMtable handles mlabeledtr through its own loop.
+     */
+    private function paintMlabeledtrInline(Mlabeledtr $row, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($row);
+        foreach (array_slice($children, 1) as $cell) {
+            $this->paint($cell, $ctx);
+        }
     }
 
     /**

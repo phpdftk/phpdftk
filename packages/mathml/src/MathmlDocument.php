@@ -36,4 +36,42 @@ final class MathmlDocument extends Element
             default => null,
         };
     }
+
+    /**
+     * Explicit `displaystyle` override on the root (Core §3.1.6).
+     * When present this wins over the default derived from
+     * `display="block"`. Returns null when absent.
+     */
+    public function displaystyle(): ?bool
+    {
+        $raw = $this->attributes['displaystyle'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        return match (strtolower(trim($raw))) {
+            'true'  => true,
+            'false' => false,
+            default => null,
+        };
+    }
+
+    /**
+     * Initial `scriptlevel` on the root (Core §3.1.6). Only the
+     * absolute non-negative integer form is meaningful here -
+     * relative `+N` / `-N` make no sense at the root since there
+     * is no surrounding level to apply against. Returns null when
+     * absent, malformed, or relative.
+     */
+    public function scriptlevel(): ?int
+    {
+        $raw = $this->attributes['scriptlevel'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if (!preg_match('/^\d+$/', $trimmed)) {
+            return null;
+        }
+        return (int) $trimmed;
+    }
 }
