@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\MathmlToPdf;
 
+use Phpdftk\Color\RgbColor;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Writer\Font;
 
@@ -114,5 +115,13 @@ final class MathmlPaintContext
          * mroot's index, mover/munder limits when display=true).
          */
         public readonly int $scriptLevel = 0,
+        /**
+         * Current foreground fill colour, inherited via the
+         * cascade from the nearest ancestor with `mathcolor` set.
+         * Null means "use the painter's default" (DeviceGray
+         * black). Painter restoration after a coloured subtree
+         * relies on this snapshot.
+         */
+        public readonly ?RgbColor $fillColor = null,
     ) {}
 }

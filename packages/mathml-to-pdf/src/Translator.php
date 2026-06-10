@@ -37,6 +37,7 @@ use Phpdftk\Mathml\Munderover;
 use Phpdftk\Mathml\NoneElement;
 use Phpdftk\Mathml\OperatorDictionary;
 use Phpdftk\Mathml\Semantics;
+use Phpdftk\Color\RgbColor;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 
 /**
@@ -86,6 +87,16 @@ final class Translator
         MathmlPaintContext $ctx,
         ?string $operatorForm = null,
     ): void {
+        // mathcolor / mathbackground bracketing (Core §3.2.5).
+        //   - mathbackground: paint a filled rect behind the
+        //     element's bounding box, then continue.
+        //   - mathcolor: switch the text fill colour for this
+        //     subtree, restore on exit.
+        //   - <merror> inherits sensible defaults (red text +
+        //     salmon background) when the attrs are absent.
+        $originalCtx = $ctx;
+        [$ctx, $needFgRestore] = $this->beginColorBracket($element, $ctx);
+
         match (true) {
             $element instanceof Mn      => $this->paintMn($element, $ctx),
             $element instanceof Mi      => $this->paintMi($element, $ctx),
@@ -122,6 +133,10 @@ final class Translator
             // tracer-bullet slice, so children walk like an <mrow>.
             default => $this->walkChildren($element, $ctx),
         };
+
+        if ($needFgRestore) {
+            $this->endColorBracket($originalCtx);
+        }
     }
 
     // -----------------------------------------------------------------
@@ -3038,5 +3053,154 @@ final class Translator
             return;
         }
         $this->paint($children[0], $ctx);
+    }
+
+    // -----------------------------------------------------------------
+    // mathcolor / mathbackground bracketing
+    // -----------------------------------------------------------------
+
+    /**
+     * Default `mathcolor` for `<merror>` (Core §3.7.1 default
+     * styling). Authors can override via an explicit attribute.
+     */
+    private const string MERROR_DEFAULT_FG = 'red';
+
+    /**
+     * Default `mathbackground` for `<merror>`. The Core default
+     * style is salmon (rgb(255, 220, 220)); `salmon` from the
+     * named-color table is close enough for v1.
+     */
+    private const string MERROR_DEFAULT_BG = 'salmon';
+
+    /**
+     * Resolve the effective `mathcolor` for `$el`, applying the
+     * `<merror>` default when the element is an Merror without an
+     * explicit override. Returns null when no colour applies.
+     */
+    private function effectiveMathcolor(Element $el): ?string
+    {
+        $explicit = $el->mathcolor();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+        return $el instanceof Merror ? self::MERROR_DEFAULT_FG : null;
+    }
+
+    /**
+     * Resolve the effective `mathbackground` for `$el`, applying
+     * the `<merror>` default when the element is an Merror
+     * without an explicit override.
+     */
+    private function effectiveMathbackground(Element $el): ?string
+    {
+        $explicit = $el->mathbackground();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+        return $el instanceof Merror ? self::MERROR_DEFAULT_BG : null;
+    }
+
+    /**
+     * Begin colour bracketing. Paints the background rectangle
+     * (if any) behind the current element's bounds, sets the
+     * foreground fill colour (if any), and returns:
+     *
+     *   - the (possibly new) context to use for the subtree;
+     *   - a boolean indicating whether the caller must emit a
+     *     foreground-restore at the end.
+     *
+     * @return array{0: MathmlPaintContext, 1: bool}
+     */
+    private function beginColorBracket(Element $el, MathmlPaintContext $ctx): array
+    {
+        $bgStr = $this->effectiveMathbackground($el);
+        if ($bgStr !== null) {
+            $bg = MathmlColor::parse($bgStr);
+            if ($bg !== null) {
+                $this->paintBackgroundRect($el, $bg, $ctx);
+            }
+        }
+        $fgStr = $this->effectiveMathcolor($el);
+        if ($fgStr === null) {
+            return [$ctx, false];
+        }
+        $fg = MathmlColor::parse($fgStr);
+        if ($fg === null) {
+            return [$ctx, false];
+        }
+        $ctx->stream->setFillRgbColor($fg);
+        $newCtx = new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $ctx->fontSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY,
+            direction: $ctx->direction,
+            metrics: $ctx->metrics,
+            mathFont: $ctx->mathFont,
+            stretchTargetEm: $ctx->stretchTargetEm,
+            displayStyle: $ctx->displayStyle,
+            scriptLevel: $ctx->scriptLevel,
+            fillColor: $fg,
+        );
+        return [$newCtx, true];
+    }
+
+    /**
+     * Restore the original foreground fill colour. Called when
+     * {@see beginColorBracket()} reported a foreground change.
+     * Sync the cursor back to the original context so siblings
+     * see the right horizontal position.
+     */
+    private function endColorBracket(MathmlPaintContext $originalCtx): void
+    {
+        // The colour inside the subtree may have moved past the
+        // original context's cursor; mirror walkChildren's "sync
+        // cursorX back" pattern via the stream's own state. The
+        // outer ctx's cursorX is updated by paint() through the
+        // shared stream. No-op for cursor here.
+        $prev = $originalCtx->fillColor ?? RgbColor::fromInt(0, 0, 0);
+        $originalCtx->stream->setFillRgbColor($prev);
+    }
+
+    /**
+     * Paint a filled rectangle behind `$el` using `$color`. The
+     * box runs from the current cursor across the element's
+     * estimated width, vertically spanning ~1.2em centred near
+     * the baseline (cap height + descender slack). Breaks out of
+     * the BT/ET text block to emit path operators, then resumes
+     * text mode with the prior font + position.
+     *
+     * Width is `estimateWidth($el)`; height is a fixed
+     * cap-plus-descender slab in em. A future pass can derive
+     * height from a per-element ascent/descent estimate.
+     */
+    private function paintBackgroundRect(Element $el, RgbColor $color, MathmlPaintContext $ctx): void
+    {
+        $width = $this->estimateWidth($el, $ctx->fontSize);
+        if ($width <= 0.0) {
+            return;
+        }
+        $stream = $ctx->stream;
+        $heightEm = $this->estimateHeightEm($el, $ctx);
+        $heightPt = max(1.2, $heightEm) * $ctx->fontSize;
+        $bottom = $ctx->baselineY - 0.2 * $ctx->fontSize;
+        $stream->endText();
+        $stream->saveGraphicsState();
+        $stream->setFillRgbColor($color);
+        $stream->rectangle($ctx->cursorX, $bottom, $width, $heightPt);
+        $stream->fill();
+        $stream->restoreGraphicsState();
+        $stream->beginText();
+        $stream->setFont($this->activeFont($ctx), $ctx->fontSize);
+        $stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $ctx->cursorX, $ctx->baselineY);
+        // Re-apply current fill colour so subsequent text glyphs
+        // continue to use it. (saveGraphicsState/restoreGraphicsState
+        // already covered this, but the BT/ET round-trip can drop
+        // it on some PDF readers; belt + braces.)
+        if ($ctx->fillColor !== null) {
+            $stream->setFillRgbColor($ctx->fillColor);
+        }
     }
 }
