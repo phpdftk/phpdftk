@@ -292,6 +292,10 @@ final class OpenTypeParser
             $ligatures = (new GsubParser())->parse($this->data, $this->tables) ?: null;
         }
 
+        // Parse MATH table for OpenType math fonts (Latin Modern Math,
+        // STIX Two Math, etc.). Optional - non-math fonts skip this.
+        $mathTable = $this->parseMathTable();
+
         return new OpenTypeData(
             postScriptName: $postScriptName,
             familyName: $familyName,
@@ -316,6 +320,79 @@ final class OpenTypeParser
             verticalWidths: $verticalWidths,
             underlinePosition: $underlinePosition,
             underlineThickness: $underlineThickness,
+            mathTable: $mathTable,
+        );
+    }
+
+    /**
+     * Locate the MATH table (if present) and extract the three top-
+     * level sub-table byte ranges.
+     *
+     * MATH table layout per the OpenType spec (v1.0):
+     *
+     *     uint16 majorVersion       (== 1)
+     *     uint16 minorVersion       (== 0)
+     *     Offset16 mathConstantsOffset
+     *     Offset16 mathGlyphInfoOffset
+     *     Offset16 mathVariantsOffset
+     *
+     * Offsets are from the start of the MATH table; zero means the
+     * sub-table is absent.
+     *
+     * We slice the raw bytes for each sub-table and store them in
+     * {@see MathTableData}; downstream parsers consume those byte
+     * ranges without re-reading the file. For the trailing sub-table
+     * we slice through end-of-table (using the next sub-table's
+     * offset, or the MATH table length when none).
+     */
+    private function parseMathTable(): ?MathTableData
+    {
+        if (!isset($this->tables['MATH'])) {
+            return null;
+        }
+        $base = $this->tables['MATH']['offset'];
+        $length = $this->tables['MATH']['length'];
+        $majorVersion = $this->readUint16($base);
+        $minorVersion = $this->readUint16($base + 2);
+        $mathConstantsOffset = $this->readUint16($base + 4);
+        $mathGlyphInfoOffset = $this->readUint16($base + 6);
+        $mathVariantsOffset = $this->readUint16($base + 8);
+
+        // Collect non-zero offsets so we can compute each sub-table's
+        // length as "next offset minus this offset" (or table-end for
+        // the last one).
+        $offsets = array_values(array_filter([
+            $mathConstantsOffset,
+            $mathGlyphInfoOffset,
+            $mathVariantsOffset,
+        ]));
+        sort($offsets);
+        $sliceLength = function (int $thisOffset) use ($offsets, $length): int {
+            if ($thisOffset === 0) {
+                return 0;
+            }
+            foreach ($offsets as $candidate) {
+                if ($candidate > $thisOffset) {
+                    return $candidate - $thisOffset;
+                }
+            }
+            return $length - $thisOffset;
+        };
+
+        $slice = function (int $offset) use ($base, $sliceLength): string {
+            if ($offset === 0) {
+                return '';
+            }
+            $len = $sliceLength($offset);
+            return $len > 0 ? substr($this->data, $base + $offset, $len) : '';
+        };
+
+        return new MathTableData(
+            majorVersion: $majorVersion,
+            minorVersion: $minorVersion,
+            mathConstantsBytes: $slice($mathConstantsOffset),
+            mathGlyphInfoBytes: $slice($mathGlyphInfoOffset),
+            mathVariantsBytes: $slice($mathVariantsOffset),
         );
     }
 

@@ -37,6 +37,8 @@ readonly class OpenTypeData
      * @param ?int $underlinePosition `post` table FWord — offset of the underline's top edge from
      *        the baseline (design units; negative = below baseline). Null if the table is missing.
      * @param ?int $underlineThickness `post` table FWord — underline stroke thickness in design units.
+     * @param ?MathTableData $mathTable Parsed `MATH` table when the font has one (Latin Modern Math,
+     *        STIX Two Math, Cambria Math, ...). Null for non-math fonts.
      */
     public function __construct(
         public string $postScriptName,
@@ -62,5 +64,6 @@ readonly class OpenTypeData
         public ?array $verticalWidths = null,
         public ?int $underlinePosition = null,
         public ?int $underlineThickness = null,
+        public ?MathTableData $mathTable = null,
     ) {}
 }
