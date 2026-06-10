@@ -114,26 +114,40 @@ final readonly class MathmlMetrics
         return $this->constants->axisHeight / (float) $this->unitsPerEm;
     }
 
-    /** Fraction-numerator raise above baseline, in em. */
+    /** Fraction-numerator raise above baseline, in em.
+     *  Display-style default reflects the typical 'fraction in
+     *  display equation' shift, taller than the inline form. */
     public const float DEFAULT_FRACTION_NUMERATOR_SHIFT_UP_EM = 0.4;
+    public const float DEFAULT_FRACTION_NUMERATOR_DISPLAY_SHIFT_UP_EM = 0.7;
 
-    public function fractionNumeratorShiftUpEm(): float
+    public function fractionNumeratorShiftUpEm(bool $displayStyle = false): float
     {
         if ($this->constants === null) {
-            return self::DEFAULT_FRACTION_NUMERATOR_SHIFT_UP_EM;
+            return $displayStyle
+                ? self::DEFAULT_FRACTION_NUMERATOR_DISPLAY_SHIFT_UP_EM
+                : self::DEFAULT_FRACTION_NUMERATOR_SHIFT_UP_EM;
         }
-        return $this->constants->fractionNumeratorShiftUp / (float) $this->unitsPerEm;
+        $funits = $displayStyle
+            ? $this->constants->fractionNumeratorDisplayStyleShiftUp
+            : $this->constants->fractionNumeratorShiftUp;
+        return $funits / (float) $this->unitsPerEm;
     }
 
     /** Fraction-denominator drop below baseline, in em. */
     public const float DEFAULT_FRACTION_DENOMINATOR_SHIFT_DOWN_EM = 0.4;
+    public const float DEFAULT_FRACTION_DENOMINATOR_DISPLAY_SHIFT_DOWN_EM = 0.7;
 
-    public function fractionDenominatorShiftDownEm(): float
+    public function fractionDenominatorShiftDownEm(bool $displayStyle = false): float
     {
         if ($this->constants === null) {
-            return self::DEFAULT_FRACTION_DENOMINATOR_SHIFT_DOWN_EM;
+            return $displayStyle
+                ? self::DEFAULT_FRACTION_DENOMINATOR_DISPLAY_SHIFT_DOWN_EM
+                : self::DEFAULT_FRACTION_DENOMINATOR_SHIFT_DOWN_EM;
         }
-        return $this->constants->fractionDenominatorShiftDown / (float) $this->unitsPerEm;
+        $funits = $displayStyle
+            ? $this->constants->fractionDenominatorDisplayStyleShiftDown
+            : $this->constants->fractionDenominatorShiftDown;
+        return $funits / (float) $this->unitsPerEm;
     }
 
     /** Overbar / vinculum raise above baseline, in em. */
