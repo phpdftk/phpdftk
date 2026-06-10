@@ -1315,17 +1315,22 @@ final class Translator
         // voffset raises (positive) or lowers (negative) the
         // content's baseline. Apply the shift before walking
         // children and restore it after so subsequent siblings
-        // flow on the original baseline.
+        // flow on the original baseline. Mirror the shift on
+        // ctx->baselineY so any path operators emitted under the
+        // shifted children (e.g. nested mathbackground rects)
+        // land at the right Y.
         $voffsetEm = $mpadded->voffsetEm() ?? 0.0;
         $voffsetPt = $voffsetEm * $ctx->fontSize;
         if ($voffsetPt !== 0.0) {
             $ctx->stream->moveTextPosition(0.0, $voffsetPt);
+            $ctx->baselineY += $voffsetPt;
         }
 
         $this->walkChildren($mpadded, $ctx);
 
         if ($voffsetPt !== 0.0) {
             $ctx->stream->moveTextPosition(0.0, -$voffsetPt);
+            $ctx->baselineY -= $voffsetPt;
         }
 
         $widthEm = $mpadded->widthEm();
@@ -2359,6 +2364,23 @@ final class Translator
         Element $element,
         MathmlPaintContext $ctx,
     ): float {
+        // Explicit height + depth on layout primitives wins. mpadded
+        // / mspace tests use this to set up known-size boxes for
+        // mathbackground / reference-image comparisons.
+        if ($element instanceof Mpadded) {
+            $h = $element->heightEm();
+            $d = $element->depthEm();
+            if ($h !== null || $d !== null) {
+                return ($h ?? 1.0) + ($d ?? 0.0);
+            }
+        }
+        if ($element instanceof Mspace) {
+            $h = $element->heightEm();
+            $d = $element->depthEm();
+            if ($h !== null || $d !== null) {
+                return ($h ?? 1.0) + ($d ?? 0.0);
+            }
+        }
         $metrics = $ctx->metrics;
         $children = $this->elementChildren($element);
 
@@ -2961,6 +2983,21 @@ final class Translator
         float $fontSize,
         ?MathmlPaintContext $ctx = null,
     ): float {
+        // Explicit width on layout primitives wins over the
+        // measured-text fallback. mpadded / mspace use this to
+        // reserve a box of known size without containing glyphs.
+        if ($element instanceof Mpadded) {
+            $widthEm = $element->widthEm();
+            if ($widthEm !== null) {
+                return $widthEm * $fontSize;
+            }
+        }
+        if ($element instanceof Mspace) {
+            $widthEm = $element->widthEm();
+            if ($widthEm !== null) {
+                return $widthEm * $fontSize;
+            }
+        }
         $text = $element->textContent();
         if ($ctx?->mathFont !== null) {
             return $ctx->mathFont->measure($text, $fontSize);
@@ -3294,10 +3331,16 @@ final class Translator
         if ($width <= 0.0) {
             return;
         }
+        // Vertical extent: when the element exposes explicit ascent
+        // (height) and descent (depth) - mpadded / mspace - honour
+        // them exactly; the rect spans baselineY - depth up to
+        // baselineY + ascent. Otherwise fall back to the heuristic
+        // (~1.2em line height with a small descender slack).
+        [$ascentPt, $descentPt] = $this->backgroundBoxExtent($el, $ctx);
+        $heightPt = $ascentPt + $descentPt;
+        $bottom = $ctx->baselineY - $descentPt;
+
         $stream = $ctx->stream;
-        $heightEm = $this->estimateHeightEm($el, $ctx);
-        $heightPt = max(1.2, $heightEm) * $ctx->fontSize;
-        $bottom = $ctx->baselineY - 0.2 * $ctx->fontSize;
         $stream->endText();
         $stream->saveGraphicsState();
         $stream->setFillRgbColor($color);
@@ -3314,5 +3357,46 @@ final class Translator
         if ($ctx->fillColor !== null) {
             $stream->setFillRgbColor($ctx->fillColor);
         }
+    }
+
+    /**
+     * Resolve the ascent + descent (above / below baseline, in pt)
+     * for the background-rect box of `$el`. Returns
+     * `[ascentPt, descentPt]`.
+     *
+     * mpadded / mspace expose explicit height + depth; everything
+     * else falls back to a heuristic (1.0em ascent + 0.2em descent,
+     * the standard line slack used in the rest of the painter).
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function backgroundBoxExtent(Element $el, MathmlPaintContext $ctx): array
+    {
+        $fontSize = $ctx->fontSize;
+        if ($el instanceof Mpadded) {
+            $h = $el->heightEm();
+            $d = $el->depthEm();
+            if ($h !== null || $d !== null) {
+                return [
+                    ($h ?? 1.0) * $fontSize,
+                    ($d ?? 0.0) * $fontSize,
+                ];
+            }
+        }
+        if ($el instanceof Mspace) {
+            $h = $el->heightEm();
+            $d = $el->depthEm();
+            if ($h !== null || $d !== null) {
+                return [
+                    ($h ?? 1.0) * $fontSize,
+                    ($d ?? 0.0) * $fontSize,
+                ];
+            }
+        }
+        $heightEm = $this->estimateHeightEm($el, $ctx);
+        $totalPt = max(1.2, $heightEm) * $fontSize;
+        $descentPt = 0.2 * $fontSize;
+        $ascentPt = max(0.0, $totalPt - $descentPt);
+        return [$ascentPt, $descentPt];
     }
 }
