@@ -149,8 +149,8 @@ final class Translator
             return;
         }
 
-        $raise = $ctx->fontSize * 0.4;
-        $drop = $ctx->fontSize * 0.4;
+        $raise = $ctx->fontSize * $ctx->metrics->fractionNumeratorShiftUpEm();
+        $drop = $ctx->fontSize * $ctx->metrics->fractionDenominatorShiftDownEm();
         $numLead = ($fracWidth - $numWidth) / 2.0;
         $denLead = ($fracWidth - $denWidth) / 2.0;
         $fracLeftX = $ctx->cursorX;
@@ -171,21 +171,31 @@ final class Translator
         $ctx->stream->moveTextPosition($fracWidth - $denLead, $drop);
         $ctx->cursorX = $fracLeftX + $fracWidth;
 
-        // Bar: spec default is 1 CSS pixel ≈ 0.75 pt. `linethickness="0"`
-        // suppresses the bar (binomial form). The Translator can now
-        // break out of the text block thanks to the absolute coords
-        // in ctx — see drawHorizontalRule.
-        $barThickness = $mfrac->linethickness();
-        if ($barThickness === null) {
-            $barThickness = 0.75;
-        } elseif ($barThickness === 0.0) {
+        // Bar thickness: author's `linethickness` wins; otherwise
+        // the font's fractionRuleThickness (in em, scaled by current
+        // size) when a math font is active, else the historical
+        // 0.75 pt default.
+        $linethickness = $mfrac->linethickness();
+        if ($linethickness === 0.0) {
             return;
-        } else {
-            $barThickness *= 0.75; // CSS px → PDF points
         }
-        // Bar Y: roughly half-em above the surrounding baseline —
-        // matches where the eye expects a fraction line to sit.
-        $barY = $ctx->baselineY + $ctx->fontSize * 0.3;
+        if ($linethickness !== null) {
+            $barThickness = $linethickness * 0.75; // CSS px -> PDF points
+        } else {
+            $barThickness = $ctx->metrics->fractionRuleThicknessEm() * $ctx->fontSize;
+            // Math fonts often report large values (the test fonts
+            // do up to 10em as an extreme); for the standard-font
+            // fallback this evaluates to 0.0625em * 12pt = 0.75pt
+            // which matches the previous hardcode.
+        }
+        // Bar Y: at the math axis above the surrounding baseline
+        // (axisHeight when a math font is active; the default keeps
+        // the previous 0.3em raise).
+        $barY = $ctx->baselineY + $ctx->fontSize * (
+            $ctx->metrics->isMathFontActive()
+                ? $ctx->metrics->axisHeightEm()
+                : 0.3
+        );
         $this->drawHorizontalRule(
             $ctx,
             $fracLeftX,
@@ -226,13 +236,13 @@ final class Translator
         // Vinculum: thin horizontal rule above the content. Position
         // it ~1.0em above the baseline so it sits just above the
         // x-height of the content.
-        $vinculumY = $ctx->baselineY + $ctx->fontSize * 0.85;
+        $vinculumY = $ctx->baselineY + $ctx->fontSize * $ctx->metrics->overbarVerticalOffsetEm();
         $this->drawHorizontalRule(
             $ctx,
             $radLeftX,
             $vinculumY,
             $contentWidth,
-            0.75,
+            $ctx->metrics->overbarRuleThicknessEm() * $ctx->fontSize,
         );
     }
 
@@ -292,8 +302,14 @@ final class Translator
         $this->paint($base, $ctx);
         $ctx->cursorX = $baseLeftX + $baseWidth;
 
-        $vinculumY = $ctx->baselineY + $ctx->fontSize * 0.85;
-        $this->drawHorizontalRule($ctx, $baseLeftX, $vinculumY, $baseWidth, 0.75);
+        $vinculumY = $ctx->baselineY + $ctx->fontSize * $ctx->metrics->overbarVerticalOffsetEm();
+        $this->drawHorizontalRule(
+            $ctx,
+            $baseLeftX,
+            $vinculumY,
+            $baseWidth,
+            $ctx->metrics->overbarRuleThicknessEm() * $ctx->fontSize,
+        );
     }
 
     // -----------------------------------------------------------------
@@ -751,13 +767,11 @@ final class Translator
 
     // -----------------------------------------------------------------
     // Under / over (munder / mover / munderover) — centred above/below
+    //
+    // Vertical raise / drop come from {@see MathmlMetrics}; the
+    // fallback default produces the same 0.85 em over-raise and
+    // 0.5 em under-drop the tracer-bullet shipped with.
     // -----------------------------------------------------------------
-
-    /** Vertical raise for overscripts, in em. */
-    private const float OVER_RAISE_EM = 0.85;
-
-    /** Vertical drop for underscripts, in em (positive value, negated when used). */
-    private const float UNDER_DROP_EM = 0.5;
 
     /** Paint `<munder>` — base with element centred below. */
     private function paintMunder(Munder $munder, MathmlPaintContext $ctx): void
@@ -841,7 +855,7 @@ final class Translator
                 baseLeftX: $baseLeftX,
                 baseWidth: $baseWidth,
                 constructWidth: $constructWidth,
-                yOffset: $ctx->fontSize * self::OVER_RAISE_EM,
+                yOffset: $ctx->fontSize * $ctx->metrics->overscriptRaiseEm(),
             );
         }
 
@@ -852,7 +866,7 @@ final class Translator
                 baseLeftX: $baseLeftX,
                 baseWidth: $baseWidth,
                 constructWidth: $constructWidth,
-                yOffset: -$ctx->fontSize * self::UNDER_DROP_EM,
+                yOffset: -$ctx->fontSize * $ctx->metrics->underscriptDropEm(),
             );
         }
 

@@ -114,6 +114,81 @@ final readonly class MathmlMetrics
         return $this->constants->axisHeight / (float) $this->unitsPerEm;
     }
 
+    /** Fraction-numerator raise above baseline, in em. */
+    public const float DEFAULT_FRACTION_NUMERATOR_SHIFT_UP_EM = 0.4;
+
+    public function fractionNumeratorShiftUpEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_FRACTION_NUMERATOR_SHIFT_UP_EM;
+        }
+        return $this->constants->fractionNumeratorShiftUp / (float) $this->unitsPerEm;
+    }
+
+    /** Fraction-denominator drop below baseline, in em. */
+    public const float DEFAULT_FRACTION_DENOMINATOR_SHIFT_DOWN_EM = 0.4;
+
+    public function fractionDenominatorShiftDownEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_FRACTION_DENOMINATOR_SHIFT_DOWN_EM;
+        }
+        return $this->constants->fractionDenominatorShiftDown / (float) $this->unitsPerEm;
+    }
+
+    /** Overbar / vinculum raise above baseline, in em. */
+    public const float DEFAULT_OVERBAR_VERTICAL_OFFSET_EM = 0.85;
+
+    public function overbarVerticalOffsetEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_OVERBAR_VERTICAL_OFFSET_EM;
+        }
+        // overbarExtraAscender sits just above the cap height; we
+        // approximate "vinculum height" as accentBaseHeight +
+        // overbarExtraAscender. Mathml font designers tune this
+        // pair to position the overbar just above the tallest
+        // ascender in the typical content.
+        return ($this->constants->accentBaseHeight + $this->constants->overbarExtraAscender)
+            / (float) $this->unitsPerEm;
+    }
+
+    /** Overbar / vinculum thickness, in em. */
+    public const float DEFAULT_OVERBAR_RULE_THICKNESS_EM = 0.0625;
+
+    public function overbarRuleThicknessEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_OVERBAR_RULE_THICKNESS_EM;
+        }
+        return $this->constants->overbarRuleThickness / (float) $this->unitsPerEm;
+    }
+
+    /** Overscript raise above baseline, in em. */
+    public const float DEFAULT_OVER_RAISE_EM = 0.85;
+
+    public function overscriptRaiseEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_OVER_RAISE_EM;
+        }
+        // Use accentBaseHeight as the over-script attachment height
+        // since it tracks the typical above-base placement in math
+        // fonts (the same datum used for accents).
+        return $this->constants->accentBaseHeight / (float) $this->unitsPerEm;
+    }
+
+    /** Underscript drop below baseline, in em (positive; negate when applying). */
+    public const float DEFAULT_UNDER_DROP_EM = 0.5;
+
+    public function underscriptDropEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_UNDER_DROP_EM;
+        }
+        return $this->constants->underbarVerticalGap / (float) $this->unitsPerEm;
+    }
+
     /**
      * True iff this metrics object was built from a real math
      * font. The painter uses this to choose stretchy paths /
