@@ -142,8 +142,16 @@ final class Translator
         }
         [$numerator, $denominator] = [$children[0], $children[1]];
 
-        $numWidth = $this->estimateWidth($numerator, $ctx->fontSize);
-        $denWidth = $this->estimateWidth($denominator, $ctx->fontSize);
+        // Per MathML Core §3.1.6, <mfrac> sets displaystyle=false on
+        // its children and (in inline mode only) bumps their
+        // scriptlevel by 1. Build the child context up front and use
+        // its scaled fontSize for width estimation + paint.
+        $displayStyle = $mfrac->displaystyle();
+        $effectiveDisplay = $displayStyle ?? $ctx->displayStyle;
+        $childCtx = $this->childContextForFraction($ctx, $effectiveDisplay);
+
+        $numWidth = $this->estimateWidth($numerator, $childCtx->fontSize, $childCtx);
+        $denWidth = $this->estimateWidth($denominator, $childCtx->fontSize, $childCtx);
         $fracWidth = max($numWidth, $denWidth);
         if ($fracWidth < 0.001) {
             return;
@@ -153,26 +161,35 @@ final class Translator
         // display-style shifts from MathConstants (typical of
         // fractions inside `<math display="block">`); otherwise the
         // inline shifts apply.
-        $displayStyle = $mfrac->displaystyle() === true;
-        $raise = $ctx->fontSize * $ctx->metrics->fractionNumeratorShiftUpEm($displayStyle);
-        $drop = $ctx->fontSize * $ctx->metrics->fractionDenominatorShiftDownEm($displayStyle);
+        $raise = $ctx->fontSize * $ctx->metrics->fractionNumeratorShiftUpEm($effectiveDisplay);
+        $drop = $ctx->fontSize * $ctx->metrics->fractionDenominatorShiftDownEm($effectiveDisplay);
         $numLead = ($fracWidth - $numWidth) / 2.0;
         $denLead = ($fracWidth - $denWidth) / 2.0;
         $fracLeftX = $ctx->cursorX;
 
         // Numerator: shift line origin into centred-on-raised position
+        // and switch to the scaled child font.
         $ctx->stream->moveTextPosition($numLead, $raise);
-        $this->paint($numerator, $ctx);
+        if ($childCtx->fontSize !== $ctx->fontSize) {
+            $ctx->stream->setFont($this->activeFont($ctx), $childCtx->fontSize);
+        }
+        $childCtx->cursorX = $fracLeftX + $numLead;
+        $this->paint($numerator, $childCtx);
 
         // Denominator: shift from current line origin to centred-on-
         // lowered position. moveTextPosition (Td) is relative to
         // current line matrix; resets pen to the new origin so we
         // don't have to compensate for the numerator's Tj advance.
         $ctx->stream->moveTextPosition($denLead - $numLead, -$drop - $raise);
-        $this->paint($denominator, $ctx);
+        $childCtx->cursorX = $fracLeftX + $denLead;
+        $this->paint($denominator, $childCtx);
 
         // Advance to the fraction's right edge on the original
-        // baseline so subsequent siblings flow correctly.
+        // baseline so subsequent siblings flow correctly. Restore
+        // the parent font size before doing so.
+        if ($childCtx->fontSize !== $ctx->fontSize) {
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
+        }
         $ctx->stream->moveTextPosition($fracWidth - $denLead, $drop);
         $ctx->cursorX = $fracLeftX + $fracWidth;
 
@@ -2341,6 +2358,61 @@ final class Translator
     private function activeFont(MathmlPaintContext $ctx): \Phpdftk\Pdf\Writer\Font
     {
         return $ctx->mathFont?->font ?? $ctx->upright;
+    }
+
+    /**
+     * Build the paint context for `<mfrac>`'s numerator and
+     * denominator per MathML Core §3.1.6:
+     *
+     *   - displayStyle becomes false unconditionally on the children.
+     *   - scriptLevel increments by 1 when the surrounding displayStyle
+     *     was false (typical inline mode); stays the same in display
+     *     mode (the children render at the parent's full size).
+     *   - fontSize follows scriptLevel via {@see scaleForLevel()} so
+     *     each nested fraction step shrinks by the right factor.
+     */
+    private function childContextForFraction(
+        MathmlPaintContext $ctx,
+        bool $effectiveDisplayStyle,
+    ): MathmlPaintContext {
+        // Children always lose display style.
+        $childDisplay = false;
+        // Inline mode bumps scriptLevel; display mode keeps it.
+        $childLevel = $effectiveDisplayStyle
+            ? $ctx->scriptLevel
+            : min(2, $ctx->scriptLevel + 1);
+        $baseFontSize = $ctx->fontSize / $this->scaleForLevel($ctx->scriptLevel, $ctx);
+        $childFontSize = $baseFontSize * $this->scaleForLevel($childLevel, $ctx);
+        return new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $childFontSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY,
+            direction: $ctx->direction,
+            metrics: $ctx->metrics,
+            mathFont: $ctx->mathFont,
+            stretchTargetEm: $ctx->stretchTargetEm,
+            displayStyle: $childDisplay,
+            scriptLevel: $childLevel,
+        );
+    }
+
+    /**
+     * Scale factor from the base font size to the size at
+     * `$scriptLevel`. 0 = base (1.0), 1 = script (scriptScale),
+     * 2+ = scriptscript (scriptScriptScale).
+     */
+    private function scaleForLevel(int $level, MathmlPaintContext $ctx): float
+    {
+        if ($level <= 0) {
+            return 1.0;
+        }
+        if ($level === 1) {
+            return $ctx->metrics->scriptScale();
+        }
+        return $ctx->metrics->scriptScriptScale();
     }
 
     /**

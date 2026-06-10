@@ -101,5 +101,18 @@ final class MathmlPaintContext
          * pairs with the displaystyle attribute on `<mfrac>`.
          */
         public readonly bool $displayStyle = false,
+        /**
+         * Effective scriptlevel per MathML Core §3.1.6.
+         *   0 = base (full size)
+         *   1 = script (scriptPercentScaleDown applied to base)
+         *   2 = scriptscript (scriptScriptPercentScaleDown applied)
+         *   N >= 2 is clamped at 2; nesting deeper than 2 stays at
+         *   the scriptscript size.
+         *
+         * Propagated through constructs that introduce script-level
+         * children (mfrac in inline mode, msup/msub scripts,
+         * mroot's index, mover/munder limits when display=true).
+         */
+        public readonly int $scriptLevel = 0,
     ) {}
 }
