@@ -100,6 +100,71 @@ final class MathmlMetricsTest extends TestCase
         self::assertEqualsWithDelta(0.5, $m->superscriptShiftUpEm(), 0.0001);
     }
 
+    public function testFractionNumeratorShiftUpDerivedFromConstants(): void
+    {
+        $constants = $this->makeConstants([
+            'fractionNumeratorShiftUp' => 500,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.5, $m->fractionNumeratorShiftUpEm(), 0.0001);
+    }
+
+    public function testFractionDenominatorShiftDownDerivedFromConstants(): void
+    {
+        $constants = $this->makeConstants([
+            'fractionDenominatorShiftDown' => 350,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.35, $m->fractionDenominatorShiftDownEm(), 0.0001);
+    }
+
+    public function testOverbarVerticalOffsetSumsAccentBaseAndOverbarAscender(): void
+    {
+        $constants = $this->makeConstants([
+            'accentBaseHeight' => 700,
+            'overbarExtraAscender' => 150,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.85, $m->overbarVerticalOffsetEm(), 0.0001);
+    }
+
+    public function testOverbarRuleThicknessDerivedFromConstants(): void
+    {
+        $constants = $this->makeConstants([
+            'overbarRuleThickness' => 100,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.1, $m->overbarRuleThicknessEm(), 0.0001);
+    }
+
+    public function testOverscriptRaiseUsesAccentBaseHeight(): void
+    {
+        $constants = $this->makeConstants([
+            'accentBaseHeight' => 850,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.85, $m->overscriptRaiseEm(), 0.0001);
+    }
+
+    public function testUnderscriptDropUsesUnderbarVerticalGap(): void
+    {
+        $constants = $this->makeConstants([
+            'underbarVerticalGap' => 500,
+        ]);
+        $m = new MathmlMetrics(constants: $constants, unitsPerEm: 1000);
+        self::assertEqualsWithDelta(0.5, $m->underscriptDropEm(), 0.0001);
+    }
+
+    public function testFractionRadicalDefaultsMatchTracerBullet(): void
+    {
+        $m = new MathmlMetrics();
+        self::assertSame(0.4, $m->fractionNumeratorShiftUpEm());
+        self::assertSame(0.4, $m->fractionDenominatorShiftDownEm());
+        self::assertSame(0.85, $m->overbarVerticalOffsetEm());
+        self::assertSame(0.85, $m->overscriptRaiseEm());
+        self::assertSame(0.5, $m->underscriptDropEm());
+    }
+
     public function testIsMathFontActiveReflectsConstantsPresence(): void
     {
         self::assertFalse((new MathmlMetrics())->isMathFontActive());
