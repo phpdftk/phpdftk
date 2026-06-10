@@ -1307,12 +1307,10 @@ final class Translator
      *   - The chosen variant GID survived the subsetter (otherwise
      *     emitting it would draw a tofu).
      *
-     * Required-height target: v1 uses `2.0 em` as a conservative
-     * default (covers a single-line fraction / matrix). A
-     * context-aware sizing pass that walks the surrounding mrow's
-     * children and picks the max ascent/descent lands in a
-     * follow-up; this placeholder lets the wiring exercise the
-     * MathVariants path without a full height computation.
+     * Required-height target: `$ctx->stretchTargetEm`, set by
+     * {@see walkChildren()} to the max height of the surrounding
+     * row's non-stretchy children. Conservative 1.0 em fallback
+     * when paintMo is reached outside a row walk.
      *
      * @param array{lspace: float, rspace: float, stretchy: bool} $entry
      */
@@ -1337,8 +1335,9 @@ final class Translator
             return false;
         }
 
-        // 2.0 em target until the height-aware pass lands.
-        $requiredFunits = (int) round(2.0 * $ctx->mathFont->unitsPerEm);
+        $requiredFunits = (int) round(
+            $ctx->stretchTargetEm * $ctx->mathFont->unitsPerEm,
+        );
         $variant = $ctx->mathFont->verticalVariantFor($baseGid, $requiredFunits);
         if ($variant === null) {
             return false;
@@ -1451,6 +1450,23 @@ final class Translator
             }
         }
 
+        // Compute the row's content height so stretchy operators
+        // pick a variant tall enough to wrap their siblings. We
+        // walk the NON-stretchy siblings (a stretchy `<mo>` would
+        // measure as its own glyph height, defeating the goal of
+        // scaling to surround them).
+        $contentHeightEm = 1.0;
+        foreach ($elementChildren as $i => $child) {
+            if ($this->isStretchyChild($child, $childCtx, $formByIndex[$i] ?? null)) {
+                continue;
+            }
+            $childHeightEm = $this->estimateHeightEm($child, $childCtx);
+            if ($childHeightEm > $contentHeightEm) {
+                $contentHeightEm = $childHeightEm;
+            }
+        }
+        $childCtx->stretchTargetEm = $contentHeightEm;
+
         // RTL flips iteration order so the first source child sits at
         // the rightmost visual position. Cursor mechanics stay
         // unchanged - we just paint the children in the visually
@@ -1470,6 +1486,138 @@ final class Translator
         if ($childCtx !== $ctx) {
             $ctx->cursorX = $childCtx->cursorX;
         }
+    }
+
+    /**
+     * Whether `$child` would render as a stretchy operator under the
+     * current context. Used by walkChildren to exclude stretchy
+     * children from the row-height calculation - they need to
+     * adapt to siblings, not influence the target.
+     */
+    private function isStretchyChild(
+        Element $child,
+        MathmlPaintContext $ctx,
+        ?string $formHint,
+    ): bool {
+        if (!$child instanceof Mo) {
+            return false;
+        }
+        $form = $formHint ?? $child->form() ?? 'infix';
+        $entry = OperatorDictionary::lookup($child->textContent(), $form);
+        return $this->isStretchy($child, $entry);
+    }
+
+    /**
+     * Approximate vertical extent of an element, in em. Used to
+     * size stretchy fences around tall content (fractions, radicals,
+     * matrices, stacks of scripts).
+     *
+     * Each construct contributes its own additive vertical extent:
+     *   - mfrac: numerator + denominator + a rule-thickness gap.
+     *   - msqrt / mroot: content + vinculum gap above.
+     *   - msub / msup: base + script shift on the active side.
+     *   - msubsup: base + sup shift + sub shift.
+     *   - munder / mover / munderover: base + over raise + under drop.
+     *   - mtable: row count × (1 em + row gap).
+     *   - menclose: content + 2 × pad.
+     *   - mphantom: same as wrapped content (still reserves height).
+     *   - mrow / GenericElement / Document: max of element children
+     *     (mrow is a line container; its height = tallest child).
+     *   - tokens (mn, mi, mo, ms, mtext): a single line (1 em).
+     */
+    private function estimateHeightEm(
+        Element $element,
+        MathmlPaintContext $ctx,
+    ): float {
+        $metrics = $ctx->metrics;
+        $children = $this->elementChildren($element);
+
+        if ($element instanceof Mfrac && count($children) === 2) {
+            return $metrics->fractionNumeratorShiftUpEm()
+                + $metrics->fractionDenominatorShiftDownEm()
+                + $metrics->fractionRuleThicknessEm()
+                + $this->estimateHeightEm($children[0], $ctx) - 1.0
+                + $this->estimateHeightEm($children[1], $ctx) - 1.0
+                + 1.0;
+        }
+        if ($element instanceof Msqrt) {
+            return $metrics->overbarVerticalOffsetEm()
+                + $this->maxChildHeightEm($element, $ctx) - 1.0
+                + 0.1; // small overhang above the vinculum
+        }
+        if ($element instanceof Mroot && count($children) === 2) {
+            return $metrics->overbarVerticalOffsetEm()
+                + $this->estimateHeightEm($children[0], $ctx) - 1.0
+                + 0.1;
+        }
+        if ($element instanceof Msup && count($children) === 2) {
+            return $this->estimateHeightEm($children[0], $ctx)
+                + $metrics->superscriptShiftUpEm();
+        }
+        if ($element instanceof Msub && count($children) === 2) {
+            return $this->estimateHeightEm($children[0], $ctx)
+                + $metrics->subscriptShiftDownEm();
+        }
+        if ($element instanceof Msubsup && count($children) === 3) {
+            return $this->estimateHeightEm($children[0], $ctx)
+                + $metrics->superscriptShiftUpEm()
+                + $metrics->subscriptShiftDownEm();
+        }
+        if (($element instanceof Mover || $element instanceof Munder
+            || $element instanceof Munderover) && $children !== []) {
+            return $this->estimateHeightEm($children[0], $ctx)
+                + $metrics->overscriptRaiseEm()
+                + $metrics->underscriptDropEm();
+        }
+        if ($element instanceof Mtable) {
+            $rowCount = 0;
+            foreach ($children as $row) {
+                if ($row instanceof Mtr) {
+                    $rowCount++;
+                }
+            }
+            if ($rowCount === 0) {
+                return 1.0;
+            }
+            // Same rowPitch the painter uses (fontSize + row gap),
+            // expressed in em.
+            $rowPitchEm = 1.0 + 0.5; // matches MTABLE_ROW_GAP_EM
+            return $rowCount * $rowPitchEm;
+        }
+        if ($element instanceof Menclose) {
+            return $this->maxChildHeightEm($element, $ctx) + 0.2;
+        }
+        if ($element instanceof Mphantom) {
+            return $this->maxChildHeightEm($element, $ctx);
+        }
+        if ($children !== [] && (
+            $element instanceof Mrow
+            || $element instanceof GenericElement
+            || $element instanceof \Phpdftk\Mathml\MathmlDocument
+        )) {
+            return $this->maxChildHeightEm($element, $ctx);
+        }
+        // Tokens and anything else default to a single line.
+        return 1.0;
+    }
+
+    /**
+     * Max height in em of the element's direct element children.
+     * 1.0 em floor so an empty container still reports a sensible
+     * line height.
+     */
+    private function maxChildHeightEm(
+        Element $element,
+        MathmlPaintContext $ctx,
+    ): float {
+        $max = 1.0;
+        foreach ($this->elementChildren($element) as $child) {
+            $h = $this->estimateHeightEm($child, $ctx);
+            if ($h > $max) {
+                $max = $h;
+            }
+        }
+        return $max;
     }
 
     /**

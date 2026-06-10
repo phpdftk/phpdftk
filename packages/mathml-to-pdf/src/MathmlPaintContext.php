@@ -82,5 +82,15 @@ final class MathmlPaintContext
          * upright / italic faces (Times-Roman / Times-Italic).
          */
         public readonly ?MathmlMathFont $mathFont = null,
+        /**
+         * Target vertical extent for stretchy operators within the
+         * current row, in em. Set by {@see Translator::walkChildren()}
+         * before painting each element child so a stretchy `<mo>`
+         * can pick a font variant tall enough to wrap its siblings.
+         * Defaults to 1.0 em (a single-line target) so a stray
+         * stretchy operator outside a row still picks the smallest
+         * usable variant.
+         */
+        public float $stretchTargetEm = 1.0,
     ) {}
 }
