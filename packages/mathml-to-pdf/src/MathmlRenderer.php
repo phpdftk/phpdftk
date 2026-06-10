@@ -52,6 +52,14 @@ final class MathmlRenderer
         private readonly Page $page,
         private readonly PdfWriter $writer,
         private readonly Translator $translator = new Translator(),
+        /**
+         * Optional math metrics. When supplied (typically built from
+         * an OpenType MATH-table font via
+         * {@see MathmlMetricsFactory::fromMathFont()}), layout
+         * constants flow from the font instead of the tracer-bullet
+         * defaults. When null, paint behaviour is unchanged.
+         */
+        private readonly ?MathmlMetrics $mathMetrics = null,
     ) {}
 
     /**
@@ -115,6 +123,7 @@ final class MathmlRenderer
             cursorX: $x,
             baselineY: $baselineY,
             direction: $math->dir() ?? 'ltr',
+            metrics: $this->mathMetrics ?? new MathmlMetrics(),
         );
         $this->translator->paint($math, $ctx);
 

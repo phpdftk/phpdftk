@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-feat/mathml-real-glyph-widths",
+            "version": "dev-feat/mathml-paint-metrics-adapter",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
@@ -2410,12 +2410,13 @@
             "dist": {
                 "type": "path",
                 "url": "packages/mathml-to-pdf",
-                "reference": "fefb8db630c88b8c6283210acc3ec9fc5c9246ac"
+                "reference": "62deb642fde76878e938d8ba184e6355004631c3"
             },
             "require": {
                 "php": "^8.4",
                 "phpdftk/encoding": "^1.0",
                 "phpdftk/font-metrics": "^1.0",
+                "phpdftk/font-parser": "^1.0",
                 "phpdftk/mathml": "^1.0",
                 "phpdftk/pdf-writer": "^1.0",
                 "phpdftk/text": "^1.0"

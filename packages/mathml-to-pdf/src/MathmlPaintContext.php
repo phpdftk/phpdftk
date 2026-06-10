@@ -64,5 +64,16 @@ final class MathmlPaintContext
          * the rightmost visual position. Defaults to `ltr`.
          */
         public readonly string $direction = 'ltr',
+        /**
+         * Math-layout metrics adapter. When the renderer has loaded
+         * an OpenType MATH-table font, this exposes script scaling,
+         * script shifts, fraction rule thickness, axis height, etc.
+         * derived from {@see \Phpdftk\FontParser\MathConstants}.
+         * When no math font is loaded, the adapter returns the
+         * tracer-bullet defaults (the values the painter has been
+         * using since the standard-font slice), so existing tests
+         * and standard-font output don't shift.
+         */
+        public readonly MathmlMetrics $metrics = new MathmlMetrics(),
     ) {}
 }

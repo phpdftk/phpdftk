@@ -298,16 +298,13 @@ final class Translator
 
     // -----------------------------------------------------------------
     // Scripts (msub / msup / msubsup) — attached at base right edge
+    //
+    // Script metrics (font scale, superscript shift up, subscript
+    // shift down) come from {@see MathmlMetrics} on the paint
+    // context. When a math font is loaded, the metrics flow from
+    // the font's MathConstants table; otherwise they fall back to
+    // the tracer-bullet defaults (0.7 / 0.5 / 0.3 em).
     // -----------------------------------------------------------------
-
-    /** Approximate scaled font size for subscript / superscript children. */
-    private const float SCRIPT_FONT_SCALE = 0.7;
-
-    /** Baseline raise for superscripts, in em. */
-    private const float SUP_RAISE_EM = 0.5;
-
-    /** Baseline drop for subscripts, in em (positive value, used negated). */
-    private const float SUB_DROP_EM = 0.3;
 
     /**
      * Paint `<msub>` as base followed by a smaller subscript at
@@ -322,7 +319,7 @@ final class Translator
         }
         [$base, $sub] = [$children[0], $children[1]];
         $this->paint($base, $ctx);
-        $this->paintScript($sub, $ctx, -$ctx->fontSize * self::SUB_DROP_EM);
+        $this->paintScript($sub, $ctx, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
     }
 
     /**
@@ -338,7 +335,7 @@ final class Translator
         }
         [$base, $sup] = [$children[0], $children[1]];
         $this->paint($base, $ctx);
-        $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+        $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
     }
 
     /**
@@ -360,32 +357,32 @@ final class Translator
         [$base, $sub, $sup] = [$children[0], $children[1], $children[2]];
         $this->paint($base, $ctx);
         $attachX = $ctx->cursorX;
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $subWidth = $this->estimateWidth($sub, $scriptFontSize);
         $supWidth = $this->estimateWidth($sup, $scriptFontSize);
 
         // Sup first at raised baseline.
-        $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+        $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
         // After paintScript, cursor advanced by supWidth. Back up
         // horizontally to the attach point, then drop to the
         // subscript baseline.
         $backup = $attachX - $ctx->cursorX;
         $ctx->stream->setFont($ctx->upright, $scriptFontSize);
-        $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * self::SUB_DROP_EM);
+        $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
         $subCtx = new MathmlPaintContext(
             stream: $ctx->stream,
             upright: $ctx->upright,
             italic: $ctx->italic,
             fontSize: $scriptFontSize,
             cursorX: $attachX,
-            baselineY: $ctx->baselineY - $ctx->fontSize * self::SUB_DROP_EM,
+            baselineY: $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
         );
         $this->paint($sub, $subCtx);
         // Restore to the construct's right edge on the main baseline.
         $rightEdge = $attachX + max($subWidth, $supWidth);
         $ctx->stream->moveTextPosition(
             $rightEdge - $subCtx->cursorX,
-            $ctx->fontSize * self::SUB_DROP_EM,
+            $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
         );
         $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
         $ctx->cursorX = $rightEdge;
@@ -405,7 +402,7 @@ final class Translator
         MathmlPaintContext $ctx,
         float $yOffset,
     ): void {
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $ctx->stream->setFont($ctx->upright, $scriptFontSize);
         $ctx->stream->moveTextPosition(0.0, $yOffset);
         $scriptCtx = new MathmlPaintContext(
@@ -492,7 +489,7 @@ final class Translator
         $postPairs = $this->pairUpScripts($postRaw);
         $prePairs = $this->pairUpScripts($preRaw);
 
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $totalPreWidth = 0.0;
         foreach ($prePairs as $pair) {
             $totalPreWidth += $this->scriptPairWidth($pair, $scriptFontSize);
@@ -564,7 +561,7 @@ final class Translator
     private function paintScriptPair(array $pair, MathmlPaintContext $ctx): void
     {
         [$sub, $sup] = $pair;
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $hasSub = !$sub instanceof NoneElement;
         $hasSup = !$sup instanceof NoneElement;
         if (!$hasSub && !$hasSup) {
@@ -579,7 +576,7 @@ final class Translator
         $attachX = $ctx->cursorX;
 
         if ($hasSup && $supWidth > 0.0) {
-            $this->paintScript($sup, $ctx, $ctx->fontSize * self::SUP_RAISE_EM);
+            $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
             // Cursor now at attachX + supWidth on original baseline.
         }
 
@@ -587,20 +584,20 @@ final class Translator
             // Back up to attachX, drop to sub baseline.
             $backup = $attachX - $ctx->cursorX;
             $ctx->stream->setFont($ctx->upright, $scriptFontSize);
-            $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * self::SUB_DROP_EM);
+            $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
             $subCtx = new MathmlPaintContext(
                 stream: $ctx->stream,
                 upright: $ctx->upright,
                 italic: $ctx->italic,
                 fontSize: $scriptFontSize,
                 cursorX: $attachX,
-                baselineY: $ctx->baselineY - $ctx->fontSize * self::SUB_DROP_EM,
+                baselineY: $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
             $this->paint($sub, $subCtx);
             // End at the pair's right edge on the original baseline.
             $ctx->stream->moveTextPosition(
                 $attachX + $pairWidth - $subCtx->cursorX,
-                $ctx->fontSize * self::SUB_DROP_EM,
+                $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
             $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
             $ctx->cursorX = $attachX + $pairWidth;
@@ -828,7 +825,7 @@ final class Translator
         MathmlPaintContext $ctx,
     ): void {
         $baseLeftX = $ctx->cursorX;
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $baseWidth = $this->estimateWidth($base, $ctx->fontSize);
         $overWidth = $over !== null ? $this->estimateWidth($over, $scriptFontSize) : 0.0;
         $underWidth = $under !== null ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
@@ -884,7 +881,7 @@ final class Translator
         float $constructWidth,
         float $yOffset,
     ): void {
-        $scriptFontSize = $ctx->fontSize * self::SCRIPT_FONT_SCALE;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $scriptWidth = $this->estimateWidth($script, $scriptFontSize);
         $scriptStartX = $baseLeftX + ($baseWidth - $scriptWidth) / 2.0;
         $deltaX = $scriptStartX - $ctx->cursorX;
