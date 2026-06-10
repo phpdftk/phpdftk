@@ -94,6 +94,38 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMencloseBoxAroundExpression(): void
+    {
+        // <menclose notation="box"> around an expression - common in
+        // textbooks for "this is the answer" style framing. Box edges
+        // emit stroke operators, the inner content emits Tj.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                <menclose notation="box">
+                  <mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow>
+                </menclose>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // All three glyphs reach the content stream.
+        foreach (['x', '+', '1'] as $glyph) {
+            self::assertMatchesRegularExpression(
+                '/\(' . preg_quote($glyph, '/') . '\)\s+Tj/',
+                $bytes,
+                "expected '$glyph' in stream",
+            );
+        }
+        // Box stroked (S operator on its own line).
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+    }
+
     public function testInlineMphantomReservesSpaceWithoutGlyphs(): void
     {
         // <mphantom> inside a fraction - classic alignment trick.

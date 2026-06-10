@@ -113,10 +113,12 @@ final class Parser
             'mspace' => new Mspace(),
             'mpadded' => new Mpadded(),
             'mphantom' => new Mphantom(),
-            // Future slices land typed classes for `<menclose>`.
-            // Until then it round-trips through GenericElement so a
-            // future Translator can recognise it without a parser
-            // revision.
+            'menclose' => new Menclose(),
+            // The MathML Core v1 element set is now complete. Anything
+            // else (deprecated MathML 3 holdovers like mlabeledtr,
+            // mglyph, mstack, mlongdiv, or Content MathML) round-trips
+            // through GenericElement so a future Translator can pick
+            // it up without revisiting the parser.
             default => new GenericElement($localName),
         };
     }
