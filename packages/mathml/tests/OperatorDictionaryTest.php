@@ -115,6 +115,97 @@ final class OperatorDictionaryTest extends TestCase
         self::assertEqualsWithDelta(5.0 / 18.0, $entry['rspace'], 0.001);
     }
 
+    public function testExpandedRelationalEntries(): void
+    {
+        // U+226A MUCH LESS-THAN, U+2225 PARALLEL TO, U+22A5 PERP
+        // all carry thick spacing per Core Appendix B.
+        $thick = 5.0 / 18.0;
+        foreach (["\u{226A}", "\u{2225}", "\u{22A5}", "\u{223C}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'infix');
+            self::assertEqualsWithDelta(
+                $thick,
+                $entry['lspace'],
+                0.001,
+                "infix lspace for $op should be thickmuskip",
+            );
+        }
+    }
+
+    public function testQuantifiersArePrefixWithThinRspace(): void
+    {
+        $thin = 3.0 / 18.0;
+        foreach (["\u{2200}", "\u{2203}", "\u{2204}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'prefix');
+            self::assertSame(0.0, $entry['lspace']);
+            self::assertEqualsWithDelta($thin, $entry['rspace'], 0.001);
+        }
+    }
+
+    public function testEllipsisAndDotsAreInfixWithZeroSpacing(): void
+    {
+        foreach (["\u{2026}", "\u{22EE}", "\u{22EF}", "\u{22F1}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'infix');
+            self::assertSame(0.0, $entry['lspace']);
+            self::assertSame(0.0, $entry['rspace']);
+        }
+    }
+
+    public function testFloorAndCeilingBracketsAreStretchyAndPrefixOrPostfix(): void
+    {
+        // Floor + ceiling pairs: left side is prefix-stretchy, right
+        // side is postfix-stretchy. Same as parens / brackets.
+        $left = OperatorDictionary::lookup("\u{230A}", 'prefix');   // ⌊
+        $right = OperatorDictionary::lookup("\u{230B}", 'postfix'); // ⌋
+        self::assertTrue($left['stretchy']);
+        self::assertTrue($right['stretchy']);
+        $left = OperatorDictionary::lookup("\u{2308}", 'prefix');   // ⌈
+        $right = OperatorDictionary::lookup("\u{2309}", 'postfix'); // ⌉
+        self::assertTrue($left['stretchy']);
+        self::assertTrue($right['stretchy']);
+    }
+
+    public function testPrimesArePostfixWithZeroSpacing(): void
+    {
+        foreach (["\u{2032}", "\u{2033}", "\u{2034}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'postfix');
+            self::assertSame(0.0, $entry['lspace']);
+            self::assertSame(0.0, $entry['rspace']);
+        }
+    }
+
+    public function testCircledOperatorsHaveMediumSpacing(): void
+    {
+        $med = 4.0 / 18.0;
+        foreach (["\u{2295}", "\u{2296}", "\u{2297}", "\u{2299}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'infix');
+            self::assertEqualsWithDelta($med, $entry['lspace'], 0.001);
+            self::assertEqualsWithDelta($med, $entry['rspace'], 0.001);
+        }
+    }
+
+    public function testNAryUnionAndIntersectionArePrefixLargeOps(): void
+    {
+        $thin = 3.0 / 18.0;
+        // U+22C3 (n-ary union) and U+22C2 (n-ary intersection) are
+        // big-operator forms - prefix with thin spacing.
+        foreach (["\u{22C2}", "\u{22C3}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'prefix');
+            self::assertEqualsWithDelta($thin, $entry['lspace'], 0.001);
+            self::assertEqualsWithDelta($thin, $entry['rspace'], 0.001);
+        }
+    }
+
+    public function testNorm2VerticalLinesAreStretchyOnBothSides(): void
+    {
+        // U+2016 (double vertical line, ‖) is used as both opening
+        // and closing fence in norm notation, so both prefix and
+        // postfix entries must be stretchy.
+        $prefix = OperatorDictionary::lookup("\u{2016}", 'prefix');
+        $postfix = OperatorDictionary::lookup("\u{2016}", 'postfix');
+        self::assertTrue($prefix['stretchy']);
+        self::assertTrue($postfix['stretchy']);
+    }
+
     public function testDefaultEntryStructure(): void
     {
         // The DEFAULT_ENTRY contract: zero spacing, non-stretchy.
