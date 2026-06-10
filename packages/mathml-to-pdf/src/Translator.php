@@ -1298,23 +1298,56 @@ final class Translator
 
     private function walkChildren(Element $parent, MathmlPaintContext $ctx): void
     {
-        // Materialise the element children once so we can look up
-        // siblings while computing the operator form for any <mo>.
         $elementChildren = $this->elementChildren($parent);
         $count = count($elementChildren);
-        $elementIndex = 0;
-        foreach ($parent->children as $child) {
-            if (!$child instanceof Element) {
-                // Text children outside token elements are not part of
-                // the MathML content model; ignore them.
-                continue;
-            }
-            $form = null;
+        if ($count === 0) {
+            return;
+        }
+
+        // Resolve effective direction. The parent's own `dir` (if any)
+        // overrides what the surrounding context says. Mid-tree
+        // overrides spawn a fresh context for the children only.
+        $parentDir = $parent->dir();
+        $childCtx = $ctx;
+        if ($parentDir !== null && $parentDir !== $ctx->direction) {
+            $childCtx = new MathmlPaintContext(
+                stream: $ctx->stream,
+                upright: $ctx->upright,
+                italic: $ctx->italic,
+                fontSize: $ctx->fontSize,
+                cursorX: $ctx->cursorX,
+                baselineY: $ctx->baselineY,
+                direction: $parentDir,
+            );
+        }
+
+        // Form detection uses SOURCE position - reversing visual order
+        // for RTL doesn't change which Mo is prefix / infix / postfix.
+        $formByIndex = [];
+        foreach ($elementChildren as $i => $child) {
             if ($child instanceof Mo) {
-                $form = $this->effectiveOperatorForm($child, $elementIndex, $count);
+                $formByIndex[$i] = $this->effectiveOperatorForm($child, $i, $count);
             }
-            $this->paint($child, $ctx, $form);
-            $elementIndex++;
+        }
+
+        // RTL flips iteration order so the first source child sits at
+        // the rightmost visual position. Cursor mechanics stay
+        // unchanged - we just paint the children in the visually
+        // correct order.
+        $indices = range(0, $count - 1);
+        if ($childCtx->direction === 'rtl') {
+            $indices = array_reverse($indices);
+        }
+
+        foreach ($indices as $i) {
+            $this->paint($elementChildren[$i], $childCtx, $formByIndex[$i] ?? null);
+        }
+
+        // Sync the parent's cursorX with the child context's final
+        // position so subsequent siblings of the *parent* flow
+        // correctly.
+        if ($childCtx !== $ctx) {
+            $ctx->cursorX = $childCtx->cursorX;
         }
     }
 

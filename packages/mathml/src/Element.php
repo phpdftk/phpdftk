@@ -103,6 +103,26 @@ abstract class Element extends Node
     }
 
     /**
+     * `dir` per MathML Core §3.1.5.4 — `ltr` or `rtl`. Sets the
+     * layout direction for this element's children. Inherits from
+     * the nearest ancestor with `dir` set when absent. Returns null
+     * when no explicit value is provided so the painter can walk up
+     * the tree (or fall back to LTR).
+     */
+    public function dir(): ?string
+    {
+        $raw = $this->attributes['dir'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'ltr', 'rtl' => $value,
+            default => null,
+        };
+    }
+
+    /**
      * Class names from the `class` attribute, whitespace-separated.
      * Empty list when absent or empty. Mirrors the SVG accessor of
      * the same name so cross-tree CSS selectors work uniformly.

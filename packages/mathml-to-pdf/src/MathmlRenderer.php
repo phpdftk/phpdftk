@@ -104,6 +104,9 @@ final class MathmlRenderer
         $stream->setFont($upright, $fontSize);
         $stream->moveTextPosition($x, $baselineY);
 
+        // Initial direction from <math dir>. Token elements deeper in
+        // the tree can introduce their own boundaries via their `dir`
+        // attribute; the Translator picks them up through paint().
         $ctx = new MathmlPaintContext(
             stream: $stream,
             upright: $upright,
@@ -111,6 +114,7 @@ final class MathmlRenderer
             fontSize: $fontSize,
             cursorX: $x,
             baselineY: $baselineY,
+            direction: $math->dir() ?? 'ltr',
         );
         $this->translator->paint($math, $ctx);
 
