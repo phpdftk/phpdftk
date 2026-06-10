@@ -149,8 +149,13 @@ final class Translator
             return;
         }
 
-        $raise = $ctx->fontSize * $ctx->metrics->fractionNumeratorShiftUpEm();
-        $drop = $ctx->fontSize * $ctx->metrics->fractionDenominatorShiftDownEm();
+        // `displaystyle="true"` on <mfrac> picks the taller
+        // display-style shifts from MathConstants (typical of
+        // fractions inside `<math display="block">`); otherwise the
+        // inline shifts apply.
+        $displayStyle = $mfrac->displaystyle() === true;
+        $raise = $ctx->fontSize * $ctx->metrics->fractionNumeratorShiftUpEm($displayStyle);
+        $drop = $ctx->fontSize * $ctx->metrics->fractionDenominatorShiftDownEm($displayStyle);
         $numLead = ($fracWidth - $numWidth) / 2.0;
         $denLead = ($fracWidth - $denWidth) / 2.0;
         $fracLeftX = $ctx->cursorX;
