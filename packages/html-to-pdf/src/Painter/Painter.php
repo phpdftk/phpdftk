@@ -4491,8 +4491,16 @@ final class Painter
         } catch (\Throwable) {
             return;
         }
+        // Resolve the CSS-cascaded font size for the <math> element
+        // so em-relative children (mpadded height="3em", mspace
+        // depth="2em", ...) measure against the right base. WPT
+        // fixtures expect CSS default of 16px (== 16pt under
+        // html-to-pdf's 1px = 1pt cascade); the painter falls back
+        // to MathmlRenderer::DEFAULT_FONT_SIZE when nothing is set.
+        $fontSize = $this->dominantFontSize($box);
         if ($width <= 0.0 || $height <= 0.0) {
-            [$intrinsicW, $intrinsicH] = $this->mathmlRenderer()->intrinsicSize($mathDoc);
+            [$intrinsicW, $intrinsicH] = $this->mathmlRenderer()
+                ->intrinsicSize($mathDoc, $fontSize);
             if ($width <= 0.0 && $intrinsicW > 0.0) {
                 $width = $intrinsicW;
             }
@@ -4519,6 +4527,7 @@ final class Painter
             $width,
             $height,
             stream: $stream,
+            fontSize: $fontSize,
         );
     }
 

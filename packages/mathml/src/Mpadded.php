@@ -88,6 +88,65 @@ final class Mpadded extends Element
     }
 
     /**
+     * Resolve `widthEm()` × fontSize, but route px / pt through a
+     * direct 1:1 conversion instead of em scaling. Mirrors
+     * html-to-pdf's CSS cascade: 1 CSS px == 1 PDF pt regardless
+     * of font-size, em scales with font-size. Returns null when
+     * the attribute is absent or unparseable.
+     */
+    public function widthPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['width'] ?? null, $fontSize);
+    }
+
+    public function heightPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['height'] ?? null, $fontSize);
+    }
+
+    public function depthPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['depth'] ?? null, $fontSize);
+    }
+
+    public function lspacePt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['lspace'] ?? null, $fontSize);
+    }
+
+    public function voffsetPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['voffset'] ?? null, $fontSize);
+    }
+
+    /**
+     * Parse a CSS `<length>` directly to pt. px / pt convert 1:1
+     * (matching html-to-pdf); em / ex / unitless scale with
+     * fontSize.
+     */
+    private function parseLengthPt(?string $raw, float $fontSize): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (!preg_match('/^([+-]?\d*\.?\d+)\s*([a-zA-Z%]*)$/', $trimmed, $m)) {
+            return null;
+        }
+        $value = (float) $m[1];
+        $unit = strtolower($m[2]);
+        return match ($unit) {
+            'em', ''   => $value * $fontSize,
+            'ex'       => $value * 0.5 * $fontSize,
+            'px', 'pt' => $value,
+            default    => null,
+        };
+    }
+
+    /**
      * Parse a CSS `<length>` to em. Treats leading `+`/`-` as plain
      * signs (the relative-vs-absolute distinction surfaces only when
      * the painter compares with the child's intrinsic value, which
@@ -107,15 +166,12 @@ final class Mpadded extends Element
         }
         $value = (float) $m[1];
         $unit = strtolower($m[2]);
-        // px / pt conversions assume the v1 default font size of
-        // 12 pt so the result lines up with html-to-pdf's 1 CSS px
-        // == 1 PDF pt convention (the css/html-to-pdf cascade
-        // treats px as the canonical unit and emits it directly as
-        // PDF user-space pt). At a non-default math font size the
-        // conversion drifts — px in MathML is intrinsically em-
-        // relative once it lands in this accessor, which is a known
-        // limitation; the WPT tests all use the default size so
-        // they line up with the reference renders.
+        // Legacy em-only accessor. Uses the v1 default 12pt font
+        // size for px / pt conversions so the result matches
+        // html-to-pdf's 1 CSS px == 1 PDF pt convention. Painter
+        // call sites now prefer widthPt / heightPt / depthPt /
+        // lspacePt / voffsetPt which take fontSize and handle the
+        // unit cases without this drift.
         return match ($unit) {
             'em', ''   => $value,
             'ex'       => $value * 0.5,

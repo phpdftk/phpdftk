@@ -99,9 +99,10 @@ final class MathmlRenderer
         ?float $width = null,
         ?float $height = null,
         ?ContentStream $stream = null,
+        ?float $fontSize = null,
     ): void {
         $stream ??= $this->page->contentStream();
-        $fontSize = self::DEFAULT_FONT_SIZE;
+        $fontSize ??= self::DEFAULT_FONT_SIZE;
 
         // Register the two standard faces for token rendering. The
         // writer dedupes by font identity — adding the same standard
@@ -176,9 +177,9 @@ final class MathmlRenderer
      *
      * @return array{0: float, 1: float}
      */
-    public function intrinsicSize(MathmlDocument $math): array
+    public function intrinsicSize(MathmlDocument $math, ?float $fontSize = null): array
     {
-        $fontSize = self::DEFAULT_FONT_SIZE;
+        $fontSize ??= self::DEFAULT_FONT_SIZE;
         $upright = $this->writer->addFont(
             new Type1Font(StandardFont::TimesRoman),
             $this->corePage(),

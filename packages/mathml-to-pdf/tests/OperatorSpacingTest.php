@@ -61,20 +61,18 @@ final class OperatorSpacingTest extends TestCase
     public function testExplicitFormAttributeOverridesPositional(): void
     {
         // Force the leading `-` to be treated as infix - this picks
-        // up the medium-spacing entry instead of falling back to
-        // the default. Confirms author can override the heuristic.
+        // up the medium-spacing entry (4/18 em on each side) instead
+        // of the dictionary's prefix entry. Confirms the author can
+        // override the heuristic.
         $bytes = $this->render(
             '<mrow><mo form="infix">-</mo><mi>x</mi></mrow>',
         );
-        $bytesPositional = $this->render(
-            '<mrow><mo>-</mo><mi>x</mi></mrow>',
-        );
-        // The forced-infix variant emits more Tds (because medium
-        // spacing applies on both sides) than the positional prefix
-        // variant (which falls back to no spacing).
-        $tdInfix = preg_match_all('/\s+Td\b/', $bytes);
-        $tdPositional = preg_match_all('/\s+Td\b/', $bytesPositional);
-        self::assertGreaterThan($tdPositional, $tdInfix);
+        // The forced-infix variant emits a Td for lspace AND a Td
+        // for rspace around the operator (both 4/18 em > 0). A
+        // dictionary entry without spacing wouldn't.
+        self::assertMatchesRegularExpression('/\(-\)\s+Tj/', $bytes);
+        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
     public function testFactorialPostfixHasNoSpacing(): void

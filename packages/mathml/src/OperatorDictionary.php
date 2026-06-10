@@ -33,9 +33,17 @@ final class OperatorDictionary
      *
      * @var array{lspace: float, rspace: float, stretchy: bool, largeop: bool, movablelimits: bool}
      */
+    /**
+     * Per Core §3.4.2 / Appendix A.2, an operator not present in
+     * the dictionary uses lspace=rspace=5/18 em ("thickmuskip"),
+     * NOT zero. The same value is the dictionary's most common
+     * setting for relational operators, so it works as the
+     * fallback for unrecognised symbols (e.g. an author's custom
+     * relational sign).
+     */
     public const array DEFAULT_ENTRY = [
-        'lspace' => 0.0,
-        'rspace' => 0.0,
+        'lspace' => 5.0 / 18.0,
+        'rspace' => 5.0 / 18.0,
         'stretchy' => false,
         'largeop' => false,
         'movablelimits' => false,
