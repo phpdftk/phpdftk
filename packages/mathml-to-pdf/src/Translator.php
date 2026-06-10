@@ -1457,8 +1457,152 @@ final class Translator
                 $stream->stroke();
                 return;
 
-                // circle, radical, madruwb, phasorangle, downdiagonalarrow,
-                // updiagonalarrow - no-op for v1. Content still renders.
+            case 'madruwb':
+                // Mirror of `actuarial` - bottom edge + right edge.
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($right, $bottom);
+                $stream->lineTo($right, $top);
+                $stream->stroke();
+                return;
+
+            case 'phasorangle':
+                // A right-angle bracket: vertical line up from the
+                // bottom-left, then a diagonal stroke going up-right
+                // to the top-right corner.
+                $stream->moveTo($left, $top);
+                $stream->lineTo($left, $bottom);
+                $stream->lineTo($right, $bottom);
+                $stream->stroke();
+                return;
+
+            case 'circle':
+                // Approximate the ellipse inscribed in (left, bottom)
+                // -> (right, top) with four cubic Bezier curves. The
+                // magic kappa = 4*(sqrt(2)-1)/3 ~ 0.5523 makes a near-
+                // perfect circle approximation.
+                $rx = ($right - $left) / 2.0;
+                $ry = ($top - $bottom) / 2.0;
+                $kappa = 0.5522847498307933;
+                $kx = $kappa * $rx;
+                $ky = $kappa * $ry;
+                // Start at right midpoint.
+                $stream->moveTo($midX + $rx, $midY);
+                // Right -> top quarter.
+                $stream->curveTo(
+                    $midX + $rx,
+                    $midY + $ky,
+                    $midX + $kx,
+                    $midY + $ry,
+                    $midX,
+                    $midY + $ry,
+                );
+                // Top -> left quarter.
+                $stream->curveTo(
+                    $midX - $kx,
+                    $midY + $ry,
+                    $midX - $rx,
+                    $midY + $ky,
+                    $midX - $rx,
+                    $midY,
+                );
+                // Left -> bottom quarter.
+                $stream->curveTo(
+                    $midX - $rx,
+                    $midY - $ky,
+                    $midX - $kx,
+                    $midY - $ry,
+                    $midX,
+                    $midY - $ry,
+                );
+                // Bottom -> right quarter.
+                $stream->curveTo(
+                    $midX + $kx,
+                    $midY - $ry,
+                    $midX + $rx,
+                    $midY - $ky,
+                    $midX + $rx,
+                    $midY,
+                );
+                $stream->stroke();
+                return;
+
+            case 'updiagonalarrow':
+                // Diagonal from bottom-left to top-right (like
+                // updiagonalstrike) plus an arrowhead at top-right.
+                $stream->moveTo($left, $bottom);
+                $stream->lineTo($right, $top);
+                // Arrowhead: two short lines at the tip pointing
+                // back along the diagonal at +/- ~30 degrees.
+                $arrowLen = ($right - $left) * 0.18;
+                // Diagonal direction = (1, 1) / sqrt(2). Rotate by
+                // 150 and 210 degrees from that for the arrowhead
+                // legs. Direct cos/sin makes this readable.
+                $dx = $right - $left;
+                $dy = $top - $bottom;
+                $len = sqrt($dx * $dx + $dy * $dy);
+                $ux = $dx / $len;
+                $uy = $dy / $len;
+                // 150 deg from diagonal: rotate (-ux, -uy) by -30.
+                // We can use cos -30 = sqrt(3)/2, sin -30 = -1/2.
+                $cos = 0.8660254037844387; // sqrt(3)/2
+                $sin = 0.5;
+                // Left leg of arrowhead.
+                $lx1 = -$ux * $cos + -$uy * (-$sin);
+                $ly1 = -$ux * $sin + -$uy * $cos;
+                // Right leg.
+                $rx1 = -$ux * $cos + -$uy * $sin;
+                $ry1 = $ux * $sin + -$uy * $cos;
+                $stream->moveTo($right, $top);
+                $stream->lineTo(
+                    $right + $lx1 * $arrowLen,
+                    $top + $ly1 * $arrowLen,
+                );
+                $stream->moveTo($right, $top);
+                $stream->lineTo(
+                    $right + $rx1 * $arrowLen,
+                    $top + $ry1 * $arrowLen,
+                );
+                $stream->stroke();
+                return;
+
+            case 'downdiagonalarrow':
+                // Diagonal from top-left to bottom-right with arrowhead.
+                $stream->moveTo($left, $top);
+                $stream->lineTo($right, $bottom);
+                $arrowLen = ($right - $left) * 0.18;
+                $dx = $right - $left;
+                $dy = $bottom - $top;
+                $len = sqrt($dx * $dx + $dy * $dy);
+                $ux = $dx / $len;
+                $uy = $dy / $len;
+                $cos = 0.8660254037844387;
+                $sin = 0.5;
+                $lx1 = -$ux * $cos + -$uy * (-$sin);
+                $ly1 = -$ux * $sin + -$uy * $cos;
+                $rx1 = -$ux * $cos + -$uy * $sin;
+                $ry1 = $ux * $sin + -$uy * $cos;
+                $stream->moveTo($right, $bottom);
+                $stream->lineTo(
+                    $right + $lx1 * $arrowLen,
+                    $bottom + $ly1 * $arrowLen,
+                );
+                $stream->moveTo($right, $bottom);
+                $stream->lineTo(
+                    $right + $rx1 * $arrowLen,
+                    $bottom + $ry1 * $arrowLen,
+                );
+                $stream->stroke();
+                return;
+
+                // radical - emitting the √ glyph requires the math
+                // font to be loaded AND U+221A to be in its cmap.
+                // Decorating an arbitrary box with a radical sign
+                // doesn't fit the path-only model `drawNotation`
+                // operates in (we'd need to fall back into the
+                // text block to emit a glyph). Skipping for v1;
+                // the radical-around-content use case is better
+                // served by the actual `<msqrt>` element which
+                // already emits U+221A under a math font (PR #73).
         }
     }
 

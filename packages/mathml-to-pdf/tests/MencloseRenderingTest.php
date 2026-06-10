@@ -105,6 +105,66 @@ final class MencloseRenderingTest extends TestCase
         }
     }
 
+    public function testMadruwbDrawsTwoEdges(): void
+    {
+        // madruwb is the mirror of actuarial - bottom + right edges,
+        // so it draws at least two line segments and one stroke.
+        $bytes = $this->render('madruwb');
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+        $linetos = preg_match_all('/\bl\b/', $bytes);
+        self::assertGreaterThanOrEqual(2, $linetos);
+    }
+
+    public function testPhasorangleDrawsTwoEdges(): void
+    {
+        // phasorangle: top-left -> bottom-left -> bottom-right path.
+        // Two line segments, one stroke.
+        $bytes = $this->render('phasorangle');
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+        $linetos = preg_match_all('/\bl\b/', $bytes);
+        self::assertGreaterThanOrEqual(2, $linetos);
+    }
+
+    public function testCircleDrawsBezierCurves(): void
+    {
+        // The circle approximation uses four cubic Bezier curves
+        // (the `c` operator in PDF). Expect at least 4 `c` ops.
+        $bytes = $this->render('circle');
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+        $curves = preg_match_all('/\bc\b/', $bytes);
+        self::assertGreaterThanOrEqual(4, $curves);
+    }
+
+    public function testUpdiagonalarrowEmitsStrokes(): void
+    {
+        // updiagonalarrow draws a diagonal + two arrowhead legs,
+        // so at least one stroke and several lineTo operations.
+        $bytes = $this->render('updiagonalarrow');
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+        $linetos = preg_match_all('/\bl\b/', $bytes);
+        self::assertGreaterThanOrEqual(3, $linetos);
+    }
+
+    public function testDowndiagonalarrowEmitsStrokes(): void
+    {
+        $bytes = $this->render('downdiagonalarrow');
+        self::assertMatchesRegularExpression('/\nS\n/', $bytes);
+        $linetos = preg_match_all('/\bl\b/', $bytes);
+        self::assertGreaterThanOrEqual(3, $linetos);
+    }
+
+    public function testCircleAndStrikeCombineSeparateStrokes(): void
+    {
+        // circle + horizontalstrike emits two separate stroke
+        // operations - one for the ellipse, one for the strike.
+        $bytes = $this->render('circle horizontalstrike');
+        $strokes = preg_match_all('/\nS\n/', $bytes);
+        self::assertGreaterThanOrEqual(2, $strokes);
+        // Bezier curves still appear for the circle.
+        $curves = preg_match_all('/\bc\b/', $bytes);
+        self::assertGreaterThanOrEqual(4, $curves);
+    }
+
     public function testMultipleNotationsCombineStrokes(): void
     {
         // box + horizontalstrike + updiagonalstrike = 3 separate
