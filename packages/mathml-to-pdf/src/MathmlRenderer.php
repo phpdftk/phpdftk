@@ -192,6 +192,19 @@ final class MathmlRenderer
         // produces a minimal embedded program.
         $codepoints = MathmlCodepointCollector::collect($math);
 
+        // Parse MathVariants ahead of font registration so we can
+        // collect the variant + assembly-part GIDs the painter will
+        // want to render stretchy delimiters. Without these in the
+        // subset, the variant lookups in MathmlMathFont would
+        // succeed at the data layer but the variant GIDs wouldn't
+        // map to any post-subset GID, so paintMo would fall through
+        // to the standard emit and the stretchy machinery would be
+        // dead code.
+        $variants = $data->mathTable->hasMathVariants()
+            ? (new MathVariantsParser())->parse($data->mathTable->mathVariantsBytes)
+            : null;
+        $extraGids = $this->collectVariantGids($data, $variants, $codepoints);
+
         // Register the Type 0 font stack. The Font handle carries
         // a post-subset Unicode -> GID map for hex emission; we
         // rebuild the post-subset GID -> width map from the parsed
@@ -200,6 +213,7 @@ final class MathmlRenderer
             $data,
             $codepoints,
             $this->corePage(),
+            $extraGids,
         );
 
         $unicodeToGidSubset = $font->getUnicodeToGidMap();
@@ -214,9 +228,6 @@ final class MathmlRenderer
 
         $glyphInfo = $data->mathTable->hasMathGlyphInfo()
             ? (new MathGlyphInfoParser())->parse($data->mathTable->mathGlyphInfoBytes)
-            : null;
-        $variants = $data->mathTable->hasMathVariants()
-            ? (new MathVariantsParser())->parse($data->mathTable->mathVariantsBytes)
             : null;
 
         $mathFont = new MathmlMathFont(
@@ -237,6 +248,60 @@ final class MathmlRenderer
         );
 
         return [$mathFont, $metrics];
+    }
+
+    /**
+     * Walk every base GID the document will render and collect any
+     * vertical-stretch variants + assembly-part GIDs the font has
+     * registered for it via MathVariants. Those GIDs have no
+     * Unicode codepoint, so the CFF subsetter would otherwise drop
+     * them. Passing them as `extraGids` keeps them embedded.
+     *
+     * Horizontal constructions (over/under-braces, wide arrows) are
+     * collected the same way - the painter doesn't yet emit them
+     * but a follow-up that does will already have the GIDs in the
+     * subset.
+     *
+     * @param int[] $codepoints
+     * @return list<int> Pre-subset GIDs
+     */
+    private function collectVariantGids(
+        \Phpdftk\FontParser\OpenTypeData $data,
+        ?\Phpdftk\FontParser\MathVariants $variants,
+        array $codepoints,
+    ): array {
+        if ($variants === null) {
+            return [];
+        }
+        $extras = [];
+        $collectFromConstructions = function (array $constructions) use (&$extras): void {
+            /** @var array<int, \Phpdftk\FontParser\MathGlyphConstruction> $constructions */
+            foreach ($constructions as $construction) {
+                foreach ($construction->variants as $variant) {
+                    $extras[] = $variant['glyphId'];
+                }
+                if ($construction->assembly !== null) {
+                    foreach ($construction->assembly->parts as $part) {
+                        $extras[] = $part['glyphId'];
+                    }
+                }
+            }
+        };
+        // Walk only the entries whose base GID corresponds to a
+        // codepoint in the document - keeps the subset tight.
+        foreach ($codepoints as $cp) {
+            $baseGid = $data->fullUnicodeToGid[$cp] ?? null;
+            if ($baseGid === null) {
+                continue;
+            }
+            if (isset($variants->verticalConstructions[$baseGid])) {
+                $collectFromConstructions([$variants->verticalConstructions[$baseGid]]);
+            }
+            if (isset($variants->horizontalConstructions[$baseGid])) {
+                $collectFromConstructions([$variants->horizontalConstructions[$baseGid]]);
+            }
+        }
+        return array_values(array_unique($extras));
     }
 
     /**
