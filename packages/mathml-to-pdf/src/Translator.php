@@ -2731,14 +2731,18 @@ final class Translator
         if ($content === '') {
             return;
         }
-        // Pure-RTL tokens need visual reordering: PDF text emission
-        // always advances the cursor LEFT-to-RIGHT, so we have to
-        // reverse the codepoint sequence to get visual-order RTL.
-        // Pure-LTR / neutral tokens pass through unchanged. Mixed
-        // runs (Hebrew + Latin in the same token) stay in source
-        // order pending full UAX #9 reordering.
-        if (BidiAnalyzer::runDirection($content) === BidiAnalyzer::DIRECTION_RTL) {
+        // Bidi: pure-RTL content gets reversed; mixed-direction
+        // content is run-aware reordered via BidiReorder using the
+        // surrounding paragraph direction. Pure-LTR / neutral
+        // content passes through unchanged.
+        $runDirection = BidiAnalyzer::runDirection($content);
+        if ($runDirection === BidiAnalyzer::DIRECTION_RTL) {
             $content = $this->reverseUtf8($content);
+        } elseif ($runDirection === 'mixed') {
+            $paragraphDir = $ctx->direction === 'rtl'
+                ? BidiAnalyzer::DIRECTION_RTL
+                : BidiAnalyzer::DIRECTION_LTR;
+            $content = BidiReorder::reorder($content, $paragraphDir);
         }
         if ($ctx->mathFont !== null) {
             $hex = $ctx->mathFont->utf8ToHexGids($content);
