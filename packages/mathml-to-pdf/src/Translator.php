@@ -335,7 +335,9 @@ final class Translator
         }
         [$base, $sub] = [$children[0], $children[1]];
         $this->paint($base, $ctx);
-        $this->paintScript($sub, $ctx, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
+        $subShiftEm = $ctx->metrics->subscriptShiftDownEm();
+        $this->applyCornerKern($base, $ctx, 'bottomRight', $subShiftEm);
+        $this->paintScript($sub, $ctx, -$ctx->fontSize * $subShiftEm);
     }
 
     /**
@@ -358,7 +360,9 @@ final class Translator
         [$base, $sup] = [$children[0], $children[1]];
         $this->paint($base, $ctx);
         $this->applyItalicCorrection($base, $ctx);
-        $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
+        $supShiftEm = $ctx->metrics->superscriptShiftUpEm();
+        $this->applyCornerKern($base, $ctx, 'topRight', $supShiftEm);
+        $this->paintScript($sup, $ctx, $ctx->fontSize * $supShiftEm);
     }
 
     /**
@@ -866,6 +870,13 @@ final class Translator
         // Cursor now at baseLeftX + baseWidth.
 
         if ($over !== null && $overWidth > 0.0) {
+            // Top-accent attachment: when the math font supplies a
+            // per-glyph attachment point for the base, use it as the
+            // accent's centre instead of the base's geometric centre.
+            // This visually aligns accents over italic letters (a
+            // hat over î sits at the stem, not the centre of the
+            // italic glyph's bounding box).
+            $attachOverride = $this->topAccentAttachmentEm($base, $ctx);
             $this->placeCentredScript(
                 script: $over,
                 ctx: $ctx,
@@ -873,6 +884,7 @@ final class Translator
                 baseWidth: $baseWidth,
                 constructWidth: $constructWidth,
                 yOffset: $ctx->fontSize * $ctx->metrics->overscriptRaiseEm(),
+                accentCentreOffsetEm: $attachOverride,
             );
         }
 
@@ -911,10 +923,18 @@ final class Translator
         float $baseWidth,
         float $constructWidth,
         float $yOffset,
+        ?float $accentCentreOffsetEm = null,
     ): void {
         $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $scriptWidth = $this->estimateWidth($script, $scriptFontSize);
-        $scriptStartX = $baseLeftX + ($baseWidth - $scriptWidth) / 2.0;
+        if ($accentCentreOffsetEm !== null) {
+            // Centre the script on the attachment point reported by
+            // the font instead of the geometric centre.
+            $centreX = $baseLeftX + $accentCentreOffsetEm * $ctx->fontSize;
+            $scriptStartX = $centreX - $scriptWidth / 2.0;
+        } else {
+            $scriptStartX = $baseLeftX + ($baseWidth - $scriptWidth) / 2.0;
+        }
         $deltaX = $scriptStartX - $ctx->cursorX;
 
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
@@ -1668,6 +1688,148 @@ final class Translator
     private function activeFont(MathmlPaintContext $ctx): \Phpdftk\Pdf\Writer\Font
     {
         return $ctx->mathFont?->font ?? $ctx->upright;
+    }
+
+    /**
+     * Resolve the base glyph's top-accent attachment point (in em
+     * from the base's left edge) for `<mover>` placement.
+     *
+     * Returns null when:
+     *   - no math font is loaded,
+     *   - the base isn't a single-character token,
+     *   - the font has no attachment value for this glyph.
+     *
+     * The caller then falls back to centring the accent on the
+     * base's geometric mid-line.
+     */
+    private function topAccentAttachmentEm(
+        Element $base,
+        MathmlPaintContext $ctx,
+    ): ?float {
+        if ($ctx->mathFont === null) {
+            return null;
+        }
+        $text = $base->textContent();
+        if (mb_strlen($text, 'UTF-8') !== 1) {
+            return null;
+        }
+        $cp = mb_ord($text, 'UTF-8');
+        if ($cp === false) {
+            return null;
+        }
+        $gid = $ctx->mathFont->unicodeToGid[$cp] ?? null;
+        if ($gid === null) {
+            return null;
+        }
+        $attachFunits = $ctx->mathFont->topAccentAttachmentFor($gid);
+        if ($attachFunits === null) {
+            return null;
+        }
+        return $attachFunits / (float) $ctx->mathFont->unitsPerEm;
+    }
+
+    /**
+     * Compute the corner-kern adjustment (in em) the painter should
+     * apply when attaching a script to a base glyph.
+     *
+     * The corner kern is the per-glyph fine-tuning the font supplies
+     * for the script-attachment positions. Top-right and top-left
+     * kerns nudge superscripts; bottom-right and bottom-left nudge
+     * subscripts. Each is a piecewise function of attachment height,
+     * looked up via {@see MathKern::valueAt()}.
+     */
+    private function cornerKernEm(
+        Element $base,
+        MathmlPaintContext $ctx,
+        string $corner,
+        float $attachHeightEm,
+    ): float {
+        if ($ctx->mathFont === null) {
+            return 0.0;
+        }
+        $info = $ctx->mathFont->glyphInfo;
+        if ($info === null || $info->kernInfoBytes === '') {
+            return 0.0;
+        }
+        $text = $base->textContent();
+        if (mb_strlen($text, 'UTF-8') !== 1) {
+            return 0.0;
+        }
+        $cp = mb_ord($text, 'UTF-8');
+        if ($cp === false) {
+            return 0.0;
+        }
+        $postSubsetGid = $ctx->mathFont->unicodeToGid[$cp] ?? null;
+        if ($postSubsetGid === null) {
+            return 0.0;
+        }
+        // MathKernInfo is keyed by pre-subset GID; we parsed it lazily
+        // and cache the result on the math-font instance.
+        $kernInfo = $this->mathKernInfoFor($ctx);
+        if ($kernInfo === null) {
+            return 0.0;
+        }
+        $oldGid = array_flip($ctx->mathFont->oldToNewGid)[$postSubsetGid] ?? null;
+        if ($oldGid === null) {
+            return 0.0;
+        }
+        $record = $kernInfo->records[$oldGid] ?? null;
+        if ($record === null) {
+            return 0.0;
+        }
+        $kern = match ($corner) {
+            'topRight' => $record->topRight,
+            'topLeft' => $record->topLeft,
+            'bottomRight' => $record->bottomRight,
+            'bottomLeft' => $record->bottomLeft,
+            default => null,
+        };
+        if ($kern === null) {
+            return 0.0;
+        }
+        $heightFunits = (int) round(
+            $attachHeightEm * $ctx->mathFont->unitsPerEm,
+        );
+        return $kern->valueAt($heightFunits) / (float) $ctx->mathFont->unitsPerEm;
+    }
+
+    /**
+     * Apply a corner kern shift to the cursor before painting a
+     * script. Looks up `$corner` on the base glyph (per MathKernInfo)
+     * and translates the FUnit kern at `$attachHeightEm` into a
+     * point-space Td move. No-op when no kern is registered.
+     */
+    private function applyCornerKern(
+        Element $base,
+        MathmlPaintContext $ctx,
+        string $corner,
+        float $attachHeightEm,
+    ): void {
+        $kernEm = $this->cornerKernEm($base, $ctx, $corner, $attachHeightEm);
+        if ($kernEm === 0.0) {
+            return;
+        }
+        $shift = $kernEm * $ctx->fontSize;
+        $ctx->stream->moveTextPosition($shift, 0.0);
+        $ctx->cursorX += $shift;
+    }
+
+    /** @var array<string, ?\Phpdftk\FontParser\MathKernInfo> Lazy MathKernInfo cache keyed by font path hash. */
+    private array $mathKernInfoCache = [];
+
+    private function mathKernInfoFor(MathmlPaintContext $ctx): ?\Phpdftk\FontParser\MathKernInfo
+    {
+        if ($ctx->mathFont === null || $ctx->mathFont->glyphInfo === null) {
+            return null;
+        }
+        $key = spl_object_hash($ctx->mathFont);
+        if (!array_key_exists($key, $this->mathKernInfoCache)) {
+            $bytes = $ctx->mathFont->glyphInfo->kernInfoBytes;
+            $this->mathKernInfoCache[$key] = $bytes !== ''
+                ? (new \Phpdftk\FontParser\MathKernInfoParser())->parse($bytes)
+                : null;
+        }
+        return $this->mathKernInfoCache[$key];
     }
 
     /**
