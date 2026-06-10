@@ -700,6 +700,10 @@ final class Translator
      * default `columnspacing` is `0.8em`; we approximate with a uniform
      * gutter pending real attribute support.
      */
+    /**
+     * Default per-column gap when `<mtable>` carries no
+     * `columnspacing` attribute. Matches Core's recommended muskip.
+     */
     private const float MTABLE_COL_GAP_EM = 0.8;
 
     /**
@@ -707,6 +711,49 @@ final class Translator
      * `rowspacing` is `1.0ex` (≈ 0.5em); we approximate uniformly.
      */
     private const float MTABLE_ROW_GAP_EM = 0.5;
+
+    /**
+     * Resolve the cell's horizontal lead (in points) inside its
+     * column box, given the alignment cascade:
+     *
+     *   cell.columnAlign() > row.columnAlign()[col] > table.columnAlign()[col]
+     *
+     * `cell` may override; otherwise the row's per-column list (if
+     * any); otherwise the table's per-column list; otherwise `center`.
+     * Lists shorter than the column index repeat their last entry.
+     *
+     * @param Mtd|Element $cell      Cell - we accept Mtd specifically and
+     *                                fall back when generic Element child
+     *                                slipped in (loose markup).
+     * @param list<string> $rowAligns
+     * @param list<string> $tableAligns
+     */
+    private function cellLeadOffset(
+        Element $cell,
+        int $col,
+        float $colWidth,
+        float $cellWidth,
+        array $rowAligns,
+        array $tableAligns,
+    ): float {
+        $align = null;
+        if ($cell instanceof Mtd) {
+            $align = $cell->columnAlign();
+        }
+        if ($align === null && $rowAligns !== []) {
+            $align = $rowAligns[$col] ?? $rowAligns[count($rowAligns) - 1];
+        }
+        if ($align === null && $tableAligns !== []) {
+            $align = $tableAligns[$col] ?? $tableAligns[count($tableAligns) - 1];
+        }
+        $align ??= 'center';
+
+        return match ($align) {
+            'left'   => 0.0,
+            'right'  => $colWidth - $cellWidth,
+            default  => ($colWidth - $cellWidth) / 2.0,
+        };
+    }
 
     /**
      * Paint `<mtable>` as a 2-D grid (MathML Core §3.3.7).
@@ -733,15 +780,17 @@ final class Translator
      */
     private function paintMtable(Mtable $mtable, MathmlPaintContext $ctx): void
     {
+        // Materialise rows as Mtr instances so we can read per-row
+        // overrides alongside the cell content.
+        $rowEls = [];
         $rows = [];
         foreach ($this->elementChildren($mtable) as $rowEl) {
             if ($rowEl instanceof Mtr) {
+                $rowEls[] = $rowEl;
                 $rows[] = $this->elementChildren($rowEl);
             }
         }
         if ($rows === []) {
-            // No <mtr>s at all — degrade to inline walk so any stray
-            // content under <mtable> still reaches the stream.
             $this->walkChildren($mtable, $ctx);
             return;
         }
@@ -765,38 +814,77 @@ final class Translator
             }
         }
 
-        $colGap = $ctx->fontSize * self::MTABLE_COL_GAP_EM;
-        $rowGap = $ctx->fontSize * self::MTABLE_ROW_GAP_EM;
+        // Resolve effective alignment + spacing arrays. Empty author
+        // input falls back to the painter's defaults; non-empty input
+        // extends short lists by repeating the last entry per Core.
+        $tableColAlign = $mtable->columnAlign();
+        $colSpacingEms = $mtable->columnSpacingEm();
+        $rowSpacingEms = $mtable->rowSpacingEm();
+
+        $colGapAt = function (int $beforeCol) use ($ctx, $colSpacingEms): float {
+            $emList = $colSpacingEms;
+            $emValue = $emList === []
+                ? self::MTABLE_COL_GAP_EM
+                : ($emList[$beforeCol] ?? $emList[count($emList) - 1]);
+            return $emValue * $ctx->fontSize;
+        };
+        $rowGapAt = function (int $beforeRow) use ($ctx, $rowSpacingEms): float {
+            $emList = $rowSpacingEms;
+            $emValue = $emList === []
+                ? self::MTABLE_ROW_GAP_EM
+                : ($emList[$beforeRow] ?? $emList[count($emList) - 1]);
+            return $emValue * $ctx->fontSize;
+        };
+
         $rowHeight = $ctx->fontSize;
 
         $tableWidth = 0.0;
-        foreach ($colWidths as $w) {
+        foreach ($colWidths as $col => $w) {
             $tableWidth += $w;
+            if ($col < $colCount - 1) {
+                $tableWidth += $colGapAt($col);
+            }
         }
-        $tableWidth += $colGap * max(0, $colCount - 1);
 
         $tableLeftX = $ctx->cursorX;
         $rowCount = count($rows);
 
-        // Vertical layout: centre the table on the math axis. With N
-        // rows of height H plus (N-1) row-gaps G, the table occupies
-        // N*H + (N-1)*G vertically. Top row's baseline sits at
-        // baselineY + ((N-1)/2) * (H + G); bottom row at the inverse.
-        $rowPitch = $rowHeight + $rowGap;
-        $topRowOffset = ($rowCount - 1) * $rowPitch / 2.0;
+        // Vertical layout: precompute each row's baselineY offset so
+        // varying rowGapAt() values just work. Anchor the table so its
+        // visual centre lands on the math axis (offset 0).
+        $rowBaselineOffsets = [];
+        $cursorY = 0.0;
+        for ($r = 0; $r < $rowCount; $r++) {
+            $rowBaselineOffsets[$r] = $cursorY;
+            if ($r < $rowCount - 1) {
+                $cursorY -= $rowHeight + $rowGapAt($r);
+            }
+        }
+        // Shift everything so the top + bottom rows are symmetric about 0.
+        $bottomY = $rowBaselineOffsets[$rowCount - 1];
+        $centreShift = -$bottomY / 2.0;
+        foreach ($rowBaselineOffsets as $r => $offset) {
+            $rowBaselineOffsets[$r] = $offset + $centreShift;
+        }
 
         foreach ($rows as $rowIdx => $row) {
-            $rowBaselineOffset = $topRowOffset - $rowIdx * $rowPitch;
-            // Column x cursor starts at tableLeftX for every row.
+            $rowBaselineOffset = $rowBaselineOffsets[$rowIdx];
+            $rowEl = $rowEls[$rowIdx];
+            $rowColAlign = $rowEl->columnAlign();
+
             $colX = $tableLeftX;
             foreach ($row as $col => $cell) {
                 $cellWidth = $this->estimateWidth($cell, $ctx->fontSize);
-                $cellLeadX = $colX + ($colWidths[$col] - $cellWidth) / 2.0;
+                $cellLeadX = $colX + $this->cellLeadOffset(
+                    $cell,
+                    $col,
+                    $colWidths[$col],
+                    $cellWidth,
+                    $rowColAlign,
+                    $tableColAlign,
+                );
 
                 $deltaX = $cellLeadX - $ctx->cursorX;
-                // We always end the prior cell back on the parent
-                // baseline (see the symmetric moveTextPosition below),
-                // so the per-cell Y delta is just rowBaselineOffset.
                 $ctx->stream->moveTextPosition($deltaX, $rowBaselineOffset);
                 $cellCtx = new MathmlPaintContext(
                     stream: $ctx->stream,
@@ -807,12 +895,13 @@ final class Translator
                     baselineY: $ctx->baselineY + $rowBaselineOffset,
                 );
                 $this->paint($cell, $cellCtx);
-                // Return to the parent baseline; we'll re-shift when we
-                // move into the next cell.
                 $ctx->stream->moveTextPosition(0.0, -$rowBaselineOffset);
                 $ctx->cursorX = $cellCtx->cursorX;
 
-                $colX += $colWidths[$col] + $colGap;
+                $colX += $colWidths[$col];
+                if ($col < $colCount - 1) {
+                    $colX += $colGapAt($col);
+                }
             }
         }
 
