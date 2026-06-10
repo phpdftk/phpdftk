@@ -327,12 +327,18 @@ class PdfWriter
      * @param \Phpdftk\FontParser\OpenTypeData $data Parsed OpenType font data
      * @param int[] $usedCodepoints Unicode codepoints used in the document
      * @param CorePage|Page|null $page If set, add font only to this page
+     * @param int[] $extraGids Extra pre-subset GIDs to retain even when no
+     *        codepoint maps to them. Math fonts use this to keep stretchy
+     *        variants and assembly parts in the subset - those glyphs have
+     *        no Unicode codepoint and would otherwise be dropped by the
+     *        CFF subsetter.
      * @return Font Opaque font handle
      */
     public function addOpenTypeFont(
         \Phpdftk\FontParser\OpenTypeData $data,
         array $usedCodepoints,
         CorePage|Page|null $page = null,
+        array $extraGids = [],
     ): Font {
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
@@ -363,6 +369,13 @@ class PdfWriter
                 $codepointsByOldGid[$gid] = $cp;
             }
         }
+        // Add codepoint-less glyphs (math variants, assembly parts).
+        // Dedupe via array_values + array_unique so the subsetter sees
+        // each GID once even when callers double-register.
+        foreach ($extraGids as $gid) {
+            $usedGids[] = $gid;
+        }
+        $usedGids = array_values(array_unique($usedGids));
         $cffSubsetter = new \Phpdftk\FontParser\CffSubsetter();
         $cffBytes = $cffSubsetter->subset($data->cffBytes, $usedGids);
         $cffGidMap = $cffSubsetter->getGidMap();
