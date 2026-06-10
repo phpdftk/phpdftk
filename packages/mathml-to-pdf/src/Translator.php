@@ -1276,8 +1276,8 @@ final class Translator
      */
     private function paintMspace(Mspace $mspace, MathmlPaintContext $ctx): void
     {
-        $widthEm = $mspace->widthEm() ?? self::MSPACE_DEFAULT_WIDTH_EM;
-        $widthPt = $widthEm * $ctx->fontSize;
+        $widthPt = $mspace->widthPt($ctx->fontSize)
+            ?? self::MSPACE_DEFAULT_WIDTH_EM * $ctx->fontSize;
         if ($widthPt === 0.0) {
             return;
         }
@@ -1305,8 +1305,7 @@ final class Translator
     private function paintMpadded(Mpadded $mpadded, MathmlPaintContext $ctx): void
     {
         $startX = $ctx->cursorX;
-        $lspaceEm = $mpadded->lspaceEm() ?? 0.0;
-        $lspacePt = $lspaceEm * $ctx->fontSize;
+        $lspacePt = $mpadded->lspacePt($ctx->fontSize) ?? 0.0;
         if ($lspacePt !== 0.0) {
             $ctx->stream->moveTextPosition($lspacePt, 0.0);
             $ctx->cursorX += $lspacePt;
@@ -1319,8 +1318,7 @@ final class Translator
         // ctx->baselineY so any path operators emitted under the
         // shifted children (e.g. nested mathbackground rects)
         // land at the right Y.
-        $voffsetEm = $mpadded->voffsetEm() ?? 0.0;
-        $voffsetPt = $voffsetEm * $ctx->fontSize;
+        $voffsetPt = $mpadded->voffsetPt($ctx->fontSize) ?? 0.0;
         if ($voffsetPt !== 0.0) {
             $ctx->stream->moveTextPosition(0.0, $voffsetPt);
             $ctx->baselineY += $voffsetPt;
@@ -1333,9 +1331,9 @@ final class Translator
             $ctx->baselineY -= $voffsetPt;
         }
 
-        $widthEm = $mpadded->widthEm();
-        if ($widthEm !== null) {
-            $targetX = $startX + $widthEm * $ctx->fontSize;
+        $widthPt = $mpadded->widthPt($ctx->fontSize);
+        if ($widthPt !== null) {
+            $targetX = $startX + $widthPt;
             $delta = $targetX - $ctx->cursorX;
             if ($delta !== 0.0) {
                 $ctx->stream->moveTextPosition($delta, 0.0);
@@ -2366,19 +2364,23 @@ final class Translator
     ): float {
         // Explicit height + depth on layout primitives wins. mpadded
         // / mspace tests use this to set up known-size boxes for
-        // mathbackground / reference-image comparisons.
+        // mathbackground / reference-image comparisons. The Pt
+        // accessors route px / pt through 1:1 conversion (matching
+        // html-to-pdf's CSS cascade) and em through fontSize, so we
+        // divide back by fontSize to keep estimateHeightEm em-
+        // relative for the rest of the painter's math.
         if ($element instanceof Mpadded) {
-            $h = $element->heightEm();
-            $d = $element->depthEm();
+            $h = $element->heightPt($ctx->fontSize);
+            $d = $element->depthPt($ctx->fontSize);
             if ($h !== null || $d !== null) {
-                return ($h ?? 1.0) + ($d ?? 0.0);
+                return (($h ?? $ctx->fontSize) + ($d ?? 0.0)) / $ctx->fontSize;
             }
         }
         if ($element instanceof Mspace) {
-            $h = $element->heightEm();
-            $d = $element->depthEm();
+            $h = $element->heightPt($ctx->fontSize);
+            $d = $element->depthPt($ctx->fontSize);
             if ($h !== null || $d !== null) {
-                return ($h ?? 1.0) + ($d ?? 0.0);
+                return (($h ?? $ctx->fontSize) + ($d ?? 0.0)) / $ctx->fontSize;
             }
         }
         $metrics = $ctx->metrics;
@@ -3014,15 +3016,15 @@ final class Translator
     {
         // Explicit-dimension primitives win regardless of position.
         if ($element instanceof Mpadded) {
-            $widthEm = $element->widthEm();
-            if ($widthEm !== null) {
-                return $widthEm * $ctx->fontSize;
+            $widthPt = $element->widthPt($ctx->fontSize);
+            if ($widthPt !== null) {
+                return $widthPt;
             }
         }
         if ($element instanceof Mspace) {
-            $widthEm = $element->widthEm();
-            if ($widthEm !== null) {
-                return $widthEm * $ctx->fontSize;
+            $widthPt = $element->widthPt($ctx->fontSize);
+            if ($widthPt !== null) {
+                return $widthPt;
             }
         }
         // Container shapes: sum direct element children. This
@@ -3060,15 +3062,15 @@ final class Translator
         // measured-text fallback. mpadded / mspace use this to
         // reserve a box of known size without containing glyphs.
         if ($element instanceof Mpadded) {
-            $widthEm = $element->widthEm();
-            if ($widthEm !== null) {
-                return $widthEm * $fontSize;
+            $widthPt = $element->widthPt($fontSize);
+            if ($widthPt !== null) {
+                return $widthPt;
             }
         }
         if ($element instanceof Mspace) {
-            $widthEm = $element->widthEm();
-            if ($widthEm !== null) {
-                return $widthEm * $fontSize;
+            $widthPt = $element->widthPt($fontSize);
+            if ($widthPt !== null) {
+                return $widthPt;
             }
         }
         $text = $element->textContent();
@@ -3447,23 +3449,17 @@ final class Translator
     {
         $fontSize = $ctx->fontSize;
         if ($el instanceof Mpadded) {
-            $h = $el->heightEm();
-            $d = $el->depthEm();
+            $h = $el->heightPt($fontSize);
+            $d = $el->depthPt($fontSize);
             if ($h !== null || $d !== null) {
-                return [
-                    ($h ?? 1.0) * $fontSize,
-                    ($d ?? 0.0) * $fontSize,
-                ];
+                return [$h ?? $fontSize, $d ?? 0.0];
             }
         }
         if ($el instanceof Mspace) {
-            $h = $el->heightEm();
-            $d = $el->depthEm();
+            $h = $el->heightPt($fontSize);
+            $d = $el->depthPt($fontSize);
             if ($h !== null || $d !== null) {
-                return [
-                    ($h ?? 1.0) * $fontSize,
-                    ($d ?? 0.0) * $fontSize,
-                ];
+                return [$h ?? $fontSize, $d ?? 0.0];
             }
         }
         $heightEm = $this->estimateHeightEm($el, $ctx);

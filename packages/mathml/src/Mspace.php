@@ -43,6 +43,49 @@ final class Mspace extends Element
         return $this->parseLengthEm($this->attributes['depth'] ?? null);
     }
 
+    /**
+     * pt-resolved width, with px / pt mapped 1:1 to PDF pt and
+     * em / ex scaled by fontSize. Mirrors html-to-pdf's CSS
+     * cascade. Preferred over widthEm() at painter call sites
+     * that need correct sizing at non-default fontSize.
+     */
+    public function widthPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['width'] ?? null, $fontSize);
+    }
+
+    public function heightPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['height'] ?? null, $fontSize);
+    }
+
+    public function depthPt(float $fontSize): ?float
+    {
+        return $this->parseLengthPt($this->attributes['depth'] ?? null, $fontSize);
+    }
+
+    private function parseLengthPt(?string $raw, float $fontSize): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (!preg_match('/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/', $trimmed, $m)) {
+            return null;
+        }
+        $value = (float) $m[1];
+        $unit = strtolower($m[2]);
+        return match ($unit) {
+            'em', ''   => $value * $fontSize,
+            'ex'       => $value * 0.5 * $fontSize,
+            'px', 'pt' => $value,
+            default    => null,
+        };
+    }
+
     private function parseLengthEm(?string $raw): ?float
     {
         if ($raw === null) {

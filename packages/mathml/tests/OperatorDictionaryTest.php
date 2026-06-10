@@ -251,10 +251,19 @@ final class OperatorDictionaryTest extends TestCase
 
     public function testDefaultEntryStructure(): void
     {
-        // The DEFAULT_ENTRY contract: zero spacing, non-stretchy.
-        // Documents what unrecognised operators get.
-        self::assertSame(0.0, OperatorDictionary::DEFAULT_ENTRY['lspace']);
-        self::assertSame(0.0, OperatorDictionary::DEFAULT_ENTRY['rspace']);
+        // Per Core §3.4.2 / Appendix A.2, an unrecognised operator
+        // gets lspace=rspace=5/18 em ("thickmuskip"). Documents
+        // what unrecognised operators receive from the dictionary.
+        self::assertEqualsWithDelta(
+            5.0 / 18.0,
+            OperatorDictionary::DEFAULT_ENTRY['lspace'],
+            0.0001,
+        );
+        self::assertEqualsWithDelta(
+            5.0 / 18.0,
+            OperatorDictionary::DEFAULT_ENTRY['rspace'],
+            0.0001,
+        );
         self::assertFalse(OperatorDictionary::DEFAULT_ENTRY['stretchy']);
     }
 }
