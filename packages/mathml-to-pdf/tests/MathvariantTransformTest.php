@@ -145,13 +145,13 @@ final class MathvariantTransformTest extends TestCase
         );
     }
 
-    public function testNonAsciiCodepointsPassThrough(): void
+    public function testNonGreekNonAsciiCodepointsPassThrough(): void
     {
-        // Greek letter alpha (U+03B1) and Hebrew letter aleph
-        // (U+05D0) aren't in our scope for v1; they pass through.
+        // Hebrew letter aleph (U+05D0) has no mathematical variant
+        // in this scope; it passes through unchanged.
         self::assertSame(
-            "\u{03B1}\u{05D0}",
-            MathvariantTransform::apply("\u{03B1}\u{05D0}", 'bold'),
+            "\u{05D0}",
+            MathvariantTransform::apply("\u{05D0}", 'bold'),
         );
     }
 
@@ -175,6 +175,138 @@ final class MathvariantTransformTest extends TestCase
         self::assertSame(
             "\u{1D400}",
             MathvariantTransform::apply('A', 'Bold'),
+        );
+    }
+
+    public function testBoldGreekCapitalAlpha(): void
+    {
+        // Α (U+0391) -> U+1D6A8 MATHEMATICAL BOLD CAPITAL ALPHA
+        self::assertSame(
+            "\u{1D6A8}",
+            MathvariantTransform::apply("\u{0391}", 'bold'),
+        );
+    }
+
+    public function testBoldGreekLowercaseAlpha(): void
+    {
+        // α (U+03B1) -> U+1D6C2 MATHEMATICAL BOLD SMALL ALPHA
+        self::assertSame(
+            "\u{1D6C2}",
+            MathvariantTransform::apply("\u{03B1}", 'bold'),
+        );
+    }
+
+    public function testBoldGreekOmega(): void
+    {
+        // Ω (U+03A9) -> U+1D6C0; ω (U+03C9) -> U+1D6DA
+        self::assertSame(
+            "\u{1D6C0}",
+            MathvariantTransform::apply("\u{03A9}", 'bold'),
+        );
+        self::assertSame(
+            "\u{1D6DA}",
+            MathvariantTransform::apply("\u{03C9}", 'bold'),
+        );
+    }
+
+    public function testBoldGreekThetaSymbolAndNabla(): void
+    {
+        // ϴ (U+03F4 theta-symbol cap) -> U+1D6B9
+        self::assertSame(
+            "\u{1D6B9}",
+            MathvariantTransform::apply("\u{03F4}", 'bold'),
+        );
+        // ∇ (U+2207 NABLA) -> U+1D6C1
+        self::assertSame(
+            "\u{1D6C1}",
+            MathvariantTransform::apply("\u{2207}", 'bold'),
+        );
+    }
+
+    public function testBoldGreekVariantLetters(): void
+    {
+        // Final sigma ς (U+03C2) -> U+1D6D3
+        self::assertSame(
+            "\u{1D6D3}",
+            MathvariantTransform::apply("\u{03C2}", 'bold'),
+        );
+        // ∂ partial differential (U+2202) -> U+1D6DB
+        self::assertSame(
+            "\u{1D6DB}",
+            MathvariantTransform::apply("\u{2202}", 'bold'),
+        );
+        // ϵ lunate epsilon (U+03F5) -> U+1D6DC
+        self::assertSame(
+            "\u{1D6DC}",
+            MathvariantTransform::apply("\u{03F5}", 'bold'),
+        );
+    }
+
+    public function testItalicGreekMapping(): void
+    {
+        // Italic Greek base = U+1D6E2
+        // Α -> U+1D6E2, α -> U+1D6FC
+        self::assertSame(
+            "\u{1D6E2}",
+            MathvariantTransform::apply("\u{0391}", 'italic'),
+        );
+        self::assertSame(
+            "\u{1D6FC}",
+            MathvariantTransform::apply("\u{03B1}", 'italic'),
+        );
+    }
+
+    public function testBoldItalicGreekMapping(): void
+    {
+        // Bold-italic Greek base = U+1D71C
+        self::assertSame(
+            "\u{1D71C}",
+            MathvariantTransform::apply("\u{0391}", 'bold-italic'),
+        );
+    }
+
+    public function testBoldSansSerifGreekMapping(): void
+    {
+        // bold-sans-serif Greek base = U+1D756
+        self::assertSame(
+            "\u{1D756}",
+            MathvariantTransform::apply("\u{0391}", 'bold-sans-serif'),
+        );
+    }
+
+    public function testSansSerifBoldItalicGreekMapping(): void
+    {
+        // sans-serif-bold-italic Greek base = U+1D790
+        self::assertSame(
+            "\u{1D790}",
+            MathvariantTransform::apply("\u{0391}", 'sans-serif-bold-italic'),
+        );
+    }
+
+    public function testVariantsWithoutGreekPassGreekThrough(): void
+    {
+        // Variants without Greek glyphs (script, fraktur, etc.)
+        // should leave Greek codepoints unchanged.
+        self::assertSame(
+            "\u{0391}",
+            MathvariantTransform::apply("\u{0391}", 'script'),
+        );
+        self::assertSame(
+            "\u{0391}",
+            MathvariantTransform::apply("\u{0391}", 'monospace'),
+        );
+        self::assertSame(
+            "\u{0391}",
+            MathvariantTransform::apply("\u{0391}", 'double-struck'),
+        );
+    }
+
+    public function testMixedLatinAndGreek(): void
+    {
+        // 'Aα' under bold: 'A' -> U+1D400, 'α' -> U+1D6C2
+        self::assertSame(
+            "\u{1D400}\u{1D6C2}",
+            MathvariantTransform::apply("A\u{03B1}", 'bold'),
         );
     }
 
