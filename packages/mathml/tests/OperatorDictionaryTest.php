@@ -206,6 +206,49 @@ final class OperatorDictionaryTest extends TestCase
         self::assertTrue($postfix['stretchy']);
     }
 
+    public function testLargeOperatorsHaveLargeopAndMovableLimitsTrue(): void
+    {
+        foreach (["\u{2211}", "\u{220F}", "\u{222B}", "\u{22C3}", "\u{22C2}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'prefix');
+            self::assertTrue(
+                $entry['largeop'],
+                "Expected largeop=true for $op",
+            );
+            self::assertTrue(
+                $entry['movablelimits'],
+                "Expected movablelimits=true for $op",
+            );
+        }
+    }
+
+    public function testNonLargeOperatorsHaveBothFlagsFalse(): void
+    {
+        // Regular operators - additive, multiplicative, relational -
+        // should NOT auto-enable largeop or movablelimits.
+        foreach (['+', '=', "\u{2208}", "\u{2192}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'infix');
+            self::assertFalse($entry['largeop']);
+            self::assertFalse($entry['movablelimits']);
+        }
+    }
+
+    public function testBracketsHaveLargeopFalseDespiteBeingStretchy(): void
+    {
+        // Brackets stretch but they aren't large operators.
+        $left = OperatorDictionary::lookup('(', 'prefix');
+        self::assertTrue($left['stretchy']);
+        self::assertFalse($left['largeop']);
+        self::assertFalse($left['movablelimits']);
+    }
+
+    public function testDefaultEntryHasNewFlags(): void
+    {
+        self::assertArrayHasKey('largeop', OperatorDictionary::DEFAULT_ENTRY);
+        self::assertArrayHasKey('movablelimits', OperatorDictionary::DEFAULT_ENTRY);
+        self::assertFalse(OperatorDictionary::DEFAULT_ENTRY['largeop']);
+        self::assertFalse(OperatorDictionary::DEFAULT_ENTRY['movablelimits']);
+    }
+
     public function testDefaultEntryStructure(): void
     {
         // The DEFAULT_ENTRY contract: zero spacing, non-stretchy.

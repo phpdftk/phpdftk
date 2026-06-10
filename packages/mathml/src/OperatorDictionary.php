@@ -29,14 +29,16 @@ final class OperatorDictionary
 {
     /**
      * Fallback when an operator is not in the table. Zero spacing
-     * on both sides and non-stretchy.
+     * on both sides, non-stretchy, no largeop/movablelimits default.
      *
-     * @var array{lspace: float, rspace: float, stretchy: bool}
+     * @var array{lspace: float, rspace: float, stretchy: bool, largeop: bool, movablelimits: bool}
      */
     public const array DEFAULT_ENTRY = [
         'lspace' => 0.0,
         'rspace' => 0.0,
         'stretchy' => false,
+        'largeop' => false,
+        'movablelimits' => false,
     ];
 
     /**
@@ -44,12 +46,28 @@ final class OperatorDictionary
      * Returns {@see DEFAULT_ENTRY} when no match is found so the
      * caller never sees null.
      *
-     * @return array{lspace: float, rspace: float, stretchy: bool}
+     * Result includes `largeop` and `movablelimits` defaults from
+     * the dictionary - the painter consults these only when the
+     * `<mo>` author hasn't set the matching attribute. ∑/∏/∫ and
+     * other big-op glyphs all default to largeop=true and
+     * movablelimits=true; brackets and arithmetic operators have
+     * both false.
+     *
+     * @return array{lspace: float, rspace: float, stretchy: bool, largeop: bool, movablelimits: bool}
      */
     public static function lookup(string $text, string $form): array
     {
         $entries = self::entries();
-        return $entries[$text][$form] ?? self::DEFAULT_ENTRY;
+        $entry = $entries[$text][$form] ?? null;
+        if ($entry === null) {
+            return self::DEFAULT_ENTRY;
+        }
+        // Older entries may lack largeop/movablelimits keys; fill
+        // them with defaults so callers can rely on the full shape.
+        return $entry + [
+            'largeop' => false,
+            'movablelimits' => false,
+        ];
     }
 
     /**
@@ -57,7 +75,7 @@ final class OperatorDictionary
      * static method (instead of a const) so the values can include
      * computed constants without losing the data-table shape.
      *
-     * @return array<string, array<string, array{lspace: float, rspace: float, stretchy: bool}>>
+     * @return array<string, array<string, array{lspace: float, rspace: float, stretchy: bool, largeop?: bool, movablelimits?: bool}>>
      */
     private static function entries(): array
     {
@@ -150,16 +168,19 @@ final class OperatorDictionary
                 'infix'   => self::infix($thickmuskip, $thickmuskip)['infix'],
             ],
 
-            // Large operators - prefix with thin spacing.
-            "\u{2211}" => self::prefix($thinmuskip, $thinmuskip),  // SUMMATION
-            "\u{220F}" => self::prefix($thinmuskip, $thinmuskip),  // PRODUCT
-            "\u{2210}" => self::prefix($thinmuskip, $thinmuskip),  // COPRODUCT
-            "\u{222B}" => self::prefix($thinmuskip, $thinmuskip),  // INTEGRAL
-            "\u{222C}" => self::prefix($thinmuskip, $thinmuskip),  // DOUBLE INTEGRAL
-            "\u{222E}" => self::prefix($thinmuskip, $thinmuskip),  // CONTOUR INTEGRAL
-            "\u{2A00}" => self::prefix($thinmuskip, $thinmuskip),  // CIRCLED DOT
-            "\u{2A01}" => self::prefix($thinmuskip, $thinmuskip),  // CIRCLED PLUS
-            "\u{2A02}" => self::prefix($thinmuskip, $thinmuskip),  // CIRCLED TIMES
+            // Large operators - prefix with thin spacing, plus
+            // largeop=true and movablelimits=true so the painter
+            // auto-applies the display-style big-op behaviour and
+            // moves limits to scripts in inline mode.
+            "\u{2211}" => self::largeOp($thinmuskip, $thinmuskip),  // SUMMATION
+            "\u{220F}" => self::largeOp($thinmuskip, $thinmuskip),  // PRODUCT
+            "\u{2210}" => self::largeOp($thinmuskip, $thinmuskip),  // COPRODUCT
+            "\u{222B}" => self::largeOp($thinmuskip, $thinmuskip),  // INTEGRAL
+            "\u{222C}" => self::largeOp($thinmuskip, $thinmuskip),  // DOUBLE INTEGRAL
+            "\u{222E}" => self::largeOp($thinmuskip, $thinmuskip),  // CONTOUR INTEGRAL
+            "\u{2A00}" => self::largeOp($thinmuskip, $thinmuskip),  // CIRCLED DOT
+            "\u{2A01}" => self::largeOp($thinmuskip, $thinmuskip),  // CIRCLED PLUS
+            "\u{2A02}" => self::largeOp($thinmuskip, $thinmuskip),  // CIRCLED TIMES
 
             // Logical (infix, thickmath).
             "\u{2227}" => self::infix($thickmuskip, $thickmuskip),  // AND
@@ -190,8 +211,8 @@ final class OperatorDictionary
             "\u{2285}" => self::infix($thickmuskip, $thickmuskip),  // NOT SUPERSET
             "\u{2229}" => self::infix($medmuskip, $medmuskip),      // INTERSECTION
             "\u{222A}" => self::infix($medmuskip, $medmuskip),      // UNION
-            "\u{22C2}" => self::prefix($thinmuskip, $thinmuskip),   // N-ARY INTERSECTION
-            "\u{22C3}" => self::prefix($thinmuskip, $thinmuskip),   // N-ARY UNION
+            "\u{22C2}" => self::largeOp($thinmuskip, $thinmuskip),   // N-ARY INTERSECTION
+            "\u{22C3}" => self::largeOp($thinmuskip, $thinmuskip),   // N-ARY UNION
             "\u{2205}" => self::infix(0.0, 0.0),                    // EMPTY SET
             "\u{2216}" => self::infix($medmuskip, $medmuskip),      // SET MINUS
 
@@ -296,6 +317,27 @@ final class OperatorDictionary
                 'lspace' => $lspace,
                 'rspace' => $rspace,
                 'stretchy' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Large-operator entry: prefix form with largeop=true and
+     * movablelimits=true (∑, ∏, ∫, ⋃, ⋂, big circled ops). Both
+     * defaults can still be overridden per-element by the author's
+     * explicit attribute on `<mo>`.
+     *
+     * @return array<string, array{lspace: float, rspace: float, stretchy: bool, largeop: bool, movablelimits: bool}>
+     */
+    private static function largeOp(float $lspace, float $rspace): array
+    {
+        return [
+            'prefix' => [
+                'lspace' => $lspace,
+                'rspace' => $rspace,
+                'stretchy' => false,
+                'largeop' => true,
+                'movablelimits' => true,
             ],
         ];
     }
