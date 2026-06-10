@@ -63,10 +63,13 @@ final class Mspace extends Element
         if ($unit === 'ex') {
             return $value * 0.5;
         }
-        if ($unit === 'px') {
-            return $value / 16.0;
-        }
-        if ($unit === 'pt') {
+        // px / pt: assume the v1 default font size of 12 pt so the
+        // result lines up with html-to-pdf's 1 CSS px == 1 PDF pt
+        // convention (the css/html-to-pdf cascade treats px as the
+        // canonical unit and emits it directly as PDF user-space
+        // pt). At a non-default math font size the conversion
+        // drifts; same trade-off as Mpadded.
+        if ($unit === 'px' || $unit === 'pt') {
             return $value / 12.0;
         }
         return null;

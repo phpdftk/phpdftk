@@ -107,11 +107,19 @@ final class Mpadded extends Element
         }
         $value = (float) $m[1];
         $unit = strtolower($m[2]);
+        // px / pt conversions assume the v1 default font size of
+        // 12 pt so the result lines up with html-to-pdf's 1 CSS px
+        // == 1 PDF pt convention (the css/html-to-pdf cascade
+        // treats px as the canonical unit and emits it directly as
+        // PDF user-space pt). At a non-default math font size the
+        // conversion drifts — px in MathML is intrinsically em-
+        // relative once it lands in this accessor, which is a known
+        // limitation; the WPT tests all use the default size so
+        // they line up with the reference renders.
         return match ($unit) {
             'em', ''   => $value,
             'ex'       => $value * 0.5,
-            'px'       => $value / 16.0,
-            'pt'       => $value / 12.0,
+            'px', 'pt' => $value / 12.0,
             default    => null,
         };
     }

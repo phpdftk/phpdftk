@@ -4481,6 +4481,25 @@ final class Painter
                 $height = $cascaded->value;
             }
         }
+        // Parse the inline MathML before deriving any intrinsic
+        // size so we can ask MathmlRenderer for its natural
+        // dimensions when the cascade left both axes zero. Layer
+        // 3 (intrinsic) sits between the cascade-explicit values
+        // and the typographic fallback.
+        try {
+            $mathDoc = $this->inlineMathmlAdapter()->adapt($element);
+        } catch (\Throwable) {
+            return;
+        }
+        if ($width <= 0.0 || $height <= 0.0) {
+            [$intrinsicW, $intrinsicH] = $this->mathmlRenderer()->intrinsicSize($mathDoc);
+            if ($width <= 0.0 && $intrinsicW > 0.0) {
+                $width = $intrinsicW;
+            }
+            if ($height <= 0.0 && $intrinsicH > 0.0) {
+                $height = $intrinsicH;
+            }
+        }
         // Final fallback: a typographically sensible default sized
         // strip. 14 pt tall is one line of 12 pt math + a sliver
         // of leading; 200 pt wide is wider than any common single-
@@ -4491,11 +4510,6 @@ final class Painter
         }
         if ($width <= 0.0) {
             $width = 200.0;
-        }
-        try {
-            $mathDoc = $this->inlineMathmlAdapter()->adapt($element);
-        } catch (\Throwable) {
-            return;
         }
         $pdfY = $this->pageHeight - $geo->y - $height;
         $this->mathmlRenderer()->draw(

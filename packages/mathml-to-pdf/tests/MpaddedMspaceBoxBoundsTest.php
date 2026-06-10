@@ -27,7 +27,8 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
     public function testMpaddedExplicitWidthHeightDepthSetsRect(): void
     {
         // 100px × 100px (50 ascent + 50 descent), blue bg.
-        // 100px = 6.25em; at fontSize=12, 6.25em = 75pt.
+        // px → pt at 1:1 to line up with html-to-pdf's CSS
+        // convention, so 100px = 100pt.
         $bytes = $this->render(
             '<mpadded mathbackground="blue" width="100px" '
             . 'height="50px" depth="50px"></mpadded>',
@@ -39,8 +40,8 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
         $rects = $this->rectangles($bytes);
         self::assertCount(1, $rects, 'one bg rectangle');
         [$x, $y, $w, $h] = $rects[0];
-        self::assertEqualsWithDelta(75.0, $w, 0.01, 'width 100px -> 75pt');
-        self::assertEqualsWithDelta(75.0, $h, 0.01, 'height+depth 100px -> 75pt');
+        self::assertEqualsWithDelta(100.0, $w, 0.01, 'width 100px -> 100pt');
+        self::assertEqualsWithDelta(100.0, $h, 0.01, 'height+depth 100px -> 100pt');
         // x should match cursor (renderer's x parameter).
         self::assertEqualsWithDelta(100.0, $x, 0.01);
     }
@@ -48,7 +49,8 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
     public function testMspaceExplicitDimensionsSetRect(): void
     {
         // mspace width=50px, height=3em, depth=3em, red bg.
-        // 50px = 3.125em -> 37.5pt; height+depth=6em -> 72pt.
+        // 50px -> 50pt at the new 1:1 convention; height+depth=6em
+        // -> 72pt.
         $bytes = $this->render(
             '<mspace width="50px" height="3em" depth="3em" '
             . 'mathbackground="red"/>',
@@ -56,7 +58,7 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
         $rects = $this->rectangles($bytes);
         self::assertCount(1, $rects);
         [, , $w, $h] = $rects[0];
-        self::assertEqualsWithDelta(37.5, $w, 0.01);
+        self::assertEqualsWithDelta(50.0, $w, 0.01);
         self::assertEqualsWithDelta(72.0, $h, 0.01);
     }
 
@@ -64,7 +66,7 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
     {
         // Outer mpadded: 100×100 blue.
         // Inner mpadded: 20×20 red, raised by voffset=30px.
-        // 100px=75pt, 20px=15pt, voffset 30px=22.5pt.
+        // px=pt now: 100px=100pt, 20px=20pt, voffset 30px=30pt.
         $bytes = $this->render(
             '<mpadded mathbackground="blue" width="100px" '
             . 'height="50px" depth="50px" voffset="30px">'
@@ -87,10 +89,10 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
             $innerY,
             'inner rect should be raised relative to outer',
         );
-        // Delta is voffset (22.5pt) + outer-descent (37.5pt)
-        // - inner-descent (7.5pt) = 52.5pt above outer bottom.
+        // Delta is voffset (30pt) + outer-descent (50pt)
+        // - inner-descent (10pt) = 70pt above outer bottom.
         self::assertEqualsWithDelta(
-            52.5,
+            70.0,
             $innerY - $outerY,
             0.5,
         );
@@ -114,10 +116,10 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
         self::assertCount(2, $rects);
         [, $outerY, ,] = $rects[0];
         [, $innerY, ,] = $rects[1];
-        // -20px voffset = -15pt shift down. outer-descent 37.5pt,
-        // inner-descent 7.5pt -> inner above outer bottom by
-        // (37.5 - 15 - 7.5) = 15pt.
-        self::assertEqualsWithDelta(15.0, $innerY - $outerY, 0.5);
+        // -20px voffset = -20pt shift down. outer-descent 50pt,
+        // inner-descent 10pt -> inner above outer bottom by
+        // (50 - 20 - 10) = 20pt.
+        self::assertEqualsWithDelta(20.0, $innerY - $outerY, 0.5);
     }
 
     public function testMpaddedAbsentDimensionsFallsBackToHeuristic(): void

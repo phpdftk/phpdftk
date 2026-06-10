@@ -75,7 +75,10 @@ final class SpacingTest extends TestCase
         $mspace = $this->parseMspace('1ex');
         self::assertSame(0.5, $mspace->widthEm());
 
-        $mspace = $this->parseMspace('16px');
+        // px / pt now convert at /12 so 1 CSS px == 1 PDF pt at
+        // the default 12pt math font size (matching html-to-pdf's
+        // CSS cascade convention). 12px = 12pt = 1em.
+        $mspace = $this->parseMspace('12px');
         self::assertSame(1.0, $mspace->widthEm());
 
         $mspace = $this->parseMspace('12pt');
@@ -123,12 +126,14 @@ final class SpacingTest extends TestCase
     {
         $doc = $this->parser->parse(
             '<math xmlns="http://www.w3.org/1998/Math/MathML">'
-                . '<mpadded voffset="-16px"><mi>x</mi></mpadded>'
+                . '<mpadded voffset="-12px"><mi>x</mi></mpadded>'
                 . '</math>',
         );
         $el = $this->firstElement($doc->children);
         self::assertInstanceOf(Mpadded::class, $el);
-        // 16px = 1em (CSS px / 16). Negative drops the content.
+        // 12px = 12pt = 1em at the default 12pt math font size
+        // (CSS px / 12 to match html-to-pdf's 1px == 1pt cascade
+        // convention). Negative drops the content.
         self::assertSame(-1.0, $el->voffsetEm());
     }
 

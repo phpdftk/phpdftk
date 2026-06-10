@@ -2978,6 +2978,79 @@ final class Translator
      * or when the ctx has no math font, falls back to Times-Roman
      * AFM widths.
      */
+    /**
+     * Public intrinsic-size estimator. Returns `[width, height]`
+     * in PDF user-space points for `$element` under the supplied
+     * paint context. Delegates to the same estimateWidth /
+     * estimateHeightEm helpers the painter uses internally.
+     *
+     * Used by {@see MathmlRenderer::intrinsicSize()} to answer
+     * "how big is this math content" so callers (e.g. the
+     * html-to-pdf inline-math painter) can size their surrounding
+     * box correctly before handing the doc to {@see draw()}.
+     *
+     * @return array{0: float, 1: float}
+     */
+    public function measure(Element $element, MathmlPaintContext $ctx): array
+    {
+        return [
+            $this->measureWidth($element, $ctx),
+            $this->estimateHeightEm($element, $ctx) * $ctx->fontSize,
+        ];
+    }
+
+    /**
+     * Width-side of the intrinsic measurement. Container elements
+     * (the MathmlDocument root, mrow, generic-element wrappers,
+     * mphantom, menclose, mstyle, mpadded without explicit width,
+     * mtable rows / cells, etc.) sum their children's widths so
+     * the result reflects the actual horizontal extent of the
+     * rendered content. Token elements and constructs with their
+     * own width logic (mfrac, mtable, msqrt, …) defer to the
+     * existing estimateWidth helper that the painter uses
+     * internally.
+     */
+    private function measureWidth(Element $element, MathmlPaintContext $ctx): float
+    {
+        // Explicit-dimension primitives win regardless of position.
+        if ($element instanceof Mpadded) {
+            $widthEm = $element->widthEm();
+            if ($widthEm !== null) {
+                return $widthEm * $ctx->fontSize;
+            }
+        }
+        if ($element instanceof Mspace) {
+            $widthEm = $element->widthEm();
+            if ($widthEm !== null) {
+                return $widthEm * $ctx->fontSize;
+            }
+        }
+        // Container shapes: sum direct element children. This
+        // ignores whitespace-only text nodes the HTML parser
+        // keeps between elements (which would otherwise inflate
+        // estimateWidth's textContent measurement).
+        if (
+            $element instanceof Mrow
+            || $element instanceof GenericElement
+            || $element instanceof \Phpdftk\Mathml\MathmlDocument
+            || $element instanceof Mphantom
+            || $element instanceof Menclose
+            || $element instanceof Mstyle
+            || $element instanceof Mpadded
+        ) {
+            $total = 0.0;
+            $hasChild = false;
+            foreach ($this->elementChildren($element) as $child) {
+                $hasChild = true;
+                $total += $this->measureWidth($child, $ctx);
+            }
+            if ($hasChild) {
+                return $total;
+            }
+        }
+        return $this->estimateWidth($element, $ctx->fontSize, $ctx);
+    }
+
     private function estimateWidth(
         Element $element,
         float $fontSize,
