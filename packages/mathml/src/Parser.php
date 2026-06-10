@@ -110,6 +110,7 @@ final class Parser
             'mtable' => new Mtable(),
             'mtr' => new Mtr(),
             'mtd' => new Mtd(),
+            'mlabeledtr' => new Mlabeledtr(),
             'mspace' => new Mspace(),
             'mpadded' => new Mpadded(),
             'mphantom' => new Mphantom(),
@@ -119,10 +120,10 @@ final class Parser
             'merror' => new Merror(),
             'semantics' => new Semantics(),
             // The MathML Core v1 element set is now complete. Anything
-            // else (deprecated MathML 3 holdovers like mlabeledtr,
-            // mglyph, mstack, mlongdiv, or Content MathML) round-trips
-            // through GenericElement so a future Translator can pick
-            // it up without revisiting the parser.
+            // else (deprecated MathML 3 holdovers like mglyph, mstack,
+            // mlongdiv, or Content MathML) round-trips through
+            // GenericElement so a future Translator can pick it up
+            // without revisiting the parser.
             default => new GenericElement($localName),
         };
     }

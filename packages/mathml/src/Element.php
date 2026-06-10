@@ -103,6 +103,60 @@ abstract class Element extends Node
     }
 
     /**
+     * `mathsize` per MathML Core §3.2.4 - sets the token element's
+     * font size. The Core-canonical form is a CSS length (`12pt`,
+     * `1.4em`, plain unitless numeric); the historic MathML 3
+     * keywords (`small`, `normal`, `big`) are also accepted for
+     * compatibility with content in the wild. Returns null when
+     * absent or unparseable so the painter falls back to the
+     * cascade's current size.
+     *
+     * The returned shape distinguishes "scale factor" from
+     * "absolute" so the painter can apply the right computation
+     * later:
+     *
+     *   ['scale', 1.4]     — `mathsize="1.4em"` or `1.4` (unitless).
+     *   ['absolute', 12.0] — `mathsize="12pt"`. Value is in points.
+     *   ['scale', 0.7]     — `mathsize="small"`.
+     *   ['scale', 1.0]     — `mathsize="normal"`.
+     *   ['scale', 1.4]     — `mathsize="big"`.
+     *
+     * @return ?array{0: 'scale'|'absolute', 1: float}
+     */
+    public function mathsize(): ?array
+    {
+        $raw = $this->attributes['mathsize'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = strtolower(trim($raw));
+        if ($trimmed === '') {
+            return null;
+        }
+        $keyword = match ($trimmed) {
+            'small'  => 0.7,
+            'normal' => 1.0,
+            'big'    => 1.4,
+            default  => null,
+        };
+        if ($keyword !== null) {
+            return ['scale', $keyword];
+        }
+        if (!preg_match('/^([0-9]*\.?[0-9]+)(em|pt|)$/', $trimmed, $m)) {
+            return null;
+        }
+        $value = (float) $m[1];
+        if ($value < 0.0) {
+            return null;
+        }
+        if ($m[2] === 'pt') {
+            return ['absolute', $value];
+        }
+        // 'em' or unitless -> scale factor.
+        return ['scale', $value];
+    }
+
+    /**
      * `dir` per MathML Core §3.1.5.4 — `ltr` or `rtl`. Sets the
      * layout direction for this element's children. Inherits from
      * the nearest ancestor with `dir` set when absent. Returns null
