@@ -936,6 +936,10 @@ final class Translator
             return;
         }
         [$base, $under] = [$children[0], $children[1]];
+        if ($this->shouldRouteLimitsToScripts($base, $ctx)) {
+            $this->paintLimitsAsScripts($base, $under, null, $ctx);
+            return;
+        }
         $this->paintUnderOver(
             base: $base,
             under: $under,
@@ -953,6 +957,10 @@ final class Translator
             return;
         }
         [$base, $over] = [$children[0], $children[1]];
+        if ($this->shouldRouteLimitsToScripts($base, $ctx)) {
+            $this->paintLimitsAsScripts($base, null, $over, $ctx);
+            return;
+        }
         $this->paintUnderOver(
             base: $base,
             under: null,
@@ -970,12 +978,102 @@ final class Translator
             return;
         }
         [$base, $under, $over] = [$children[0], $children[1], $children[2]];
+        if ($this->shouldRouteLimitsToScripts($base, $ctx)) {
+            $this->paintLimitsAsScripts($base, $under, $over, $ctx);
+            return;
+        }
         $this->paintUnderOver(
             base: $base,
             under: $under,
             over: $over,
             ctx: $ctx,
         );
+    }
+
+    /**
+     * Whether `<munder>` / `<mover>` / `<munderover>` should switch to
+     * sub/superscript positioning instead of the centred over/under
+     * placement. Per Core §3.3.6.3, this happens when:
+     *
+     *   - The base is an `<mo>` with `movablelimits="true"`, AND
+     *   - The painter is in *inline* style (not display).
+     *
+     * Inline style is the default for `<math>` without
+     * `display="block"`; explicit `displaystyle` on an ancestor
+     * `<mfrac>` doesn't propagate yet so we read only the document-
+     * level value.
+     */
+    private function shouldRouteLimitsToScripts(
+        Element $base,
+        MathmlPaintContext $ctx,
+    ): bool {
+        if ($ctx->displayStyle) {
+            return false;
+        }
+        if (!$base instanceof Mo) {
+            return false;
+        }
+        return $base->movablelimits() === true;
+    }
+
+    /**
+     * Render an under/over construct as scripts: under -> subscript,
+     * over -> superscript. The cursor advances by base + max(sub,
+     * sup) like {@see paintMsubsup}, so the construct slots into the
+     * surrounding row width correctly.
+     */
+    private function paintLimitsAsScripts(
+        Element $base,
+        ?Element $under,
+        ?Element $over,
+        MathmlPaintContext $ctx,
+    ): void {
+        $this->paint($base, $ctx);
+        $attachX = $ctx->cursorX;
+        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $subWidth = $under !== null
+            ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
+        $supWidth = $over !== null
+            ? $this->estimateWidth($over, $scriptFontSize) : 0.0;
+
+        $supShift = $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm();
+        $subShift = $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm();
+
+        if ($over !== null && $supWidth > 0.0) {
+            $this->paintScript($over, $ctx, $supShift);
+        }
+        if ($under !== null && $subWidth > 0.0) {
+            // Back up to attachX, then drop to the sub baseline -
+            // same pattern as paintMsubsup.
+            $backup = $attachX - $ctx->cursorX;
+            $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
+            $ctx->stream->moveTextPosition($backup, -$subShift);
+            $subCtx = new MathmlPaintContext(
+                stream: $ctx->stream,
+                upright: $ctx->upright,
+                italic: $ctx->italic,
+                fontSize: $scriptFontSize,
+                cursorX: $attachX,
+                baselineY: $ctx->baselineY - $subShift,
+            );
+            $this->paint($under, $subCtx);
+            $rightEdge = $attachX + max($subWidth, $supWidth);
+            $ctx->stream->moveTextPosition(
+                $rightEdge - $subCtx->cursorX,
+                $subShift,
+            );
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
+            $ctx->cursorX = $rightEdge;
+        } else {
+            $rightEdge = $attachX + $supWidth;
+            if ($ctx->cursorX < $rightEdge) {
+                $ctx->stream->moveTextPosition(
+                    $rightEdge - $ctx->cursorX,
+                    0.0,
+                );
+                $ctx->cursorX = $rightEdge;
+            }
+        }
     }
 
     /**
