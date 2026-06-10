@@ -47,6 +47,26 @@ final class Mpadded extends Element
     }
 
     /**
+     * Absolute `height` in em (ascent above baseline). Returns null
+     * for absent / unparseable / relative-form values so the painter
+     * falls back to the natural content ascent.
+     */
+    public function heightEm(): ?float
+    {
+        return $this->parseAbsoluteLengthEm($this->attributes['height'] ?? null);
+    }
+
+    /**
+     * Absolute `depth` in em (descent below baseline). Returns null
+     * for absent / unparseable / relative-form values so the painter
+     * falls back to the natural content descent.
+     */
+    public function depthEm(): ?float
+    {
+        return $this->parseAbsoluteLengthEm($this->attributes['depth'] ?? null);
+    }
+
+    /**
      * Absolute `lspace` in em. Negative shifts the content left.
      * Returns null when absent so the painter defaults to 0.
      */

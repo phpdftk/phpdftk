@@ -52,11 +52,16 @@ final class MathmlPaintContext
          */
         public float $cursorX,
         /**
-         * Baseline Y in absolute PDF user-space coordinates. Treated
-         * as readonly by the painters today — the surrounding line
-         * doesn't move during a single math expression.
+         * Baseline Y in absolute PDF user-space coordinates. Mutable
+         * so painters that shift the text-matrix (mpadded's voffset,
+         * future limit-positioned scripts) can keep paint-related
+         * coordinates in sync. Direct-text emitters (Tj) follow the
+         * text matrix automatically; path operators (rect fills for
+         * mathbackground, fraction-bar strokes) read this field for
+         * absolute coordinates, so it must reflect any active text-
+         * position shift.
          */
-        public readonly float $baselineY,
+        public float $baselineY,
         /**
          * Layout direction inherited from the enclosing element's
          * `dir` attribute, per MathML Core §3.1.5.4. When `rtl`,
