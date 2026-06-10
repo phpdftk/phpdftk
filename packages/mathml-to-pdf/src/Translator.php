@@ -24,6 +24,7 @@ use Phpdftk\Mathml\Menclose;
 use Phpdftk\Mathml\Mpadded;
 use Phpdftk\Mathml\Mphantom;
 use Phpdftk\Mathml\Mspace;
+use Phpdftk\Mathml\Mstyle;
 use Phpdftk\Mathml\Mtable;
 use Phpdftk\Mathml\Mtd;
 use Phpdftk\Mathml\Mtext;
@@ -102,6 +103,7 @@ final class Translator
             $element instanceof Mpadded => $this->paintMpadded($element, $ctx),
             $element instanceof Mphantom => $this->paintMphantom($element, $ctx),
             $element instanceof Menclose => $this->paintMenclose($element, $ctx),
+            $element instanceof Mstyle  => $this->paintMstyle($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -1346,6 +1348,81 @@ final class Translator
      * itself paints with the natural `pad` left-padding so glyphs
      * don't kiss the frame.
      */
+    /**
+     * Paint `<mstyle>` — apply explicit displaystyle / scriptlevel
+     * overrides for the duration of the children's paint, then drop
+     * back. Per Core §3.5.1 mstyle is transparent for content: no
+     * cursor adjustments, no spacing, no glyph emission beyond what
+     * the children produce.
+     *
+     * When no override attributes are set, `mstyle` behaves as a
+     * plain `<mrow>` walk.
+     */
+    private function paintMstyle(Mstyle $mstyle, MathmlPaintContext $ctx): void
+    {
+        $displayOverride = $mstyle->displaystyle();
+        $levelSpec = $mstyle->scriptlevel();
+
+        $newDisplay = $displayOverride ?? $ctx->displayStyle;
+
+        // Resolve scriptlevel: absolute sets, relative adds.
+        $newLevel = $ctx->scriptLevel;
+        if ($levelSpec !== null) {
+            [$mode, $value] = $levelSpec;
+            if ($mode === 'absolute') {
+                $newLevel = max(0, $value);
+            } else {
+                $newLevel = max(0, $ctx->scriptLevel + $value);
+            }
+        }
+
+        if (
+            $newDisplay === $ctx->displayStyle
+            && $newLevel === $ctx->scriptLevel
+        ) {
+            // No effective change - act as transparent container.
+            $this->walkChildren($mstyle, $ctx);
+            return;
+        }
+
+        // Compute the child fontSize based on the new scriptLevel
+        // (relative to the parent's base, NOT compounding).
+        $baseFontSize = $ctx->fontSize
+            / $this->scaleForLevel($ctx->scriptLevel, $ctx);
+        // mstyle clamps higher than 2 to scriptscript scale.
+        $clampedLevel = min(2, $newLevel);
+        $childFontSize = $baseFontSize * $this->scaleForLevel($clampedLevel, $ctx);
+
+        $emitTf = abs($childFontSize - $ctx->fontSize) > 0.001;
+        if ($emitTf) {
+            $ctx->stream->setFont($this->activeFont($ctx), $childFontSize);
+        }
+
+        $childCtx = new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $childFontSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY,
+            direction: $ctx->direction,
+            metrics: $ctx->metrics,
+            mathFont: $ctx->mathFont,
+            stretchTargetEm: $ctx->stretchTargetEm,
+            displayStyle: $newDisplay,
+            scriptLevel: $newLevel,
+        );
+        $this->walkChildren($mstyle, $childCtx);
+
+        // Sync cursor advance back to the parent so trailing
+        // siblings see the right position.
+        $ctx->cursorX = $childCtx->cursorX;
+
+        if ($emitTf) {
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
+        }
+    }
+
     private function paintMenclose(Menclose $menclose, MathmlPaintContext $ctx): void
     {
         $startX = $ctx->cursorX;
