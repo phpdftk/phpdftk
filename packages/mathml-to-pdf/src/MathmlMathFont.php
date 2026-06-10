@@ -134,6 +134,31 @@ final readonly class MathmlMathFont
     }
 
     /**
+     * Vertical-stretch assembly recipe for the given glyph. Returns
+     * null when:
+     *   - no MathVariants table is loaded,
+     *   - the glyph has no vertical construction,
+     *   - the construction has no assembly (only pre-drawn variants).
+     *
+     * The painter consults this when no variant in
+     * {@see verticalVariantFor()} is large enough for the required
+     * height - it then stacks the assembly parts with overlap
+     * sized by {@see MathVariants::$minConnectorOverlap}.
+     */
+    public function verticalAssemblyFor(int $postSubsetGid): ?\Phpdftk\FontParser\MathGlyphAssembly
+    {
+        if ($this->variants === null) {
+            return null;
+        }
+        $oldGid = $this->postSubsetToPreSubset($postSubsetGid);
+        if ($oldGid === null) {
+            return null;
+        }
+        $construction = $this->variants->verticalConstructions[$oldGid] ?? null;
+        return $construction?->assembly;
+    }
+
+    /**
      * Inverse of {@see preSubsetToPostSubset()}. Subset maps are
      * small (typically <100 entries) so array_flip per call is
      * acceptable. A profiling-driven cache can land later.

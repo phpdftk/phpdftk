@@ -1359,22 +1359,221 @@ final class Translator
             $ctx->stretchTargetEm * $ctx->mathFont->unitsPerEm,
         );
         $variant = $ctx->mathFont->verticalVariantFor($baseGid, $requiredFunits);
-        if ($variant === null) {
+
+        // Variant-fits path: the picker returned a pre-drawn variant
+        // tall enough for the row, OR returned the largest variant
+        // as a best-effort fallback. If the best-effort variant
+        // doesn't reach the required height AND the font has an
+        // assembly recipe, prefer assembly so very tall content
+        // gets visually correct fences.
+        if ($variant !== null && $variant['advance'] >= $requiredFunits) {
+            return $this->emitStretchyVariant($variant, $ctx);
+        }
+
+        // Assembly path: stack glyph parts (top + middle(s) + bottom)
+        // with overlap to fill the required height.
+        $assembly = $ctx->mathFont->verticalAssemblyFor($baseGid);
+        if ($assembly !== null && $assembly->parts !== []) {
+            $emitted = $this->emitStretchyAssembly($assembly, $requiredFunits, $ctx);
+            if ($emitted) {
+                return true;
+            }
+            // Assembly emission can fall through (e.g. a part GID
+            // wasn't subsetted); continue to the variant fallback.
+        }
+
+        // Fall back to the largest pre-drawn variant if assembly
+        // didn't fire.
+        if ($variant !== null) {
+            return $this->emitStretchyVariant($variant, $ctx);
+        }
+        return false;
+    }
+
+    /**
+     * Emit a single pre-drawn variant glyph at the cursor and
+     * advance the cursor by its hmtx advance.
+     *
+     * @param array{glyphId: int, advance: int} $variant
+     */
+    private function emitStretchyVariant(
+        array $variant,
+        MathmlPaintContext $ctx,
+    ): bool {
+        if ($ctx->mathFont === null) {
             return false;
         }
         $newGid = $ctx->mathFont->preSubsetToPostSubset($variant['glyphId']);
         if ($newGid === null) {
-            // Variant exists but wasn't subsetted. A subset-aware
-            // collector is the eventual fix; for now treat as no
-            // variant available.
             return false;
         }
-
         $ctx->stream->showTextHex(sprintf('%04X', $newGid));
         $advancePt = $variant['advance']
             / (float) $ctx->mathFont->unitsPerEm
             * $ctx->fontSize;
         $ctx->cursorX += $advancePt;
+        return true;
+    }
+
+    /**
+     * Stack an assembly's glyph parts vertically to span the
+     * required height. Each non-extender part appears once;
+     * extenders are repeated together by a single repeat count
+     * computed to make the total height ≥ required.
+     *
+     * Spec sketch (https://learn.microsoft.com/en-us/typography/opentype/spec/math#mathglyphassembly):
+     *
+     *   - Adjacent parts overlap by `minConnectorOverlap` (FUnit).
+     *   - Total span = Σ(part advances) − Σ(joint overlaps).
+     *   - Required ≤ span iff a sufficient extender repeat count
+     *     was chosen.
+     *
+     * v1 implementation:
+     *
+     *   - All parts must survive the CFF subset; otherwise we
+     *     return false so the caller falls back to the variant
+     *     emit. PdfWriter::addOpenTypeFont's `extraGids` param
+     *     (already populated by {@see MathmlRenderer}) covers the
+     *     common case.
+     *   - Vertical positioning uses Td moves between Tj emissions:
+     *     emit a glyph, back up X by the glyph's hmtx width, drop
+     *     Y by (part_advance − overlap), repeat. After the final
+     *     part, restore the text cursor to (assembly_right_X,
+     *     baselineY).
+     *   - The assembly centres on the math axis: top sits at
+     *     `axisHeightEm + totalHeight/2` above baseline.
+     */
+    private function emitStretchyAssembly(
+        \Phpdftk\FontParser\MathGlyphAssembly $assembly,
+        int $requiredFunits,
+        MathmlPaintContext $ctx,
+    ): bool {
+        if ($ctx->mathFont === null) {
+            return false;
+        }
+        $unitsPerEm = $ctx->mathFont->unitsPerEm;
+        $variants = $ctx->mathFont->variants;
+        $minOverlap = $variants?->minConnectorOverlap ?? 0;
+
+        // Resolve all post-subset GIDs up front - if any part isn't
+        // in the subset, assembly is impossible and the caller falls
+        // back to the variant emit.
+        $resolved = [];
+        foreach ($assembly->parts as $part) {
+            $newGid = $ctx->mathFont->preSubsetToPostSubset($part['glyphId']);
+            if ($newGid === null) {
+                return false;
+            }
+            $resolved[] = ['gid' => $newGid, 'part' => $part];
+        }
+
+        // Compute extender repeat count k.
+        $fixedAdvSum = 0;
+        $extAdvSum = 0;
+        $nFixed = 0;
+        $nExt = 0;
+        foreach ($assembly->parts as $part) {
+            if ($part['extender']) {
+                $extAdvSum += $part['fullAdvance'];
+                $nExt++;
+            } else {
+                $fixedAdvSum += $part['fullAdvance'];
+                $nFixed++;
+            }
+        }
+        $k = 1;
+        if ($nExt > 0) {
+            // Joints in a sequence of (nFixed + k*nExt) parts:
+            //   total joints = nFixed + k*nExt - 1
+            // Total height:
+            //   fixedAdvSum + k*extAdvSum - (nFixed + k*nExt - 1) * minOverlap
+            // Solve for total ≥ requiredFunits:
+            //   k * (extAdvSum - nExt*minOverlap)
+            //     ≥ requiredFunits - fixedAdvSum + (nFixed - 1) * minOverlap
+            $denom = $extAdvSum - $nExt * $minOverlap;
+            if ($denom > 0) {
+                $needed = $requiredFunits - $fixedAdvSum
+                    + ($nFixed - 1) * $minOverlap;
+                $k = (int) max(1, (int) ceil($needed / $denom));
+            }
+        }
+
+        // Build the linear sequence: each part once, except
+        // extenders k times. Preserves spec part order.
+        $sequence = [];
+        foreach ($resolved as $entry) {
+            $reps = $entry['part']['extender'] ? $k : 1;
+            for ($i = 0; $i < $reps; $i++) {
+                $sequence[] = $entry;
+            }
+        }
+        $partsCount = count($sequence);
+        if ($partsCount === 0) {
+            return false;
+        }
+
+        // Convert FUnit -> em -> points helper.
+        $toPt = fn(int $funits): float
+            => $funits / (float) $unitsPerEm * $ctx->fontSize;
+
+        // Total assembly height in points (parts - overlaps).
+        $totalH = 0.0;
+        foreach ($sequence as $i => $entry) {
+            $totalH += $toPt($entry['part']['fullAdvance']);
+            if ($i > 0) {
+                $totalH -= $toPt($minOverlap);
+            }
+        }
+
+        // Topmost part's text-origin Y above baseline. The assembly
+        // centres on the math axis (typical for delimiters around
+        // centred content).
+        $axisHeightPt = $ctx->metrics->axisHeightEm() * $ctx->fontSize;
+        $topY = $axisHeightPt + $totalH / 2.0
+            // Subtract the topmost glyph's advance because Tj's
+            // origin is at the glyph baseline; we want the top of
+            // the topmost glyph to land at axisHeight + totalH/2.
+            - $toPt($sequence[0]['part']['fullAdvance']);
+
+        // Glyph width helper - drives the X back-up between Tj's.
+        $glyphWidthPt = function (int $gid) use ($ctx, $unitsPerEm): float {
+            $w = $ctx->mathFont?->glyphWidths[$gid] ?? 500;
+            return $w / (float) $unitsPerEm * $ctx->fontSize;
+        };
+
+        // Move text cursor to the topmost part's origin.
+        $ctx->stream->moveTextPosition(0.0, $topY);
+
+        $cumulativeY = $topY;
+        $assemblyGlyphWidth = 0.0;
+        foreach ($sequence as $i => $entry) {
+            $gid = $entry['gid'];
+            $ctx->stream->showTextHex(sprintf('%04X', $gid));
+            $gw = $glyphWidthPt($gid);
+            // Track assembly's horizontal extent as max of part widths.
+            if ($gw > $assemblyGlyphWidth) {
+                $assemblyGlyphWidth = $gw;
+            }
+            if ($i < $partsCount - 1) {
+                $advance = $toPt($entry['part']['fullAdvance']);
+                $deltaY = -($advance - $toPt($minOverlap));
+                // Back up X by the glyph we just advanced through;
+                // drop Y to the next part's origin.
+                $ctx->stream->moveTextPosition(-$gw, $deltaY);
+                $cumulativeY += $deltaY;
+            }
+        }
+
+        // After the last part, the text cursor sits at
+        // (cursor_at_top + lastGlyphWidth, cumulativeY). Restore
+        // back to (startX + assembly_width, baselineY) so the next
+        // sibling flows correctly.
+        $netY = -$cumulativeY;
+        $netX = $assemblyGlyphWidth - $glyphWidthPt(
+            $sequence[$partsCount - 1]['gid'],
+        );
+        $ctx->stream->moveTextPosition($netX, $netY);
+        $ctx->cursorX += $assemblyGlyphWidth;
         return true;
     }
 
