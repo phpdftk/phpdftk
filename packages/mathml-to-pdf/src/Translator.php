@@ -275,7 +275,7 @@ final class Translator
         $rootLeftX = $ctx->cursorX;
 
         if ($indexWidth >= 0.001) {
-            $ctx->stream->setFont($ctx->upright, $indexFontSize);
+            $ctx->stream->setFont($this->activeFont($ctx), $indexFontSize);
             $ctx->stream->moveTextPosition(0, $indexRaise);
             $indexCtx = new MathmlPaintContext(
                 stream: $ctx->stream,
@@ -288,7 +288,7 @@ final class Translator
             $this->paint($index, $indexCtx);
             // Drop back to base baseline + restore main font size.
             $ctx->stream->moveTextPosition(0, -$indexRaise);
-            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             $ctx->cursorX += $indexWidth;
         }
 
@@ -341,6 +341,12 @@ final class Translator
     /**
      * Paint `<msup>` as base followed by a smaller superscript at
      * upper-right. Two element children expected.
+     *
+     * When the base renders italic (single-char `<mi>` + a math
+     * font), the painter applies the italic-correction X shift
+     * between the base and the superscript per OpenType MATH spec.
+     * This visually clears the slanted upper-right of italic glyphs
+     * so the script doesn't kiss the base.
      */
     private function paintMsup(Msup $msup, MathmlPaintContext $ctx): void
     {
@@ -351,6 +357,7 @@ final class Translator
         }
         [$base, $sup] = [$children[0], $children[1]];
         $this->paint($base, $ctx);
+        $this->applyItalicCorrection($base, $ctx);
         $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
     }
 
@@ -372,35 +379,45 @@ final class Translator
         }
         [$base, $sub, $sup] = [$children[0], $children[1], $children[2]];
         $this->paint($base, $ctx);
-        $attachX = $ctx->cursorX;
+        // Subscript attach point - BEFORE italic correction. The
+        // sub sits at the base's right edge regardless of italic
+        // correction; only the sup shifts right.
+        $subAttachX = $ctx->cursorX;
+        $this->applyItalicCorrection($base, $ctx);
+        $supAttachX = $ctx->cursorX;
         $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
         $subWidth = $this->estimateWidth($sub, $scriptFontSize);
         $supWidth = $this->estimateWidth($sup, $scriptFontSize);
 
         // Sup first at raised baseline.
         $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
-        // After paintScript, cursor advanced by supWidth. Back up
-        // horizontally to the attach point, then drop to the
+        // After paintScript, cursor advanced by supWidth from
+        // supAttachX. Back up horizontally to the sub attach point
+        // (unshifted by italic correction), then drop to the
         // subscript baseline.
-        $backup = $attachX - $ctx->cursorX;
-        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $backup = $subAttachX - $ctx->cursorX;
+        $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
         $subCtx = new MathmlPaintContext(
             stream: $ctx->stream,
             upright: $ctx->upright,
             italic: $ctx->italic,
             fontSize: $scriptFontSize,
-            cursorX: $attachX,
+            cursorX: $subAttachX,
             baselineY: $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
         );
         $this->paint($sub, $subCtx);
         // Restore to the construct's right edge on the main baseline.
-        $rightEdge = $attachX + max($subWidth, $supWidth);
+        // The sup may extend further right due to italic correction;
+        // pick the actual rightmost extent.
+        $supRightEdge = $supAttachX + $supWidth;
+        $subRightEdge = $subAttachX + $subWidth;
+        $rightEdge = max($supRightEdge, $subRightEdge);
         $ctx->stream->moveTextPosition(
             $rightEdge - $subCtx->cursorX,
             $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
         );
-        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         $ctx->cursorX = $rightEdge;
     }
 
@@ -419,7 +436,7 @@ final class Translator
         float $yOffset,
     ): void {
         $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
-        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition(0.0, $yOffset);
         $scriptCtx = new MathmlPaintContext(
             stream: $ctx->stream,
@@ -432,7 +449,7 @@ final class Translator
         $this->paint($script, $scriptCtx);
         $ctx->cursorX = $scriptCtx->cursorX;
         $ctx->stream->moveTextPosition(0.0, -$yOffset);
-        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
     }
 
     // -----------------------------------------------------------------
@@ -599,7 +616,7 @@ final class Translator
         if ($hasSub && $subWidth > 0.0) {
             // Back up to attachX, drop to sub baseline.
             $backup = $attachX - $ctx->cursorX;
-            $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+            $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
             $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
             $subCtx = new MathmlPaintContext(
                 stream: $ctx->stream,
@@ -615,7 +632,7 @@ final class Translator
                 $attachX + $pairWidth - $subCtx->cursorX,
                 $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
-            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             $ctx->cursorX = $attachX + $pairWidth;
             return;
         }
@@ -900,7 +917,7 @@ final class Translator
         $scriptStartX = $baseLeftX + ($baseWidth - $scriptWidth) / 2.0;
         $deltaX = $scriptStartX - $ctx->cursorX;
 
-        $ctx->stream->setFont($ctx->upright, $scriptFontSize);
+        $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition($deltaX, $yOffset);
         $scriptCtx = new MathmlPaintContext(
             stream: $ctx->stream,
@@ -919,7 +936,7 @@ final class Translator
             $constructRightX - $scriptCtx->cursorX,
             -$yOffset,
         );
-        $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         $ctx->cursorX = $constructRightX;
     }
 
@@ -1088,7 +1105,7 @@ final class Translator
 
         $stream->restoreGraphicsState();
         $stream->beginText();
-        $stream->setFont($ctx->upright, $ctx->fontSize);
+        $stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         // Tm - absolute reset so the next emit picks up at the right
         // place. Same pattern as drawHorizontalRule.
         $stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $ctx->cursorX, $ctx->baselineY);
@@ -1210,13 +1227,21 @@ final class Translator
             return;
         }
         // Core §3.2.3: single-character <mi> renders italic by default.
-        $useItalic = $this->isSingleVisibleChar($content) && $mi->mathvariant() === null;
+        // When a math font is active, the upright math font already
+        // carries the italic-shaped letters in the Math Italic Unicode
+        // block (or via mathvariant transformation). Don't swap to
+        // standard Times-Italic - the math font's own glyphs are
+        // correct, and swapping would point the stream at a different
+        // font for emitText's hex emission.
+        $useItalic = $this->isSingleVisibleChar($content)
+            && $mi->mathvariant() === null
+            && $ctx->mathFont === null;
         if ($useItalic) {
             $ctx->stream->setFont($ctx->italic, $ctx->fontSize);
         }
         $this->emitText($content, $ctx, $useItalic);
         if ($useItalic) {
-            $ctx->stream->setFont($ctx->upright, $ctx->fontSize);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         }
     }
 
@@ -1252,13 +1277,101 @@ final class Translator
             $ctx->cursorX += $shift;
         }
 
-        $this->emitText($text, $ctx);
+        // Stretchy fences (parens, brackets, pipes, ...) pick a
+        // taller pre-drawn variant from the font's MathVariants when
+        // one is available. Falls through to the standard emit when
+        // not stretchy / not in the dictionary / no math font / no
+        // variant covers the required height.
+        if (!$this->tryStretchyEmit($mo, $text, $entry, $ctx)) {
+            $this->emitText($text, $ctx);
+        }
 
         if ($rspaceEm > 0.0) {
             $shift = $rspaceEm * $ctx->fontSize;
             $ctx->stream->moveTextPosition($shift, 0.0);
             $ctx->cursorX += $shift;
         }
+    }
+
+    /**
+     * Try to emit a stretched variant glyph for `$mo` via MathVariants.
+     * Returns true when a variant emission was performed (caller
+     * must skip the standard emit); false otherwise.
+     *
+     * Conditions for stretching:
+     *   - The math font is loaded.
+     *   - The operator is marked stretchy: either via author's
+     *     `stretchy="true"` or the dictionary entry's stretchy bit.
+     *   - The font has a vertical-construction entry for the
+     *     operator's base GID.
+     *   - The chosen variant GID survived the subsetter (otherwise
+     *     emitting it would draw a tofu).
+     *
+     * Required-height target: v1 uses `2.0 em` as a conservative
+     * default (covers a single-line fraction / matrix). A
+     * context-aware sizing pass that walks the surrounding mrow's
+     * children and picks the max ascent/descent lands in a
+     * follow-up; this placeholder lets the wiring exercise the
+     * MathVariants path without a full height computation.
+     *
+     * @param array{lspace: float, rspace: float, stretchy: bool} $entry
+     */
+    private function tryStretchyEmit(
+        Mo $mo,
+        string $text,
+        array $entry,
+        MathmlPaintContext $ctx,
+    ): bool {
+        if ($ctx->mathFont === null || $ctx->mathFont->variants === null) {
+            return false;
+        }
+        if (!$this->isStretchy($mo, $entry)) {
+            return false;
+        }
+        $cp = mb_strlen($text, 'UTF-8') === 1 ? mb_ord($text, 'UTF-8') : false;
+        if ($cp === false) {
+            return false;
+        }
+        $baseGid = $ctx->mathFont->unicodeToGid[$cp] ?? null;
+        if ($baseGid === null) {
+            return false;
+        }
+
+        // 2.0 em target until the height-aware pass lands.
+        $requiredFunits = (int) round(2.0 * $ctx->mathFont->unitsPerEm);
+        $variant = $ctx->mathFont->verticalVariantFor($baseGid, $requiredFunits);
+        if ($variant === null) {
+            return false;
+        }
+        $newGid = $ctx->mathFont->preSubsetToPostSubset($variant['glyphId']);
+        if ($newGid === null) {
+            // Variant exists but wasn't subsetted. A subset-aware
+            // collector is the eventual fix; for now treat as no
+            // variant available.
+            return false;
+        }
+
+        $ctx->stream->showTextHex(sprintf('%04X', $newGid));
+        $advancePt = $variant['advance']
+            / (float) $ctx->mathFont->unitsPerEm
+            * $ctx->fontSize;
+        $ctx->cursorX += $advancePt;
+        return true;
+    }
+
+    /**
+     * Whether `<mo>` should render stretchy. Author's `stretchy`
+     * attribute wins over the dictionary entry per Core §3.2.5.
+     *
+     * @param array{lspace: float, rspace: float, stretchy: bool} $entry
+     */
+    private function isStretchy(Mo $mo, array $entry): bool
+    {
+        $explicit = $mo->stretchy();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+        return $entry['stretchy'];
     }
 
     /**
@@ -1394,6 +1507,63 @@ final class Translator
      * just emitted with the italic face (single-char `<mi>`); upright
      * elsewhere.
      */
+    /**
+     * Return the right "upright" font for the active context: the
+     * math font when one is loaded, the standard upright Type 1
+     * font otherwise. Used at every callsite that previously hard-
+     * coded $ctx->upright; without this swap the script paint
+     * methods would set the stream font back to Times-Roman, which
+     * would interpret subsequent emit-text bytes against the wrong
+     * glyph table and produce visible regressions under a math
+     * font.
+     */
+    private function activeFont(MathmlPaintContext $ctx): \Phpdftk\Pdf\Writer\Font
+    {
+        return $ctx->mathFont?->font ?? $ctx->upright;
+    }
+
+    /**
+     * Shift the cursor by the base glyph's italic correction (per
+     * MathGlyphInfo) when applicable. No-op when:
+     *   - no math font is loaded,
+     *   - the base isn't a single-char `<mi>` (italic only triggers
+     *     for the single-character italic rule),
+     *   - the base has an explicit `mathvariant`,
+     *   - the base's codepoint isn't in the font's cmap.
+     */
+    private function applyItalicCorrection(Element $base, MathmlPaintContext $ctx): void
+    {
+        if ($ctx->mathFont === null) {
+            return;
+        }
+        if (!$base instanceof Mi) {
+            return;
+        }
+        $content = $base->textContent();
+        if (mb_strlen($content, 'UTF-8') !== 1) {
+            return;
+        }
+        if ($base->mathvariant() !== null) {
+            return;
+        }
+        $cp = mb_ord($content, 'UTF-8');
+        if ($cp === false) {
+            return;
+        }
+        $gid = $ctx->mathFont->unicodeToGid[$cp] ?? null;
+        if ($gid === null) {
+            return;
+        }
+        $correctionFunits = $ctx->mathFont->italicCorrectionFor($gid);
+        if ($correctionFunits === 0) {
+            return;
+        }
+        $shiftPt = $correctionFunits / (float) $ctx->mathFont->unitsPerEm
+            * $ctx->fontSize;
+        $ctx->stream->moveTextPosition($shiftPt, 0.0);
+        $ctx->cursorX += $shiftPt;
+    }
+
     private function emitText(string $content, MathmlPaintContext $ctx, bool $italic = false): void
     {
         if ($content === '') {
@@ -1440,7 +1610,7 @@ final class Translator
         $stream->stroke();
         $stream->restoreGraphicsState();
         $stream->beginText();
-        $stream->setFont($ctx->upright, $ctx->fontSize);
+        $stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         // Tm — absolute text matrix. Identity rotation/scale, translate
         // to (cursorX, baselineY). Subsequent Tj advances the pen
         // from there.
