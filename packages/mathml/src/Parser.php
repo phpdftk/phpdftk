@@ -110,10 +110,13 @@ final class Parser
             'mtable' => new Mtable(),
             'mtr' => new Mtr(),
             'mtd' => new Mtd(),
-            // Future slices land typed classes for `<mpadded>`,
-            // `<mspace>`, `<menclose>`. Until then they round-trip
-            // through GenericElement so a future Translator can
-            // recognise them without a parser revision.
+            'mspace' => new Mspace(),
+            'mpadded' => new Mpadded(),
+            'mphantom' => new Mphantom(),
+            // Future slices land typed classes for `<menclose>`.
+            // Until then it round-trips through GenericElement so a
+            // future Translator can recognise it without a parser
+            // revision.
             default => new GenericElement($localName),
         };
     }
