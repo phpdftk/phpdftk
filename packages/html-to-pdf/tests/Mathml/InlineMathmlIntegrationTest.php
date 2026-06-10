@@ -94,6 +94,31 @@ final class InlineMathmlIntegrationTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
     }
 
+    public function testInlineMathRtlReversesGlyphEmissionOrder(): void
+    {
+        // <math dir="rtl"> through the full HTML pipeline. Source
+        // order [a, b, c] renders as visual [c, b, a] - we verify
+        // by checking the Tj sequence in the content stream.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            <<<HTML
+            <html><body>
+              <math xmlns="http://www.w3.org/1998/Math/MathML" dir="rtl">
+                <mrow><mi>a</mi><mi>b</mi><mi>c</mi></mrow>
+              </math>
+            </body></html>
+            HTML,
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+
+        if (!preg_match_all('/\(([abc])\)\s+Tj/', $bytes, $m)) {
+            self::fail('Expected three Tj emissions for a, b, c');
+        }
+        self::assertSame(['c', 'b', 'a'], $m[1]);
+    }
+
     public function testInlineMrowWithOperatorSpacingFlowsCleanly(): void
     {
         // `x = y + 1` end-to-end through the HTML pipeline. With the

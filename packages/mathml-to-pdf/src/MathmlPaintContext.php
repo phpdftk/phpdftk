@@ -56,5 +56,13 @@ final class MathmlPaintContext
          * doesn't move during a single math expression.
          */
         public readonly float $baselineY,
+        /**
+         * Layout direction inherited from the enclosing element's
+         * `dir` attribute, per MathML Core §3.1.5.4. When `rtl`,
+         * {@see Translator::walkChildren()} iterates element children
+         * in reverse source order so the first source child sits at
+         * the rightmost visual position. Defaults to `ltr`.
+         */
+        public readonly string $direction = 'ltr',
     ) {}
 }
