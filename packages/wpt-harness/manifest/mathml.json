@@ -1,0 +1,28 @@
+{
+    "_comment": "MathML-specific WPT classification. Tests in `presentation-markup/**`, `crashtests/**`, and `relations/text-and-math/**` cover the rendering surface (`mathml-to-pdf` reachable through the `html-to-pdf` inline-MathML adapter). The relations/html5-tree and relations/css-styling subtrees are testharness.js-based attribute/integration tests and don't render anything by themselves.",
+    "out-of-scope": [
+        {
+            "glob": "mathml/support/**",
+            "reason": "Helper assets (feature-detection, fragment library) — not tests themselves"
+        },
+        {
+            "glob": "mathml/tools/**",
+            "reason": "Build / fixture-generation utilities — not test fixtures"
+        },
+        {
+            "glob": "mathml/relations/html5-tree/**",
+            "reason": "MathMLElement IDL / DOM attribute integration tests — testharness.js, no JS runtime"
+        },
+        {
+            "glob": "mathml/relations/css-styling/**",
+            "reason": "CSS-to-MathML attribute mapping verification — testharness.js, no JS runtime"
+        }
+    ],
+    "pending-substrate": [
+        {
+            "glob": "mathml/presentation-markup/operators/mo-paint-*",
+            "phase": "4D",
+            "reason": "Stretchy operator size match — depends on STIX Math font being bundled (default Times has no MATH table)"
+        }
+    ]
+}
