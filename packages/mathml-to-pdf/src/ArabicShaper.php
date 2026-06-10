@@ -42,27 +42,69 @@ final class ArabicShaper
     /**
      * Apply contextual shaping to a UTF-8 string. Returns the
      * string with each shapeable Arabic letter replaced by the
-     * appropriate Presentation Forms-B codepoint. Non-Arabic
-     * content and unshapeable Arabic content pass through.
+     * appropriate Presentation Forms-B codepoint, and any LAM-
+     * ALEF pair collapsed to its required ligature codepoint.
+     * Non-Arabic content and unshapeable Arabic content pass
+     * through.
      */
     public static function shape(string $utf8): string
     {
         $chars = mb_str_split($utf8, 1, 'UTF-8');
         $count = count($chars);
-        $output = '';
+        $shapedCps = [];
         for ($i = 0; $i < $count; $i++) {
             $cp = mb_ord($chars[$i], 'UTF-8');
             if ($cp === false || !self::isShapeable($cp)) {
-                $output .= $chars[$i];
+                $shapedCps[] = $cp === false ? null : $cp;
                 continue;
             }
             $joinsRight = self::joinsRight($chars, $i);
             $joinsLeft = self::joinsLeft($chars, $i);
             $form = self::resolveForm($joinsRight, $joinsLeft);
             $shaped = self::presentationFormOf($cp, $form);
-            $output .= $shaped !== null
-                ? mb_chr($shaped, 'UTF-8')
-                : $chars[$i];
+            $shapedCps[] = $shaped ?? $cp;
+        }
+        return self::applyLamAlefLigatures($shapedCps, $chars);
+    }
+
+    /**
+     * Scan the post-shaping codepoint stream for LAM + ALEF pairs
+     * and replace them with the required Presentation Forms-B
+     * ligature codepoint (U+FEF5-U+FEFC). The Unicode standard
+     * mandates these ligatures (rule R7 in the Arabic shaping
+     * section) - they are not optional like Latin ligatures.
+     *
+     * @param list<?int>    $shapedCps Shaped codepoints (null for
+     *                                 invalid UTF-8 fragments which
+     *                                 we just pass through).
+     * @param list<string>  $original  Original UTF-8 chars, used to
+     *                                 re-emit the slots that didn't
+     *                                 participate in a ligature.
+     */
+    private static function applyLamAlefLigatures(array $shapedCps, array $original): string
+    {
+        $count = count($shapedCps);
+        $output = '';
+        $i = 0;
+        while ($i < $count) {
+            $cp = $shapedCps[$i];
+            if ($cp !== null
+                && $i + 1 < $count
+                && isset(self::LAM_ALEF_LIGATURES[$cp])
+            ) {
+                $next = $shapedCps[$i + 1];
+                if ($next !== null
+                    && isset(self::LAM_ALEF_LIGATURES[$cp][$next])
+                ) {
+                    $output .= mb_chr(self::LAM_ALEF_LIGATURES[$cp][$next], 'UTF-8');
+                    $i += 2;
+                    continue;
+                }
+            }
+            $output .= $cp !== null
+                ? mb_chr($cp, 'UTF-8')
+                : $original[$i];
+            $i++;
         }
         return $output;
     }
@@ -324,5 +366,44 @@ final class ArabicShaper
         0x0649 => ['isolated' => 0xFEEF, 'final' => 0xFEF0, 'initial' => 0xFBE8, 'medial' => 0xFBE9],
         // YEH (U+064A)
         0x064A => ['isolated' => 0xFEF1, 'final' => 0xFEF2, 'initial' => 0xFEF3, 'medial' => 0xFEF4],
+    ];
+
+    /**
+     * LAM + ALEF -> mandatory ligature codepoint, keyed by the
+     * already-shaped LAM codepoint then the shaped ALEF codepoint.
+     *
+     * LAM only appears initial (U+FEDF) or medial (U+FEE0) when
+     * followed by ALEF, because LAM is dual-joining and always
+     * connects forward to a right-joining ALEF. The ALEF only
+     * appears in final form (the right-joining family has no
+     * medial/initial slots).
+     *
+     * The resulting ligature is "isolated" when the LAM had no
+     * preceding join (LAM was initial), and "final" when the LAM
+     * itself was joined from the right (LAM was medial). Same
+     * choice carries to the ligature's connection back to the
+     * previous letter.
+     *
+     * Pairs:
+     *   - LAM + ALEF MADDA (0622 -> final 0xFE82): FEF5 / FEF6
+     *   - LAM + ALEF HAMZA ABOVE (0623 -> final 0xFE84): FEF7 / FEF8
+     *   - LAM + ALEF HAMZA BELOW (0625 -> final 0xFE88): FEF9 / FEFA
+     *   - LAM + ALEF (0627 -> final 0xFE8E): FEFB / FEFC
+     *
+     * @var array<int, array<int, int>>
+     */
+    private const array LAM_ALEF_LIGATURES = [
+        0xFEDF => [  // LAM initial -> isolated ligature
+            0xFE82 => 0xFEF5,
+            0xFE84 => 0xFEF7,
+            0xFE88 => 0xFEF9,
+            0xFE8E => 0xFEFB,
+        ],
+        0xFEE0 => [  // LAM medial -> final ligature
+            0xFE82 => 0xFEF6,
+            0xFE84 => 0xFEF8,
+            0xFE88 => 0xFEFA,
+            0xFE8E => 0xFEFC,
+        ],
     ];
 }
