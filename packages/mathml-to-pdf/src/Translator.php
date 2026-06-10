@@ -1430,12 +1430,21 @@ final class Translator
             $ctx->cursorX += $shift;
         }
 
-        // Stretchy fences (parens, brackets, pipes, ...) pick a
-        // taller pre-drawn variant from the font's MathVariants when
-        // one is available. Falls through to the standard emit when
-        // not stretchy / not in the dictionary / no math font / no
-        // variant covers the required height.
-        if (!$this->tryStretchyEmit($mo, $text, $entry, $ctx)) {
+        // `largeop="true"` (typical for ∑, ∏, ∫ when authors want
+        // display-style proportions) and stretchy fences both pick
+        // taller pre-drawn variants from the font's MathVariants
+        // when available. largeop takes precedence: an operator
+        // marked both stretchy AND largeop renders at its
+        // displayOperatorMinHeight rather than its row's content
+        // height.
+        $emitted = false;
+        if ($mo->largeop() === true) {
+            $emitted = $this->tryLargeOpEmit($text, $ctx);
+        }
+        if (!$emitted) {
+            $emitted = $this->tryStretchyEmit($mo, $text, $entry, $ctx);
+        }
+        if (!$emitted) {
             $this->emitText($text, $ctx);
         }
 
@@ -1529,6 +1538,46 @@ final class Translator
      *
      * @param array{glyphId: int, advance: int} $variant
      */
+    /**
+     * Try to emit a large-form variant of the operator glyph via
+     * MathVariants. The target height is the font's
+     * displayOperatorMinHeight (from MathConstants); we pick the
+     * smallest vertical variant whose advance meets or exceeds it.
+     *
+     * Conditions to fire:
+     *   - The math font is loaded with variants registered.
+     *   - The operator is a single-character glyph (so we can look
+     *     up a base GID; multi-char operators don't have variants).
+     *   - The glyph has a vertical-construction entry in the font.
+     *   - The chosen variant GID survived the subsetter.
+     *
+     * Returns false on any failure so the caller can fall through
+     * to the standard emit.
+     */
+    private function tryLargeOpEmit(string $text, MathmlPaintContext $ctx): bool
+    {
+        if ($ctx->mathFont === null || $ctx->mathFont->variants === null) {
+            return false;
+        }
+        $cp = mb_strlen($text, 'UTF-8') === 1 ? mb_ord($text, 'UTF-8') : false;
+        if ($cp === false) {
+            return false;
+        }
+        $baseGid = $ctx->mathFont->unicodeToGid[$cp] ?? null;
+        if ($baseGid === null) {
+            return false;
+        }
+        $targetFunits = (int) round(
+            $ctx->metrics->displayOperatorMinHeightEm()
+            * $ctx->mathFont->unitsPerEm,
+        );
+        $variant = $ctx->mathFont->verticalVariantFor($baseGid, $targetFunits);
+        if ($variant === null) {
+            return false;
+        }
+        return $this->emitStretchyVariant($variant, $ctx);
+    }
+
     private function emitStretchyVariant(
         array $variant,
         MathmlPaintContext $ctx,

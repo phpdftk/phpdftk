@@ -114,6 +114,25 @@ final readonly class MathmlMetrics
         return $this->constants->axisHeight / (float) $this->unitsPerEm;
     }
 
+    /**
+     * Minimum em-height at which a large-operator glyph (∑, ∏, ∫,
+     * ⋃, ⋂ when marked `largeop="true"` or implied by display
+     * style) should switch to its display form via {@see
+     * \Phpdftk\FontParser\MathVariants}. Without a loaded math
+     * font, returns a conservative 1.5 em default so the painter
+     * can still pick a taller variant when one is available.
+     */
+    public const float DEFAULT_DISPLAY_OPERATOR_MIN_HEIGHT_EM = 1.5;
+
+    public function displayOperatorMinHeightEm(): float
+    {
+        if ($this->constants === null) {
+            return self::DEFAULT_DISPLAY_OPERATOR_MIN_HEIGHT_EM;
+        }
+        return $this->constants->displayOperatorMinHeight
+            / (float) $this->unitsPerEm;
+    }
+
     /** Fraction-numerator raise above baseline, in em.
      *  Display-style default reflects the typical 'fraction in
      *  display equation' shift, taller than the inline form. */
