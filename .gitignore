@@ -59,3 +59,9 @@ composer.phar
 /scripts/cross-browser/engines/*/test/__pycache__/
 /var/wpt/browser-cache/
 
+# Math font (Latin Modern Math) — downloaded on demand by
+# scripts/fetch-math-font.php, used by the production-font tests in
+# packages/mathml-to-pdf. Keeping it out of the repo avoids vendoring
+# a ~600 KB binary; the script + .gitignore entry are the contract.
+/packages/mathml-to-pdf/tests/fixtures/fonts/latinmodern-math.otf
+
