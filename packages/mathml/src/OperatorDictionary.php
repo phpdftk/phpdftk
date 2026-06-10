@@ -165,6 +165,110 @@ final class OperatorDictionary
             "\u{2227}" => self::infix($thickmuskip, $thickmuskip),  // AND
             "\u{2228}" => self::infix($thickmuskip, $thickmuskip),  // OR
             "\u{00AC}" => self::prefix(0.0, $thinmuskip),           // NOT
+
+            // Extended relational - common in proofs / analysis.
+            "\u{226A}" => self::infix($thickmuskip, $thickmuskip),  // MUCH LESS-THAN
+            "\u{226B}" => self::infix($thickmuskip, $thickmuskip),  // MUCH GREATER-THAN
+            "\u{2266}" => self::infix($thickmuskip, $thickmuskip),  // LESS-EQUAL OVER GT
+            "\u{2267}" => self::infix($thickmuskip, $thickmuskip),  // GREATER-EQUAL OVER LT
+            "\u{2272}" => self::infix($thickmuskip, $thickmuskip),  // LESS-EQUAL-SIM
+            "\u{2273}" => self::infix($thickmuskip, $thickmuskip),  // GREATER-EQUAL-SIM
+            "\u{223C}" => self::infix($thickmuskip, $thickmuskip),  // TILDE OPERATOR
+            "\u{2249}" => self::infix($thickmuskip, $thickmuskip),  // NOT ALMOST EQUAL
+            "\u{2262}" => self::infix($thickmuskip, $thickmuskip),  // NOT IDENTICAL
+            "\u{2225}" => self::infix($thickmuskip, $thickmuskip),  // PARALLEL TO
+            "\u{2226}" => self::infix($thickmuskip, $thickmuskip),  // NOT PARALLEL
+            "\u{22A5}" => self::infix($thickmuskip, $thickmuskip),  // UP TACK / perpendicular
+            "\u{22A4}" => self::infix($thickmuskip, $thickmuskip),  // DOWN TACK / top
+
+            // Extended set theory.
+            "\u{2209}" => self::infix($thickmuskip, $thickmuskip),  // NOT ELEMENT OF
+            "\u{220C}" => self::infix($thickmuskip, $thickmuskip),  // DOES NOT CONTAIN
+            "\u{228A}" => self::infix($thickmuskip, $thickmuskip),  // SUBSET WITH NEQ
+            "\u{228B}" => self::infix($thickmuskip, $thickmuskip),  // SUPERSET WITH NEQ
+            "\u{2284}" => self::infix($thickmuskip, $thickmuskip),  // NOT SUBSET
+            "\u{2285}" => self::infix($thickmuskip, $thickmuskip),  // NOT SUPERSET
+            "\u{2229}" => self::infix($medmuskip, $medmuskip),      // INTERSECTION
+            "\u{222A}" => self::infix($medmuskip, $medmuskip),      // UNION
+            "\u{22C2}" => self::prefix($thinmuskip, $thinmuskip),   // N-ARY INTERSECTION
+            "\u{22C3}" => self::prefix($thinmuskip, $thinmuskip),   // N-ARY UNION
+            "\u{2205}" => self::infix(0.0, 0.0),                    // EMPTY SET
+            "\u{2216}" => self::infix($medmuskip, $medmuskip),      // SET MINUS
+
+            // Calculus + analysis.
+            "\u{2202}" => self::infix(0.0, 0.0),                    // PARTIAL
+            "\u{2207}" => self::infix(0.0, 0.0),                    // NABLA
+            "\u{221E}" => self::infix(0.0, 0.0),                    // INFINITY
+            "\u{2218}" => self::infix($thinmuskip, $thinmuskip),    // RING OPERATOR
+            "\u{2217}" => self::infix($medmuskip, $medmuskip),      // ASTERISK OPERATOR
+            "\u{2295}" => self::infix($medmuskip, $medmuskip),      // CIRCLED PLUS
+            "\u{2296}" => self::infix($medmuskip, $medmuskip),      // CIRCLED MINUS
+            "\u{2297}" => self::infix($medmuskip, $medmuskip),      // CIRCLED TIMES
+            "\u{2299}" => self::infix($medmuskip, $medmuskip),      // CIRCLED DOT
+
+            // More arrows.
+            "\u{21A6}" => self::infix($thickmuskip, $thickmuskip),  // MAPS TO
+            "\u{21D0}" => self::infix($thickmuskip, $thickmuskip),  // DOUBLE LEFTWARDS
+            "\u{21CC}" => self::infix($thickmuskip, $thickmuskip),  // RIGHT-LEFT HARPOONS
+            "\u{21C4}" => self::infix($thickmuskip, $thickmuskip),  // RIGHT-LEFT ARROWS
+            "\u{27F6}" => self::infix($thickmuskip, $thickmuskip),  // LONG RIGHTWARDS
+            "\u{27F5}" => self::infix($thickmuskip, $thickmuskip),  // LONG LEFTWARDS
+            "\u{27F9}" => self::infix($thickmuskip, $thickmuskip),  // LONG DOUBLE RIGHT
+            "\u{27FA}" => self::infix($thickmuskip, $thickmuskip),  // LONG DOUBLE LEFT-RIGHT
+            "\u{2191}" => self::infix($thickmuskip, $thickmuskip),  // UPWARDS ARROW
+            "\u{2193}" => self::infix($thickmuskip, $thickmuskip),  // DOWNWARDS ARROW
+
+            // Quantifiers.
+            "\u{2200}" => self::prefix(0.0, $thinmuskip),           // FOR ALL
+            "\u{2203}" => self::prefix(0.0, $thinmuskip),           // THERE EXISTS
+            "\u{2204}" => self::prefix(0.0, $thinmuskip),           // THERE DOES NOT EXIST
+
+            // Logic / proof.
+            "\u{22A2}" => self::infix($thickmuskip, $thickmuskip),  // RIGHT TACK / proves
+            "\u{22A8}" => self::infix($thickmuskip, $thickmuskip),  // TRUE / models
+            "\u{2234}" => self::infix($thickmuskip, $thickmuskip),  // THEREFORE
+            "\u{2235}" => self::infix($thickmuskip, $thickmuskip),  // BECAUSE
+
+            // Specialised brackets / fences.
+            "\u{27E8}" => [   // MATH LEFT ANGLE BRACKET
+                'prefix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{27E9}" => [   // MATH RIGHT ANGLE BRACKET
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{230A}" => [   // LEFT FLOOR
+                'prefix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{230B}" => [   // RIGHT FLOOR
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{2308}" => [   // LEFT CEILING
+                'prefix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{2309}" => [   // RIGHT CEILING
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+            "\u{2016}" => [   // DOUBLE VERTICAL LINE (norm)
+                'prefix'  => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => true],
+            ],
+
+            // Dots / ellipsis.
+            "\u{2026}" => self::infix(0.0, 0.0),                    // HORIZONTAL ELLIPSIS
+            "\u{22EE}" => self::infix(0.0, 0.0),                    // VERTICAL ELLIPSIS
+            "\u{22EF}" => self::infix(0.0, 0.0),                    // MIDLINE HORIZONTAL ELLIPSIS
+            "\u{22F1}" => self::infix(0.0, 0.0),                    // DOWN RIGHT DIAGONAL ELLIPSIS
+
+            // Additional postfix - double factorial, primes.
+            "\u{2032}" => [   // PRIME
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => false],
+            ],
+            "\u{2033}" => [   // DOUBLE PRIME
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => false],
+            ],
+            "\u{2034}" => [   // TRIPLE PRIME
+                'postfix' => ['lspace' => 0.0, 'rspace' => 0.0, 'stretchy' => false],
+            ],
         ];
     }
 
