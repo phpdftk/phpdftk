@@ -2731,6 +2731,15 @@ final class Translator
         if ($content === '') {
             return;
         }
+        // Arabic shaping: replace logical-order Arabic letters with
+        // their contextual Presentation Forms-B codepoints (initial /
+        // medial / final / isolated) before the bidi pass. Shaping
+        // runs first because the bidi pass needs to act on the final
+        // codepoint sequence that will hit the cmap. Non-Arabic
+        // content passes through unchanged.
+        if (preg_match('/[\x{0600}-\x{06FF}]/u', $content) === 1) {
+            $content = ArabicShaper::shape($content);
+        }
         // Bidi: pure-RTL content gets reversed; mixed-direction
         // content is run-aware reordered via BidiReorder using the
         // surrounding paragraph direction. Pure-LTR / neutral
