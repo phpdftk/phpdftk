@@ -115,6 +115,9 @@ final class Parser
             'mphantom' => new Mphantom(),
             'menclose' => new Menclose(),
             'mstyle' => new Mstyle(),
+            'maction' => new Maction(),
+            'merror' => new Merror(),
+            'semantics' => new Semantics(),
             // The MathML Core v1 element set is now complete. Anything
             // else (deprecated MathML 3 holdovers like mlabeledtr,
             // mglyph, mstack, mlongdiv, or Content MathML) round-trips

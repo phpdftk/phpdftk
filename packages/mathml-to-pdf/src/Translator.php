@@ -6,6 +6,8 @@ namespace Phpdftk\MathmlToPdf;
 
 use Phpdftk\Mathml\Element;
 use Phpdftk\Mathml\GenericElement;
+use Phpdftk\Mathml\Maction;
+use Phpdftk\Mathml\Merror;
 use Phpdftk\Mathml\Mfrac;
 use Phpdftk\Mathml\Mi;
 use Phpdftk\Mathml\Mmultiscripts;
@@ -33,6 +35,7 @@ use Phpdftk\Mathml\Munder;
 use Phpdftk\Mathml\Munderover;
 use Phpdftk\Mathml\NoneElement;
 use Phpdftk\Mathml\OperatorDictionary;
+use Phpdftk\Mathml\Semantics;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 
 /**
@@ -104,6 +107,9 @@ final class Translator
             $element instanceof Mphantom => $this->paintMphantom($element, $ctx),
             $element instanceof Menclose => $this->paintMenclose($element, $ctx),
             $element instanceof Mstyle  => $this->paintMstyle($element, $ctx),
+            $element instanceof Maction => $this->paintMaction($element, $ctx),
+            $element instanceof Merror  => $this->paintMerror($element, $ctx),
+            $element instanceof Semantics => $this->paintSemantics($element, $ctx),
             $element instanceof Mrow    => $this->walkChildren($element, $ctx),
             $element instanceof GenericElement => $this->walkChildren($element, $ctx),
             // MathmlDocument flows through here too — its base class
@@ -2875,5 +2881,64 @@ final class Translator
     private function isSingleVisibleChar(string $content): bool
     {
         return mb_strlen($content, 'UTF-8') === 1;
+    }
+
+    // -----------------------------------------------------------------
+    // maction / merror / semantics - passthrough containers
+    // -----------------------------------------------------------------
+
+    /**
+     * Paint `<maction>` - render only the child indicated by the
+     * `selection` attribute (1-based, default 1). MathML Core
+     * §3.6.1 drops the interactive semantics; the element is now
+     * a passthrough that picks one of its children.
+     *
+     * Selection values that are out of range fall back to the
+     * first child (per Core's "if it doesn't refer to a valid
+     * child, the first child is selected" rule). An empty
+     * maction renders nothing.
+     */
+    private function paintMaction(Maction $maction, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($maction);
+        $count = count($children);
+        if ($count === 0) {
+            return;
+        }
+        $index = $maction->selection() - 1;
+        if ($index < 0 || $index >= $count) {
+            $index = 0;
+        }
+        $this->paint($children[$index], $ctx);
+    }
+
+    /**
+     * Paint `<merror>` - render children inline. The Core default
+     * styling (red text / salmon background) would require
+     * stroke/fill colour management plus a content-bounds pass;
+     * that lands in a follow-up alongside `mathcolor` /
+     * `mathbackground`. For now `<merror>` is functionally a
+     * passthrough so its contents at least render instead of
+     * triggering the unknown-element default.
+     */
+    private function paintMerror(Merror $merror, MathmlPaintContext $ctx): void
+    {
+        $this->walkChildren($merror, $ctx);
+    }
+
+    /**
+     * Paint `<semantics>` - render only the first element child
+     * (the presentation form). Any `<annotation>` /
+     * `<annotation-xml>` siblings carry alternate encodings
+     * (Content MathML, TeX source, etc.) for consumers; they are
+     * not visual content per Core §5.1.
+     */
+    private function paintSemantics(Semantics $semantics, MathmlPaintContext $ctx): void
+    {
+        $children = $this->elementChildren($semantics);
+        if ($children === []) {
+            return;
+        }
+        $this->paint($children[0], $ctx);
     }
 }
