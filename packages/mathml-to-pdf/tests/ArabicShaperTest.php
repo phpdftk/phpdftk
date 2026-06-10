@@ -128,6 +128,73 @@ final class ArabicShaperTest extends TestCase
         self::assertSame($expected, ArabicShaper::shape($input));
     }
 
+    public function testLamAlefIsolatedLigature(): void
+    {
+        // LAM + ALEF alone (no preceding join) -> isolated
+        // ligature U+FEFB. This is the bare "la" word in Arabic.
+        $input = "\u{0644}\u{0627}";
+        $expected = "\u{FEFB}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamAlefFinalLigatureAfterDualLetter(): void
+    {
+        // BEH + LAM + ALEF: BEH joins LAM, so the LAM-ALEF
+        // ligature takes its FINAL form U+FEFC. BEH itself takes
+        // initial form U+FE91 since it joins forward onto the
+        // ligature's right side.
+        $input = "\u{0628}\u{0644}\u{0627}";
+        $expected = "\u{FE91}\u{FEFC}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamAlefMaddaLigature(): void
+    {
+        // LAM + ALEF MADDA (U+0622) -> U+FEF5 (isolated).
+        $input = "\u{0644}\u{0622}";
+        $expected = "\u{FEF5}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamAlefHamzaAboveLigature(): void
+    {
+        // LAM + ALEF WITH HAMZA ABOVE (U+0623) -> U+FEF7.
+        $input = "\u{0644}\u{0623}";
+        $expected = "\u{FEF7}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamAlefHamzaBelowLigature(): void
+    {
+        // LAM + ALEF WITH HAMZA BELOW (U+0625) -> U+FEF9.
+        $input = "\u{0644}\u{0625}";
+        $expected = "\u{FEF9}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamFollowedByNonAlefDoesNotLigate(): void
+    {
+        // LAM + MEEM should NOT trigger the ligature path - both
+        // are dual-joining letters that ordinary shaping handles.
+        // LAM initial U+FEDF + MEEM final U+FEE2.
+        $input = "\u{0644}\u{0645}";
+        $expected = "\u{FEDF}\u{FEE2}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
+    public function testLamAlefInsideWord(): void
+    {
+        // BEH + LAM + ALEF + BEH: the LAM-ALEF ligature forms in
+        // the middle. After the ligature, the trailing BEH starts
+        // a fresh run because ALEF doesn't join forward.
+        // - BEH(1): initial (joins LAM next).
+        // - LAM medial + ALEF final -> ligature FINAL U+FEFC.
+        // - BEH(2): isolated (no right-join from ALEF, no next).
+        $input = "\u{0628}\u{0644}\u{0627}\u{0628}";
+        $expected = "\u{FE91}\u{FEFC}\u{FE8F}";
+        self::assertSame($expected, ArabicShaper::shape($input));
+    }
+
     public function testTwoWordSeparatedByTatweel(): void
     {
         // Tatweel (U+0640) is join-causing: it forces a join on
