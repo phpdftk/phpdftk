@@ -1724,7 +1724,7 @@ final class Translator
 
     private function paintMn(Mn $mn, MathmlPaintContext $ctx): void
     {
-        $this->emitText($mn->textContent(), $ctx);
+        $this->emitText($this->withMathvariant($mn, $mn->textContent()), $ctx);
     }
 
     private function paintMi(Mi $mi, MathmlPaintContext $ctx): void
@@ -1746,7 +1746,12 @@ final class Translator
         if ($useItalic) {
             $ctx->stream->setFont($ctx->italic, $ctx->fontSize);
         }
-        $this->emitText($content, $ctx, $useItalic);
+        // Apply mathvariant transform (no-op for auto-italic mi
+        // because mathvariant is null in that branch). When set,
+        // it maps ASCII letters/digits into Mathematical
+        // Alphanumeric Symbols (U+1D400+).
+        $emitContent = $this->withMathvariant($mi, $content);
+        $this->emitText($emitContent, $ctx, $useItalic);
         if ($useItalic) {
             $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         }
@@ -1804,7 +1809,7 @@ final class Translator
             $emitted = $this->tryStretchyEmit($mo, $text, $entry, $ctx);
         }
         if (!$emitted) {
-            $this->emitText($text, $ctx);
+            $this->emitText($this->withMathvariant($mo, $text), $ctx);
         }
 
         if ($rspaceEm > 0.0) {
@@ -2163,13 +2168,18 @@ final class Translator
     private function paintMs(Ms $ms, MathmlPaintContext $ctx): void
     {
         // <ms> wraps its content in lquote / rquote characters; the
-        // typed accessors fall back to ASCII " when absent.
-        $this->emitText($ms->lquote() . $ms->textContent() . $ms->rquote(), $ctx);
+        // typed accessors fall back to ASCII " when absent. Quotes
+        // pass through the mathvariant transform unchanged.
+        $content = $ms->lquote() . $ms->textContent() . $ms->rquote();
+        $this->emitText($this->withMathvariant($ms, $content), $ctx);
     }
 
     private function paintMtext(Mtext $mtext, MathmlPaintContext $ctx): void
     {
-        $this->emitText($mtext->textContent(), $ctx);
+        $this->emitText(
+            $this->withMathvariant($mtext, $mtext->textContent()),
+            $ctx,
+        );
     }
 
     // -----------------------------------------------------------------
@@ -2724,6 +2734,22 @@ final class Translator
             * $ctx->fontSize;
         $ctx->stream->moveTextPosition($shiftPt, 0.0);
         $ctx->cursorX += $shiftPt;
+    }
+
+    /**
+     * Apply the element's `mathvariant` attribute (if any) to
+     * `$content`, mapping ASCII letters and digits into the
+     * Mathematical Alphanumeric Symbols block per Core §3.2.3.
+     * No-op when the element has no `mathvariant`, the value is
+     * `normal`, or the value isn't one of the supported variants.
+     */
+    private function withMathvariant(Element $el, string $content): string
+    {
+        $variant = $el->mathvariant();
+        if ($variant === null || $content === '') {
+            return $content;
+        }
+        return MathvariantTransform::apply($content, $variant);
     }
 
     private function emitText(string $content, MathmlPaintContext $ctx, bool $italic = false): void
