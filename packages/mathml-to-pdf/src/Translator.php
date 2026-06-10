@@ -2731,11 +2731,16 @@ final class Translator
         if ($content === '') {
             return;
         }
+        // Pure-RTL tokens need visual reordering: PDF text emission
+        // always advances the cursor LEFT-to-RIGHT, so we have to
+        // reverse the codepoint sequence to get visual-order RTL.
+        // Pure-LTR / neutral tokens pass through unchanged. Mixed
+        // runs (Hebrew + Latin in the same token) stay in source
+        // order pending full UAX #9 reordering.
+        if (BidiAnalyzer::runDirection($content) === BidiAnalyzer::DIRECTION_RTL) {
+            $content = $this->reverseUtf8($content);
+        }
         if ($ctx->mathFont !== null) {
-            // Math font path: translate UTF-8 to post-subset GIDs and
-            // emit via the Type 0 / Identity-H hex stream. Width
-            // measurement uses the font's hmtx for cursor accuracy
-            // against the actual rendered ink.
             $hex = $ctx->mathFont->utf8ToHexGids($content);
             if ($hex !== '') {
                 $ctx->stream->showTextHex($hex);
@@ -2745,6 +2750,17 @@ final class Translator
         }
         $ctx->stream->showText($content);
         $ctx->cursorX += MathmlGlyphMetrics::measure($content, $ctx->fontSize, $italic);
+    }
+
+    /**
+     * Reverse a UTF-8 string by codepoint. PHP's strrev() works on
+     * bytes and would corrupt multi-byte glyphs; mb_str_split with
+     * length=1 splits into codepoints (each a UTF-8 byte sequence)
+     * that can be reversed and rejoined safely.
+     */
+    private function reverseUtf8(string $utf8): string
+    {
+        return implode('', array_reverse(mb_str_split($utf8, 1, 'UTF-8')));
     }
 
     /**
