@@ -1013,7 +1013,18 @@ final class Translator
         if (!$base instanceof Mo) {
             return false;
         }
-        return $base->movablelimits() === true;
+        $explicit = $base->movablelimits();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+        // Fall back to the operator dictionary's default. ∑/∏/∫ etc.
+        // are flagged movablelimits=true so an unmarked author
+        // <mo>2211</mo> still routes correctly in inline mode.
+        $entry = OperatorDictionary::lookup(
+            $base->textContent(),
+            'prefix',
+        );
+        return $entry['movablelimits'];
     }
 
     /**
@@ -1693,8 +1704,13 @@ final class Translator
         // marked both stretchy AND largeop renders at its
         // displayOperatorMinHeight rather than its row's content
         // height.
+        // Resolve effective largeop: author attribute wins, otherwise
+        // the dictionary's default. Only apply in display mode so
+        // big ops don't grow when authors don't expect them inline.
+        $effectiveLargeOp = $mo->largeop()
+            ?? ($ctx->displayStyle && $entry['largeop']);
         $emitted = false;
-        if ($mo->largeop() === true) {
+        if ($effectiveLargeOp === true) {
             $emitted = $this->tryLargeOpEmit($text, $ctx);
         }
         if (!$emitted) {

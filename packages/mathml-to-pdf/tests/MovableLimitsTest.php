@@ -107,6 +107,45 @@ final class MovableLimitsTest extends TestCase
         );
     }
 
+    public function testUnattributedSummationRoutesViaDictionaryDefault(): void
+    {
+        // No movablelimits attribute on the <mo> - but ∑ has
+        // movablelimits=true as its dictionary default. In inline
+        // mode the painter should still route to scripts; the
+        // result should match the explicit-attribute path.
+        $unattributed = $this->render(
+            '<mover><mo>' . "\u{2211}" . '</mo><mi>n</mi></mover>',
+            displayBlock: false,
+        );
+        $explicit = $this->render(
+            '<mover><mo movablelimits="true">' . "\u{2211}" . '</mo><mi>n</mi></mover>',
+            displayBlock: false,
+        );
+        self::assertSame(
+            $this->extractTds($unattributed),
+            $this->extractTds($explicit),
+        );
+    }
+
+    public function testNonLargeOperatorIgnoresDictionaryFallback(): void
+    {
+        // A non-largeop operator like '+' has movablelimits=false
+        // in the dictionary, so an unmarked <mover> with '+' as
+        // base should NOT route to scripts.
+        $unattributed = $this->render(
+            '<mover><mo>+</mo><mi>n</mi></mover>',
+            displayBlock: false,
+        );
+        $explicit = $this->render(
+            '<mover><mo movablelimits="false">+</mo><mi>n</mi></mover>',
+            displayBlock: false,
+        );
+        self::assertSame(
+            $this->extractTds($unattributed),
+            $this->extractTds($explicit),
+        );
+    }
+
     public function testMovableLimitsFalseAlwaysUsesOverUnder(): void
     {
         // Explicit `movablelimits="false"` keeps the limits centred
