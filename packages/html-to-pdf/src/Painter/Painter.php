@@ -4519,16 +4519,74 @@ final class Painter
         if ($width <= 0.0) {
             $width = 200.0;
         }
-        $pdfY = $this->pageHeight - $geo->y - $height;
+        // CSS position: absolute / fixed on inline foreign content
+        // is not currently honoured by InlineLayout (which always
+        // places these along the line box). For the WPT MathML
+        // fixtures that use `<math style="position: absolute;
+        // top: 0; left: 0;">` to anchor the math to the page edge,
+        // override geo->x / geo->y with the cascaded left / top
+        // when present. Treats left / top as absolute page
+        // coordinates - good enough when the math sits inside a
+        // top-level positioned div (the common WPT pattern); a
+        // proper containing-block calculation lives behind a
+        // bigger layout fix.
+        [$layoutX, $layoutY] = $this->resolveInlineAbsoluteOrigin(
+            $box,
+            $geo->x,
+            $geo->y,
+        );
+        $pdfY = $this->pageHeight - $layoutY - $height;
+        $ascentPt = $this->mathmlRenderer()->intrinsicAscent($mathDoc, $fontSize);
         $this->mathmlRenderer()->draw(
             $mathDoc,
-            $geo->x,
+            $layoutX,
             $pdfY,
             $width,
             $height,
             stream: $stream,
             fontSize: $fontSize,
+            ascentPt: $ascentPt,
         );
+    }
+
+    /**
+     * Resolve the layout-space origin for an inline foreign
+     * element when CSS `position` is `absolute` / `fixed`.
+     * Returns `[x, y]` in layout (top-down) coordinates.
+     *
+     * Falls back to the box's layout-derived geometry when the
+     * position keyword isn't a positioned form. When it IS
+     * positioned, reads cascaded `left` / `top` Length values and
+     * treats them as absolute page coordinates - sufficient for
+     * the common case where the foreign content is inside the
+     * initial containing block (or close enough that the
+     * containing-block resolution from BlockLayout has already
+     * shifted ancestors into position).
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function resolveInlineAbsoluteOrigin(
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        float $defaultX,
+        float $defaultY,
+    ): array {
+        $position = $box->style->get('position');
+        if (!($position instanceof \Phpdftk\Css\Value\Keyword)) {
+            return [$defaultX, $defaultY];
+        }
+        $keyword = strtolower($position->name);
+        if ($keyword !== 'absolute' && $keyword !== 'fixed') {
+            return [$defaultX, $defaultY];
+        }
+        $left = $box->style->get('left');
+        $top = $box->style->get('top');
+        $x = $left instanceof \Phpdftk\Css\Value\Length
+            ? $left->value
+            : $defaultX;
+        $y = $top instanceof \Phpdftk\Css\Value\Length
+            ? $top->value
+            : $defaultY;
+        return [$x, $y];
     }
 
     /**
