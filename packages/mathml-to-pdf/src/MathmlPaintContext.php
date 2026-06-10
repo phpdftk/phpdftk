@@ -92,5 +92,14 @@ final class MathmlPaintContext
          * usable variant.
          */
         public float $stretchTargetEm = 1.0,
+        /**
+         * Whether the painter is in *display style* (taller, looser
+         * proportions) or *inline style* (compact). Set by
+         * {@see MathmlRenderer::draw()} from the `<math display>`
+         * attribute (`block` -> true). Drives the movablelimits
+         * routing on `<munder>` / `<mover>` / `<munderover>` and
+         * pairs with the displaystyle attribute on `<mfrac>`.
+         */
+        public readonly bool $displayStyle = false,
     ) {}
 }
