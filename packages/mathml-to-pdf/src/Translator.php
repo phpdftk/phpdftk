@@ -302,9 +302,11 @@ final class Translator
         }
         [$base, $index] = [$children[0], $children[1]];
 
-        // Index: small font, raised. Emit first so it sits to the
-        // upper-left of the base. Approximate width = base * 0.7.
-        $indexFontSize = $ctx->fontSize * 0.7;
+        // Index: smaller font, raised. Emit first so it sits to
+        // the upper-left of the base. The index renders at
+        // scriptscript level per Core §3.1.6, so we ask the
+        // cascade helper for `levelDelta = 2`.
+        $indexFontSize = $this->scriptFontSizeFor($ctx, levelDelta: 2);
         $indexWidth = $this->estimateWidth($index, $indexFontSize);
         $indexRaise = $ctx->fontSize * 0.5;
         $rootLeftX = $ctx->cursorX;
@@ -312,13 +314,14 @@ final class Translator
         if ($indexWidth >= 0.001) {
             $ctx->stream->setFont($this->activeFont($ctx), $indexFontSize);
             $ctx->stream->moveTextPosition(0, $indexRaise);
-            $indexCtx = new MathmlPaintContext(
-                stream: $ctx->stream,
-                upright: $ctx->upright,
-                italic: $ctx->italic,
-                fontSize: $indexFontSize,
-                cursorX: $ctx->cursorX,
-                baselineY: $ctx->baselineY + $indexRaise,
+            // mroot's index renders at scriptscript level per
+            // Core §3.1.6 - use levelDelta=2 instead of 1.
+            $indexCtx = $this->childContextForScript(
+                $ctx,
+                $indexFontSize,
+                $ctx->cursorX,
+                $ctx->baselineY + $indexRaise,
+                levelDelta: 2,
             );
             $this->paint($index, $indexCtx);
             // Drop back to base baseline + restore main font size.
@@ -450,7 +453,7 @@ final class Translator
         $subAttachX = $ctx->cursorX;
         $this->applyItalicCorrection($base, $ctx);
         $supAttachX = $ctx->cursorX;
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $subWidth = $this->estimateWidth($sub, $scriptFontSize);
         $supWidth = $this->estimateWidth($sup, $scriptFontSize);
 
@@ -463,13 +466,11 @@ final class Translator
         $backup = $subAttachX - $ctx->cursorX;
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
-        $subCtx = new MathmlPaintContext(
-            stream: $ctx->stream,
-            upright: $ctx->upright,
-            italic: $ctx->italic,
-            fontSize: $scriptFontSize,
-            cursorX: $subAttachX,
-            baselineY: $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
+        $subCtx = $this->childContextForScript(
+            $ctx,
+            $scriptFontSize,
+            $subAttachX,
+            $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
         );
         $this->paint($sub, $subCtx);
         // Restore to the construct's right edge on the main baseline.
@@ -500,16 +501,14 @@ final class Translator
         MathmlPaintContext $ctx,
         float $yOffset,
     ): void {
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition(0.0, $yOffset);
-        $scriptCtx = new MathmlPaintContext(
-            stream: $ctx->stream,
-            upright: $ctx->upright,
-            italic: $ctx->italic,
-            fontSize: $scriptFontSize,
-            cursorX: $ctx->cursorX,
-            baselineY: $ctx->baselineY + $yOffset,
+        $scriptCtx = $this->childContextForScript(
+            $ctx,
+            $scriptFontSize,
+            $ctx->cursorX,
+            $ctx->baselineY + $yOffset,
         );
         $this->paint($script, $scriptCtx);
         $ctx->cursorX = $scriptCtx->cursorX;
@@ -587,7 +586,7 @@ final class Translator
         $postPairs = $this->pairUpScripts($postRaw);
         $prePairs = $this->pairUpScripts($preRaw);
 
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $totalPreWidth = 0.0;
         foreach ($prePairs as $pair) {
             $totalPreWidth += $this->scriptPairWidth($pair, $scriptFontSize);
@@ -659,7 +658,7 @@ final class Translator
     private function paintScriptPair(array $pair, MathmlPaintContext $ctx): void
     {
         [$sub, $sup] = $pair;
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $hasSub = !$sub instanceof NoneElement;
         $hasSup = !$sup instanceof NoneElement;
         if (!$hasSub && !$hasSup) {
@@ -683,13 +682,11 @@ final class Translator
             $backup = $attachX - $ctx->cursorX;
             $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
             $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
-            $subCtx = new MathmlPaintContext(
-                stream: $ctx->stream,
-                upright: $ctx->upright,
-                italic: $ctx->italic,
-                fontSize: $scriptFontSize,
-                cursorX: $attachX,
-                baselineY: $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
+            $subCtx = $this->childContextForScript(
+                $ctx,
+                $scriptFontSize,
+                $attachX,
+                $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
             $this->paint($sub, $subCtx);
             // End at the pair's right edge on the original baseline.
@@ -1058,7 +1055,7 @@ final class Translator
     ): void {
         $this->paint($base, $ctx);
         $attachX = $ctx->cursorX;
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $subWidth = $under !== null
             ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
         $supWidth = $over !== null
@@ -1076,13 +1073,11 @@ final class Translator
             $backup = $attachX - $ctx->cursorX;
             $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
             $ctx->stream->moveTextPosition($backup, -$subShift);
-            $subCtx = new MathmlPaintContext(
-                stream: $ctx->stream,
-                upright: $ctx->upright,
-                italic: $ctx->italic,
-                fontSize: $scriptFontSize,
-                cursorX: $attachX,
-                baselineY: $ctx->baselineY - $subShift,
+            $subCtx = $this->childContextForScript(
+                $ctx,
+                $scriptFontSize,
+                $attachX,
+                $ctx->baselineY - $subShift,
             );
             $this->paint($under, $subCtx);
             $rightEdge = $attachX + max($subWidth, $supWidth);
@@ -1119,7 +1114,7 @@ final class Translator
         MathmlPaintContext $ctx,
     ): void {
         $baseLeftX = $ctx->cursorX;
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $baseWidth = $this->estimateWidth($base, $ctx->fontSize);
         $overWidth = $over !== null ? $this->estimateWidth($over, $scriptFontSize) : 0.0;
         $underWidth = $under !== null ? $this->estimateWidth($under, $scriptFontSize) : 0.0;
@@ -1184,7 +1179,7 @@ final class Translator
         float $yOffset,
         ?float $accentCentreOffsetEm = null,
     ): void {
-        $scriptFontSize = $ctx->fontSize * $ctx->metrics->scriptScale();
+        $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $scriptWidth = $this->estimateWidth($script, $scriptFontSize);
         if ($accentCentreOffsetEm !== null) {
             // Centre the script on the attachment point reported by
@@ -1198,13 +1193,11 @@ final class Translator
 
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
         $ctx->stream->moveTextPosition($deltaX, $yOffset);
-        $scriptCtx = new MathmlPaintContext(
-            stream: $ctx->stream,
-            upright: $ctx->upright,
-            italic: $ctx->italic,
-            fontSize: $scriptFontSize,
-            cursorX: $scriptStartX,
-            baselineY: $ctx->baselineY + $yOffset,
+        $scriptCtx = $this->childContextForScript(
+            $ctx,
+            $scriptFontSize,
+            $scriptStartX,
+            $ctx->baselineY + $yOffset,
         );
         $this->paint($script, $scriptCtx);
 
@@ -2358,6 +2351,63 @@ final class Translator
     private function activeFont(MathmlPaintContext $ctx): \Phpdftk\Pdf\Writer\Font
     {
         return $ctx->mathFont?->font ?? $ctx->upright;
+    }
+
+    /**
+     * Compute the font size a script-level child should render at,
+     * given the parent context and the level increment.
+     *
+     * The formula reconstructs the base font size from the parent's
+     * current scriptLevel + fontSize, then scales it by the child's
+     * level. This keeps nested scripts spec-compliant: a script of
+     * a script doesn't compound 0.7 × 0.7 = 0.49 (wrong); it picks
+     * the scriptscript scale 0.55 directly.
+     */
+    private function scriptFontSizeFor(
+        MathmlPaintContext $parent,
+        int $levelDelta = 1,
+    ): float {
+        $childLevel = min(2, $parent->scriptLevel + $levelDelta);
+        $baseFontSize = $parent->fontSize
+            / $this->scaleForLevel($parent->scriptLevel, $parent);
+        return $baseFontSize * $this->scaleForLevel($childLevel, $parent);
+    }
+
+    /**
+     * Build the paint context for a script-level child (subscript,
+     * superscript, over/under limit, mroot index, etc.) per Core
+     * §3.1.6.
+     *
+     * Inherits every readonly field from the parent so math-font
+     * features, metrics, direction, etc. flow correctly into nested
+     * constructs. Overrides displayStyle to false, scriptLevel to
+     * `min(2, parent + levelDelta)`, plus the caller-supplied
+     * cursor / baseline / fontSize.
+     *
+     * `levelDelta` is 1 for normal scripts (sub/sup/over/under) and
+     * 2 for mroot's index (Core says it's scriptscript-level).
+     */
+    private function childContextForScript(
+        MathmlPaintContext $parent,
+        float $fontSize,
+        float $cursorX,
+        float $baselineY,
+        int $levelDelta = 1,
+    ): MathmlPaintContext {
+        return new MathmlPaintContext(
+            stream: $parent->stream,
+            upright: $parent->upright,
+            italic: $parent->italic,
+            fontSize: $fontSize,
+            cursorX: $cursorX,
+            baselineY: $baselineY,
+            direction: $parent->direction,
+            metrics: $parent->metrics,
+            mathFont: $parent->mathFont,
+            stretchTargetEm: $parent->stretchTargetEm,
+            displayStyle: false,
+            scriptLevel: min(2, $parent->scriptLevel + $levelDelta),
+        );
     }
 
     /**
