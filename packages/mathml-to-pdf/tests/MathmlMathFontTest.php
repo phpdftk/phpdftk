@@ -107,6 +107,145 @@ final class MathmlMathFontTest extends TestCase
         self::assertSame(0.0, $font->measure('x', 0.0));
     }
 
+    public function testItalicCorrectionForLooksUpByOldGid(): void
+    {
+        // post-subset GID 5 maps to pre-subset 42; MathGlyphInfo
+        // carries italicCorrection[42] = 120.
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: ['x' => 5],
+            oldToNewGid: [42 => 5],
+            italicCorrections: [42 => 120],
+        );
+        self::assertSame(120, $font->italicCorrectionFor(5));
+    }
+
+    public function testItalicCorrectionForReturnsZeroWhenNoGlyphInfo(): void
+    {
+        $font = $this->makeFont(
+            unicodeToGid: ['x' => 5],
+            glyphWidths: [],
+        );
+        self::assertSame(0, $font->italicCorrectionFor(5));
+    }
+
+    public function testItalicCorrectionForReturnsZeroWhenGidNotInMap(): void
+    {
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: ['x' => 5],
+            oldToNewGid: [42 => 5],
+            italicCorrections: [], // empty - no italic correction
+        );
+        self::assertSame(0, $font->italicCorrectionFor(5));
+    }
+
+    public function testVerticalVariantForReturnsFirstLargeEnough(): void
+    {
+        // Construction with variants at 500, 1000, 1500. Required
+        // 800 -> picks the 1000 variant.
+        $construction = new \Phpdftk\FontParser\MathGlyphConstruction(
+            variants: [
+                ['glyphId' => 11, 'advance' => 500],
+                ['glyphId' => 12, 'advance' => 1000],
+                ['glyphId' => 13, 'advance' => 1500],
+            ],
+            assembly: null,
+        );
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: ['(' => 5],
+            oldToNewGid: [42 => 5],
+            verticalConstructions: [42 => $construction],
+        );
+        $variant = $font->verticalVariantFor(5, 800);
+        self::assertSame(['glyphId' => 12, 'advance' => 1000], $variant);
+    }
+
+    public function testVerticalVariantForReturnsLargestWhenNoneFit(): void
+    {
+        $construction = new \Phpdftk\FontParser\MathGlyphConstruction(
+            variants: [
+                ['glyphId' => 11, 'advance' => 500],
+                ['glyphId' => 12, 'advance' => 1000],
+            ],
+            assembly: null,
+        );
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: ['(' => 5],
+            oldToNewGid: [42 => 5],
+            verticalConstructions: [42 => $construction],
+        );
+        $variant = $font->verticalVariantFor(5, 99999);
+        self::assertSame(['glyphId' => 12, 'advance' => 1000], $variant);
+    }
+
+    public function testVerticalVariantForReturnsNullWhenNoConstruction(): void
+    {
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: ['x' => 5],
+            oldToNewGid: [42 => 5],
+            verticalConstructions: [], // no entry for GID 42
+        );
+        self::assertNull($font->verticalVariantFor(5, 1000));
+    }
+
+    public function testPreSubsetToPostSubsetTranslation(): void
+    {
+        $font = $this->makeFontWithMathTables(
+            unicodeToGid: [],
+            oldToNewGid: [42 => 5, 99 => 10],
+        );
+        self::assertSame(5, $font->preSubsetToPostSubset(42));
+        self::assertSame(10, $font->preSubsetToPostSubset(99));
+        self::assertNull($font->preSubsetToPostSubset(123));
+    }
+
+    /**
+     * Factory with optional MathGlyphInfo / MathVariants population.
+     *
+     * @param array<string|int, int> $unicodeToGid
+     * @param array<int, int> $oldToNewGid
+     * @param array<int, int> $italicCorrections
+     * @param array<int, \Phpdftk\FontParser\MathGlyphConstruction> $verticalConstructions
+     */
+    private function makeFontWithMathTables(
+        array $unicodeToGid,
+        array $oldToNewGid,
+        array $italicCorrections = [],
+        array $verticalConstructions = [],
+    ): MathmlMathFont {
+        $normalized = [];
+        foreach ($unicodeToGid as $key => $gid) {
+            if (is_string($key)) {
+                $cp = mb_ord($key, 'UTF-8');
+                if ($cp !== false) {
+                    $normalized[$cp] = $gid;
+                }
+            } else {
+                $normalized[$key] = $gid;
+            }
+        }
+        $glyphInfo = new \Phpdftk\FontParser\MathGlyphInfo(
+            italicCorrections: $italicCorrections,
+            topAccentAttachments: [],
+            extendedShapes: [],
+            kernInfoBytes: '',
+        );
+        $variants = new \Phpdftk\FontParser\MathVariants(
+            minConnectorOverlap: 0,
+            verticalConstructions: $verticalConstructions,
+            horizontalConstructions: [],
+        );
+        $stub = (new \ReflectionClass(Font::class))->newInstanceWithoutConstructor();
+        return new MathmlMathFont(
+            font: $stub,
+            unicodeToGid: $normalized,
+            oldToNewGid: $oldToNewGid,
+            glyphWidths: [],
+            unitsPerEm: 1000,
+            glyphInfo: $glyphInfo,
+            variants: $variants,
+        );
+    }
+
     /**
      * @param array<int|string, int> $unicodeToGid map keyed by either
      *        codepoint (int) or single-char string (auto-converted).
@@ -134,6 +273,7 @@ final class MathmlMathFontTest extends TestCase
         return new MathmlMathFont(
             font: $stub,
             unicodeToGid: $normalized,
+            oldToNewGid: [],
             glyphWidths: $glyphWidths,
             unitsPerEm: $unitsPerEm,
         );

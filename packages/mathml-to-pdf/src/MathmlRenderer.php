@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Phpdftk\MathmlToPdf;
 
 use Phpdftk\FontParser\MathConstantsParser;
+use Phpdftk\FontParser\MathGlyphInfoParser;
+use Phpdftk\FontParser\MathVariantsParser;
 use Phpdftk\FontParser\OpenTypeParser;
 use Phpdftk\FontParser\WoffParser;
 use Phpdftk\Mathml\MathmlDocument;
@@ -210,11 +212,21 @@ final class MathmlRenderer
             }
         }
 
+        $glyphInfo = $data->mathTable->hasMathGlyphInfo()
+            ? (new MathGlyphInfoParser())->parse($data->mathTable->mathGlyphInfoBytes)
+            : null;
+        $variants = $data->mathTable->hasMathVariants()
+            ? (new MathVariantsParser())->parse($data->mathTable->mathVariantsBytes)
+            : null;
+
         $mathFont = new MathmlMathFont(
             font: $font,
             unicodeToGid: $unicodeToGidSubset,
+            oldToNewGid: $oldToNewGid,
             glyphWidths: $glyphWidthsSubset,
             unitsPerEm: $data->unitsPerEm,
+            glyphInfo: $glyphInfo,
+            variants: $variants,
         );
 
         $constants = (new MathConstantsParser())
