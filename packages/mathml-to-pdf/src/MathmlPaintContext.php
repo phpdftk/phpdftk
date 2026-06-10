@@ -75,5 +75,12 @@ final class MathmlPaintContext
          * and standard-font output don't shift.
          */
         public readonly MathmlMetrics $metrics = new MathmlMetrics(),
+        /**
+         * Optional math font for token rendering. When set, the
+         * painter emits Tj via the Type 0 stack (real Unicode glyph
+         * coverage); when null, the painter uses the standard-font
+         * upright / italic faces (Times-Roman / Times-Italic).
+         */
+        public readonly ?MathmlMathFont $mathFont = null,
     ) {}
 }
