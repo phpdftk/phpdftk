@@ -100,6 +100,7 @@ final class MathmlRenderer
         ?float $height = null,
         ?ContentStream $stream = null,
         ?float $fontSize = null,
+        ?float $ascentPt = null,
     ): void {
         $stream ??= $this->page->contentStream();
         $fontSize ??= self::DEFAULT_FONT_SIZE;
@@ -122,12 +123,16 @@ final class MathmlRenderer
         // only the glyphs we'll actually emit get embedded.
         [$mathFont, $effectiveMetrics] = $this->loadMathFontFor($math);
 
-        // Baseline: position so the first glyph's top edge sits at
-        // (x, y + height). PDF y grows upward; box top is y + height;
-        // we drop by the font size to get a baseline that keeps the
-        // glyph inside the requested rect.
+        // Baseline: position so the content's top edge sits at the
+        // requested rect's top (y + boxHeight). When the caller
+        // passes an explicit `ascentPt` (computed from the root's
+        // measured ascent), use it; otherwise fall back to the
+        // single-glyph-line heuristic of dropping by fontSize. The
+        // explicit-ascent path matters for content with
+        // explicit height (mspace / mpadded) where one fontSize
+        // doesn't equal the true ascent.
         $boxHeight = $height ?? $fontSize;
-        $baselineY = $y + $boxHeight - $fontSize;
+        $baselineY = $y + $boxHeight - ($ascentPt ?? $fontSize);
 
         $stream->saveGraphicsState();
         $stream->beginText();
@@ -177,6 +182,35 @@ final class MathmlRenderer
      *
      * @return array{0: float, 1: float}
      */
+    /**
+     * Intrinsic ascent (above baseline) of a MathML document in
+     * pt. Mirrors {@see intrinsicSize()} - same paint-context
+     * scaffolding, but returns just the ascent so the html-to-pdf
+     * inline-math painter can position the baseline for box-
+     * aligned content.
+     */
+    public function intrinsicAscent(MathmlDocument $math, ?float $fontSize = null): float
+    {
+        $fontSize ??= self::DEFAULT_FONT_SIZE;
+        $upright = $this->writer->addFont(
+            new Type1Font(StandardFont::TimesRoman),
+            $this->corePage(),
+        );
+        $italic = $this->writer->addFont(
+            new Type1Font(StandardFont::TimesItalic),
+            $this->corePage(),
+        );
+        $ctx = new MathmlPaintContext(
+            stream: $this->page->contentStream(),
+            upright: $upright,
+            italic: $italic,
+            fontSize: $fontSize,
+            cursorX: 0.0,
+            baselineY: 0.0,
+        );
+        return $this->translator->measureAscent($math, $ctx);
+    }
+
     public function intrinsicSize(MathmlDocument $math, ?float $fontSize = null): array
     {
         $fontSize ??= self::DEFAULT_FONT_SIZE;

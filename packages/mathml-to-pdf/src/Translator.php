@@ -3002,6 +3002,57 @@ final class Translator
     }
 
     /**
+     * Ascent above the baseline for `$element` in pt. Used by
+     * {@see MathmlRenderer::draw()} to position the baseline so
+     * the content's top edge aligns with the surrounding box's
+     * top - matters when the content has explicit height
+     * (mpadded / mspace), where the natural typographic baseline
+     * (one fontSize below box top) leaves the content misaligned
+     * relative to the inline-flow container.
+     *
+     * Walks the same shapes as {@see measureWidth()}: explicit
+     * height on mpadded / mspace wins; container shapes take the
+     * max of children's ascents; tokens default to the surrounding
+     * fontSize.
+     */
+    public function measureAscent(Element $element, MathmlPaintContext $ctx): float
+    {
+        $fontSize = $ctx->fontSize;
+        if ($element instanceof Mpadded) {
+            $h = $element->heightPt($fontSize);
+            if ($h !== null) {
+                return $h;
+            }
+        }
+        if ($element instanceof Mspace) {
+            $h = $element->heightPt($fontSize);
+            if ($h !== null) {
+                return $h;
+            }
+        }
+        if (
+            $element instanceof Mrow
+            || $element instanceof GenericElement
+            || $element instanceof \Phpdftk\Mathml\MathmlDocument
+            || $element instanceof Mphantom
+            || $element instanceof Menclose
+            || $element instanceof Mstyle
+        ) {
+            $max = 0.0;
+            foreach ($this->elementChildren($element) as $child) {
+                $childAscent = $this->measureAscent($child, $ctx);
+                if ($childAscent > $max) {
+                    $max = $childAscent;
+                }
+            }
+            if ($max > 0.0) {
+                return $max;
+            }
+        }
+        return $fontSize;
+    }
+
+    /**
      * Width-side of the intrinsic measurement. Container elements
      * (the MathmlDocument root, mrow, generic-element wrappers,
      * mphantom, menclose, mstyle, mpadded without explicit width,
