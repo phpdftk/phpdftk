@@ -219,31 +219,44 @@ final class Translator
      * Children are walked as a transparent group (like `<mrow>`) — any
      * combination of tokens / containers under the vinculum is valid.
      */
+    /** Unicode radical sign emitted before msqrt/mroot content when a
+     *  math font is loaded. Standard fonts don't carry this glyph in
+     *  WinAnsi - the painter falls back to vinculum-only in that case. */
+    private const string RADICAL_SIGN = "\u{221A}";
+
     private function paintMsqrt(Msqrt $msqrt, MathmlPaintContext $ctx): void
     {
         $contentWidth = $this->estimateWidth($msqrt, $ctx->fontSize);
         if ($contentWidth < 0.001) {
             return;
         }
-        $radLeftX = $ctx->cursorX;
-        // Render content first — vinculum draws on top.
-        $this->walkChildren($msqrt, $ctx);
-        // Cursor should now be at radLeftX + contentWidth (approximately,
-        // by estimation). Force-set so subsequent siblings flow
-        // predictably even if estimation drifted.
-        $ctx->cursorX = $radLeftX + $contentWidth;
+        $rootLeftX = $ctx->cursorX;
 
-        // Vinculum: thin horizontal rule above the content. Position
-        // it ~1.0em above the baseline so it sits just above the
-        // x-height of the content.
+        // Emit the radical sign when a math font is loaded - that's
+        // when the painter knows U+221A renders correctly. Without
+        // a math font, the standard Type 1 face has no √ glyph in
+        // WinAnsi, so we keep the vinculum-only fallback the
+        // tracer-bullet shipped with.
+        $this->emitRadicalSign($ctx);
+        $contentStartX = $ctx->cursorX;
+
+        // Render content under the vinculum.
+        $this->walkChildren($msqrt, $ctx);
+        $ctx->cursorX = $contentStartX + $contentWidth;
+
+        // Vinculum spans the content (NOT the radical sign).
         $vinculumY = $ctx->baselineY + $ctx->fontSize * $ctx->metrics->overbarVerticalOffsetEm();
         $this->drawHorizontalRule(
             $ctx,
-            $radLeftX,
+            $contentStartX,
             $vinculumY,
             $contentWidth,
             $ctx->metrics->overbarRuleThicknessEm() * $ctx->fontSize,
         );
+        // If we emitted a radical sign, the cursor reflects radical
+        // width + content width. Otherwise we leave the historical
+        // contentWidth-only behaviour intact.
+        unset($rootLeftX);
     }
 
     /**
@@ -292,6 +305,11 @@ final class Translator
             $ctx->cursorX += $indexWidth;
         }
 
+        // Radical sign (between the index and the base when a math
+        // font is loaded). The index already shifted the cursor
+        // right by its width; the radical now sits right of it.
+        $this->emitRadicalSign($ctx);
+
         // Base under vinculum (same shape as msqrt body, without the
         // recursive call into paintMsqrt — we already have the index).
         $baseLeftX = $ctx->cursorX;
@@ -310,6 +328,27 @@ final class Translator
             $baseWidth,
             $ctx->metrics->overbarRuleThicknessEm() * $ctx->fontSize,
         );
+    }
+
+    /**
+     * Emit the Unicode radical sign U+221A before the radicand
+     * content. No-op when no math font is loaded - standard Type 1
+     * fonts don't carry the glyph in WinAnsi, so emitText would
+     * substitute `?` which is uglier than no radical at all.
+     */
+    private function emitRadicalSign(MathmlPaintContext $ctx): void
+    {
+        if ($ctx->mathFont === null) {
+            return;
+        }
+        // Confirm U+221A made it into the font's cmap before
+        // emitting. emitText handles the math-font Type 0 path
+        // automatically; we just need to advance the cursor.
+        $cp = 0x221A;
+        if (!isset($ctx->mathFont->unicodeToGid[$cp])) {
+            return;
+        }
+        $this->emitText(self::RADICAL_SIGN, $ctx);
     }
 
     // -----------------------------------------------------------------
