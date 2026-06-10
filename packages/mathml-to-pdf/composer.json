@@ -22,6 +22,7 @@
     },
     "require": {
         "php": "^8.4",
+        "phpdftk/color": "^1.0",
         "phpdftk/encoding": "^1.0",
         "phpdftk/font-metrics": "^1.0",
         "phpdftk/font-parser": "^1.0",

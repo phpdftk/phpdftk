@@ -157,6 +157,39 @@ abstract class Element extends Node
     }
 
     /**
+     * `mathcolor` per MathML Core §3.2.5 - CSS color string for
+     * the glyph foreground. Returns the raw string trimmed of
+     * whitespace (the painter parses it), or null when absent /
+     * empty. Inherited via the cascade.
+     */
+    public function mathcolor(): ?string
+    {
+        $raw = $this->attributes['mathcolor'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * `mathbackground` per MathML Core §3.2.5 - CSS color string
+     * for the element's background rectangle. Returns the raw
+     * string trimmed of whitespace (the painter parses it), or
+     * null when absent / empty. NOT inherited - only applies to
+     * the element it's set on.
+     */
+    public function mathbackground(): ?string
+    {
+        $raw = $this->attributes['mathbackground'] ?? null;
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
      * `dir` per MathML Core §3.1.5.4 — `ltr` or `rtl`. Sets the
      * layout direction for this element's children. Inherits from
      * the nearest ancestor with `dir` set when absent. Returns null
