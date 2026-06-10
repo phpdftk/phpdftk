@@ -1061,10 +1061,17 @@ final class Translator
         if ($ctx->displayStyle) {
             return false;
         }
-        if (!$base instanceof Mo) {
+        // Per Core §3.4.3 the base of munder/mover counts when it
+        // is an *embellished* operator, not just a bare <mo>.
+        // coreOperator() walks down through mstyle / mpadded /
+        // mphantom / mrow-with-one-significant-child wrappers (plus
+        // maction selection and semantics presentation) to find the
+        // underlying <mo>.
+        $coreOp = $this->coreOperator($base);
+        if ($coreOp === null) {
             return false;
         }
-        $explicit = $base->movablelimits();
+        $explicit = $coreOp->movablelimits();
         if ($explicit !== null) {
             return $explicit;
         }
@@ -1072,7 +1079,7 @@ final class Translator
         // are flagged movablelimits=true so an unmarked author
         // <mo>2211</mo> still routes correctly in inline mode.
         $entry = OperatorDictionary::lookup(
-            $base->textContent(),
+            $coreOp->textContent(),
             'prefix',
         );
         return $entry['movablelimits'];
@@ -3053,6 +3060,111 @@ final class Translator
             return;
         }
         $this->paint($children[0], $ctx);
+    }
+
+    // -----------------------------------------------------------------
+    // Embellished operator detection (Core §3.4.3)
+    // -----------------------------------------------------------------
+
+    /**
+     * Walk down through wrapper elements to find the "core" `<mo>`
+     * of an embellished operator, or return null when the subtree
+     * isn't an embellished operator.
+     *
+     * Per Core §3.4.3 the recursion descends through:
+     *
+     *   - script / limit constructs (msub, msup, msubsup, munder,
+     *     mover, munderover, mmultiscripts): first child must be
+     *     embellished.
+     *   - presentation wrappers (mstyle, mpadded, mphantom): first
+     *     child must be embellished.
+     *   - mrow: exactly one non-space-like child, which must be
+     *     embellished. The rest must be space-like.
+     *   - maction: the `selection`-indexed child.
+     *   - semantics: the first (presentation) child.
+     *
+     * Any other shape returns null.
+     */
+    private function coreOperator(Element $el): ?Mo
+    {
+        if ($el instanceof Mo) {
+            return $el;
+        }
+        if (
+            $el instanceof Mstyle
+            || $el instanceof Mpadded
+            || $el instanceof Mphantom
+            || $el instanceof Msub
+            || $el instanceof Msup
+            || $el instanceof Msubsup
+            || $el instanceof Munder
+            || $el instanceof Mover
+            || $el instanceof Munderover
+            || $el instanceof Mmultiscripts
+            || $el instanceof Semantics
+        ) {
+            $children = $this->elementChildren($el);
+            return $children !== []
+                ? $this->coreOperator($children[0])
+                : null;
+        }
+        if ($el instanceof Maction) {
+            $children = $this->elementChildren($el);
+            if ($children === []) {
+                return null;
+            }
+            $index = $el->selection() - 1;
+            if ($index < 0 || $index >= count($children)) {
+                $index = 0;
+            }
+            return $this->coreOperator($children[$index]);
+        }
+        if ($el instanceof Mrow) {
+            $significant = null;
+            foreach ($this->elementChildren($el) as $child) {
+                if ($this->isSpaceLike($child)) {
+                    continue;
+                }
+                if ($significant !== null) {
+                    // Two or more significant children: not
+                    // embellished.
+                    return null;
+                }
+                $significant = $child;
+            }
+            return $significant !== null
+                ? $this->coreOperator($significant)
+                : null;
+        }
+        return null;
+    }
+
+    /**
+     * Space-like element predicate (Core §3.4.2). Used by
+     * coreOperator() to ignore decorative siblings inside an
+     * mrow when looking for the single significant child.
+     *
+     * Per the spec: mtext, mspace, mphantom, and an mrow whose
+     * children are all space-like all qualify.
+     */
+    private function isSpaceLike(Element $el): bool
+    {
+        if (
+            $el instanceof Mspace
+            || $el instanceof Mphantom
+            || $el instanceof Mtext
+        ) {
+            return true;
+        }
+        if ($el instanceof Mrow) {
+            foreach ($this->elementChildren($el) as $child) {
+                if (!$this->isSpaceLike($child)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     // -----------------------------------------------------------------
