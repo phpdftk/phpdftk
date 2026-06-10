@@ -67,6 +67,26 @@ final class LatinModernMathIntegrationTest extends TestCase
         );
     }
 
+    public function testRenderingWithMathFontEmitsHexGidsNotPlainText(): void
+    {
+        // When the math font is configured via the path constructor
+        // arg, the painter switches to Type 0 / Identity-H emission
+        // - Tj should carry hex-encoded GIDs (<HEX> Tj) instead of
+        // parenthesised text (`(x) Tj`).
+        $this->skipIfMissing();
+        $xml = '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            . '<mn>2</mn>'
+            . '</math>';
+        $bytes = $this->renderWithMathFontPath($xml);
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // At least one hex-GID Tj appears.
+        self::assertMatchesRegularExpression(
+            '/<[0-9A-F]{4,}>\s+Tj/',
+            $bytes,
+            'Math-font render should emit hex GID strings via Tj',
+        );
+    }
+
     public function testFractionWithProductionFontUsesFontRuleThickness(): void
     {
         $this->skipIfMissing();
@@ -100,6 +120,20 @@ final class LatinModernMathIntegrationTest extends TestCase
             ? MathmlMetricsFactory::fromMathFont($mathFontPath)
             : null;
         $renderer = new MathmlRenderer($page, $writer, mathMetrics: $metrics);
+        $doc = (new MathmlParser())->parse($xml);
+        $renderer->draw($doc, x: 72.0, y: 600.0, width: 200.0, height: 30.0);
+        return $writer->toBytes();
+    }
+
+    private function renderWithMathFontPath(string $xml): string
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage();
+        $renderer = new MathmlRenderer(
+            $page,
+            $writer,
+            mathFontPath: self::FONT_PATH,
+        );
         $doc = (new MathmlParser())->parse($xml);
         $renderer->draw($doc, x: 72.0, y: 600.0, width: 200.0, height: 30.0);
         return $writer->toBytes();

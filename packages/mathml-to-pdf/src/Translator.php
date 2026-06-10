@@ -1399,6 +1399,18 @@ final class Translator
         if ($content === '') {
             return;
         }
+        if ($ctx->mathFont !== null) {
+            // Math font path: translate UTF-8 to post-subset GIDs and
+            // emit via the Type 0 / Identity-H hex stream. Width
+            // measurement uses the font's hmtx for cursor accuracy
+            // against the actual rendered ink.
+            $hex = $ctx->mathFont->utf8ToHexGids($content);
+            if ($hex !== '') {
+                $ctx->stream->showTextHex($hex);
+            }
+            $ctx->cursorX += $ctx->mathFont->measure($content, $ctx->fontSize);
+            return;
+        }
         $ctx->stream->showText($content);
         $ctx->cursorX += MathmlGlyphMetrics::measure($content, $ctx->fontSize, $italic);
     }
@@ -1436,23 +1448,25 @@ final class Translator
     }
 
     /**
-     * Width estimate based on flattened text content measured against
-     * the upright (Times-Roman) AFM widths.
+     * Width estimate based on flattened text content measured
+     * against the currently-active font.
      *
-     * Italic-vs-upright correctness: single-char `<mi>` renders in
-     * Times-Italic but we still use the upright width here. Italic
-     * Latin glyphs are ~5% narrower; the drift is small enough that
-     * keeping `estimateWidth` font-agnostic is a fair trade for not
-     * threading face state through every sub-call. The actual
-     * cursor advance in {@see emitText()} uses the right face.
+     * The optional `$ctx` lets callers route through the math font's
+     * real per-GID hmtx widths so construct widths (fractions, table
+     * columns, scripts) line up with the ink. When no ctx is passed,
+     * or when the ctx has no math font, falls back to Times-Roman
+     * AFM widths.
      */
-    private function estimateWidth(Element $element, float $fontSize): float
-    {
-        return MathmlGlyphMetrics::measure(
-            $element->textContent(),
-            $fontSize,
-            italic: false,
-        );
+    private function estimateWidth(
+        Element $element,
+        float $fontSize,
+        ?MathmlPaintContext $ctx = null,
+    ): float {
+        $text = $element->textContent();
+        if ($ctx?->mathFont !== null) {
+            return $ctx->mathFont->measure($text, $fontSize);
+        }
+        return MathmlGlyphMetrics::measure($text, $fontSize, italic: false);
     }
 
     /** @return list<Element> */

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Phpdftk\MathmlToPdf;
 
+use Phpdftk\FontParser\MathConstantsParser;
+use Phpdftk\FontParser\OpenTypeParser;
+use Phpdftk\FontParser\WoffParser;
 use Phpdftk\Mathml\MathmlDocument;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Document\Page as CorePage;
@@ -57,9 +60,20 @@ final class MathmlRenderer
          * an OpenType MATH-table font via
          * {@see MathmlMetricsFactory::fromMathFont()}), layout
          * constants flow from the font instead of the tracer-bullet
-         * defaults. When null, paint behaviour is unchanged.
+         * defaults. When null and no `$mathFontPath` is supplied,
+         * paint behaviour is unchanged.
          */
         private readonly ?MathmlMetrics $mathMetrics = null,
+        /**
+         * Optional OpenType math-font path. When supplied, the
+         * renderer loads the font, registers it on each draw() with
+         * the document's used codepoints, and threads it through to
+         * the painter so token glyphs render via the font's full
+         * Unicode coverage instead of standard Times-Roman. Layout
+         * metrics also come from the font (overriding any explicit
+         * `$mathMetrics`).
+         */
+        private readonly ?string $mathFontPath = null,
     ) {}
 
     /**
@@ -87,7 +101,7 @@ final class MathmlRenderer
         $stream ??= $this->page->contentStream();
         $fontSize = self::DEFAULT_FONT_SIZE;
 
-        // Register the two faces we need for token rendering. The
+        // Register the two standard faces for token rendering. The
         // writer dedupes by font identity — adding the same standard
         // font twice on the same page returns the same resource name,
         // so calling addFont per draw() is safe.
@@ -100,6 +114,11 @@ final class MathmlRenderer
             $this->corePage(),
         );
 
+        // Optional math font: load + register against the document's
+        // used codepoints. The PdfWriter subsets the CFF program so
+        // only the glyphs we'll actually emit get embedded.
+        [$mathFont, $effectiveMetrics] = $this->loadMathFontFor($math);
+
         // Baseline: position so the first glyph's top edge sits at
         // (x, y + height). PDF y grows upward; box top is y + height;
         // we drop by the font size to get a baseline that keeps the
@@ -109,7 +128,10 @@ final class MathmlRenderer
 
         $stream->saveGraphicsState();
         $stream->beginText();
-        $stream->setFont($upright, $fontSize);
+        // Activate the math font when present so token paint emits
+        // through the right glyph table; otherwise stay with upright
+        // Times-Roman for backwards compatibility.
+        $stream->setFont($mathFont?->font ?? $upright, $fontSize);
         $stream->moveTextPosition($x, $baselineY);
 
         // Initial direction from <math dir>. Token elements deeper in
@@ -123,12 +145,86 @@ final class MathmlRenderer
             cursorX: $x,
             baselineY: $baselineY,
             direction: $math->dir() ?? 'ltr',
-            metrics: $this->mathMetrics ?? new MathmlMetrics(),
+            metrics: $effectiveMetrics,
+            mathFont: $mathFont,
         );
         $this->translator->paint($math, $ctx);
 
         $stream->endText();
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Load the math font (if configured), pre-scan the document for
+     * used codepoints, register a Type 0 / CIDFontType0 stack
+     * against the writer, and return both the math-font handle and
+     * a populated {@see MathmlMetrics}.
+     *
+     * Returns [null, fallbackMetrics] when no math font is
+     * configured.
+     *
+     * @return array{0: ?MathmlMathFont, 1: MathmlMetrics}
+     */
+    private function loadMathFontFor(MathmlDocument $math): array
+    {
+        if ($this->mathFontPath === null) {
+            return [null, $this->mathMetrics ?? new MathmlMetrics()];
+        }
+
+        // Parse the font - accept raw OTF/TTF or WOFF1.
+        $extension = strtolower(pathinfo($this->mathFontPath, PATHINFO_EXTENSION));
+        if ($extension === 'woff') {
+            $fontBytes = WoffParser::decompress($this->mathFontPath);
+            $data = OpenTypeParser::fromBytes($fontBytes)->parse();
+        } else {
+            $data = (new OpenTypeParser($this->mathFontPath))->parse();
+        }
+
+        if ($data->mathTable === null || !$data->mathTable->hasMathConstants()) {
+            throw new \RuntimeException(
+                "Math font at {$this->mathFontPath} has no usable MATH table",
+            );
+        }
+
+        // Collect codepoints first so the writer's CFF subsetter
+        // produces a minimal embedded program.
+        $codepoints = MathmlCodepointCollector::collect($math);
+
+        // Register the Type 0 font stack. The Font handle carries
+        // a post-subset Unicode -> GID map for hex emission; we
+        // rebuild the post-subset GID -> width map from the parsed
+        // data + the pre-/post-subset GID translation.
+        $font = $this->writer->addOpenTypeFont(
+            $data,
+            $codepoints,
+            $this->corePage(),
+        );
+
+        $unicodeToGidSubset = $font->getUnicodeToGidMap();
+        $oldToNewGid = $font->getOldToNewGidMap();
+        $glyphWidthsSubset = [];
+        foreach ($oldToNewGid as $oldGid => $newGid) {
+            $w = $data->glyphWidths[$oldGid] ?? null;
+            if ($w !== null) {
+                $glyphWidthsSubset[$newGid] = $w;
+            }
+        }
+
+        $mathFont = new MathmlMathFont(
+            font: $font,
+            unicodeToGid: $unicodeToGidSubset,
+            glyphWidths: $glyphWidthsSubset,
+            unitsPerEm: $data->unitsPerEm,
+        );
+
+        $constants = (new MathConstantsParser())
+            ->parse($data->mathTable->mathConstantsBytes);
+        $metrics = new MathmlMetrics(
+            constants: $constants,
+            unitsPerEm: $data->unitsPerEm,
+        );
+
+        return [$mathFont, $metrics];
     }
 
     /**
