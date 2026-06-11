@@ -63,6 +63,7 @@ final class SvgRenderer
         private readonly Page $page,
         private readonly PdfWriter $writer,
         private readonly Translator $translator = new Translator(),
+        private readonly SvgCascadeProjector $cascadeProjector = new SvgCascadeProjector(),
     ) {}
 
     /**
@@ -107,6 +108,13 @@ final class SvgRenderer
         ?ContentStream $stream = null,
     ): void {
         $stream ??= $this->page->contentStream();
+        // Project author CSS (the document's <style> blocks plus
+        // inherited cascade) into each element's `style` attribute
+        // so the painter's accessors see the cascade-resolved values
+        // through the existing `presentationOrStyle` fallback.
+        // Idempotent: a second draw() on the same doc rewrites the
+        // marker block instead of doubling up.
+        $this->cascadeProjector->project($svg);
         [$srcMinX, $srcMinY, $srcWidth, $srcHeight, $srcSynthetic] = self::resolveSourceRect($svg, $width, $height);
 
         $dstWidth = $width ?? $srcWidth;
