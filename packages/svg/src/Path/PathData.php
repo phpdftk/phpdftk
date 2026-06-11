@@ -39,9 +39,18 @@ final class PathData
                     $letter = $ch;
                     $offset++;
                     self::readCommand($raw, $offset, $letter, $cmds);
+                    // Per SVG 2 §9.3.4: M/m's implicit repeat is L/l;
+                    // Z/z has no parameters and no implicit repeat
+                    // (the next character must be either a new
+                    // command letter or end-of-input). We mark
+                    // lastLetter null after a close so trailing
+                    // garbage hits the "malformed; stop" branch
+                    // below instead of looping on a zero-byte
+                    // command emission.
                     $lastLetter = match ($letter) {
                         'M' => 'L',
                         'm' => 'l',
+                        'Z', 'z' => null,
                         default => $letter,
                     };
                     continue;
@@ -53,8 +62,16 @@ final class PathData
                 }
 
                 // Implicit-repeat of the last command (with M→L / m→l
-                // already applied above).
+                // already applied above). Defensive backstop: if the
+                // repeat doesn't consume any bytes, break to avoid
+                // any future zero-byte command type triggering an
+                // unbounded loop the way Z/z did before the
+                // `lastLetter = null` rule above was added.
+                $offsetBefore = $offset;
                 self::readCommand($raw, $offset, $lastLetter, $cmds);
+                if ($offset === $offsetBefore) {
+                    break;
+                }
             }
         } catch (\InvalidArgumentException) {
             // Per spec: keep the commands accumulated before the error.
