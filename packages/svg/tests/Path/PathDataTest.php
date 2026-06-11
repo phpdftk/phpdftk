@@ -220,4 +220,81 @@ final class PathDataTest extends TestCase
         self::assertInstanceOf(LineTo::class, $cmds[4]);
         self::assertInstanceOf(ClosePath::class, $cmds[5]);
     }
+
+    public function testZFollowedByGarbageStopsCleanly(): void
+    {
+        // Regression for #97. Before the fix, `z` set `lastLetter`
+        // to `z` and any non-command-letter byte after it (a `#` in
+        // the WPT fixture, an arbitrary word here) triggered an
+        // implicit-repeat of Z. ClosePath consumes zero bytes from
+        // the source, so the loop emitted `new ClosePath()` forever
+        // and OOM'd.
+        //
+        // After the fix: Z / z mark `lastLetter` null, so trailing
+        // garbage hits the malformed-tail break and the parser
+        // returns the three commands cleanly.
+        $startBytes = memory_get_usage();
+        $cmds = PathData::parse('m 0 0 l 3 -4 z # ignored suffix v 123')
+            ->commands;
+        // Sanity check that memory didn't explode (the regression
+        // would allocate hundreds of MB before bailing).
+        self::assertLessThan(
+            10_000_000,
+            memory_get_usage() - $startBytes,
+            'parser memory usage stays bounded',
+        );
+        self::assertCount(3, $cmds);
+        self::assertInstanceOf(MoveTo::class, $cmds[0]);
+        self::assertInstanceOf(LineTo::class, $cmds[1]);
+        self::assertInstanceOf(ClosePath::class, $cmds[2]);
+    }
+
+    public function testUppercaseZFollowedByGarbageStopsCleanly(): void
+    {
+        // Same regression as the lowercase z form. Without the fix,
+        // `M 0 0 Z trailing-garbage` would also loop forever.
+        $cmds = PathData::parse('M 0 0 Z trailing-garbage')->commands;
+        self::assertCount(2, $cmds);
+        self::assertInstanceOf(MoveTo::class, $cmds[0]);
+        self::assertInstanceOf(ClosePath::class, $cmds[1]);
+    }
+
+    public function testExplicitConsecutiveZs(): void
+    {
+        // The fix must NOT break explicit consecutive Z commands -
+        // these have explicit `Z` letters at each command boundary
+        // and never use the implicit-repeat path. Each Z still
+        // emits its own ClosePath.
+        $cmds = PathData::parse('M 0 0 Z Z Z')->commands;
+        self::assertCount(4, $cmds);
+        self::assertInstanceOf(MoveTo::class, $cmds[0]);
+        self::assertInstanceOf(ClosePath::class, $cmds[1]);
+        self::assertInstanceOf(ClosePath::class, $cmds[2]);
+        self::assertInstanceOf(ClosePath::class, $cmds[3]);
+    }
+
+    public function testWptRenderUntilErrorFixturePathCompletes(): void
+    {
+        // Lifted directly from vendor-data/wpt/svg/path/error-
+        // handling/render-until-error.svg. The path value is a
+        // suite of malformed forms the SVG 2 §9.3.9 "render up to
+        // the first error" rule should each handle without
+        // hanging.
+        foreach ([
+            '',
+            'none',
+            '# invalid',
+            'm 0 0 l 3 -4 z # ignored suffix v 123',
+            'm 0 0 l -9 11 -123 z # ignore last l parameter',
+        ] as $candidate) {
+            $start = microtime(true);
+            PathData::parse($candidate);
+            $elapsed = microtime(true) - $start;
+            self::assertLessThan(
+                1.0,
+                $elapsed,
+                "parser stayed bounded on `$candidate`",
+            );
+        }
+    }
 }
