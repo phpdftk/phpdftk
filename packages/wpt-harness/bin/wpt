@@ -89,6 +89,32 @@ function defaultWptRoot(): string
 }
 
 /**
+ * Optional DOM settler bound to the corpus root. Returns null when
+ * the settler script isn't checked in (older worktree) or when the
+ * caller opts out via `WPT_DISABLE_DOM_SETTLER=1`. Bootstrapping
+ * Playwright / Chromium is the same as for the cross-browser
+ * oracle (`scripts/bootstrap-cross-browser.sh`).
+ */
+function maybeDomSettler(string $wptRoot): ?\Phpdftk\WptHarness\DomSettler
+{
+    if (getenv('WPT_DISABLE_DOM_SETTLER') === '1') {
+        return null;
+    }
+    $scriptPath = __DIR__ . '/../../../scripts/cross-browser/settle-dom.mjs';
+    $scriptPath = realpath($scriptPath);
+    if ($scriptPath === false || !is_file($scriptPath)) {
+        return null;
+    }
+    $cacheDir = (getenv('WPT_DOM_SETTLER_CACHE')
+        ?: sys_get_temp_dir() . '/phpdftk-wpt-dom-settler');
+    return new \Phpdftk\WptHarness\DomSettler(
+        scriptPath: $scriptPath,
+        cacheDir: $cacheDir,
+        corpusRoot: $wptRoot,
+    );
+}
+
+/**
  * Walk a WPT root for renderable test fixtures. Skips `-ref.*` files
  * (those are the reference renderings, not the tests under test),
  * anything under a `support/` directory (helpers), and anything that
@@ -245,7 +271,13 @@ switch ($subcommand) {
             exit(2);
         }
         $manifest = Manifest::loadFromDirectory(manifestDir());
-        $runner = new HarnessRunner($manifest, new Rasteriser(), new Scorer(), $root);
+        $runner = new HarnessRunner(
+            $manifest,
+            new Rasteriser(),
+            new Scorer(),
+            $root,
+            maybeDomSettler($root),
+        );
         $results = $runner->run($filter);
         $agg = ReportPublisher::aggregate($results);
 

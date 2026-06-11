@@ -32,6 +32,16 @@ final class HarnessRunner
         private readonly Rasteriser $rasteriser,
         private readonly Scorer $scorer,
         private readonly string $wptRoot,
+        /**
+         * Optional DOM settler. When present, fixtures carrying
+         * `class="reftest-wait"` are shelled through Playwright to
+         * settle their JavaScript before the PHP renderer sees them.
+         * Null skips settling entirely (the legacy behaviour) and
+         * lets tests with unrun setup-JS reflect their pre-settled
+         * state, matching how the harness behaved before this hook
+         * was added.
+         */
+        private readonly ?DomSettler $domSettler = null,
     ) {}
 
     /**
@@ -338,6 +348,19 @@ final class HarnessRunner
         $html = file_get_contents($path);
         if ($html === false) {
             throw new \RuntimeException("could not read test file: $path");
+        }
+        // Settle reftest-wait fixtures through Playwright so the
+        // PHP renderer sees the post-JS DOM (inline-style shifts
+        // from getBoundingClientRect, fonts marked loaded via
+        // FontFace API, etc.). When no settler is configured, the
+        // settler isn't available on this host, or settling fails,
+        // fall back to the pre-JS source - the harness still
+        // produces a result, just one that reflects an unrun test.
+        if ($this->domSettler !== null) {
+            $settled = $this->domSettler->maybeSettle($path, $html);
+            if ($settled !== null) {
+                $html = $settled;
+            }
         }
         // Sandbox to the WPT corpus root so refs in `reference/`
         // subdirs can resolve `../support/img.png` siblings of the
