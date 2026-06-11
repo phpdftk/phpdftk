@@ -184,6 +184,11 @@
             "reason": "CSS `vector-effect: non-scaling-stroke` — needs stroke width to be normalised against the current transform"
         },
         {
+            "glob": "svg/painting/reftests/percentage*",
+            "phase": "v2",
+            "reason": "Percentage values on SVG stroke-width / stroke-dasharray / stroke-dashoffset — needs SVG 2 §7.10 percentage-against-viewport-actual-length resolution at paint time"
+        },
+        {
             "glob": "svg/painting/reftests/paint-context-*",
             "phase": "v2",
             "reason": "Paint context inheritance for currentColor / context-fill / context-stroke through <use> and <marker> — needs paint-context plumbing"
