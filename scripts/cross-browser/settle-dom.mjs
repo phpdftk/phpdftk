@@ -230,6 +230,26 @@ try {
         die(3, `navigation failed: ${err.message}`);
     }
 
+    // Some WPT fixtures wait on a `TestRendered` event (dispatched
+    // by browsers after the first layout / paint cycle) before
+    // running their setup JavaScript. Real browsers fire it after
+    // the page's own scripts have registered listeners; we
+    // synthesize it via a microtask after a paint so any
+    // window.addEventListener("TestRendered", ...) lines that ran
+    // during page load have already registered their handlers.
+    try {
+        await page.evaluate(() => new Promise(resolve => {
+            requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('TestRendered'));
+                document.dispatchEvent(new Event('TestRendered'));
+                resolve();
+            });
+        }));
+    } catch {
+        // Don't die if the page is in a weird state; settling
+        // continues with the unfired event.
+    }
+
     // Wait for the WPT-standard `class="reftest-wait"` signal to
     // clear. The class is added by the test author to indicate "JS
     // hasn't finished setup; don't screenshot yet"; it's removed
