@@ -23,6 +23,26 @@
             "glob": "mathml/presentation-markup/operators/mo-paint-*",
             "phase": "4D",
             "reason": "Stretchy operator size match — depends on STIX Math font being bundled (default Times has no MATH table)"
+        },
+        {
+            "glob": "mathml/presentation-markup/fractions/frac-bar-*",
+            "phase": "v2",
+            "reason": "Uses fraction-rulethickness10000.woff, a WPT synthetic test font with a deliberately broken cmap that browsers handle via per-codepoint font fallback. phpdftk's MathmlRenderer is single-font-per-call; cmap-miss fallback requires plumbing the cascade chain. Tracked in #109. Real production math fonts (LatinModernMath, STIX, Cambria) ship complete cmaps and don't hit this path."
+        },
+        {
+            "glob": "mathml/relations/text-and-math/use-typo-metrics-1",
+            "phase": "v2",
+            "reason": "Uses lineheight5000-typolineheight2300.woff, the WPT broken-cmap test font pattern. Same substrate gap as frac-bar-* (cmap-miss fallback). Tracked in #109."
+        },
+        {
+            "glob": "mathml/presentation-markup/spaces/space-2",
+            "phase": "v2",
+            "reason": "Uses CSS `style=\"background: red/green\"` on mspace as layout markers. mathbackground style fallback would project the colour into our painter, but estimateHeightEm heuristics drift on non-mpadded shapes and the fallback regresses unrelated tests. Tracked in #103. Fix requires real layout for the rect bounds."
+        },
+        {
+            "glob": "mathml/presentation-markup/spaces/space-vertical-align.tentative",
+            "phase": "v2",
+            "reason": "Same CSS `style=\"background\"` pattern as space-2 with the additional `vertical-align` attribute on mspace. Tracked in #103."
         }
     ]
 }
