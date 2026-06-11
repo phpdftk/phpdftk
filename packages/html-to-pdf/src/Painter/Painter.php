@@ -4621,14 +4621,12 @@ final class Painter
             $geo->y,
         );
         $pdfY = $this->pageHeight - $layoutY - $height;
-        // Use the default MathmlRenderer for now. Math-font handoff
-        // via `mathmlRendererFor($box)` would enable the @font-face
-        // WOFF substrate to drive MATH-table constants
-        // (FractionRuleThickness, axis height, ...) but exposes a
-        // latent gap: per-element CSS colour doesn't cascade
-        // through to the MathmlDocument, so glyphs rendered with a
-        // math font land in the default black instead of the
-        // CSS-cascaded colour. Tracked in #103 / follow-up.
+        // Use the cached default MathmlRenderer. Math-font handoff
+        // via `mathmlRendererFor($box)` (#105 substrate) is gated
+        // behind per-element CSS cascade plumbing - without that,
+        // glyphs rendered through the math font land in default
+        // black instead of the cascade-resolved colour. Tracked
+        // under #103 / follow-up.
         $renderer = $this->mathmlRenderer();
         $ascentPt = $renderer->intrinsicAscent($mathDoc, $fontSize);
         $renderer->draw(

@@ -1,0 +1,84 @@
+---
+title: DOM settler for reftest-wait fixtures
+description: How the WPT harness runs reftest-wait JavaScript in headless Chromium so our static PHP renderer sees the post-JS DOM — and how we lock t=0 semantics for CSS animations and transitions.
+---
+
+phpdftk is a static document renderer — given a static HTML / CSS / SVG / MathML document, it produces a PDF that reflects the document at the instant it was handed in. There's no event loop, no `requestAnimationFrame`, no `getBoundingClientRect`.
+
+That model collides with how a chunk of Web Platform Tests are written. Specifically, WPT reftests that follow the [`reftest-wait` convention](https://web-platform-tests.org/writing-tests/reftests.html#controlling-when-comparison-occurs):
+
+```html
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<script>
+  // ... do setup work ...
+  window.requestAnimationFrame(() => takeScreenshot());
+</script>
+```
+
+The author is saying: "don't screenshot yet — wait until I remove the `reftest-wait` class, which I'll do after my setup JavaScript finishes." Typical setup work: load `@font-face` WOFFs via the FontFace API, measure post-layout positions via `getBoundingClientRect`, shift content into a known pixel position via inline `style="left: …"`.
+
+Without a JS runtime, our static pipeline sees the *pre-JS* DOM. The content doesn't get shifted. The font isn't marked loaded. The pixel diff against the reference fails — not because the renderer is wrong, but because we never ran the test's own setup.
+
+## The DOM settler
+
+`packages/wpt-harness/src/DomSettler.php` (paired with `scripts/cross-browser/settle-dom.mjs`) closes that gap **for the test harness only** — not for the shipped renderer:
+
+1. The harness reads the test fixture.
+2. If the fixture has `class="reftest-wait"` on `<html>`, it shells out to `settle-dom.mjs`.
+3. The script launches headless Chromium (via the same Playwright install the [cross-browser sweep](/rendering/cross-browser-sweep/) uses), navigates to the test, waits for the `reftest-wait` class to be removed, and dumps the post-JS HTML via `page.content()`.
+4. The settled HTML is cached on disk, keyed by `sha256(testBytes)`.
+5. The harness feeds the settled HTML to our PHP renderer instead of the original source.
+
+The shipped `phpdftk/html-to-pdf` library never invokes any of this. The harness is a test-only consumer that uses real browsers to settle the DOM, then measures our static renderer against the settled state.
+
+## CSS animations and transitions: locked at `t=0`
+
+Our renderer takes zero seconds to paint a document. A static renderer has no notion of time — there's no "wait 200ms for the slide-in animation to finish" before we screenshot. We always evaluate at `t=0`.
+
+That model is the right one for our product surface. But it creates a divergence inside the DOM settler: a browser left to its own devices might tween a property halfway through a `transition` between when the `reftest-wait` class clears and when `page.content()` snapshots the DOM. The settler would capture whatever value the property happened to have at that instant.
+
+To avoid that, `settle-dom.mjs` injects a stylesheet before the test's own scripts run:
+
+```css
+*, *::before, *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+```
+
+The effect:
+
+- **CSS animations** evaluate at their `0%` keyframe (the initial value). They never reach mid- or end-states.
+- **CSS transitions** apply target values instantly — no tween, no interpolation.
+
+That keeps the settled DOM aligned with what our static renderer would produce if it ran the same animations and transitions itself: it wouldn't. It would evaluate them at `t=0` and emit the initial computed values.
+
+### The trade-off
+
+Some reftests intentionally observe an *animated end-state*: they wait for a `transitionend` event, then screenshot. Our `t=0` lock makes the captured state not match the unmodified browser's screenshot.
+
+These tests are not in our applicable surface. A static-PDF renderer cannot, by its nature, screenshot "after the animation finishes" — there is no time to elapse. Marking them as out-of-scope or pending-substrate in the harness manifest is the honest answer; reporting them as passes when they really need motion would be lying.
+
+The settler's job is not to make every WPT reftest pass. It is to give our renderer the same *initial* DOM state a browser would have when the test author signalled "ready" — DOM mutations, inline-style changes, font-load awaits, and the like — without claiming we render animations.
+
+## Enabling the settler
+
+When `node` and Playwright + Chromium are installed (the same bootstrap as the [cross-browser sweep](/rendering/cross-browser-sweep/)), the harness picks the settler up automatically. The CLI binding lives at `packages/wpt-harness/bin/wpt`'s `maybeDomSettler()` helper.
+
+To force the settler off (debugging, or hosts without Playwright):
+
+```sh
+WPT_DISABLE_DOM_SETTLER=1 php packages/wpt-harness/bin/wpt run --filter='mathml/**'
+```
+
+To redirect the settled-HTML cache:
+
+```sh
+WPT_DOM_SETTLER_CACHE=/path/to/cache \
+  php packages/wpt-harness/bin/wpt run --filter='mathml/**'
+```
+
+By default the cache lives at `$TMPDIR/phpdftk-wpt-dom-settler`. Invalidate after a Playwright / Chromium upgrade by deleting the directory — settled output may differ across browser versions.
