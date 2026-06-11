@@ -16,9 +16,18 @@
         {
             "glob": "svg/linking/views-*",
             "reason": "<view> element — navigation target only"
+        },
+        {
+            "glob": "svg/painting/scripted/**",
+            "reason": "Scripted painting modifications — runtime DOM mutation post-paint"
         }
     ],
     "pending-substrate": [
+        {
+            "glob": "svg/animations/**",
+            "phase": "v2",
+            "reason": "SMIL animations (<animate>, <set>, <animateTransform>, etc.) — phpdftk is a static document renderer with no notion of time. CSS animations + transitions are pinned at t=0 by the DOM settler; SMIL is the SVG-specific equivalent and follows the same v1 / v2 split. Marking the whole subtree captures every animation reftest that can't pass under a static-renderer model."
+        },
         {
             "glob": "svg/filters/**",
             "phase": "4C",
@@ -33,6 +42,31 @@
             "glob": "svg/text/tspan-font-*",
             "phase": "4D",
             "reason": "per-<tspan> font overrides — needs cascade inheritance"
+        },
+        {
+            "glob": "svg/text/reftests/text-inline-size-*",
+            "phase": "v2",
+            "reason": "CSS Inline Layout 3 `inline-size` property on SVG text — needs Inline Layout inside SVG (separate from html-to-pdf's inline layout)"
+        },
+        {
+            "glob": "svg/text/reftests/text-multiline-*",
+            "phase": "v2",
+            "reason": "Multi-line SVG <text> with per-tspan x/y stacking — needs the per-tspan line-position cascade"
+        },
+        {
+            "glob": "svg/text/reftests/text-shape-inside-*",
+            "phase": "v2",
+            "reason": "CSS shape-inside on SVG text — needs shape-following text layout (related to text-on-path)"
+        },
+        {
+            "glob": "svg/text/reftests/text-bidi-controls-anchors-*",
+            "phase": "v2",
+            "reason": "SVG text bidi controls + anchor character handling — needs SVG-specific bidi resolution distinct from html-to-pdf's"
+        },
+        {
+            "glob": "svg/text/reftests/dominant-baseline-*",
+            "phase": "v2",
+            "reason": "CSS dominant-baseline property on SVG text — needs per-baseline anchor selection from font OS/2 / hhea metrics"
         },
         {
             "glob": "svg/embedded-content/the-image-element/href-http-*",
@@ -50,9 +84,309 @@
             "reason": "<use> external references — needs resource loader"
         },
         {
+            "glob": "svg/struct/reftests/use-external-*",
+            "phase": "4F",
+            "reason": "<use> external SVG / HTML resource resolution — needs resource loader + cross-document reference handling"
+        },
+        {
+            "glob": "svg/struct/reftests/use-data-url-*",
+            "phase": "4F",
+            "reason": "<use> data: URL references — needs base64 / data-URL pre-resolution before <use> resolution"
+        },
+        {
+            "glob": "svg/struct/reftests/use-ref-inside-data-url*",
+            "phase": "4F",
+            "reason": "Same family as use-data-url — fragment references inside a data: URL <use> target"
+        },
+        {
+            "glob": "svg/struct/reftests/use-foreignObject*",
+            "phase": "4C",
+            "reason": "<use> referencing <foreignObject> — needs the foreignObject substrate plus <use> instantiation"
+        },
+        {
+            "glob": "svg/struct/reftests/use-referencing-non-svg-fragment-element*",
+            "phase": "4F",
+            "reason": "<use> referencing fragments outside the SVG namespace — needs cross-namespace reference resolution"
+        },
+        {
+            "glob": "svg/struct/reftests/currentScale-change-*",
+            "phase": "v2",
+            "reason": "currentScale property mutation triggers repaint — SVGSVGElement runtime DOM mutation outside our static substrate"
+        },
+        {
             "glob": "svg/embedded-content/the-foreignobject-element/**",
             "phase": "4C",
             "reason": "<foreignObject> — needs raster + full HTML/CSS rendering inside SVG"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/foreign-object-with-position-under-clip-path*",
+            "phase": "4C",
+            "reason": "<foreignObject> + clip-path interaction — needs the foreignObject + clip substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/masked*",
+            "phase": "4C",
+            "reason": "<foreignObject> + <mask> — needs foreignObject + mask substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/isolation-*",
+            "phase": "4C",
+            "reason": "<foreignObject> + CSS compositing isolation — needs foreignObject + raster compositor"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/will-change-*",
+            "phase": "4C",
+            "reason": "<foreignObject> + CSS will-change layer formation — needs foreignObject substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/foreign-object-paints-before-rect*",
+            "phase": "4C",
+            "reason": "Paint-order semantics inside <foreignObject> — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/overlapped-positioned-and-will-change-transform-descendant*",
+            "phase": "4C",
+            "reason": "<foreignObject> + transformed descendant paint-order — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/foreign-object-size*",
+            "phase": "4C",
+            "reason": "<foreignObject> intrinsic-size resolution — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/foreign-object-margin-collapsing*",
+            "phase": "4C",
+            "reason": "<foreignObject> + CSS margin collapsing on the descendant block — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/extensibility/foreignObject/foreign-object-containing-svg-in-svg-in-object*",
+            "phase": "4C",
+            "reason": "Nested SVG inside <foreignObject> inside <object> — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/painting/marker-*",
+            "phase": "v2",
+            "reason": "SVG <marker> element + marker-start / marker-mid / marker-end properties — `Translator.php` flags this as a future deliverable; not implemented yet"
+        },
+        {
+            "glob": "svg/painting/reftests/marker-implicit-subpaths*",
+            "phase": "v2",
+            "reason": "Marker on implicit subpaths created by Z+M — same substrate as svg/painting/marker-*"
+        },
+        {
+            "glob": "svg/shapes/reftests/polygon-with-filtered-marker*",
+            "phase": "v2",
+            "reason": "Marker + filter combination — needs marker substrate plus the existing filter substrate gap"
+        },
+        {
+            "glob": "svg/painting/reftests/non-scaling-stroke-*",
+            "phase": "v2",
+            "reason": "CSS `vector-effect: non-scaling-stroke` — needs stroke width to be normalised against the current transform"
+        },
+        {
+            "glob": "svg/painting/reftests/paint-context-*",
+            "phase": "v2",
+            "reason": "Paint context inheritance for currentColor / context-fill / context-stroke through <use> and <marker> — needs paint-context plumbing"
+        },
+        {
+            "glob": "svg/painting/reftests/paint-order-*",
+            "phase": "v2",
+            "reason": "CSS `paint-order` property — needs paint-order respect during fill/stroke/markers emission"
+        },
+        {
+            "glob": "svg/painting/currentcolor-fill-stroke-repaint*",
+            "phase": "v2",
+            "reason": "currentColor repaint on dynamic color change — runtime DOM mutation outside static substrate"
+        },
+        {
+            "glob": "svg/painting/color-mix-currentcolor-fill-stroke-repaint*",
+            "phase": "v2",
+            "reason": "Same as currentcolor-fill-stroke-repaint with color-mix() — runtime DOM mutation"
+        },
+        {
+            "glob": "svg/painting/text-clip-path-transform*",
+            "phase": "v2",
+            "reason": "clip-path on text with transform — needs clip-path on text-flow content"
+        },
+        {
+            "glob": "svg/painting/text-mask-transform*",
+            "phase": "v2",
+            "reason": "mask on text with transform — needs mask + text path interaction"
+        },
+        {
+            "glob": "svg/painting/subpixel-clip-path-transform*",
+            "phase": "v2",
+            "reason": "Sub-pixel clip-path transforms — needs sub-pixel coordinate handling in clip-path"
+        },
+        {
+            "glob": "svg/painting/reftests/symbol-in-mask*",
+            "phase": "v2",
+            "reason": "<symbol> inside <mask> — needs the mask substrate respecting <symbol> content"
+        },
+        {
+            "glob": "svg/painting/reftests/display-none-mask*",
+            "phase": "v2",
+            "reason": "display:none on <mask> children — needs mask substrate respecting display"
+        },
+        {
+            "glob": "svg/painting/reftests/small-nested-viewbox*",
+            "phase": "v2",
+            "reason": "Nested SVG with small viewBox — needs viewBox + percentage geometry interaction"
+        },
+        {
+            "glob": "svg/painting/will-change-under-mask*",
+            "phase": "v2",
+            "reason": "CSS will-change layer + <mask> — needs mask substrate"
+        },
+        {
+            "glob": "svg/render/reftests/blending-*",
+            "phase": "v2",
+            "reason": "CSS mix-blend-mode on SVG content — needs PDF blend-mode emission via ExtGState"
+        },
+        {
+            "glob": "svg/render/reftests/overflow-clip*",
+            "phase": "v2",
+            "reason": "CSS overflow:clip on SVG root — needs viewport overflow clipping"
+        },
+        {
+            "glob": "svg/render/reftests/nested-svg-overflow-clip*",
+            "phase": "v2",
+            "reason": "Same as overflow-clip on nested <svg> — needs nested-viewport overflow clipping"
+        },
+        {
+            "glob": "svg/linking/reftests/media-fragment-spatial-*",
+            "phase": "v2",
+            "reason": "Media-fragment spatial URL (#xywh=) on SVG resources — needs the media-fragment URL parser + viewport derivation"
+        },
+        {
+            "glob": "svg/linking/reftests/media-fragment-override-*",
+            "phase": "v2",
+            "reason": "Media-fragment cascade precedence — same substrate as media-fragment-spatial-*"
+        },
+        {
+            "glob": "svg/linking/reftests/view-viewbox-override*",
+            "phase": "v2",
+            "reason": "<view> element + URL fragment viewBox override — needs the fragment-identifier viewport handling"
+        },
+        {
+            "glob": "svg/linking/reftests/svgview-viewbox-override-*",
+            "phase": "v2",
+            "reason": "Same family as view-viewbox-override — svgview() URL fragment"
+        },
+        {
+            "glob": "svg/linking/reftests/use-template*",
+            "phase": "v2",
+            "reason": "<use> referencing an HTML <template> — needs template-content resolution"
+        },
+        {
+            "glob": "svg/linking/reftests/use-keyframes*",
+            "phase": "v2",
+            "reason": "<use> referencing CSS @keyframes — needs keyframes resolution for SMIL bridging"
+        },
+        {
+            "glob": "svg/linking/reftests/href-a-element-attr-change*",
+            "phase": "v2",
+            "reason": "<a> href attribute mutation triggers repaint — runtime DOM mutation"
+        },
+        {
+            "glob": "svg/path/bearing/**",
+            "phase": "v2",
+            "reason": "SVG path 'bearing' command (B/b) — removed from SVG 2 final spec; not in current path-data grammar"
+        },
+        {
+            "glob": "svg/coordinate-systems/viewBox-*-change-*",
+            "phase": "v2",
+            "reason": "Dynamic viewBox attribute changes triggering repaint — runtime DOM mutation"
+        },
+        {
+            "glob": "svg/coordinate-systems/viewBox-change-repaint-*",
+            "phase": "v2",
+            "reason": "Same family as viewBox-*-change-* — explicit viewBox-change-repaint name pattern"
+        },
+        {
+            "glob": "svg/coordinate-systems/viewBox-baseVal-change-*",
+            "phase": "v2",
+            "reason": "SVGAnimatedRect.baseVal mutation — runtime DOM mutation"
+        },
+        {
+            "glob": "svg/coordinate-systems/view-transform-viewBox*",
+            "phase": "v2",
+            "reason": "<view> + transform + viewBox interaction — needs <view> substrate"
+        },
+        {
+            "glob": "svg/coordinate-systems/view-invalid-viewBox*",
+            "phase": "v2",
+            "reason": "<view> invalid viewBox handling — needs <view> substrate"
+        },
+        {
+            "glob": "svg/coordinate-systems/abspos*",
+            "phase": "v2",
+            "reason": "CSS position:absolute on SVG root — needs CSS positioning on the SVG inline foreign-content box"
+        },
+        {
+            "glob": "svg/coordinate-systems/out-of-flow-svg-root*",
+            "phase": "v2",
+            "reason": "Out-of-flow SVG root containing block resolution — same substrate as abspos"
+        },
+        {
+            "glob": "svg/coordinate-systems/viewBox-scaling-text-*",
+            "phase": "v2",
+            "reason": "viewBox scaling interaction with text font-size — needs viewBox-aware text metrics"
+        },
+        {
+            "glob": "svg/layout/svg-foreign-relayout-*",
+            "phase": "4C",
+            "reason": "<foreignObject> relayout on attribute change — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/layout/svg-use-symbol-*-print*",
+            "phase": "v2",
+            "reason": "<use><symbol> print-mode interaction — needs print-mode-specific symbol resolution"
+        },
+        {
+            "glob": "svg/geometry/reftests/percentage*",
+            "phase": "v2",
+            "reason": "Percentage geometry on SVG shape attributes — needs viewport percentage resolution at the shape level"
+        },
+        {
+            "glob": "svg/geometry/reftests/*-calc-dynamic-viewport*",
+            "phase": "v2",
+            "reason": "CSS calc() with dynamic viewport units — needs viewport-units re-resolution"
+        },
+        {
+            "glob": "svg/pservers/reftests/css-color-visited-currentcolor-svg-fill*",
+            "phase": "v2",
+            "reason": "CSS :visited pseudo-class on SVG fill — needs link-state cascade resolution"
+        },
+        {
+            "glob": "svg/embedded/image-embedding-nested-*data-url*",
+            "phase": "v2",
+            "reason": "Nested data: URLs in SVG <image> — needs recursive data-URL resolution"
+        },
+        {
+            "glob": "svg/embedded/image-embedding-nesteder-data-url*",
+            "phase": "v2",
+            "reason": "Deeper-nested data: URLs in SVG <image> (WPT name 'nesteder', not a typo here) — same substrate as nested data-url"
+        },
+        {
+            "glob": "svg/embedded/image-embedding-svg-nested-svg-in-foreignobject*",
+            "phase": "4C",
+            "reason": "Nested SVG inside <foreignObject> inside <image> — needs the foreignObject substrate"
+        },
+        {
+            "glob": "svg/embedded/image-large-bitmap*",
+            "phase": "v2",
+            "reason": "Large bitmap in SVG <image> — needs bitmap downscaling / clip handling"
+        },
+        {
+            "glob": "svg/styling/css-linked-parameters/img-with-url-function-*",
+            "phase": "v2",
+            "reason": "CSS-linked SVG parameters via url() function — needs CSS-in-SVG parameter substrate"
+        },
+        {
+            "glob": "svg/as-image/external-resource-inline-sheet*",
+            "phase": "v2",
+            "reason": "SVG-as-image referencing external stylesheets — needs SVG-as-image's separate document context"
         },
         {
             "glob": "svg/painting/gradient-spreadmethod-reflect*",
