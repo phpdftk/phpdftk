@@ -210,6 +210,55 @@ abstract class Element extends Node
     }
 
     /**
+     * Resolve the element's `font-size` CSS style declaration to
+     * PDF user-space points relative to `$parentFontSizePt`. The
+     * wpt-harness's DOM settler projects computed font-size into
+     * inline style so external CSS rules (`mfrac { font-size: 15em
+     * }`) reach this hook in the harness's settle-then-render
+     * path. Authors can also write inline `style="font-size: 15px"`
+     * directly.
+     *
+     * Supported forms (the painter routes em / unitless through
+     * the parent fontSize so the resulting pt matches html-to-pdf's
+     * 1 CSS px == 1 PDF pt convention at the default 12pt base):
+     *
+     *   - `<n>px`  -> n pt (1:1)
+     *   - `<n>pt`  -> n pt
+     *   - `<n>em`  -> n * parentFontSizePt
+     *   - `<n>%`   -> n / 100 * parentFontSizePt
+     *   - `<n>`    -> n * parentFontSizePt (unitless, em-relative)
+     *
+     * Returns null when the declaration is absent or unparseable
+     * so the painter keeps the parent context's fontSize.
+     */
+    public function styleFontSizePt(float $parentFontSizePt): ?float
+    {
+        $raw = $this->extractStyleProperty('font-size');
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = strtolower(trim($raw));
+        if ($trimmed === '') {
+            return null;
+        }
+        if (!preg_match('/^(-?\d*\.?\d+)\s*([a-z%]*)$/', $trimmed, $m)) {
+            return null;
+        }
+        $value = (float) $m[1];
+        if ($value < 0.0) {
+            return null;
+        }
+        $unit = $m[2];
+        return match ($unit) {
+            'px', 'pt' => $value,
+            'em', ''   => $value * $parentFontSizePt,
+            '%'        => $value / 100.0 * $parentFontSizePt,
+            'ex'       => $value * 0.5 * $parentFontSizePt,
+            default    => null,
+        };
+    }
+
+    /**
      * Extract a single CSS declaration value from the element's
      * `style` attribute. Splits on `;` then `:`, lowercases the
      * property name for comparison. Strips block-comment prefixes
