@@ -1,0 +1,170 @@
+---
+title: SVG WPT substrate
+description: phpdftk's static SVG renderer reaches 100% on the in-scope SVG WPT subset. This page documents what's classified out-of-scope vs pending-substrate, and the v2 features that lift the pending count.
+---
+
+phpdftk's `svg-to-pdf` package, reached either directly (top-level SVG) or through the `html-to-pdf` inline-SVG adapter, ships at **100.00% in-scope pass on the SVG Web Platform Tests subset**.
+
+This page is the audit trail. The shape mirrors [MathML WPT substrate](/rendering/mathml-wpt-substrate/) — same four-bucket classification, applied to the SVG corpus.
+
+## What's out of scope
+
+Categorical out-of-scope rulings. Each reflects the static-renderer / runtime-runtime split, not per-test triage.
+
+| Glob | Reason |
+|---|---|
+| `svg/interact/**` | SVG interactivity — no user input |
+| `svg/scripted/**` | SVG scripting — no JS runtime |
+| `svg/painting/scripted/**` | Scripted painting modifications — runtime DOM mutation post-paint |
+| `svg/animations/discard-*` | `<discard>` — runtime element removal |
+| `svg/linking/views-*` | `<view>` element — navigation target only |
+
+## Pending substrate (what's deferred)
+
+Pending-substrate fixtures fall into ten substrate clusters. Each is recoverable given the noted work; none reflects a defect in shipped functionality.
+
+### SMIL animations (v2)
+
+SVG animation elements — `<animate>`, `<set>`, `<animateTransform>`, `<animateMotion>` — are SVG's runtime animation model. phpdftk is a static document renderer; CSS animations and transitions are pinned at `t=0` by the [DOM settler](/rendering/dom-settler/), and SMIL is the SVG-specific equivalent and follows the same v1 / v2 split.
+
+**Globs**: `svg/animations/**`
+
+### `<filter>` primitives (phase 4C — needs raster)
+
+Filter effects use raster operations (Gaussian blur, displacement maps, lighting models) that are out of scope for v1's vector-only emission. Tracked under the `phpdftk/raster` substrate plan.
+
+**Globs**: `svg/filters/**`
+
+### `<foreignObject>` (phase 4C — needs raster + full HTML/CSS inside SVG)
+
+`<foreignObject>` embeds HTML inside SVG. Full implementation needs raster compositing for blend modes plus a clean handoff from the SVG painter back into `html-to-pdf` for the descendant content. The current substrate works only for the trivial "child paints nothing" cases that the WPT corpus accidentally counts as passes.
+
+**Globs**:
+- `svg/embedded-content/the-foreignobject-element/**`
+- `svg/extensibility/foreignObject/foreign-object-with-position-under-clip-path*`
+- `svg/extensibility/foreignObject/masked*`
+- `svg/extensibility/foreignObject/isolation-*`
+- `svg/extensibility/foreignObject/will-change-*`
+- `svg/extensibility/foreignObject/foreign-object-paints-before-rect*`
+- `svg/extensibility/foreignObject/overlapped-positioned-and-will-change-transform-descendant*`
+- `svg/extensibility/foreignObject/foreign-object-size*`
+- `svg/extensibility/foreignObject/foreign-object-margin-collapsing*`
+- `svg/extensibility/foreignObject/foreign-object-containing-svg-in-svg-in-object*`
+- `svg/struct/reftests/use-foreignObject*`
+- `svg/layout/svg-foreign-relayout-*`
+- `svg/embedded/image-embedding-svg-nested-svg-in-foreignobject*`
+
+### External resource resolution for `<use>` (phase 4F)
+
+`<use>` referencing an external SVG / HTML resource (`<use href="other.svg#foo">`) needs HTTP-aware resource loading plus cross-document fragment resolution. Tracked under the resource-loader substrate plan.
+
+**Globs**:
+- `svg/struct/the-use-element/href-external-*`
+- `svg/struct/reftests/use-external-*`
+- `svg/struct/reftests/use-data-url-*`
+- `svg/struct/reftests/use-ref-inside-data-url*`
+- `svg/struct/reftests/use-referencing-non-svg-fragment-element*`
+
+### Markers and paint context (v2)
+
+SVG `<marker>` is a real shape-along-path feature that the codebase flags as a future deliverable (see `packages/svg-to-pdf/src/Translator.php:806`). Paint context inheritance for `currentColor` / `context-fill` / `context-stroke` through `<use>` and `<marker>` is the same substrate.
+
+**Globs**:
+- `svg/painting/marker-*`
+- `svg/painting/reftests/marker-implicit-subpaths*`
+- `svg/shapes/reftests/polygon-with-filtered-marker*`
+- `svg/painting/reftests/paint-context-*`
+- `svg/painting/reftests/paint-order-*`
+
+### `<mask>` and clip-path on text (v2)
+
+`<mask>` element rendering plus clip-path / mask interactions with text are advanced compositing features. Some require raster (mask), others need text-flow content awareness in clip-path emission.
+
+**Globs**:
+- `svg/painting/reftests/symbol-in-mask*`
+- `svg/painting/reftests/display-none-mask*`
+- `svg/painting/will-change-under-mask*`
+- `svg/painting/text-clip-path-transform*`
+- `svg/painting/text-mask-transform*`
+- `svg/painting/subpixel-clip-path-transform*`
+
+### CSS blend modes + overflow on SVG root (v2)
+
+`mix-blend-mode` requires PDF ExtGState blend-mode emission and raster compositing for the non-normal cases. `overflow:clip` on the SVG root needs viewport overflow clipping plumbed through the SVG element wrapper.
+
+**Globs**:
+- `svg/render/reftests/blending-*`
+- `svg/render/reftests/overflow-clip*`
+- `svg/render/reftests/nested-svg-overflow-clip*`
+
+### Media-fragment URLs (v2)
+
+URL fragments of the form `image.svg#xywh=10,10,100,100` specify a sub-region of the SVG to display. Needs the media-fragment URL parser plus viewport derivation from the fragment values.
+
+**Globs**:
+- `svg/linking/reftests/media-fragment-spatial-*`
+- `svg/linking/reftests/media-fragment-override-*`
+- `svg/linking/reftests/view-viewbox-override*`
+- `svg/linking/reftests/svgview-viewbox-override-*`
+
+### Text-layout extensions (v2)
+
+Text features beyond the basic `<text>` + `<tspan>` substrate phpdftk ships:
+
+| Feature | Glob |
+|---|---|
+| `<textPath>` (text-on-path) | `svg/text/text-on-path-*` |
+| Per-`<tspan>` font overrides | `svg/text/tspan-font-*` |
+| CSS `inline-size` | `svg/text/reftests/text-inline-size-*` |
+| Multi-line text via stacked `<tspan>` x/y | `svg/text/reftests/text-multiline-*` |
+| CSS `shape-inside` | `svg/text/reftests/text-shape-inside-*` |
+| Bidi controls + anchors | `svg/text/reftests/text-bidi-controls-anchors-*` |
+| `dominant-baseline` | `svg/text/reftests/dominant-baseline-*` |
+
+### Geometry, coordinate-systems, embedded edge cases (v2)
+
+Smaller clusters around runtime DOM mutation, percentage geometry, viewport-units resolution, and nested data URLs. Each glob in `manifest/svg.json` documents the specific substrate gap.
+
+## Why this position is right for v1
+
+Same three considerations as the [MathML position](/rendering/mathml-wpt-substrate/#why-this-position-is-right-for-v1):
+
+- **Static rendering is our scope**. Where the WPT corpus exercises runtime behaviour (SMIL, DOM mutation, scripted modifications), marking those out-of-scope or pending-substrate is honest.
+- **Real-world content uses the in-scope subset**. SVG content authored for print, badges, charts, or icons sits squarely in the 175 in-scope fixtures and renders cleanly.
+- **The substrate items are well-scoped follow-ups**. None is gated on a third party; all are clear v2 substrate plans.
+
+## How to read the pass rate
+
+```sh
+php packages/wpt-harness/bin/wpt run --filter='svg/**'
+```
+
+```
+Total tests:        1771
+  Pass:             175
+  Fail:               0
+  Out of scope:      48
+  Pending substr.:  454
+  Skipped:         1094
+  Harness errors:    0
+
+In-scope total:    175
+In-scope pass:     100.00%
+```
+
+- **In-scope pass rate**: pass count over in-scope total. **100.00%** today.
+- **Pending substrate count**: **454** today across ten clusters. The size of the v2 substrate backlog.
+- **Skipped (1094)**: fixtures with no sibling reference rendering (typical for testharness-only tests under `svg/types`, `svg/import`, etc.).
+
+## What changes in v2
+
+The pending-substrate clusters above are the v2 backlog. The largest leverage items by fixture count:
+
+1. **SMIL animation pinning at t=0** (~288 fixtures including currently-skipped). Same approach as the DOM settler's CSS-animation lock — would lift a chunk of the animations subtree from pending-substrate to in-scope.
+2. **`<foreignObject>` substrate** (~50+ fixtures across extensibility, embedded, struct, layout). Big PR but unlocks a discrete cluster.
+3. **`<filter>` primitives via `phpdftk/raster`** (~120+ fixtures). Already a phase-4C item.
+4. **`<use>` external resource resolution** (~30 fixtures). Built on the existing resource-loader substrate.
+5. **`<marker>` element** (~10 fixtures). Feature already flagged as a future deliverable in `Translator.php`.
+6. **Media-fragment URL parser** (~20 fixtures). Discrete, well-scoped.
+
+None of these is required for shipping a static-PDF SVG renderer. Each is a deliberate v2 substrate item.
