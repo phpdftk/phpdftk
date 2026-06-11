@@ -334,6 +334,7 @@ final class Renderer
                 baseDir: $this->options->baseDir,
                 sandboxRoot: $this->options->sandboxRoot,
                 registeredFonts: $registeredMap,
+                fontDataByFamily: $fontMap,
                 pageWidth: $pageWidth,
                 resourceLoader: $this->options->resourceLoader,
             );
