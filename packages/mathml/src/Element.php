@@ -161,10 +161,22 @@ abstract class Element extends Node
      * the glyph foreground. Returns the raw string trimmed of
      * whitespace (the painter parses it), or null when absent /
      * empty. Inherited via the cascade.
+     *
+     * Falls back to the `style` attribute's `color:` declaration
+     * when no explicit `mathcolor` is set, matching the
+     * spec-mandated equivalence between the two forms. The
+     * wpt-harness's DOM settler projects computed `color` values
+     * into inline `style` declarations on MathML elements (see
+     * scripts/cross-browser/settle-dom.mjs), so cascaded values
+     * from external stylesheets flow through this hook in the
+     * harness's settle-then-render path.
      */
     public function mathcolor(): ?string
     {
         $raw = $this->attributes['mathcolor'] ?? null;
+        if ($raw === null) {
+            $raw = $this->extractStyleProperty('color');
+        }
         if ($raw === null) {
             return null;
         }
@@ -178,6 +190,14 @@ abstract class Element extends Node
      * string trimmed of whitespace (the painter parses it), or
      * null when absent / empty. NOT inherited - only applies to
      * the element it's set on.
+     *
+     * Notably does NOT consult the `style` attribute's
+     * `background` declarations as a fallback - the painter's
+     * background-rect positioning still relies on
+     * estimateHeightEm heuristics that drift for non-mpadded /
+     * non-mspace shapes, so enabling the CSS fallback would
+     * regress tests where the rect lands in the wrong place.
+     * Tracked in #103.
      */
     public function mathbackground(): ?string
     {
@@ -187,6 +207,41 @@ abstract class Element extends Node
         }
         $trimmed = trim($raw);
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * Extract a single CSS declaration value from the element's
+     * `style` attribute. Splits on `;` then `:`, lowercases the
+     * property name for comparison. Strips block-comment prefixes
+     * the DOM settler uses to mark its projections (those are
+     * harmless to the CSS spec but confuse trim()-style readers).
+     * Returns null when the property is absent.
+     */
+    private function extractStyleProperty(string $property): ?string
+    {
+        $style = $this->attributes['style'] ?? null;
+        if ($style === null) {
+            return null;
+        }
+        $target = strtolower($property);
+        // Strip /* ... */ block comments before tokenising. The DOM
+        // settler emits a `/* phpdftk-settle-dom */` marker before
+        // its projected declarations; CSS allows comments anywhere
+        // and we just want them out of the way.
+        $cleaned = preg_replace('/\/\*.*?\*\//s', ' ', $style) ?? $style;
+        foreach (explode(';', $cleaned) as $decl) {
+            $colon = strpos($decl, ':');
+            if ($colon === false) {
+                continue;
+            }
+            $name = strtolower(trim(substr($decl, 0, $colon)));
+            if ($name !== $target) {
+                continue;
+            }
+            $value = trim(substr($decl, $colon + 1));
+            return $value === '' ? null : $value;
+        }
+        return null;
     }
 
     /**

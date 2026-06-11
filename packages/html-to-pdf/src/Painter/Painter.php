@@ -4623,10 +4623,15 @@ final class Painter
         $pdfY = $this->pageHeight - $layoutY - $height;
         // Use the cached default MathmlRenderer. Math-font handoff
         // via `mathmlRendererFor($box)` (#105 substrate) is gated
-        // behind per-element CSS cascade plumbing - without that,
-        // glyphs rendered through the math font land in default
-        // black instead of the cascade-resolved colour. Tracked
-        // under #103 / follow-up.
+        // behind further work: even with #106's DOM settler projecting
+        // CSS colour into MathML elements, rendering a stretchy
+        // operator with the math font emits the base glyph rather
+        // than the variant that stretches to match the surrounding
+        // container. The visible result is a small green-on-green
+        // glyph inside an otherwise green container, which the
+        // pixel diff catches. Until stretchy operator variant
+        // selection is plumbed through the same path, the substrate
+        // stays available but unused.
         $renderer = $this->mathmlRenderer();
         $ascentPt = $renderer->intrinsicAscent($mathDoc, $fontSize);
         $renderer->draw(

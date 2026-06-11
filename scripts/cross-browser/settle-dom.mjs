@@ -253,6 +253,56 @@ try {
         // a fixture that hangs is still informative to compare.
     }
 
+    // Project per-element computed styles into inline `style`
+    // attributes for MathML elements. Our PHP MathML pipeline
+    // doesn't run a CSS cascade on the MathML subtree (it walks the
+    // typed Element tree, not a styled box tree), so without this
+    // projection, an `<mo style="">` whose colour comes from a
+    // `mo { color: green }` rule in <style> wouldn't see the green
+    // at render time. The projection writes the resolved values
+    // back as inline `style` declarations so the typed Element
+    // accessors can pick them up.
+    //
+    // Scope is intentionally narrow: only the properties our
+    // MathML painter actually reads. Projecting all of
+    // getComputedStyle would bloat the settled HTML by ~50x and
+    // leak browser-specific computed defaults into our rendering.
+    await page.evaluate(() => {
+        const MATHML_NS = 'http://www.w3.org/1998/Math/MathML';
+        const PROJECTED = ['color', 'background-color', 'font-size'];
+        const SETTLER_MARKER = 'phpdftk-settle-dom';
+        const mathmlElements = document.querySelectorAll('math, math *');
+        for (const el of mathmlElements) {
+            if (el.namespaceURI !== MATHML_NS) {
+                continue;
+            }
+            const computed = getComputedStyle(el);
+            const declarations = [];
+            for (const prop of PROJECTED) {
+                const value = computed.getPropertyValue(prop);
+                if (value === '' || value === 'rgba(0, 0, 0, 0)') {
+                    // Skip empty / transparent values - they reflect
+                    // the painter's default and projecting them would
+                    // override an inherited mathbackground unexpectedly.
+                    continue;
+                }
+                declarations.push(`${prop}: ${value}`);
+            }
+            if (declarations.length === 0) {
+                continue;
+            }
+            const existing = el.getAttribute('style') ?? '';
+            // The settler marker lets the next round (and tests
+            // inspecting the settled DOM) distinguish projected
+            // values from author-supplied inline styles.
+            const projection = `/* ${SETTLER_MARKER} */ ` + declarations.join('; ');
+            el.setAttribute(
+                'style',
+                existing === '' ? projection : `${existing}; ${projection}`,
+            );
+        }
+    });
+
     const settledHtml = await page.content();
     if (args.output !== null) {
         writeFileSync(args.output, settledHtml, 'utf8');
