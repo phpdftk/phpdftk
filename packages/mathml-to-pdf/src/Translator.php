@@ -87,6 +87,19 @@ final class Translator
         MathmlPaintContext $ctx,
         ?string $operatorForm = null,
     ): void {
+        // Per-element CSS font-size cascade. When the element's
+        // `style="font-size: ..."` declaration (typically projected
+        // by the harness's DOM settler from external CSS rules, but
+        // also valid as an author-supplied inline style) differs
+        // from the surrounding context, swap to the new fontSize
+        // for the subtree and restore on exit. This lets MATH-table
+        // constants like FractionRuleThickness scale with the
+        // per-element computed size instead of locking to the
+        // <math> element's fontSize.
+        $preFontCtx = $ctx;
+        $ctx = $this->withStyleFontSize($element, $ctx);
+        $fontSizeChanged = $ctx !== $preFontCtx;
+
         // mathcolor / mathbackground bracketing (Core §3.2.5).
         //   - mathbackground: paint a filled rect behind the
         //     element's bounding box, then continue.
@@ -136,6 +149,9 @@ final class Translator
 
         if ($needFgRestore) {
             $this->endColorBracket($originalCtx);
+        }
+        if ($fontSizeChanged) {
+            $this->restoreStyleFontSize($preFontCtx, $ctx);
         }
     }
 
@@ -2846,6 +2862,67 @@ final class Translator
      * returned a different context, so siblings see the original
      * size.
      */
+    /**
+     * Apply the element's CSS-cascaded `font-size` (via the
+     * `style` attribute) for the duration of its subtree. Emits
+     * a Tf to the new size and returns a fresh context threaded
+     * with that size. Returns the original context unchanged when
+     * no `font-size` is declared or the resolved value matches
+     * the current context's fontSize.
+     *
+     * Caller MUST emit a Tf back to `$ctx->fontSize` after the
+     * subtree paints when this returned a different context, so
+     * siblings see the original size - mirror of how
+     * {@see withMathsize()} handles the MathML `mathsize`
+     * attribute.
+     *
+     * The wpt-harness's DOM settler (#106) projects computed
+     * font-size into inline style on every MathML element, so
+     * external CSS rules reach this hook in the harness's
+     * settle-then-render path. Authors can also write inline
+     * style="font-size: 15px" directly.
+     */
+    private function withStyleFontSize(Element $el, MathmlPaintContext $ctx): MathmlPaintContext
+    {
+        $newSize = $el->styleFontSizePt($ctx->fontSize);
+        if ($newSize === null) {
+            return $ctx;
+        }
+        if (abs($newSize - $ctx->fontSize) < 0.001) {
+            return $ctx;
+        }
+        $ctx->stream->setFont($this->activeFont($ctx), $newSize);
+        return new MathmlPaintContext(
+            stream: $ctx->stream,
+            upright: $ctx->upright,
+            italic: $ctx->italic,
+            fontSize: $newSize,
+            cursorX: $ctx->cursorX,
+            baselineY: $ctx->baselineY,
+            direction: $ctx->direction,
+            metrics: $ctx->metrics,
+            mathFont: $ctx->mathFont,
+            stretchTargetEm: $ctx->stretchTargetEm,
+            displayStyle: $ctx->displayStyle,
+            scriptLevel: $ctx->scriptLevel,
+            fillColor: $ctx->fillColor,
+        );
+    }
+
+    /**
+     * Restore the parent context's font size after a subtree
+     * applied {@see withStyleFontSize()}. Identical shape to
+     * {@see restoreMathsize()}.
+     */
+    private function restoreStyleFontSize(MathmlPaintContext $parent, MathmlPaintContext $child): void
+    {
+        if (abs($parent->fontSize - $child->fontSize) < 0.001) {
+            return;
+        }
+        $parent->stream->setFont($this->activeFont($parent), $parent->fontSize);
+        $parent->cursorX = $child->cursorX;
+    }
+
     private function withMathsize(Element $el, MathmlPaintContext $ctx): MathmlPaintContext
     {
         $spec = $el->mathsize();

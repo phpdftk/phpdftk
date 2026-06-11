@@ -4622,16 +4622,16 @@ final class Painter
         );
         $pdfY = $this->pageHeight - $layoutY - $height;
         // Use the cached default MathmlRenderer. Math-font handoff
-        // via `mathmlRendererFor($box)` (#105 substrate) is gated
-        // behind further work: even with #106's DOM settler projecting
-        // CSS colour into MathML elements, rendering a stretchy
-        // operator with the math font emits the base glyph rather
-        // than the variant that stretches to match the surrounding
-        // container. The visible result is a small green-on-green
-        // glyph inside an otherwise green container, which the
-        // pixel diff catches. Until stretchy operator variant
-        // selection is plumbed through the same path, the substrate
-        // stays available but unused.
+        // via `mathmlRendererFor($box)` (#105 substrate) stays
+        // gated: even with the per-element CSS cascade now
+        // projecting through (#107 + this PR's font-size hook),
+        // switching renderers regresses two tests that pass under
+        // the default-renderer path (painting-stretchy-operator-001
+        // and frac-default-padding). Both expose latent gaps
+        // (stretchy operator variant selection that fills the
+        // container; fraction-padding metrics that match the
+        // browser) which the math-font handoff makes visible but
+        // doesn't yet address.
         $renderer = $this->mathmlRenderer();
         $ascentPt = $renderer->intrinsicAscent($mathDoc, $fontSize);
         $renderer->draw(
