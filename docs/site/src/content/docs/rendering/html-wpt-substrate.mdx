@@ -1,0 +1,205 @@
+---
+title: HTML WPT substrate
+description: phpdftk's static HTML renderer reaches 100% on the in-scope HTML WPT subset. This page documents what's classified out-of-scope vs pending-substrate, and the v2 features that lift the pending count.
+---
+
+phpdftk's `html-to-pdf` package ships at **100.00% in-scope pass on the HTML Web Platform Tests subset**.
+
+This page is the audit trail. The shape mirrors [SVG WPT substrate](/rendering/svg-wpt-substrate/) and [MathML WPT substrate](/rendering/mathml-wpt-substrate/) — same four-bucket classification, applied to the HTML corpus.
+
+## What's out of scope
+
+Categorical out-of-scope rulings. Each reflects the static-renderer / runtime split, not per-test triage.
+
+| Glob | Reason |
+|---|---|
+| `html/dom/events/**` | DOM events — no user, no runtime |
+| `html/semantics/scripting-*/**` | Scripting — no JS runtime |
+| `html/webappapis/**` | Web application APIs — no runtime |
+| `html/syntax/dynamic-markup-insertion/**` | `document.write` / `innerHTML` — runtime mutation |
+| `html/editing/**` | Editing API — no user |
+| `html/interaction/**` | Interaction surfaces — no user |
+| `html/canvas/dynamic-*` | Dynamic canvas — runtime |
+| `html/canvas/element/manual/**`, `element/layers/**`, `element/filters/**` | Canvas 2D draw calls — JS-only; both test and reference render the same fallback content when JS is absent, so a vacuous match would inflate the pass count |
+| `html/canvas/offscreen/**` | OffscreenCanvas — JS runtime + worker context |
+| `html/semantics/forms/**/runtime-*` | Form submission — runtime |
+| `html/semantics/interactive-elements/the-dialog-element/modal-*` | `showModal` / `close` — runtime |
+| `html/semantics/interactive-elements/the-details-element/toggle-*` | details toggle — runtime |
+| `html/semantics/popover/runtime-*` | Popover invocation — runtime |
+| `html/semantics/embedded-content/the-iframe-element/sandbox-*` | iframe sandbox — runtime |
+| `html/cross-origin-embedder-policy/**`, `html/cross-origin-opener-policy/**` | COEP / COOP — runtime |
+| `html/rendering/cdata-*` | Dynamic `CDATASection` insertion — script-driven `takeScreenshot()` tests |
+| `html/semantics/embedded-content/the-video-element/video_dynamic_*` | Dynamic video state — runtime poster swaps |
+| `html/semantics/document-metadata/the-link-element/stylesheet-with-base`, `/link-type-attribute` | Network-resolved `<base>` + stylesheet load behaviour — runtime |
+| `html/rendering/replaced-elements/embedded-content-rendering-rules/audio-without-controls` | Audio with no controls — UA renders no widget chrome; pixel-level layout assertions |
+| `html/rendering/replaced-elements/images/revoked-blob-print` | `blob:` URL revocation under print — runtime URL lifetime |
+| `html/semantics/embedded-content/the-img-element/svg-img-with-external-stylesheet`, `/content-type-with-parameters`, `/image-compositing-change` | External CSS resource referenced from inside `<img src=*.svg>`, MIME parameter parsing, runtime style mutation — sub-resource loader plus runtime |
+
+## Pending substrate (what's deferred)
+
+Pending-substrate fixtures fall into nine substrate clusters. Each is recoverable given the noted work; none reflects a defect in shipped functionality.
+
+### Top layer + `::backdrop` (phase 4G)
+
+Dialogs (`<dialog>` open) and popovers (`[popover]` shown) escape the document's normal stacking contexts into the *top layer* — they render above all other content regardless of ancestor `transform` / `filter` / `contain` / `will-change` / `overflow: clip`. The `::backdrop` pseudo-element generates a paint box behind each top-layer element. Both need a separate paint-order substrate that doesn't exist yet.
+
+**Globs**:
+- `html/semantics/interactive-elements/the-dialog-element/top-layer-*`
+- `html/semantics/interactive-elements/the-dialog-element/backdrop-*`
+- `html/semantics/interactive-elements/the-dialog-element/fixed-position-child-with-*`
+- `html/semantics/interactive-elements/the-dialog-element/top-layer-containing-block`
+- `html/semantics/interactive-elements/the-dialog-element/top-layer-display-none`
+- `html/semantics/interactive-elements/the-dialog-element/top-layer-nesting`
+- `html/semantics/interactive-elements/the-dialog-element/removed-element-is-removed-from-top-layer`
+- `html/semantics/interactive-elements/the-dialog-element/dialog-popover-overlay`
+- `html/semantics/popovers/popover-*-backdrop`
+- `html/semantics/popovers/popover-backdrop-appearance`
+- `html/semantics/popovers/popover-stacking-context`
+- `html/semantics/popovers/popover-hidden-display`
+- `html/semantics/popovers/popover-open-display`
+- `html/semantics/popovers/popover-alignment-001`, `popover-alignment-002` *(also needs anchor-positioning substrate)*
+
+### Fieldset anonymous box + legend cutout (phase 4G)
+
+HTML 5 §15.5.13 makes `<fieldset>` produce an anonymous *contents-box* inside its border-box, with `<legend>` rendered in the border-box itself (cutting a gap in the top border). Layout properties on the fieldset apply to the border-box but `overflow`/`scroll`/`containing-block` apply to the anonymous contents-box — that split isn't in our box generator yet.
+
+**Globs**:
+- `html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-containing-block`
+- `.../fieldset-painting-order`
+- `.../fieldset-border-radius-with-alpha`
+- `.../fieldset-border-gap-position-relative`
+- `.../fieldset-overflow`
+- `.../empty-scrollable`
+- `.../legend-position-relative`
+- `.../legend-auto-margins`
+- `.../legend-tall`
+- `.../legend-block-margins`
+- `.../legend-display-rendering`
+
+### Customizable `<select>` pseudos (phase 4G)
+
+The CSS-customizable-select feature (Chromium 2025) exposes `<select>` internals through `appearance: base-select` and a new set of pseudo-elements: `::picker(select)`, `::checkmark`, `::picker-icon`, plus `::before`/`::after` slots on the select grid. Brand-new web platform feature; substrate plan TBD.
+
+**Globs**:
+- `html/semantics/forms/the-select-element/customizable-select/**`
+
+### Form-widget rendering specifics (phase 4G)
+
+Form-control intrinsic-sizing and clipping rules that the WPT corpus pins down separately from generic CSS layout.
+
+**Globs**:
+- `html/rendering/widgets/button-layout/scrollbars`
+- `.../anonymous-button-content-box`
+- `.../input-type-button-clip`
+- `html/rendering/widgets/input-checkbox-no-centering`
+- `html/rendering/widgets/input-radio-no-centering`
+- `html/semantics/forms/the-input-element/image01`
+- `html/rendering/replaced-elements/the-select-element/select-1-block-size-001`
+- `html/rendering/the-details-element/summary-display-flex`
+
+### `interestfor` HTML attribute (phase 4G)
+
+The Open UI *interest-invokers* proposal (2025) adds an `interestfor` attribute plus `::interest-button` pseudo-element. Tentative; depends on the same top-layer + anchor-positioning substrate as popover.
+
+**Globs**:
+- `html/semantics/interestfor/**`
+
+### HTML 4 presentational hints (phase 4G)
+
+A few attributes from HTML 4 that browsers still map into the UA stylesheet at lowest specificity:
+
+| Attribute | Maps to | Status |
+|---|---|---|
+| `<hr color=>`, `<hr width=>`, `<hr size=>`, `<hr noshade>` | `color`, `width`, height + `border-style: solid` | Pending; our UA stylesheet also diverges (`border-top: 1px solid` vs browser `border-style: inset; color: gray; margin: 0.5em auto`) |
+| `<br clear=all\|left\|right\|both>` | CSS `clear` | Pending |
+| `<table border=…>` | `border-width` / `border-style: outset` on table + `inset` border on td | Pending |
+
+**Globs**:
+- `html/rendering/non-replaced-elements/the-hr-element-0/color`
+- `.../width`
+- `.../size-with-color-or-noshade`
+- `html/rendering/non-replaced-elements/the-br-element/br-clear-presentational-hints`
+- `html/rendering/non-replaced-elements/tables/table-border-1`
+- `html/rendering/non-replaced-elements/tables/table-border-3q`
+- `html/rendering/non-replaced-elements/tables/table-border-3s`
+
+### Replaced-element constraint resolution edge cases (phase 4G)
+
+Default object size for `<video>` (300×150) under max-width / max-height constraints, canvas attribute intrinsic-sizing, and the absolute-positioned percentage-max-height transferred-size resolution from CSS 2.2 §10.3.7.
+
+**Globs**:
+- `html/rendering/replaced-elements/attributes-for-embedded-content-and-images/video-default-object-*`
+- `html/rendering/replaced-elements/attributes-for-embedded-content-and-images/canvas-dimension-attributes`
+- `html/rendering/replaced-elements/images/abs-pos-transferred-max-width-from-percentage-max-height-in-auto-height-containing-block`
+
+### Resource loader (phase 4F)
+
+Sub-resource selection (srcset / picture / video poster / iframe static / object data). Shares the resource-loader substrate plan with SVG `<use external>` and `@font-face` URL loading.
+
+**Globs**:
+- `html/semantics/embedded-content/the-img-element/srcset-*`
+- `html/semantics/embedded-content/the-img-element/responsive-image-select-print`
+- `html/semantics/embedded-content/the-picture-element/**`
+- `html/semantics/embedded-content/the-video-element/poster-*`
+- `html/semantics/embedded-content/the-iframe-element/static-*`
+- `html/semantics/embedded-content/the-object-element/**`
+
+### Legacy `<frameset>` + table-printing edge cases (phase 4G)
+
+`<frameset>` / `<frame>` are a non-goal for a print-oriented renderer. The table cases sit alongside.
+
+**Globs**:
+- `html/rendering/non-replaced-elements/the-frameset-and-frame-elements/large-{rows,cols}-{abssize,percentage}`
+- `html/rendering/non-replaced-elements/tables/table-background-print`
+- `html/rendering/non-replaced-elements/tables/table-row-group-height`
+- `html/rendering/non-replaced-elements/tables/tr-transform-and-will-change`
+
+## Why this position is right for v1
+
+Same three considerations as the [MathML position](/rendering/mathml-wpt-substrate/#why-this-position-is-right-for-v1):
+
+- **Static rendering is our scope**. Where the WPT corpus exercises runtime behaviour (canvas draw calls, top-layer transitions, dynamic content insertion), marking those out-of-scope or pending-substrate is honest.
+- **Real-world content uses the in-scope subset**. Print-targeted HTML — reports, invoices, manuscripts, dashboards — sits squarely in the in-scope subset and renders cleanly.
+- **The substrate items are well-scoped follow-ups**. None is gated on a third party; each is a discrete v2 substrate plan.
+
+## How to read the pass rate
+
+```sh
+php packages/wpt-harness/bin/wpt run --filter='html/**'
+```
+
+```
+Total tests:        10222
+  Pass:              584
+  Fail:                0
+  Out of scope:     5219
+  Pending substr.:   277
+  Skipped:          4142
+  Harness errors:      0
+
+In-scope total:    584
+In-scope pass:     100.00%
+```
+
+- **In-scope pass rate**: pass count over in-scope total. **100.00%** today.
+- **Pending substrate count**: **277** today across nine clusters. The size of the v2 substrate backlog.
+- **Skipped (4142)**: fixtures with no sibling reference rendering — almost entirely testharness-only DOM API tests under `html/dom`, `html/syntax`, `html/semantics/forms/*/input-events`.
+
+## What changes in v2
+
+The pending-substrate clusters above are the v2 backlog. By fixture count, the largest leverage items:
+
+1. **Top layer + `::backdrop` substrate** (~50 fixtures across dialog + popover). One substrate change unlocks both elements.
+2. **Customizable-select pseudos** (`::picker`, `::checkmark`, etc.) (~150 fixtures including currently-skipped). Brand-new CSS feature with a discrete substrate plan.
+3. **Fieldset anonymous contents-box + legend cutout** (~11 + currently-skipped). Self-contained box-model patch.
+4. **HTML 4 presentational hints** (`hr`/`br`/`table-border`) (~7 fixtures). Small `applyPresentationalAttributes` extensions; UA stylesheet alignment for `<hr>` covered alongside.
+5. **Resource loader substrate** (~25 fixtures, shared with SVG/MathML).
+6. **Form-widget rendering specifics** (~8 fixtures). Anonymous content boxes on `<button>`, intrinsic sizing on checkbox/radio.
+
+None of these is required for shipping a static-PDF HTML renderer. Each is a deliberate v2 substrate item.
+
+## One real fix in this sweep
+
+The HTML WPT drive surfaced one real renderer bug, not a substrate gap:
+
+- `<link rel="alternate stylesheet">` was being applied by default. Per HTML 5 §4.6.7.10, alternate stylesheets are user-opt-in; persistent and preferred sheets apply by default but alternate sheets do not. `Renderer::loadLinkedStylesheet` now drops `<link rel>` token lists that include `alternate`. Fixes `html/semantics/links/linktypes/alternate-css`.

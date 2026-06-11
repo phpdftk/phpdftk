@@ -2209,6 +2209,46 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testLinkRelAlternateStylesheetIsNotApplied(): void
+    {
+        // HTML 5 §4.6.7.10: `<link rel="alternate stylesheet">` is an
+        // alternate stylesheet. Browsers don't apply it by default;
+        // the user opts in via a stylesheet-selection UI we don't have.
+        // The renderer must drop the sheet rather than cascade it.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-link-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/preferred.css', 'p { background-color: #00cc00; }');
+        file_put_contents($baseDir . '/alt.css', 'p { background-color: #cc0000; }');
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head>'
+                . '<link rel="stylesheet" href="preferred.css" title="preferred">'
+                . '<link rel="alternate stylesheet" href="alt.css" title="alt">'
+                . '</head><body><p style="height: 20px;">hi</p></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            // preferred green (#00cc00 → 0 0.8 0 rg) MUST be applied.
+            self::assertMatchesRegularExpression(
+                '~0 0\.8 0 rg~',
+                $bytes,
+                'preferred stylesheet applied',
+            );
+            // alternate red (#cc0000 → 0.8 0 0 rg) MUST NOT be applied.
+            self::assertDoesNotMatchRegularExpression(
+                '~0\.8 0 0 rg~',
+                $bytes,
+                'alternate stylesheet must not cascade by default',
+            );
+        } finally {
+            @unlink($baseDir . '/preferred.css');
+            @unlink($baseDir . '/alt.css');
+            @rmdir($baseDir);
+        }
+    }
+
     public function testBackgroundRepeatDefaultTilesBothAxes(): void
     {
         // 4×2 PNG with explicit small `background-size: 50px 50px` in a

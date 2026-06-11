@@ -1436,6 +1436,13 @@ final class Renderer
         if (!in_array('stylesheet', $rels, true)) {
             return null;
         }
+        // HTML 5 §4.6.7.10 "link types": `rel="alternate stylesheet"` is
+        // an alternate stylesheet — not applied by default. The user
+        // opts in via a stylesheet selection UI we don't have, so the
+        // sheet stays inert (matches browser behaviour).
+        if (in_array('alternate', $rels, true)) {
+            return null;
+        }
         $href = $link->getAttribute('href');
         if ($href === null || $href === '') {
             return null;

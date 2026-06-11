@@ -30,6 +30,22 @@
             "reason": "Dynamic canvas — runtime"
         },
         {
+            "glob": "html/canvas/element/manual/**",
+            "reason": "Canvas 2D manual tests — JS-driven draw calls into `getContext('2d')`. The reference also runs JS, so a vacuous match would inflate the pass count without exercising our renderer"
+        },
+        {
+            "glob": "html/canvas/element/layers/**",
+            "reason": "Canvas tentative `beginLayer()`/`endLayer()` API — JS-only"
+        },
+        {
+            "glob": "html/canvas/element/filters/**",
+            "reason": "Canvas tentative filter API (`CanvasFilterObject`) — JS-only"
+        },
+        {
+            "glob": "html/canvas/offscreen/**",
+            "reason": "OffscreenCanvas — JS runtime + worker context"
+        },
+        {
             "glob": "html/semantics/forms/**/runtime-*",
             "reason": "Form submission / runtime — out of scope (rendering is in)"
         },
@@ -56,6 +72,54 @@
         {
             "glob": "html/cross-origin-opener-policy/**",
             "reason": "COOP — runtime"
+        },
+        {
+            "glob": "html/rendering/cdata-*",
+            "reason": "Dynamic CDATA insertion — script-driven (`createCDATASection` then `takeScreenshot`)"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-video-element/video_dynamic_*",
+            "reason": "Dynamic video state — runtime poster swaps"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-video-element/video_initially_paused",
+            "reason": "Video playback state — runtime"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-video-element/video-poster-clone-template",
+            "reason": "<template>-based clone with runtime poster — runtime"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-img-element/image-compositing-change",
+            "reason": "Runtime style mutation under animation — script-driven"
+        },
+        {
+            "glob": "html/semantics/document-metadata/the-link-element/stylesheet-with-base",
+            "reason": "Network-resolved <base> + external stylesheet — runtime"
+        },
+        {
+            "glob": "html/semantics/document-metadata/the-link-element/link-type-attribute",
+            "reason": "rel/type matching against stylesheet load — runtime"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/embedded-content-rendering-rules/audio-without-controls",
+            "reason": "Audio with no controls renders nothing visible — the test asserts pixel layout that depends on widget chrome shape we don't emit"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas-update-with-border-object-fit",
+            "reason": "Canvas runtime — script paints the canvas content"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/images/revoked-blob-print",
+            "reason": "blob: URL revocation under print — runtime URL lifetime"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-img-element/svg-img-with-external-stylesheet",
+            "reason": "External CSS resource referenced from inside an <img src=*.svg> — needs sub-resource loader for the inner SVG"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-img-element/content-type-with-parameters",
+            "reason": "Content-Type header parsing on image fetch — needs HTTP loader"
         }
     ],
     "pending-substrate": [
@@ -63,6 +127,11 @@
             "glob": "html/semantics/embedded-content/the-img-element/srcset-*",
             "phase": "4F",
             "reason": "srcset selection — needs resource loader + DPR policy"
+        },
+        {
+            "glob": "html/semantics/embedded-content/the-img-element/responsive-image-select-print",
+            "phase": "4F",
+            "reason": "Responsive image selection in print mode — needs resource loader + print DPR policy"
         },
         {
             "glob": "html/semantics/embedded-content/the-picture-element/**",
@@ -83,6 +152,296 @@
             "glob": "html/semantics/embedded-content/the-object-element/**",
             "phase": "4F",
             "reason": "<object data=> — needs resource loader"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/top-layer-parent-*",
+            "phase": "4G",
+            "reason": "Top-layer element ignores its parent's clip/transform/filter/opacity/will-change/contain. Needs out-of-flow top-layer substrate"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/top-layer-stacking*",
+            "phase": "4G",
+            "reason": "Top-layer stacking order across multiple open dialogs — needs top-layer registry + paint-order substrate"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/top-layer-containing-block",
+            "phase": "4G",
+            "reason": "Top-layer containing block is the initial containing block, not the static ancestor"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/top-layer-display-none",
+            "phase": "4G",
+            "reason": "Top-layer + display: none interaction"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/top-layer-nesting",
+            "phase": "4G",
+            "reason": "Top-layer nesting order"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/removed-element-is-removed-from-top-layer",
+            "phase": "4G",
+            "reason": "Top-layer membership when element is detached — needs top-layer substrate"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/backdrop-descendant-selector",
+            "phase": "4G",
+            "reason": "::backdrop descendant selector — needs backdrop pseudo-element"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/backdrop-dynamic-style-change",
+            "phase": "4G",
+            "reason": "::backdrop dynamic style change — needs backdrop pseudo-element"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/backdrop-in-flow",
+            "phase": "4G",
+            "reason": "::backdrop in-flow positioning — needs backdrop pseudo-element"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/backdrop-inherits",
+            "phase": "4G",
+            "reason": "::backdrop inheritance — needs backdrop pseudo-element"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/backdrop-stacking-order",
+            "phase": "4G",
+            "reason": "::backdrop stacking order with top-layer parent"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/fixed-position-child-with-*",
+            "phase": "4G",
+            "reason": "Fixed-position child of a dialog ancestor with transform/contain/will-change/filter — top-layer escapes the ancestor's containing block"
+        },
+        {
+            "glob": "html/semantics/interactive-elements/the-dialog-element/dialog-popover-overlay",
+            "phase": "4G",
+            "reason": "Cross-feature dialog+popover top-layer stacking interaction"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-*-backdrop",
+            "phase": "4G",
+            "reason": "Popover ::backdrop with various parent contexts (checkbox / img / iframe / progress / textarea) — top-layer pseudo substrate"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-backdrop-appearance",
+            "phase": "4G",
+            "reason": "Popover ::backdrop appearance — top-layer pseudo substrate"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-stacking-context",
+            "phase": "4G",
+            "reason": "Popover stacking context vs top-layer — same out-of-flow substrate as dialog top-layer"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-hidden-display",
+            "phase": "4G",
+            "reason": ":popover-open + display switching — needs top-layer membership transition"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-open-display",
+            "phase": "4G",
+            "reason": "Popover open-state display rules — needs top-layer + display:none toggling under :popover-open"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-alignment-001",
+            "phase": "4G",
+            "reason": "Popover anchor positioning — requires anchor-positioning substrate (CSS Anchor Positioning 1)"
+        },
+        {
+            "glob": "html/semantics/popovers/popover-alignment-002",
+            "phase": "4G",
+            "reason": "Popover anchor positioning — requires anchor-positioning substrate (CSS Anchor Positioning 1)"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-containing-block",
+            "phase": "4G",
+            "reason": "Fieldset acts as its own containing block — needs fieldset anonymous contents-box substrate"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-painting-order",
+            "phase": "4G",
+            "reason": "Fieldset paint order: border with legend gap on top of background"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-border-radius-with-alpha",
+            "phase": "4G",
+            "reason": "Fieldset border radius interacts with legend gap clipping"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-border-gap-position-relative",
+            "phase": "4G",
+            "reason": "Border gap follows legend when legend is position: relative"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/fieldset-overflow",
+            "phase": "4G",
+            "reason": "Overflow on fieldset (vs anonymous contents-box) — needs box-model split"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/empty-scrollable",
+            "phase": "4G",
+            "reason": "Empty scrollable fieldset — overflow + anonymous contents-box interaction"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/legend-position-relative",
+            "phase": "4G",
+            "reason": "Legend with position: relative — legend keeps participating in fieldset border-box even when offset"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/legend-auto-margins",
+            "phase": "4G",
+            "reason": "Legend auto margins — legend block-axis margin behaviour in fieldset border-box"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/legend-tall",
+            "phase": "4G",
+            "reason": "Tall legend pushes fieldset content down"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/legend-block-margins",
+            "phase": "4G",
+            "reason": "Legend block margins in fieldset border-box"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/legend-display-rendering",
+            "phase": "4G",
+            "reason": "Legend display: contents/inline/etc. inside fieldset"
+        },
+        {
+            "glob": "html/rendering/widgets/button-layout/scrollbars",
+            "phase": "4G",
+            "reason": "Button scrollbar reservation — anonymous content box"
+        },
+        {
+            "glob": "html/rendering/widgets/button-layout/anonymous-button-content-box",
+            "phase": "4G",
+            "reason": "Button anonymous content box substrate"
+        },
+        {
+            "glob": "html/rendering/widgets/button-layout/input-type-button-clip",
+            "phase": "4G",
+            "reason": "Button overflow: hidden clip — anonymous content box clipping"
+        },
+        {
+            "glob": "html/rendering/widgets/input-checkbox-no-centering",
+            "phase": "4G",
+            "reason": "Checkbox box-model specifics — input widget intrinsic sizing"
+        },
+        {
+            "glob": "html/rendering/widgets/input-radio-no-centering",
+            "phase": "4G",
+            "reason": "Radio box-model specifics — same widget intrinsic-sizing substrate"
+        },
+        {
+            "glob": "html/semantics/forms/the-select-element/customizable-select/**",
+            "phase": "4G",
+            "reason": "CSS-customizable-select pseudos (::picker, ::checkmark, ::picker-icon, before/after on grid). Brand-new CSS feature (2025)"
+        },
+        {
+            "glob": "html/semantics/forms/the-input-element/image01",
+            "phase": "4G",
+            "reason": "<input type=image> default rendering — image-replaced control sizing"
+        },
+        {
+            "glob": "html/semantics/interestfor/**",
+            "phase": "4G",
+            "reason": "`interestfor` HTML attribute + `::interest-button` pseudo-element (Open UI interest-invokers proposal, 2025). Tentative; depends on top-layer + anchor-positioning substrate"
+        },
+        {
+            "glob": "html/rendering/the-details-element/summary-display-flex",
+            "phase": "4G",
+            "reason": "display: flex on <summary> — needs flex layout (summary normally renders as a list-item disclosure box)"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/the-select-element/select-1-block-size-001",
+            "phase": "4G",
+            "reason": "<select> with size=1 intrinsic block-size — needs select widget chrome substrate"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-hr-element-0/color",
+            "phase": "4G",
+            "reason": "<hr color=> presentational hint maps to CSS `color` plus border-style: solid (HTML 5 §15.3). Not yet wired through applyPresentationalAttributes"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-hr-element-0/width",
+            "phase": "4G",
+            "reason": "<hr width=> presentational hint maps to CSS `width` with HTML-length parsing (HTML 5 §15.3)"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-hr-element-0/size-with-color-or-noshade",
+            "phase": "4G",
+            "reason": "<hr size=>/`noshade` map to height + border-style: solid (HTML 5 §15.3)"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-br-element/br-clear-presentational-hints",
+            "phase": "4G",
+            "reason": "<br clear=all|left|right|both> → CSS clear mapping (HTML 5 §15.3) — not yet wired through applyPresentationalAttributes"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/table-border-1",
+            "phase": "4G",
+            "reason": "<table border> → border-width/-style on table + inset border on td (HTML 5 §15.3). Not yet in applyPresentationalAttributes"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/table-border-3q",
+            "phase": "4G",
+            "reason": "<table border> presentational hint — quirks-mode variant"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/table-border-3s",
+            "phase": "4G",
+            "reason": "<table border> presentational hint — standards-mode variant"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/table-background-print",
+            "phase": "4G",
+            "reason": "Table background propagation under print media — needs print-mode page-break-aware background painting"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/table-row-group-height",
+            "phase": "4G",
+            "reason": "<tbody> intrinsic height distribution — needs table row-group sizing rules from CSS Tables 3"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/tables/tr-transform-and-will-change",
+            "phase": "4G",
+            "reason": "Transform on <tr> — needs transform-from-row containment + will-change box invalidation in table layout"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-frameset-and-frame-elements/large-rows-abssize",
+            "phase": "4G",
+            "reason": "Legacy <frameset> rows attribute with absolute sizes — not a priority for a print renderer"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-frameset-and-frame-elements/large-rows-percentage",
+            "phase": "4G",
+            "reason": "Legacy <frameset> rows attribute with percentage sizes"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-frameset-and-frame-elements/large-cols-abssize",
+            "phase": "4G",
+            "reason": "Legacy <frameset> cols attribute with absolute sizes"
+        },
+        {
+            "glob": "html/rendering/non-replaced-elements/the-frameset-and-frame-elements/large-cols-percentage",
+            "phase": "4G",
+            "reason": "Legacy <frameset> cols attribute with percentage sizes"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/video-default-object-*",
+            "phase": "4G",
+            "reason": "Video element default object size (300×150) under max-width/max-height constraint — needs replaced-element intrinsic-ratio + transferred-size constraint resolution"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/attributes-for-embedded-content-and-images/canvas-dimension-attributes",
+            "phase": "4G",
+            "reason": "Canvas width/height attribute → intrinsic size mapping — covered under canvas runtime substrate"
+        },
+        {
+            "glob": "html/rendering/replaced-elements/images/abs-pos-transferred-max-width-from-percentage-max-height-in-auto-height-containing-block",
+            "phase": "4G",
+            "reason": "Absolute-positioned replaced element with percentage max-height in auto-height containing block — transferred constraint resolution from CSS 2.2 §10.3.7"
         }
     ]
 }
