@@ -521,6 +521,16 @@ class PdfWriter
     {
         $corePage = $page instanceof Page ? $page->corePage() : $page;
         $info = ImageParser::parse($path);
+        // SVG is not a raster format. The image-metadata parser
+        // recognises it (so callers can read intrinsic dimensions
+        // for layout), but PDF can't reference SVG bytes as an
+        // Image XObject. Reject here so the caller (typically the
+        // HTML painter) catches and routes through the SVG painter
+        // instead. Matches the pre-SVG-parser behaviour where
+        // ImageParser threw on unknown bytes.
+        if ($info->format === 'svg') {
+            throw new \RuntimeException('SVG cannot be embedded as a raster image XObject; route through the SVG painter');
+        }
         $data = LocalFilesystem::readFile($path);
 
         $this->imageCounter++;

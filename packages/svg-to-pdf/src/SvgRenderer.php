@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phpdftk\SvgToPdf;
 
+use Phpdftk\Css\Value\Color;
+use Phpdftk\Css\ValueParser;
 use Phpdftk\Pdf\Core\Content\ContentStream;
 use Phpdftk\Pdf\Core\Graphics\XObject\FormXObject;
 use Phpdftk\Pdf\Writer\Alignment;
@@ -144,6 +146,29 @@ final class SvgRenderer
             $stream->rectangle($x, $y, $dstWidth, $dstHeight);
             $stream->clip();
             $stream->endPath();
+        }
+        // CSS Backgrounds 3 — when the SVG root carries a `background`
+        // (or `background-color`) CSS declaration, paint it as a filled
+        // rect covering the destination so a `<img src=svg>` with
+        // `style="background: green"` actually shows green. Done BEFORE
+        // the cm transform so the rect uses PDF coords directly and
+        // doesn't need the y-flip dance. SVG itself has no `background`
+        // property — this is a CSS-on-SVG-root extension browsers honour.
+        $bgColor = self::extractRootBackgroundColor($svg);
+        if ($bgColor !== null && $bgColor->a > 0.0) {
+            $stream->saveGraphicsState();
+            $stream->setFillColorRGB($bgColor->r, $bgColor->g, $bgColor->b);
+            // Width-along-PDF-x: scaleX is signed (positive); height
+            // already absorbed the y-flip via `effectiveH`. The
+            // destination rect anchors at (x+offsetX, y+offsetY).
+            $stream->rectangle(
+                $x + $offsetX,
+                $y + $offsetY,
+                $scaleX * $srcWidth,
+                $effectiveH,
+            );
+            $stream->fill();
+            $stream->restoreGraphicsState();
         }
         $stream->concatMatrix(
             $scaleX,
@@ -485,4 +510,71 @@ final class SvgRenderer
         $value = (float) $m[1];
         return $value <= 0.0 ? null : $value;
     }
+
+    /**
+     * Extract the SVG root's CSS background colour, if any.
+     *
+     * Tries `background-color` first (explicit), then the `background`
+     * shorthand. For the shorthand we look at each whitespace-delimited
+     * token and return the first one that parses as a CSS colour. This
+     * misses author intent for some pathological shorthands (e.g.
+     * `background: url(...) center / 100% red` does flow through), but
+     * covers the canonical `background: <colour>` form that the SVG
+     * background-on-root tests use.
+     *
+     * Returns null when no colour can be resolved.
+     */
+    private static function extractRootBackgroundColor(SvgDocument $svg): ?Color
+    {
+        $style = $svg->getAttribute('style');
+        if ($style === null || $style === '') {
+            return null;
+        }
+        $cleaned = preg_replace('/\/\*.*?\*\//s', ' ', $style) ?? $style;
+        $declarations = [];
+        foreach (explode(';', $cleaned) as $decl) {
+            $colon = strpos($decl, ':');
+            if ($colon === false) {
+                continue;
+            }
+            $name = strtolower(trim(substr($decl, 0, $colon)));
+            $value = trim(substr($decl, $colon + 1));
+            if ($value === '') {
+                continue;
+            }
+            $declarations[$name] = $value;
+        }
+
+        $parser = new ValueParser();
+        if (isset($declarations['background-color'])) {
+            $parsed = self::tryParseColor($parser, $declarations['background-color']);
+            if ($parsed !== null) {
+                return $parsed;
+            }
+        }
+        if (isset($declarations['background'])) {
+            // Walk tokens; first that parses as a colour wins.
+            foreach (preg_split('/\s+/', $declarations['background']) ?: [] as $token) {
+                if ($token === '') {
+                    continue;
+                }
+                $parsed = self::tryParseColor($parser, $token);
+                if ($parsed !== null) {
+                    return $parsed;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static function tryParseColor(ValueParser $parser, string $css): ?Color
+    {
+        try {
+            $value = $parser->parseFromString($css);
+        } catch (\Throwable) {
+            return null;
+        }
+        return $value instanceof Color ? $value : null;
+    }
+
 }

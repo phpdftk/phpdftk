@@ -791,6 +791,17 @@ final class Painter
         if ($src === null) {
             return;
         }
+        // `<img src="*.svg">` and `<img src="data:image/svg+xml,...">`
+        // route through the SVG painter rather than the raster image
+        // XObject path — SVG isn't a pixel container, so PdfWriter's
+        // addImage rejects it. The painter has the loader / sizer /
+        // renderer already used by background-image:url(svg); reuse
+        // it here so an inline replaced `<img>` honours its CSS
+        // geometry plus `object-fit` / `object-position`.
+        if ($this->isSvgSrc($src)) {
+            $this->paintImgSvg($element, $box, $stream, $src);
+            return;
+        }
         // Per-page cache: the same src only spills + registers once on
         // this page. Multi-page reuse still re-registers — XObject
         // resource names are page-local in PdfWriter.
@@ -4703,6 +4714,77 @@ final class Painter
      * render. The pdf consumer sees an empty box where the SVG would
      * have been; the rest of the document is unaffected.
      */
+    /**
+     * Paint an `<img src="*.svg">` (or `data:image/svg+xml`)
+     * replaced-element by loading the external SVG and rendering it
+     * into the box's CSS-laid-out geometry.
+     *
+     * Unlike `paintInlineSvg`, the SVG document here is an external
+     * resource: the box's geometry is already resolved by the layout
+     * engine from the cascade plus the intrinsic dimensions reported
+     * by `SvgParser`. We just clip to the box rect, apply
+     * `object-fit` / `object-position`, and delegate to the SvgRenderer.
+     */
+    private function paintImgSvg(
+        \Phpdftk\Html\Dom\Element $element,
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        ContentStream $stream,
+        string $src,
+    ): void {
+        if ($this->writer === null || $this->page === null) {
+            return;
+        }
+        $geo = $box->geometry;
+        if ($geo->width <= 0.0) {
+            return;
+        }
+        $svgDoc = $this->loadSvgDocument($src);
+        if ($svgDoc === null) {
+            return;
+        }
+        $height = $geo->height > 0.0 ? $geo->height : $geo->width;
+        // CSS Images 3 §5.3 — `object-fit` decides the painted SVG's
+        // scale within the box; `object-position` decides where the
+        // slack sits. Defaults: `fill` + centre.
+        $fit = $this->objectFitKeyword($box);
+        $rect = $this->resolveObjectFit($fit, $src, $geo->width, $height);
+        $positionValue = $box->style->get('object-position');
+        if ($positionValue !== null
+            && ($rect['w'] !== $geo->width || $rect['h'] !== $height)
+        ) {
+            $pos = $this->resolveBackgroundPosition(
+                $positionValue,
+                $rect['w'],
+                $rect['h'],
+                $geo->width,
+                $height,
+            );
+            $rect['offsetX'] = $pos['offsetX'];
+            $rect['offsetY'] = $pos['offsetY'];
+        }
+        $pdfY = $this->pageHeight - $geo->y - $height;
+        $stream->saveGraphicsState();
+        // Clip to the box rect so `cover` overflow doesn't bleed into
+        // sibling boxes — same posture as `paintImage` for raster.
+        $stream->rectangle($geo->x, $pdfY, $geo->width, $height);
+        $stream->clip();
+        $stream->endPath();
+        try {
+            $this->svgRenderer()->draw(
+                $svgDoc,
+                $geo->x + $rect['offsetX'],
+                $pdfY + ($height - $rect['h'] - $rect['offsetY']),
+                $rect['w'],
+                $rect['h'],
+                stream: $stream,
+            );
+        } catch (\Throwable) {
+            // Swallow paint failures so one malformed SVG doesn't kill
+            // the document render. Mirrors the raster path's catch.
+        }
+        $stream->restoreGraphicsState();
+    }
+
     private function paintInlineSvg(
         \Phpdftk\Html\Dom\Element $element,
         \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,

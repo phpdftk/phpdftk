@@ -2249,6 +2249,41 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testImgWithSvgSrcPaintsBackgroundOnSvgRoot(): void
+    {
+        // `<img src="*.svg">` should route through the SVG painter
+        // (PdfWriter::addImage rejects SVG since it's not a raster).
+        // CSS `background` on the SVG root must paint as a filled
+        // rect — covers the WPT box-sizing-* fixture family that
+        // uses SVGs with `style="background: green"` as their
+        // visible content.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-svg-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents(
+            $baseDir . '/w100_h100.svg',
+            '<svg xmlns="http://www.w3.org/2000/svg" style="background: green" width="100" height="100"/>',
+        );
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><img src="w100_h100.svg"></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            // CSS named 'green' is #008000 → rgb(0, 128, 0)
+            // → PDF "0 0.5019607843 0 rg".
+            self::assertMatchesRegularExpression(
+                '~0 0\.5019607843 0 rg~',
+                $bytes,
+                'SVG background-on-root paints CSS green',
+            );
+        } finally {
+            @unlink($baseDir . '/w100_h100.svg');
+            @rmdir($baseDir);
+        }
+    }
+
     public function testBackgroundRepeatDefaultTilesBothAxes(): void
     {
         // 4×2 PNG with explicit small `background-size: 50px 50px` in a

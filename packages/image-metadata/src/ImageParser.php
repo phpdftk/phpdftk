@@ -17,7 +17,15 @@ final class ImageParser
 {
     public static function parse(string $path): ImageInfo
     {
-        $data = LocalFilesystem::readPrefix($path, 32, "image file");  // read just enough for signature
+        // Read a larger prefix than the raster parsers need so the
+        // SVG sniffer (which has to skip an optional XML prolog plus
+        // doctype before the `<svg>` opening tag) gets enough bytes
+        // on the first hop. Raster parsers still match on the first
+        // few magic bytes.
+        $data = LocalFilesystem::readPrefix($path, 4096, "image file");
+        if (self::looksLikeSvg($data)) {
+            return SvgParser::parseFile($path);
+        }
         return match (true) {
             str_starts_with($data, "\xFF\xD8\xFF") => JpegParser::parseFile($path),
             str_starts_with($data, "\x89PNG\r\n\x1A\n") => PngParser::parseFile($path),
@@ -32,6 +40,9 @@ final class ImageParser
 
     public static function parseString(string $data): ImageInfo
     {
+        if (self::looksLikeSvg($data)) {
+            return SvgParser::parse($data);
+        }
         return match (true) {
             str_starts_with($data, "\xFF\xD8\xFF") => JpegParser::parse($data),
             str_starts_with($data, "\x89PNG\r\n\x1A\n") => PngParser::parse($data),
@@ -42,5 +53,26 @@ final class ImageParser
             str_starts_with($data, "\x97\x4A\x42\x32\x0D\x0A\x1A\x0A") => Jbig2Parser::parse($data),
             default => throw new \RuntimeException('Unsupported image format'),
         };
+    }
+
+    /**
+     * SVG sniffer: case-insensitive `<svg` somewhere in the prefix,
+     * with the file starting either with whitespace, `<?xml`, a
+     * `<!--` comment, a `<!DOCTYPE`, or directly with `<svg`. Rules
+     * out arbitrary XML/HTML where `<svg` happens to appear inside.
+     */
+    private static function looksLikeSvg(string $data): bool
+    {
+        $head = ltrim($data);
+        if ($head === '') {
+            return false;
+        }
+        if (stripos($head, '<svg') === false) {
+            return false;
+        }
+        return str_starts_with($head, '<?xml')
+            || str_starts_with($head, '<!--')
+            || stripos($head, '<!doctype') === 0
+            || stripos($head, '<svg') === 0;
     }
 }

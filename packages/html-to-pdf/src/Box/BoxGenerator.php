@@ -1635,12 +1635,20 @@ final class BoxGenerator
             return null;
         }
         if (str_starts_with($src, 'data:')) {
-            if (preg_match('~^data:image/(png|jpeg|jpg);(base64,)?(.*)$~s', $src, $m) !== 1) {
+            // Accept any `data:image/...` MIME, plus `data:image/svg+xml`
+            // textual payloads. The sniffer in `ImageParser::parseString`
+            // dispatches on the actual byte signature, so we don't gate
+            // on the MIME label here — broader than the prior
+            // `(png|jpeg|jpg)` allow-list and consistent with the
+            // painter's permissive handling.
+            if (preg_match('~^data:image/[^;,]+(?:;([^,]*))?,(.*)$~s', $src, $m) !== 1) {
                 return null;
             }
-            $payload = $m[2] === 'base64,'
-                ? base64_decode($m[3], strict: true)
-                : urldecode($m[3]);
+            $parameters = strtolower($m[1]);
+            $rawPayload = $m[2];
+            $payload = str_contains($parameters, 'base64')
+                ? base64_decode($rawPayload, strict: true)
+                : urldecode($rawPayload);
             if ($payload === false || $payload === '') {
                 return null;
             }
@@ -1649,7 +1657,9 @@ final class BoxGenerator
             } catch (\Throwable) {
                 return null;
             }
-            return [$info->width, $info->height];
+            return $info->width > 0 && $info->height > 0
+                ? [$info->width, $info->height]
+                : null;
         }
         $resolved = $this->resolveLocalImagePath($src);
         if ($resolved === null) {
@@ -1660,7 +1670,9 @@ final class BoxGenerator
         } catch (\Throwable) {
             return null;
         }
-        return [$info->width, $info->height];
+        return $info->width > 0 && $info->height > 0
+            ? [$info->width, $info->height]
+            : null;
     }
 
     /**
