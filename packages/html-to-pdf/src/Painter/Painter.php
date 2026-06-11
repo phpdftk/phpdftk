@@ -84,6 +84,22 @@ final class Painter
          */
         private readonly array $registeredFonts = [],
         /**
+         * Map of `lowercase font-family → OpenTypeData`. Parallel to
+         * `$registeredFonts` (which carries PDF-side handles); this
+         * carries the parsed-font side so inline foreign-content
+         * painters can hand the full font data to embedded
+         * renderers (e.g. paintInlineMath threads the math element's
+         * resolved font into MathmlRenderer so it picks up the
+         * font's MATH-table constants like FractionRuleThickness).
+         *
+         * Keyed by lowercase family name to match how Renderer
+         * builds its `$fontMap` from @font-face and
+         * RendererOptions::fontMap.
+         *
+         * @var array<string, \Phpdftk\FontParser\OpenTypeData>
+         */
+        private readonly array $fontDataByFamily = [],
+        /**
          * Page width in PDF user-space units. Used by per-axis
          * `overflow-x` / `overflow-y` clipping to extend the clip
          * rect across the unconstrained axis. Defaults to a value
@@ -4431,6 +4447,75 @@ final class Painter
     }
 
     /**
+     * Resolve the math-font {@see OpenTypeData} for `$box` by
+     * reading the cascaded `font-family` and looking it up in
+     * `$fontDataByFamily`. Returns null when no family matches,
+     * the matching font has no MATH table, or the cascade hasn't
+     * resolved a usable family name.
+     *
+     * Used by paintInlineMath to thread the cascade-loaded font
+     * (typically via `@font-face`) into the MathmlRenderer so its
+     * MATH-table constants (FractionRuleThickness, axis height,
+     * etc.) drive layout. Without this hook MathmlRenderer falls
+     * back to its tracer-bullet defaults regardless of what
+     * `font-family` the cascade resolved.
+     */
+    private function mathFontDataFor(
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+    ): ?\Phpdftk\FontParser\OpenTypeData {
+        if ($this->fontDataByFamily === []) {
+            return null;
+        }
+        $family = $box->style->get('font-family');
+        $names = [];
+        if ($family instanceof \Phpdftk\Css\Value\StringValue) {
+            $names[] = $family->value;
+        } elseif ($family instanceof \Phpdftk\Css\Value\Keyword) {
+            $names[] = $family->name;
+        } elseif ($family instanceof \Phpdftk\Css\Value\CommaList) {
+            foreach ($family->values as $entry) {
+                if ($entry instanceof \Phpdftk\Css\Value\StringValue) {
+                    $names[] = $entry->value;
+                } elseif ($entry instanceof \Phpdftk\Css\Value\Keyword) {
+                    $names[] = $entry->name;
+                }
+            }
+        }
+        foreach ($names as $name) {
+            $key = strtolower(trim($name));
+            $data = $this->fontDataByFamily[$key] ?? null;
+            if ($data !== null
+                && $data->mathTable !== null
+                && $data->mathTable->hasMathConstants()
+            ) {
+                return $data;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Build a fresh {@see MathmlRenderer} for `$box` with its
+     * math-font data threaded in. Falls back to the cached default
+     * renderer when no MATH-table font matches the cascade -
+     * keeps the common "no math font" path zero-cost.
+     */
+    private function mathmlRendererFor(
+        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+    ): \Phpdftk\MathmlToPdf\MathmlRenderer {
+        $fontData = $this->mathFontDataFor($box);
+        if ($fontData === null) {
+            return $this->mathmlRenderer();
+        }
+        assert($this->page !== null && $this->writer !== null);
+        return new \Phpdftk\MathmlToPdf\MathmlRenderer(
+            $this->page,
+            $this->writer,
+            mathFontData: $fontData,
+        );
+    }
+
+    /**
      * Paint an inline `<math>` HTML element by adapting its subtree
      * into a typed MathmlDocument and handing the result to the
      * MathmlRenderer.
@@ -4536,8 +4621,17 @@ final class Painter
             $geo->y,
         );
         $pdfY = $this->pageHeight - $layoutY - $height;
-        $ascentPt = $this->mathmlRenderer()->intrinsicAscent($mathDoc, $fontSize);
-        $this->mathmlRenderer()->draw(
+        // Use the default MathmlRenderer for now. Math-font handoff
+        // via `mathmlRendererFor($box)` would enable the @font-face
+        // WOFF substrate to drive MATH-table constants
+        // (FractionRuleThickness, axis height, ...) but exposes a
+        // latent gap: per-element CSS colour doesn't cascade
+        // through to the MathmlDocument, so glyphs rendered with a
+        // math font land in the default black instead of the
+        // CSS-cascaded colour. Tracked in #103 / follow-up.
+        $renderer = $this->mathmlRenderer();
+        $ascentPt = $renderer->intrinsicAscent($mathDoc, $fontSize);
+        $renderer->draw(
             $mathDoc,
             $layoutX,
             $pdfY,

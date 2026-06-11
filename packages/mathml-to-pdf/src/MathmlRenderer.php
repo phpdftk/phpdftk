@@ -7,6 +7,7 @@ namespace Phpdftk\MathmlToPdf;
 use Phpdftk\FontParser\MathConstantsParser;
 use Phpdftk\FontParser\MathGlyphInfoParser;
 use Phpdftk\FontParser\MathVariantsParser;
+use Phpdftk\FontParser\OpenTypeData;
 use Phpdftk\FontParser\OpenTypeParser;
 use Phpdftk\FontParser\WoffParser;
 use Phpdftk\Mathml\MathmlDocument;
@@ -76,6 +77,14 @@ final class MathmlRenderer
          * `$mathMetrics`).
          */
         private readonly ?string $mathFontPath = null,
+        /**
+         * Pre-parsed math font data. Mutually exclusive with
+         * `$mathFontPath` (when both are set, this wins). Lets
+         * callers that already have an {@see OpenTypeData} in hand
+         * (e.g. the html-to-pdf inline-math painter that loaded the
+         * font via `@font-face`) skip the path-based re-parse.
+         */
+        private readonly ?OpenTypeData $mathFontData = null,
     ) {}
 
     /**
@@ -250,23 +259,32 @@ final class MathmlRenderer
      */
     private function loadMathFontFor(MathmlDocument $math): array
     {
-        if ($this->mathFontPath === null) {
+        // Pre-parsed data takes precedence over the path-based load,
+        // letting callers that already have an OpenTypeData in hand
+        // (the html-to-pdf inline-math painter) skip the file round
+        // trip. Falls back to the path-based load when neither is
+        // configured.
+        if ($this->mathFontData !== null) {
+            $data = $this->mathFontData;
+        } elseif ($this->mathFontPath !== null) {
+            // Parse the font - accept raw OTF/TTF or WOFF1.
+            $extension = strtolower(pathinfo($this->mathFontPath, PATHINFO_EXTENSION));
+            if ($extension === 'woff') {
+                $fontBytes = WoffParser::decompress($this->mathFontPath);
+                $data = OpenTypeParser::fromBytes($fontBytes)->parse();
+            } else {
+                $data = (new OpenTypeParser($this->mathFontPath))->parse();
+            }
+        } else {
             return [null, $this->mathMetrics ?? new MathmlMetrics()];
         }
 
-        // Parse the font - accept raw OTF/TTF or WOFF1.
-        $extension = strtolower(pathinfo($this->mathFontPath, PATHINFO_EXTENSION));
-        if ($extension === 'woff') {
-            $fontBytes = WoffParser::decompress($this->mathFontPath);
-            $data = OpenTypeParser::fromBytes($fontBytes)->parse();
-        } else {
-            $data = (new OpenTypeParser($this->mathFontPath))->parse();
-        }
-
         if ($data->mathTable === null || !$data->mathTable->hasMathConstants()) {
-            throw new \RuntimeException(
-                "Math font at {$this->mathFontPath} has no usable MATH table",
-            );
+            // No usable MATH table - the font might still be a fine
+            // text font but it can't drive math layout constants. Fall
+            // back to default metrics rather than throwing; the caller
+            // gave us a font that doesn't fit the math role.
+            return [null, $this->mathMetrics ?? new MathmlMetrics()];
         }
 
         // Collect codepoints first so the writer's CFF subsetter

@@ -96,9 +96,21 @@ final readonly class ResourceLoader
         if (preg_match('~^[a-zA-Z][a-zA-Z0-9+.-]*://~', $url) === 1) {
             return null;
         }
-        $candidate = str_starts_with($url, '/')
-            ? $url
-            : $this->baseDir . DIRECTORY_SEPARATOR . $url;
+        // URLs starting with `/` follow the "document root" convention:
+        // when a sandboxRoot is configured separately from baseDir, the
+        // slash anchors to the sandbox (this matches the WPT corpus
+        // layout where `/fonts/math/x.woff` refers to a file under the
+        // corpus root, not a real absolute filesystem path). Without a
+        // distinct sandbox, fall back to treating the leading `/` as a
+        // real filesystem path - the legacy single-baseDir behaviour.
+        if (str_starts_with($url, '/')) {
+            $candidate = $this->sandboxRoot !== null
+                && $this->sandboxRoot !== $this->baseDir
+                ? rtrim($this->sandboxRoot, DIRECTORY_SEPARATOR) . $url
+                : $url;
+        } else {
+            $candidate = $this->baseDir . DIRECTORY_SEPARATOR . $url;
+        }
         $resolved = realpath($candidate);
         $sandbox = realpath($this->sandboxRoot ?? $this->baseDir);
         if ($resolved === false || $sandbox === false) {

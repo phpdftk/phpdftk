@@ -82,6 +82,56 @@ final class ResourceLoaderTest extends TestCase
         }
     }
 
+    public function testAbsolutePathUnderDistinctSandboxAnchoredToSandbox(): void
+    {
+        // When sandboxRoot differs from baseDir (the wpt-harness
+        // pattern: sandbox is the corpus root, baseDir is the
+        // test's own directory), URLs starting with `/` resolve
+        // under the sandbox root. This matches the WPT convention
+        // where `/fonts/foo.woff` means the corpus root's
+        // /fonts/foo.woff, not a real absolute filesystem path.
+        $sandbox = sys_get_temp_dir() . '/phpdftk-rl-sandbox-' . bin2hex(random_bytes(4));
+        $baseDir = $sandbox . '/sub/test';
+        mkdir($sandbox);
+        mkdir($sandbox . '/sub');
+        mkdir($baseDir);
+        mkdir($sandbox . '/fonts');
+        try {
+            file_put_contents($sandbox . '/fonts/x.woff', 'WOFF-payload');
+            $loader = new ResourceLoader($baseDir, $sandbox);
+            self::assertSame(
+                'WOFF-payload',
+                $loader->load('/fonts/x.woff'),
+                'absolute /-prefixed URL should resolve under sandboxRoot',
+            );
+        } finally {
+            @unlink($sandbox . '/fonts/x.woff');
+            @rmdir($sandbox . '/fonts');
+            @rmdir($baseDir);
+            @rmdir($sandbox . '/sub');
+            @rmdir($sandbox);
+        }
+    }
+
+    public function testAbsolutePathWithoutDistinctSandboxKeepsLegacyBehaviour(): void
+    {
+        // No distinct sandbox - the leading `/` reverts to a real
+        // filesystem path. baseDir == sandboxRoot here so the
+        // sandbox check still applies, rejecting paths outside
+        // baseDir.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-rl-leg-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        try {
+            $loader = new ResourceLoader($baseDir);
+            self::assertNull(
+                $loader->load('/fonts/x.woff'),
+                'unknown absolute path rejected when no distinct sandbox',
+            );
+        } finally {
+            @rmdir($baseDir);
+        }
+    }
+
     public function testEscapeViaParentRejected(): void
     {
         $baseDir = sys_get_temp_dir() . '/phpdftk-rl-esc-' . bin2hex(random_bytes(4));
