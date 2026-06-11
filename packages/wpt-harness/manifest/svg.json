@@ -26,7 +26,7 @@
         {
             "glob": "svg/animations/**",
             "phase": "v2",
-            "reason": "SMIL animations (<animate>, <set>, <animateTransform>, etc.) — phpdftk is a static document renderer with no notion of time. CSS animations + transitions are pinned at t=0 by the DOM settler; SMIL is the SVG-specific equivalent and follows the same v1 / v2 split. Marking the whole subtree captures every animation reftest that can't pass under a static-renderer model."
+            "reason": "SMIL animations. The DOM settler pins the SVG timeline at t=0 via SVGSVGElement.pauseAnimations() + setCurrentTime(0) so the settled DOM reflects the initial-frame state, matching how a browser would render a static screenshot taken at SVG construction. Reftests that compare against an animated end-state are out of our static-renderer model (same trade-off the CSS-animation t=0 lock documents)."
         },
         {
             "glob": "svg/filters/**",

@@ -64,6 +64,25 @@ These tests are not in our applicable surface. A static-PDF renderer cannot, by 
 
 The settler's job is not to make every WPT reftest pass. It is to give our renderer the same *initial* DOM state a browser would have when the test author signalled "ready" — DOM mutations, inline-style changes, font-load awaits, and the like — without claiming we render animations.
 
+## SVG SMIL animations: same `t=0` model
+
+SVG animation elements (`<animate>`, `<set>`, `<animateTransform>`, `<animateMotion>`) form the SMIL substrate — SVG's own pre-CSS animation runtime. Real browsers tick the SVG timeline forward at 60 Hz and the screenshot fires at whatever frame the browser happened to be on.
+
+For our static pipeline, the settler calls two SVG DOM APIs on every `<svg>` element after the page loads:
+
+```js
+for (const svg of document.querySelectorAll('svg')) {
+  svg.pauseAnimations();
+  svg.setCurrentTime(0);
+}
+```
+
+[`SVGSVGElement.pauseAnimations()`](https://www.w3.org/TR/SVG2/struct.html#__svg__SVGSVGElement__pauseAnimations) halts the SMIL timeline; [`setCurrentTime(0)`](https://www.w3.org/TR/SVG2/struct.html#__svg__SVGSVGElement__setCurrentTime) snaps it to the initial frame. The pair together captures the at-construction state, matching how a browser would render a static screenshot taken the instant the SVG entered the document.
+
+The same trade-off applies as for CSS animations: SMIL reftests that compare against an animated end-state (e.g., `<animate from="0" to="100" fill="freeze">` and the reference renders the `to` state) won't match our settled-at-`t=0` capture. Those fixtures are pending-substrate in `manifest/svg.json`'s `svg/animations/**` glob.
+
+Note that SMIL's animated values live in a separate model from the DOM attributes — `<rect x="10">` with `<animate attributeName="x" to="100">` always reports `x="10"` via `Element.getAttribute()` regardless of the timeline; the animated value drives rendering only. Our static renderer reads DOM attributes, so SMIL animations effectively never apply to our output regardless of the pin. The pin documents the model and keeps the settler reproducible (without it, browser timeline ticks would mutate per-element transient state like `getCTM()` results in inconsistent ways across runs).
+
 ## Enabling the settler
 
 When `node` and Playwright + Chromium are installed (the same bootstrap as the [cross-browser sweep](/rendering/cross-browser-sweep/)), the harness picks the settler up automatically. The CLI binding lives at `packages/wpt-harness/bin/wpt`'s `maybeDomSettler()` helper.

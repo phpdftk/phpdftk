@@ -176,7 +176,7 @@ abstract class Element extends Node
      */
     public function fillRule(): ?string
     {
-        $raw = $this->attributes['fill-rule'] ?? null;
+        $raw = $this->presentationOrStyle('fill-rule');
         if ($raw === null) {
             return null;
         }
@@ -190,7 +190,7 @@ abstract class Element extends Node
     /** `stroke-width` — non-negative length, default `1`. Negative → null. */
     public function strokeWidth(): ?float
     {
-        $raw = $this->attributes['stroke-width'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-width');
         if ($raw === null) {
             return null;
         }
@@ -204,7 +204,7 @@ abstract class Element extends Node
     /** `stroke-linecap` — one of `butt`, `round`, `square`. */
     public function strokeLinecap(): ?string
     {
-        $raw = $this->attributes['stroke-linecap'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-linecap');
         if ($raw === null) {
             return null;
         }
@@ -221,7 +221,7 @@ abstract class Element extends Node
      */
     public function strokeLinejoin(): ?string
     {
-        $raw = $this->attributes['stroke-linejoin'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-linejoin');
         if ($raw === null) {
             return null;
         }
@@ -235,7 +235,7 @@ abstract class Element extends Node
     /** `stroke-miterlimit` — must be ≥ 1 per SVG 2 §13.4; otherwise null. */
     public function strokeMiterlimit(): ?float
     {
-        $raw = $this->attributes['stroke-miterlimit'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-miterlimit');
         if ($raw === null) {
             return null;
         }
@@ -255,7 +255,7 @@ abstract class Element extends Node
      */
     public function strokeDasharray(): array
     {
-        $raw = $this->attributes['stroke-dasharray'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-dasharray');
         if ($raw === null) {
             return [];
         }
@@ -282,7 +282,7 @@ abstract class Element extends Node
     /** `stroke-dashoffset` — any number; default `0`. */
     public function strokeDashoffset(): ?float
     {
-        $raw = $this->attributes['stroke-dashoffset'] ?? null;
+        $raw = $this->presentationOrStyle('stroke-dashoffset');
         if ($raw === null) {
             return null;
         }
@@ -300,7 +300,7 @@ abstract class Element extends Node
      */
     public function fontFamily(): array
     {
-        $raw = $this->attributes['font-family'] ?? null;
+        $raw = $this->presentationOrStyle('font-family');
         if ($raw === null || trim($raw) === '') {
             return [];
         }
@@ -332,7 +332,7 @@ abstract class Element extends Node
      */
     public function fontSize(): ?float
     {
-        $raw = $this->attributes['font-size'] ?? null;
+        $raw = $this->presentationOrStyle('font-size');
         if ($raw === null) {
             return null;
         }
@@ -350,7 +350,7 @@ abstract class Element extends Node
      */
     public function fontWeight(): ?string
     {
-        $raw = $this->attributes['font-weight'] ?? null;
+        $raw = $this->presentationOrStyle('font-weight');
         if ($raw === null) {
             return null;
         }
@@ -365,7 +365,7 @@ abstract class Element extends Node
      */
     public function fontStyle(): ?string
     {
-        $raw = $this->attributes['font-style'] ?? null;
+        $raw = $this->presentationOrStyle('font-style');
         if ($raw === null) {
             return null;
         }
@@ -378,7 +378,7 @@ abstract class Element extends Node
 
     private function parsePaint(string $attr): ?Paint
     {
-        $raw = $this->attributes[$attr] ?? null;
+        $raw = $this->presentationOrStyle($attr);
         if ($raw === null) {
             return null;
         }
@@ -387,7 +387,7 @@ abstract class Element extends Node
 
     private function parseClampedFraction(string $attr): ?float
     {
-        $raw = $this->attributes[$attr] ?? null;
+        $raw = $this->presentationOrStyle($attr);
         if ($raw === null) {
             return null;
         }
@@ -396,6 +396,46 @@ abstract class Element extends Node
             return null;
         }
         return max(0.0, min(1.0, $value));
+    }
+
+    /**
+     * Resolve a presentation attribute value, falling back to the
+     * `style` attribute's CSS declaration of the same property when
+     * the presentation form is absent. SVG 2 §6.1 defines this
+     * equivalence: `fill="green"` and `style="fill: green"` are
+     * interchangeable. The wpt-harness DOM settler projects
+     * computed CSS values into inline `style` so external rules
+     * reach this hook too.
+     *
+     * Block comments (the settler emits a `/* phpdftk-settle-dom *\/`
+     * marker) are stripped before tokenising so the prefix doesn't
+     * fool the property-name match.
+     */
+    protected function presentationOrStyle(string $property): ?string
+    {
+        $raw = $this->attributes[$property] ?? null;
+        if ($raw !== null) {
+            return $raw;
+        }
+        $style = $this->attributes['style'] ?? null;
+        if ($style === null) {
+            return null;
+        }
+        $cleaned = preg_replace('/\/\*.*?\*\//s', ' ', $style) ?? $style;
+        $target = strtolower($property);
+        foreach (explode(';', $cleaned) as $decl) {
+            $colon = strpos($decl, ':');
+            if ($colon === false) {
+                continue;
+            }
+            $name = strtolower(trim(substr($decl, 0, $colon)));
+            if ($name !== $target) {
+                continue;
+            }
+            $value = trim(substr($decl, $colon + 1));
+            return $value === '' ? null : $value;
+        }
+        return null;
     }
 
     private function parseNumberPrefix(string $raw): ?float

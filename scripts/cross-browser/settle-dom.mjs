@@ -230,6 +230,38 @@ try {
         die(3, `navigation failed: ${err.message}`);
     }
 
+    // Pin SVG SMIL animations at t=0. Real browsers tick the SVG
+    // timeline forward at 60 Hz and render whatever animation frame
+    // happens to be current when the screenshot fires; for our
+    // static renderer we want the initial state at every <svg>
+    // element's timeline, so every fixture renders the same way it
+    // would in a browser at the instant of SVG construction.
+    //
+    // pauseAnimations() halts the SMIL timeline; setCurrentTime(0)
+    // snaps to t=0. The pair together captures the at-construction
+    // state. See SVG 2 §17.2.5 (SVGSVGElement.pauseAnimations) and
+    // §17.2.6 (setCurrentTime).
+    //
+    // Same model as the CSS-animation t=0 lock above: the static
+    // renderer evaluates animations at the start frame, not at
+    // whatever frame the browser happens to be on.
+    try {
+        await page.evaluate(() => {
+            for (const svg of document.querySelectorAll('svg')) {
+                if (typeof svg.pauseAnimations === 'function') {
+                    try { svg.pauseAnimations(); } catch {}
+                }
+                if (typeof svg.setCurrentTime === 'function') {
+                    try { svg.setCurrentTime(0); } catch {}
+                }
+            }
+        });
+    } catch {
+        // Page in a weird state; settling continues without the
+        // SMIL pin. Trade a bit of test-author-intent for forward
+        // progress.
+    }
+
     // Some WPT fixtures wait on a `TestRendered` event (dispatched
     // by browsers after the first layout / paint cycle) before
     // running their setup JavaScript. Real browsers fire it after
