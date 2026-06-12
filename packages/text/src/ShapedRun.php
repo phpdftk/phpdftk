@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Text;
 
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 
 /**
  * Output of {@see Shaper::shapeRun} — a sequence of positioned glyphs all
@@ -18,7 +18,7 @@ final readonly class ShapedRun
 {
     /** @param list<ShapedGlyph> $glyphs */
     public function __construct(
-        public OpenTypeData $font,
+        public FontFaceData $font,
         public float $fontSizePt,
         public ShapingDirection $direction,
         public array $glyphs,

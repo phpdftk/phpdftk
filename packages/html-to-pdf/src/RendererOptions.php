@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\HtmlToPdf;
 
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 use Phpdftk\HtmlToPdf\Layout\FontFace;
 use Phpdftk\ResourceLoader\ResourceLoader as HttpResourceLoader;
 
@@ -12,7 +12,7 @@ use Phpdftk\ResourceLoader\ResourceLoader as HttpResourceLoader;
  * Configuration for the {@see Renderer}. Immutable; mutate via `with*()`.
  *
  * Phase-1 minimum surface: page size (width × height in PDF points),
- * default font (optional `OpenTypeData` — when set, text emission works
+ * default font (optional `FontFaceData` — when set, text emission works
  * end-to-end; when null the painter emits no text, useful for headless
  * tests), an override for the built-in UA stylesheet, and the strict
  * mode toggle that promotes `Error`-severity warnings to thrown
@@ -28,7 +28,7 @@ final readonly class RendererOptions
     public function __construct(
         public float $pageWidth = 612.0,
         public float $pageHeight = 792.0,
-        public ?OpenTypeData $defaultFont = null,
+        public ?FontFaceData $defaultFont = null,
         public ?string $userAgentStylesheet = null,
         public bool $strict = false,
         /**
@@ -57,7 +57,7 @@ final readonly class RendererOptions
          * Renderer falls back to `defaultFont`. The map is normalised to
          * lower-case keys on construction.
          *
-         * @var array<string, OpenTypeData>
+         * @var array<string, FontFaceData>
          */
         public array $fontMap = [],
         /**
@@ -106,7 +106,7 @@ final readonly class RendererOptions
         );
     }
 
-    public function withDefaultFont(?OpenTypeData $font): self
+    public function withDefaultFont(?FontFaceData $font): self
     {
         return new self(
             $this->pageWidth,
@@ -234,7 +234,7 @@ final readonly class RendererOptions
     ];
 
     /**
-     * Replace the font map with the given `family-name → OpenTypeData`
+     * Replace the font map with the given `family-name → FontFaceData`
      * mapping. Keys are normalised to lower-case so `font-family: Inter`
      * and `font-family: inter` resolve the same way.
      *
@@ -244,7 +244,7 @@ final readonly class RendererOptions
      * up that font without the document having to opt in. See
      * {@see withGenericFamilies()} for a stricter helper.
      *
-     * @param array<string, OpenTypeData> $fonts
+     * @param array<string, FontFaceData> $fonts
      */
     public function withFonts(array $fonts): self
     {
@@ -327,7 +327,7 @@ final readonly class RendererOptions
      * `monospace` here is the lowest-effort way to switch code blocks to
      * a fixed-width font without rewriting markup.
      *
-     * @param array<string, OpenTypeData> $generics
+     * @param array<string, FontFaceData> $generics
      */
     public function withGenericFamilies(array $generics): self
     {

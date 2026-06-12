@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Phpdftk\HtmlToPdf\Layout;
 
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 
 /**
- * One face inside a CSS font family — a single `OpenTypeData` with its
+ * One face inside a CSS font family — a single `FontFaceData` with its
  * `font-weight` / `font-style` / `font-stretch` metadata so
  * {@see FontResolver} can run CSS Fonts 4 §6 font-matching (weight matching
  * + style matching + stretch matching) over a multi-face family.
@@ -20,13 +20,13 @@ use Phpdftk\FontParser\OpenTypeData;
  */
 final readonly class FontFace
 {
-    public OpenTypeData $data;
+    public FontFaceData $data;
     public int $weight;
     public string $style;
     public float $stretch;
 
     public function __construct(
-        OpenTypeData $data,
+        FontFaceData $data,
         int $weight = 400,
         string $style = 'normal',
         float $stretch = 100.0,

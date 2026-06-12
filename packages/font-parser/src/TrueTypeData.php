@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\FontParser;
 
-readonly class TrueTypeData
+readonly class TrueTypeData extends FontFaceData
 {
     /**
      * @param string $postScriptName  PostScript name (name table ID 6)
@@ -31,27 +31,49 @@ readonly class TrueTypeData
      * @param ?list<array{subfamilyNameId: int, coordinates: array<string, float>}> $namedInstances Named instances from fvar
      */
     public function __construct(
-        public string $postScriptName,
-        public string $familyName,
-        public int $ascent,
-        public int $descent,
-        public int $capHeight,
-        public int $xHeight,
-        public float $italicAngle,
-        public int $stemV,
-        public int $flags,
-        public array $fontBBox,
-        public array $charWidths,
-        public array $unicodeMap,
-        public string $fontBytes,
-        public bool $embeddingAllowed,
-        public int $unitsPerEm = 1000,
-        public array $fullUnicodeToGid = [],
-        public array $glyphWidths = [],
-        public ?array $kernPairs = null,
-        public ?array $ligatures = null,
+        string $postScriptName,
+        string $familyName,
+        int $ascent,
+        int $descent,
+        int $capHeight,
+        int $xHeight,
+        float $italicAngle,
+        int $stemV,
+        int $flags,
+        array $fontBBox,
+        array $charWidths,
+        array $unicodeMap,
+        string $fontBytes,
+        bool $embeddingAllowed,
+        int $unitsPerEm = 1000,
+        array $fullUnicodeToGid = [],
+        array $glyphWidths = [],
+        ?array $kernPairs = null,
+        ?array $ligatures = null,
         public bool $isVariableFont = false,
         public ?array $variationAxes = null,
         public ?array $namedInstances = null,
-    ) {}
+    ) {
+        parent::__construct(
+            $postScriptName,
+            $familyName,
+            $ascent,
+            $descent,
+            $capHeight,
+            $xHeight,
+            $italicAngle,
+            $stemV,
+            $flags,
+            $fontBBox,
+            $charWidths,
+            $unicodeMap,
+            $fontBytes,
+            $embeddingAllowed,
+            $unitsPerEm,
+            $fullUnicodeToGid,
+            $glyphWidths,
+            $kernPairs,
+            $ligatures,
+        );
+    }
 }

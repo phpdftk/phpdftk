@@ -8,9 +8,12 @@ namespace Phpdftk\FontParser;
  * Parsed OpenType CFF font data — metrics, glyph widths, and raw CFF bytes.
  *
  * Mirrors TrueTypeData but adds the CFF table bytes and stores the
- * full raw font file for potential whole-file embedding.
+ * full raw font file for potential whole-file embedding. Both extend
+ * {@see FontFaceData} so consumers that don't care about the outline
+ * format (Shaper, FontResolver, layout) can take the base type, and
+ * the PdfWriter dispatches CFF vs glyf embedding via `instanceof`.
  */
-readonly class OpenTypeData
+readonly class OpenTypeData extends FontFaceData
 {
     /**
      * @param string $postScriptName  PostScript name (name table ID 6)
@@ -41,29 +44,55 @@ readonly class OpenTypeData
      *        STIX Two Math, Cambria Math, ...). Null for non-math fonts.
      */
     public function __construct(
-        public string $postScriptName,
-        public string $familyName,
-        public int $ascent,
-        public int $descent,
-        public int $capHeight,
-        public int $xHeight,
-        public float $italicAngle,
-        public int $stemV,
-        public int $flags,
-        public array $fontBBox,
-        public array $charWidths,
-        public array $unicodeMap,
+        string $postScriptName,
+        string $familyName,
+        int $ascent,
+        int $descent,
+        int $capHeight,
+        int $xHeight,
+        float $italicAngle,
+        int $stemV,
+        int $flags,
+        array $fontBBox,
+        array $charWidths,
+        array $unicodeMap,
         public string $cffBytes,
-        public string $fontBytes,
-        public bool $embeddingAllowed,
-        public int $unitsPerEm = 1000,
-        public array $fullUnicodeToGid = [],
-        public array $glyphWidths = [],
-        public ?array $kernPairs = null,
-        public ?array $ligatures = null,
-        public ?array $verticalWidths = null,
-        public ?int $underlinePosition = null,
-        public ?int $underlineThickness = null,
-        public ?MathTableData $mathTable = null,
-    ) {}
+        string $fontBytes,
+        bool $embeddingAllowed,
+        int $unitsPerEm = 1000,
+        array $fullUnicodeToGid = [],
+        array $glyphWidths = [],
+        ?array $kernPairs = null,
+        ?array $ligatures = null,
+        ?array $verticalWidths = null,
+        ?int $underlinePosition = null,
+        ?int $underlineThickness = null,
+        ?MathTableData $mathTable = null,
+    ) {
+        parent::__construct(
+            $postScriptName,
+            $familyName,
+            $ascent,
+            $descent,
+            $capHeight,
+            $xHeight,
+            $italicAngle,
+            $stemV,
+            $flags,
+            $fontBBox,
+            $charWidths,
+            $unicodeMap,
+            $fontBytes,
+            $embeddingAllowed,
+            $unitsPerEm,
+            $fullUnicodeToGid,
+            $glyphWidths,
+            $kernPairs,
+            $ligatures,
+            $verticalWidths,
+            $underlinePosition,
+            $underlineThickness,
+            $mathTable,
+        );
+    }
 }

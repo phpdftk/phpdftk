@@ -96,7 +96,7 @@ final class Painter
          * builds its `$fontMap` from @font-face and
          * RendererOptions::fontMap.
          *
-         * @var array<string, \Phpdftk\FontParser\OpenTypeData>
+         * @var array<string, \Phpdftk\FontParser\FontFaceData>
          */
         private readonly array $fontDataByFamily = [],
         /**
@@ -1797,7 +1797,14 @@ final class Painter
      */
     private function paintLineBoxes(Box $box, ContentStream $stream): void
     {
-        if ($box->lineBoxes === [] || $this->defaultFont === null) {
+        // Text emission needs a registered font to look up. Skip
+        // entirely when neither the registered map nor the explicit
+        // default supplies a candidate Tf resource for any fragment —
+        // the result is a no-op text pass so background/border
+        // content still renders.
+        if ($box->lineBoxes === []
+            || ($this->defaultFont === null && $this->registeredFonts === [])
+        ) {
             return;
         }
         $color = $box->style->get('color');
@@ -2251,7 +2258,16 @@ final class Painter
         // font wasn't registered (e.g., the resolver returned defaultFont
         // and there's no alt map).
         $registered = $this->registeredFonts[$font->postScriptName] ?? $this->defaultFont;
-        $stream->setFont($registered ?? $font->postScriptName, $shapedRun->fontSizePt);
+        if ($registered === null) {
+            // No registered Tf resource matches this fragment's font and
+            // no default font is set either. Emitting a `Tf` op with a
+            // bare postScriptName yields garbage in the viewer (some
+            // fall back to an arbitrary font, others render nothing) —
+            // both cases regress reftests that previously produced an
+            // empty page. Skip the fragment instead.
+            return;
+        }
+        $stream->setFont($registered, $shapedRun->fontSizePt);
         // Fake-italic via a 12° skew in the Tm `c` slot (≈ tan(12°) = 0.213).
         // CSS Fonts 4 §6.4.1 lets browsers synthesise oblique from regular
         // when no real italic face is registered; this is the same trick.
@@ -4473,7 +4489,7 @@ final class Painter
      */
     private function mathFontDataFor(
         \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
-    ): ?\Phpdftk\FontParser\OpenTypeData {
+    ): ?\Phpdftk\FontParser\FontFaceData {
         if ($this->fontDataByFamily === []) {
             return null;
         }
@@ -4515,7 +4531,13 @@ final class Painter
         \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
     ): \Phpdftk\MathmlToPdf\MathmlRenderer {
         $fontData = $this->mathFontDataFor($box);
-        if ($fontData === null) {
+        // The MathML renderer needs CFF outlines for its math-table-
+        // driven glyph variants. TrueType math fonts exist (`STIXTwoMath`
+        // ships both), but the math path is wired through the OT-CFF
+        // subset/embed flow today. Drop back to the cached default
+        // renderer for non-CFF data — the math layout still runs, just
+        // without the size-variant / assembly-part substitution layer.
+        if (!$fontData instanceof \Phpdftk\FontParser\OpenTypeData) {
             return $this->mathmlRenderer();
         }
         assert($this->page !== null && $this->writer !== null);

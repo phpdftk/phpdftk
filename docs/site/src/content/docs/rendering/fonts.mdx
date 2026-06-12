@@ -1,0 +1,68 @@
+---
+title: Fonts
+description: How phpdftk loads, shapes, and embeds fonts — both OpenType (CFF) and TrueType (glyf) — including the @font-face pipeline and font-family resolution.
+---
+
+phpdftk's HTML renderer supports both font formats Web authors actually ship:
+
+- **OpenType CFF** (`sfVersion = OTTO`) — the format most "pro" foundry fonts use.
+- **TrueType** (`sfVersion = 0x00010000`) — the format most Web fonts and system fonts (Arial, Times, Inter, Roboto, Ahem, …) use.
+
+Both flow through the same renderer surface; the format-specific parts live behind a polymorphic base class so layout, shaping, and resolution don't have to care which kind of font they're working with.
+
+## The font data model
+
+`Phpdftk\FontParser\FontFaceData` is the shared base. It exposes the fields that any consumer of a parsed font reads: metric tables (`ascent`, `descent`, `capHeight`, `xHeight`, `unitsPerEm`), glyph mapping (`fullUnicodeToGid`, `glyphWidths`), and the raw font file bytes.
+
+Two subclasses extend it:
+
+| Subclass | sfVersion | Outline table | PDF embed path |
+|---|---|---|---|
+| `OpenTypeData` | `OTTO` | `CFF ` | `/FontFile3 /Subtype /CIDFontType0C` |
+| `TrueTypeData` | `0x00010000` | `glyf` + `loca` | `/FontFile2` |
+
+`Shaper`, `FontResolver`, and `RendererOptions::$fontMap` accept the base type, so a single font registry can mix both kinds. The PDF writer dispatches via `instanceof` at registration time — CFF gets the CFF subsetter, TrueType gets the glyf subsetter — but the layout pipeline doesn't see that distinction.
+
+## `@font-face` loading
+
+`<style>@font-face { font-family: Inter; src: url(Inter.ttf); }</style>` resolves through the same pipeline regardless of format:
+
+1. `Renderer::loadFontFaces` walks every `<style>` and `<link rel="stylesheet">` sheet for `@font-face` rules.
+2. Each `src` URL is fetched through the resource loader (data URLs, local files under `baseDir`, optional HTTP via `phpdftk/resource-loader`).
+3. The bytes are tried first with `OpenTypeParser`. When that rejects them (the bytes are TrueType, not CFF), the renderer falls back to `TrueTypeParser`.
+4. The parsed `FontFaceData` joins the renderer's `fontMap` under the declared family name.
+
+Both parser failures produce a single Warning naming each one:
+
+```
+@font-face `Inter` source failed to parse:
+    OpenType: Not an OpenType CFF font (sfVersion=0x00010000); expected 0x4F54544F ("OTTO");
+    TrueType: <reason>
+```
+
+Only after both parsers reject is the source dropped and the next `src` candidate tried.
+
+## Default font vs registered map
+
+The renderer has two ways to know about a font:
+
+- `RendererOptions::withDefaultFont($font)` — the fallback when the cascade doesn't pick a specific family. The setter accepts either subclass of `FontFaceData`.
+- `RendererOptions::withFonts(['Inter' => $font, ...])` — additional families resolvable by name. Populated automatically when `@font-face` rules in the document declare new families.
+
+When the cascaded `font-family` matches a key in the registered map, the resolver returns that font. Otherwise it falls back to `defaultFont`. Text painting works as long as **either** is available; the historical "no defaultFont means no text" gate was lifted so an `@font-face`-only setup paints correctly.
+
+## What changes when you load Ahem
+
+The Web Platform Tests reference fixture `Ahem.ttf` is a TrueType font. Before this support landed, fixtures that loaded Ahem via `<link rel="stylesheet" href="/fonts/ahem.css">` rendered with empty text — the parser rejected the bytes and the harness compared blank PDFs.
+
+After: the TTF loads cleanly, glyphs shape against Ahem's `cmap` and `glyf` tables, and the WPT corpus that depends on Ahem's predictable square glyphs becomes scoreable.
+
+## Performance
+
+The TrueType parser and the CFF parser are both header-only — neither decodes pixel data, and both stop after extracting the descriptor + glyph maps. Cold-cache parse for Ahem (≈ 6 KB sfnt) is below a millisecond on a modern laptop. `benchmarks/FontFaceLoadBench.php` tracks both formats side-by-side so a regression in one doesn't silently affect the other.
+
+## What's still pending
+
+- **WOFF 2** — `phpdftk/font-parser` decompresses WOFF 1.0 transparently, but the WOFF 2.0 Brotli container hasn't been wired yet. Authors shipping `url(font.woff2)` will see the source dropped with a Warning until that lands.
+- **Variable fonts** — `TrueTypeData` exposes the `fvar` axes and named instances, but `font-variation-settings` doesn't yet pick a specific instance for layout. This is a downstream layout change, not a parser gap.
+- **Synthetic bold / italic** — the painter falls back to a 2D-skew italic and a stroke-2 fake bold when no real face matches. Real fakes still beat dropping the glyphs but visibly diverge from a properly-designed italic / bold cut.

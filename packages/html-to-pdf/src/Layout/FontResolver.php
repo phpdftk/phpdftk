@@ -9,11 +9,11 @@ use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\StringValue;
 use Phpdftk\Css\Value\Value;
 use Phpdftk\Css\Value\ValueList;
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 
 /**
  * Resolves a cascaded `font-family` (+ optional `font-weight` / `font-style`)
- * to a concrete `OpenTypeData` by walking the family list left-to-right and
+ * to a concrete `FontFaceData` by walking the family list left-to-right and
  * picking the closest matching face per CSS Fonts 4 §6 font-matching.
  *
  * Two layers:
@@ -32,12 +32,12 @@ use Phpdftk\FontParser\OpenTypeData;
 final readonly class FontResolver
 {
     /**
-     * @param array<string, OpenTypeData> $fontMap legacy single-face map
+     * @param array<string, FontFaceData> $fontMap legacy single-face map
      * @param array<string, list<FontFace>> $faceMap weight/style-tagged faces
      */
     public function __construct(
         private array $fontMap,
-        private ?OpenTypeData $defaultFont,
+        private ?FontFaceData $defaultFont,
         private array $faceMap = [],
     ) {}
 
@@ -52,7 +52,7 @@ final readonly class FontResolver
         int $weight = 400,
         string $style = 'normal',
         float $stretch = 100.0,
-    ): ?OpenTypeData {
+    ): ?FontFaceData {
         $match = $this->resolveMatch($fontFamily, $weight, $style, $stretch);
         return $match?->face->data ?? $this->defaultFont;
     }

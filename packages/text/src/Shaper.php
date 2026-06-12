@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\Text;
 
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 
 /**
  * OpenType text shaper.
@@ -96,7 +96,7 @@ final class Shaper
         );
     }
 
-    private static function lookupGid(int $codepoint, OpenTypeData $font): int
+    private static function lookupGid(int $codepoint, FontFaceData $font): int
     {
         return $font->fullUnicodeToGid[$codepoint] ?? 0;
     }

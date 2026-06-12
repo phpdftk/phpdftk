@@ -2293,6 +2293,89 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testFontFaceLoadsTrueTypeFont(): void
+    {
+        // `@font-face` should accept TrueType (`sfVersion = 0x00010000`)
+        // sources, not just OpenType-CFF (`OTTO`). The renderer falls
+        // back to TrueTypeParser when OpenTypeParser rejects the bytes.
+        // Without this, every WPT fixture that loads Ahem (and most do)
+        // renders no text at all.
+        $ttfPath = realpath(__DIR__ . '/../../../vendor-data/wpt/fonts/Ahem.ttf');
+        if ($ttfPath === false) {
+            self::markTestSkipped('Ahem.ttf unavailable; needs the wpt vendor submodule');
+        }
+        $baseDir = dirname($ttfPath);
+        $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@font-face { font-family: Ahem; src: url(Ahem.ttf); }'
+            . 'div { font-family: Ahem; font-size: 50px; color: green; }'
+            . '</style></head><body><div>XX</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // Real text emission requires (a) the @font-face TTF to load,
+        // (b) the painter to register the font, (c) the painter to NOT
+        // bail when defaultFont is null but a registered font exists.
+        // All three were broken before this change; assert all three.
+        self::assertMatchesRegularExpression(
+            '~/BaseFont /Ahem~',
+            $bytes,
+            'Ahem registered as a Type0 base font',
+        );
+        self::assertMatchesRegularExpression(
+            '~BT\s+/F\d+ 50 Tf~',
+            $bytes,
+            'text run opened with the registered font',
+        );
+        self::assertMatchesRegularExpression(
+            '~Tj~',
+            $bytes,
+            'glyph string emitted',
+        );
+        self::assertMatchesRegularExpression(
+            '~0 0\.5019607843 0 rg~',
+            $bytes,
+            'cascaded color reaches the text run',
+        );
+    }
+
+    public function testFontFaceRejectsMalformedFontSourceWithBothParsers(): void
+    {
+        // Negative case: garbage bytes pass neither OpenTypeParser nor
+        // TrueTypeParser. The face should drop with a Warning that
+        // names both parser errors; the rest of the document still
+        // renders (background + border content).
+        $baseDir = sys_get_temp_dir() . '/phpdftk-bad-font-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents($baseDir . '/bad.ttf', "this is definitely not an sfnt");
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $result = $renderer->render(
+                '<html><head><style>'
+                . '@font-face { font-family: Bad; src: url(bad.ttf); }'
+                . 'div { font-family: Bad; }'
+                . '</style></head><body><div>x</div></body></html>',
+            );
+            $parseWarnings = array_filter(
+                $result->warnings,
+                static fn($w): bool => str_contains($w->message, 'OpenType:')
+                    && str_contains($w->message, 'TrueType:'),
+            );
+            self::assertCount(
+                1,
+                $parseWarnings,
+                'one warning naming both parser errors',
+            );
+            $bytes = $result->writer->toBytes();
+            self::assertStringStartsWith('%PDF-', $bytes, 'document still produces a valid PDF');
+        } finally {
+            @unlink($baseDir . '/bad.ttf');
+            @rmdir($baseDir);
+        }
+    }
+
     public function testImgWithSvgSrcPaintsBackgroundOnSvgRoot(): void
     {
         // `<img src="*.svg">` should route through the SVG painter

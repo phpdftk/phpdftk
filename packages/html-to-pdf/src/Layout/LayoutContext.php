@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Phpdftk\HtmlToPdf\Layout;
 
 use Phpdftk\Css\Cascade\LengthContext;
-use Phpdftk\FontParser\OpenTypeData;
+use Phpdftk\FontParser\FontFaceData;
 
 /**
  * Per-layout-step context: the containing block's content width / height,
@@ -20,7 +20,7 @@ use Phpdftk\FontParser\OpenTypeData;
  * `defaultFont` is null when no font is wired in yet — in that case
  * inline layout falls back to producing zero-height placeholders so
  * block layout can still run end-to-end. Hosts that want real typography
- * provide a parsed `OpenTypeData` here (see `phpdftk/font-parser`).
+ * provide a parsed `FontFaceData` here (see `phpdftk/font-parser`).
  */
 final readonly class LayoutContext
 {
@@ -30,7 +30,7 @@ final readonly class LayoutContext
         public float $originX,
         public float $originY,
         public LengthContext $lengthContext,
-        public ?OpenTypeData $defaultFont = null,
+        public ?FontFaceData $defaultFont = null,
         /**
          * Optional multi-font selector. When set, `InlineLayout` picks the
          * shaping font per box from this resolver — falling back to

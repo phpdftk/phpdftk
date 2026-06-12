@@ -254,7 +254,8 @@ final class Renderer
             /** @var array<string, \Phpdftk\Pdf\Core\Font\RegisteredFont> $registeredMap */
             $registeredMap = [];
             if ($this->options->defaultFont !== null) {
-                $registeredFont = $writer->addOpenTypeFont(
+                $registeredFont = $this->registerFontWithPdfWriter(
+                    $writer,
                     $this->options->defaultFont,
                     $codepoints,
                     $page,
@@ -270,7 +271,8 @@ final class Renderer
                 if (isset($registeredMap[$alt->postScriptName])) {
                     continue;
                 }
-                $registeredMap[$alt->postScriptName] = $writer->addOpenTypeFont(
+                $registeredMap[$alt->postScriptName] = $this->registerFontWithPdfWriter(
+                    $writer,
                     $alt,
                     $codepoints,
                     $page,
@@ -284,7 +286,8 @@ final class Renderer
                     if (isset($registeredMap[$face->data->postScriptName])) {
                         continue;
                     }
-                    $registeredMap[$face->data->postScriptName] = $writer->addOpenTypeFont(
+                    $registeredMap[$face->data->postScriptName] = $this->registerFontWithPdfWriter(
+                        $writer,
                         $face->data,
                         $codepoints,
                         $page,
@@ -1201,7 +1204,7 @@ final class Renderer
      *
      * @param list<Stylesheet> $sheets
      * @param list<Warning> $warnings
-     * @return iterable<string, \Phpdftk\FontParser\OpenTypeData>
+     * @return iterable<string, \Phpdftk\FontParser\FontFaceData>
      */
     private function loadFontFaces(array $sheets, array &$warnings): iterable
     {
@@ -1272,19 +1275,9 @@ final class Renderer
                             continue;
                         }
                     }
-                    try {
-                        $data = \Phpdftk\FontParser\OpenTypeParser::fromBytes($bytes)->parse();
+                    $data = $this->parseFontFace($bytes, $family, $warnings);
+                    if ($data !== null) {
                         break;
-                    } catch (\Throwable $e) {
-                        $warnings[] = new Warning(
-                            WarningCode::UnsupportedCssValue,
-                            sprintf(
-                                '@font-face `%s` source failed to parse: %s',
-                                $family,
-                                $e->getMessage(),
-                            ),
-                            WarningSeverity::Warning,
-                        );
                     }
                 }
                 if ($data === null) {
@@ -1300,6 +1293,75 @@ final class Renderer
                 }
                 yield $family => $data;
             }
+        }
+    }
+
+    /**
+     * Register `$font` with the writer through the right Type 0 path:
+     * `addOpenTypeFont` for CFF outlines, `addCompositeFont` for
+     * TrueType glyf outlines. The two subtypes share the metric and
+     * glyph-mapping fields the renderer needs, but the PDF embed paths
+     * differ — CFF gets a `/FontFile3 /Subtype /CIDFontType0C` stream
+     * with a CFF subsetter, TrueType gets a `/FontFile2` stream with
+     * a glyf subsetter.
+     *
+     * @param array<int>|list<int> $codepoints
+     */
+    private function registerFontWithPdfWriter(
+        \Phpdftk\Pdf\Writer\PdfWriter $writer,
+        \Phpdftk\FontParser\FontFaceData $font,
+        array $codepoints,
+        \Phpdftk\Pdf\Writer\Page $page,
+    ): \Phpdftk\Pdf\Core\Font\RegisteredFont {
+        if ($font instanceof \Phpdftk\FontParser\TrueTypeData) {
+            return $writer->addCompositeFont($font, $codepoints, $page);
+        }
+        if ($font instanceof \Phpdftk\FontParser\OpenTypeData) {
+            return $writer->addOpenTypeFont($font, $codepoints, $page);
+        }
+        throw new \LogicException(sprintf(
+            'Unsupported font type: %s',
+            $font::class,
+        ));
+    }
+
+    /**
+     * Parse the bytes of an `@font-face` source into a {@see FontFaceData},
+     * trying the OpenType (CFF) parser first and falling back to the
+     * TrueType (glyf) parser when the sfVersion tag says it isn't CFF.
+     *
+     * The two formats share `sfnt` table layout; what differs is which
+     * outline table the font carries (`CFF ` for OpenType vs `glyf`/`loca`
+     * for TrueType). The downstream PDF embed path checks the concrete
+     * subclass and routes through the matching subset+stream emit.
+     *
+     * Returns null when both parsers reject the bytes — the caller falls
+     * back to the next `src` candidate.
+     *
+     * @param list<Warning> $warnings
+     */
+    private function parseFontFace(string $bytes, string $family, array &$warnings): ?\Phpdftk\FontParser\FontFaceData
+    {
+        $otError = null;
+        try {
+            return \Phpdftk\FontParser\OpenTypeParser::fromBytes($bytes)->parse();
+        } catch (\Throwable $e) {
+            $otError = $e;
+        }
+        try {
+            return \Phpdftk\FontParser\TrueTypeParser::fromBytes($bytes)->parse();
+        } catch (\Throwable $ttError) {
+            $warnings[] = new Warning(
+                WarningCode::UnsupportedCssValue,
+                sprintf(
+                    '@font-face `%s` source failed to parse: OpenType: %s; TrueType: %s',
+                    $family,
+                    $otError->getMessage(),
+                    $ttError->getMessage(),
+                ),
+                WarningSeverity::Warning,
+            );
+            return null;
         }
     }
 
@@ -2279,7 +2341,7 @@ final class Renderer
         array $boxes,
         float $pageWidth,
         float $pageHeight,
-        \Phpdftk\FontParser\OpenTypeData $font,
+        \Phpdftk\FontParser\FontFaceData $font,
         \Phpdftk\Pdf\Core\Font\RegisteredFont $registered,
         int $pageIndex,
         int $pageCount,

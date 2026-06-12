@@ -90,10 +90,19 @@ final class InlineLayout
         $shapingCtx = new ShapingContext($font, $fontSize, features: $this->resolveOpenTypeFeatures($parent));
         $lineHeight = $this->resolveLineHeight($parent, $fontSize);
         $whiteSpace = $this->whiteSpaceKeyword($parent);
+        // CSS Text 3 §4 — wrap permission table:
+        //   normal / pre-wrap / pre-line / break-spaces → allow soft wrap
+        //   nowrap / pre → no soft wrap
         $allowSoftWrap = $whiteSpace !== 'nowrap' && $whiteSpace !== 'pre';
-        // `pre` and `pre-wrap` preserve whitespace; only `normal` / `nowrap` /
-        // `pre-line` collapse leading whitespace at line starts (CSS Text 3 §4).
-        $collapseLeadingWhitespace = $whiteSpace !== 'pre' && $whiteSpace !== 'pre-wrap';
+        // CSS Text 3 §4 — leading-whitespace collapse table:
+        //   normal / nowrap / pre-line → collapse leading whitespace
+        //   pre / pre-wrap / break-spaces → preserve leading whitespace
+        // (`break-spaces` is `pre-wrap` plus the additional rule that
+        // every preserved space is a wrap opportunity. Leading-edge
+        // semantics match `pre-wrap` — both keep the leading run.)
+        $collapseLeadingWhitespace = $whiteSpace !== 'pre'
+            && $whiteSpace !== 'pre-wrap'
+            && $whiteSpace !== 'break-spaces';
         $collapseInternalWhitespace = $whiteSpace === 'normal' || $whiteSpace === 'nowrap';
 
         $letterSpacing = $this->resolveLetterSpacing($parent);
@@ -1211,9 +1220,9 @@ final class InlineLayout
      * derives the post-match "still needs synthetic effect" flags by
      * comparing the matched face's axes against the requested cascade.
      *
-     * @return array{font: ?\Phpdftk\FontParser\OpenTypeData, isBold: bool, isItalic: bool}
+     * @return array{font: ?\Phpdftk\FontParser\FontFaceData, isBold: bool, isItalic: bool}
      */
-    private function resolveBoxFont(Box $box, ?\Phpdftk\FontParser\OpenTypeData $fallback): array
+    private function resolveBoxFont(Box $box, ?\Phpdftk\FontParser\FontFaceData $fallback): array
     {
         $weight = $this->resolveWeight($box);
         $style = $this->resolveStyle($box);
