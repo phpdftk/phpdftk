@@ -399,7 +399,12 @@ final class BlockLayout
         // width is an explicit length (auto width already greedily fills
         // the available space). The remaining slack is split between the
         // auto-margin sides; `margin: 0 auto` centers a fixed-width box.
-        if (!$widthAuto && ($marginLeftAuto || $marginRightAuto)) {
+        // CSS 2.1 §10.3.3 auto-margin distribution applies to in-flow
+        // boxes. For `position: absolute` / `fixed`, §10.3.7 defines its
+        // own auto-margin rules (resolved later in
+        // {@see resolveAbsoluteOffsets}); applying the in-flow rule here
+        // would double-shift the abs-pos box.
+        if (!$widthAuto && ($marginLeftAuto || $marginRightAuto) && !$this->isOutOfFlow($box)) {
             $slack = $cbWidth
                 - $geo->width
                 - $geo->borderLeft - $geo->borderRight
@@ -824,6 +829,32 @@ final class BlockLayout
             $dy = $originY + $cbHeight - $bottomOffset
                 - $cursorY - $child->geometry->outerHeight();
         }
+        // CSS 2.1 §10.6.5 — when `top`, `height`, and `bottom` are all
+        // non-`auto` and both `margin-top` and `margin-bottom` are
+        // `auto`, set them to equal halves of the slack. The vertical
+        // axis has no direction-conditioned tie-break.
+        $marginTopValue = $style->get('margin-top');
+        $marginBottomValue = $style->get('margin-bottom');
+        if (!$this->isAuto($top)
+            && !$this->isAuto($bottom)
+            && !$this->isHeightAutoLike($style->get('height'))
+            && $this->isAuto($marginTopValue)
+            && $this->isAuto($marginBottomValue)
+        ) {
+            $topPx = $this->resolveLength($top, $cbHeight);
+            $bottomPx = $this->resolveLength($bottom, $cbHeight);
+            $borderBoxH = $this->isBorderBoxSizing($style);
+            $heightPx = $this->resolveLength($style->get('height'), $cbHeight);
+            $outerH = $heightPx;
+            if (!$borderBoxH) {
+                $outerH += $this->resolveBorderWidth($style, 'top')
+                    + $this->resolveBorderWidth($style, 'bottom')
+                    + $this->resolveLength($style->get('padding-top'), $cbWidth)
+                    + $this->resolveLength($style->get('padding-bottom'), $cbWidth);
+            }
+            $slackH = $cbHeight - $topPx - $bottomPx - $outerH;
+            $dy = $originY + $topPx + ($slackH / 2.0) - $cursorY;
+        }
 
         $dx = 0.0;
         if (!$this->isAuto($left)) {
@@ -831,6 +862,46 @@ final class BlockLayout
         } elseif (!$this->isAuto($right)) {
             $rightOffset = $this->resolveLength($right, $cbWidth);
             $dx = $cbWidth - $rightOffset - $child->geometry->outerWidth();
+        }
+        // CSS 2.1 §10.3.7 — when `left`, `width`, and `right` are all
+        // non-`auto` and both `margin-left` and `margin-right` are
+        // `auto`, distribute the slack `cb - left - right - border -
+        // padding - width` evenly across both margins. If the slack is
+        // negative (over-constrained), force one margin to 0 by
+        // `direction`:
+        //   - `ltr`: `margin-left = 0`, `margin-right = -slack`
+        //   - `rtl`: `margin-right = 0`, `margin-left = -slack`
+        $marginLeft = $style->get('margin-left');
+        $marginRight = $style->get('margin-right');
+        if (!$this->isAuto($left)
+            && !$this->isAuto($right)
+            && !$this->isAuto($style->get('width'))
+            && $this->isAuto($marginLeft)
+            && $this->isAuto($marginRight)
+        ) {
+            $leftPx = $this->resolveLength($left, $cbWidth);
+            $rightPx = $this->resolveLength($right, $cbWidth);
+            $borderBox = $this->isBorderBoxSizing($style);
+            $widthPx = $this->resolveLength($style->get('width'), $cbWidth);
+            // Under content-box sizing, the declared `width` is the
+            // content-box; add own borders + padding for the outer.
+            $outer = $widthPx;
+            if (!$borderBox) {
+                $outer += $this->resolveBorderWidth($style, 'left')
+                    + $this->resolveBorderWidth($style, 'right')
+                    + $this->resolveLength($style->get('padding-left'), $cbWidth)
+                    + $this->resolveLength($style->get('padding-right'), $cbWidth);
+            }
+            $slack = $cbWidth - $leftPx - $rightPx - $outer;
+            if ($slack >= 0.0) {
+                $resolvedMarginLeft = $slack / 2.0;
+            } else {
+                $directionValue = $style->get('direction');
+                $isRtl = $directionValue instanceof Keyword
+                    && strtolower($directionValue->name) === 'rtl';
+                $resolvedMarginLeft = $isRtl ? $slack : 0.0;
+            }
+            $dx = $leftPx + $resolvedMarginLeft;
         }
         return [$dx, $dy];
     }

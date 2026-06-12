@@ -6616,6 +6616,108 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($col0X, $section->children[1]->geometry->x, 0.001);
     }
 
+    public function testAbsPosLtrAutoMarginsCenterFixedWidth(): void
+    {
+        // CSS 2.1 §10.3.7 — `position: absolute` with `left + width +
+        // right` all set and both margins `auto` (positive slack)
+        // distributes the slack evenly across the two margins. The
+        // resulting outer-left X sits at `left + slack/2` inside the
+        // containing block (LTR direction, ie. equal split).
+        $box = $this->buildTree(
+            '<html><body><div id="cb">'
+                . '<div id="inner"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 200px; height: 100px; }
+             #inner { position: absolute; left: 50px; right: 50px;
+                      width: 50px; height: 50px;
+                      margin-left: auto; margin-right: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->find($box, 'div');
+        self::assertNotNull($cb);
+        // Find the abs-pos inner box — second `div` traversal hit.
+        $inner = $cb->children[0];
+        // Slack = 200 - 50 - 50 - 50 = 50 → margin-left = 25.
+        // Inner outer X = cb.x + left + margin-left = cb.x + 50 + 25.
+        self::assertEqualsWithDelta($cb->geometry->x + 75.0, $inner->geometry->x, 0.001);
+    }
+
+    public function testAbsPosRtlOverConstrainedMarginsForceMarginRightZero(): void
+    {
+        // CSS 2.1 §10.3.7 — when slack is negative and direction is
+        // `rtl`, force `margin-right: 0` and set `margin-left = -slack`.
+        // For the WPT test fixture: left=100, right=100, width=100, cb=200
+        // → slack = -100 → margin-left = -100 → outer-X = cb.x + 0.
+        $box = $this->buildTree(
+            '<html><body><div id="cb">'
+                . '<div id="inner"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; direction: rtl;
+                   width: 200px; height: 200px; }
+             #inner { position: absolute; left: 100px; right: 100px;
+                      width: 100px; height: 100px;
+                      margin-left: auto; margin-right: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->find($box, 'div');
+        self::assertNotNull($cb);
+        $inner = $cb->children[0];
+        // dx = left + margin-left = 100 + (-100) = 0 → inner.x === cb.x.
+        self::assertEqualsWithDelta($cb->geometry->x, $inner->geometry->x, 0.001);
+    }
+
+    public function testAbsPosLtrOverConstrainedMarginsForceMarginLeftZero(): void
+    {
+        // CSS 2.1 §10.3.7 — same constraints as the RTL test above,
+        // but `direction: ltr` (the initial value) instead forces
+        // `margin-left: 0` so the outer-X sits at `cb.x + left`.
+        $box = $this->buildTree(
+            '<html><body><div id="cb">'
+                . '<div id="inner"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative;
+                   width: 200px; height: 200px; }
+             #inner { position: absolute; left: 100px; right: 100px;
+                      width: 100px; height: 100px;
+                      margin-left: auto; margin-right: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->find($box, 'div');
+        self::assertNotNull($cb);
+        $inner = $cb->children[0];
+        // dx = left + 0 = 100 → inner.x === cb.x + 100.
+        self::assertEqualsWithDelta($cb->geometry->x + 100.0, $inner->geometry->x, 0.001);
+    }
+
+    public function testAbsPosInFlowAutoMarginDistributionDoesNotApply(): void
+    {
+        // Negative test — the in-flow auto-margin distribution rule
+        // (CSS 2.1 §10.3.3) must NOT fire for `position: absolute`
+        // boxes, otherwise the abs-pos resolver double-shifts the box.
+        // With this skip plus the abs-pos rule firing instead, an
+        // unconstrained abs-pos box (only `left` set, both margins auto)
+        // lands at `cb.x + left` instead of being re-centred.
+        $box = $this->buildTree(
+            '<html><body><div id="cb">'
+                . '<div id="inner"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 400px; height: 100px; }
+             #inner { position: absolute; left: 30px; width: 100px;
+                      margin-left: auto; margin-right: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->find($box, 'div');
+        self::assertNotNull($cb);
+        $inner = $cb->children[0];
+        // With only `left` set + abs-pos rule not firing (right is
+        // auto), dx = left = 30 → inner.x === cb.x + 30.
+        self::assertEqualsWithDelta($cb->geometry->x + 30.0, $inner->geometry->x, 0.001);
+    }
+
     public function testForcedColumnBreaksBeyondColumnCountFallThroughToLastColumn(): void
     {
         // Two forced `break-before: column` requests in a 2-column
