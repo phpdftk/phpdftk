@@ -399,12 +399,18 @@ final class BlockLayout
         // width is an explicit length (auto width already greedily fills
         // the available space). The remaining slack is split between the
         // auto-margin sides; `margin: 0 auto` centers a fixed-width box.
-        // CSS 2.1 §10.3.3 auto-margin distribution applies to in-flow
-        // boxes. For `position: absolute` / `fixed`, §10.3.7 defines its
-        // own auto-margin rules (resolved later in
-        // {@see resolveAbsoluteOffsets}); applying the in-flow rule here
-        // would double-shift the abs-pos box.
-        if (!$widthAuto && ($marginLeftAuto || $marginRightAuto) && !$this->isOutOfFlow($box)) {
+        // CSS 2.1 §10.3.3 auto-margin distribution applies to in-flow,
+        // non-floated boxes. For `position: absolute` / `fixed`,
+        // §10.3.7 defines its own auto-margin rules (resolved later in
+        // {@see resolveAbsoluteOffsets}); applying the in-flow rule
+        // here would double-shift the abs-pos box. For floats,
+        // §9.5.1 says auto margins compute to 0 — let them stay
+        // at 0 so the float lands at its containing-block edge.
+        if (!$widthAuto
+            && ($marginLeftAuto || $marginRightAuto)
+            && !$this->isOutOfFlow($box)
+            && $this->floatSide($box) === null
+        ) {
             $slack = $cbWidth
                 - $geo->width
                 - $geo->borderLeft - $geo->borderRight

@@ -2635,6 +2635,34 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($grid->geometry->x + 100.0, $b->geometry->x, 0.001);
     }
 
+    public function testFloatAutoMarginResolvesToZero(): void
+    {
+        // CSS 2.1 §9.5.1 — auto margins on a floated element compute
+        // to 0 (they do NOT distribute the slack as auto margins do on
+        // in-flow elements). A `float: left; margin-left: auto;
+        // width: 1in;` element in a 2in containing block lands at the
+        // CB's left edge, not at `2in - 1in = 1in` (the centred result
+        // that in-flow auto-margin distribution would produce).
+        $box = $this->buildTree(
+            '<html><body><div class="cb">'
+                . '<div class="flt"></div>'
+                . '<div class="filler"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             .cb { width: 200px; height: 200px; }
+             .flt { float: left; width: 100px; height: 100px;
+                    margin-left: auto; margin-right: auto; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->find($box, 'div');
+        $flt = $this->find($box, 'div.flt');
+        self::assertNotNull($cb);
+        self::assertNotNull($flt);
+        // Float's outer-X equals the CB's content-edge X (no slack
+        // distributed into the auto margins).
+        self::assertEqualsWithDelta($cb->geometry->x, $flt->geometry->x, 0.001);
+    }
+
     public function testGridUnknownPlacementKeywordFallsBackToAuto(): void
     {
         // Negative: a non-numeric placement keyword that isn't `auto`
