@@ -2293,6 +2293,82 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testTextAlignEndUnderRtlAlignsLeft(): void
+    {
+        // CSS Text 3 §7.1 — `text-align: end` resolves against the
+        // direction. Under `direction: rtl` the end edge is the LEFT
+        // physical edge, so a short line shifts to the left (no
+        // physical shift), not to the right. The pre-existing bug
+        // shifted right regardless of direction, producing the
+        // exact opposite layout to what the WPT fixtures expect.
+        $ttfPath = realpath(__DIR__ . '/../../../vendor-data/wpt/fonts/Ahem.ttf');
+        if ($ttfPath === false) {
+            self::markTestSkipped('Ahem.ttf unavailable; needs the wpt vendor submodule');
+        }
+        $baseDir = dirname($ttfPath);
+        $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@font-face { font-family: Ahem; src: url(Ahem.ttf); }'
+            . 'div { font-family: Ahem; font-size: 25px; width: 300px;'
+            . '       text-align: end; direction: rtl; color: orange; }'
+            . '</style></head><body><div>TESTI</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The text run's Tm op carries the baseline x — at the left
+        // edge of the content area when end-aligned in RTL. The body
+        // sits at x = 8 (UA default body margin); the text starts
+        // there, not at the right edge (which would be ~233 = 300 - 5×25 + 8).
+        if (preg_match('~1 0 0 1 (\S+) ~', $bytes, $m)) {
+            $startX = (float) $m[1];
+            self::assertLessThan(
+                50.0,
+                $startX,
+                'RTL end-aligned text starts near the left edge, not the right',
+            );
+        } else {
+            self::fail('expected a Tm op carrying the text-run start position');
+        }
+    }
+
+    public function testTextAlignEndUnderLtrAlignsRight(): void
+    {
+        // Mirror case: LTR + end → physical right edge. A short line
+        // shifts right by the line slack. This was already the
+        // pre-existing behaviour; the test pins it down so the
+        // direction-aware rewrite doesn't regress it.
+        $ttfPath = realpath(__DIR__ . '/../../../vendor-data/wpt/fonts/Ahem.ttf');
+        if ($ttfPath === false) {
+            self::markTestSkipped('Ahem.ttf unavailable; needs the wpt vendor submodule');
+        }
+        $baseDir = dirname($ttfPath);
+        $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@font-face { font-family: Ahem; src: url(Ahem.ttf); }'
+            . 'div { font-family: Ahem; font-size: 25px; width: 300px;'
+            . '       text-align: end; color: orange; }'
+            . '</style></head><body><div>TESTI</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        if (preg_match('~1 0 0 1 (\S+) ~', $bytes, $m)) {
+            $startX = (float) $m[1];
+            // 300px width, 5 × 25px glyphs = 125px text. End-aligned
+            // = right edge → text starts at 300 - 125 + body-margin (~8) ≈ 183.
+            self::assertGreaterThan(
+                100.0,
+                $startX,
+                'LTR end-aligned text starts well right of the left edge',
+            );
+        } else {
+            self::fail('expected a Tm op carrying the text-run start position');
+        }
+    }
+
     public function testFontSizeZeroDoesNotDivideByZero(): void
     {
         // CSS Fonts 4 §3.5: `font-size: 0` is a legal value. The painter

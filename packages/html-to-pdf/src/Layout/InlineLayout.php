@@ -489,8 +489,16 @@ final class InlineLayout
                 $alignLast = 'start';
             }
         }
-        if ($align === 'left' || $align === 'start') {
-            if ($alignLast === 'left' || $alignLast === 'start' || $alignLast === 'auto') {
+        // CSS Text 3 §7.1 — resolve direction-relative `start` / `end`
+        // against the parent's writing direction. `start` is the
+        // inline-start edge (left in LTR, right in RTL); `end` is the
+        // inline-end edge (right in LTR, left in RTL). The physical
+        // `left` / `right` / `center` values pass through unchanged.
+        $isRtl = $this->isRtlDirection($parent);
+        $align = $this->resolveLogicalTextAlign($align, $isRtl);
+        $alignLast = $this->resolveLogicalTextAlign($alignLast, $isRtl);
+        if ($align === 'left') {
+            if ($alignLast === 'left' || $alignLast === 'auto') {
                 return $lines;
             }
         }
@@ -507,13 +515,39 @@ final class InlineLayout
             $effective = $isLast ? $alignLast : $align;
             $newFragments = match ($effective) {
                 'center' => $this->shiftFragments($line->fragments, $slack / 2.0),
-                'right', 'end' => $this->shiftFragments($line->fragments, $slack),
+                'right' => $this->shiftFragments($line->fragments, $slack),
                 'justify' => $this->justifyFragments($line->fragments, $slack),
                 default => $line->fragments,
             };
             $out[] = new LineBox($line->y, $line->height, $newFragments);
         }
         return $out;
+    }
+
+    /**
+     * Read the parent's cascaded `direction` and report whether it
+     * resolves to `rtl`. Defaults to LTR when the property is
+     * missing or the value isn't a Keyword the spec recognises.
+     */
+    private function isRtlDirection(Box $parent): bool
+    {
+        $value = $parent->style->get('direction');
+        return $value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === 'rtl';
+    }
+
+    /**
+     * Map a CSS `text-align` keyword to its physical equivalent.
+     * `start` → `left` in LTR, `right` in RTL; `end` → `right` in
+     * LTR, `left` in RTL. The physical keywords pass through.
+     */
+    private function resolveLogicalTextAlign(string $align, bool $isRtl): string
+    {
+        return match ($align) {
+            'start' => $isRtl ? 'right' : 'left',
+            'end' => $isRtl ? 'left' : 'right',
+            default => $align,
+        };
     }
 
     /**
