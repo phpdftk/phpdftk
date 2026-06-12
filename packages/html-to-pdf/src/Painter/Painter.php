@@ -2311,7 +2311,11 @@ final class Painter
 
             $natural = ($font->glyphWidths[$g->glyphId] ?? 0) / $unitsPerEm * $fontSize;
             $delta = $natural - $g->advanceX; // positive = shaper pulled the glyph in (kern)
-            $kern = $delta * 1000.0 / $fontSize;
+            // CSS Fonts 4 §3.5: `font-size: 0` is legal — the glyphs
+            // still emit, but at zero advance. Skip the kern fixup so
+            // we don't divide by zero; nothing to nudge in PDF text
+            // space when each glyph already advances 0.
+            $kern = $fontSize > 0.0 ? $delta * 1000.0 / $fontSize : 0.0;
             if (abs($kern) >= 0.5) {
                 $items[] = $hex;
                 $items[] = $this->snapKern($kern);

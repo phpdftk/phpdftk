@@ -2293,6 +2293,42 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testFontSizeZeroDoesNotDivideByZero(): void
+    {
+        // CSS Fonts 4 §3.5: `font-size: 0` is a legal value. The painter
+        // used to divide by `$fontSize` while computing per-glyph kern
+        // deltas and crashed with `DivisionByZeroError` on a 0in /
+        // 0pt / 0px font-size. The whole document render must complete
+        // without throwing — the resulting glyphs collapse to a
+        // zero-width run but the page is still a valid PDF.
+        $ttfPath = realpath(__DIR__ . '/../../../vendor-data/wpt/fonts/Ahem.ttf');
+        if ($ttfPath === false) {
+            self::markTestSkipped('Ahem.ttf unavailable; needs the wpt vendor submodule');
+        }
+        $baseDir = dirname($ttfPath);
+        $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><head><style>'
+            . '@font-face { font-family: Ahem; src: url(Ahem.ttf); }'
+            . 'div { font-family: Ahem; font-size: 0px; color: red; }'
+            . '</style></head><body><div>Filler Text</div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        // The text run should be emitted with `Tf 0` — the cascaded
+        // `font-size: 0px` reaches the painter intact. The cascaded
+        // `color: red` still sets a fill colour (the painter doesn't
+        // suppress colour ops on zero-size runs), but the rasteriser
+        // produces no visible glyphs because each glyph advances 0.
+        self::assertMatchesRegularExpression(
+            '~/F\d+ 0 Tf~',
+            $bytes,
+            'zero-size text run reaches the painter intact',
+        );
+    }
+
     public function testImgWithAltAndLoadableSrcPaintsTheImageNotAlt(): void
     {
         // HTML 5 §4.8.3: the alt text fallback is for when the image
