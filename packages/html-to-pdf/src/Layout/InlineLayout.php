@@ -913,6 +913,24 @@ final class InlineLayout
                 $splitWsBoundaries,
             );
         }
+        // CSS 2.1 §16.6.1 — collapse runs of whitespace across the
+        // *entire* inline tree, not per text node. The per-TextBox
+        // collapse in `walkInline` only sees one node at a time, so
+        // `<span>a </span><span> b</span>` arrives here as two
+        // adjacent whitespace tokens. Drop the second of any
+        // consecutive whitespace pair (only when collapsing is on).
+        if ($collapseInternal) {
+            $deduped = [];
+            $prevWasWs = false;
+            foreach ($out as $token) {
+                if ($token['isWhitespace'] && $prevWasWs) {
+                    continue;
+                }
+                $deduped[] = $token;
+                $prevWasWs = $token['isWhitespace'];
+            }
+            $out = $deduped;
+        }
         return $out;
     }
 

@@ -1446,6 +1446,48 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $p->geometry->height);
     }
 
+    public function testWhitespaceCollapsesAcrossInlineTreeBoundaries(): void
+    {
+        $this->skipIfNoFont();
+        // CSS 2.1 §16.6.1 — whitespace collapsing applies across the
+        // *whole* inline tree, not per text node. `<span>a </span><span>
+        // b</span>` (with a trailing space on the first span + a
+        // leading space on the second) should render as `a b` with a
+        // single space, not `a  b`. Without the cross-tree dedup, each
+        // TextBox runs preg_replace independently and leaves both
+        // single-space tokens, producing two visible spaces.
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . '<span>' . "\u{1820} " . '</span>'
+            . '<span>' . " \u{1820}" . '</span>'
+            . '</p></body></html>',
+            'html, body, p { display: block; } span { display: inline; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        $line = $p->lineBoxes[0];
+        // Count whitespace fragments by inspecting their shapedRun's
+        // source text. Without cross-tree dedup we'd see two whitespace
+        // tokens here; with dedup we see exactly one.
+        $wsCount = 0;
+        foreach ($line->fragments as $f) {
+            $src = '';
+            foreach ($f->shapedRun->glyphs as $g) {
+                $src .= ($g->advanceX > 0) ? '?' : '';
+            }
+            // Use the fragment-width heuristic: a single-space fragment
+            // in Mongolian font has width ≈ the space glyph's advance.
+            // Easier: count fragments whose shapedRun's totalAdvance
+            // matches an ASCII-space shaping (small width, < 10px in
+            // the Mongolian fixture font at default size).
+            if ($f->width > 0.0 && $f->width < 10.0) {
+                $wsCount++;
+            }
+        }
+        self::assertSame(1, $wsCount, 'cross-tree whitespace dedup leaves a single shared space');
+    }
+
     public function testPreWrapHangsTrailingWhitespaceAtWrap(): void
     {
         $this->skipIfNoFont();
