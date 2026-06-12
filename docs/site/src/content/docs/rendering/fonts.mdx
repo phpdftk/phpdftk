@@ -57,6 +57,10 @@ The Web Platform Tests reference fixture `Ahem.ttf` is a TrueType font. Before t
 
 After: the TTF loads cleanly, glyphs shape against Ahem's `cmap` and `glyf` tables, and the WPT corpus that depends on Ahem's predictable square glyphs becomes scoreable.
 
+### Honest trade-off
+
+Enabling TTF support exposed previously-vacuous Ahem-text passes. Before, both test and reference rendered blank pages because Ahem failed to parse; the harness scored that as a match. After, both render real text — and the renderer's text-layout output for the test diverges from the reference's expected layout in roughly 600 fixtures across CSS WPT (bidi-aware positioning, hanging trailing whitespace, shape-outside wrapping, etc.). The net headline pass count dropped by a few hundred even though the renderer is meaningfully more capable. Several follow-on fixes (alt-text fallback, `font-size: 0` divide-by-zero, direction-aware `text-align: start | end`, `justify-all`) have recovered some of the regression. The remaining gap is real renderer-bug-fixing work: each cluster maps to a discrete CSS feature gap rather than a single shared root cause.
+
 ## Performance
 
 The TrueType parser and the CFF parser are both header-only — neither decodes pixel data, and both stop after extracting the descriptor + glyph maps. Cold-cache parse for Ahem (≈ 6 KB sfnt) is below a millisecond on a modern laptop. `benchmarks/FontFaceLoadBench.php` tracks both formats side-by-side so a regression in one doesn't silently affect the other.
