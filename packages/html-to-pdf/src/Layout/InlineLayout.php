@@ -479,13 +479,23 @@ final class InlineLayout
                 continue;
             }
             // Drop fragments from the end until the remaining content +
-            // ellipsis fits. Phase-1 truncates at fragment boundaries —
-            // mid-fragment truncation lands with a per-glyph cut later.
+            // ellipsis fits, then trim glyphs off the trailing fragment
+            // if it still overflows. Per CSS UI 3 §6.2 the ellipsis sits
+            // immediately adjacent to the last visible glyph.
             $fragments = $line->fragments;
             $cutoff = $availableWidth - $ellipsisWidth;
             while ($fragments !== []) {
                 $last = $fragments[array_key_last($fragments)];
                 if ($last->x + $last->width <= $cutoff) {
+                    break;
+                }
+                // Try a per-glyph trim of the trailing fragment before
+                // discarding it whole — `ppppp` overflowing `400px /
+                // 100px-per-glyph` keeps `ppp` + ellipsis, not just an
+                // orphan ellipsis at x = 0.
+                $trimmed = $this->trimFragmentToFit($last, $cutoff);
+                if ($trimmed !== null) {
+                    $fragments[array_key_last($fragments)] = $trimmed;
                     break;
                 }
                 array_pop($fragments);
@@ -502,6 +512,54 @@ final class InlineLayout
             $out[] = new LineBox($line->y, $line->height, $fragments);
         }
         return $out;
+    }
+
+    /**
+     * Trim glyphs off the tail of `$fragment` until its right edge sits
+     * at or before `$cutoff`. Returns a new `InlineFragment` with the
+     * shorter `ShapedRun`, or `null` when not a single glyph fits
+     * (caller should drop the whole fragment instead).
+     */
+    private function trimFragmentToFit(InlineFragment $fragment, float $cutoff): ?InlineFragment
+    {
+        $shaped = $fragment->shapedRun;
+        if ($shaped->glyphs === []) {
+            return null;
+        }
+        $maxWidth = max(0.0, $cutoff - $fragment->x);
+        $keptGlyphs = [];
+        $total = 0.0;
+        foreach ($shaped->glyphs as $g) {
+            if ($total + $g->advanceX > $maxWidth + 0.001) {
+                break;
+            }
+            $keptGlyphs[] = $g;
+            $total += $g->advanceX;
+        }
+        if ($keptGlyphs === []) {
+            return null;
+        }
+        $newShaped = new ShapedRun(
+            $shaped->font,
+            $shaped->fontSizePt,
+            $shaped->direction,
+            $keptGlyphs,
+            $total,
+        );
+        return new InlineFragment(
+            $fragment->x,
+            $total,
+            $newShaped,
+            $fragment->baselineShift,
+            $fragment->href,
+            $fragment->isBold,
+            $fragment->isItalic,
+            $fragment->decorationLines,
+            $fragment->textColor,
+            $fragment->backgroundColor,
+            $fragment->linkTitle,
+            $fragment->decorationColor,
+        );
     }
 
     /**

@@ -210,6 +210,48 @@ final class InlineLayoutTest extends TestCase
         self::assertSame("\u{2026}", $lastGlyphSource, 'last fragment is the ellipsis');
     }
 
+    public function testTextOverflowEllipsisTrimsGlyphsOffLastFragment(): void
+    {
+        $this->skipIfNoFont();
+        // CSS UI 3 §6.2 — when truncation falls inside a single-fragment
+        // line, drop glyphs from the tail of that fragment until the
+        // ellipsis can sit immediately adjacent to the last visible
+        // glyph. Without per-glyph trimming we'd drop the whole single
+        // fragment and emit an orphan ellipsis at x = 0 — the exact
+        // failure WPT text-overflow-ellipsis-001 exposes.
+        //
+        // Single shaped run of 5 letters in a 4-glyph-wide container
+        // with `pre` (no wrap). The line is one fragment, 5 glyphs wide;
+        // after `text-overflow: ellipsis` it should be one fragment
+        // (3 glyphs kept) followed by the ellipsis fragment.
+        $letters = str_repeat("\u{1820}", 5);
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { white-space: pre; text-overflow: ellipsis;
+                 font-size: 10px; }',
+        );
+        // 40px allows ~4 glyphs at 10px each; the 5-glyph fragment must
+        // truncate to 3 glyphs + ellipsis (the ellipsis takes the 4th slot).
+        $this->layout->layout($box, $this->defaultContext(40.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertCount(1, $p->lineBoxes);
+        $line = $p->lineBoxes[0];
+        // Expect at least two fragments: the trimmed content and the ellipsis.
+        self::assertGreaterThanOrEqual(2, count($line->fragments), 'per-glyph trim keeps the content fragment alongside the ellipsis');
+        $first = $line->fragments[0];
+        self::assertLessThan(5, count($first->shapedRun->glyphs), 'first fragment has fewer than 5 glyphs after trim');
+        self::assertGreaterThan(0, count($first->shapedRun->glyphs), 'first fragment retains at least one glyph');
+        // Last fragment is the ellipsis (single U+2026 glyph).
+        $last = $line->fragments[array_key_last($line->fragments)];
+        $lastSrc = '';
+        foreach ($last->shapedRun->glyphs as $g) {
+            $lastSrc .= substr("\u{2026}", $g->sourceOffset, $g->sourceLength);
+        }
+        self::assertSame("\u{2026}", $lastSrc);
+    }
+
     public function testTextOverflowClipDefaultDoesNotTruncate(): void
     {
         $this->skipIfNoFont();
