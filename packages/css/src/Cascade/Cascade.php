@@ -959,6 +959,13 @@ final class Cascade
         if ($fontSize instanceof Length) {
             $currentFontSize = LengthResolver::toPx($fontSize, $emCtx);
             $values->set('font-size', new Length($currentFontSize, LengthUnit::Px));
+        } elseif ($fontSize instanceof \Phpdftk\Css\Value\Percentage) {
+            // CSS Fonts 3 §3.5 — `font-size: <percentage>` resolves
+            // against the inherited (parent) font-size. Resolving here
+            // turns the Percentage into a concrete Length so layout
+            // doesn't fall back to the parent size verbatim.
+            $currentFontSize = $context->parentFontSize * ($fontSize->value / 100.0);
+            $values->set('font-size', new Length($currentFontSize, LengthUnit::Px));
         } elseif ($fontSize instanceof \Phpdftk\Css\Value\Calc) {
             $resolved = CalcEvaluator::resolveValue($fontSize, $emCtx);
             if ($resolved instanceof Length) {

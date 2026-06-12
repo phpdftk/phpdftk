@@ -352,6 +352,35 @@ final class CascadeTest extends TestCase
         self::assertSame(LengthUnit::Px, $fontSize->unit);
     }
 
+    public function testPercentageFontSizeResolvesAgainstParent(): void
+    {
+        // CSS Fonts 3 §3.5 — `font-size: <percentage>` resolves
+        // against the inherited (parent) font-size. Without this
+        // resolution the cascade leaves the Percentage in place and
+        // downstream layout falls back to the parent size verbatim,
+        // making `font-size: 50%` render the same as the parent's
+        // 1in instead of half that.
+        $sheet = $this->parser->parseStylesheet('p { font-size: 50%; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $this->cascade->resolveLengths($values, new LengthContext(parentFontSize: 32.0));
+        $fontSize = $values->get('font-size');
+        self::assertInstanceOf(Length::class, $fontSize);
+        self::assertSame(16.0, $fontSize->value);
+    }
+
+    public function testPercentageFontSizeZeroResolvesToZero(): void
+    {
+        // Negative test — `font-size: 0%` (and the equivalent `-0%`)
+        // must resolve to a `Length(0px)`, NOT fall through to the
+        // parent's size. WPT `font-size-092` pins this.
+        $sheet = $this->parser->parseStylesheet('p { font-size: 0%; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $this->cascade->resolveLengths($values, new LengthContext(parentFontSize: 96.0));
+        $fontSize = $values->get('font-size');
+        self::assertInstanceOf(Length::class, $fontSize);
+        self::assertSame(0.0, $fontSize->value);
+    }
+
     public function testEmResolvesAgainstOwnFontSizeForOtherProperties(): void
     {
         // font-size: 20px → margin-top: 1em should be 20px (current's font-size).
