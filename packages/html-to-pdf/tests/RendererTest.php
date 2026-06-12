@@ -2249,6 +2249,50 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testBoxSizingBorderBoxOnReplacedImgShrinksContent(): void
+    {
+        // CSS Sizing 3 §6.2: under `box-sizing: border-box`, the
+        // declared `width` includes padding + border, so the content
+        // box (where the SVG paints) must shrink by the inset. Without
+        // the box-sizing adjustment, a 120px-wide img with 20px
+        // padding-left renders the SVG at 120×… and the WPT
+        // box-sizing-* fixtures fail because the visible green doesn't
+        // match the reference's 100×100 squares.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-bs-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        file_put_contents(
+            $baseDir . '/sq.svg',
+            '<svg xmlns="http://www.w3.org/2000/svg" style="background: green" width="100" height="100"/>',
+        );
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><head><style>'
+                . 'img { box-sizing: border-box; width: 120px; padding-left: 20px; }'
+                . '</style></head><body><img src="sq.svg"></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            // Expect a 100×… green rect (content box = 120 - 20 = 100).
+            // The painter emits the rect right after `0 0.5019607843 0 rg`.
+            self::assertMatchesRegularExpression(
+                '~0 0\.5019607843 0 rg\s+\S+ \S+ 100 \S+ re~',
+                $bytes,
+                'box-sizing: border-box shrinks content width on replaced img',
+            );
+            // And it should NOT be at 120 wide (which is the bug we fixed).
+            self::assertDoesNotMatchRegularExpression(
+                '~0 0\.5019607843 0 rg\s+\S+ \S+ 120 \S+ re~',
+                $bytes,
+                'content box must not use the declared border-box width',
+            );
+        } finally {
+            @unlink($baseDir . '/sq.svg');
+            @rmdir($baseDir);
+        }
+    }
+
     public function testImgWithSvgSrcPaintsBackgroundOnSvgRoot(): void
     {
         // `<img src="*.svg">` should route through the SVG painter

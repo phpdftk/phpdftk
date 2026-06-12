@@ -184,18 +184,63 @@ final class InlineLayout
             // uses for text baselines.
             $atomic = $token['atomicBox'] ?? null;
             if ($atomic !== null) {
+                // The token captured the box-sizing-resolved content +
+                // outer widths; resolve the heights with the same
+                // semantics here. Falling back to width when height is
+                // unset keeps the square-replaced-element default
+                // (img with intrinsic ratio) the existing tests rely on.
                 $heightValue = $atomic->style->get('height');
-                $atomicHeight = $heightValue instanceof Length
+                $declaredHeight = $heightValue instanceof Length
                     ? $heightValue->value
-                    : $width;
+                    : 0.0;
+                $atomicPadTop = self::atomicLength($atomic->style->get('padding-top'));
+                $atomicPadBottom = self::atomicLength($atomic->style->get('padding-bottom'));
+                $atomicBorderTop = self::atomicBorderWidth($atomic->style, 'top');
+                $atomicBorderBottom = self::atomicBorderWidth($atomic->style, 'bottom');
+                $verticalInset = $atomicPadTop + $atomicPadBottom + $atomicBorderTop + $atomicBorderBottom;
+                $atomicBorderBox = $token['atomicBorderBox'] ?? false;
+                if ($declaredHeight > 0.0) {
+                    if ($atomicBorderBox) {
+                        $atomicContentHeight = max(0.0, $declaredHeight - $verticalInset);
+                        $atomicOuterHeight = $declaredHeight;
+                    } else {
+                        $atomicContentHeight = $declaredHeight;
+                        $atomicOuterHeight = $declaredHeight + $verticalInset;
+                    }
+                } else {
+                    // Height auto with no intrinsic-from-cascade fallback;
+                    // square the outer to the (already-resolved) outer
+                    // width so the historical "no height = square box"
+                    // contract holds for tests that rely on it.
+                    $atomicOuterHeight = $width;
+                    $atomicContentHeight = max(0.0, $atomicOuterHeight - $verticalInset);
+                }
                 $shapedRun = $token['shapedRun'];
                 $atomicFont = $shapedRun->font;
                 $atomicUpem = max(1, $atomicFont->unitsPerEm);
                 $atomicAscent = ($atomicFont->ascent / $atomicUpem) * $shapedRun->fontSizePt;
-                $atomic->geometry->x = $parent->geometry->x + $currentX;
-                $atomic->geometry->y = $parent->geometry->y + $y + $atomicAscent - $atomicHeight;
-                $atomic->geometry->width = $width;
-                $atomic->geometry->height = $atomicHeight;
+                // Outer box top-left is `(currentX, y + ascent - outerHeight)`;
+                // the content box sits inside the padding + border edges.
+                $atomicContentWidth = $token['atomicContentWidth'] ?? $width;
+                $atomicPadLeft = $token['atomicPadLeft'] ?? 0.0;
+                $atomicBorderLeft = $token['atomicBorderLeft'] ?? 0.0;
+                $atomicPadRight = $token['atomicPadRight'] ?? 0.0;
+                $atomicBorderRight = $token['atomicBorderRight'] ?? 0.0;
+                $atomic->geometry->x = $parent->geometry->x + $currentX
+                    + $atomicBorderLeft + $atomicPadLeft;
+                $atomic->geometry->y = $parent->geometry->y + $y
+                    + $atomicAscent - $atomicOuterHeight
+                    + $atomicBorderTop + $atomicPadTop;
+                $atomic->geometry->width = $atomicContentWidth;
+                $atomic->geometry->height = $atomicContentHeight;
+                $atomic->geometry->paddingLeft = $atomicPadLeft;
+                $atomic->geometry->paddingRight = $atomicPadRight;
+                $atomic->geometry->paddingTop = $atomicPadTop;
+                $atomic->geometry->paddingBottom = $atomicPadBottom;
+                $atomic->geometry->borderLeft = $atomicBorderLeft;
+                $atomic->geometry->borderRight = $atomicBorderRight;
+                $atomic->geometry->borderTop = $atomicBorderTop;
+                $atomic->geometry->borderBottom = $atomicBorderBottom;
             }
             $currentX += $width;
             $atLineStart = false;
@@ -787,16 +832,50 @@ final class InlineLayout
             return;
         }
         if ($box instanceof AtomicInlineBox) {
-            // Treat as a single non-wrapping token with its computed width.
+            // Resolve the box's intrinsic *outer* horizontal advance —
+            // what the line breaker needs — and the *content-box*
+            // width that the painter draws into. The two differ
+            // whenever the atomic carries padding / border, and they
+            // diverge further under `box-sizing: border-box` (CSS
+            // Sizing 3 §6.2): under border-box, the declared `width`
+            // already includes padding + border, so the content
+            // shrinks by that inset instead of the outer growing.
             $widthValue = $box->style->get('width');
-            $width = $widthValue instanceof Length ? $widthValue->value : 0.0;
+            $declaredWidth = $widthValue instanceof Length ? $widthValue->value : 0.0;
+            $atomicPadLeft = self::atomicLength($box->style->get('padding-left'));
+            $atomicPadRight = self::atomicLength($box->style->get('padding-right'));
+            $atomicBorderLeft = self::atomicBorderWidth($box->style, 'left');
+            $atomicBorderRight = self::atomicBorderWidth($box->style, 'right');
+            $horizontalInset = $atomicPadLeft + $atomicPadRight + $atomicBorderLeft + $atomicBorderRight;
+            $atomicBorderBox = self::atomicIsBorderBoxSizing($box->style);
+            if ($declaredWidth > 0.0) {
+                if ($atomicBorderBox) {
+                    // Declared width is the border-box; content shrinks
+                    // by the inset, outer stays at the declared value.
+                    $atomicContentWidth = max(0.0, $declaredWidth - $horizontalInset);
+                    $atomicOuterWidth = $declaredWidth;
+                } else {
+                    // Declared width is the content-box; outer grows by
+                    // the inset.
+                    $atomicContentWidth = $declaredWidth;
+                    $atomicOuterWidth = $declaredWidth + $horizontalInset;
+                }
+            } else {
+                // No declared width (e.g. `width: auto`) — defer to
+                // intrinsic sizing the painter or downstream layout
+                // resolves. Outer = content = 0 so the line-breaker
+                // doesn't allocate any space; the painter falls back
+                // to its own intrinsic-size path.
+                $atomicContentWidth = 0.0;
+                $atomicOuterWidth = $horizontalInset;
+            }
             $tokens[] = [
                 'shapedRun' => new ShapedRun(
                     $shapingCtx->font,
                     $shapingCtx->fontSizePt,
                     $shapingCtx->direction,
                     [],
-                    $width,
+                    $atomicOuterWidth,
                 ),
                 'isWhitespace' => false,
                 'kind' => LineBreakKind::Allowed,
@@ -810,6 +889,13 @@ final class InlineLayout
                 'linkTitle' => $linkTitle,
                 'decorationColor' => $decorationColor,
                 'atomicBox' => $box,
+                'atomicContentWidth' => $atomicContentWidth,
+                'atomicOuterWidth' => $atomicOuterWidth,
+                'atomicPadLeft' => $atomicPadLeft,
+                'atomicPadRight' => $atomicPadRight,
+                'atomicBorderLeft' => $atomicBorderLeft,
+                'atomicBorderRight' => $atomicBorderRight,
+                'atomicBorderBox' => $atomicBorderBox,
             ];
             return;
         }
@@ -1448,5 +1534,64 @@ final class InlineLayout
             return $value->value;
         }
         return $context->lengthContext->currentFontSize;
+    }
+
+    /**
+     * Pull a Length value off a cascaded property in pixels. Atomic
+     * inline boxes don't have an in-progress containing-block width
+     * to resolve percentages against at token-collection time (the
+     * containing block isn't passed to {@see collectTokens}), so
+     * Percentages resolve to 0 here. That matches the older atomic
+     * behaviour and is acceptable for the in-scope test surface
+     * (no `<img padding-left="50%">` fixtures); percentage-padding
+     * on replaced inlines is a future enhancement once the inline
+     * layout owns its parent's content width directly.
+     */
+    private static function atomicLength(?\Phpdftk\Css\Value\Value $value): float
+    {
+        return $value instanceof Length
+            ? \Phpdftk\Css\Cascade\LengthResolver::clampPx($value->value)
+            : 0.0;
+    }
+
+    /**
+     * Side-specific border width for atomic inline boxes, accounting
+     * for `border-<side>-style: none` (which collapses the width to
+     * zero per CSS Backgrounds 3 §4.4) and the `thin`/`medium`/`thick`
+     * keyword widths.
+     */
+    private static function atomicBorderWidth(\Phpdftk\Css\Cascade\CascadedValues $style, string $side): float
+    {
+        $styleValue = $style->get("border-$side-style");
+        if ($styleValue instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($styleValue->name) === 'none'
+        ) {
+            return 0.0;
+        }
+        $width = $style->get("border-$side-width");
+        if ($width instanceof Length) {
+            return \Phpdftk\Css\Cascade\LengthResolver::clampPx($width->value);
+        }
+        if ($width instanceof \Phpdftk\Css\Value\Keyword) {
+            return match (strtolower($width->name)) {
+                'thin' => 1.0,
+                'medium' => 3.0,
+                'thick' => 5.0,
+                default => 0.0,
+            };
+        }
+        return 0.0;
+    }
+
+    /**
+     * CSS Sizing 3 §6.2 — `true` when the cascaded `box-sizing` is
+     * `border-box`, meaning declared width/height include the
+     * padding + border edges.
+     */
+    private static function atomicIsBorderBoxSizing(\Phpdftk\Css\Cascade\CascadedValues $style): bool
+    {
+        $value = $style->get('box-sizing');
+        return $value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === 'border-box';
     }
 }

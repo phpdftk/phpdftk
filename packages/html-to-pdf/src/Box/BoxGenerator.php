@@ -1559,18 +1559,34 @@ final class BoxGenerator
                             $values->set('width', new \Phpdftk\Css\Value\Length((float) $nw, \Phpdftk\Css\Value\LengthUnit::Px));
                             $values->set('height', new \Phpdftk\Css\Value\Length((float) $nh, \Phpdftk\Css\Value\LengthUnit::Px));
                         } elseif ($wUnset && $hValue instanceof \Phpdftk\Css\Value\Length && $nh > 0) {
+                            // Under `box-sizing: border-box`, the declared
+                            // height includes the padding/border vertical
+                            // inset, so derive the content height first,
+                            // then add the horizontal inset to land on the
+                            // declared width that produces the right
+                            // content-width-to-content-height ratio.
+                            [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
+                            $declaredH = $hValue->value;
+                            $contentH = $borderBox ? max(0.0, $declaredH - $vInset) : $declaredH;
+                            $contentW = $contentH * ($nw / $nh);
+                            $declaredW = $borderBox ? ($contentW + $hInset) : $contentW;
                             $values->set(
                                 'width',
                                 new \Phpdftk\Css\Value\Length(
-                                    $hValue->value * ($nw / $nh),
+                                    $declaredW,
                                     \Phpdftk\Css\Value\LengthUnit::Px,
                                 ),
                             );
                         } elseif ($hUnset && $wValue instanceof \Phpdftk\Css\Value\Length && $nw > 0) {
+                            [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
+                            $declaredW = $wValue->value;
+                            $contentW = $borderBox ? max(0.0, $declaredW - $hInset) : $declaredW;
+                            $contentH = $contentW * ($nh / $nw);
+                            $declaredH = $borderBox ? ($contentH + $vInset) : $contentH;
                             $values->set(
                                 'height',
                                 new \Phpdftk\Css\Value\Length(
-                                    $wValue->value * ($nh / $nw),
+                                    $declaredH,
                                     \Phpdftk\Css\Value\LengthUnit::Px,
                                 ),
                             );
@@ -1607,6 +1623,52 @@ final class BoxGenerator
                 }
             }
         }
+    }
+
+    /**
+     * Sum the horizontal and vertical padding + border lengths from a
+     * cascaded-values bundle, plus whether `box-sizing` is `border-box`.
+     * Used by the `<img>` intrinsic-ratio derivation to compute the
+     * declared dimension that produces the right content dimension once
+     * border-box subtracts the inset.
+     *
+     * @return array{0: float, 1: float, 2: bool}
+     */
+    private function presentationalInsetsAndBoxSizing(\Phpdftk\Css\Cascade\CascadedValues $values): array
+    {
+        $sumLength = function (string $property) use ($values): float {
+            $v = $values->get($property);
+            return $v instanceof \Phpdftk\Css\Value\Length
+                ? \Phpdftk\Css\Cascade\LengthResolver::clampPx($v->value)
+                : 0.0;
+        };
+        $borderSide = function (string $side) use ($values): float {
+            $styleValue = $values->get("border-$side-style");
+            if ($styleValue instanceof Keyword && strtolower($styleValue->name) === 'none') {
+                return 0.0;
+            }
+            $width = $values->get("border-$side-width");
+            if ($width instanceof \Phpdftk\Css\Value\Length) {
+                return \Phpdftk\Css\Cascade\LengthResolver::clampPx($width->value);
+            }
+            if ($width instanceof Keyword) {
+                return match (strtolower($width->name)) {
+                    'thin' => 1.0,
+                    'medium' => 3.0,
+                    'thick' => 5.0,
+                    default => 0.0,
+                };
+            }
+            return 0.0;
+        };
+        $hInset = $sumLength('padding-left') + $sumLength('padding-right')
+            + $borderSide('left') + $borderSide('right');
+        $vInset = $sumLength('padding-top') + $sumLength('padding-bottom')
+            + $borderSide('top') + $borderSide('bottom');
+        $boxSizing = $values->get('box-sizing');
+        $borderBox = $boxSizing instanceof Keyword
+            && strtolower($boxSizing->name) === 'border-box';
+        return [$hInset, $vInset, $borderBox];
     }
 
     private function isAutoLength(?\Phpdftk\Css\Value\Value $v): bool
