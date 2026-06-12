@@ -2293,6 +2293,62 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testImgWithAltAndLoadableSrcPaintsTheImageNotAlt(): void
+    {
+        // HTML 5 §4.8.3: the alt text fallback is for when the image
+        // *can't* be painted. A loadable src keeps the AtomicInlineBox
+        // path so the image renders as an Image XObject (a `Do` op).
+        // The pre-existing bug rendered the alt text instead, leaving
+        // documents with no glyphs for an unconfigured-font setup.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-img-' . bin2hex(random_bytes(4));
+        mkdir($baseDir);
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        );
+        self::assertNotFalse($png);
+        file_put_contents($baseDir . '/blue.png', $png);
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $writer = new PdfWriter(compressStreams: false);
+            $renderer->renderInto(
+                $writer,
+                '<html><body><div><img src="blue.png" width="40" height="20" alt="caption"/></div></body></html>',
+            );
+            $bytes = $writer->toBytes();
+            self::assertMatchesRegularExpression(
+                '~/Im\d+ Do~',
+                $bytes,
+                'loadable image painted instead of alt fallback',
+            );
+        } finally {
+            @unlink($baseDir . '/blue.png');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testImgWithAltAndMissingSrcSkipsImagePaint(): void
+    {
+        // Negative case: when the src cannot be resolved, the image
+        // is dropped and the alt-fallback InlineBox carries the flow
+        // (or, with no default font, renders nothing). The key
+        // invariant is that *no Image XObject* is registered for a
+        // missing source — the prior bug would have spilled a broken
+        // XObject.
+        $renderer = new Renderer();
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><div><img src="missing.png" width="40" height="20" alt="caption"/></div></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertDoesNotMatchRegularExpression(
+            '~/Im\d+ Do~',
+            $bytes,
+            'missing-src image must not produce an Image XObject paint',
+        );
+        self::assertStringStartsWith('%PDF-', $bytes);
+    }
+
     public function testFontFaceLoadsTrueTypeFont(): void
     {
         // `@font-face` should accept TrueType (`sfVersion = 0x00010000`)

@@ -199,20 +199,21 @@ final class BoxGenerator
             return $inline;
         }
 
-        // HTML 5 §4.8.3: `<img alt="...">` — until image painting lands,
-        // emit the alt text as a synthetic InlineBox + TextBox so the
-        // fallback content takes part in inline layout. Empty `alt=""`
-        // is intentional "decorative image, hide from a11y" — leave as
-        // the regular atomic inline.
+        // HTML 5 §4.8.4.2 — when the `<img>` is wrapped in a
+        // `<picture>`, walk the preceding `<source>` siblings to
+        // pick the best one for the print medium. Phase-1 honours
+        // a `media` attribute containing `print` or `all` (or an
+        // absent media attribute, which means "all media").
         if (strtolower($element->localName) === 'img') {
-            // HTML 5 §4.8.4.2 — when the `<img>` is wrapped in a
-            // `<picture>`, walk the preceding `<source>` siblings to
-            // pick the best one for the print medium. Phase-1 honours
-            // a `media` attribute containing `print` or `all` (or an
-            // absent media attribute, which means "all media").
             $this->applyPictureSourceOverride($element);
+            // HTML 5 §4.8.3 — the alt-text fallback only kicks in when
+            // the image *can't* be painted: missing src, an unloadable
+            // source, or an unsupported format. When the painter can
+            // resolve the src, render the image; otherwise hand the
+            // alt text to inline layout as a synthetic TextBox so the
+            // surrounding flow doesn't collapse to nothing.
             $alt = $element->getAttribute('alt');
-            if ($alt !== null && $alt !== '') {
+            if ($alt !== null && $alt !== '' && !$this->imageIsLoadable($element)) {
                 $inline = new InlineBox($element, $values);
                 $inline->addChild(new TextBox($element, $values, $alt));
                 return $inline;
@@ -435,6 +436,46 @@ final class BoxGenerator
      * `$element->getAttribute('src')` Just Works without any
      * extra plumbing through the box tree.
      */
+    /**
+     * `true` when the painter can resolve the `<img>`'s `src` to bytes
+     * the renderer can paint. Drives the alt-text fallback in
+     * `boxForElement`: a loadable image keeps its `AtomicInlineBox`
+     * status (painted as an Image XObject or routed through the SVG
+     * renderer for `image/svg+xml`); an unloadable one falls back to
+     * the alt text so the surrounding inline flow still has content.
+     *
+     * Looks for `src` first, then `srcset` (first candidate only —
+     * full responsive selection is a separate substrate gate). Data
+     * URLs are loadable when the MIME label is one the painter
+     * recognises; local paths are loadable when they parse as one
+     * of the supported formats via {@see ImageParser}.
+     */
+    private function imageIsLoadable(Element $img): bool
+    {
+        $src = $img->getAttribute('src');
+        if ($src === null || $src === '') {
+            return false;
+        }
+        if (str_starts_with($src, 'data:')) {
+            // The renderer's data: handlers accept image/png, image/jpeg
+            // (raster), image/svg+xml, plus a few siblings the painter
+            // routes the same way. Anything else falls back to alt.
+            return preg_match(
+                '~^data:image/(png|jpe?g|gif|bmp|webp|svg\+xml|tiff?|jpeg2000|jbig2)\b~i',
+                $src,
+            ) === 1;
+        }
+        if (str_starts_with($src, 'http://') || str_starts_with($src, 'https://')) {
+            // Network sources are loadable only when the renderer has
+            // a resource loader attached. The painter still handles
+            // the actual fetch (and any errors there fall back to
+            // the no-image path), but we want the box-generator
+            // decision to track loader configuration.
+            return false;
+        }
+        return $this->naturalImageSize($src) !== null;
+    }
+
     private function applyPictureSourceOverride(Element $img): void
     {
         $parent = $img->parentNode;
