@@ -479,6 +479,15 @@ final class InlineLayout
     {
         $align = $this->textAlignKeyword($parent);
         $alignLast = $this->textAlignLastKeyword($parent, $align);
+        // CSS Text 3 §7.2: `justify-all` is `justify` for every line
+        // including the trailing one. Normalise to `justify` for the
+        // body lines and force the last-line alignment to `justify`
+        // too (the `textAlignLastKeyword` fallback would otherwise
+        // start-align the last line for plain `justify`).
+        if ($align === 'justify-all') {
+            $align = 'justify';
+            $alignLast = 'justify';
+        }
         // CSS Text 3 §7.5: `text-justify: none` disables justification.
         // A `justify` text-align falls through to start-alignment.
         if ($this->isTextJustifyNone($parent)) {
@@ -578,8 +587,17 @@ final class InlineLayout
         }
         $lower = strtolower($value->name);
         if ($lower === 'auto') {
-            // text-align: justify → last line is start-aligned per spec.
+            // text-align: justify → last line is start-aligned per spec
+            // (CSS Text 3 §7.4); `justify-all` is handled by the
+            // caller before this resolution runs.
             return $align === 'justify' ? 'start' : $align;
+        }
+        // `text-align-last: justify-all` doesn't appear in any spec
+        // grammar — only `text-align: justify-all` exists. Treat any
+        // stray value as plain `justify` so the trailing line still
+        // gets the fully-justified shifting.
+        if ($lower === 'justify-all') {
+            return 'justify';
         }
         return $lower;
     }
