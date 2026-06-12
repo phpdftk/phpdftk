@@ -1499,10 +1499,27 @@ final class BlockLayout
             $rowTracks = [$declaredHeightForFr ?? 0.0];
         }
 
+        // CSS Grid Layout 1 §6.4 / CSS Box Layout §3.5 — when items
+        // declare `order: <int>` the auto-placement pass walks them in
+        // (order ASC, DOM-index ASC) order rather than DOM order. The
+        // default `order: 0` keeps DOM order intact for items that
+        // don't opt in.
+        $orderedChildren = [];
+        foreach ($box->children as $domIdx => $child) {
+            $orderedChildren[] = [
+                'box' => $child,
+                'order' => $this->resolveGridOrder($child),
+                'domIdx' => $domIdx,
+            ];
+        }
+        usort($orderedChildren, function (array $a, array $b): int {
+            return $a['order'] <=> $b['order'] ?: $a['domIdx'] <=> $b['domIdx'];
+        });
         // Resolve each child's grid placement.
         /** @var list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements */
         $placements = [];
-        foreach ($box->children as $child) {
+        foreach ($orderedChildren as $entry) {
+            $child = $entry['box'];
             if ($child instanceof \Phpdftk\HtmlToPdf\Box\TextBox
                 || $child instanceof \Phpdftk\HtmlToPdf\Box\InlineBox
             ) {
@@ -2298,6 +2315,23 @@ final class BlockLayout
      * @param array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $areaMap
      * @return array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}
      */
+    /**
+     * Read the child's cascaded `order` (initial: 0). Accepts Integer
+     * and Number values; anything else falls back to 0 so unordered
+     * items keep DOM order via the secondary sort key.
+     */
+    private function resolveGridOrder(Box $child): int
+    {
+        $value = $child->style->get('order');
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return (int) round($value->value);
+        }
+        return 0;
+    }
+
     private function resolveGridPlacement(
         Box $child,
         int $columnCount,

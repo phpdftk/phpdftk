@@ -2583,6 +2583,58 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(300.0, $item->geometry->width, 0.001);
     }
 
+    public function testGridOrderAffectsAutoPlacementOrder(): void
+    {
+        // CSS Grid Layout 1 §6.4 / CSS Box Layout §3.5 — items with a
+        // non-default `order` participate in auto-placement in (order,
+        // DOM-index) order rather than pure DOM order. Here `a` (the
+        // first DOM child) gets `order: 2`, so `b` and `c` (default
+        // `order: 0`) place first into cells (0, 0) and (0, 1), and
+        // `a` lands in (1, 0).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px 50px;">'
+            . '<div class="a" style="order: 2;"></div>'
+            . '<div class="b"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $grid = $this->find($box, 'div');
+        self::assertNotNull($grid);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        // b → (0, 0); c → (0, 1); a → (1, 0).
+        self::assertEqualsWithDelta($grid->geometry->x, $b->geometry->x, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->y, $b->geometry->y, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->x + 100.0, $c->geometry->x, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->y, $c->geometry->y, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->x, $a->geometry->x, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->y + 50.0, $a->geometry->y, 0.001);
+    }
+
+    public function testGridOrderTiesBrokenByDomOrder(): void
+    {
+        // Negative test — items with the same `order` keep their
+        // original DOM order (no shuffle).
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px 100px; grid-template-rows: 50px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $grid = $this->find($box, 'div');
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertEqualsWithDelta($grid->geometry->x, $a->geometry->x, 0.001);
+        self::assertEqualsWithDelta($grid->geometry->x + 100.0, $b->geometry->x, 0.001);
+    }
+
     public function testGridUnknownPlacementKeywordFallsBackToAuto(): void
     {
         // Negative: a non-numeric placement keyword that isn't `auto`
