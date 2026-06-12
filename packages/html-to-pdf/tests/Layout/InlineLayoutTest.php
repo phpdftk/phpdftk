@@ -1404,6 +1404,107 @@ final class InlineLayoutTest extends TestCase
         self::assertSame(0.0, $p->geometry->height);
     }
 
+    public function testPreWrapHangsTrailingWhitespaceAtWrap(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Text 3 §5.5 — under `pre-wrap`, a trailing whitespace
+        // sequence at the end of a line hangs (zero-width for line
+        // measurement) and the next non-whitespace token starts the
+        // following line cleanly at the left edge.
+        //
+        // Input: `XX_TAB_TAB_XX` (two letters, space, tab, space, tab,
+        // two letters) in a narrow box. With `pre-wrap`, the run of
+        // trailing whitespace should hang on line 1 and the next `XX`
+        // should start at the left edge of line 2 with no leading
+        // whitespace fragments — matching WPT pre-wrap-tab-002.
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . "\u{1820}\u{1820} \t \t\u{1820}\u{1820}"
+            . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: pre-wrap; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertGreaterThanOrEqual(2, count($p->lineBoxes), 'pre-wrap with overflow should wrap');
+        // The second line's first fragment is the non-whitespace `XX`,
+        // not leading whitespace from the hung tail of line 1.
+        $second = $p->lineBoxes[1];
+        self::assertNotSame([], $second->fragments);
+        $firstSecond = $second->fragments[0];
+        self::assertSame(1, count($firstSecond->shapedRun->glyphs) > 0 ? 1 : 0); // sanity
+        // Glyph count > 0 and first glyph is a non-whitespace letter.
+        self::assertGreaterThan(0, count($firstSecond->shapedRun->glyphs));
+        // The first fragment on line 2 starts at x ≈ 0 (no hung leading ws).
+        self::assertEqualsWithDelta(0.0, $firstSecond->x, 0.001, 'second line starts at left edge — no hung leading ws');
+    }
+
+    public function testBreakSpacesHangsTrailingWhitespaceAtWrap(): void
+    {
+        $this->skipIfNoFont();
+        // Same hanging-trailing-whitespace behavior under `break-spaces`
+        // — the WPT break-spaces-tab-001 fixture expects identical visual
+        // layout to pre-wrap-tab-002 for the `XX\t\tXX` input.
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . "\u{1820}\u{1820}\t\t\u{1820}\u{1820}"
+            . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: break-spaces; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertGreaterThanOrEqual(2, count($p->lineBoxes), 'break-spaces with overflow should wrap');
+        $second = $p->lineBoxes[1];
+        self::assertNotSame([], $second->fragments);
+        $firstSecond = $second->fragments[0];
+        self::assertEqualsWithDelta(0.0, $firstSecond->x, 0.001, 'break-spaces second line starts at left edge');
+    }
+
+    public function testPreserveDoesNotHangWhenContentFits(): void
+    {
+        $this->skipIfNoFont();
+        // Negative test — when the whole content fits on a line, the
+        // trailing whitespace is preserved as a real fragment with its
+        // measured width (no hanging applies because no wrap happens).
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . "\u{1820} \u{1820} "
+            . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: pre-wrap; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertCount(1, $p->lineBoxes);
+        $last = $p->lineBoxes[0]->fragments[array_key_last($p->lineBoxes[0]->fragments)];
+        // Last fragment should be the trailing space — preserved as
+        // a fragment because no wrap was triggered.
+        self::assertGreaterThan(0.0, $last->width, 'trailing whitespace preserved when no overflow');
+    }
+
+    public function testPreDoesNotHangTrailingWhitespace(): void
+    {
+        $this->skipIfNoFont();
+        // Negative test — `pre` doesn't soft-wrap, so the trailing
+        // whitespace stays in its line (whatever the line width).
+        // The hanging behavior is specific to pre-wrap / break-spaces.
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . "\u{1820}\u{1820}    "
+            . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: pre; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(80.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // `pre` produces a single line (no soft-wrap allowed).
+        self::assertCount(1, $p->lineBoxes);
+        // Last fragment is the trailing whitespace, with width > 0.
+        $last = $p->lineBoxes[0]->fragments[array_key_last($p->lineBoxes[0]->fragments)];
+        self::assertGreaterThan(0.0, $last->width);
+    }
+
     private function skipIfNoFont(): void
     {
         if ($this->font === null) {

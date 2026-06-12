@@ -107,6 +107,12 @@ final class InlineLayout
 
         $letterSpacing = $this->resolveLetterSpacing($parent);
         $wordSpacing = $this->resolveWordSpacing($parent);
+        // CSS Text 3 §5.5 — when `pre-wrap` / `break-spaces` is in
+        // effect, trailing whitespace at the end of a line hangs. For
+        // that to work, the tokeniser must emit a separate token for
+        // each whitespace run; otherwise UAX-14's `XX<ws>` bundle
+        // hides the trailing ws from the line fitter.
+        $hangsTrailingWhitespacePreCompute = $whiteSpace === 'pre-wrap' || $whiteSpace === 'break-spaces';
         $tokens = $this->collectTokens(
             $parent,
             $shapingCtx,
@@ -122,6 +128,7 @@ final class InlineLayout
             backgroundColor: null,
             linkTitle: null,
             decorationColor: $this->resolveDecorationColor($parent),
+            splitWsBoundaries: $hangsTrailingWhitespacePreCompute,
         );
         if ($tokens === []) {
             return [[], 0.0];
@@ -138,6 +145,14 @@ final class InlineLayout
         $bounds = $this->lineBounds($parent, $availableWidth, $context, 0.0);
         $lines = [];
         $currentFragments = [];
+        // CSS Text 3 §5.5 — when in `pre-wrap` / `break-spaces`, trailing
+        // whitespace at the end of a line hangs (renders past the line edge
+        // with zero contribution to line measurement). We mirror that by
+        // tracking which fragments in `$currentFragments` were whitespace
+        // so we can drop them from the line when wrapping.
+        $hangsTrailingWhitespace = $whiteSpace === 'pre-wrap' || $whiteSpace === 'break-spaces';
+        /** @var list<bool> $currentFragmentIsWs */
+        $currentFragmentIsWs = [];
         $currentX = $bounds['left'] + $textIndent;
         $lineMaxRight = $bounds['right'];
         $atLineStart = true;
@@ -155,16 +170,39 @@ final class InlineLayout
                 && $currentFragments !== []
             ) {
                 // Wrap before placing this token.
+                // For `pre-wrap` / `break-spaces`: trailing whitespace at the
+                // end of the current line "hangs" — drop those fragments so
+                // they don't push the line width and don't get re-emitted on
+                // the next line. The overflowing whitespace token that
+                // triggered this wrap also hangs (we drop it below).
+                if ($hangsTrailingWhitespace) {
+                    while ($currentFragmentIsWs !== [] && end($currentFragmentIsWs) === true) {
+                        array_pop($currentFragments);
+                        array_pop($currentFragmentIsWs);
+                    }
+                    // Re-derive currentX from the surviving fragments so
+                    // line-width-based math (e.g. alignment) sees the
+                    // post-hang width.
+                    $currentX = $currentFragments === []
+                        ? $bounds['left'] + $textIndent
+                        : end($currentFragments)->x + end($currentFragments)->width;
+                }
                 $effective = $this->lineHeightFor($currentFragments, $lineHeight);
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
+                $currentFragmentIsWs = [];
                 $bounds = $this->lineBounds($parent, $availableWidth, $context, $y);
                 $currentX = $bounds['left'];
                 $lineMaxRight = $bounds['right'];
                 $atLineStart = true;
                 if ($collapseLeadingWhitespace && $token['isWhitespace']) {
                     // Drop whitespace at start of next line.
+                    continue;
+                }
+                if ($hangsTrailingWhitespace && $token['isWhitespace']) {
+                    // The overflowing whitespace hangs on the prior line —
+                    // don't carry it to the new line.
                     continue;
                 }
             }
@@ -182,6 +220,7 @@ final class InlineLayout
                 $token['linkTitle'] ?? null,
                 $token['decorationColor'] ?? null,
             );
+            $currentFragmentIsWs[] = (bool) $token['isWhitespace'];
             // Side-channel: AtomicInlineBox positions get committed back to
             // the box's geometry so the painter can draw images / replaced
             // content at the right spot. CSS Inline 3 §4.5: for the default
@@ -258,6 +297,7 @@ final class InlineLayout
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
+                $currentFragmentIsWs = [];
                 $bounds = $this->lineBounds($parent, $availableWidth, $context, $y);
                 $currentX = $bounds['left'];
                 $lineMaxRight = $bounds['right'];
@@ -792,6 +832,7 @@ final class InlineLayout
         ?\Phpdftk\Css\Value\Color $backgroundColor,
         ?string $linkTitle,
         ?\Phpdftk\Css\Value\Color $decorationColor,
+        bool $splitWsBoundaries = false,
     ): array {
         $out = [];
         foreach ($parent->children as $child) {
@@ -811,6 +852,7 @@ final class InlineLayout
                 $backgroundColor,
                 $linkTitle,
                 $decorationColor,
+                $splitWsBoundaries,
             );
         }
         return $out;
@@ -836,6 +878,7 @@ final class InlineLayout
         ?\Phpdftk\Css\Value\Color $backgroundColor,
         ?string $linkTitle,
         ?\Phpdftk\Css\Value\Color $decorationColor,
+        bool $splitWsBoundaries = false,
     ): void {
         if ($box instanceof TextBox) {
             $text = $box->text;
@@ -861,7 +904,7 @@ final class InlineLayout
             // shaper sees the transformed codepoints.
             $text = $this->applyTextTransform($text, $box);
             $breakAll = $this->isBreakAll($box);
-            foreach ($this->tokeniseText($text, $shapingCtx, $letterSpacing, $wordSpacing, $breakAll) as $token) {
+            foreach ($this->tokeniseText($text, $shapingCtx, $letterSpacing, $wordSpacing, $breakAll, $splitWsBoundaries) as $token) {
                 $token['baselineShift'] = $baselineShift;
                 $token['href'] = $href;
                 $token['isBold'] = $isBold;
@@ -1040,6 +1083,7 @@ final class InlineLayout
                     $childBg,
                     $childTitle,
                     $childDecoColor,
+                    $splitWsBoundaries,
                 );
             }
         }
@@ -1424,6 +1468,7 @@ final class InlineLayout
         float $letterSpacing,
         float $wordSpacing,
         bool $breakAll = false,
+        bool $splitWsBoundaries = false,
     ): array {
         if ($text === '') {
             return [];
@@ -1457,6 +1502,46 @@ final class InlineLayout
             }
             if ($start < strlen($text)) {
                 $segments[] = ['text' => substr($text, $start), 'kind' => LineBreakKind::Allowed];
+            }
+            // CSS Text 3 §5.5 — for the hanging-trailing-whitespace
+            // behaviour to take effect under `pre-wrap` / `break-spaces`,
+            // each contiguous whitespace run must be its own token. UAX-14
+            // bundles `XX<ws>` into one segment (the break opportunity
+            // sits at the end of the whitespace), which prevents the
+            // line-fitter from telling the trailing ws apart from the
+            // leading word at wrap time. Refine bundled segments here:
+            // split any segment that mixes ws and non-ws into alternating
+            // runs. Only applied when the caller opts in — under `normal`
+            // / `nowrap` the bundled segments are correct (whitespace
+            // collapses to single spaces that contribute to line width).
+            if ($splitWsBoundaries) {
+                $refined = [];
+                foreach ($segments as $seg) {
+                    if (preg_match('/[ \t\n\r\f]/', $seg['text']) !== 1
+                        || preg_match('/[^ \t\n\r\f]/', $seg['text']) !== 1
+                    ) {
+                        $refined[] = $seg;
+                        continue;
+                    }
+                    if (preg_match_all('/[ \t\n\r\f]+|[^ \t\n\r\f]+/u', $seg['text'], $m) === false) {
+                        $refined[] = $seg;
+                        continue;
+                    }
+                    $lastIdx = count($m[0]) - 1;
+                    foreach ($m[0] as $i => $part) {
+                        $refined[] = [
+                            'text' => $part,
+                            // The original break opportunity sits at
+                            // the end of the bundled segment — keep
+                            // that on the last sub-segment; intermediate
+                            // boundaries get a plain `Allowed`
+                            // opportunity so the breaker can wrap there
+                            // too.
+                            'kind' => $i === $lastIdx ? $seg['kind'] : LineBreakKind::Allowed,
+                        ];
+                    }
+                }
+                $segments = $refined;
             }
         }
 
