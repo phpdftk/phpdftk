@@ -543,7 +543,21 @@ final class ShorthandExpander
             $out['font-style'] = $style;
         }
         if ($variant !== null) {
-            $out['font-variant'] = $variant;
+            // CSS Fonts 4 §6.7 — the `font` shorthand only accepts the
+            // CSS 2.1 `small-caps` token for the variant slot. Route it
+            // straight to `font-variant-caps`; the second-pass expansion
+            // of `font-variant` wouldn't run here (the cascade calls
+            // shorthand expansion once per declaration).
+            $out['font-variant-caps'] = $variant;
+            // Reset the other `font-variant-*` longhands to `normal`
+            // per CSS Fonts 4 §6.11 — the `font` shorthand resets ALL
+            // `font-variant-*` longhands, not just `font-variant-caps`.
+            $out['font-variant-ligatures'] = new Keyword('normal');
+            $out['font-variant-numeric'] = new Keyword('normal');
+            $out['font-variant-east-asian'] = new Keyword('normal');
+            $out['font-variant-position'] = new Keyword('normal');
+            $out['font-variant-alternates'] = new Keyword('normal');
+            $out['font-variant-emoji'] = new Keyword('normal');
         }
         if ($weight !== null) {
             $out['font-weight'] = $weight;

@@ -170,7 +170,12 @@ final class ShorthandExpanderTest extends TestCase
     {
         $out = $this->expander->expand('font', $this->value('italic small-caps bold condensed 12px/1.4 Georgia, serif'));
         self::assertSame('italic', $out['font-style']->name);
-        self::assertSame('small-caps', $out['font-variant']->name);
+        // CSS Fonts 4 §6.7 — the `font` shorthand only takes the CSS 2.1
+        // `small-caps` token; route it directly to `font-variant-caps`.
+        self::assertSame('small-caps', $out['font-variant-caps']->name);
+        // Other `font-variant-*` longhands reset to `normal` per §6.11.
+        self::assertSame('normal', $out['font-variant-ligatures']->name);
+        self::assertSame('normal', $out['font-variant-numeric']->name);
         self::assertSame('bold', $out['font-weight']->name);
         self::assertSame('condensed', $out['font-stretch']->name);
         self::assertSame(12.0, $out['font-size']->value);
