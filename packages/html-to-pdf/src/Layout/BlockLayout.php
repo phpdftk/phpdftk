@@ -113,7 +113,175 @@ final class BlockLayout
         if ($context->floatContext === null) {
             $context = $context->withFloatContext(new FloatContext());
         }
-        return $this->layoutBox($root, $context);
+        $height = $this->layoutBox($root, $context);
+        // CSS Inline 3 §6 — `text-box-trim` runs as a post-layout pass:
+        // it walks each block container with `text-box-trim != none` and
+        // shifts the first / last line of the propagated first-line
+        // host (CSS Inline 3 §6.4), blocked by empty block boxes.
+        $this->applyTextBoxTrimTree($root);
+        return $height;
+    }
+
+    /**
+     * CSS Inline 3 §6.4 — propagation tree walk for `text-box-trim`.
+     * For each block container with a non-`none` `text-box-trim`,
+     * locate the first / last "line host" (the deepest in-flow
+     * descendant whose own `lineBoxes` carry the trim target) and
+     * adjust that line's geometry. The propagation is blocked by
+     * empty block boxes (no own lines, no descendant lines).
+     */
+    private function applyTextBoxTrimTree(Box $box): void
+    {
+        foreach ($box->children as $child) {
+            $this->applyTextBoxTrimTree($child);
+        }
+        $value = $box->style->get('text-box-trim');
+        if (!($value instanceof Keyword)) {
+            return;
+        }
+        $mode = strtolower($value->name);
+        if ($mode === 'none') {
+            return;
+        }
+        $trimStart = $mode === 'trim-start' || $mode === 'trim-both' || $mode === 'both';
+        $trimEnd = $mode === 'trim-end' || $mode === 'trim-both' || $mode === 'both';
+        if ($trimStart) {
+            $host = $this->findLineHost($box, last: false);
+            if ($host !== null) {
+                $this->trimEdgeLineLeading($box, $host, end: false);
+            }
+        }
+        if ($trimEnd) {
+            $host = $this->findLineHost($box, last: true);
+            if ($host !== null) {
+                $this->trimEdgeLineLeading($box, $host, end: true);
+            }
+        }
+    }
+
+    /**
+     * Locate the first (or last) "line host" for `text-box-trim`
+     * propagation. The host is the in-flow descendant whose own
+     * `lineBoxes` carry the line we want to trim. The walk is
+     * depth-first along the start / end edge of `$box` and is
+     * blocked by an empty block child (a block that itself has no
+     * lines and whose descendants also have none) — CSS Inline 3
+     * §6.4 propagation rule.
+     */
+    private function findLineHost(Box $box, bool $last): ?Box
+    {
+        // If this box has its own line boxes, IT is the host.
+        if ($box->lineBoxes !== []) {
+            return $box;
+        }
+        $children = $box->children;
+        if ($children === []) {
+            return null;
+        }
+        if ($last) {
+            $children = array_reverse($children);
+        }
+        foreach ($children as $child) {
+            // Skip non-block, non-inline-formatting children for the
+            // propagation walk. Only block-level descendants
+            // participate in the first-/last-line cascade.
+            if (!($child instanceof BlockBox)
+                && !($child instanceof \Phpdftk\HtmlToPdf\Box\AnonymousBlockBox)
+                && !($child instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox)
+            ) {
+                continue;
+            }
+            $sub = $this->findLineHost($child, $last);
+            if ($sub !== null) {
+                return $sub;
+            }
+            // This block contained no lines anywhere — it's an empty
+            // block. Per §6.4 it BLOCKS further propagation along
+            // this edge.
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * Trim the half-leading from the first / last line of `$host`
+     * (its own `lineBoxes`). When `$end` is true, only the line's
+     * trailing extent shrinks (the IFC's reported height reduces);
+     * when false, the line shifts upward by half-leading and every
+     * subsequent line moves with it.
+     *
+     * Half-leading is computed from the host's resolved font-size
+     * and line-height, matching the way InlineLayout sized the
+     * line. With `text-box-edge: leading` (default) the trim is
+     * `(lineHeight − fontSize) / 2` — bigger when authors crank
+     * line-height past 1.
+     */
+    private function trimEdgeLineLeading(Box $owner, Box $host, bool $end): void
+    {
+        if ($host->lineBoxes === []) {
+            return;
+        }
+        $fontSize = $this->fontSizePx($host);
+        $lineHeight = $this->lineHeightPx($host, $fontSize);
+        $halfLeading = max(0.0, ($lineHeight - $fontSize) / 2.0);
+        if ($halfLeading <= 0.0) {
+            return;
+        }
+        if ($end) {
+            // Shrink the host's reported height by half-leading. The
+            // host's geometry.height is what the parent uses to
+            // place subsequent siblings, so this is what the spec's
+            // "trim-end" rule modifies.
+            $host->geometry->height = max(0.0, $host->geometry->height - $halfLeading);
+        } else {
+            // Shift every line on the host up by half-leading so the
+            // first line's top sits at the box's content edge. The
+            // host's own height also reduces.
+            $shifted = [];
+            foreach ($host->lineBoxes as $line) {
+                $shifted[] = new LineBox(
+                    $line->y - $halfLeading,
+                    $line->height,
+                    $line->fragments,
+                );
+            }
+            $host->lineBoxes = $shifted;
+            $host->geometry->height = max(0.0, $host->geometry->height - $halfLeading);
+        }
+    }
+
+    /**
+     * Resolve the box's font-size to px. Falls back to 16 (the
+     * cascade's initial) when the property is missing or a non-
+     * Length (e.g. a `medium` keyword the cascade didn't resolve).
+     */
+    private function fontSizePx(Box $box): float
+    {
+        $value = $box->style->get('font-size');
+        if ($value instanceof Length) {
+            return $value->value;
+        }
+        return 16.0;
+    }
+
+    /**
+     * Resolve the box's line-height to px against `$fontSize`. The
+     * initial `normal` keyword approximates to 1.2 × fontSize per
+     * CSS Inline 3 §3 (until OS/2 metrics-driven leading ships).
+     */
+    private function lineHeightPx(Box $box, float $fontSize): float
+    {
+        $value = $box->style->get('line-height');
+        if ($value instanceof Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return $fontSize * $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $fontSize * ($value->value / 100.0);
+        }
+        return $fontSize * 1.2;
     }
 
     private function layoutBox(Box $box, LayoutContext $context): float
