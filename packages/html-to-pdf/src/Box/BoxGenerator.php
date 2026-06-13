@@ -139,6 +139,23 @@ final class BoxGenerator
         if ($display === 'none') {
             return null;
         }
+        // CSS Writing Modes 3 §2 — `direction` doesn't apply to
+        // certain internal-table display types (table-row-group /
+        // -header-group / -footer-group / -row / -column /
+        // -column-group). Browsers reset the value to the inherited
+        // one from the parent rather than honouring an explicit
+        // declaration on the row-group itself. Force the cascade back
+        // to the parent's resolved direction (or `ltr` at the root)
+        // so descendants don't pick up an invalid declaration via
+        // inheritance.
+        if (in_array($display, ['table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-column', 'table-column-group'], true)) {
+            $parentDirection = $parentValues?->get('direction');
+            if ($parentDirection instanceof Keyword) {
+                $values->set('direction', $parentDirection);
+            } else {
+                $values->set('direction', new Keyword('ltr'));
+            }
+        }
         // CSS Display 3 §3.2.1 — `display: contents` on the root
         // element is "blockified": the value is treated as `block`
         // so the root still generates a box and its background /
