@@ -87,5 +87,14 @@ final readonly class InlineFragment
          * even when the surrounding paragraph carries the cascaded default.
          */
         public ?Color $decorationColor = null,
+        /**
+         * `true` when the fragment is a pure whitespace token (spaces,
+         * tabs, newlines). Used by `applyTextAlign` to honour
+         * CSS Text 3 §5.5 — trailing whitespace at the end of a line
+         * "hangs" and is excluded from the alignment slack
+         * calculation — and by future justify-distribution work to
+         * skip the trailing-ws gap.
+         */
+        public bool $isWhitespace = false,
     ) {}
 }

@@ -219,6 +219,7 @@ final class InlineLayout
                 $token['backgroundColor'] ?? null,
                 $token['linkTitle'] ?? null,
                 $token['decorationColor'] ?? null,
+                (bool) $token['isWhitespace'],
             );
             $currentFragmentIsWs[] = (bool) $token['isWhitespace'];
             // Side-channel: AtomicInlineBox positions get committed back to
@@ -612,7 +613,11 @@ final class InlineLayout
         $count = count($lines);
         $out = [];
         foreach ($lines as $i => $line) {
-            $used = $line->totalWidth();
+            // CSS Text 3 §5.5 — trailing whitespace at the end of a
+            // line hangs (zero-width for line measurement). For
+            // alignment slack this means we measure the line's
+            // visible content edge, NOT the full fragment tail.
+            $used = $this->lineUsedWidth($line);
             $slack = $availableWidth - $used;
             if ($slack <= 0.0) {
                 $out[] = $line;
@@ -629,6 +634,30 @@ final class InlineLayout
             $out[] = new LineBox($line->y, $line->height, $newFragments);
         }
         return $out;
+    }
+
+    /**
+     * Compute the line's content edge for alignment, excluding any
+     * trailing whitespace fragments (CSS Text 3 §5.5). Used by
+     * `applyTextAlign` so the centre / right shift respects the
+     * visible content's right edge, not the hung-whitespace tail.
+     */
+    private function lineUsedWidth(LineBox $line): float
+    {
+        $right = 0.0;
+        $fragments = $line->fragments;
+        // Walk backwards skipping trailing whitespace fragments.
+        $lastVisible = count($fragments) - 1;
+        while ($lastVisible >= 0 && $fragments[$lastVisible]->isWhitespace) {
+            $lastVisible--;
+        }
+        for ($i = 0; $i <= $lastVisible; $i++) {
+            $edge = $fragments[$i]->x + $fragments[$i]->width;
+            if ($edge > $right) {
+                $right = $edge;
+            }
+        }
+        return $right;
     }
 
     /**
@@ -840,7 +869,7 @@ final class InlineLayout
     {
         $out = [];
         foreach ($fragments as $f) {
-            $out[] = new InlineFragment($f->x + $dx, $f->width, $f->shapedRun, $f->baselineShift, $f->href, $f->isBold, $f->isItalic, $f->decorationLines, $f->textColor, $f->backgroundColor, $f->linkTitle, $f->decorationColor);
+            $out[] = new InlineFragment($f->x + $dx, $f->width, $f->shapedRun, $f->baselineShift, $f->href, $f->isBold, $f->isItalic, $f->decorationLines, $f->textColor, $f->backgroundColor, $f->linkTitle, $f->decorationColor, $f->isWhitespace);
         }
         return $out;
     }
@@ -854,14 +883,25 @@ final class InlineLayout
      */
     private function justifyFragments(array $fragments, float $slack): array
     {
-        $gaps = max(0, count($fragments) - 1);
-        if ($gaps === 0) {
+        // CSS Text 3 §7.5 — trailing whitespace at the end of a line
+        // is excluded from justification (it hangs). Skip trailing
+        // whitespace fragments when counting gaps and when shifting.
+        $lastVisible = count($fragments) - 1;
+        while ($lastVisible >= 0 && $fragments[$lastVisible]->isWhitespace) {
+            $lastVisible--;
+        }
+        if ($lastVisible < 1) {
             return $fragments;
         }
+        $gaps = $lastVisible;
         $delta = $slack / $gaps;
         $out = [];
         foreach ($fragments as $i => $f) {
-            $out[] = new InlineFragment($f->x + $i * $delta, $f->width, $f->shapedRun, $f->baselineShift, $f->href, $f->isBold, $f->isItalic, $f->decorationLines, $f->textColor, $f->backgroundColor, $f->linkTitle, $f->decorationColor);
+            // Trailing-ws fragments pinned to whatever the last
+            // visible fragment's right edge becomes — they aren't
+            // shifted (they hang past the line edge).
+            $shift = $i <= $lastVisible ? $i * $delta : $lastVisible * $delta;
+            $out[] = new InlineFragment($f->x + $shift, $f->width, $f->shapedRun, $f->baselineShift, $f->href, $f->isBold, $f->isItalic, $f->decorationLines, $f->textColor, $f->backgroundColor, $f->linkTitle, $f->decorationColor, $f->isWhitespace);
         }
         return $out;
     }

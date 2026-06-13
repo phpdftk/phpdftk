@@ -625,6 +625,101 @@ final class InlineLayoutTest extends TestCase
         self::assertCount(1, $first->shapedRun->glyphs);
     }
 
+    public function testCenterAlignExcludesTrailingWhitespaceFromSlack(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Text 3 §5.5 — trailing whitespace at the end of a line
+        // hangs (zero-width for line measurement). For `text-align:
+        // center` that means the slack distributed to either side is
+        // computed against the *visible* content width, not the
+        // fragment tail. Under `pre-wrap` source ending with a space
+        // before a hard break, the centring should leave the visible
+        // content centred on the box's midline rather than shifted
+        // left by half the trailing-space's width.
+        $box = $this->buildTree(
+            '<html><body><p>'
+            . "\u{1820}\u{1820} \u{1820}\u{1820}\n"
+            . "\u{1820}\u{1820}"
+            . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { white-space: pre-wrap; text-align: center; width: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertGreaterThanOrEqual(2, count($p->lineBoxes));
+        $line1 = $p->lineBoxes[0];
+        // Find the last non-whitespace fragment.
+        $lastVisible = null;
+        foreach ($line1->fragments as $f) {
+            if (!$f->isWhitespace) {
+                $lastVisible = $f;
+            }
+        }
+        self::assertNotNull($lastVisible);
+        // Content right edge sits before the box midline + content/2,
+        // and content left edge after midline − content/2. Together
+        // that confirms centring on visible content, not on
+        // fragment.tail.
+        $firstVisible = $line1->fragments[0];
+        // Skip leading ws if any.
+        foreach ($line1->fragments as $f) {
+            if (!$f->isWhitespace) {
+                $firstVisible = $f;
+                break;
+            }
+        }
+        $visibleLeft = $firstVisible->x;
+        $visibleRight = $lastVisible->x + $lastVisible->width;
+        // The midpoint of visible content should sit on the box's
+        // midline (containerWidth / 2 = 50px).
+        $mid = ($visibleLeft + $visibleRight) / 2.0;
+        self::assertEqualsWithDelta(50.0, $mid, 0.5, 'visible content centred on box midline');
+    }
+
+    public function testJustifySkipsTrailingWhitespaceGap(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Text 3 §7.5 — when justifying a line that has a
+        // trailing whitespace fragment (typical of pre-wrap content
+        // ending in a soft wrap), the trailing-ws gap is excluded
+        // from the slack distribution. Otherwise the slack is split
+        // across N gaps when only N−1 of them are between visible
+        // tokens, and the visible tokens fail to span the full
+        // container.
+        $letters = str_repeat("\u{1820} ", 5); // "X X X X X "
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . "\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; }
+             p { text-align: justify;
+                 text-align-last: justify;
+                 white-space: pre-wrap;
+                 width: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertGreaterThanOrEqual(1, count($p->lineBoxes));
+        $line = $p->lineBoxes[0];
+        // Last visible fragment's right edge should sit near (or at)
+        // the container's right edge — i.e. justify pushed the visible
+        // content to fill the box ignoring the trailing whitespace.
+        $lastVisible = null;
+        foreach ($line->fragments as $f) {
+            if (!$f->isWhitespace) {
+                $lastVisible = $f;
+            }
+        }
+        self::assertNotNull($lastVisible);
+        // For very long lines that may not have justification slack
+        // applied (justify acts on lines with slack > 0), skip the
+        // strict assertion when the visible content already exceeds
+        // the box.
+        if ($lastVisible->x + $lastVisible->width <= 200.0) {
+            self::assertGreaterThan(150.0, $lastVisible->x + $lastVisible->width, 'visible content extends close to the right edge');
+        }
+    }
+
     public function testNowrapKeepsContentOnOneLine(): void
     {
         $this->skipIfNoFont();
