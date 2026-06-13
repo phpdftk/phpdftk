@@ -2635,6 +2635,54 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($grid->geometry->x + 100.0, $b->geometry->x, 0.001);
     }
 
+    public function testFixedTableLayoutReadsCascadedColumnWidths(): void
+    {
+        // CSS 2.1 §17.5.2.1 — `table-layout: fixed` distributes column
+        // widths from the first row plus explicit `<col>` declarations,
+        // including percentage widths resolved against the table's
+        // content width. The cascade on `<col>` reaches BlockLayout via
+        // the new `TableColumnBox` (display: table-column from the UA
+        // stylesheet); collectColumnWidths reads both CSS Length and
+        // CSS Percentage from that box.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<col id="a"></col>'
+                . '<col id="b"></col>'
+                . '<col id="c"></col>'
+                . '<col id="d"></col>'
+                . '<tr><td>1</td><td>2</td><td>3</td><td>4</td></tr>'
+                . '</table></body></html>',
+            'table { table-layout: fixed; width: 400px; border-collapse: collapse; }
+             #a { width: 13%; }
+             #b { width: 100px; }
+             #c { width: 31%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $seen = [];
+        $cells = [];
+        $walk = function ($n) use (&$walk, &$cells, &$seen) {
+            if ($n->element && strtolower($n->element->localName) === 'td') {
+                $eid = spl_object_id($n->element);
+                if (!isset($seen[$eid])) {
+                    $seen[$eid] = true;
+                    $cells[] = $n;
+                }
+            }
+            foreach ($n->children as $c) {
+                $walk($c);
+            }
+        };
+        $walk($box);
+        self::assertCount(4, $cells);
+        // 13% of 400 = 52px, 31% of 400 = 124px, auto = 124px (400 - 52 - 100 - 124).
+        // Compare against outerWidth so the UA stylesheet's default
+        // `td { padding: 2pt }` doesn't make the assertion brittle.
+        self::assertEqualsWithDelta(52.0, $cells[0]->geometry->outerWidth(), 1.0, 'col#a → 13%');
+        self::assertEqualsWithDelta(100.0, $cells[1]->geometry->outerWidth(), 1.0, 'col#b → 100px');
+        self::assertEqualsWithDelta(124.0, $cells[2]->geometry->outerWidth(), 1.0, 'col#c → 31%');
+        self::assertEqualsWithDelta(124.0, $cells[3]->geometry->outerWidth(), 1.0, 'col#d → remaining auto');
+    }
+
     public function testFloatAutoMarginResolvesToZero(): void
     {
         // CSS 2.1 §9.5.1 — auto margins on a floated element compute

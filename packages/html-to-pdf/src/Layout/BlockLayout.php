@@ -171,6 +171,15 @@ final class BlockLayout
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableRowBox) {
             return $this->layoutTableRow($box, $context);
         }
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableColumnBox) {
+            // CSS Tables 3 §4 — `table-column` / `table-column-group`
+            // boxes carry cascade for the column-width pass but do not
+            // contribute to flow geometry. Zero-height no-op.
+            $box->geometry->x = $context->originX;
+            $box->geometry->y = $context->originY;
+            $box->geometry->width = 0.0;
+            return 0.0;
+        }
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox) {
             return $this->layoutFlexBox($box, $context);
         }
@@ -3982,6 +3991,35 @@ final class BlockLayout
         if ($table->element === null || $totalColumns === 0) {
             return $widths;
         }
+        // Build an element→box index so we can read each `<col>`'s
+        // cascade — width as Length / Percentage on the cascaded box,
+        // not just the legacy HTML `width="N"` attribute. Walk the
+        // table's box-tree children (and one-deep into TableColumnBox
+        // groups) since `<col>` boxes nest inside `<colgroup>` boxes
+        // in the DOM mirror.
+        //
+        // collectColumnWidths runs BEFORE layoutBlock sets the table's
+        // geometry.width, so prefer the cascaded `width` (the explicit
+        // declared value resolved by the cascade) — that's the basis
+        // CSS Tables 3 §4.4 uses for percentage column widths anyway.
+        $tableWidthValue = $table->style->get('width');
+        $tableContentWidth = $tableWidthValue instanceof Length
+            ? $tableWidthValue->value
+            : max(0.0, $table->geometry->width);
+        /** @var array<int, Box> $colBoxByElementId */
+        $colBoxByElementId = [];
+        foreach ($table->children as $tc) {
+            $tcEl = $tc->element;
+            if ($tcEl !== null) {
+                $colBoxByElementId[spl_object_id($tcEl)] = $tc;
+            }
+            foreach ($tc->children as $sub) {
+                $subEl = $sub->element;
+                if ($subEl !== null) {
+                    $colBoxByElementId[spl_object_id($subEl)] = $sub;
+                }
+            }
+        }
         $col = 0;
         foreach ($table->element->children() as $child) {
             if ($col >= $totalColumns) {
@@ -3989,14 +4027,16 @@ final class BlockLayout
             }
             $tag = strtolower($child->localName);
             if ($tag === 'col') {
-                $col = $this->applyColWidth($child, $widths, $col);
+                $box = $colBoxByElementId[spl_object_id($child)] ?? null;
+                $col = $this->applyColWidth($child, $box, $tableContentWidth, $widths, $col);
             } elseif ($tag === 'colgroup') {
                 $inner = $child->children();
                 $hasNested = false;
                 foreach ($inner as $sub) {
                     if (strtolower($sub->localName) === 'col') {
                         $hasNested = true;
-                        $col = $this->applyColWidth($sub, $widths, $col);
+                        $subBox = $colBoxByElementId[spl_object_id($sub)] ?? null;
+                        $col = $this->applyColWidth($sub, $subBox, $tableContentWidth, $widths, $col);
                         if ($col >= $totalColumns) {
                             break;
                         }
@@ -4006,7 +4046,8 @@ final class BlockLayout
                     // Group with no nested `<col>` applies its own
                     // span (HTML 5 §4.9.3) — its width attribute (if
                     // any) flows to each spanned column.
-                    $col = $this->applyColWidth($child, $widths, $col);
+                    $box = $colBoxByElementId[spl_object_id($child)] ?? null;
+                    $col = $this->applyColWidth($child, $box, $tableContentWidth, $widths, $col);
                 }
             }
         }
@@ -4102,14 +4143,33 @@ final class BlockLayout
      *
      * @param list<?float> $widths
      */
-    private function applyColWidth(\Phpdftk\Html\Dom\Element $col, array &$widths, int $startCol): int
-    {
+    private function applyColWidth(
+        \Phpdftk\Html\Dom\Element $col,
+        ?Box $colBox,
+        float $tableContentWidth,
+        array &$widths,
+        int $startCol,
+    ): int {
         $spanAttr = $col->getAttribute('span');
         $span = 1;
         if ($spanAttr !== null && preg_match('/^\d+$/', trim($spanAttr)) === 1) {
             $span = max(1, (int) trim($spanAttr));
         }
-        $width = $this->parseLegacyWidth($col->getAttribute('width'));
+        // Prefer the cascaded CSS `width` (Length pixels or Percentage
+        // of the table content width) over the legacy HTML attribute,
+        // matching browser priority for `<col>` / `<colgroup>`.
+        $width = null;
+        if ($colBox !== null) {
+            $cssWidth = $colBox->style->get('width');
+            if ($cssWidth instanceof Length) {
+                $width = $cssWidth->value;
+            } elseif ($cssWidth instanceof \Phpdftk\Css\Value\Percentage) {
+                $width = $tableContentWidth * ($cssWidth->value / 100.0);
+            }
+        }
+        if ($width === null) {
+            $width = $this->parseLegacyWidth($col->getAttribute('width'));
+        }
         $end = min($startCol + $span, count($widths));
         for ($i = $startCol; $i < $end; $i++) {
             if ($widths[$i] === null) {

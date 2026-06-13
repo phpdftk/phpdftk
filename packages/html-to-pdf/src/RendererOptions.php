@@ -419,7 +419,16 @@ final readonly class RendererOptions
             td, th { display: table-cell; padding: 2pt; vertical-align: top; }
             th { font-weight: bold; text-align: center; }
             thead, tbody, tfoot, caption { display: block; }
-            colgroup, col { display: none; }
+            /* HTML 5 §4.9.1-3 — `<col>` / `<colgroup>` are layout-only
+               carriers for per-column declarations (width, background,
+               border). They never paint their own content, but their
+               cascaded values feed the table column-width pass —
+               BlockLayout's `collectColumnWidths` reads them when
+               `table-layout: fixed`. Generating a `TableColumnBox`
+               keeps the cascade reachable; the box itself is a layout
+               no-op. */
+            colgroup { display: table-column-group; }
+            col { display: table-column; }
             head, script, style, title, meta, link, base { display: none; }
             /* HTML 5 §4.5.27 — `<wbr>` (Word Break Opportunity) is a
                zero-width inline that just marks a permissible line
