@@ -19,14 +19,14 @@ final class FloatContext
     /** @var list<FloatItem> */
     private array $items = [];
 
-    public function addLeft(float $left, float $top, float $width, float $height): void
+    public function addLeft(float $left, float $top, float $width, float $height, ?array $shape = null): void
     {
-        $this->items[] = new FloatItem('left', $left, $top, $width, $height);
+        $this->items[] = new FloatItem('left', $left, $top, $width, $height, $shape);
     }
 
-    public function addRight(float $left, float $top, float $width, float $height): void
+    public function addRight(float $left, float $top, float $width, float $height, ?array $shape = null): void
     {
-        $this->items[] = new FloatItem('right', $left, $top, $width, $height);
+        $this->items[] = new FloatItem('right', $left, $top, $width, $height, $shape);
     }
 
     /**
@@ -145,13 +145,125 @@ final class FloatContext
                 continue;
             }
             if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {
-                $rightEdge = $item->left + $item->width;
+                $rightEdge = $this->itemRightEdgeAt($item, $y);
                 if ($rightEdge > $edge) {
                     $edge = $rightEdge;
                 }
             }
         }
         return $edge;
+    }
+
+    /**
+     * Right edge of a left-float's exclusion region at `$y`. When the
+     * item carries a `shape` (CSS Shapes 1 §3) the edge tracks the
+     * shape's contour; otherwise it's the bounding rect's right edge.
+     */
+    private function itemRightEdgeAt(FloatItem $item, float $y): float
+    {
+        if ($item->shape === null) {
+            return $item->left + $item->width;
+        }
+        return $item->left + $this->shapeRightEdgeLocal($item, $y);
+    }
+
+    /**
+     * Left edge of a right-float's exclusion region at `$y`.
+     */
+    private function itemLeftEdgeAt(FloatItem $item, float $y): float
+    {
+        if ($item->shape === null) {
+            return $item->left;
+        }
+        return $item->left + $this->shapeLeftEdgeLocal($item, $y);
+    }
+
+    /**
+     * Right edge of the shape (in item-local coords) at `$y`. For a
+     * left-float, this is the X past which inline content can flow.
+     * Returns `width` (full bounding-rect edge) when the shape doesn't
+     * intersect this Y, so the float still pushes text down past its
+     * bottom edge as in the rect case.
+     */
+    private function shapeRightEdgeLocal(FloatItem $item, float $y): float
+    {
+        $yLocal = $y - $item->top;
+        $shape = $item->shape;
+        if ($shape === null) {
+            return $item->width;
+        }
+        $kind = $shape['kind'] ?? null;
+        if ($kind === 'circle') {
+            $cx = (float) ($shape['cx'] ?? 0.0);
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            $r = (float) ($shape['r'] ?? 0.0);
+            $dy = $yLocal - $cy;
+            if (abs($dy) > $r) {
+                return 0.0;
+            }
+            $dx = sqrt(max(0.0, $r * $r - $dy * $dy));
+            return $cx + $dx;
+        }
+        if ($kind === 'ellipse') {
+            $cx = (float) ($shape['cx'] ?? 0.0);
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            $rx = (float) ($shape['rx'] ?? 0.0);
+            $ry = (float) ($shape['ry'] ?? 0.0);
+            if ($rx <= 0.0 || $ry <= 0.0) {
+                return $item->width;
+            }
+            $dy = $yLocal - $cy;
+            if (abs($dy) > $ry) {
+                return 0.0;
+            }
+            // x = rx · sqrt(1 - (dy/ry)²)
+            $factor = sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
+            $dx = $rx * $factor;
+            return $cx + $dx;
+        }
+        return $item->width;
+    }
+
+    /**
+     * Left edge of the shape (in item-local coords) at `$y`, used by
+     * right-floats. Returns 0 when the shape doesn't intersect this Y.
+     */
+    private function shapeLeftEdgeLocal(FloatItem $item, float $y): float
+    {
+        $yLocal = $y - $item->top;
+        $shape = $item->shape;
+        if ($shape === null) {
+            return 0.0;
+        }
+        $kind = $shape['kind'] ?? null;
+        if ($kind === 'circle') {
+            $cx = (float) ($shape['cx'] ?? 0.0);
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            $r = (float) ($shape['r'] ?? 0.0);
+            $dy = $yLocal - $cy;
+            if (abs($dy) > $r) {
+                return $item->width;
+            }
+            $dx = sqrt(max(0.0, $r * $r - $dy * $dy));
+            return $cx - $dx;
+        }
+        if ($kind === 'ellipse') {
+            $cx = (float) ($shape['cx'] ?? 0.0);
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            $rx = (float) ($shape['rx'] ?? 0.0);
+            $ry = (float) ($shape['ry'] ?? 0.0);
+            if ($rx <= 0.0 || $ry <= 0.0) {
+                return 0.0;
+            }
+            $dy = $yLocal - $cy;
+            if (abs($dy) > $ry) {
+                return $item->width;
+            }
+            $factor = sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
+            $dx = $rx * $factor;
+            return $cx - $dx;
+        }
+        return 0.0;
     }
 
     /**
@@ -166,8 +278,9 @@ final class FloatContext
                 continue;
             }
             if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {
-                if ($item->left < $edge) {
-                    $edge = $item->left;
+                $leftEdge = $this->itemLeftEdgeAt($item, $y);
+                if ($leftEdge < $edge) {
+                    $edge = $leftEdge;
                 }
             }
         }

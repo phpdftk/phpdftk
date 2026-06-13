@@ -141,4 +141,55 @@ final class FloatContextTest extends TestCase
         $slot = $ctx->fitSlot(0.0, 0.0, 250.0, 200.0);
         self::assertGreaterThanOrEqual(60.0, $slot['y']);
     }
+
+    public function testCircleShapeContractsExclusionAtTopAndBottom(): void
+    {
+        // CSS Shapes 1 §3.2 — a circle of radius 50 centred at (50,50)
+        // inside a 100×100 left float. At the float's vertical centre
+        // (y=50) the exclusion right-edge is at x=100 (full radius);
+        // at y=0 (the top) the edge collapses to x=50 (just the
+        // center), letting text flow tight up against the float's
+        // top-left corner.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'circle',
+            'cx' => 50.0,
+            'cy' => 50.0,
+            'r' => 50.0,
+        ]);
+        // Equator → full diameter as exclusion.
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(50.0, 0.0), 0.001);
+        // Just below the top (y=10) → exclusion narrower.
+        self::assertLessThan(100.0, $ctx->leftEdgeAt(10.0, 0.0));
+    }
+
+    public function testEllipseShapeContractsExclusion(): void
+    {
+        // CSS Shapes 1 §3.3 — an ellipse with rx=80, ry=40 centred at
+        // (80, 40) in a 160×80 left float. At y=40 (equator) the
+        // exclusion edge is at x=160 (full rx + cx). At y=0 or y=80
+        // the edge collapses to cx=80.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 160.0, 80.0, [
+            'kind' => 'ellipse',
+            'cx' => 80.0,
+            'cy' => 40.0,
+            'rx' => 80.0,
+            'ry' => 40.0,
+        ]);
+        self::assertEqualsWithDelta(160.0, $ctx->leftEdgeAt(40.0, 0.0), 0.001);
+        self::assertEqualsWithDelta(80.0, $ctx->leftEdgeAt(0.0, 0.0), 1.0);
+    }
+
+    public function testRectFloatStillUsesBoundingEdges(): void
+    {
+        // Negative test — `shape: null` keeps the legacy bounding-rect
+        // behaviour. A 100×100 left float pushes line content all the
+        // way to x=100 at every Y in its range.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0);
+        self::assertSame(100.0, $ctx->leftEdgeAt(0.0, 0.0));
+        self::assertSame(100.0, $ctx->leftEdgeAt(50.0, 0.0));
+        self::assertSame(100.0, $ctx->leftEdgeAt(99.0, 0.0));
+    }
 }

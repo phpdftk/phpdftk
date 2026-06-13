@@ -739,11 +739,155 @@ final class BlockLayout
             $floatWidth,
             $floatHeight,
         );
+        // CSS Shapes 1 §3.2 — when the float's `shape-outside` is a
+        // function value (`circle()` / `ellipse()` / `polygon()`),
+        // resolve it to an item-local exclusion shape so the
+        // FloatContext's per-Y queries trace the contour instead of
+        // the bounding rect. We currently support `circle()`.
+        $shape = $this->resolveShapeOutsideShape(
+            $child,
+            $exclusionRect['width'],
+            $exclusionRect['height'],
+        );
         if ($side === 'left') {
-            $floatCtx->addLeft($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height']);
+            $floatCtx->addLeft($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height'], $shape);
         } else {
-            $floatCtx->addRight($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height']);
+            $floatCtx->addRight($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height'], $shape);
         }
+    }
+
+    /**
+     * Resolve a `circle()` shape-outside function value against the
+     * reference box's width / height. Returns an associative array
+     * the FloatContext understands, or `null` when the value isn't
+     * a circle (or has an unresolvable radius / position).
+     *
+     * Supported radii: explicit Length (px), Percentage (% of the
+     * average box dimension per CSS Shapes 1 §3.2 footnote),
+     * `closest-side` / `farthest-side` keywords (defaults to
+     * `closest-side` when omitted).
+     *
+     * Position: explicit `at <length> <length>` pairs. Percentage
+     * positions resolve against the reference box. Defaults to the
+     * box center (50%, 50%).
+     *
+     * @return ?array{kind: 'circle', cx: float, cy: float, r: float}
+     */
+    private function resolveShapeOutsideShape(Box $float, float $refWidth, float $refHeight): ?array
+    {
+        $value = $float->style->get('shape-outside');
+        $shape = null;
+        if ($value instanceof \Phpdftk\Css\Value\CircleShape
+            || $value instanceof \Phpdftk\Css\Value\EllipseShape
+        ) {
+            $shape = $value;
+        } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\CircleShape
+                    || $v instanceof \Phpdftk\Css\Value\EllipseShape
+                ) {
+                    $shape = $v;
+                    break;
+                }
+            }
+        }
+        if ($shape === null) {
+            return null;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\CircleShape) {
+            $cx = $this->resolveShapePosition($shape->centerX, $refWidth, $refWidth / 2.0);
+            $cy = $this->resolveShapePosition($shape->centerY, $refHeight, $refHeight / 2.0);
+            $r = $this->resolveCircleRadius($shape->radius, $cx, $cy, $refWidth, $refHeight);
+            if ($r <= 0.0) {
+                return null;
+            }
+            return ['kind' => 'circle', 'cx' => $cx, 'cy' => $cy, 'r' => $r];
+        }
+        // Ellipse
+        $cx = $this->resolveShapePosition($shape->centerX, $refWidth, $refWidth / 2.0);
+        $cy = $this->resolveShapePosition($shape->centerY, $refHeight, $refHeight / 2.0);
+        $rx = $this->resolveEllipseRadius($shape->radiusX, $cx, $refWidth);
+        $ry = $this->resolveEllipseRadius($shape->radiusY, $cy, $refHeight);
+        if ($rx <= 0.0 || $ry <= 0.0) {
+            return null;
+        }
+        return ['kind' => 'ellipse', 'cx' => $cx, 'cy' => $cy, 'rx' => $rx, 'ry' => $ry];
+    }
+
+    /**
+     * Resolve a `<position>` axis component (Length / Percentage /
+     * Keyword) against the reference axis size. `null` returns the
+     * supplied default (typically the box midpoint).
+     */
+    private function resolveShapePosition(?\Phpdftk\Css\Value\Value $value, float $refSize, float $default): float
+    {
+        if ($value === null) {
+            return $default;
+        }
+        if ($value instanceof Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $refSize * ($value->value / 100.0);
+        }
+        return $default;
+    }
+
+    /**
+     * Resolve a `circle()` radius (Length / Percentage / Keyword) at
+     * `(cx, cy)` against the reference box `(refW × refH)`. Returns
+     * `0` when not resolvable (caller treats that as "no shape").
+     */
+    private function resolveCircleRadius(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $cx,
+        float $cy,
+        float $refW,
+        float $refH,
+    ): float {
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            // CSS Shapes 1 §3.2 — percentage circle radius resolves
+            // against `sqrt(refW² + refH²) / sqrt(2)`.
+            $basis = sqrt(($refW * $refW + $refH * $refH) / 2.0);
+            return max(0.0, $basis * ($value->value / 100.0));
+        }
+        $keyword = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        $closestSide = min($cx, $refW - $cx, $cy, $refH - $cy);
+        $farthestSide = max($cx, $refW - $cx, $cy, $refH - $cy);
+        return match ($keyword) {
+            'farthest-side' => max(0.0, $farthestSide),
+            default => max(0.0, $closestSide),
+        };
+    }
+
+    /**
+     * Resolve an `ellipse()` axis radius. Per CSS Shapes 1 §3.3 the
+     * two axes are independent: `closest-side` along x is the closer
+     * of the left or right edge; along y is the closer of top or
+     * bottom. Percentage resolves to a fraction of the reference
+     * axis size (not the diagonal, unlike circle).
+     */
+    private function resolveEllipseRadius(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $center,
+        float $refSize,
+    ): float {
+        if ($value instanceof Length) {
+            return max(0.0, $value->value);
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return max(0.0, $refSize * ($value->value / 100.0));
+        }
+        $keyword = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        $closestSide = min($center, $refSize - $center);
+        $farthestSide = max($center, $refSize - $center);
+        return match ($keyword) {
+            'farthest-side' => max(0.0, $farthestSide),
+            default => max(0.0, $closestSide),
+        };
     }
 
     /**
