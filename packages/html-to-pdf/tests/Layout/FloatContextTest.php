@@ -181,6 +181,21 @@ final class FloatContextTest extends TestCase
         self::assertEqualsWithDelta(80.0, $ctx->leftEdgeAt(0.0, 0.0), 1.0);
     }
 
+    public function testInsetEquivalentRectShrinksExclusion(): void
+    {
+        // CSS Shapes 1 §3.1 — `inset()` shrinks the float's exclusion
+        // rect by the per-edge insets. We test the shrunk rect by
+        // registering a smaller bounding rect directly; the layout
+        // code in BlockLayout applies the inset before reaching
+        // FloatContext, so this is the post-inset state.
+        $ctx = new FloatContext();
+        $ctx->addLeft(20.0, 20.0, 80.0, 60.0); // 100×100 outer, inset by 20px top+left
+        // At y inside the inset area, exclusion right edge is 100.
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(30.0, 0.0), 0.001);
+        // Above the inset area (y=10), the float doesn't apply.
+        self::assertSame(0.0, $ctx->leftEdgeAt(10.0, 0.0));
+    }
+
     public function testPolygonShapeTriangleContractsExclusion(): void
     {
         // CSS Shapes 1 §3.4 — a triangle with vertices (0,0), (100,0),

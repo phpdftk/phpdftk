@@ -739,11 +739,16 @@ final class BlockLayout
             $floatWidth,
             $floatHeight,
         );
+        // CSS Shapes 1 §3.1 — `shape-outside: inset(...)` shrinks the
+        // reference rect by the per-edge insets. Done before the
+        // per-Y shape resolution so circle / ellipse / polygon see
+        // the post-inset bounds.
+        $exclusionRect = $this->applyInsetShape($child, $exclusionRect);
         // CSS Shapes 1 §3.2 — when the float's `shape-outside` is a
         // function value (`circle()` / `ellipse()` / `polygon()`),
         // resolve it to an item-local exclusion shape so the
         // FloatContext's per-Y queries trace the contour instead of
-        // the bounding rect. We currently support `circle()`.
+        // the bounding rect.
         $shape = $this->resolveShapeOutsideShape(
             $child,
             $exclusionRect['width'],
@@ -773,6 +778,59 @@ final class BlockLayout
      *
      * @return ?array{kind: 'circle', cx: float, cy: float, r: float}
      */
+    /**
+     * CSS Shapes 1 §3.1 — when the float's `shape-outside` is an
+     * `inset(<lengths>)` value (or a `ValueList` wrapping one with
+     * a reference-box keyword), shrink the supplied exclusion rect
+     * by the per-edge insets. Returns the original rect unchanged
+     * when no inset value applies.
+     *
+     * Insets follow CSS TRBL shorthand expansion (1 to 4 values).
+     *
+     * @param array{x: float, y: float, width: float, height: float} $rect
+     * @return array{x: float, y: float, width: float, height: float}
+     */
+    private function applyInsetShape(Box $float, array $rect): array
+    {
+        $value = $float->style->get('shape-outside');
+        $inset = null;
+        if ($value instanceof \Phpdftk\Css\Value\InsetShape) {
+            $inset = $value;
+        } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $v) {
+                if ($v instanceof \Phpdftk\Css\Value\InsetShape) {
+                    $inset = $v;
+                    break;
+                }
+            }
+        }
+        if ($inset === null) {
+            return $rect;
+        }
+        // TRBL shorthand expansion.
+        $insets = $inset->insets;
+        $n = count($insets);
+        if ($n === 0) {
+            return $rect;
+        }
+        $top = $this->resolveShapePosition($insets[0], $rect['height'], 0.0);
+        $right = $n >= 2
+            ? $this->resolveShapePosition($insets[1], $rect['width'], 0.0)
+            : $top;
+        $bottom = $n >= 3
+            ? $this->resolveShapePosition($insets[2], $rect['height'], 0.0)
+            : $top;
+        $left = $n >= 4
+            ? $this->resolveShapePosition($insets[3], $rect['width'], 0.0)
+            : $right;
+        return [
+            'x' => $rect['x'] + $left,
+            'y' => $rect['y'] + $top,
+            'width' => max(0.0, $rect['width'] - $left - $right),
+            'height' => max(0.0, $rect['height'] - $top - $bottom),
+        ];
+    }
+
     private function resolveShapeOutsideShape(Box $float, float $refWidth, float $refHeight): ?array
     {
         $value = $float->style->get('shape-outside');
