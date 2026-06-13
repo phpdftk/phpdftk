@@ -726,11 +726,92 @@ final class BlockLayout
         if ($dx !== 0.0 || $dy !== 0.0) {
             $this->shiftSubtree($child, $dy, $dx);
         }
+        // CSS Shapes 1 §3 — when the float declares
+        // `shape-outside: <reference-box>` (a margin-box / border-box /
+        // padding-box / content-box keyword), the exclusion region
+        // contracts from the float's margin-box (the default) to that
+        // reference box. We register the contracted exclusion rect
+        // here so inline layout flows text closer to the float.
+        $exclusionRect = $this->shapeOutsideExclusionRect(
+            $child,
+            $targetX,
+            $targetY,
+            $floatWidth,
+            $floatHeight,
+        );
         if ($side === 'left') {
-            $floatCtx->addLeft($targetX, $targetY, $floatWidth, $floatHeight);
+            $floatCtx->addLeft($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height']);
         } else {
-            $floatCtx->addRight($targetX, $targetY, $floatWidth, $floatHeight);
+            $floatCtx->addRight($exclusionRect['x'], $exclusionRect['y'], $exclusionRect['width'], $exclusionRect['height']);
         }
+    }
+
+    /**
+     * CSS Shapes 1 §3 — read the float's `shape-outside` and contract
+     * the default margin-box exclusion to the named reference box.
+     * Returns the exclusion rectangle the FloatContext should register.
+     *
+     * Supported values: `margin-box` (default), `border-box`,
+     * `padding-box`, `content-box`. Function values (`circle()`,
+     * `ellipse()`, `polygon()`, etc.) are accepted but for Phase-1
+     * fall through to the float's bounding rect of their reference
+     * box — proper per-Y exclusion math is a follow-up.
+     *
+     * @return array{x: float, y: float, width: float, height: float}
+     */
+    private function shapeOutsideExclusionRect(
+        Box $float,
+        float $marginBoxX,
+        float $marginBoxY,
+        float $marginBoxW,
+        float $marginBoxH,
+    ): array {
+        $shape = $float->style->get('shape-outside');
+        $boxKeyword = null;
+        if ($shape instanceof Keyword) {
+            $boxKeyword = strtolower($shape->name);
+        } elseif ($shape instanceof \Phpdftk\Css\Value\ValueList) {
+            // `circle(...) margin-box` etc. — pick the trailing
+            // reference-box keyword if present.
+            foreach ($shape->values as $v) {
+                if ($v instanceof Keyword) {
+                    $name = strtolower($v->name);
+                    if (in_array($name, ['margin-box', 'border-box', 'padding-box', 'content-box'], true)) {
+                        $boxKeyword = $name;
+                    }
+                }
+            }
+        }
+        $geo = $float->geometry;
+        return match ($boxKeyword) {
+            'border-box' => [
+                'x' => $marginBoxX + $geo->marginLeft,
+                'y' => $marginBoxY + $geo->marginTop,
+                'width' => max(0.0, $marginBoxW - $geo->marginLeft - $geo->marginRight),
+                'height' => max(0.0, $marginBoxH - $geo->marginTop - $geo->marginBottom),
+            ],
+            'padding-box' => [
+                'x' => $marginBoxX + $geo->marginLeft + $geo->borderLeft,
+                'y' => $marginBoxY + $geo->marginTop + $geo->borderTop,
+                'width' => max(0.0, $marginBoxW - $geo->marginLeft - $geo->marginRight - $geo->borderLeft - $geo->borderRight),
+                'height' => max(0.0, $marginBoxH - $geo->marginTop - $geo->marginBottom - $geo->borderTop - $geo->borderBottom),
+            ],
+            'content-box' => [
+                'x' => $marginBoxX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft,
+                'y' => $marginBoxY + $geo->marginTop + $geo->borderTop + $geo->paddingTop,
+                'width' => max(0.0, $marginBoxW - $geo->marginLeft - $geo->marginRight - $geo->borderLeft - $geo->borderRight - $geo->paddingLeft - $geo->paddingRight),
+                'height' => max(0.0, $marginBoxH - $geo->marginTop - $geo->marginBottom - $geo->borderTop - $geo->borderBottom - $geo->paddingTop - $geo->paddingBottom),
+            ],
+            default => [
+                // `margin-box` (default), `none`, function values, and
+                // anything unrecognised fall back to the float's
+                // margin-box (the existing behaviour).
+                'x' => $marginBoxX,
+                'y' => $marginBoxY,
+                'width' => $marginBoxW,
+                'height' => $marginBoxH,
+            ],
+        };
     }
 
     /**
