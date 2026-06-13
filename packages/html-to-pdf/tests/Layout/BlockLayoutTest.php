@@ -2635,6 +2635,75 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($grid->geometry->x + 100.0, $b->geometry->x, 0.001);
     }
 
+    public function testIntrinsicMinContentWithOverflowWrapAnywhere(): void
+    {
+        // CSS Text 3 §6 / Sizing 3 §5.2 — under `overflow-wrap:
+        // anywhere`, soft-wrap opportunities exist between every
+        // typographic character, so the min-content size of a text
+        // box is the widest single glyph advance — not the widest
+        // word. Without this, a long unbreakable URL inside a Grid
+        // `auto` track forces the track to the URL's full advance.
+        if (!is_file(__DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf')) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser(__DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf'))->parse();
+        $ctx = new LayoutContext(
+            containingBlockWidth: 600.0,
+            containingBlockHeight: 800.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new \Phpdftk\Css\Cascade\LengthContext(),
+            defaultFont: $font,
+        );
+        // 5-letter "word" in a Grid auto track with overflow-wrap:
+        // anywhere. The min-content should collapse to the widest
+        // single glyph, not the full word's advance.
+        $box = $this->buildTree(
+            '<html><body><div class="g">'
+            . '<div class="i">' . str_repeat("\u{1820}", 5) . '</div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             .g { display: block; }
+             .i { overflow-wrap: anywhere; font-size: 20px; }',
+        );
+        $div = $this->find($box, 'div.i');
+        self::assertNotNull($div);
+        $minmax = $this->layout->measureMinMaxContent($div, $ctx);
+        // max ≈ 5 × glyph_advance; min ≈ widest single glyph_advance.
+        // So min < max for a real font, and roughly max/5.
+        self::assertLessThan($minmax['max'], $minmax['min']);
+        self::assertGreaterThan($minmax['max'] / 10.0, $minmax['min']);
+        self::assertLessThan($minmax['max'] / 2.0, $minmax['min']);
+    }
+
+    public function testIntrinsicMinContentDefaultUsesWidestWord(): void
+    {
+        // Negative test — without `overflow-wrap: anywhere` (or
+        // sibling keywords), min-content is the widest *word*. A
+        // single long unbreakable token defines the floor.
+        if (!is_file(__DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf')) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser(__DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf'))->parse();
+        $ctx = new LayoutContext(
+            containingBlockWidth: 600.0,
+            containingBlockHeight: 800.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new \Phpdftk\Css\Cascade\LengthContext(),
+            defaultFont: $font,
+        );
+        $box = $this->buildTree(
+            '<html><body><div class="i">' . str_repeat("\u{1820}", 5) . '</div></body></html>',
+            'html, body, .i { display: block; } .i { font-size: 20px; }',
+        );
+        $div = $this->find($box, 'div.i');
+        self::assertNotNull($div);
+        $minmax = $this->layout->measureMinMaxContent($div, $ctx);
+        // Single 5-letter token: min == max.
+        self::assertEqualsWithDelta($minmax['max'], $minmax['min'], 0.5);
+    }
+
     public function testFixedTableLayoutReadsCascadedColumnWidths(): void
     {
         // CSS 2.1 §17.5.2.1 — `table-layout: fixed` distributes column

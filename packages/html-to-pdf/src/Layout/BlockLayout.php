@@ -2218,6 +2218,23 @@ final class BlockLayout
         $shaper = new \Phpdftk\Text\Shaper();
         $full = $shaper->shapeRun($text, $ctx);
         $maxAdvance = $full->totalAdvance;
+        // CSS Text 3 §6 / Sizing 3 §5.2 — under `overflow-wrap:
+        // anywhere`, `line-break: anywhere`, or `word-break: break-all`,
+        // soft-wrap opportunities exist between every typographic
+        // character, so the min-content size is the widest *grapheme*
+        // not the widest word. The cascade is inherited so the parent
+        // box's value applies to its TextBox children too — check the
+        // text box's resolved style.
+        $breakAtGrapheme = $this->intrinsicBreaksAnywhere($box);
+        if ($breakAtGrapheme && $full->glyphs !== []) {
+            $minAdvance = 0.0;
+            foreach ($full->glyphs as $g) {
+                if ($g->advanceX > $minAdvance) {
+                    $minAdvance = $g->advanceX;
+                }
+            }
+            return ['min' => $minAdvance, 'max' => $maxAdvance];
+        }
         $words = preg_split('/\s+/', trim($text)) ?: [];
         $minAdvance = 0.0;
         foreach ($words as $w) {
@@ -2228,6 +2245,35 @@ final class BlockLayout
             $minAdvance = max($minAdvance, $shaped->totalAdvance);
         }
         return ['min' => $minAdvance, 'max' => $maxAdvance];
+    }
+
+    /**
+     * Read the box's cascaded `overflow-wrap` / `word-break` /
+     * `line-break` and return `true` when soft-wrap opportunities
+     * exist between every codepoint (min-content collapses to the
+     * widest single glyph advance).
+     */
+    private function intrinsicBreaksAnywhere(Box $box): bool
+    {
+        $overflow = $box->style->get('overflow-wrap');
+        if ($overflow instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($overflow->name) === 'anywhere'
+        ) {
+            return true;
+        }
+        $wordBreak = $box->style->get('word-break');
+        if ($wordBreak instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($wordBreak->name) === 'break-all'
+        ) {
+            return true;
+        }
+        $lineBreak = $box->style->get('line-break');
+        if ($lineBreak instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($lineBreak->name) === 'anywhere'
+        ) {
+            return true;
+        }
+        return false;
     }
 
     /**

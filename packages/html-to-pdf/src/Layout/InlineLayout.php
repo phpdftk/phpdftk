@@ -1529,8 +1529,11 @@ final class InlineLayout
     }
 
     /**
-     * CSS Text 3 §5: `word-break: break-all` (and `overflow-wrap:
-     * anywhere`) allow line breaks between every two codepoints.
+     * CSS Text 3 §5 / §6 — soft-wrap opportunities exist between
+     * every two codepoints under: `word-break: break-all`,
+     * `overflow-wrap: anywhere`, and `line-break: anywhere`. All
+     * three are checked here so the line-fitter splits at any
+     * character regardless of which property the author used.
      */
     private function isBreakAll(Box $box): bool
     {
@@ -1540,6 +1543,10 @@ final class InlineLayout
         }
         $ow = $box->style->get('overflow-wrap');
         if ($ow instanceof \Phpdftk\Css\Value\Keyword && strtolower($ow->name) === 'anywhere') {
+            return true;
+        }
+        $lb = $box->style->get('line-break');
+        if ($lb instanceof \Phpdftk\Css\Value\Keyword && strtolower($lb->name) === 'anywhere') {
             return true;
         }
         return false;
