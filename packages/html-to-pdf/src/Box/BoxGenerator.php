@@ -397,6 +397,47 @@ final class BoxGenerator
             $rawChildren = $this->stripWhitespaceTextChildren($rawChildren, $values);
         }
 
+        // CSS 2.1 §9.2.1.1 — when an inline box has a block-level
+        // descendant, the inline box splits around the block. The
+        // block sits between two anonymous inline halves, all
+        // wrapped in an anonymous block. We implement the simpler
+        // single-level case: an InlineBox / AtomicInlineBox whose
+        // immediate `$rawChildren` contain at least one block-level
+        // child gets promoted to an AnonymousBlockBox whose children
+        // are alternating (anonymous inline halves around blocks).
+        // The original element's cascade rides on the
+        // AnonymousBlockBox so `position: relative` on the inline
+        // still affects the block half per spec.
+        if (($box instanceof InlineBox || $box instanceof AtomicInlineBox)
+            && $this->containsBlockLevel($rawChildren)
+        ) {
+            $promoted = new AnonymousBlockBox($element, $values);
+            $inlineGroup = [];
+            foreach ($rawChildren as $child) {
+                if ($this->isInlineLevel($child)) {
+                    $inlineGroup[] = $child;
+                    continue;
+                }
+                if ($inlineGroup !== []) {
+                    $half = new InlineBox($element, $values);
+                    foreach ($inlineGroup as $g) {
+                        $half->addChild($g);
+                    }
+                    $promoted->addChild($half);
+                    $inlineGroup = [];
+                }
+                $promoted->addChild($child);
+            }
+            if ($inlineGroup !== []) {
+                $half = new InlineBox($element, $values);
+                foreach ($inlineGroup as $g) {
+                    $half->addChild($g);
+                }
+                $promoted->addChild($half);
+            }
+            return $promoted;
+        }
+
         // Anonymous-block wrapping per CSS Display 3 §3.4: only inside
         // block-context parents whose children mix block + inline.
         $needsAnonymous = $box instanceof BlockBox && $this->mixesBlockAndInline($rawChildren);
@@ -421,6 +462,23 @@ final class BoxGenerator
         }
         $this->flushInlineGroup($box, $values, $inlineGroup);
         return $box;
+    }
+
+    /**
+     * `true` when any direct child of `$children` is block-level.
+     * Used by the block-in-inline split (CSS 2.1 §9.2.1.1) to detect
+     * when an inline box needs promotion to an anonymous block.
+     *
+     * @param list<Box> $children
+     */
+    private function containsBlockLevel(array $children): bool
+    {
+        foreach ($children as $c) {
+            if (!$this->isInlineLevel($c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

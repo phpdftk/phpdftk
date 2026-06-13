@@ -2635,6 +2635,68 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($grid->geometry->x + 100.0, $b->geometry->x, 0.001);
     }
 
+    public function testInlineWithBlockChildPromotesToAnonymousBlock(): void
+    {
+        // CSS 2.1 §9.2.1.1 — when an inline element has a block-level
+        // child, the inline box splits around the block. We implement
+        // the simpler single-level case: the inline gets promoted to
+        // an AnonymousBlockBox carrying the original element's cascade,
+        // and its children are alternating anonymous inline halves and
+        // the original blocks.
+        $box = $this->buildTree(
+            '<html><body><div class="cb">'
+                . '<span class="rel">A<div class="blk">B</div>C</span>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             span { display: inline; }
+             .rel { position: relative; }',
+        );
+        // Find the original <span>'s box — should now be promoted.
+        $rel = $this->find($box, 'span.rel');
+        self::assertNotNull($rel);
+        self::assertInstanceOf(
+            \Phpdftk\HtmlToPdf\Box\AnonymousBlockBox::class,
+            $rel,
+            'span containing a div promotes to AnonymousBlockBox',
+        );
+        // Three children: anonymous inline ('A'), block ('B'), anon inline ('C').
+        self::assertCount(3, $rel->children);
+        self::assertInstanceOf(
+            \Phpdftk\HtmlToPdf\Box\InlineBox::class,
+            $rel->children[0],
+            'first child is anonymous inline wrapping "A"',
+        );
+        self::assertInstanceOf(
+            \Phpdftk\HtmlToPdf\Box\BlockBox::class,
+            $rel->children[1],
+            'middle child is the original block',
+        );
+        self::assertInstanceOf(
+            \Phpdftk\HtmlToPdf\Box\InlineBox::class,
+            $rel->children[2],
+            'last child is anonymous inline wrapping "C"',
+        );
+    }
+
+    public function testInlineWithoutBlockChildStaysInline(): void
+    {
+        // Negative test — an inline element with only inline children
+        // stays an InlineBox; the block-in-inline split must NOT fire.
+        $box = $this->buildTree(
+            '<html><body><div class="cb">'
+                . '<span>hello <b>world</b></span>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             span, b { display: inline; }',
+        );
+        $span = $this->find($box, 'span');
+        self::assertNotNull($span);
+        self::assertInstanceOf(
+            \Phpdftk\HtmlToPdf\Box\InlineBox::class,
+            $span,
+        );
+    }
+
     public function testIntrinsicMinContentWithOverflowWrapAnywhere(): void
     {
         // CSS Text 3 §6 / Sizing 3 §5.2 — under `overflow-wrap:
