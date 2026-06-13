@@ -140,12 +140,29 @@ final class Renderer
             $this->options->defaultFont,
             $this->options->faceMap,
         );
+        // Plumb the default font's x-height and `0` glyph-width into
+        // the LengthContext so `ex` / `ch` resolve against real font
+        // metrics (CSS Values 4 §6.1.1). When no default font is
+        // wired in, the LengthContext's 0.5em fallback applies.
+        $defaultFont = $this->options->defaultFont;
+        $lengthContext = new LengthContext();
+        if ($defaultFont !== null && $defaultFont->unitsPerEm > 0) {
+            $upem = (float) $defaultFont->unitsPerEm;
+            $xHeightRatio = $defaultFont->xHeight > 0
+                ? $defaultFont->xHeight / $upem
+                : 0.5;
+            $zeroWidth = $defaultFont->charWidths[0x30] ?? null;
+            $chWidthRatio = $zeroWidth !== null && $zeroWidth > 0
+                ? $zeroWidth / $upem
+                : 0.5;
+            $lengthContext = $lengthContext->withFontMetrics($xHeightRatio, $chWidthRatio);
+        }
         $layoutCtx = new LayoutContext(
             containingBlockWidth: $pageWidth,
             containingBlockHeight: $pageHeight,
             originX: 0.0,
             originY: 0.0,
-            lengthContext: new LengthContext(),
+            lengthContext: $lengthContext,
             defaultFont: $this->options->defaultFont,
             fontResolver: $fontResolver,
         );

@@ -92,8 +92,13 @@ final class LengthResolver
             LengthUnit::In => $v * 96.0,
             LengthUnit::Em => $v * $ctx->currentFontSize,
             LengthUnit::Rem => $v * $ctx->rootFontSize,
-            LengthUnit::Ex => $v * $ctx->currentFontSize * 0.5,   // approx without font metrics
-            LengthUnit::Ch => $v * $ctx->currentFontSize * 0.5,   // approx without font metrics
+            // CSS Values 4 §6.1.1 — `ex` and `ch` resolve against the
+            // first available font's metrics. LengthContext carries
+            // ratios (defaulting to 0.5em); layout code with access to
+            // the resolved font passes the real ratios via
+            // {@see LengthContext::withFontMetrics}.
+            LengthUnit::Ex => $v * $ctx->currentFontSize * $ctx->xHeightRatio,
+            LengthUnit::Ch => $v * $ctx->currentFontSize * $ctx->chWidthRatio,
             LengthUnit::Lh, LengthUnit::Rlh => $v * $ctx->currentFontSize * 1.2,
             LengthUnit::Vw, LengthUnit::Svw, LengthUnit::Lvw, LengthUnit::Dvw
                 => $v * ($ctx->viewportWidth / 100.0),
