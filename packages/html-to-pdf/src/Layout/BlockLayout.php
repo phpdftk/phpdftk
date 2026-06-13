@@ -354,7 +354,15 @@ final class BlockLayout
         // margins / borders / padding. CSS Sizing 3 §6.2: with
         // `box-sizing: border-box`, the declared `width` includes
         // border + padding, so subtract them to get the content width.
+        // CSS 2.1 propidx — `width` does not apply to internal table
+        // boxes (table-row-group / -header-group / -footer-group /
+        // -row / -column / -column-group / -cell). Force `auto` for
+        // those display types so authors who declared a `width: 0`
+        // override don't collapse the entire row-group.
         $widthValue = $style->get('width');
+        if (!$this->widthAppliesToDisplay($style)) {
+            $widthValue = new Keyword('auto');
+        }
         $widthAuto = $this->isAuto($widthValue);
         $borderBox = $this->isBorderBoxSizing($style);
         if ($widthAuto) {
@@ -512,8 +520,13 @@ final class BlockLayout
         // Resolve content height: explicit, percentage of containing
         // block, or auto = children. With `box-sizing: border-box`,
         // the declared height includes border + padding, so subtract
-        // them to get the content height.
+        // them to get the content height. CSS 2.1 propidx — `height`
+        // doesn't apply to internal-table boxes (table-row-group /
+        // -row / -cell / etc.); force `auto` for those types.
         $heightValue = $style->get('height');
+        if (!$this->heightAppliesToDisplay($style)) {
+            $heightValue = new Keyword('auto');
+        }
         $heightIsAuto = $this->isHeightAutoLike($heightValue);
         if ($heightIsAuto) {
             // CSS Containment 3 §4.5 — `contain: size` (or `strict` /
@@ -3141,6 +3154,46 @@ final class BlockLayout
     private function isAuto(?\Phpdftk\Css\Value\Value $value): bool
     {
         return $value instanceof Keyword && strtolower($value->name) === 'auto';
+    }
+
+    /**
+     * CSS 2.1 propidx — `width` does NOT apply to non-replaced
+     * inline elements, table rows, table row-groups, or table
+     * column/column-groups. It DOES apply to table cells and tables.
+     */
+    private function widthAppliesToDisplay(\Phpdftk\Css\Cascade\CascadedValues $style): bool
+    {
+        $display = $style->get('display');
+        if (!($display instanceof Keyword)) {
+            return true;
+        }
+        return match (strtolower($display->name)) {
+            'table-row-group',
+            'table-header-group',
+            'table-footer-group',
+            'table-row',
+            'table-column',
+            'table-column-group' => false,
+            default => true,
+        };
+    }
+
+    /**
+     * CSS 2.1 propidx — `height` does NOT apply to non-replaced
+     * inline elements, table columns, or table column-groups. It DOES
+     * apply to table cells, rows, row-groups, and tables themselves.
+     */
+    private function heightAppliesToDisplay(\Phpdftk\Css\Cascade\CascadedValues $style): bool
+    {
+        $display = $style->get('display');
+        if (!($display instanceof Keyword)) {
+            return true;
+        }
+        return match (strtolower($display->name)) {
+            'table-column',
+            'table-column-group' => false,
+            default => true,
+        };
     }
 
     /**
