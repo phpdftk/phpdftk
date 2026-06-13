@@ -413,7 +413,9 @@ final class PropertyRegistry
         // half-leading space above ascenders / below descenders so
         // a heading sits tighter against its background. Layout uses
         // these to size line boxes; missing values cascade to none.
-        $r->register($initial('text-box-trim', new Keyword('none'), true));
+        // text-box-trim is NOT inherited (per spec); text-box-edge IS
+        // inherited so descendants pick up the parent's edge choice.
+        $r->register($initial('text-box-trim', new Keyword('none')));
         $r->register($initial('text-box-edge', new Keyword('auto'), true));
         $r->register($initial('initial-letter', new Keyword('normal'), true));
 

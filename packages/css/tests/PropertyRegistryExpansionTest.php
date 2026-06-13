@@ -56,8 +56,8 @@ final class PropertyRegistryExpansionTest extends TestCase
         yield 'text-emphasis-style' => ['text-emphasis-style'];
         yield 'text-decoration-skip-ink' => ['text-decoration-skip-ink'];
 
-        // CSS Inline 3 §6
-        yield 'text-box-trim' => ['text-box-trim'];
+        // CSS Inline 3 §6 — text-box-edge inherits, text-box-trim does
+        // NOT (it applies to the trim of THIS box's own line edges).
         yield 'text-box-edge' => ['text-box-edge'];
         yield 'initial-letter' => ['initial-letter'];
 
@@ -224,8 +224,16 @@ final class PropertyRegistryExpansionTest extends TestCase
         yield 'text-emphasis-position' => ['text-emphasis-position'];
         yield 'text-emphasis-style' => ['text-emphasis-style'];
         yield 'text-decoration-skip-ink' => ['text-decoration-skip-ink'];
-        // Inline 3
-        yield 'text-box-trim' => ['text-box-trim'];
+    }
+
+    public function testTextBoxTrimDoesNotInherit(): void
+    {
+        // CSS Inline 3 §6.1 — `text-box-trim` is explicitly listed as
+        // not inherited (it trims the OWN box's line edges).
+        $registry = PropertyRegistry::default();
+        $def = $registry->get('text-box-trim');
+        self::assertNotNull($def);
+        self::assertFalse($def->inherits, 'text-box-trim should not inherit (CSS Inline 3 §6.1)');
     }
 
     public function testContainIntrinsicPropertiesDoNotInherit(): void
