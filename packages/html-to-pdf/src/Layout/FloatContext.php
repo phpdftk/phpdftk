@@ -221,6 +221,12 @@ final class FloatContext
             $dx = $rx * $factor;
             return $cx + $dx;
         }
+        if ($kind === 'polygon') {
+            /** @var list<array{float, float}> $vertices */
+            $vertices = $shape['vertices'] ?? [];
+            $maxX = $this->polygonEdgesAt($vertices, $yLocal, max: true);
+            return $maxX ?? 0.0;
+        }
         return $item->width;
     }
 
@@ -263,7 +269,57 @@ final class FloatContext
             $dx = $rx * $factor;
             return $cx - $dx;
         }
+        if ($kind === 'polygon') {
+            /** @var list<array{float, float}> $vertices */
+            $vertices = $shape['vertices'] ?? [];
+            $minX = $this->polygonEdgesAt($vertices, $yLocal, max: false);
+            return $minX ?? $item->width;
+        }
         return 0.0;
+    }
+
+    /**
+     * Scan a polygon's edges for those that cross the horizontal
+     * line `y = $yLocal`. Return the max or min x crossing — for a
+     * left float, the right-most crossing pushes inline text away;
+     * for a right float, the left-most crossing pulls it back.
+     *
+     * Returns `null` when no edge crosses (the polygon doesn't
+     * intersect this Y row at all). Callers treat `null` as "no
+     * exclusion at this Y" — text flows freely.
+     *
+     * @param list<array{float, float}> $vertices
+     */
+    private function polygonEdgesAt(array $vertices, float $yLocal, bool $max): ?float
+    {
+        $n = count($vertices);
+        if ($n < 2) {
+            return null;
+        }
+        $best = null;
+        for ($i = 0; $i < $n; $i++) {
+            [$x1, $y1] = $vertices[$i];
+            [$x2, $y2] = $vertices[($i + 1) % $n];
+            // Skip horizontal edges — they don't cross a horizontal
+            // sample line (infinitely many crossings).
+            if (abs($y2 - $y1) < 0.0001) {
+                continue;
+            }
+            $minY = min($y1, $y2);
+            $maxY = max($y1, $y2);
+            if ($yLocal + 0.0001 < $minY || $yLocal - 0.0001 > $maxY) {
+                continue;
+            }
+            // Linear interpolation: x(y) = x1 + (y - y1) · (x2 - x1) / (y2 - y1)
+            $x = $x1 + ($yLocal - $y1) * ($x2 - $x1) / ($y2 - $y1);
+            if ($best === null
+                || ($max && $x > $best)
+                || (!$max && $x < $best)
+            ) {
+                $best = $x;
+            }
+        }
+        return $best;
     }
 
     /**

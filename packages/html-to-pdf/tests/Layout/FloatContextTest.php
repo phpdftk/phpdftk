@@ -181,6 +181,28 @@ final class FloatContextTest extends TestCase
         self::assertEqualsWithDelta(80.0, $ctx->leftEdgeAt(0.0, 0.0), 1.0);
     }
 
+    public function testPolygonShapeTriangleContractsExclusion(): void
+    {
+        // CSS Shapes 1 §3.4 — a triangle with vertices (0,0), (100,0),
+        // (50,100) inside a 100×100 left float. At y=0 (top) the
+        // exclusion spans the full width: right edge = 100. At y=50
+        // (halfway down) the triangle has narrowed: right edge ≈ 75.
+        // At y=100 (apex) the exclusion collapses to x=50.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'polygon',
+            'vertices' => [[0.0, 0.0], [100.0, 0.0], [50.0, 100.0]],
+        ]);
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(0.0, 0.0), 1.0);
+        // The right edge of the triangle at y=50 lies along
+        // the (100,0)-(50,100) edge: x = 100 - 50·(50/100) = 75.
+        self::assertEqualsWithDelta(75.0, $ctx->leftEdgeAt(50.0, 0.0), 0.5);
+        // Near the apex (y=99) the exclusion has narrowed to ≈ x=50.5
+        // (the float's range is the half-open [top, bottom) interval,
+        // so y=100 itself is outside).
+        self::assertEqualsWithDelta(50.5, $ctx->leftEdgeAt(99.0, 0.0), 1.0);
+    }
+
     public function testRectFloatStillUsesBoundingEdges(): void
     {
         // Negative test — `shape: null` keeps the legacy bounding-rect

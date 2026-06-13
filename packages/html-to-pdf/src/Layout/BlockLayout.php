@@ -779,12 +779,14 @@ final class BlockLayout
         $shape = null;
         if ($value instanceof \Phpdftk\Css\Value\CircleShape
             || $value instanceof \Phpdftk\Css\Value\EllipseShape
+            || $value instanceof \Phpdftk\Css\Value\PolygonShape
         ) {
             $shape = $value;
         } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($value->values as $v) {
                 if ($v instanceof \Phpdftk\Css\Value\CircleShape
                     || $v instanceof \Phpdftk\Css\Value\EllipseShape
+                    || $v instanceof \Phpdftk\Css\Value\PolygonShape
                 ) {
                     $shape = $v;
                     break;
@@ -803,15 +805,28 @@ final class BlockLayout
             }
             return ['kind' => 'circle', 'cx' => $cx, 'cy' => $cy, 'r' => $r];
         }
-        // Ellipse
-        $cx = $this->resolveShapePosition($shape->centerX, $refWidth, $refWidth / 2.0);
-        $cy = $this->resolveShapePosition($shape->centerY, $refHeight, $refHeight / 2.0);
-        $rx = $this->resolveEllipseRadius($shape->radiusX, $cx, $refWidth);
-        $ry = $this->resolveEllipseRadius($shape->radiusY, $cy, $refHeight);
-        if ($rx <= 0.0 || $ry <= 0.0) {
+        if ($shape instanceof \Phpdftk\Css\Value\EllipseShape) {
+            $cx = $this->resolveShapePosition($shape->centerX, $refWidth, $refWidth / 2.0);
+            $cy = $this->resolveShapePosition($shape->centerY, $refHeight, $refHeight / 2.0);
+            $rx = $this->resolveEllipseRadius($shape->radiusX, $cx, $refWidth);
+            $ry = $this->resolveEllipseRadius($shape->radiusY, $cy, $refHeight);
+            if ($rx <= 0.0 || $ry <= 0.0) {
+                return null;
+            }
+            return ['kind' => 'ellipse', 'cx' => $cx, 'cy' => $cy, 'rx' => $rx, 'ry' => $ry];
+        }
+        // Polygon
+        $vertices = [];
+        foreach ($shape->vertices as $vertex) {
+            [$xv, $yv] = $vertex;
+            $x = $this->resolveShapePosition($xv, $refWidth, 0.0);
+            $y = $this->resolveShapePosition($yv, $refHeight, 0.0);
+            $vertices[] = [$x, $y];
+        }
+        if (count($vertices) < 3) {
             return null;
         }
-        return ['kind' => 'ellipse', 'cx' => $cx, 'cy' => $cy, 'rx' => $rx, 'ry' => $ry];
+        return ['kind' => 'polygon', 'vertices' => $vertices];
     }
 
     /**
