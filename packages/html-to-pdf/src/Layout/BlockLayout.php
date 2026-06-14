@@ -581,7 +581,10 @@ final class BlockLayout
         $maxWidthValue = $style->get('max-width');
         if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
             $maxWidth = max(0.0, $this->resolveLength($maxWidthValue, $cbWidth) - $horizontalInset);
-            if ($maxWidth > 0.0 && $contentWidth > $maxWidth) {
+            // Spec: `max-width: 0` (or `max-width: 0%`) is a real
+            // constraint — clamp the content-box width to zero.
+            // Only `none` removes the upper bound.
+            if ($contentWidth > $maxWidth) {
                 $contentWidth = $maxWidth;
                 // Width fell out of `auto` territory — treat it like an
                 // explicit length from here on so auto-margin slack
@@ -799,10 +802,13 @@ final class BlockLayout
         $verticalInset = $borderBox
             ? $geo->borderTop + $geo->borderBottom + $geo->paddingTop + $geo->paddingBottom
             : 0.0;
+        // CSS Sizing 3 §10 — `max-height: <length>` or `<percentage>`
+        // clamps even when it resolves to 0 (a zero ceiling). Only the
+        // `none` keyword removes the upper bound.
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
             $maxHeight = max(0.0, $this->resolveLength($maxHeightValue, $context->containingBlockHeight) - $verticalInset);
-            if ($maxHeight > 0.0 && $geo->height > $maxHeight) {
+            if ($geo->height > $maxHeight) {
                 $geo->height = $maxHeight;
             }
         }
@@ -4068,21 +4074,33 @@ final class BlockLayout
      */
     private function clampMinMax(CascadedValues $style, \Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo, float $cbWidth, float $cbHeight): void
     {
+        // CSS Sizing 3 §10 — `max-*` is `none`, an explicit length or a
+        // percentage. When `none`, no ceiling. Otherwise the resolved
+        // value clamps the box even when it resolves to zero (`max-
+        // height: 0` IS a constraint — it caps the height at 0). After
+        // the max clamp, `min-*` raises the floor; per the algorithm
+        // min wins when min > max, which the order here produces
+        // naturally.
         $maxWidthValue = $style->get('max-width');
         if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
             $maxWidth = $this->resolveLength($maxWidthValue, $cbWidth);
-            if ($maxWidth > 0.0 && $geo->width > $maxWidth) {
+            if ($maxWidth >= 0.0 && $geo->width > $maxWidth) {
                 $geo->width = $maxWidth;
             }
         }
-        $minWidth = $this->resolveLength($style->get('min-width'), $cbWidth);
+        $minWidthValue = $style->get('min-width');
+        // `min-width: auto` resolves to 0 (no constraint) for block
+        // layout — flex/grid items have a richer min-content rule but
+        // that lives in their own helpers. resolveLength on `auto`
+        // returns 0, so the standard path falls through to no clamp.
+        $minWidth = $this->resolveLength($minWidthValue, $cbWidth);
         if ($minWidth > 0.0 && $geo->width < $minWidth) {
             $geo->width = $minWidth;
         }
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
             $maxHeight = $this->resolveLength($maxHeightValue, $cbHeight);
-            if ($maxHeight > 0.0 && $geo->height > $maxHeight) {
+            if ($maxHeight >= 0.0 && $geo->height > $maxHeight) {
                 $geo->height = $maxHeight;
             }
         }
