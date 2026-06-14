@@ -218,6 +218,28 @@ final class FloatContextTest extends TestCase
         self::assertEqualsWithDelta(50.5, $ctx->leftEdgeAt(99.0, 0.0), 1.0);
     }
 
+    public function testPolygonFromFlattenedPathPreservesEnvelope(): void
+    {
+        // CSS Shapes 1 §3.5 — `path()` shapes flatten down to a
+        // polygon vertex list. Here we simulate the flattening
+        // output of `path('M 0 0 L 100 0 L 100 100 Z')` (a right
+        // triangle) and verify the exclusion query at the apex
+        // matches the polygon evaluator. The actual SVG path
+        // parsing happens in BlockLayout::flattenSvgPath; this
+        // test focuses on the FloatContext consumer.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'polygon',
+            'vertices' => [[0.0, 0.0], [100.0, 0.0], [100.0, 100.0], [0.0, 0.0]],
+        ]);
+        // At y=0 (top edge), exclusion = 100.
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(0.0, 0.0), 1.0);
+        // At y=50 (halfway down), the hypotenuse runs from (0,0) to (100,100).
+        // Exclusion right-edge at y=50 should be ≈ 100 (right edge),
+        // because the polygon includes the right vertical edge.
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(50.0, 0.0), 1.0);
+    }
+
     public function testRectFloatStillUsesBoundingEdges(): void
     {
         // Negative test — `shape: null` keeps the legacy bounding-rect

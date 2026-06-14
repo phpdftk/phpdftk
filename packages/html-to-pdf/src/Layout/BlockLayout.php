@@ -1006,6 +1006,7 @@ final class BlockLayout
         if ($value instanceof \Phpdftk\Css\Value\CircleShape
             || $value instanceof \Phpdftk\Css\Value\EllipseShape
             || $value instanceof \Phpdftk\Css\Value\PolygonShape
+            || $value instanceof \Phpdftk\Css\Value\PathShape
         ) {
             $shape = $value;
         } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
@@ -1013,6 +1014,7 @@ final class BlockLayout
                 if ($v instanceof \Phpdftk\Css\Value\CircleShape
                     || $v instanceof \Phpdftk\Css\Value\EllipseShape
                     || $v instanceof \Phpdftk\Css\Value\PolygonShape
+                    || $v instanceof \Phpdftk\Css\Value\PathShape
                 ) {
                     $shape = $v;
                     break;
@@ -1041,18 +1043,263 @@ final class BlockLayout
             }
             return ['kind' => 'ellipse', 'cx' => $cx, 'cy' => $cy, 'rx' => $rx, 'ry' => $ry];
         }
-        // Polygon
-        $vertices = [];
-        foreach ($shape->vertices as $vertex) {
-            [$xv, $yv] = $vertex;
-            $x = $this->resolveShapePosition($xv, $refWidth, 0.0);
-            $y = $this->resolveShapePosition($yv, $refHeight, 0.0);
-            $vertices[] = [$x, $y];
+        if ($shape instanceof \Phpdftk\Css\Value\PolygonShape) {
+            $vertices = [];
+            foreach ($shape->vertices as $vertex) {
+                [$xv, $yv] = $vertex;
+                $x = $this->resolveShapePosition($xv, $refWidth, 0.0);
+                $y = $this->resolveShapePosition($yv, $refHeight, 0.0);
+                $vertices[] = [$x, $y];
+            }
+            if (count($vertices) < 3) {
+                return null;
+            }
+            return ['kind' => 'polygon', 'vertices' => $vertices];
         }
+        // path() — CSS Shapes 1 §3.5. Parse the SVG path data via
+        // `phpdftk/svg`'s grammar parser and flatten curves into a
+        // polygon-style vertex list the FloatContext already
+        // understands.
+        $vertices = $this->flattenSvgPath($shape->pathData);
         if (count($vertices) < 3) {
             return null;
         }
         return ['kind' => 'polygon', 'vertices' => $vertices];
+    }
+
+    /**
+     * Flatten an SVG path-data string into a polygon vertex list
+     * suitable for the FloatContext polygon evaluator. Cubic /
+     * quadratic curves are recursively subdivided until each
+     * segment is flat enough; `ArcTo` falls back to a straight
+     * line (CSS Shapes path usage rarely needs ellipse-arc
+     * support in practice).
+     *
+     * Multiple subpaths (separated by `MoveTo`) are concatenated;
+     * the polygon edge scan walks all edges regardless.
+     *
+     * @return list<array{float, float}>
+     */
+    private function flattenSvgPath(string $pathData): array
+    {
+        $data = \Phpdftk\Svg\Path\PathData::parse($pathData);
+        /** @var list<array{float, float}> $vertices */
+        $vertices = [];
+        $cx = 0.0;
+        $cy = 0.0;
+        $startX = 0.0;
+        $startY = 0.0;
+        $lastCubicCtrl = null;
+        $lastQuadCtrl = null;
+        $emit = static function (float $x, float $y) use (&$vertices): void {
+            $n = count($vertices);
+            if ($n > 0
+                && abs($vertices[$n - 1][0] - $x) < 0.0001
+                && abs($vertices[$n - 1][1] - $y) < 0.0001
+            ) {
+                return;
+            }
+            $vertices[] = [$x, $y];
+        };
+        foreach ($data->commands as $cmd) {
+            if ($cmd instanceof \Phpdftk\Svg\Path\MoveTo) {
+                $cx = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $cy = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $startX = $cx;
+                $startY = $cy;
+                $emit($cx, $cy);
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\LineTo) {
+                $cx = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $cy = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $emit($cx, $cy);
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\HorizontalLineTo) {
+                $cx = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $emit($cx, $cy);
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\VerticalLineTo) {
+                $cy = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $emit($cx, $cy);
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\CurveTo) {
+                $c1x = $cmd->absolute ? $cmd->x1 : $cx + $cmd->x1;
+                $c1y = $cmd->absolute ? $cmd->y1 : $cy + $cmd->y1;
+                $c2x = $cmd->absolute ? $cmd->x2 : $cx + $cmd->x2;
+                $c2y = $cmd->absolute ? $cmd->y2 : $cy + $cmd->y2;
+                $ex = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $ey = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $this->flattenCubic($vertices, $cx, $cy, $c1x, $c1y, $c2x, $c2y, $ex, $ey);
+                $cx = $ex;
+                $cy = $ey;
+                $lastCubicCtrl = [$c2x, $c2y];
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\SmoothCurveTo) {
+                if ($lastCubicCtrl !== null) {
+                    $c1x = 2.0 * $cx - $lastCubicCtrl[0];
+                    $c1y = 2.0 * $cy - $lastCubicCtrl[1];
+                } else {
+                    $c1x = $cx;
+                    $c1y = $cy;
+                }
+                $c2x = $cmd->absolute ? $cmd->x2 : $cx + $cmd->x2;
+                $c2y = $cmd->absolute ? $cmd->y2 : $cy + $cmd->y2;
+                $ex = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $ey = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $this->flattenCubic($vertices, $cx, $cy, $c1x, $c1y, $c2x, $c2y, $ex, $ey);
+                $cx = $ex;
+                $cy = $ey;
+                $lastCubicCtrl = [$c2x, $c2y];
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\QuadraticCurveTo) {
+                $c1x = $cmd->absolute ? $cmd->x1 : $cx + $cmd->x1;
+                $c1y = $cmd->absolute ? $cmd->y1 : $cy + $cmd->y1;
+                $ex = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $ey = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $this->flattenQuadratic($vertices, $cx, $cy, $c1x, $c1y, $ex, $ey);
+                $cx = $ex;
+                $cy = $ey;
+                $lastQuadCtrl = [$c1x, $c1y];
+                $lastCubicCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\SmoothQuadraticCurveTo) {
+                if ($lastQuadCtrl !== null) {
+                    $c1x = 2.0 * $cx - $lastQuadCtrl[0];
+                    $c1y = 2.0 * $cy - $lastQuadCtrl[1];
+                } else {
+                    $c1x = $cx;
+                    $c1y = $cy;
+                }
+                $ex = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $ey = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $this->flattenQuadratic($vertices, $cx, $cy, $c1x, $c1y, $ex, $ey);
+                $cx = $ex;
+                $cy = $ey;
+                $lastQuadCtrl = [$c1x, $c1y];
+                $lastCubicCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\ArcTo) {
+                // Phase-1 simplification: arcs degrade to a straight
+                // line to the endpoint. Sufficient for the wrap
+                // envelope of common rounded-rect path() shapes.
+                $ex = $cmd->absolute ? $cmd->x : $cx + $cmd->x;
+                $ey = $cmd->absolute ? $cmd->y : $cy + $cmd->y;
+                $emit($ex, $ey);
+                $cx = $ex;
+                $cy = $ey;
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+                continue;
+            }
+            if ($cmd instanceof \Phpdftk\Svg\Path\ClosePath) {
+                $emit($startX, $startY);
+                $cx = $startX;
+                $cy = $startY;
+                $lastCubicCtrl = null;
+                $lastQuadCtrl = null;
+            }
+        }
+        return $vertices;
+    }
+
+    /**
+     * Recursive de Casteljau subdivision for a cubic Bezier. Splits
+     * the curve at t=0.5 until each segment is flat enough — control
+     * points lie within tolerance of the chord. Appends the
+     * endpoint to `$vertices`.
+     *
+     * @param list<array{float, float}> $vertices passed by reference.
+     */
+    private function flattenCubic(
+        array &$vertices,
+        float $x0,
+        float $y0,
+        float $x1,
+        float $y1,
+        float $x2,
+        float $y2,
+        float $x3,
+        float $y3,
+        int $depth = 0,
+    ): void {
+        $ux = 3.0 * $x1 - 2.0 * $x0 - $x3;
+        $uy = 3.0 * $y1 - 2.0 * $y0 - $y3;
+        $vx = 3.0 * $x2 - $x0 - 2.0 * $x3;
+        $vy = 3.0 * $y2 - $y0 - 2.0 * $y3;
+        $flat = max($ux * $ux, $vx * $vx) + max($uy * $uy, $vy * $vy);
+        if ($flat <= 0.25 || $depth >= 12) {
+            $vertices[] = [$x3, $y3];
+            return;
+        }
+        $x01 = ($x0 + $x1) * 0.5;
+        $y01 = ($y0 + $y1) * 0.5;
+        $x12 = ($x1 + $x2) * 0.5;
+        $y12 = ($y1 + $y2) * 0.5;
+        $x23 = ($x2 + $x3) * 0.5;
+        $y23 = ($y2 + $y3) * 0.5;
+        $x012 = ($x01 + $x12) * 0.5;
+        $y012 = ($y01 + $y12) * 0.5;
+        $x123 = ($x12 + $x23) * 0.5;
+        $y123 = ($y12 + $y23) * 0.5;
+        $x0123 = ($x012 + $x123) * 0.5;
+        $y0123 = ($y012 + $y123) * 0.5;
+        $this->flattenCubic($vertices, $x0, $y0, $x01, $y01, $x012, $y012, $x0123, $y0123, $depth + 1);
+        $this->flattenCubic($vertices, $x0123, $y0123, $x123, $y123, $x23, $y23, $x3, $y3, $depth + 1);
+    }
+
+    /**
+     * Recursive de Casteljau subdivision for a quadratic Bezier.
+     *
+     * @param list<array{float, float}> $vertices passed by reference.
+     */
+    private function flattenQuadratic(
+        array &$vertices,
+        float $x0,
+        float $y0,
+        float $x1,
+        float $y1,
+        float $x2,
+        float $y2,
+        int $depth = 0,
+    ): void {
+        $dx = $x2 - $x0;
+        $dy = $y2 - $y0;
+        $len2 = $dx * $dx + $dy * $dy;
+        if ($len2 < 0.0001) {
+            $vertices[] = [$x2, $y2];
+            return;
+        }
+        $cross = ($x1 - $x0) * $dy - ($y1 - $y0) * $dx;
+        if (($cross * $cross) <= 0.25 * $len2 || $depth >= 12) {
+            $vertices[] = [$x2, $y2];
+            return;
+        }
+        $x01 = ($x0 + $x1) * 0.5;
+        $y01 = ($y0 + $y1) * 0.5;
+        $x12 = ($x1 + $x2) * 0.5;
+        $y12 = ($y1 + $y2) * 0.5;
+        $x012 = ($x01 + $x12) * 0.5;
+        $y012 = ($y01 + $y12) * 0.5;
+        $this->flattenQuadratic($vertices, $x0, $y0, $x01, $y01, $x012, $y012, $depth + 1);
+        $this->flattenQuadratic($vertices, $x012, $y012, $x12, $y12, $x2, $y2, $depth + 1);
     }
 
     /**
