@@ -2169,10 +2169,22 @@ final class BlockLayout
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
-        $columnDescriptors = $this->parseGridTrackList($style->get('grid-template-columns'));
-        $rowDescriptors = $this->parseGridTrackList($style->get('grid-template-rows'));
         $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
         $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
+        // Compute the explicit-height-for-fr early so it's available
+        // both for auto-fill row track resolution and the later fr
+        // pass.
+        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        $columnDescriptors = $this->parseGridTrackList(
+            $style->get('grid-template-columns'),
+            availableSize: max(0.0, $geo->width),
+            gap: $columnGap,
+        );
+        $rowDescriptors = $this->parseGridTrackList(
+            $style->get('grid-template-rows'),
+            availableSize: max(0.0, $declaredHeightForFr ?? 0.0),
+            gap: $rowGap,
+        );
 
         // CSS Grid Layout 2 §7.3 — `grid-template-areas` defines the
         // named-area map. Each area's rectangle drives `grid-area:
@@ -2191,7 +2203,6 @@ final class BlockLayout
             $each = max(0.0, ($geo->width - $columnGap * max(0, $areaCols - 1)) / $areaCols);
             $columnDescriptors = array_fill(0, $areaCols, ['type' => 'length', 'value' => $each]);
         }
-        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight);
         if ($rowDescriptors === [] && $areaRows > 0 && $declaredHeightForFr !== null) {
             $each = max(0.0, ($declaredHeightForFr - $rowGap * max(0, $areaRows - 1)) / $areaRows);
             $rowDescriptors = array_fill(0, $areaRows, ['type' => 'length', 'value' => $each]);
@@ -2541,15 +2552,64 @@ final class BlockLayout
      *
      * @return list<array{type: string, value: float}>
      */
-    private function parseGridTrackList(?\Phpdftk\Css\Value\Value $value): array
+    /**
+     * CSS Grid 1 §7.2.3 — count how many `auto-fill` / `auto-fit`
+     * tracks fit inside `$availableSize` given the repeated track
+     * pattern in `$repeatTracks`. Each iteration of the pattern uses
+     * `sum(track sizes) + (n-1) × gap`, plus one inter-iteration gap.
+     *
+     * Returns 1 when the pattern's track sizes can't be resolved to a
+     * fixed length — at minimum one iteration must be emitted so the
+     * grid still has tracks to place items into.
+     *
+     * @param list<\Phpdftk\Css\Value\Value> $repeatTracks
+     */
+    private function computeAutoFillCount(array $repeatTracks, float $availableSize, float $gap): int
     {
+        if ($availableSize <= 0.0) {
+            return 1;
+        }
+        // Measure one iteration's track sizes.
+        $iterTracks = [];
+        foreach ($repeatTracks as $r) {
+            $this->collectGridTrackDescriptors($r, $iterTracks);
+        }
+        if ($iterTracks === []) {
+            return 1;
+        }
+        $iterSize = 0.0;
+        foreach ($iterTracks as $idx => $t) {
+            // Anything non-fixed (`fr`, intrinsic) makes the count
+            // indeterminate per §7.2.3; fall back to 1.
+            if (($t['type'] ?? null) !== 'length') {
+                return 1;
+            }
+            $iterSize += max(0.0, $t['value']);
+            if ($idx > 0) {
+                $iterSize += $gap;
+            }
+        }
+        if ($iterSize <= 0.0) {
+            return 1;
+        }
+        // n iterations + (n-1) inter-iteration gaps must fit in
+        // availableSize. Solve: n·iterSize + (n−1)·gap ≤ available.
+        $count = (int) floor(($availableSize + $gap) / ($iterSize + $gap));
+        return max(1, $count);
+    }
+
+    private function parseGridTrackList(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $availableSize = 0.0,
+        float $gap = 0.0,
+    ): array {
         if ($value === null
             || ($value instanceof Keyword && strtolower($value->name) === 'none')
         ) {
             return [];
         }
         $tracks = [];
-        $this->collectGridTrackDescriptors($value, $tracks);
+        $this->collectGridTrackDescriptors($value, $tracks, $availableSize, $gap);
         return $tracks;
     }
 
@@ -2560,11 +2620,15 @@ final class BlockLayout
      *
      * @param list<array{type: string, value: float}> $out
      */
-    private function collectGridTrackDescriptors(\Phpdftk\Css\Value\Value $value, array &$out): void
-    {
+    private function collectGridTrackDescriptors(
+        \Phpdftk\Css\Value\Value $value,
+        array &$out,
+        float $availableSize = 0.0,
+        float $gap = 0.0,
+    ): void {
         if ($value instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($value->values as $v) {
-                $this->collectGridTrackDescriptors($v, $out);
+                $this->collectGridTrackDescriptors($v, $out, $availableSize, $gap);
             }
             return;
         }
@@ -2583,15 +2647,25 @@ final class BlockLayout
                 return;
             }
             if ($name === 'repeat') {
-                // `repeat(<count>, <track>+)` — Phase-2 supports the
-                // integer-count form only. `auto-fill` / `auto-fit`
-                // require min-content sizing to settle.
+                // `repeat(<count>, <track>+)`. The count is either an
+                // explicit integer (`repeat(3, ...)`) or one of the
+                // `auto-fill` / `auto-fit` keywords (CSS Grid 1 §7.2.3).
                 $countVal = $value->arguments[0] ?? null;
                 $count = null;
                 if ($countVal instanceof \Phpdftk\Css\Value\Integer) {
                     $count = $countVal->value;
                 } elseif ($countVal instanceof \Phpdftk\Css\Value\Number) {
                     $count = (int) $countVal->value;
+                } elseif ($countVal instanceof Keyword) {
+                    $keyword = strtolower($countVal->name);
+                    if ($keyword === 'auto-fill' || $keyword === 'auto-fit') {
+                        $rest = array_slice($value->arguments, 1);
+                        $count = $this->computeAutoFillCount(
+                            $rest,
+                            $availableSize,
+                            $gap,
+                        );
+                    }
                 }
                 if ($count === null || $count < 1) {
                     return;
@@ -2599,9 +2673,27 @@ final class BlockLayout
                 $rest = array_slice($value->arguments, 1);
                 for ($i = 0; $i < $count; $i++) {
                     foreach ($rest as $r) {
-                        $this->collectGridTrackDescriptors($r, $out);
+                        $this->collectGridTrackDescriptors($r, $out, $availableSize, $gap);
                     }
                 }
+                return;
+            }
+            if ($name === 'minmax') {
+                // `minmax(<min>, <max>)` — Phase-2 honours the max
+                // size when it's a fixed length so auto-fill can
+                // count tracks. Falls through to skip otherwise.
+                $maxArg = $value->arguments[1] ?? null;
+                if ($maxArg instanceof Length) {
+                    $out[] = ['type' => 'length', 'value' => $maxArg->value];
+                    return;
+                }
+                $minArg = $value->arguments[0] ?? null;
+                if ($minArg instanceof Length) {
+                    $out[] = ['type' => 'length', 'value' => $minArg->value];
+                    return;
+                }
+                // Both intrinsic — leave as 0 placeholder.
+                $out[] = ['type' => 'length', 'value' => 0.0];
                 return;
             }
         }
