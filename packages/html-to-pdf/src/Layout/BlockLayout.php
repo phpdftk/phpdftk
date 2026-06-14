@@ -113,6 +113,23 @@ final class BlockLayout
         if ($context->floatContext === null) {
             $context = $context->withFloatContext(new FloatContext());
         }
+        // CSS 2.1 §10.1 — the initial containing block (the canvas /
+        // viewport) is the abs-pos containing block for the root and
+        // for any abs-pos descendant that doesn't have a positioned
+        // ancestor. Seed the layout context with that rectangle so
+        // `position: fixed` / `position: absolute` at the top of the
+        // tree resolve against the page, not against the parent's
+        // in-flow cursor.
+        if ($context->positionedAncestor === null) {
+            $context = $context->withPositionedAncestor(
+                new PositionedAncestor(
+                    originX: $context->originX,
+                    originY: $context->originY,
+                    width: $context->containingBlockWidth,
+                    height: $context->containingBlockHeight,
+                ),
+            );
+        }
         $height = $this->layoutBox($root, $context);
         // CSS Inline 3 §6 — `text-box-trim` runs as a post-layout pass:
         // it walks each block container with `text-box-trim != none` and
@@ -628,6 +645,39 @@ final class BlockLayout
             ->withContainingBlock($geo->width, $context->containingBlockHeight)
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
+        // CSS 2.1 §10.1 — when this box is positioned (relative /
+        // absolute / fixed / sticky) it establishes a containing block
+        // for its abs-pos descendants. Capture its padding-box rect
+        // here so child stackChildrenList can route abs-pos children's
+        // offset resolution against this ancestor instead of the
+        // immediate parent. Height is approximated from explicit
+        // height-or-percentage when available, falling back to the
+        // current containing-block height (= the viewport for the
+        // root chain) — auto height isn't known until after children
+        // lay out, and a multi-pass would be needed for full accuracy.
+        if ($this->isPositioned($style)) {
+            $paWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+            $heightValueForPA = $style->get('height');
+            $paContentHeight = $this->isHeightAutoLike($heightValueForPA)
+                ? $context->containingBlockHeight
+                : $this->resolveLength($heightValueForPA, $context->containingBlockHeight);
+            if ($this->isBorderBoxSizing($style)) {
+                $paContentHeight = max(
+                    0.0,
+                    $paContentHeight - $geo->borderTop - $geo->borderBottom
+                        - $geo->paddingTop - $geo->paddingBottom,
+                );
+            }
+            $paHeight = $geo->paddingTop + $paContentHeight + $geo->paddingBottom;
+            $childContext = $childContext->withPositionedAncestor(
+                new \Phpdftk\HtmlToPdf\Layout\PositionedAncestor(
+                    originX: $geo->x - $geo->paddingLeft,
+                    originY: $geo->y - $geo->paddingTop,
+                    width: $paWidth,
+                    height: $paHeight,
+                ),
+            );
+        }
         $childTotal = 0.0;
         if ($box->children !== [] && $this->isMultiColumnContainer($box)) {
             $childTotal = $this->layoutMultiColumn($box, $childContext);
@@ -1459,6 +1509,25 @@ final class BlockLayout
         }
         $lower = strtolower($value->name);
         return $lower === 'absolute' || $lower === 'fixed';
+    }
+
+    /**
+     * CSS 2.1 §10.1 — does this box establish a containing block for
+     * `position: absolute` / `fixed` descendants? Any `position` value
+     * other than `static` (the initial) qualifies: `relative`,
+     * `absolute`, `fixed`, `sticky`.
+     */
+    private function isPositioned(\Phpdftk\Css\Cascade\CascadedValues $style): bool
+    {
+        $value = $style->get('position');
+        if (!($value instanceof Keyword)) {
+            return false;
+        }
+        $lower = strtolower($value->name);
+        return $lower === 'relative'
+            || $lower === 'absolute'
+            || $lower === 'fixed'
+            || $lower === 'sticky';
     }
 
     /**
@@ -4564,21 +4633,51 @@ final class BlockLayout
             // the cursor advancement so siblings stack as if it weren't
             // here.
             if ($this->isOutOfFlow($child)) {
+                // CSS 2.1 §10.1 — the containing block for an abs-pos
+                // child is the nearest positioned ancestor's padding
+                // box (threaded through `$childContext->
+                // positionedAncestor`), not the immediate parent.
+                $absCb = $childContext;
+                $pa = $childContext->positionedAncestor;
+                if ($pa !== null) {
+                    $absCb = $childContext->withContainingBlock($pa->width, $pa->height);
+                }
+                // Static-position fallback: when an axis has both
+                // anchors auto (no top/bottom, no left/right), CSS
+                // 2.1 §10.3.7 / §10.6.4 say the box keeps the
+                // position it would have had in normal flow. Lay it
+                // out at the static (in-flow) origin on those axes and
+                // at the positioned ancestor's origin on the anchored
+                // axes. The PA-relative resolveAbsoluteOffsets pass
+                // below applies the anchor offsets on top.
+                $absStyle = $child->style;
+                $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
+                    || !$this->isAuto($absStyle->get('bottom'));
+                $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
+                    || !$this->isAuto($absStyle->get('right'));
+                $absOriginX = ($pa !== null && $hasLeftAnchor) ? $pa->originX : $originX;
+                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $cursorY;
                 // CSS 2.1 §10.3.7 / §10.6.4 — when both opposing edge
                 // anchors are set (left+right or top+bottom) AND the
                 // corresponding size property is `auto`, the size is
                 // derived from the containing block minus both
                 // anchors. Resolve here BEFORE laying out so the
                 // child's geometry reflects the corner-anchored size.
-                $this->applyAbsoluteCornerAnchorSize($child, $childContext);
-                $absCtx = $childContext->withOrigin($originX, $cursorY);
-                $this->layoutBox($child, $absCtx);
+                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
+                $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
+                $this->layoutBox($child, $absLayoutCtx);
+                // resolveAbsoluteOffsets reads the cb dims from its
+                // ctx and computes (dx, dy) relative to the child's
+                // current geometry. Anchor against the PA origin when
+                // the corresponding axis has an explicit edge; the
+                // static-position axis already used the in-flow origin
+                // when laying out, so we pass that back through.
                 [$dx, $dy] = $this->resolveAbsoluteOffsets(
                     $child,
-                    $childContext,
-                    $originX,
-                    $originY,
-                    $cursorY,
+                    $absCb,
+                    $absOriginX,
+                    $absOriginY,
+                    $absOriginY,
                 );
                 if ($dx !== 0.0 || $dy !== 0.0) {
                     $this->shiftSubtree($child, $dy, $dx);

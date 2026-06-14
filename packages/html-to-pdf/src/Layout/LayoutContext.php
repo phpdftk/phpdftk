@@ -44,6 +44,16 @@ final readonly class LayoutContext
          * no BFC has registered any floats yet.
          */
         public ?FloatContext $floatContext = null,
+        /**
+         * CSS 2.1 §10.1 — the containing block for `position:
+         * absolute` / `fixed` descendants is the nearest positioned
+         * ancestor's PADDING box, not the immediate parent. We thread
+         * that ancestor's padding-box rectangle here so abs-pos
+         * layout can read it directly. Null when no positioned
+         * ancestor is established yet — `BlockLayout` falls back to
+         * the initial containing block (the canvas).
+         */
+        public ?PositionedAncestor $positionedAncestor = null,
     ) {}
 
     public function withOrigin(float $x, float $y): self
@@ -57,6 +67,7 @@ final readonly class LayoutContext
             $this->defaultFont,
             $this->fontResolver,
             $this->floatContext,
+            $this->positionedAncestor,
         );
     }
 
@@ -71,6 +82,7 @@ final readonly class LayoutContext
             $this->defaultFont,
             $this->fontResolver,
             $this->floatContext,
+            $this->positionedAncestor,
         );
     }
 
@@ -85,6 +97,7 @@ final readonly class LayoutContext
             $this->defaultFont,
             $this->fontResolver,
             $this->floatContext,
+            $this->positionedAncestor,
         );
     }
 
@@ -99,6 +112,22 @@ final readonly class LayoutContext
             $this->defaultFont,
             $this->fontResolver,
             $ctx,
+            $this->positionedAncestor,
+        );
+    }
+
+    public function withPositionedAncestor(?PositionedAncestor $pa): self
+    {
+        return new self(
+            $this->containingBlockWidth,
+            $this->containingBlockHeight,
+            $this->originX,
+            $this->originY,
+            $this->lengthContext,
+            $this->defaultFont,
+            $this->fontResolver,
+            $this->floatContext,
+            $pa,
         );
     }
 }
