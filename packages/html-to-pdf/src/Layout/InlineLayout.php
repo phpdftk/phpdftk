@@ -1668,10 +1668,31 @@ final class InlineLayout
             }
         }
 
+        // CSS Writing Modes 3 §2 / Unicode UAX #9 — split each segment
+        // at bidi-direction boundaries so a single text node like
+        // "First שלום world" produces three separate shaping runs
+        // (LTR-RTL-LTR) the layout can place individually. Without
+        // this split, the run containing both LTR and RTL characters
+        // shapes as a single block at one bidi level, miscoordinating
+        // with browser-emitted swatch reference geometries.
+        $segments = $this->splitBidiRuns($segments);
+
         $out = [];
         foreach ($segments as $seg) {
             $isWs = preg_match('/^[ \t\n\r\f]+$/', $seg['text']) === 1;
-            $shaped = $this->shaper->shapeRun($seg['text'], $shapingCtx);
+            $runDirection = $seg['direction'] ?? null;
+            $runCtx = $shapingCtx;
+            if ($runDirection === 'rtl') {
+                $runCtx = new ShapingContext(
+                    $shapingCtx->font,
+                    $shapingCtx->fontSizePt,
+                    $shapingCtx->script,
+                    $shapingCtx->language,
+                    \Phpdftk\Text\ShapingDirection::Rtl,
+                    $shapingCtx->features,
+                );
+            }
+            $shaped = $this->shaper->shapeRun($seg['text'], $runCtx);
             if ($letterSpacing !== 0.0 && $shaped->glyphs !== []) {
                 $shaped = $this->applyLetterSpacing($shaped, $letterSpacing);
             }
@@ -1685,6 +1706,98 @@ final class InlineLayout
                 'isWhitespace' => $isWs,
                 'kind' => $seg['kind'],
             ];
+        }
+        return $out;
+    }
+
+    /**
+     * Unicode UAX #9 (Bidi) — minimal per-codepoint split. Walks each
+     * segment, classifies codepoints into LTR / RTL / neutral via
+     * `IntlChar::charDirection`, groups consecutive same-direction
+     * characters into runs, and emits one segment per run. Neutrals
+     * adopt the direction of their surrounding run (left-context
+     * fallback). When `intl` is unavailable or the segment is pure
+     * one-direction, segments pass through untouched.
+     *
+     * Each returned segment carries a `direction` field (`'ltr'` /
+     * `'rtl'`) so the shaping pass can switch ShapingDirection per
+     * run without re-classifying codepoints.
+     *
+     * @param list<array{text: string, kind: LineBreakKind}> $segments
+     * @return list<array{text: string, kind: LineBreakKind, direction?: string}>
+     */
+    private function splitBidiRuns(array $segments): array
+    {
+        if (!class_exists(\IntlChar::class)) {
+            return $segments;
+        }
+        $out = [];
+        foreach ($segments as $seg) {
+            $text = $seg['text'];
+            // Quick exit: if no codepoint has explicit RTL direction,
+            // the whole segment is LTR. Avoids the per-codepoint walk
+            // for the common Latin case.
+            if (preg_match('/[\x{0590}-\x{08FF}\x{FB1D}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', $text) !== 1) {
+                $seg['direction'] = 'ltr';
+                $out[] = $seg;
+                continue;
+            }
+            $bytes = strlen($text);
+            $i = 0;
+            $currentRun = '';
+            $currentDir = null;
+            while ($i < $bytes) {
+                $b = ord($text[$i]);
+                $cpLen = $b < 0x80 ? 1 : ($b < 0xE0 ? 2 : ($b < 0xF0 ? 3 : 4));
+                $chunk = substr($text, $i, $cpLen);
+                $cp = mb_ord($chunk, 'UTF-8');
+                $i += $cpLen;
+                if ($cp === false) {
+                    $currentRun .= $chunk;
+                    continue;
+                }
+                $bidiClass = \IntlChar::charDirection($cp);
+                // L (LEFT_TO_RIGHT) → LTR; R / AL (RIGHT_TO_LEFT,
+                // RIGHT_TO_LEFT_ARABIC) → RTL; everything else is a
+                // neutral and inherits the surrounding run.
+                $dirHere = match ($bidiClass) {
+                    \IntlChar::CHAR_DIRECTION_LEFT_TO_RIGHT => 'ltr',
+                    \IntlChar::CHAR_DIRECTION_RIGHT_TO_LEFT,
+                    \IntlChar::CHAR_DIRECTION_RIGHT_TO_LEFT_ARABIC => 'rtl',
+                    default => null,
+                };
+                if ($dirHere === null) {
+                    $currentRun .= $chunk;
+                    continue;
+                }
+                if ($currentDir === null) {
+                    $currentDir = $dirHere;
+                }
+                if ($dirHere !== $currentDir) {
+                    // Direction boundary — flush the current run.
+                    if ($currentRun !== '') {
+                        $out[] = [
+                            'text' => $currentRun,
+                            'kind' => LineBreakKind::Allowed,
+                            'direction' => $currentDir,
+                        ];
+                    }
+                    $currentRun = $chunk;
+                    $currentDir = $dirHere;
+                } else {
+                    $currentRun .= $chunk;
+                }
+            }
+            if ($currentRun !== '') {
+                $out[] = [
+                    'text' => $currentRun,
+                    // The last sub-run keeps the parent segment's
+                    // original break-kind (so a UAX-14 mandatory
+                    // break at the source's end still fires).
+                    'kind' => $seg['kind'],
+                    'direction' => $currentDir ?? 'ltr',
+                ];
+            }
         }
         return $out;
     }

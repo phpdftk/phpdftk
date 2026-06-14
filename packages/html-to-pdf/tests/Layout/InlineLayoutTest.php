@@ -1691,6 +1691,52 @@ final class InlineLayoutTest extends TestCase
         }
     }
 
+    public function testMixedBidiTextProducesSeparateFragmentsPerRun(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Writing Modes 3 §2 / UAX #9 — mixed LTR + RTL text inside
+        // a single text node splits at bidi-direction boundaries into
+        // separate shaping runs. A test with Mongolian + Hebrew
+        // characters produces multiple fragments (LTR run, RTL run,
+        // LTR run) — without the split it'd be one fragment of mixed
+        // direction.
+        $box = $this->buildTree(
+            '<html><body><p>' . "\u{1820}\u{1820}\u{05D0}\u{05D1}\u{1820}\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertCount(1, $p->lineBoxes);
+        $line = $p->lineBoxes[0];
+        // The mixed line should now have multiple fragments — at
+        // minimum: an LTR fragment, an RTL fragment, and another LTR
+        // fragment.
+        self::assertGreaterThanOrEqual(3, count($line->fragments));
+    }
+
+    public function testPureLtrTextSkipsBidiSplitFastPath(): void
+    {
+        $this->skipIfNoFont();
+        // Negative test — text with no RTL characters bypasses the
+        // bidi split fast-path. The result is identical to the
+        // pre-bidi tokenisation (no artificial extra splits).
+        $letters = "\u{1820}\u{1820}\u{1820}\u{1820}";
+        $box = $this->buildTree(
+            '<html><body><p>' . $letters . '</p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext(600.0));
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        // Should produce exactly one fragment (no bidi split kicks in).
+        $totalFragments = 0;
+        foreach ($p->lineBoxes as $line) {
+            $totalFragments += count($line->fragments);
+        }
+        self::assertSame(1, $totalFragments);
+    }
+
     private function find(Box $root, string $tag): ?Box
     {
         $stack = [$root];
