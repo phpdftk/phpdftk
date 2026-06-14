@@ -139,6 +139,25 @@ final class BoxGenerator
         if ($display === 'none') {
             return null;
         }
+        // CSS Grid 3 §11 — `display: grid-lanes` (masonry layout)
+        // currently aliases to `display: grid` with `grid-auto-flow`
+        // derived from which axis the author specified tracks for.
+        // For a row-axis grid-lanes (only `grid-template-rows` set),
+        // items flow column-major (auto-flow: column) and the
+        // column tracks grow implicitly. Symmetric for column-axis.
+        // The actual masonry algorithm (variable-height packing
+        // across tracks) is a future enhancement; this aliasing
+        // already lights up the empty-container / order /
+        // basic-placement subset of the corpus.
+        if ($display === 'grid-lanes' || $display === 'inline-grid-lanes') {
+            $hasRowTracks = !$this->isInitialValue($values->get('grid-template-rows'));
+            $hasColTracks = !$this->isInitialValue($values->get('grid-template-columns'));
+            if ($hasRowTracks && !$hasColTracks) {
+                $values->set('grid-auto-flow', new Keyword('column'));
+            }
+            $values->set('display', new Keyword($display === 'inline-grid-lanes' ? 'inline-grid' : 'grid'));
+            $display = $display === 'inline-grid-lanes' ? 'inline-grid' : 'grid';
+        }
         // CSS Writing Modes 3 §2 — `direction` doesn't apply to
         // certain internal-table display types (table-row-group /
         // -header-group / -footer-group / -row / -column /
@@ -1565,7 +1584,51 @@ final class BoxGenerator
         if ($display instanceof Keyword) {
             return strtolower($display->name);
         }
+        // CSS Display 3 §2 — `display: <outside> <inside>` (the two-
+        // keyword syntax, e.g. `display: inline grid` /
+        // `display: inline grid-lanes`) parses as a ValueList of
+        // Keywords. We compose them into the canonical single
+        // keyword form (`inline-grid`, `inline-grid-lanes`) so the
+        // rest of BoxGenerator's `match ($display)` paths keep
+        // working as before.
+        if ($display instanceof \Phpdftk\Css\Value\ValueList) {
+            $names = [];
+            foreach ($display->values as $v) {
+                if ($v instanceof Keyword) {
+                    $names[] = strtolower($v->name);
+                }
+            }
+            if ($names !== []) {
+                $outside = $names[0] ?? null;
+                $inside = $names[1] ?? null;
+                if ($outside === 'inline' && $inside !== null) {
+                    return 'inline-' . $inside;
+                }
+                if ($outside === 'block' && $inside !== null) {
+                    return $inside;
+                }
+                return implode('-', $names);
+            }
+        }
         return 'inline';
+    }
+
+    /**
+     * Returns `true` when the cascaded value is the property's initial
+     * (or a `none` / `auto` keyword that's effectively initial for the
+     * track-list properties). Used by the `display: grid-lanes`
+     * aliasing to decide which axis the author specified tracks for.
+     */
+    private function isInitialValue(?\Phpdftk\Css\Value\Value $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+        if ($value instanceof Keyword) {
+            $name = strtolower($value->name);
+            return $name === 'none' || $name === 'auto' || $name === 'initial';
+        }
+        return false;
     }
 
     /**
