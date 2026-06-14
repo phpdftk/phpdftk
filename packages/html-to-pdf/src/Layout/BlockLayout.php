@@ -4627,11 +4627,20 @@ final class BlockLayout
             }
             $childOuterHeight = $this->layoutBox($child, $childContext->withOrigin($originX, $cursorY));
             if ($hasPrev) {
-                $collapse = min($prevBottomMargin, $child->geometry->marginTop);
-                if ($collapse > 0.0) {
-                    $this->shiftSubtree($child, -$collapse);
-                    $cursorY -= $collapse;
-                    $total -= $collapse;
+                // CSS 2.1 §8.3.1: adjacent sibling margins collapse to
+                // max(positives) + min(negatives). Compute the
+                // post-collapse spacing and shift the child to close
+                // the gap (or open it, for the negative+negative case
+                // where the no-collapse spacing is MORE negative than
+                // the collapsed one).
+                $p = $prevBottomMargin;
+                $c = $child->geometry->marginTop;
+                $collapsed = max($p, $c, 0.0) + min($p, $c, 0.0);
+                $shift = ($p + $c) - $collapsed;
+                if ($shift !== 0.0) {
+                    $this->shiftSubtree($child, -$shift);
+                    $cursorY -= $shift;
+                    $total -= $shift;
                 }
             }
             if ($pageHeight > 0.0
