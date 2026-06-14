@@ -1830,79 +1830,42 @@ final class BlockLayout
             };
         }
 
-        // For each line, run the per-line slack/shrink/grow algorithm.
+        // For each line, run the §9.7 "Resolve the Flexible Lengths"
+        // algorithm: iteratively distribute free space proportional to
+        // flex-grow / scaled flex-shrink (shrink × base size) and
+        // freeze items that hit their min/max main size at each step.
         $lineSlacks = [];
         foreach ($lines as $lineIdx => $indices) {
+            $finalMains = $this->resolveFlexLineMainSizes(
+                $children,
+                $indices,
+                $itemMains,
+                $isColumn,
+                $containerMain,
+                $gap,
+                $cbWidth,
+                $cbHeight,
+            );
+
             $lineUsed = 0.0;
             foreach ($indices as $i) {
+                $newOuter = $finalMains[$i];
+                $oldOuter = $itemMains[$i];
+                $delta = $newOuter - $oldOuter;
+                if ($delta !== 0.0) {
+                    if ($isColumn) {
+                        $children[$i]->geometry->height = max(0.0, $children[$i]->geometry->height + $delta);
+                    } else {
+                        $children[$i]->geometry->width = max(0.0, $children[$i]->geometry->width + $delta);
+                    }
+                    $itemMains[$i] = $isColumn
+                        ? $children[$i]->geometry->outerHeight()
+                        : $children[$i]->geometry->outerWidth();
+                }
                 $lineUsed += $itemMains[$i];
             }
             $lineUsed += $gap * max(0, count($indices) - 1);
-
-            // Shrink overflowing line.
-            $negSlack = $lineUsed - $containerMain;
-            if ($negSlack > 0.0) {
-                $totalShrink = 0.0;
-                $shrinkVals = [];
-                foreach ($indices as $i) {
-                    $s = $this->resolveFlexShrink($children[$i]->style);
-                    $shrinkVals[$i] = $s;
-                    $totalShrink += $s;
-                }
-                if ($totalShrink > 0.0) {
-                    $reduced = 0.0;
-                    foreach ($indices as $i) {
-                        if ($shrinkVals[$i] <= 0.0) {
-                            continue;
-                        }
-                        $reduction = $negSlack * ($shrinkVals[$i] / $totalShrink);
-                        $cur = $isColumn ? $children[$i]->geometry->height : $children[$i]->geometry->width;
-                        $new = max(0.0, $cur - $reduction);
-                        $actual = $cur - $new;
-                        if ($isColumn) {
-                            $children[$i]->geometry->height = $new;
-                        } else {
-                            $children[$i]->geometry->width = $new;
-                        }
-                        $reduced += $actual;
-                        $itemMains[$i] = $isColumn ? $children[$i]->geometry->outerHeight() : $children[$i]->geometry->outerWidth();
-                    }
-                    $lineUsed -= $reduced;
-                }
-            }
-
-            $lineSlack = max(0.0, $containerMain - $lineUsed);
-
-            // Grow into positive slack.
-            if ($lineSlack > 0.0) {
-                $totalGrow = 0.0;
-                $growVals = [];
-                foreach ($indices as $i) {
-                    $g = $this->resolveFlexGrow($children[$i]->style);
-                    $growVals[$i] = $g;
-                    $totalGrow += $g;
-                }
-                if ($totalGrow > 0.0) {
-                    $consumed = 0.0;
-                    foreach ($indices as $i) {
-                        if ($growVals[$i] <= 0.0) {
-                            continue;
-                        }
-                        $extra = $lineSlack * ($growVals[$i] / $totalGrow);
-                        if ($isColumn) {
-                            $children[$i]->geometry->height += $extra;
-                        } else {
-                            $children[$i]->geometry->width += $extra;
-                        }
-                        $consumed += $extra;
-                        $itemMains[$i] = $isColumn ? $children[$i]->geometry->outerHeight() : $children[$i]->geometry->outerWidth();
-                    }
-                    $lineUsed += $consumed;
-                    $lineSlack = max(0.0, $containerMain - $lineUsed);
-                }
-            }
-
-            $lineSlacks[$lineIdx] = $lineSlack;
+            $lineSlacks[$lineIdx] = max(0.0, $containerMain - $lineUsed);
         }
 
         // Per-line cross extents (max of item cross sizes within line).
@@ -3721,6 +3684,212 @@ final class BlockLayout
             return (int) $value->value;
         }
         return 0;
+    }
+
+    /**
+     * CSS Flexbox 1 §9.7 — "Resolve the Flexible Lengths". Iteratively
+     * distribute the line's free space (positive → grow proportional
+     * to `flex-grow`; negative → shrink proportional to `flex-shrink
+     * × base size`) and freeze items that hit their min / max main
+     * size. Returns the final OUTER main size per item index, keyed
+     * by the same `$indices` passed in.
+     *
+     * The "base size" of each item is its current outer main size
+     * before resolution (post `flex-basis` substitution, pre
+     * grow/shrink). Min and max main are resolved from `min-{width,
+     * height}` and `max-{width,height}` on the item and converted to
+     * outer-size space by adding the item's border + padding + margin
+     * adornment, since the algorithm works on outer sizes throughout.
+     *
+     * @param list<Box> $children
+     * @param list<int> $indices
+     * @param list<float> $itemMains  Per-index OUTER main size (in/out).
+     * @return array<int, float>  Final outer main size, keyed by index.
+     */
+    private function resolveFlexLineMainSizes(
+        array $children,
+        array $indices,
+        array $itemMains,
+        bool $isColumn,
+        float $containerMain,
+        float $gap,
+        float $cbWidth,
+        float $cbHeight,
+    ): array {
+        if ($indices === []) {
+            return [];
+        }
+        // Capture baseline arrays for each item: base outer size,
+        // grow / shrink ratios, and min/max main bounds.
+        $baseOuter = [];
+        $grows = [];
+        $shrinks = [];
+        $minOuter = [];
+        $maxOuter = [];
+        $usedFixed = 0.0;
+        foreach ($indices as $i) {
+            $baseOuter[$i] = $itemMains[$i];
+            $grows[$i] = $this->resolveFlexGrow($children[$i]->style);
+            $shrinks[$i] = $this->resolveFlexShrink($children[$i]->style);
+            $g = $children[$i]->geometry;
+            if ($isColumn) {
+                $adornment = $g->marginTop + $g->borderTop + $g->paddingTop
+                    + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+                $minInner = $this->resolveLength(
+                    $children[$i]->style->get('min-height'),
+                    $cbHeight,
+                );
+                $maxInnerVal = $children[$i]->style->get('max-height');
+                $maxInner = ($maxInnerVal instanceof Keyword && strtolower($maxInnerVal->name) === 'none')
+                    ? null
+                    : $this->resolveLength($maxInnerVal, $cbHeight);
+            } else {
+                $adornment = $g->marginLeft + $g->borderLeft + $g->paddingLeft
+                    + $g->paddingRight + $g->borderRight + $g->marginRight;
+                $minInner = $this->resolveLength(
+                    $children[$i]->style->get('min-width'),
+                    $cbWidth,
+                );
+                $maxInnerVal = $children[$i]->style->get('max-width');
+                $maxInner = ($maxInnerVal instanceof Keyword && strtolower($maxInnerVal->name) === 'none')
+                    ? null
+                    : $this->resolveLength($maxInnerVal, $cbWidth);
+            }
+            $minOuter[$i] = max(0.0, ($minInner > 0.0 ? $minInner : 0.0) + $adornment);
+            $maxOuter[$i] = $maxInner !== null && $maxInner > 0.0
+                ? $maxInner + $adornment
+                : INF;
+        }
+
+        $gapTotal = $gap * max(0, count($indices) - 1);
+        $available = $containerMain - $gapTotal;
+
+        // Pick sign of flex (grow vs shrink) based on hypothetical
+        // sum: if items overflow → shrink; if underflow → grow.
+        $hypothetical = 0.0;
+        foreach ($indices as $i) {
+            $hypothetical += $baseOuter[$i];
+        }
+        $isGrow = $hypothetical < $available;
+
+        // Initial freeze pass: zero grow/shrink, or already past
+        // the relevant clamp boundary.
+        $frozen = [];
+        foreach ($indices as $i) {
+            if ($isGrow && $grows[$i] <= 0.0) {
+                $frozen[$i] = $baseOuter[$i];
+            } elseif (!$isGrow && $shrinks[$i] <= 0.0) {
+                $frozen[$i] = $baseOuter[$i];
+            } elseif ($isGrow && $baseOuter[$i] >= $maxOuter[$i]) {
+                $frozen[$i] = $maxOuter[$i];
+            } elseif (!$isGrow && $baseOuter[$i] <= $minOuter[$i]) {
+                $frozen[$i] = $minOuter[$i];
+            }
+        }
+
+        // Iterate freeze-and-distribute. Worst case: each iteration
+        // freezes one item, so an upper bound of count + 1 iterations
+        // is safe — if nothing freezes the loop exits via the
+        // !clampedAny break below.
+        $iter = 0;
+        $iterCap = count($indices) + 1;
+        while ($iter++ < $iterCap) {
+            $unfrozen = [];
+            $consumedFrozen = 0.0;
+            $consumedUnfrozenBase = 0.0;
+            foreach ($indices as $i) {
+                if (isset($frozen[$i])) {
+                    $consumedFrozen += $frozen[$i];
+                } else {
+                    $unfrozen[] = $i;
+                    $consumedUnfrozenBase += $baseOuter[$i];
+                }
+            }
+            if ($unfrozen === []) {
+                break;
+            }
+            $free = $available - $consumedFrozen - $consumedUnfrozenBase;
+            // Stop early if we've reached equilibrium.
+            if ($isGrow && $free <= 0.0) {
+                break;
+            }
+            if (!$isGrow && $free >= 0.0) {
+                break;
+            }
+
+            if ($isGrow) {
+                $totalRatio = 0.0;
+                foreach ($unfrozen as $i) {
+                    $totalRatio += $grows[$i];
+                }
+                if ($totalRatio <= 0.0) {
+                    break;
+                }
+                $tentatives = [];
+                $clampedAny = false;
+                foreach ($unfrozen as $i) {
+                    $share = $free * ($grows[$i] / $totalRatio);
+                    $candidate = $baseOuter[$i] + $share;
+                    if ($candidate > $maxOuter[$i]) {
+                        $frozen[$i] = $maxOuter[$i];
+                        $clampedAny = true;
+                    } elseif ($candidate < $minOuter[$i]) {
+                        // Growing into something below its own min —
+                        // can happen when base < min and grow pushed
+                        // it just a hair; clamp up.
+                        $frozen[$i] = $minOuter[$i];
+                        $clampedAny = true;
+                    } else {
+                        $tentatives[$i] = $candidate;
+                    }
+                }
+                if (!$clampedAny) {
+                    foreach ($tentatives as $i => $size) {
+                        $frozen[$i] = $size;
+                    }
+                    break;
+                }
+            } else {
+                // Shrink with SCALED ratio: shrink × base size.
+                $totalScaled = 0.0;
+                foreach ($unfrozen as $i) {
+                    $totalScaled += $shrinks[$i] * $baseOuter[$i];
+                }
+                if ($totalScaled <= 0.0) {
+                    break;
+                }
+                $deficit = -$free; // positive
+                $tentatives = [];
+                $clampedAny = false;
+                foreach ($unfrozen as $i) {
+                    $share = $deficit * (($shrinks[$i] * $baseOuter[$i]) / $totalScaled);
+                    $candidate = $baseOuter[$i] - $share;
+                    if ($candidate < $minOuter[$i]) {
+                        $frozen[$i] = $minOuter[$i];
+                        $clampedAny = true;
+                    } elseif ($candidate > $maxOuter[$i]) {
+                        $frozen[$i] = $maxOuter[$i];
+                        $clampedAny = true;
+                    } else {
+                        $tentatives[$i] = $candidate;
+                    }
+                }
+                if (!$clampedAny) {
+                    foreach ($tentatives as $i => $size) {
+                        $frozen[$i] = $size;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Any item still unfrozen at this point (defensive — should
+        // not happen if the iteration cap is right) keeps its base.
+        $result = [];
+        foreach ($indices as $i) {
+            $result[$i] = $frozen[$i] ?? $baseOuter[$i];
+        }
+        return $result;
     }
 
     /**

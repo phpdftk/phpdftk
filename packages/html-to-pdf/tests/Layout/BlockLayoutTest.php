@@ -5395,11 +5395,15 @@ final class BlockLayoutTest extends TestCase
 
     public function testFlexShrinkClampsAtZero(): void
     {
-        // Negative: the proportional share would push width below 0;
-        // implementation clamps so the item just becomes 0 wide
-        // rather than going negative. Setup: heavily-weighted shrink
-        // on a tiny item (a=10, shrink 99) splits the 60pt overflow
-        // 99:1 with b, so a's share of 59.4 exceeds a's 10pt width.
+        // CSS Flexbox 1 §9.7: shrink uses SCALED ratios (shrink ×
+        // base size), and items that clamp at their min main size
+        // freeze + the deficit is redistributed across the remaining
+        // flexible items. Setup: a (w=10, shrink=99), b (w=100,
+        // shrink=1), container=50, overflow=60. Scaled shrinks:
+        // 99×10=990 vs 1×100=100; a's first-iteration share would
+        // push it below 0, so it freezes at 0 (its implicit min). The
+        // remaining 50pt deficit then distributes solely through b,
+        // landing it at 50pt wide (filling the container).
         $box = $this->buildTreeWithUa(
             '<html><body><div class="flex">'
                 . '<div class="a"></div>'
@@ -5413,8 +5417,7 @@ final class BlockLayoutTest extends TestCase
         $flex = $this->find($box, 'div');
         self::assertNotNull($flex);
         self::assertSame(0.0, $this->flexItemWidth($flex, 'a'));
-        // b takes its proportional 0.6pt reduction → 99.4 wide.
-        self::assertEqualsWithDelta(99.4, $this->flexItemWidth($flex, 'b'), 0.001);
+        self::assertEqualsWithDelta(50.0, $this->flexItemWidth($flex, 'b'), 0.001);
     }
 
     public function testFlexShorthandOneFillsContainer(): void
