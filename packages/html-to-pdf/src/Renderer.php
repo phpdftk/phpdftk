@@ -126,12 +126,23 @@ final class Renderer
         $namedStrings = $this->boxGenerator->getNamedStrings();
         $runningElements = $this->boxGenerator->getRunningElements();
         if ($root === null) {
+            // No paintable root box — either the document has no <html>
+            // element at all, or `html { display: none }` / `display:
+            // contents` collapsed the principal box. CSS Backgrounds 3
+            // §3.11 treats this as "no special background propagation"
+            // but the viewport itself still exists, so emit a single
+            // blank page so downstream consumers (and the WPT rasteriser)
+            // see a valid PDF. Browsers' `blank.html` reference renders
+            // exactly this shape. We still surface the warning + honour
+            // strict mode so callers that treat "no root" as malformed
+            // input keep their existing escalation path.
             $warnings[] = new Warning(
                 WarningCode::UnsupportedDisplayType,
                 'Document has no <html> root element',
                 WarningSeverity::Error,
             );
             $this->maybeThrow($warnings);
+            $writer->addPage($pageWidth, $pageHeight);
             return $warnings;
         }
 
