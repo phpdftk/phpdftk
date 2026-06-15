@@ -86,16 +86,20 @@ final class ColorConverter
             ColorSpace::sRGBLinear => self::fromLinearSrgb($color->r, $color->g, $color->b, $color->a),
             ColorSpace::HWB => self::fromHwb($color->r, $color->g, $color->b, $color->a),
             ColorSpace::Lab => self::labToSrgb($color->r, $color->g, $color->b, $color->a),
-            ColorSpace::Lch => self::labToSrgb(...self::lchToLab($color->r, $color->g, $color->b), alpha: $color->a),
+            ColorSpace::Lch => self::lchToSrgbGamutMapped($color->r, $color->g, $color->b, $color->a),
             ColorSpace::OKLab => self::fromOklab($color->r, $color->g, $color->b, $color->a),
-            ColorSpace::OKLCH => self::oklchToSrgb($color->r, $color->g, $color->b, $color->a),
+            ColorSpace::OKLCH => self::oklchToSrgbGamutMapped($color->r, $color->g, $color->b, $color->a),
             ColorSpace::XYZ, ColorSpace::XYZD65
                 => self::fromXyzD65($color->r, $color->g, $color->b, $color->a),
             ColorSpace::XYZD50 => self::fromXyzD50($color->r, $color->g, $color->b, $color->a),
             ColorSpace::DisplayP3 => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_DISPLAYP3_TO_XYZD65, isD50: false),
+            ColorSpace::DisplayP3Linear => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_DISPLAYP3_TO_XYZD65, isD50: false, skipDegamma: true),
             ColorSpace::A98RGB => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_A98RGB_TO_XYZD65, isD50: false),
+            ColorSpace::A98RGBLinear => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_A98RGB_TO_XYZD65, isD50: false, skipDegamma: true),
             ColorSpace::Rec2020 => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_REC2020_TO_XYZD65, isD50: false),
+            ColorSpace::Rec2020Linear => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_REC2020_TO_XYZD65, isD50: false, skipDegamma: true),
             ColorSpace::ProPhotoRGB => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_PROPHOTORGB_TO_XYZD50, isD50: true),
+            ColorSpace::ProPhotoRGBLinear => self::fromWideRgb($color->r, $color->g, $color->b, $color->a, self::M_LINEAR_PROPHOTORGB_TO_XYZD50, isD50: true, skipDegamma: true),
         };
     }
 
@@ -109,6 +113,96 @@ final class ColorConverter
     {
         [$ll, $a, $b] = self::lchToLab($l, $c, $h);
         return self::fromOklab($ll, $a, $b, $alpha);
+    }
+
+    /**
+     * CSS Color 4 §13 gamut-mapping for LCH: binary-search chroma down to
+     * the largest value that produces an in-sRGB result. The previous
+     * implementation relied on `fromLinearSrgb`'s per-channel `clip01` to
+     * fit out-of-gamut samples into sRGB, but clipping produces colours
+     * that don't preserve lightness or hue — `lch(0% 110 60)` clipped to
+     * `(0.295, 0, 0)` (a dark red) instead of black. Pre-search short-
+     * circuits at the lightness extremes since L=0/L=100 collapse to
+     * pure black/white regardless of chroma.
+     */
+    private static function lchToSrgbGamutMapped(float $l, float $c, float $h, float $alpha): Color
+    {
+        if ($l <= 0.0) {
+            return new Color(0.0, 0.0, 0.0, $alpha);
+        }
+        if ($l >= 100.0) {
+            return new Color(1.0, 1.0, 1.0, $alpha);
+        }
+        $build = static function (float $chroma) use ($l, $h, $alpha): Color {
+            [$ll, $a, $b] = self::lchToLab($l, $chroma, $h);
+            return self::labToSrgb($ll, $a, $b, $alpha);
+        };
+        return self::gamutMapByChroma($build, $c, $alpha);
+    }
+
+    private static function oklchToSrgbGamutMapped(float $l, float $c, float $h, float $alpha): Color
+    {
+        // OKLCH lightness is 0–1, not 0–100.
+        if ($l <= 0.0) {
+            return new Color(0.0, 0.0, 0.0, $alpha);
+        }
+        if ($l >= 1.0) {
+            return new Color(1.0, 1.0, 1.0, $alpha);
+        }
+        $build = static function (float $chroma) use ($l, $h, $alpha): Color {
+            return self::oklchToSrgb($l, $chroma, $h, $alpha);
+        };
+        return self::gamutMapByChroma($build, $c, $alpha);
+    }
+
+    /**
+     * Binary-search chroma in [0, maxChroma] for the largest value whose
+     * converted sRGB sample is in-gamut (no channel clamped by
+     * `fromLinearSrgb`). `$build(chroma)` returns the converted Color;
+     * the helper compares its output to a parallel uncoloured probe
+     * (`fromLinearSrgb` is the only path that clamps, so re-running with
+     * a known channel value isn't needed — the clipped result equals the
+     * unclipped only when the linear samples already sit in `[0, 1]`).
+     */
+    private static function gamutMapByChroma(\Closure $build, float $maxChroma, float $alpha): Color
+    {
+        $fitsInGamut = static function (Color $candidate, float $chroma): bool {
+            // `fromLinearSrgb` is the only path that runs `clip01` on the
+            // output channels, so a candidate whose channels sit exactly
+            // at 0.0 or 1.0 (within float tolerance) and whose chroma is
+            // non-trivial was almost certainly clamped by it — treat that
+            // as out-of-gamut so the binary search keeps shrinking.
+            if ($chroma <= 0.0) {
+                return true;
+            }
+            $r = $candidate->r;
+            $g = $candidate->g;
+            $b = $candidate->b;
+            $clipped = ($r <= 0.0 && $r >= -1e-9)
+                || ($r >= 1.0 && $r <= 1.0 + 1e-9)
+                || ($g <= 0.0 && $g >= -1e-9)
+                || ($g >= 1.0 && $g <= 1.0 + 1e-9)
+                || ($b <= 0.0 && $b >= -1e-9)
+                || ($b >= 1.0 && $b <= 1.0 + 1e-9);
+            return !$clipped;
+        };
+        $best = $build($maxChroma);
+        if ($fitsInGamut($best, $maxChroma)) {
+            return $best;
+        }
+        $lo = 0.0;
+        $hi = $maxChroma;
+        for ($i = 0; $i < 20; $i++) {
+            $mid = ($lo + $hi) / 2.0;
+            $candidate = $build($mid);
+            if ($fitsInGamut($candidate, $mid)) {
+                $best = $candidate;
+                $lo = $mid;
+            } else {
+                $hi = $mid;
+            }
+        }
+        return $best;
     }
 
     /**
@@ -240,16 +334,26 @@ final class ColorConverter
         float $alpha,
         array $matrix,
         bool $isD50,
+        bool $skipDegamma = false,
     ): Color {
-        $lr = self::srgbDegamma($r);
-        $lg = self::srgbDegamma($g);
-        $lb = self::srgbDegamma($b);
-        // Most spaces in this group share the sRGB transfer curve. ProPhoto
-        // uses 1.8 — match its source-D50 reference too.
-        if ($matrix === self::M_LINEAR_PROPHOTORGB_TO_XYZD50) {
-            $lr = $r >= 0.0 ? $r ** 1.8 : -((-$r) ** 1.8);
-            $lg = $g >= 0.0 ? $g ** 1.8 : -((-$g) ** 1.8);
-            $lb = $b >= 0.0 ? $b ** 1.8 : -((-$b) ** 1.8);
+        // CSS Color 4 §10 — the `*-linear` variants of wide-gamut spaces
+        // share the encoded-variant's matrix but skip its transfer curve
+        // (the input components are already linear-light).
+        if ($skipDegamma) {
+            $lr = $r;
+            $lg = $g;
+            $lb = $b;
+        } else {
+            $lr = self::srgbDegamma($r);
+            $lg = self::srgbDegamma($g);
+            $lb = self::srgbDegamma($b);
+            // Most spaces in this group share the sRGB transfer curve. ProPhoto
+            // uses 1.8 — match its source-D50 reference too.
+            if ($matrix === self::M_LINEAR_PROPHOTORGB_TO_XYZD50) {
+                $lr = $r >= 0.0 ? $r ** 1.8 : -((-$r) ** 1.8);
+                $lg = $g >= 0.0 ? $g ** 1.8 : -((-$g) ** 1.8);
+                $lb = $b >= 0.0 ? $b ** 1.8 : -((-$b) ** 1.8);
+            }
         }
         [$x, $y, $z] = self::mul3($matrix, [$lr, $lg, $lb]);
         if ($isD50) {

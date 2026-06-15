@@ -19,5 +19,9 @@ enum ColorSpace
     case XYZD50;
     case XYZD65;
     case sRGBLinear;
+    case DisplayP3Linear;
+    case Rec2020Linear;
+    case A98RGBLinear;
+    case ProPhotoRGBLinear;
     case HWB;
 }
