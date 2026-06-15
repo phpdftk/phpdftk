@@ -153,8 +153,9 @@ final class PngParser
      * pixel into the PLTE palette, and (when the optional tRNS
      * chunk is present) looks up per-palette-index alpha.
      *
-     * Returns null for non-indexed PNGs, non-8-bit depths, missing
-     * PLTE, or any decode failure.
+     * Returns null for non-indexed PNGs, unsupported bit depths
+     * (anything outside 1 / 2 / 4 / 8), missing PLTE, or any decode
+     * failure.
      *
      * Output: colour = 3 bytes/px (RGB). alpha = 1 byte/px when
      * tRNS is present; null when the palette is fully opaque (the
@@ -166,7 +167,7 @@ final class PngParser
     {
         $info = self::parse($data);
         $colorType = self::peekColorType($data);
-        if ($colorType !== 3 || $info->bitsPerComponent !== 8) {
+        if ($colorType !== 3 || !in_array($info->bitsPerComponent, [1, 2, 4, 8], true)) {
             return null;
         }
         $palette = self::extractChunk($data, 'PLTE');
@@ -182,17 +183,23 @@ final class PngParser
         if ($decompressed === false) {
             return null;
         }
-        $stride = $info->width; // 1 byte/px (8-bit index)
+        // PNG packs sub-byte pixels MSB-first into the smallest whole
+        // number of bytes per scanline. Filter bytes precede the
+        // packed row, so we walk the packed stride byte-by-byte for
+        // filter reversal, then unpack into 1-byte-per-pixel indices.
+        $bitDepth = $info->bitsPerComponent;
+        $stride = (int) ceil(($info->width * $bitDepth) / 8);
         $expected = ($stride + 1) * $info->height;
         if (strlen($decompressed) < $expected) {
             return null;
         }
-        $bpp = 1;
+        $bpp = 1; // filter neighbours operate on packed bytes for sub-8 depths
         $colour = '';
         $alpha = '';
         $hasTransparent = false;
         $prev = str_repeat("\x00", $stride);
         $offset = 0;
+        $mask = (1 << $bitDepth) - 1;
         for ($y = 0; $y < $info->height; $y++) {
             $filter = ord($decompressed[$offset]);
             $offset++;
@@ -216,9 +223,13 @@ final class PngParser
                 $current .= chr($unfiltered);
             }
             $offset += $stride;
-            // Walk pixel indices and look up RGB / alpha.
+            // Unpack packed indices MSB-first into per-pixel indices,
+            // then walk those for palette + alpha lookup.
             for ($x = 0; $x < $info->width; $x++) {
-                $idx = ord($current[$x]);
+                $bitIndex = $x * $bitDepth;
+                $byteIndex = intdiv($bitIndex, 8);
+                $shift = 8 - $bitDepth - ($bitIndex % 8);
+                $idx = (ord($current[$byteIndex]) >> $shift) & $mask;
                 $paletteOffset = $idx * 3;
                 if ($paletteOffset + 3 > strlen($palette)) {
                     // Out-of-range index — paint with palette[0] as

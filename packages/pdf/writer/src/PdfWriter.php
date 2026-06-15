@@ -560,13 +560,14 @@ class PdfWriter
         // PNG wrapper but keep the compressed pixel data verbatim —
         // no intermediate raw-RGB buffer needed.
         //
-        // Skipped for color type 3 (indexed — needs PLTE chunk)
-        // and bit depths != 8 (rarely used in WPT). Those fall
-        // back to the raw-embed path the historical writer used;
-        // rendering is broken but the XObject still exists for
-        // refcount / metadata.
+        // The fast pass-through path is gated on 8-bit; the indexed
+        // path handles sub-byte depths (1/2/4) by expanding packed
+        // palette indices into per-pixel RGB before re-flating. Other
+        // unsupported depths fall back to the raw-embed path the
+        // historical writer used; rendering is broken but the XObject
+        // still exists for refcount / metadata.
         $smaskRef = null;
-        if ($info->format === 'png' && $info->bitsPerComponent === 8) {
+        if ($info->format === 'png') {
             $components = match ($info->colorSpace) {
                 'DeviceGray' => 1,
                 'DeviceCMYK' => 4,
@@ -589,6 +590,9 @@ class PdfWriter
                     if ($colourCompressed !== false) {
                         $dict->set('Filter', new PdfName('FlateDecode'));
                         $dict->set('ColorSpace', new PdfName('DeviceRGB'));
+                        // The decoded stream is per-pixel RGB at 8 bpc,
+                        // even when the source PNG was 1/2/4-bit packed.
+                        $dict->set('BitsPerComponent', new PdfNumber(8));
                         $data = $colourCompressed;
                         if ($decoded['alpha'] !== null) {
                             $alphaCompressed = @gzcompress($decoded['alpha']);
@@ -609,7 +613,7 @@ class PdfWriter
                         }
                     }
                 }
-            } elseif ($info->hasAlpha) {
+            } elseif ($info->hasAlpha && $info->bitsPerComponent === 8) {
                 // Color types 4 / 6 — decode pixel data fully, split
                 // into colour + alpha, emit alpha as SMask. Skips
                 // gzcompress on the alpha stream when zlib refuses
@@ -636,7 +640,7 @@ class PdfWriter
                         $data = $colourCompressed;
                     }
                 }
-            } else {
+            } elseif ($info->bitsPerComponent === 8) {
                 $idat = \Phpdftk\ImageMetadata\PngParser::extractIdatData($data);
                 if ($idat !== null) {
                     $dict->set('Filter', new PdfName('FlateDecode'));
