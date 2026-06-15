@@ -42,7 +42,7 @@ class Type0FontFactory
      * @param TrueTypeData $data           Parsed font data
      * @param int[]        $usedCodepoints Unicode codepoints used in the document
      * @param bool         $vertical       Use Identity-V encoding for vertical writing mode
-     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream, 6: array<int, int>}
+     * @return array{0: Type0Font, 1: list<PdfObject>, 2: PdfStream, 3: FontDescriptor, 4: CIDFontType2Font, 5: PdfStream, 6: array<int, int>, 7: array<int, int>}
      */
     public static function fromTrueTypeData(TrueTypeData $data, array $usedCodepoints, bool $vertical = false): array
     {
@@ -137,7 +137,7 @@ class Type0FontFactory
             $vertical ? 'Identity-V' : 'Identity-H',
         );
 
-        return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGidSubset];
+        return [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGidSubset, $gidMap];
     }
 
     /**

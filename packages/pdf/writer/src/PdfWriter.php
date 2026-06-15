@@ -286,7 +286,7 @@ class PdfWriter
         $this->fontCounter++;
         $name = 'F' . $this->fontCounter;
 
-        [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGid] =
+        [$type0Font, $additionalObjects, $fontStream, $descriptor, $cidFont, $toUnicodeStream, $unicodeToGid, $oldToNewGid] =
             Type0FontFactory::fromTrueTypeData($data, $usedCodepoints);
 
         // Register all objects
@@ -315,7 +315,7 @@ class PdfWriter
             }
         }
 
-        return new Font($name, $data->postScriptName, $data, unicodeToGid: $unicodeToGid);
+        return new Font($name, $data->postScriptName, $data, unicodeToGid: $unicodeToGid, oldToNewGid: $oldToNewGid);
     }
 
     /**
