@@ -1542,7 +1542,30 @@ final class InlineLayout
             return true;
         }
         $ow = $box->style->get('overflow-wrap');
-        if ($ow instanceof \Phpdftk\Css\Value\Keyword && strtolower($ow->name) === 'anywhere') {
+        if ($ow instanceof \Phpdftk\Css\Value\Keyword) {
+            $name = strtolower($ow->name);
+            // `anywhere` adds break opportunities AND contributes to
+            // min-content intrinsic sizing. `break-word` (and its
+            // legacy `word-wrap: break-word` alias, which the cascade
+            // normalises into `overflow-wrap`) adds the same
+            // codepoint-level opportunities for line-fitting but does
+            // NOT change intrinsic sizing — see CSS Text 3 §5.5. For
+            // the line-fitter both fall into the same "every code-
+            // point is a break opportunity" path; the min/max-content
+            // measurer gates on `anywhere` only via
+            // `intrinsicBreaksAnywhere`.
+            if ($name === 'anywhere' || $name === 'break-word') {
+                return true;
+            }
+        }
+        // Legacy `word-wrap: break-word` is the same property under a
+        // different name. The shorthand expander normalises it into
+        // `overflow-wrap`, but author CSS that sets `word-wrap`
+        // directly still lands here — read both.
+        $ww = $box->style->get('word-wrap');
+        if ($ww instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($ww->name) === 'break-word'
+        ) {
             return true;
         }
         $lb = $box->style->get('line-break');
