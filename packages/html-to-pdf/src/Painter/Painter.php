@@ -672,6 +672,18 @@ final class Painter
         if ($value instanceof \Phpdftk\Css\Value\Percentage) {
             return $value->value / 100.0 * $extent;
         }
+        // CSS Values 4 §5.2 — a unitless `0` is equivalent to `0px` in
+        // any length context. The generic stylesheet parser stores it as
+        // `Integer` / `Number`, which the cascade keeps unchanged for
+        // properties (like `transform-origin`) that don't have a
+        // dedicated typed parser. Treat both shapes as a px length so
+        // `transform-origin: 0 0` doesn't silently fall back to the 50%
+        // default.
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return (float) $value->value;
+        }
         if ($value instanceof \Phpdftk\Css\Value\Keyword) {
             return match (strtolower($value->name)) {
                 'left', 'top' => 0.0,
