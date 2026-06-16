@@ -3,7 +3,7 @@ title: SVG WPT substrate
 description: phpdftk's static SVG renderer reaches 100% on the in-scope SVG WPT subset. This page documents what's classified out-of-scope vs pending-substrate, and the v2 features that lift the pending count.
 ---
 
-phpdftk's `svg-to-pdf` package, reached either directly (top-level SVG) or through the `html-to-pdf` inline-SVG adapter, ships at **100.00% in-scope pass on the SVG Web Platform Tests subset**.
+phpdftk's `svg-to-pdf` package, reached either directly (top-level SVG) or through the `html-to-pdf` inline-SVG adapter, currently ships at **95.40% in-scope pass on the SVG Web Platform Tests subset** (166 / 174). The remaining 8 in-scope failures sit alongside the 456 pending-substrate clusters documented below; the same `wpt run --filter='svg/**'` invocation reproduces the current breakdown.
 
 This page is the audit trail. The shape mirrors [MathML WPT substrate](/rendering/mathml-wpt-substrate/) — same four-bucket classification, applied to the SVG corpus.
 
@@ -141,20 +141,21 @@ php packages/wpt-harness/bin/wpt run --filter='svg/**'
 
 ```
 Total tests:        1771
-  Pass:             175
-  Fail:               0
+  Pass:             166
+  Fail:               8
   Out of scope:      48
-  Pending substr.:  454
-  Skipped:         1094
+  Pending substr.:  456
+  Skipped:         1093
   Harness errors:    0
 
-In-scope total:    175
-In-scope pass:     100.00%
+In-scope total:    174
+In-scope pass:     95.40%
 ```
 
-- **In-scope pass rate**: pass count over in-scope total. **100.00%** today.
-- **Pending substrate count**: **454** today across ten clusters. The size of the v2 substrate backlog.
-- **Skipped (1094)**: fixtures with no sibling reference rendering (typical for testharness-only tests under `svg/types`, `svg/import`, etc.).
+- **In-scope pass rate**: pass count over in-scope total. **95.40%** today.
+- **In-scope failures**: **8** today — concrete bugs / partial implementations rather than substrate gaps; tracked in the [issue tracker](https://github.com/phpdftk/phpdftk/issues?q=is%3Aopen+label%3Asvg).
+- **Pending substrate count**: **456** today across ten clusters. The size of the v2 substrate backlog.
+- **Skipped (1093)**: fixtures with no sibling reference rendering (typical for testharness-only tests under `svg/types`, `svg/import`, etc.).
 
 ## What changes in v2
 

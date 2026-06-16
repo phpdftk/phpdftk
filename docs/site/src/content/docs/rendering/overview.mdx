@@ -1,22 +1,43 @@
 ---
 title: HTML & SVG Rendering
-description: Overview of phpdftk's HTML/CSS and SVG rendering capabilities.
+description: Overview of phpdftk's HTML/CSS, SVG, and MathML rendering capabilities.
 ---
 
-phpdftk ships a full HTML/CSS rendering engine targeting browser print-stylesheet parity, plus an SVG-to-PDF translator. Both consume a shared CSS + text-shaping substrate.
+phpdftk ships a full HTML/CSS rendering engine targeting browser print-stylesheet parity, an SVG-to-PDF translator, and a MathML renderer for math content. All three consume a shared CSS + text-shaping substrate, all three emit vector PDF (no intermediate raster).
 
 This section documents:
 
-- **[HTML to PDF](/rendering/html-to-pdf)** — render HTML + CSS to PDF
-- **[SVG to PDF](/rendering/svg-to-pdf)** — render SVG to PDF
-- **[`phpdftk/css`](/rendering/css)** — CSS Syntax 3 / Values 4 / Selectors 4 / Cascade 5 implementation
-- **[`phpdftk/text`](/rendering/text)** — UAX #14 line breaking, UAX #9 bidi, OpenType shaping
-- **[`phpdftk/html`](/rendering/html)** — WHATWG HTML5 parser with DOM
-- **[`phpdftk/svg`](/rendering/svg)** — SVG 2 parser
+**Parsers (typed-tree producers)**
 
-## Status
+- **[`phpdftk/html`](/rendering/html)** — WHATWG HTML5 parser with DOM and declarative shadow DOM (100% on `html5lib-tests` tree-construction).
+- **[`phpdftk/svg`](/rendering/svg)** — SVG 2 parser producing a typed tree.
+- **[`phpdftk/mathml`](/rendering/mathml)** — MathML Core parser producing a typed tree.
+- **[`phpdftk/css`](/rendering/css)** — CSS Syntax 3 / Values 4 / Selectors 4 / Cascade 5 implementation.
+- **[`phpdftk/text`](/rendering/text)** — UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping.
 
-Phase 1 of the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) is in development. See the roadmap for the current sub-phase status.
+**Renderers (PDF emitters)**
+
+- **[HTML to PDF](/rendering/html-to-pdf)** — render HTML + CSS to PDF, with inline `<math>` and `<svg>` routed through their dedicated painters.
+- **[SVG to PDF](/rendering/svg-to-pdf)** — render SVG to PDF via the geometric painter.
+
+**Cross-cutting**
+
+- **[Cross-browser sweep](/rendering/cross-browser-sweep)** — how the cross-browser PDF oracle (WebKit + Blink + Gecko) validates output beyond the WPT harness.
+- **[DOM settler](/rendering/dom-settler)** — computed-style projection from headless browser into a serialisable DOM snapshot.
+- **[Fonts](/rendering/fonts)** — font discovery, embedding, and subsetting.
+
+## Current WPT pass rates
+
+In-scope pass rate against the Web Platform Tests corpus, classified per [`packages/wpt-harness/scope/rendering.json`](https://github.com/phpdftk/phpdftk/blob/main/packages/wpt-harness/scope/rendering.json):
+
+| Corpus | In-scope tests | Pass rate | Detail |
+|---|---:|---:|---|
+| **mathml/** | 167 | **100.00%** | [MathML WPT substrate](/rendering/mathml-wpt-substrate/) |
+| **svg/** | 174 | **95.40%** | [SVG WPT substrate](/rendering/svg-wpt-substrate/) |
+| **html/** | 584 | **95.72%** | [HTML WPT substrate](/rendering/html-wpt-substrate/) |
+| **css/** | 21 270 | **65.03%** | per-module breakdown in [`phpdftk/css`](/rendering/css/#status) |
+
+CSS is the bulk of the remaining gap to a 100% v1 claim by 2027-01-01 (the [full-spec compliance freeze](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/full-spec-compliance.md)). HTML, SVG, and MathML are at substrate-completion levels.
 
 ## What's in scope
 
@@ -27,13 +48,15 @@ Phase 1 of the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/
 - CSS Flexible Box Layout 1
 - CSS Grid Layout 2
 - CSS Transforms 2 (2D; 3D flattened to 2D)
-- Filter Effects 1 (raster filters)
-- CSS Custom Properties for Cascading Variables 1
+- Filter Effects 1 (raster filters — Phase 4C)
+- CSS Custom Properties for Cascading Variables 1 (case-sensitive)
 - CSS Writing Modes 4
+- CSS Containment 3 (size containment with `contain-intrinsic-*`)
+- CSS Backgrounds 4 (`background-clip: border-area`)
 - Full Declarative Shadow DOM (slot distribution, `:host`/`::slotted`/`::part`/`::theme`)
 
 ## What's not in scope
 
-- **JavaScript execution.** `<script>` is parsed but never run. Event handlers (`onclick`, etc.) are dropped. The Custom Elements registry, `MutationObserver`/`IntersectionObserver` and similar runtime APIs are not implemented at any phase. Use headless Chromium (Puppeteer, Playwright) if you need scripted rendering.
+- **JavaScript execution.** `<script>` is parsed but never run. Event handlers (`onclick`, etc.) are dropped at paint time. The Custom Elements registry, `MutationObserver`/`IntersectionObserver` and similar runtime APIs are not implemented at any phase. Use headless Chromium (Puppeteer, Playwright) if you need scripted rendering.
 - Imperative `Element.attachShadow()` from author script (declarative `<template shadowrootmode>` is supported).
-- Interactive features (forms, links to JavaScript, animations).
+- Interactive features (forms, links to JavaScript, animations beyond static initial-frame).

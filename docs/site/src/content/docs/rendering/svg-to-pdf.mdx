@@ -1,14 +1,82 @@
 ---
 title: SVG to PDF
-description: Render SVG to PDF via the geometric painter.
+description: Render SVG to PDF via the geometric painter — vector-faithful output, no rasterisation.
 ---
 
-Render SVG to PDF via the geometric painter.
+Render SVG to PDF via the geometric painter. Output stays vector — paths, gradients, transforms map straight to PDF content-stream operators, with no intermediate raster.
 
 ```bash
 composer require phpdftk/svg-to-pdf
 ```
 
+## Quick example
+
+```php
+use Phpdftk\Pdf\Writer\PdfWriter;
+use Phpdftk\Svg\Parser as SvgParser;
+use Phpdftk\SvgToPdf\SvgRenderer;
+
+$svg = (new SvgParser())->parse(<<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#g)"/>
+  <text x="100" y="60" text-anchor="middle" font-family="serif" font-size="24" fill="white">Hello</text>
+</svg>
+SVG);
+
+$writer = new PdfWriter();
+$page = $writer->addPage(595.0, 842.0);
+$renderer = new SvgRenderer($page, $writer);
+$renderer->draw($svg, x: 100, y: 100, width: 400, height: 200);
+
+file_put_contents('out.pdf', $writer->toBytes());
+```
+
+## What's in the box
+
+**Shapes** — `<rect>` (with corner radii), `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>`, `<path>` with the full SVG 2 §9.3.9 `d`-grammar (M, m, L, l, H, h, V, v, C, c, S, s, Q, q, T, t, A, a, Z, z). Path-data parser is byte-recovery-safe — malformed segments stop cleanly without infinite-looping (closes WPT path stress tests).
+
+**Paint** — `fill` / `stroke` with CSS Color 3+4 syntax, `fill-opacity` / `stroke-opacity` / `opacity` (group). Stroke styling: `stroke-width`, `stroke-linecap`, `stroke-linejoin`, `stroke-miterlimit`, `stroke-dasharray`, `stroke-dashoffset`. `paint-order: stroke fill` reordering. `fill-rule: evenodd` / `nonzero`.
+
+**Gradients** — `<linearGradient>` and `<radialGradient>` with N-stop colour distributions mapped to PDF Type-3 stitching functions. `gradientUnits` (`objectBoundingBox` / `userSpaceOnUse`), `gradientTransform`, `spreadMethod` (`pad` / `reflect` / `repeat`). Cycle-safe `xlink:href` / `href` chaining — gradient inheritance through arbitrary chains without stack overflow.
+
+**Composition** — `<g>` with `transform` (matrix, translate, scale, rotate, skewX, skewY, with arbitrary composition), `<defs>` + `<symbol>` + `<use>` template expansion with intra-document `href` resolution (cycle detection prevents pathological documents from looping), `<clipPath>` (including transformed clip paths), `<mask>` (soft-mask via PDF ExtGState SMask), `<image>` (raster sub-images via PNG / JPEG decoder).
+
+**Text** — `<text>` and `<tspan>` with SVG 2 §11.6 positioning lists (`x`, `y`, `dx`, `dy`, `rotate` per-glyph). `text-anchor` (`start` / `middle` / `end`). `font-family`, `font-size`, `font-weight`, `font-style`, `font-stretch`. CSS Text Decoration 4 §6 `text-shadow` with multi-layer back-to-front emission. `fill: none; stroke: ...` outline text.
+
+**Animations** — SMIL elements (`<animate>`, `<animateMotion>`, `<animateTransform>`, `<set>`) parsed and pinned at `t=0` — the SVG renders as it appears at document load, with no timeline. PDF is static; this is by design.
+
+**CSS bridge** — Optional `phpdftk/css` integration projects the SVG document's `<style>` block + presentation-attribute cascade into per-element resolved values. Inline `style="..."` overrides authored CSS, presentation attributes lose to authored CSS (per CSS 2.1 §6.4.4).
+
+## Why phpdftk/svg-to-pdf
+
+| | phpdftk/svg-to-pdf | DOMPDF SVG | mPDF SVG |
+|---|---|---|---|
+| Vector output (no rasterisation) | ✓ | ~ Some shapes rasterised | ~ |
+| N-stop gradients via PDF stitching | ✓ | ✗ Two-stop only | ~ |
+| Path `d`-grammar (full SVG 2 §9.3.9) | ✓ | ~ Common subset | ~ |
+| `<use>` / `<defs>` / `<symbol>` | ✓ | ~ | ~ |
+| `<clipPath>` / `<mask>` | ✓ | ✗ | ~ |
+| Text positioning (SVG 2 §11.6 lists) | ✓ | ✗ | ✗ |
+| `text-shadow` on `<text>` | ✓ Multi-layer | ✗ | ✗ |
+| Cycle-safe gradient href chains | ✓ | ✗ | ✗ |
+| Standalone (no PDF-engine coupling) | ✓ | ✗ | ✗ |
+
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+**SVG WPT in-scope pass: 95.40%** (166 / 174). Documented at [SVG WPT substrate](/rendering/svg-wpt-substrate/).
+
+Hand-authored conformance fixtures live at `packages/svg-to-pdf/tests/Conformance/fixtures/` — 15 fixtures covering shapes, gradients, text, masks, opacity, transforms, clip-path, symbol/use, combined scenes. **All 15 pass (ignored list empty).**
+
+## Remaining gaps
+
+- **Filter effects (`<filter>`).** Parsed but defer to no-op at paint time. Lit up by Phase 4C raster compositor.
+- **`<foreignObject>` HTML content.** Parsed as opaque foreign content; rendering deferred to the html-to-pdf recursion that's still being wired.
+- **`text-shadow` blur radius.** Parsed but not rasterised (same posture as html-to-pdf's `text-shadow` — both defer blur to Phase 4C). Sharp-offset shadows render correctly.
+
+Roadmap: [`docs/plans/html-and-svg.md`](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md).

@@ -11,6 +11,8 @@ composer require phpdftk/html-to-pdf
 
 ## Status
 
+**HTML WPT in-scope pass: 95.72%** (559 / 584). Full audit at [HTML WPT substrate](/rendering/html-wpt-substrate/). MathML inline content reached **100%** in-scope pass via the inline-MathML adapter ([detail](/rendering/mathml-wpt-substrate/)).
+
 Phase 1 (MVP) is complete and Phase 2 is most of the way through. The renderer ships a working HTML/CSS-to-PDF pipeline with the following surface in place:
 
 **CSS basics** — tokenizer, value parsing, selector matching, full cascade with `!important`, custom properties / `var()`, `calc()`, shorthand expansion, `@media` (with feature queries: `(min-width: N)`, `(max-width: N)`, `(orientation: ...)`), `@supports` (full condition evaluation), `@import`, `@font-face`, `@page` with margin boxes and named pages.

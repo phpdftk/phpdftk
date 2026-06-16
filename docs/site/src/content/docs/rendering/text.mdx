@@ -1,14 +1,100 @@
 ---
 title: phpdftk/text
-description: UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping.
+description: UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping — pure PHP.
 ---
 
-UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping.
+UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping. Pure PHP, no dependencies beyond `ext-mbstring` and `ext-intl` (for Unicode property lookups). The substrate `phpdftk/html-to-pdf` and `phpdftk/svg-to-pdf` use for line-fitting and glyph layout.
 
 ```bash
 composer require phpdftk/text
 ```
 
+## Quick example
+
+### Line breaking
+
+```php
+use Phpdftk\Text\LineBreaker;
+use Phpdftk\Text\LineBreakKind;
+
+$breaker = new LineBreaker();
+foreach ($breaker->breaks('The quick brown fox jumps') as $opp) {
+    $opp->position;          // codepoint offset
+    $opp->kind;              // LineBreakKind::Mandatory | Allowed | Prohibited
+}
+```
+
+### Bidi reordering
+
+```php
+use Phpdftk\Text\Bidi;
+
+$bidi = new Bidi();
+$result = $bidi->analyze("Hello שלום world");
+foreach ($result->runs as $run) {
+    $run->text;              // segment
+    $run->level;             // resolved embedding level (0 = LTR base, 1 = RTL)
+    $run->start;             // codepoint offset in original
+}
+```
+
+### Shaping (with a font)
+
+```php
+use Phpdftk\Text\LineBreaker;
+// Shaping requires a font + glyph IDs — see html-to-pdf's text pipeline
+// for how the shaper is wired in. The ShapedGlyph / ShapedRun structs
+// are the per-line output.
+```
+
+## What's in the box
+
+**UAX #14 line breaking** — Full Unicode line-break property table baked in. Class-pair lookup yields one of three opportunities at each position:
+
+- **Mandatory** (`BK`, `LF`, `CR+LF`, `NL`) — forced break.
+- **Allowed** — break opportunity, the line-fitter decides.
+- **Prohibited** — never break here.
+
+Tailoring rules: `Phpdftk\Text\LineBreaker::strictness()` selects between `Strict`, `Normal`, and `Loose` (CSS Text 3 `line-break` property).
+
+**UAX #9 bidi** — Resolution of paragraph embedding level, explicit isolates (`LRI` / `RLI` / `FSI`), implicit run reordering. Returns segmented runs at one resolved level each — input to the line-fitter for visual ordering.
+
+**OpenType shaping** — GSUB lookups: ligatures (`liga`, `clig`, `dlig`), small caps (`smcp`, `c2sc`), alternates (`salt`), localised forms (`locl`), case mappings (`case`). GPOS lookups: kerning (`kern`), mark positioning (`mark`, `mkmk`). Font-feature tags can be turned on/off per-call via the shaper's feature mask.
+
+**Word + cluster boundaries** — Word-segmentation per UAX #29 for word-spacing distribution. Grapheme-cluster iteration for letter-spacing application (so spacing lands between clusters, not between code points within a cluster).
+
+## Why phpdftk/text
+
+| | phpdftk/text | symfony/string | ext-intl alone |
+|---|---|---|---|
+| UAX #14 line-break opportunities | ✓ With CSS strictness tailoring | ✗ | ✗ |
+| UAX #9 bidi resolution + isolates | ✓ | ✗ | ~ Via `IntlBreakIterator` |
+| OpenType GSUB/GPOS shaping | ✓ | ✗ | ✗ |
+| Grapheme-cluster iteration | ✓ | ✓ | ✓ |
+| Pure PHP (no native shaper extension) | ✓ | ✓ | ✓ |
+| Font-feature mask per call | ✓ | n/a | n/a |
+
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+The text package is the substrate shared by `phpdftk/html-to-pdf` and `phpdftk/svg-to-pdf` for line-fitting and glyph layout. Its surface tracks the CSS Text 3, CSS Text 4, and OpenType specs as those features get wired into the renderers above.
+
+**Currently shipped:**
+
+- UAX #14 line breaking with `line-break: strict|normal|loose` tailoring
+- UAX #9 bidi with isolates and overrides
+- OpenType GSUB ligature classes (`liga` / `clig` / `dlig`)
+- OpenType GPOS kerning and mark positioning
+- Word + grapheme-cluster segmentation
+- Word-spacing / letter-spacing distribution
+- Hyphenation hooks (consumer supplies the dictionary)
+
+**Phase 4D substrate (deferred):**
+
+- Arabic Universal Shaping Engine (joining types, contextual forms)
+- Indic shaping (reordering classes, syllable detection)
+- Complex GSUB lookups beyond the ligature classes
+- Embedded WOFF font loading (currently the consumer provides parsed font data via `phpdftk/font-parser`)
+
+## Roadmap
+
+Text-shaping substrate work lives in [`docs/plans/html-and-svg.md`](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) Phase 4D and the [full-spec compliance plan](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/full-spec-compliance.md).

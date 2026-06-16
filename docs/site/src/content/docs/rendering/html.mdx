@@ -1,14 +1,85 @@
 ---
 title: phpdftk/html
-description: Pure-PHP WHATWG HTML5 parser with DOM and declarative shadow DOM.
+description: Pure-PHP WHATWG HTML5 parser with DOM, declarative shadow DOM, and serializer. Spec-conformant alternative to Masterminds/html5-php.
 ---
 
-Pure-PHP WHATWG HTML5 parser with DOM and declarative shadow DOM.
+Pure-PHP WHATWG HTML5 parser with DOM, declarative shadow DOM, and serializer. Spec-conformant alternative to `Masterminds/html5-php`.
 
 ```bash
 composer require phpdftk/html
 ```
 
+## Quick example
+
+```php
+use Phpdftk\Html\Parser;
+
+$doc = (new Parser())->parseDocument(<<<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+  <body>
+    <h1 id="title">Hello</h1>
+    <p class="lead">World <a href="/about">about</a></p>
+  </body>
+</html>
+HTML);
+
+// DOM walking
+$h1 = $doc->getElementById('title');
+$h1->textContent();                 // "Hello"
+
+foreach ($doc->getElementsByTagName('p') as $p) {
+    $p->getAttribute('class');      // "lead"
+    foreach ($p->children as $kid) {
+        $kid->localName;            // "a"
+    }
+}
+
+// Round-trip via the spec-conformant serializer
+(string) $doc;                      // canonical HTML5 output
+```
+
+## Why phpdftk/html
+
+| | phpdftk/html | Masterminds/html5-php |
+|---|---|---|
+| WHATWG parser algorithm | ✓ Full tree-construction state machine | ~ Partial |
+| `html5lib-tests` tree-construction pass rate | **100% (1586 / 1586)** | (no public claim) |
+| Foreign-content (`<math>`, `<svg>`) integration points | ✓ | ~ |
+| Declarative Shadow DOM (`<template shadowrootmode>`) | ✓ | ✗ |
+| Adoption Agency Algorithm | ✓ | ~ |
+| Custom-element local-name handling (`<my-button>`) | ✓ | ✓ |
+| Customizable `<select>` (HTML 2024+) | ✓ | ✗ |
+| Named-character-reference table | ✓ Full | ~ Common subset |
+| PHP 8.4 typed properties | ✓ | ~ |
+| Streaming tokenizer (no full-document buffer) | ✓ | ✗ |
+
+## What's in the box
+
+**Tokenizer** — Full state machine: data, RCDATA, RAWTEXT, script-data states with escape sub-modes; named, numeric, and hex character references; CDATA sections inside foreign content; PLAINTEXT; per-codepoint error reporting via `Phpdftk\Html\Exception\ParseError`.
+
+**Tree construction** — Every WHATWG insertion mode: initial, before-html, before-head, in-head, in-head-noscript, after-head, in-body, in-table, in-template, in-frameset, after-after-body. Active formatting elements + bookmarks. Stack of open elements. Adoption Agency Algorithm (Steps 1–13 including the famous Step 13 cloning loop). Foster parenting. Template content document. Quirks mode + limited-quirks mode from the DOCTYPE table.
+
+**DOM** — `Document`, `DocumentFragment`, `Element` (with `localName`, `namespaceUri`, `attributes`, `children`), `Text` data node, `Comment`. `getElementById` index, `getElementsByTagName`, `querySelector`/`querySelectorAll` via the `phpdftk/css` selector engine.
+
+**Declarative Shadow DOM** — `<template shadowrootmode="open|closed">` parses into a `ShadowRoot` attached to the host. Slot-distribution machinery, `<slot>` fallback content, `:host` / `::slotted` / `::part` / `::theme` cascade resolution (when paired with `phpdftk/css`).
+
+**Foreign content** — Full `<math>` / `<svg>` integration-point handling (MathML text integration points, SVG `<foreignObject>` / `<title>` / `<desc>`, breakout via `</br>` and `</p>` in HTML body inside SVG). XML namespace propagation. Case-normalisation tables for SVG attribute names.
+
+**Serializer** — Canonical HTML5 output respecting the spec's serialization rules: void elements never self-close, attribute quote selection minimises escapes, raw-text element content is not entity-escaped, CDATA inside foreign content round-trips.
+
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+**WHATWG `html5lib-tests` tree-construction: 100% pass (1586 / 1586).** No deferred tests in the ignored ledger — the previously-deferred 11 entries closed during Phase 1.
+
+The parser sits behind `phpdftk/html-to-pdf`'s WPT-suite work; the in-scope HTML WPT pass rate for the full HTML-to-PDF pipeline is documented at [HTML WPT substrate](/rendering/html-wpt-substrate/) (currently **95.72%**).
+
+## Security
+
+`phpdftk/html` does not call out to the network. The tokenizer rejects malformed bytes via the spec's error-recovery rules rather than throwing; if you want strict-mode parsing, attach a `ParseError` collector via `ParserOptions::withErrorCollector()`.
+
+The parser does **not** execute `<script>` content under any circumstance — scripts are parsed into the DOM and serialised back out, but no JavaScript engine ever sees them. Event-handler attributes (`onclick`, `onload`, …) are preserved as inert string attributes; if you serialise the DOM and the output is consumed by a browser, those handlers will then become live. Sanitize before re-emission if that's a concern.
+
+## Roadmap
+
+The HTML parser is feature-complete for the v1 surface. Follow-up work tracked in [`docs/plans/html-and-svg.md`](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md).

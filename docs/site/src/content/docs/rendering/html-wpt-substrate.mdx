@@ -1,9 +1,9 @@
 ---
 title: HTML WPT substrate
-description: phpdftk's static HTML renderer reaches 100% on the in-scope HTML WPT subset. This page documents what's classified out-of-scope vs pending-substrate, and the v2 features that lift the pending count.
+description: phpdftk's static HTML renderer reaches 95.72% on the in-scope HTML WPT subset. This page documents what's classified out-of-scope vs pending-substrate, and the v2 features that lift the pending count.
 ---
 
-phpdftk's `html-to-pdf` package ships at **100.00% in-scope pass on the HTML Web Platform Tests subset**.
+phpdftk's `html-to-pdf` package currently ships at **95.72% in-scope pass on the HTML Web Platform Tests subset** (559 / 584). The remaining 25 in-scope failures sit alongside the 277 pending-substrate clusters documented below; the same `wpt run --filter='html/**'` invocation reproduces the current breakdown.
 
 This page is the audit trail. The shape mirrors [SVG WPT substrate](/rendering/svg-wpt-substrate/) and [MathML WPT substrate](/rendering/mathml-wpt-substrate/) — same four-bucket classification, applied to the HTML corpus.
 
@@ -170,18 +170,19 @@ php packages/wpt-harness/bin/wpt run --filter='html/**'
 
 ```
 Total tests:        10222
-  Pass:              584
-  Fail:                0
+  Pass:              559
+  Fail:               25
   Out of scope:     5219
   Pending substr.:   277
   Skipped:          4142
   Harness errors:      0
 
 In-scope total:    584
-In-scope pass:     100.00%
+In-scope pass:     95.72%
 ```
 
-- **In-scope pass rate**: pass count over in-scope total. **100.00%** today.
+- **In-scope pass rate**: pass count over in-scope total. **95.72%** today.
+- **In-scope failures**: **25** today — concrete bugs / partial implementations rather than substrate gaps; tracked in the [issue tracker](https://github.com/phpdftk/phpdftk/issues?q=is%3Aopen+label%3Ahtml).
 - **Pending substrate count**: **277** today across nine clusters. The size of the v2 substrate backlog.
 - **Skipped (4142)**: fixtures with no sibling reference rendering — almost entirely testharness-only DOM API tests under `html/dom`, `html/syntax`, `html/semantics/forms/*/input-events`.
 

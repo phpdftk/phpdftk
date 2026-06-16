@@ -1,0 +1,66 @@
+---
+title: phpdftk/mathml
+description: Pure-PHP MathML Core parser producing a typed tree. Sibling to phpdftk/svg.
+---
+
+Pure-PHP MathML Core parser. Produces a typed tree (`MathmlDocument`, `Mi`, `Mn`, `Mo`, `Mtext`, `Mspace`, `Ms`, `Mrow`, `Mfrac`, `Msqrt`, `Mroot`, `Mstyle`, `Merror`, `Mpadded`, `Mphantom`, `Menclose`, `Maction`, `Msub`, `Msup`, `Msubsup`, `Munder`, `Mover`, `Munderover`, `Mmultiscripts`, `Mprescripts`, `Mtable`, `Mtr`, `Mlabeledtr`, `Mtd`, …) with presentation-attribute resolution and embedded MathML Core operator-dictionary lookup.
+
+```bash
+composer require phpdftk/mathml
+```
+
+## Quick example
+
+```php
+use Phpdftk\Mathml\Parser;
+use Phpdftk\Mathml\Mfrac;
+use Phpdftk\Mathml\Mi;
+use Phpdftk\Mathml\Mn;
+
+$doc = (new Parser())->parse(<<<'MATHML'
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mfrac>
+    <mn>1</mn>
+    <mi>x</mi>
+  </mfrac>
+</math>
+MATHML);
+
+$doc->display();              // 'block'
+$doc->children[0];            // Mfrac
+$doc->children[0]->children;  // [Mn('1'), Mi('x')]
+```
+
+## What's in the box
+
+**Token elements** — `<mi>` (identifiers, with automatic italic-by-default for single-character idents per MathML Core §3.2.3), `<mn>` (numbers), `<mo>` (operators, with embedded MathML Core operator-dictionary lookup for form/lspace/rspace defaults), `<mtext>`, `<ms>` (string literals), `<mspace>` (with `width`/`height`/`depth` attributes resolving em/percent/length units).
+
+**Container elements** — `<mrow>`, `<mfrac>`, `<msqrt>`, `<mroot>`, `<mstyle>`, `<merror>`, `<mpadded>`, `<mphantom>`, `<menclose>` (with `notation` attribute combining `radical`/`box`/`updiagonalstrike`/`circle`/etc.), `<maction>`.
+
+**Scripts** — `<msub>`, `<msup>`, `<msubsup>`, `<munder>`, `<mover>`, `<munderover>`, `<mmultiscripts>` (with `<mprescripts>` and `<none>` separator).
+
+**Tables** — `<mtable>` with row/column alignment, `<mtr>`, `<mlabeledtr>`, `<mtd>` (cell with columnalign / rowalign overrides), `columnspan` / `rowspan`.
+
+**Presentation attributes** — `mathvariant` (normal, bold, italic, bold-italic, fraktur, double-struck, script, bold-fraktur, bold-script, sans-serif variants — with Unicode codepoint mapping per MathML Core §3.2.3.5), `mathsize`, `mathcolor`, `mathbackground`, `displaystyle`, `scriptlevel`, `dir`. Style attribute parsed with comment-skipping (handles the WPT DOM-settler marker prefix).
+
+**Operator dictionary** — Embedded MathML Core operator-dictionary table providing per-operator defaults for `form`, `lspace`, `rspace`, `stretchy`, `largeop`, `accent`, `movablelimits`. Lookups are codepoint-by-form-keyed, matching the spec.
+
+## Why phpdftk/mathml
+
+| | phpdftk/mathml | DOMDocument with namespaces | (no other PHP MathML parser) |
+|---|---|---|---|
+| Typed element tree | ✓ One PHP class per spec element | ✗ Generic `DOMElement` everywhere | — |
+| Operator dictionary embedded | ✓ MathML Core table | ✗ | — |
+| `mathvariant` codepoint mapping | ✓ Full §3.2.3.5 table | ✗ | — |
+| Style-attribute property extraction | ✓ With comment stripping | ✗ Raw string | — |
+| Pure PHP, no extensions | ✓ | ✓ | — |
+
+## Status
+
+**MathML WPT in-scope pass: 100%** (167 / 167). Documented at [MathML WPT substrate](/rendering/mathml-wpt-substrate/).
+
+The parser produces a typed tree consumed by `phpdftk/mathml-to-pdf` to render block + inline math inside the larger `html-to-pdf` pipeline. Inline `<math>` in HTML routes through `html-to-pdf`'s inline-math painter.
+
+## Roadmap
+
+Parser is feature-complete for the v1 MathML Core element set. Follow-up work — math-font handoff for missing-cmap stretchy operator fallback (Phase 4D), better stretchy-operator coverage, table cell-layout edge cases — is tracked in the [issue tracker](https://github.com/phpdftk/phpdftk/issues?q=is%3Aissue+label%3Amathml).

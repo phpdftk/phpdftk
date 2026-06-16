@@ -9,6 +9,82 @@ CSS Syntax 3, Values 4, Selectors 4, Cascade 5 — pure PHP, no dependencies.
 composer require phpdftk/css
 ```
 
+## Quick example
+
+```php
+use Phpdftk\Css\Parser;
+use Phpdftk\Css\Cascade\Cascade;
+use Phpdftk\Css\Cascade\PropertyRegistry;
+use Phpdftk\Css\Sheet\Origin;
+
+$sheet = (new Parser())->parseStylesheet(<<<'CSS'
+:root { --brand: #ff8000; }
+
+.button {
+  padding: 0.5em 1em;
+  background: var(--brand);
+  color: white;
+}
+
+@media (min-width: 800px) {
+  .button { padding: 0.75em 1.5em }
+}
+CSS, Origin::Author);
+
+$cascade = new Cascade(PropertyRegistry::default());
+$values = $cascade->computeFor([$sheet], $someElement);
+$values->get('background-color');   // Phpdftk\Css\Value\Color(255, 128, 0)
+$values->customProperties();        // ['--brand' => Color, ...]
+```
+
+## What's in the box
+
+**Tokenizer (CSS Syntax 3 §4)** — Full state machine over CSS code points: identifiers, hash, string (single + double + bad-string recovery), number, dimension, percentage, URL token (unquoted, quoted, bad-url recovery), at-keyword, function, whitespace, EOF. Handles comments, escape sequences, BOM stripping. Streaming token output.
+
+**Value parser (CSS Values 4)** — Typed values: `Length`, `Percentage`, `Color` (sRGB, sRGB-linear, Display-P3, A98 RGB, ProPhoto RGB, Rec2020, XYZ, Lab, LCH, OKLab, OKLCH — with chroma gamut-mapping for wide-gamut→sRGB rendering), `Keyword`, `Number`, `Integer`, `ValueList`, `Url`, `Calc`, `CustomProperty`. Functional values: `var()`, `calc()`/`min()`/`max()`/`clamp()`, `color()`/`color-mix()`, `rgb()`/`rgba()`/`hsl()`/`hsla()`/`hwb()`/`lab()`/`lch()`/`oklab()`/`oklch()`, `linear-gradient()`/`radial-gradient()`/`conic-gradient()` plus repeating variants, `attr()`, `env()`.
+
+**Selectors 4** — Compound selectors (type, class, id, attribute, pseudo-class, pseudo-element), combinators (descendant, child, adjacent-sibling, general-sibling), negation, `:is()`, `:where()`, `:has()`, `:not()`, structural pseudos (`:nth-child(an+b)`, `:first-child`, `:last-child`, `:only-child`, `:nth-of-type`, `:empty`, `:root`), state pseudos (`:hover`, `:focus`, `:checked`, `:disabled`, `:enabled` — static-snapshot evaluation), `::before`/`::after`/`::first-line`/`::first-letter`/`::marker`/`::placeholder`, attribute matchers (`=`, `~=`, `|=`, `^=`, `$=`, `*=`).
+
+**Cascade 5** — Origin precedence (user-agent → user → author → important reverses), specificity (a-b-c calculation including `:is()`/`:where()` rules), order of appearance, custom-property inheritance, computed-value resolution. `!important`, `inherit`, `initial`, `unset`, `revert`. Pseudo-class state handling.
+
+**@-rules** — `@media` (full feature evaluation: `min-width`/`max-width`/`orientation`/`color`/`color-index`/`device-pixel-ratio`/`prefers-*`), `@supports` (full condition evaluation including `selector(:has(.foo))`), `@import` (with media query + supports condition gates), `@font-face`, `@page` (with margin boxes, named pages, `@top-left-corner` etc.), `@keyframes` (parsed; animation only for `0%`/`100%` static frame), `@counter-style`, `@property` (registered custom properties with type checking), `@layer` (cascade layers).
+
+**Calc evaluator** — `calc()` trees fold at cascade time when all leaves resolve against `LengthContext` alone. Mixed length+percentage trees defer to layout-time resolution against the per-property containing-block basis.
+
+## Why phpdftk/css
+
+| | phpdftk/css | sabberworm/php-css-parser |
+|---|---|---|
+| CSS Syntax 3 tokenizer | ✓ Full state machine | ~ Token recovery is approximate |
+| Cascade resolution | ✓ Full (origin + specificity + order + `!important`) | ✗ Parse-only |
+| Value computation | ✓ Computed values per property | ✗ Raw tokens |
+| Selectors 4 matching | ✓ Full incl. `:has()` / `:is()` / `:where()` | ✗ No matcher |
+| Modern color spaces | ✓ Display-P3, OKLCH, Lab, Rec2020, XYZ | ✗ |
+| `calc()` / `var()` resolution | ✓ At cascade time + layout time | ~ Token preservation |
+| Property registry with typed values | ✓ | ✗ |
+| @-rule support | ✓ media, supports, page, font-face, keyframes, layer, property | ~ Some |
+
 ## Status
 
-Implementation pending. See the [rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [cross-package contracts](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/contracts.md) for the locked Phase 1 public API.
+**WPT pass-rate snapshots** (in-scope subset for static-renderer + tagged-PDF):
+
+| Module | Pass rate | Note |
+|---|---:|---|
+| `css/css-variables/**` | **97.79%** | Custom properties + `var()` + registered properties |
+| `css/css-pseudo/**` | **94.58%** | `::before`/`::after`/`::first-line`/`::first-letter`/`::marker` |
+| `css/css-text/text-indent/**` | **87.50%** | text-indent property |
+| `css/css-color/**` | **86.67%** | Color parsing + colour-space conversion |
+| `css/css-overflow/**` | **74.95%** | overflow / clip / scroll-marker |
+| `css/css-backgrounds/**` | **72.59%** | bg-image / bg-color / borders / box-shadow |
+
+The full corpus result is documented in [the rendering overview](/rendering/overview/) and updated per-commit by CI.
+
+## Security
+
+The parser does not fetch remote resources. `url()` references are exposed as `Phpdftk\Css\Value\Url` for the consumer to load — `phpdftk/html-to-pdf` gates them through `phpdftk/resource-loader` with SSRF + scheme allow-listing.
+
+`@import` URLs are also exposed as references rather than auto-fetched; you wire the loader at the consumer site.
+
+## Roadmap
+
+CSS work is shipped across the [HTML/SVG rendering roadmap](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/html-and-svg.md) and the [full-spec compliance plan](https://github.com/phpdftk/phpdftk/blob/main/docs/plans/full-spec-compliance.md). The remaining surface (`@scope`, cascade layers `revert-layer`, container queries) lives under Phase 5C.
