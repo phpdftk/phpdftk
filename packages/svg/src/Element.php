@@ -376,6 +376,27 @@ abstract class Element extends Node
         };
     }
 
+    /**
+     * `text-shadow` per CSS Text Decoration 4 §6 — a raw, trimmed CSS
+     * value string. Returns null for absent, empty, or `none`. The
+     * painter is responsible for parsing the comma-separated layer
+     * list (`<offset-x> <offset-y> [<blur-radius>] [<color>]`); we
+     * keep the parser at the painter level because that's where the
+     * Color / Length consumers live.
+     */
+    public function textShadow(): ?string
+    {
+        $raw = $this->presentationOrStyle('text-shadow');
+        if ($raw === null) {
+            return null;
+        }
+        $value = trim($raw);
+        if ($value === '' || strcasecmp($value, 'none') === 0) {
+            return null;
+        }
+        return $value;
+    }
+
     private function parsePaint(string $attr): ?Paint
     {
         $raw = $this->presentationOrStyle($attr);

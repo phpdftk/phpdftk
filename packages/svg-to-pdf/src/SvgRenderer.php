@@ -383,7 +383,20 @@ final class SvgRenderer
         $w = self::parseLengthPrefix($widthAttr);
         $h = self::parseLengthPrefix($heightAttr);
         if ($w !== null && $h !== null) {
-            return [0.0, 0.0, $w, $h, false];
+            // CSS Images 3 §5.2 + crbug.com/1392140 — snap near-integral
+            // intrinsic dimensions to integers so an SVG declaring
+            // `width="99.99999"` matches the painted size of one
+            // declaring `width="100"`. Without this, a fractional-of-a-
+            // pixel preserveAspectRatio gap (e.g. dst=100 / src=99.99999
+            // → scale=1 + offset=0.000005) leaks underlying content at
+            // the destination edges when one <img src=svg> stacks over
+            // another. Browsers do this for <img>-embedded SVGs and
+            // Painter::intrinsicSvgSize already rounds on the layout
+            // side; mirror it here on the rendering side so they agree.
+            // Skipped when the SVG carries a viewBox (handled above) —
+            // viewBox values are their own coordinate system, not pixel
+            // dimensions, and snapping them would change content scale.
+            return [0.0, 0.0, (float) round($w), (float) round($h), false];
         }
         // CSS Images 3 §5.2 — when the SVG doesn't have both a
         // fixed width AND fixed height (and no viewBox to imply a

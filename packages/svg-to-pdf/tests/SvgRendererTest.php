@@ -116,6 +116,101 @@ final class SvgRendererTest extends TestCase
         self::assertStringContainsString('1 0 0 -1 0 50 cm', $ops);
     }
 
+    /**
+     * Regression for crbug.com/1392140 / phpdftk #143
+     * (svg/embedded/image-embedding-svg-with-near-integral-width).
+     *
+     * Two <img src=svg> elements stacked at the same position should
+     * paint to identical pixel rects so the topmost fully covers the
+     * one below. A near-integral intrinsic width like `99.99999` must
+     * snap to `100` so the preserveAspectRatio meet/slice math doesn't
+     * leak a fractional-pixel strip at the dest-rect edges.
+     */
+    public function testNearIntegralWidthSnapsToIntegerForUnitScale(): void
+    {
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="99.99999" height="100">'
+            . '<rect width="100%" height="100%" fill="green"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // Snapped: srcW = 100, srcH = 100 → sx = sy = 1, offsetX = 0,
+        // effectiveH = 100, f = 0 + 0 + 100 + 0 = 100. The literal cm
+        // matches the width="100" sibling exactly, no fractional offset.
+        self::assertStringContainsString('1 0 0 -1 0 100 cm', $ops);
+    }
+
+    public function testNearIntegralHeightSnapsToInteger(): void
+    {
+        // Symmetric: a near-integral *height* must also snap so the
+        // y-direction match holds.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="49.99999">'
+            . '<rect width="100%" height="100%" fill="green"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 50);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // Snapped: srcH = 50 → effectiveH = 50, f = 50.
+        self::assertStringContainsString('1 0 0 -1 0 50 cm', $ops);
+    }
+
+    public function testFractionalWidthAtHalfBoundaryRoundsHalfUp(): void
+    {
+        // Guards the rounding mode — `round(99.5)` is 100 under PHP's
+        // default PHP_ROUND_HALF_UP. Documenting the choice so a future
+        // ε-gated tightening doesn't silently change it.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="99.5" height="100">'
+            . '<rect width="100%" height="100%" fill="green"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // 99.5 → 100, srcRect = 100x100, dst = 100x100 → unit scale.
+        self::assertStringContainsString('1 0 0 -1 0 100 cm', $ops);
+    }
+
+    public function testNearIntegralWidthSnapsForInnerPercentageResolution(): void
+    {
+        // Two-layer snap: not only does the outer renderer rect snap
+        // (covered above), the translator's currentViewport must also
+        // snap so `width="100%"` on inner children resolves against
+        // the integer-rounded viewport. Without the second snap, a
+        // child rect paints at 99.99999 wide inside a 100-wide clip,
+        // leaking a fractional strip at the destination edge.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="99.99999" height="100">'
+            . '<rect width="100%" height="100%" fill="green"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // The inner rect should resolve to exactly 100, not 99.99999.
+        self::assertStringContainsString('0 0 100 100 re', $ops);
+        self::assertStringNotContainsString('99.99999', $ops);
+    }
+
+    public function testViewBoxFractionalDimensionsAreNotSnapped(): void
+    {
+        // viewBox values are a coordinate system, NOT pixel dimensions.
+        // Snapping `viewBox="0 0 99.99999 100"` would change content
+        // scale. This test guards that the round-on-attribute fix is
+        // strictly limited to the width/height-attribute branch.
+        $ctx = $this->renderer();
+        $svg = $this->svgParser->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" '
+            . 'viewBox="0 0 99.99999 100" preserveAspectRatio="none">'
+            . '<rect width="100%" height="100%" fill="green"/></svg>',
+        );
+        $ctx['renderer']->draw($svg, x: 0, y: 0, width: 100, height: 100);
+        $ops = implode("\n", $ctx['stream']->getOperators());
+        // No snap: sx = 100 / 99.99999 = 1.0000001... — slightly off 1.
+        // Match the literal scale rendered (4-decimal precision).
+        self::assertMatchesRegularExpression('/1\.000000\d* 0 0 -1 0 100 cm/', $ops);
+    }
+
     public function testPreserveAspectRatioDefaultIsUniformScaleAndCentre(): void
     {
         // SVG 2 §7.10 default = `xMidYMid meet`. Source 100×100 into

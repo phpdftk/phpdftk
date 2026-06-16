@@ -56,6 +56,7 @@ use Phpdftk\Svg\SvgDocument;
 use Phpdftk\Svg\Text as TextNode;
 use Phpdftk\Svg\Text\TextElement;
 use Phpdftk\Svg\Value\Paint;
+use Phpdftk\Svg\Value\Color as SvgColor;
 use Phpdftk\Svg\Value\Paint\CurrentColor;
 use Phpdftk\Svg\Value\Paint\None_;
 use Phpdftk\Svg\Value\Paint\SolidColor;
@@ -620,7 +621,15 @@ final class Translator
         $w = self::parseLengthPrefixForViewport($this->document->widthAttribute());
         $h = self::parseLengthPrefixForViewport($this->document->heightAttribute());
         if ($w !== null && $h !== null) {
-            return ['w' => $w, 'h' => $h];
+            // Mirror SvgRenderer::resolveSourceRect's near-integral
+            // snap (#143 / crbug.com/1392140): an SVG with
+            // `width="99.99999"` resolves child `width="100%"` to
+            // 100, matching the integer-snap browsers apply to
+            // <img>-embedded SVG intrinsic dimensions. Without this,
+            // the inner viewport stays at 99.99999 even after the
+            // outer rendering box rounds to 100, so a `width="100%"`
+            // child paints 0.00001 short of the box's right edge.
+            return ['w' => (float) round($w), 'h' => (float) round($h)];
         }
         // Fall back to the caller's effective viewport (the destination
         // rect from `SvgRenderer::draw`) when document attributes alone
@@ -1251,6 +1260,36 @@ final class Translator
             || $dyList !== []
             || $rotateList !== [];
 
+        // CSS Text Decoration 4 §6 — paint text-shadow layers BEHIND
+        // the real text. Each layer is a sharp-offset copy of the
+        // glyph run in the shadow colour. Blur-radius is parsed but
+        // not currently rasterised (matches the html-to-pdf path,
+        // which also ignores blur). The first listed shadow paints on
+        // top of later shadows, so we reverse for back-to-front order.
+        // Per-glyph positioning is intentionally NOT shadowed at v1 -
+        // the WPT corpus only exercises single-position <text> with
+        // shadows, and per-glyph shadows would compound complexity
+        // without coverage to validate them.
+        if (!$perGlyph) {
+            $fillFallback = $fill instanceof SolidColor ? $fill->color : null;
+            $shadows = self::parseTextShadow($text->textShadow(), $fillFallback);
+            foreach (array_reverse($shadows) as $shadow) {
+                $stream->saveGraphicsState();
+                $this->setFillColor($stream, $shadow['color']);
+                $stream->beginText()->setFont($font, $size);
+                $sx = ($xList[0] ?? 0.0) + $shadow['offsetX'];
+                $sy = ($yList[0] ?? 0.0) + $shadow['offsetY'];
+                if ($this->compensateTextFlip) {
+                    $stream->setTextMatrix(1.0, 0.0, 0.0, -1.0, $sx, $sy);
+                } else {
+                    $stream->moveTextPosition($sx, $sy);
+                }
+                $stream->showText($content);
+                $stream->endText();
+                $stream->restoreGraphicsState();
+            }
+        }
+
         $stream->beginText()->setFont($font, $size);
         if (!$perGlyph) {
             $x = $xList[0] ?? 0.0;
@@ -1270,6 +1309,202 @@ final class Translator
             $this->paintTextPerGlyph($content, $xList, $yList, $dxList, $dyList, $rotateList, $stream);
         }
         $stream->endText();
+    }
+
+    /**
+     * Parse the raw CSS `text-shadow` value into renderable shadow
+     * layers per CSS Text Decoration 4 §6.
+     *
+     * Grammar:
+     *
+     *     <text-shadow> = none | <shadow># (comma-separated layers)
+     *     <shadow> = <length>{2,3} <color>?
+     *
+     * The two lengths are offset-x and offset-y; the optional third
+     * is blur-radius (parsed and validated as non-negative, but the
+     * painter does not currently rasterise blur — same posture as
+     * the html-to-pdf path's `collectTextShadowLayers`). When a layer
+     * omits the colour, it falls back to `$fillFallback` (the text's
+     * own fill colour) and finally to opaque black.
+     *
+     * Returns an empty list for `null` input, `none`, or any layer
+     * that fails to parse - SVG 2's "invalid → ignored" semantics
+     * applied per-shadow keeps a malformed shadow from poisoning
+     * earlier valid ones.
+     *
+     * @return list<array{offsetX: float, offsetY: float, color: ColorInterface}>
+     */
+    private static function parseTextShadow(?string $raw, ?ColorInterface $fillFallback): array
+    {
+        if ($raw === null) {
+            return [];
+        }
+        $items = self::splitTextShadowItems($raw);
+        $layers = [];
+        foreach ($items as $item) {
+            $layer = self::parseTextShadowLayer($item, $fillFallback);
+            if ($layer !== null) {
+                $layers[] = $layer;
+            }
+        }
+        return $layers;
+    }
+
+    /**
+     * Split a `text-shadow` value on top-level commas, preserving
+     * commas inside `rgb(...)` / `rgba(...)` / `hsl(...)` etc.
+     *
+     * @return list<string>
+     */
+    private static function splitTextShadowItems(string $raw): array
+    {
+        $items = [];
+        $depth = 0;
+        $buffer = '';
+        $length = strlen($raw);
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $raw[$i];
+            if ($ch === '(') {
+                $depth++;
+            } elseif ($ch === ')') {
+                $depth = max(0, $depth - 1);
+            }
+            if ($ch === ',' && $depth === 0) {
+                $items[] = $buffer;
+                $buffer = '';
+                continue;
+            }
+            $buffer .= $ch;
+        }
+        if (trim($buffer) !== '') {
+            $items[] = $buffer;
+        }
+        return array_values(array_filter(array_map('trim', $items), static fn($s) => $s !== ''));
+    }
+
+    /**
+     * Parse a single shadow layer. Returns null on any structural
+     * malformation (fewer than two lengths, blur < 0, more than three
+     * lengths, unparseable colour token).
+     *
+     * @return array{offsetX: float, offsetY: float, color: ColorInterface}|null
+     */
+    private static function parseTextShadowLayer(string $raw, ?ColorInterface $fillFallback): ?array
+    {
+        // Tokenise on whitespace, but keep `rgb(1, 2, 3)` etc. as a
+        // single token. Lengths are simple; the colour may contain
+        // spaces inside its parens.
+        $tokens = self::tokenizeTextShadowLayer($raw);
+        if ($tokens === []) {
+            return null;
+        }
+        $lengths = [];
+        $colorRaw = null;
+        foreach ($tokens as $token) {
+            $length = self::parseLengthToken($token);
+            if ($length !== null) {
+                if (count($lengths) >= 3) {
+                    return null;
+                }
+                $lengths[] = $length;
+                continue;
+            }
+            if ($colorRaw !== null) {
+                return null;
+            }
+            $colorRaw = $token;
+        }
+        if (count($lengths) < 2) {
+            return null;
+        }
+        if (count($lengths) === 3 && $lengths[2] < 0.0) {
+            // CSS Text Decoration 4: blur-radius must be non-negative.
+            return null;
+        }
+        $color = null;
+        if ($colorRaw !== null) {
+            $color = SvgColor::parse($colorRaw);
+            if ($color === null) {
+                return null;
+            }
+        } else {
+            $color = $fillFallback ?? new RgbColor(0.0, 0.0, 0.0);
+        }
+        return [
+            'offsetX' => $lengths[0],
+            'offsetY' => $lengths[1],
+            'color' => $color,
+        ];
+    }
+
+    /**
+     * Whitespace-tokenise a single shadow layer keeping function
+     * forms (`rgb(0, 128, 0)`) as one token.
+     *
+     * @return list<string>
+     */
+    private static function tokenizeTextShadowLayer(string $raw): array
+    {
+        $tokens = [];
+        $buffer = '';
+        $depth = 0;
+        $length = strlen($raw);
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $raw[$i];
+            if ($ch === '(') {
+                $depth++;
+                $buffer .= $ch;
+                continue;
+            }
+            if ($ch === ')') {
+                $depth = max(0, $depth - 1);
+                $buffer .= $ch;
+                continue;
+            }
+            if ($depth === 0 && (ctype_space($ch) || $ch === ',')) {
+                if ($buffer !== '') {
+                    $tokens[] = $buffer;
+                    $buffer = '';
+                }
+                continue;
+            }
+            $buffer .= $ch;
+        }
+        if ($buffer !== '') {
+            $tokens[] = $buffer;
+        }
+        return $tokens;
+    }
+
+    /**
+     * Parse a CSS length token used inside `text-shadow`. Supports
+     * unitless (`0`), `px`, `pt`, `em`, and a couple of absolute
+     * physical units. Returns null when the token doesn't look like
+     * a length so the caller treats it as the colour slot instead.
+     * Unit support is intentionally narrow - text-shadow in real
+     * documents almost always uses `px` (or `0`).
+     */
+    private static function parseLengthToken(string $raw): ?float
+    {
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+        if (preg_match('/^([+-]?(?:\d+\.?\d*|\.\d+))([a-zA-Z%]*)$/', $trimmed, $m) !== 1) {
+            return null;
+        }
+        $value = (float) $m[1];
+        $unit = strtolower($m[2]);
+        return match ($unit) {
+            '', 'px', 'pt' => $value,
+            'in' => $value * 72.0,
+            'cm' => $value * (72.0 / 2.54),
+            'mm' => $value * (72.0 / 25.4),
+            // em / rem / vw / vh / % aren't resolvable without a
+            // containing context — reject so an unknown unit doesn't
+            // silently land at 0.
+            default => null,
+        };
     }
 
     /**
