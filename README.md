@@ -89,12 +89,56 @@ $writer->save('/tmp/hello.pdf');
 `Pdf::writer()` returns the underlying `PdfWriter` so you can mix both
 layers in a single document.
 
+### Rendering HTML / CSS / SVG / MathML to PDF
+
+Beyond the PDF builder, phpdftk ships a full HTML/CSS/SVG/MathML rendering pipeline. WPT in-scope pass rates:
+
+| Corpus | In-scope tests | Pass rate |
+|---|---:|---:|
+| **mathml/** | 167 | **100.00%** |
+| **svg/** | 174 | **95.40%** |
+| **html/** | 584 | **95.72%** |
+| **css/** | 21 270 | **65.03%** |
+
+```bash
+composer require phpdftk/html-to-pdf
+```
+
+```php
+use Phpdftk\HtmlToPdf\Renderer;
+use Phpdftk\Pdf\Writer\PdfWriter;
+
+$writer = new PdfWriter();
+(new Renderer())->renderInto($writer, <<<'HTML'
+<!DOCTYPE html>
+<style>
+  body { font: 12pt serif; max-width: 6in; margin: 1in auto }
+  h1 { color: navy; border-bottom: 2px solid navy }
+  .badge { display: inline-block; padding: 2px 8px;
+           background: gold; border-radius: 4px; font-size: 9pt }
+</style>
+<body>
+  <h1>Quarterly Report <span class="badge">DRAFT</span></h1>
+  <p>Revenue grew <strong>14.2%</strong> year-over-year.</p>
+  <svg width="200" height="60" viewBox="0 0 200 60">
+    <rect width="180" height="40" x="10" y="10" fill="#4a90e2" rx="5"/>
+    <text x="100" y="35" text-anchor="middle" fill="white"
+          font-family="sans-serif" font-size="14">Inline SVG works</text>
+  </svg>
+</body>
+HTML);
+$writer->save('/tmp/report.pdf');
+```
+
+Full feature matrix and per-module pass rates at [phpdftk.dev/rendering/overview](https://phpdftk.dev/rendering/overview/). The pipeline targets CSS print-stylesheet parity, not interactive parity: JavaScript never runs, animations pin to `t = 0`, and the static PDF output is byte-for-byte deterministic for the same input.
+
 ## Requirements
 
 - PHP 8.4+
 - `ext-zlib` (stream compression)
 - `ext-openssl` (encryption)
 - `ext-simplexml` (XMP metadata)
+- `ext-mbstring` and `ext-intl` (text shaping, only when rendering HTML/SVG/MathML)
 
 ## Packages
 
@@ -118,8 +162,22 @@ This monorepo contains independently usable packages under `packages/`:
 | [`phpdftk/image-metadata`](packages/image-metadata) | Header-only image parsing for JPEG, PNG, GIF, TIFF, WebP with ICC profile extraction |
 | [`phpdftk/xmp`](packages/xmp) | Read and write XMP metadata packets |
 | [`phpdftk/crypt`](packages/crypt) | AES-128/256-CBC and RC4 with PDF key derivation, PKCS#7 public-key envelopes (ISO 32000-2) |
+| [`phpdftk/xml`](packages/xml) | XML parser shared by `svg`, `mathml`, and `xmp` |
+| [`phpdftk/html`](packages/html) | WHATWG HTML5 parser + DOM + declarative Shadow DOM (100% `html5lib-tests` tree-construction) |
+| [`phpdftk/css`](packages/css) | CSS Syntax 3 + Values 4 + Selectors 4 + Cascade 5 |
+| [`phpdftk/svg`](packages/svg) | SVG 2 parser producing a typed tree |
+| [`phpdftk/mathml`](packages/mathml) | MathML Core parser producing a typed tree |
+| [`phpdftk/text`](packages/text) | UAX #14 line breaking, UAX #9 bidi, OpenType GSUB/GPOS shaping |
+| [`phpdftk/html-to-pdf`](packages/html-to-pdf) | HTML + CSS → PDF renderer (95.72% WPT in-scope) |
+| [`phpdftk/svg-to-pdf`](packages/svg-to-pdf) | SVG → PDF renderer (95.40% WPT in-scope) |
+| [`phpdftk/mathml-to-pdf`](packages/mathml-to-pdf) | MathML → PDF renderer (100% WPT in-scope) |
+| [`phpdftk/paged-media`](packages/paged-media) | CSS Paged Media 3 + Fragmentation 4 substrate |
+| [`phpdftk/raster`](packages/raster) | Raster compositor for filter primitives, blur halos (Phase 4C) |
+| [`phpdftk/resource-loader`](packages/resource-loader) | HTTP + file fetcher with SSRF gates and MIME sniffing |
+| [`phpdftk/barcode`](packages/barcode) | Barcode and QR-code rendering for `<img>` / CSS background-image |
+| [`phpdftk/wpt-harness`](packages/wpt-harness) | Web Platform Tests runner, manifest, and cross-browser oracle |
 
-All support packages have zero PDF dependencies and can be used standalone.
+All support packages have zero PDF dependencies and can be used standalone. Rendering packages depend on the support packages but never on `pdf-reader` or `pdf-toolkit`.
 
 ## Architecture
 
