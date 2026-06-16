@@ -551,12 +551,26 @@ final class BlockLayout
         $widthAuto = $this->isAuto($widthValue);
         $borderBox = $this->isBorderBoxSizing($style);
         if ($widthAuto) {
+            // CSS Sizing 4 §6.1 — `contain: size` substitutes the
+            // contain-intrinsic-width for auto-width content. The
+            // box still respects min/max-width clamps below, but
+            // the starting content width is the intrinsic-size
+            // override rather than the containing-block-derived
+            // stretch fill. Caveat: only applies when the box's
+            // layout is bounded by an intrinsic-sized parent —
+            // for a CB-stretched auto-width box (the default),
+            // browsers still fill to the parent. Mirror that by
+            // capping the substitution to the CB-stretch maximum.
+            $containedWidth = $this->resolveContainIntrinsicWidth($style);
             $contentWidth = max(
                 0.0,
                 $cbWidth - $geo->marginLeft - $geo->marginRight
                     - $geo->borderLeft - $geo->borderRight
                     - $geo->paddingLeft - $geo->paddingRight,
             );
+            if ($containedWidth !== null) {
+                $contentWidth = min($contentWidth, $containedWidth);
+            }
         } else {
             $contentWidth = $this->resolveLength($widthValue, $cbWidth);
             if ($borderBox) {
@@ -3004,6 +3018,16 @@ final class BlockLayout
         if ($explicit instanceof Length && $explicit->value > 0.0) {
             return ['min' => $explicit->value, 'max' => $explicit->value];
         }
+        // CSS Sizing 4 §6.1 — `contain: size` (or `strict`)
+        // overrides the child-derived intrinsic size with the
+        // declared `contain-intrinsic-(size|width|inline-size)`.
+        // Applied AFTER the explicit-width check so author CSS
+        // still wins, before the child aggregation so children
+        // aren't measured (the whole point of size containment).
+        $contained = $this->resolveContainIntrinsicWidth($box->style);
+        if ($contained !== null) {
+            return ['min' => $contained, 'max' => $contained];
+        }
         if ($box instanceof AtomicInlineBox) {
             return $this->aggregateChildrenMinMax($box, $context, inline: true);
         }
@@ -4359,6 +4383,42 @@ final class BlockLayout
             $second = $shorthand->values[1];
             if ($second instanceof Length) {
                 return $second->value;
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * Width-axis analogue of {@see resolveContainIntrinsicHeight}.
+     * Returns the size containment's intrinsic width for use as
+     * the box's min-content + max-content when its width is auto
+     * and size containment is in effect. CSS Sizing 4 §6.1 says
+     * the contained box's intrinsic dimensions DON'T depend on
+     * its children — they come from `contain-intrinsic-width`
+     * (longhand) / `contain-intrinsic-inline-size` (logical) or
+     * the first component of `contain-intrinsic-size`.
+     */
+    private function resolveContainIntrinsicWidth(CascadedValues $style): ?float
+    {
+        if (!$this->containsSize($style, 'inline')) {
+            return null;
+        }
+        $widthLonghand = $style->get('contain-intrinsic-width');
+        if ($widthLonghand instanceof Length) {
+            return $widthLonghand->value;
+        }
+        $inlineSize = $style->get('contain-intrinsic-inline-size');
+        if ($inlineSize instanceof Length) {
+            return $inlineSize->value;
+        }
+        $shorthand = $style->get('contain-intrinsic-size');
+        if ($shorthand instanceof Length) {
+            return $shorthand->value;
+        }
+        if ($shorthand instanceof \Phpdftk\Css\Value\ValueList && count($shorthand->values) >= 1) {
+            $first = $shorthand->values[0];
+            if ($first instanceof Length) {
+                return $first->value;
             }
         }
         return 0.0;

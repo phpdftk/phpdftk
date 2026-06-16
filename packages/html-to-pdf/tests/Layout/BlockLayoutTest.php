@@ -7141,4 +7141,146 @@ final class BlockLayoutTest extends TestCase
         }
         return null;
     }
+
+    // ------------------------------------------------------------
+    // CSS Sizing 4 §6 / Containment 3 §4.5 — contain-intrinsic-size
+    // (#15)
+    // ------------------------------------------------------------
+
+    public function testContainIntrinsicWidthIgnoredWithoutContainSize(): void
+    {
+        // Negative: `contain-intrinsic-size` declared alone (no
+        // `contain: size`) is inert. Without containment the box
+        // measures its actual children.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abc</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain-intrinsic-size: 111px 222px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        // Without `contain: size`, min/max-content track the
+        // children — definitely NOT 111.
+        self::assertNotSame(111.0, $mm['max']);
+    }
+
+    public function testContainIntrinsicWidthIgnoredOnContainPaintOnly(): void
+    {
+        // Negative: `contain: paint` does NOT include size
+        // containment per CSS Containment 3 §2.4.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abcdef</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: paint; contain-intrinsic-size: 111px 222px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertNotSame(111.0, $mm['max']);
+    }
+
+    public function testContainIntrinsicWidthIgnoredOnContainContent(): void
+    {
+        // Negative: `contain: content` = layout+paint+style (NOT
+        // size). The "common confusion" branch the spec explicitly
+        // calls out — guard against a future regression.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abc</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: content; contain-intrinsic-size: 111px 222px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertNotSame(111.0, $mm['max']);
+    }
+
+    public function testExplicitWidthBeatsContainIntrinsicWidth(): void
+    {
+        // Negative: an explicit `width` wins over
+        // `contain-intrinsic-size` — author CSS is authoritative,
+        // containment only substitutes when the box is auto-sized.
+        $root = $this->buildTree(
+            '<html><body><div id="t"></div></body></html>',
+            'html, body, div { display: block; }
+             #t { contain: size; contain-intrinsic-size: 111px 222px;
+                  width: 50px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertSame(50.0, $mm['max']);
+    }
+
+    public function testContainSizeShorthandSubstitutesIntrinsicWidth(): void
+    {
+        // Positive: with `contain: size`, the intrinsic width
+        // override applies and propagates through measureMinMaxContent.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abcdef</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: size; contain-intrinsic-size: 111px 222px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertSame(111.0, $mm['max']);
+        self::assertSame(111.0, $mm['min']);
+    }
+
+    public function testContainStrictAlsoTriggersIntrinsicWidth(): void
+    {
+        // `contain: strict` = layout|paint|style|size — covers size.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abcdef</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: strict; contain-intrinsic-size: 80px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertSame(80.0, $mm['max']);
+    }
+
+    public function testContainIntrinsicWidthLonghandWinsOverShorthand(): void
+    {
+        // CSS Sizing 4 §6.1 cascade order: the explicit
+        // `contain-intrinsic-width` longhand beats the shorthand's
+        // first component.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abcdef</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: size; contain-intrinsic-size: 80px;
+                  contain-intrinsic-width: 200px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertSame(200.0, $mm['max']);
+    }
+
+    public function testContainSizeWithoutIntrinsicSizeCollapsesToZero(): void
+    {
+        // CSS Sizing 4 §6.1: when the box is size-contained but
+        // contain-intrinsic-size is unset or `auto` without a
+        // last-known size, the intrinsic dimensions collapse to 0.
+        $root = $this->buildTree(
+            '<html><body><div id="t"><span>abcdef</span></div></body></html>',
+            'html, body, div { display: block; } span { display: inline; }
+             #t { contain: size; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $t = $this->find($root, 'div');
+        self::assertNotNull($t);
+        $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
+        self::assertSame(0.0, $mm['max']);
+    }
 }
