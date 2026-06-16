@@ -1246,10 +1246,95 @@ final class PainterTest extends TestCase
         $stream = $writer->addContentStream($page);
         $painter = new Painter(792.0);
         $painter->paint($root, $stream);
-
         $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
         // Width = 130 (border-box).
         self::assertMatchesRegularExpression('/1 0 0 rg\n[-0-9.]+ [-0-9.]+ 130(\.0+)? \d/', $bytes);
+    }
+
+    public function testBackgroundClipBorderAreaWithColorEmitsRingFill(): void
+    {
+        // CSS Backgrounds 4 §3.5 — `border-area` with bg-color paints
+        // a ring (border-box ∖ padding-box) via even-odd fill: two
+        // rect ops chained with `f*`.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-color: red; background-clip: border-area;
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 5px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $ops = implode("\n", $stream->getOperators());
+        // The even-odd fill (`f*`) operator marks the ring paint:
+        // border-box rect + padding-box rect chained with f*.
+        self::assertStringContainsString('f*', $ops);
+    }
+
+    public function testBackgroundClipBorderAreaWithImageWrapsInRingClip(): void
+    {
+        // CSS Backgrounds 4 §3.5 — `border-area` + bg-image: the
+        // image-paint cluster must be wrapped in q ... W* n ... Q so
+        // the image is clipped to the border ring (padding-box hole).
+        // Sanity: with no border declared, `border-area` collapses
+        // to a degenerate paint region (which is the spec-correct
+        // behaviour - "no border, no border-area to paint").
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-clip: border-area;
+                   background-image: linear-gradient(red, blue);
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 20px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $ops = implode("\n", $stream->getOperators());
+        // The wrap emits `W*` (even-odd clip) on a path that
+        // includes both border-box and padding-box rects.
+        self::assertStringContainsString('W*', $ops);
+    }
+
+    public function testBackgroundClipBorderBoxWithImageEmitsNoExtraClip(): void
+    {
+        // Regression guard: the normal (non-border-area) bg-image
+        // path must NOT emit a W* clip — that would over-constrain
+        // every background-image paint in the entire codebase.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { background-image: linear-gradient(red, blue);
+                   width: 100px; height: 50px;
+                   padding: 10px; border: 20px solid black; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $ops = implode("\n", $stream->getOperators());
+        self::assertStringNotContainsString('W*', $ops);
     }
 
     public function testOverflowXHiddenClipsOnlyTheXAxis(): void

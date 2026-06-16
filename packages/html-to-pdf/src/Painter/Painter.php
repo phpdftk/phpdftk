@@ -2507,6 +2507,26 @@ final class Painter
         // gradient branches can reuse the rects computed for the
         // raster path.
         $needBgImageProps = $hasAnyLayer && $width > 0.0 && $height > 0.0;
+        // CSS Backgrounds 4 §3.5 — `border-area` paints bg-image
+        // ONLY inside the border ring. Wrap the image-paint cluster
+        // in a graphics state + even-odd clip path so paint inside
+        // the padding-box is masked off. Rectangle radii are still
+        // a follow-up (the rounded-ring case needs Bezier path
+        // intersection beyond the rect-only clip below).
+        $needBorderAreaClip = $needBgImageProps && $clip === 'border-area';
+        if ($needBorderAreaClip) {
+            $padX = $geo->x - $geo->paddingLeft;
+            $padTop = $geo->y - $geo->paddingTop;
+            $padWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+            $padHeight = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+            $outerPdfYClip = $this->pageHeight - $top - $height;
+            $padPdfYClip = $this->pageHeight - $padTop - $padHeight;
+            $stream->saveGraphicsState();
+            $stream->rectangle($x, $outerPdfYClip, $width, $height);
+            $stream->rectangle($padX, $padPdfYClip, $padWidth, $padHeight);
+            $stream->clipEvenOdd();
+            $stream->endPath();
+        }
         if ($needBgImageProps) {
             // Per CSS 2.1 §14.2.1, when fewer values are supplied than
             // images the values cycle. Split each property into a comma
@@ -2561,6 +2581,9 @@ final class Painter
                     $this->paintRadialGradient($layer, $stream, $x, $top, $width, $height);
                 }
             }
+        }
+        if ($needBorderAreaClip) {
+            $stream->restoreGraphicsState();
         }
     }
 
