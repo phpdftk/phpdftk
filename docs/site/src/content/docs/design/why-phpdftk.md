@@ -66,15 +66,23 @@ The alternative is separate repositories per package. Monorepo was chosen becaus
 
 Each package still has its own `composer.json`, its own PSR-4 namespace, and can be installed independently via Composer's path repository support.
 
-### Why not HTML-to-PDF?
+### What about HTML-to-PDF?
 
-HTML-to-PDF conversion (the mPDF/Dompdf approach) is appealing because developers already know HTML and CSS. But it introduces fundamental constraints:
+phpdftk ships an HTML-to-PDF pipeline (`phpdftk/html-to-pdf`) alongside the native PDF API. The pipeline currently passes **95.72%** of the in-scope HTML Web Platform Tests, **95.40%** of the in-scope SVG corpus, and **100%** of the in-scope MathML corpus — measured per-commit against the upstream WPT fixtures, not a hand-curated sample.
 
-- **CSS is not PDF**: the box model, float behavior, and text layout rules don't map cleanly to PDF's coordinate-based content streams. Every HTML-to-PDF library has CSS features it doesn't support, and the differences are surprising.
-- **Performance**: parsing HTML, applying CSS cascade, computing layout, *then* emitting PDF objects is inherently slower than emitting PDF objects directly.
-- **Feature ceiling**: PDF features that have no HTML equivalent (annotations, form fields, digital signatures, optional content, 3D, multimedia) are either hacked in via custom HTML attributes or simply unavailable.
+This is a deliberate departure from the old advice ("use a headless browser"). Headless browsers still win on the absolute frontier of CSS fidelity, but they introduce a dependency on a separately-managed binary that requires its own install, sandbox, and process management. For server-side report generation, invoices, manuscripts, and tagged-PDF accessibility output, a pure-PHP renderer with a published pass rate is operationally simpler than a Chromium subprocess.
 
-phpdftk doesn't convert from anything. It speaks PDF natively. If you want HTML-to-PDF, use a headless browser — it will do a better job than any PHP library at CSS fidelity.
+The trade-offs are still real:
+
+- **Print-stylesheet parity, not interactive parity.** phpdftk targets CSS print stylesheets and static documents. JavaScript never runs; popovers, dialogs, and interactive elements render in their initial state.
+- **No animations.** SMIL in SVG and CSS animations pin to `t = 0`. Page output is a single static frame.
+- **Phase 4 substrate still in flight.** Blur halos (filter effects, `text-shadow` blur, drop-shadow blur) defer to a raster compositor that lands in Phase 4C. Until then, sharp-offset shadows render correctly; blurred shadows fall back to the sharp form.
+
+Use [`phpdftk/html-to-pdf`](/rendering/html-to-pdf/) when you want server-side HTML rendering without managing a browser binary, and want PDF-native features (annotations, form fields, signatures, tagged-PDF accessibility, conformance profiles) on the same pipeline. Use a headless browser when the document depends on JavaScript execution or you need the absolute latest CSS feature on the day the spec lands.
+
+### Why the dual API?
+
+PDF features that have no HTML equivalent — custom annotations, blend modes, structure-tree tagging, optional content, digital signatures, encryption, 3D — are still locked behind private methods in every other PHP PDF library. phpdftk exposes them as typed classes in `phpdftk/pdf-core` and `phpdftk/pdf-writer`, and the HTML-to-PDF pipeline never hides that surface: drop down to `Pdf::writer()` from the rendering pipeline and you get the full PDF object model.
 
 ### Why built-in conformance validation?
 
