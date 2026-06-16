@@ -186,6 +186,32 @@ final class BoxGenerator
             $values->set('display', new Keyword('block'));
             $display = 'block';
         }
+        // CSS 2.1 §9.7 + CSS Display §2.7 — out-of-flow elements
+        // (position: absolute / fixed, float: left / right) are
+        // "blockified": an inline-level computed `display` becomes
+        // `block` so the box participates in the abs-pos / float
+        // layout pipeline rather than the inline-flow line-box
+        // path. This is what `<img position: absolute; left: 7.5px>`
+        // needs to honour its corner anchors (#21, also unblocks
+        // the SVG-embed positioning fixture in #143).
+        //
+        // Foreign content (root <math> and <svg>) is intentionally
+        // excluded: those elements route through their own atomic-
+        // inline painters (`paintInlineMath` / `paintInlineSvg`)
+        // that already honour cascaded `position` / `left` / `top`
+        // via `resolveInlineAbsoluteOrigin`. Blockifying them
+        // would re-route through the generic block pipeline that
+        // doesn't know how to delegate to those painters — and
+        // doing so regresses `mathml/presentation-markup/spaces/
+        // space-3` (which uses `<math style="position: absolute;
+        // top: 0; left: 0">`).
+        if (in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
+            && $this->isOutOfFlow($values)
+            && !$this->isForeignContentRoot($element)
+        ) {
+            $values->set('display', new Keyword('block'));
+            $display = 'block';
+        }
         // CSS Containment 2 §4 — `content-visibility: hidden`
         // suppresses box generation just like `display: none` for
         // static print. (`auto` is a runtime-visibility optimisation
@@ -1576,6 +1602,57 @@ final class BoxGenerator
             'grid' => new GridBox($element, $values),
             default => new BlockBox($element, $values),
         };
+    }
+
+    /**
+     * Root foreign-content elements (`<math>` and `<svg>`) route
+     * through dedicated atomic-inline painters that resolve their
+     * own positioning via `resolveInlineAbsoluteOrigin`. They must
+     * NOT be blockified by the CSS Display §2.7 out-of-flow rule
+     * because the generic block pipeline doesn't know how to
+     * delegate to those painters. See the `mathml/spaces/space-3`
+     * regression note where blockification dropped the inline-math
+     * paint entirely.
+     */
+    private function isForeignContentRoot(Element $element): bool
+    {
+        $tag = strtolower($element->localName);
+        if ($tag !== 'math' && $tag !== 'svg') {
+            return false;
+        }
+        // Belt-and-braces: confirm the namespace too so an HTML
+        // element with `localName="math"` (which can happen in
+        // some XML fragments) doesn't escape the blockification.
+        $ns = $element->namespaceUri();
+        if ($tag === 'math') {
+            return $ns === \Phpdftk\Mathml\Parser::MATHML_NS;
+        }
+        return $ns === \Phpdftk\Svg\Parser::SVG_NS;
+    }
+
+    /**
+     * CSS 2.1 §9.7 — an element is "out-of-flow" when its `position`
+     * is `absolute` / `fixed` or its `float` is `left` / `right`.
+     * Out-of-flow elements are blockified: an inline-level computed
+     * `display` becomes `block`.
+     */
+    private function isOutOfFlow(CascadedValues $values): bool
+    {
+        $position = $values->get('position');
+        if ($position instanceof Keyword) {
+            $name = strtolower($position->name);
+            if ($name === 'absolute' || $name === 'fixed') {
+                return true;
+            }
+        }
+        $float = $values->get('float');
+        if ($float instanceof Keyword) {
+            $name = strtolower($float->name);
+            if ($name === 'left' || $name === 'right') {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function displayKeyword(CascadedValues $values): string

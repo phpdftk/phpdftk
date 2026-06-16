@@ -1574,4 +1574,197 @@ final class BoxGeneratorTest extends TestCase
         }
         return null;
     }
+
+    // ------------------------------------------------------------
+    // Out-of-flow blockification (CSS 2.1 §9.7 / CSS Display §2.7)
+    // -- #21
+    // ------------------------------------------------------------
+
+    public function testInlineImgWithoutPositionStaysInline(): void
+    {
+        // Guard: blockification must NOT fire for in-flow inline
+        // elements. Plain `<img>` keeps its UA display: inline-block.
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet()]);
+        self::assertNotNull($box);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(AtomicInlineBox::class, $img);
+    }
+
+    public function testInlineImgWithStaticPositionStaysInline(): void
+    {
+        // `position: static` is the initial value; explicit `static`
+        // must not trigger blockification.
+        $sheet = $this->css->parseStylesheet(
+            'img { position: static }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(AtomicInlineBox::class, $img);
+    }
+
+    public function testInlineImgWithRelativePositionStaysInline(): void
+    {
+        // `position: relative` is NOT out-of-flow — element stays
+        // in normal flow with an offset. Must NOT blockify.
+        $sheet = $this->css->parseStylesheet(
+            'img { position: relative; left: 10px }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(AtomicInlineBox::class, $img);
+    }
+
+    public function testInlineImgWithStickyPositionStaysInline(): void
+    {
+        // `position: sticky` — also not out-of-flow per spec
+        // (the element participates in normal flow with a stuck
+        // offset within its containing block).
+        $sheet = $this->css->parseStylesheet(
+            'img { position: sticky; top: 0 }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(AtomicInlineBox::class, $img);
+    }
+
+    public function testInlineImgWithFloatNoneStaysInline(): void
+    {
+        // Float `none` is the initial value; explicit `none` must
+        // not trigger blockification.
+        $sheet = $this->css->parseStylesheet(
+            'img { float: none }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(AtomicInlineBox::class, $img);
+    }
+
+    public function testInlineImgWithPositionAbsoluteBlockifies(): void
+    {
+        // Core fix: out-of-flow `position: absolute` blockifies the
+        // inline-level `<img>` into a `BlockBox` so abs-pos layout
+        // honours the corner anchors.
+        $sheet = $this->css->parseStylesheet(
+            'img { position: absolute; left: 7.5px; top: 8px }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(BlockBox::class, $img);
+    }
+
+    public function testInlineImgWithPositionFixedBlockifies(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'img { position: fixed; right: 0; bottom: 0 }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(BlockBox::class, $img);
+    }
+
+    public function testInlineImgWithFloatLeftBlockifies(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'img { float: left }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(BlockBox::class, $img);
+    }
+
+    public function testInlineImgWithFloatRightBlockifies(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'img { float: right }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(BlockBox::class, $img);
+    }
+
+    public function testInlineSpanWithAbsolutePositionBlockifies(): void
+    {
+        // Blockification applies to ANY inline-level element, not
+        // just <img>. A `position: absolute` `<span>` becomes a
+        // block-level box.
+        $sheet = $this->css->parseStylesheet(
+            'span { position: absolute; left: 0; top: 0 }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><span>hi</span></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $span = $this->findFirstByTag($box, 'span');
+        self::assertInstanceOf(BlockBox::class, $span);
+    }
+
+    public function testBlockImgWithAbsolutePositionStaysBlock(): void
+    {
+        // Already-block elements remain block (no double-blockify).
+        $sheet = $this->css->parseStylesheet(
+            'img { display: block; position: absolute }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument('<html><body><p><img src="x.png"></p></body></html>');
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertInstanceOf(BlockBox::class, $img);
+    }
+
+    public function testForeignMathRootStaysAtomicInlineUnderAbsolutePosition(): void
+    {
+        // Regression guard for mathml/spaces/space-3: root <math>
+        // is foreign content and must NOT be blockified by the
+        // out-of-flow rule. The inline-math painter
+        // (`paintInlineMath`) resolves its own abs-pos via
+        // `resolveInlineAbsoluteOrigin`; blockifying breaks that
+        // path entirely.
+        $sheet = $this->css->parseStylesheet(
+            'math { position: absolute; top: 0; left: 0 }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><math xmlns="http://www.w3.org/1998/Math/MathML">'
+            . '<mi>x</mi></math></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $math = $this->findFirstByTag($box, 'math');
+        self::assertNotNull($math);
+        self::assertNotInstanceOf(BlockBox::class, $math);
+    }
+
+    public function testForeignSvgRootStaysAtomicInlineUnderAbsolutePosition(): void
+    {
+        // Same posture for inline <svg> — paintInlineSvg owns
+        // its own positioning.
+        $sheet = $this->css->parseStylesheet(
+            'svg { position: absolute; top: 0; left: 0 }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><svg xmlns="http://www.w3.org/2000/svg" '
+            . 'width="10" height="10"><rect width="10" height="10"/></svg>'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $svg = $this->findFirstByTag($box, 'svg');
+        self::assertNotNull($svg);
+        self::assertNotInstanceOf(BlockBox::class, $svg);
+    }
 }
