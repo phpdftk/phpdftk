@@ -192,12 +192,20 @@ abstract class Element extends Node
      * the element it's set on.
      *
      * Notably does NOT consult the `style` attribute's
-     * `background` declarations as a fallback - the painter's
-     * background-rect positioning still relies on
-     * estimateHeightEm heuristics that drift for non-mpadded /
-     * non-mspace shapes, so enabling the CSS fallback would
-     * regress tests where the rect lands in the wrong place.
-     * Tracked in #103.
+     * `background` / `background-color` declarations as a
+     * fallback (#103). The spec-mandated equivalence is correct,
+     * but turning on the fallback regresses ~18 WPT fixtures
+     * (scripts/underover-stretchy-00{1,2,3},
+     * fractions/frac-invalid-{2,3}, fractions/frac-default-padding,
+     * tables/{,dynamic-}columnspan-rowspan-*) which use
+     * `style="background: red"` on intermediate <mspace> elements
+     * as "this should be covered" markers - covered by stretchy
+     * operator glyphs, sized-to-match table cells, or fraction
+     * default padding. The renderer's metric drift in those three
+     * shape families leaks the red through. Closing #103 needs
+     * those metric gaps tightened first (stretchy-operator glyph
+     * coverage, mtable cell layout, mfrac padding alignment) -
+     * NOT just the inline position-absolute fix #101 closed.
      */
     public function mathbackground(): ?string
     {

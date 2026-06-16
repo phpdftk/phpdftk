@@ -47,6 +47,41 @@ final class MathColorAttributeTest extends TestCase
         self::assertNull($mi->mathbackground());
     }
 
+    public function testMathbackgroundEmptyAttrIsNull(): void
+    {
+        $mi = $this->extractMi('<mi mathbackground="">x</mi>');
+        self::assertNull($mi->mathbackground());
+
+        $mi = $this->extractMi('<mi mathbackground="   ">x</mi>');
+        self::assertNull($mi->mathbackground());
+    }
+
+    public function testMathbackgroundDoesNotFallBackToStyleYet(): void
+    {
+        // MathML Core §3.2.5 mandates this fallback, but it is
+        // currently gated by #103 - turning it on regresses ~18
+        // WPT fixtures whose intermediate <mspace style="background:
+        // red"/> markers are expected to be covered by stretchy
+        // operator glyphs / fraction padding / table cells, where
+        // renderer metric drift still leaks the red through.
+        // When that drift is closed, flip these to assertSame.
+        $mi = $this->extractMi('<mi style="background-color: red">x</mi>');
+        self::assertNull($mi->mathbackground());
+
+        $mi = $this->extractMi('<mi style="background: green">x</mi>');
+        self::assertNull($mi->mathbackground());
+    }
+
+    public function testMathbackgroundUnrelatedStylePropertyIsNull(): void
+    {
+        // Once the #103 fallback lands, we must still not confuse
+        // unrelated longhands (`color: red` is the mathcolor hook,
+        // not the mathbackground hook). Guarded here so any future
+        // implementation keeps the property-name match precise.
+        $mi = $this->extractMi('<mi style="color: red">x</mi>');
+        self::assertNull($mi->mathbackground());
+    }
+
     public function testHexColorPassesThrough(): void
     {
         $mi = $this->extractMi('<mi mathcolor="#ff0000">x</mi>');
