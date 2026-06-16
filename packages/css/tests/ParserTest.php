@@ -244,6 +244,36 @@ final class ParserTest extends TestCase
         self::assertInstanceOf(Color::class, $rule->declarations[0]->value);
     }
 
+    public function testCustomPropertyNamesAreCaseSensitive(): void
+    {
+        // CSS Custom Properties §2: custom property names are
+        // case-sensitive. Standard property names are case-
+        // insensitive (lowercased), but `--Foo` and `--foo` must
+        // remain distinct declarations.
+        $sheet = $this->parser->parseStylesheet(
+            ':root { --Foo: red; --foo: green; --FOO: blue; }',
+        );
+        $rule = $sheet->rules[0];
+        self::assertInstanceOf(StyleRule::class, $rule);
+        self::assertSame('--Foo', $rule->declarations[0]->property);
+        self::assertSame('--foo', $rule->declarations[1]->property);
+        self::assertSame('--FOO', $rule->declarations[2]->property);
+    }
+
+    public function testStandardPropertyNamesAreLowercased(): void
+    {
+        // Counterpoint: standard CSS property names ARE case-
+        // insensitive per CSS Syntax 3 §4.1 — `COLOR`, `Color`,
+        // and `color` must all resolve to the same property.
+        $sheet = $this->parser->parseStylesheet(
+            'div { COLOR: red; FONT-SIZE: 16px; }',
+        );
+        $rule = $sheet->rules[0];
+        self::assertInstanceOf(StyleRule::class, $rule);
+        self::assertSame('color', $rule->declarations[0]->property);
+        self::assertSame('font-size', $rule->declarations[1]->property);
+    }
+
     public function testParseInlineStyle(): void
     {
         $rule = $this->parser->parseInlineStyle('color: red; font-size: 16px');

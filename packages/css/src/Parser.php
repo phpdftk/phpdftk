@@ -289,7 +289,13 @@ final class Parser
         if (!$head instanceof IdentToken) {
             return null;
         }
-        $property = strtolower($head->value);
+        // CSS Custom Properties §2 — custom property names (those
+        // starting with `--`) ARE case-sensitive; standard
+        // properties are case-insensitive. Only lowercase the
+        // standard form so `--FooBar` and `--foobar` remain
+        // distinct declarations.
+        $rawName = $head->value;
+        $property = str_starts_with($rawName, '--') ? $rawName : strtolower($rawName);
         // Find the colon.
         $colonIdx = null;
         for ($i = 1; $i < count($tokens); $i++) {
