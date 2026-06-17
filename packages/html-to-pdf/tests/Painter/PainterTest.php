@@ -3128,6 +3128,81 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString('100 100 re', $rects[0], 'not body-sized');
     }
 
+    public function testBodyOverflowPropagatesAndSuppressesBodyClip(): void
+    {
+        // CSS Overflow 3 §3.3 — when the root's overflow is `visible`
+        // (default) and the body has a non-visible overflow, the body's
+        // overflow propagates to the canvas and the body itself paints
+        // as if `overflow: visible`. Observable effect in op-stream:
+        // no clip rect at the body's geometry (the body's own
+        // descendant clip is suppressed); the test/ref divergence in
+        // `overflow-body-propagation-007` etc. is closed because the
+        // canvas-level clip already lives on the page boundary.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             body { overflow-x: clip; width: 30px; height: 30px;
+                    margin: 100px; padding: 10px; }
+             div { width: 200px; height: 200px; background: blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = implode("\n", $stream->getOperators());
+        // The body's geometry padding-box is at (100, 100, 50, 50).
+        // Without propagation we would emit `100 ... 50 ... re` as a
+        // clip rect at the body. With propagation that clip should
+        // be absent — the body paints as if overflow:visible.
+        self::assertStringNotContainsString("100 100 50 50 re", $ops);
+    }
+
+    public function testRootOverflowSuppressesPropagationFromBody(): void
+    {
+        // CSS Overflow 3 §3.3 — propagation only happens when the root
+        // is `visible`. When the root has its own non-visible overflow,
+        // the body's overflow stays on the body (no propagation), so
+        // the body's clip rect IS emitted at body's geometry.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             html { overflow-x: hidden; }
+             body { overflow-x: clip; width: 30px; height: 30px;
+                    margin: 100px; padding: 10px; }
+             div { width: 200px; height: 200px; background: blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = implode("\n", $stream->getOperators());
+        // With root overflow non-visible, body's clip still applies
+        // (no propagation). Body's padding-box clip should show up.
+        self::assertMatchesRegularExpression(
+            '/100 (?:[\d.]+) 50 (?:[\d.]+) re/',
+            $ops,
+            'body clip rect at body geometry when root is not visible',
+        );
+    }
+
     public function testContainPaintOnBodySuppressesPropagation(): void
     {
         // CSS Containment 3 §4.4 + CSS Backgrounds 3 §3.11.2 — a

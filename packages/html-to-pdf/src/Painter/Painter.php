@@ -203,6 +203,25 @@ final class Painter
      */
     private ?Box $propagatedBgBox = null;
 
+    /**
+     * Body box whose `overflow` propagated to the root canvas this
+     * paint pass (CSS Overflow 3 §3.3). When the root's overflow is
+     * `visible` and the body's isn't, the body's value propagates to
+     * the root and the body's OWN overflow is treated as `visible`
+     * for paint purposes. `shouldOverflowClip` suppresses the body's
+     * descendant clip so the test/ref pair (which sets the
+     * post-propagation state on `html` directly) renders identically.
+     */
+    private ?Box $propagatedOverflowBox = null;
+
+    /**
+     * Root box that received the propagated overflow this paint pass.
+     * `axisClips` consults this to apply the body's overflow keyword
+     * to the root (instead of the root's own visible default) so the
+     * canvas gets the spec-mandated post-propagation behaviour.
+     */
+    private ?Box $propagatedOverflowRoot = null;
+
     public function paint(Box $root, ContentStream $stream): void
     {
         $this->collectedLinks = [];
@@ -214,8 +233,46 @@ final class Painter
         // propagates to the canvas instead. The propagated box's own
         // paint-background pass is suppressed by the propagatedBgBox check.
         $this->paintCanvasBackgroundFromRoot($root, $stream);
+        // CSS Overflow 3 §3.3 — overflow propagation. When the root's
+        // overflow is `visible` and the body's isn't, the body's
+        // overflow value propagates to the root and the body's own
+        // overflow becomes `visible`. Both sides matter: we suppress
+        // the body's descendant clip AND apply the body's overflow
+        // keyword to the root so the root clips at its content area
+        // (which in our auto-height renderer wraps the body's outer
+        // box). `shouldOverflowClip` / `axisClips` consult the
+        // propagated-* tracking to redirect the per-axis clip.
+        $this->resolveOverflowPropagation($root);
         $this->paintBox($root, $stream);
         $this->propagatedBgBox = null;
+        $this->propagatedOverflowBox = null;
+        $this->propagatedOverflowRoot = null;
+    }
+
+    private function resolveOverflowPropagation(Box $root): void
+    {
+        if ($this->boxIsPaintContained($root)) {
+            return;
+        }
+        if (!$this->boxOverflowIsVisible($root)) {
+            // Root itself constrains — no propagation per spec; the
+            // root's overflow applies at the root and the body's
+            // overflow applies at the body normally.
+            return;
+        }
+        $body = $this->findBodyChild($root);
+        if ($body === null || $this->boxIsPaintContained($body)) {
+            return;
+        }
+        if (!$this->boxOverflowIsVisible($body)) {
+            $this->propagatedOverflowBox = $body;
+            $this->propagatedOverflowRoot = $root;
+        }
+    }
+
+    private function boxOverflowIsVisible(Box $box): bool
+    {
+        return !$this->axisClips($box, 'x') && !$this->axisClips($box, 'y');
     }
 
     private function paintCanvasBackgroundFromRoot(Box $root, ContentStream $stream): void
@@ -1129,6 +1186,11 @@ final class Painter
      */
     private function shouldOverflowClip(Box $box): bool
     {
+        // CSS Overflow 3 §3.3 — when the body's overflow has propagated
+        // to the root, the body itself paints as if overflow:visible.
+        if ($box === $this->propagatedOverflowBox) {
+            return false;
+        }
         return $this->axisClips($box, 'x') || $this->axisClips($box, 'y');
     }
 
@@ -1138,6 +1200,17 @@ final class Painter
      * the `overflow` shorthand.
      */
     private function axisClips(Box $box, string $axis): bool
+    {
+        // CSS Overflow 3 §3.3 — when overflow propagated from body to
+        // root, the root's effective overflow is the body's
+        // (whichever axis the body constrained on).
+        if ($box === $this->propagatedOverflowRoot && $this->propagatedOverflowBox !== null) {
+            return $this->originalAxisClips($this->propagatedOverflowBox, $axis);
+        }
+        return $this->originalAxisClips($box, $axis);
+    }
+
+    private function originalAxisClips(Box $box, string $axis): bool
     {
         foreach (["overflow-$axis", 'overflow'] as $prop) {
             $value = $box->style->get($prop);
