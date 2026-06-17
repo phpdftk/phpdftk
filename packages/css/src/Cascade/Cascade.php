@@ -1035,10 +1035,17 @@ final class Cascade
         // sub-expression are allowed. `((color: green))` strips to
         // `(color: green)` as the body, which must recurse as a
         // primary itself rather than being misread as a malformed
-        // `(property: value)` declaration.
+        // `(property: value)` declaration. The recursive call must
+        // consume the WHOLE body; trailing tokens like ` or(...)` in
+        // WPT at-supports-043 make the whole prelude invalid.
         if ($body !== '' && $body[0] === '(') {
             $sub = 0;
-            return $this->parseSupportsPrimary($body, $sub);
+            $result = $this->parseSupportsPrimary($body, $sub);
+            $this->skipSupportsWs($body, $sub);
+            if ($sub < strlen($body)) {
+                return false;
+            }
+            return $result;
         }
         return $this->evaluateSupportsFeature($body);
     }
@@ -1164,6 +1171,78 @@ final class Cascade
         // `transparent`) fails the value-validity check.
         if ($this->isColorTypedProperty($property)) {
             return $this->isAcceptableColorValue($value);
+        }
+        // CSS Conditional Rules 3 §3.1 — at minimum, the value must
+        // either be a bare keyword/length/percentage or use one of
+        // the standard CSS function notations. An unknown `<ident>(…)`
+        // shape (e.g. `compute(…)` in WPT at-supports-018) is not a
+        // recognised value type and the gated rule must drop.
+        if (!$this->valueOnlyUsesKnownFunctions($value)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Scan a value string for any `<ident>(…)` callsites; allow only
+     * the CSS Values 4 + Color 5 + Images 4 standard names. Anything
+     * else (`compute(…)`, `xyz(…)`) is an unknown notation per
+     * §3.1's `<general-enclosed>` definition and the surrounding
+     * `(property: value)` shape evaluates as false.
+     */
+    private function valueOnlyUsesKnownFunctions(string $value): bool
+    {
+        if (!str_contains($value, '(')) {
+            return true;
+        }
+        // CSS Values 4 §10 math functions + CSS Functions registry.
+        $known = [
+            'calc', 'min', 'max', 'clamp', 'round', 'mod', 'rem',
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
+            'pow', 'sqrt', 'hypot', 'log', 'exp', 'abs', 'sign',
+            // Color functions (Color 4/5).
+            'rgb', 'rgba', 'hsl', 'hsla', 'hwb', 'lab', 'lch',
+            'oklab', 'oklch', 'color', 'color-mix', 'light-dark',
+            'device-cmyk', 'contrast-color',
+            // Value references.
+            'var', 'attr', 'env', 'url',
+            // Images / gradients.
+            'linear-gradient', 'radial-gradient', 'conic-gradient',
+            'repeating-linear-gradient', 'repeating-radial-gradient',
+            'repeating-conic-gradient',
+            'image', 'image-set', 'cross-fade', 'paint', 'element',
+            // Counters / content / generated.
+            'counter', 'counters', 'string', 'target-counter',
+            'target-counters', 'target-text', 'leader',
+            // Shapes / transforms / filters.
+            'rect', 'inset', 'circle', 'ellipse', 'polygon', 'path',
+            'shape', 'ray', 'xywh',
+            'translate', 'translatex', 'translatey', 'translatez',
+            'translate3d', 'scale', 'scalex', 'scaley', 'scalez',
+            'scale3d', 'rotate', 'rotatex', 'rotatey', 'rotatez',
+            'rotate3d', 'skew', 'skewx', 'skewy', 'matrix', 'matrix3d',
+            'perspective',
+            'blur', 'brightness', 'contrast', 'drop-shadow',
+            'grayscale', 'hue-rotate', 'invert', 'opacity',
+            'saturate', 'sepia',
+            // Anchor positioning.
+            'anchor', 'anchor-size',
+            // Animation timing.
+            'cubic-bezier', 'steps', 'linear',
+            // Math / numeric.
+            'progress',
+            // Custom selectors / nesting.
+            'fit-content', 'minmax', 'repeat', 'subgrid-line',
+        ];
+        // Find each `ident(` call. The ident must be one of the known
+        // names; otherwise the value is invalid for @supports.
+        if (preg_match_all('/(?<![A-Za-z0-9_-])([A-Za-z][\w-]*)\s*\(/', $value, $m) === false) {
+            return true;
+        }
+        foreach ($m[1] as $name) {
+            if (!in_array(strtolower($name), $known, true)) {
+                return false;
+            }
         }
         return true;
     }
