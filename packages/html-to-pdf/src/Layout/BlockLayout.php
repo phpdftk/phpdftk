@@ -658,8 +658,37 @@ final class BlockLayout
         // construction. Mixed children get the anonymous-block treatment
         // from BoxGenerator, so we only see homogeneous block-or-inline
         // child sets at this point.
+        //
+        // CSS 2.1 §10.5: percentage offsets / heights inside this box
+        // resolve against THIS box's height, not the grandparent's.
+        // Width's already handled correctly via `$geo->width`. For
+        // height, pre-resolve the explicit value (if non-auto) so
+        // `top: 50%` on a child resolves against THIS box's content
+        // height. When the height is `auto`, propagate the parent's
+        // CB height — that's the standard "indefinite height" fallback
+        // browsers use until the post-layout pass can settle the
+        // auto height (a true two-pass implementation is a follow-up).
+        $heightValueForChildCtx = $style->get('height');
+        $childCbHeight = $context->containingBlockHeight;
+        if ($this->heightAppliesToDisplay($style)
+            && !$this->isHeightAutoLike($heightValueForChildCtx)
+        ) {
+            $resolvedHeight = $this->resolveLength(
+                $heightValueForChildCtx,
+                $context->containingBlockHeight,
+            );
+            if ($borderBox) {
+                $resolvedHeight = max(
+                    0.0,
+                    $resolvedHeight
+                        - $geo->borderTop - $geo->borderBottom
+                        - $geo->paddingTop - $geo->paddingBottom,
+                );
+            }
+            $childCbHeight = $resolvedHeight;
+        }
         $childContext = $context
-            ->withContainingBlock($geo->width, $context->containingBlockHeight)
+            ->withContainingBlock($geo->width, $childCbHeight)
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
         // CSS 2.1 §10.1 — when this box is positioned (relative /

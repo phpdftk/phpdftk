@@ -2469,6 +2469,83 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(80.0, $div->geometry->y);
     }
 
+    public function testRelativePercentageOffsetUsesParentHeightNotGrandparent(): void
+    {
+        // CSS 2.1 §10.5 — percentage `top` resolves against the
+        // CONTAINING block's height (the immediate positioned-ancestor
+        // box) not the page / viewport. Without this, `top: 100%` on
+        // a child of a 100px-high div resolved against the 800px
+        // viewport and rendered 700px below where the spec mandates.
+        // Lit up the position-relative-001 → -012 cluster (≈12
+        // near-miss WPT reftests) plus a long tail in
+        // hypothetical-dynamic-change-*.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="parent" style="height: 100px; width: 100px">'
+                . '<div id="child" style="position: relative; top: 100%; left: 100%"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->find($box, 'div.child') ?? $this->findById($box, 'child');
+        self::assertNotNull($child);
+        // Containing block is the 100×100 parent, so top:100% = 100, left:100% = 100.
+        self::assertSame(100.0, $child->geometry->y);
+        self::assertSame(100.0, $child->geometry->x);
+    }
+
+    public function testRelativePercentageOnAutoHeightFallsBackToParentCb(): void
+    {
+        // Negative-first guard: when the immediate parent's height is
+        // `auto` (the indefinite case), the spec lets browsers fall
+        // back to the parent's own containing block. We preserve that
+        // — without the fallback, every auto-height intermediate
+        // would zero-out percentage offsets and visually break common
+        // layouts. The auto-height grandparent (body → 800) is what
+        // the offset should resolve against here.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="parent" style="width: 100px">'
+                . '<div id="child" style="position: relative; top: 25%"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->findById($box, 'child');
+        self::assertNotNull($child);
+        // 25% of body's 800 fallback height = 200.
+        self::assertSame(200.0, $child->geometry->y);
+    }
+
+    public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
+    {
+        // Regression guard: when the parent uses `box-sizing: border-box`,
+        // its declared `height: 100px` includes border + padding. The
+        // percentage basis for children must be the CONTENT height
+        // (100 - inset), not 100. Explicit per-side border/padding
+        // values avoid any dependency on shorthand expansion order in
+        // the cascade.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="parent" style="box-sizing: border-box; height: 100px; '
+                . 'border-top: 10px solid black; border-bottom: 10px solid black; '
+                . 'padding-top: 5px; padding-bottom: 5px; width: 100px">'
+                . '<div id="child" style="position: relative; top: 100%"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->findById($box, 'child');
+        self::assertNotNull($child);
+        // Parent's content height = 100 - 20 (border t+b) - 10 (padding t+b) = 70.
+        // top: 100% of 70 = 70 relative shift.
+        // Child's y = parent content-area top (15: 0 origin + 10 border + 5 padding)
+        //           + child natural flow (0)
+        //           + child relative shift (70)
+        //           = 85.
+        self::assertSame(85.0, $child->geometry->y);
+    }
+
     public function testRelativeShiftsDescendantsAlong(): void
     {
         // Descendants ride along with the relative shift — their
@@ -7116,6 +7193,21 @@ final class BlockLayoutTest extends TestCase
         $box = $this->generator->generate($doc, $sheets);
         self::assertNotNull($box);
         return $box;
+    }
+
+    private function findById(Box $root, string $id): ?Box
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && $node->element->getAttribute('id') === $id) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
     }
 
     private function find(Box $root, string $tag): ?Box
