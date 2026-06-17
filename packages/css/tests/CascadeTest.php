@@ -617,6 +617,29 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $color->r);
     }
 
+    public function testMediaReservedWordAtTypePositionIsInvalid(): void
+    {
+        // CSS Media Queries 4 §2.1: `not`, `and`, `only`, `or`, and
+        // `layer` are reserved; using one as a media type is invalid
+        // syntax. Per §3.1, the whole query becomes `not all` → false.
+        // Critically, the leading `not` does NOT flip it: invalid stays
+        // invalid (see WPT mq-invalid-media-type-002..004,
+        // mq-invalid-media-type-layer-001).
+        foreach (['or', 'not', 'only', 'and', 'layer'] as $reserved) {
+            foreach (["@media not {$reserved}", "@media {$reserved}"] as $prelude) {
+                $sheet = $this->parser->parseStylesheet(
+                    "{$prelude} { p { color: red; } }",
+                );
+                $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+                self::assertSame(
+                    0.0,
+                    $values->get('color')->r,
+                    "{$prelude} must NOT match: reserved word at media-type position is invalid",
+                );
+            }
+        }
+    }
+
     public function testMediaUnknownFeatureEvaluatesFalse(): void
     {
         // Negative: an unrecognised feature (`color-index`) makes

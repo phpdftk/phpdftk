@@ -435,6 +435,19 @@ final class Cascade
             // the query must still match.
             $query = trim(substr($query, 5));
         }
+        if ($query === '') {
+            return false;
+        }
+        // Per CSS Media Queries 4 §2.1, `not` / `and` / `only` / `or`
+        // are reserved keywords and cannot be media types. A query
+        // whose type slot holds one of them is invalid syntax → `not
+        // all` → false. The outer `not` prefix does NOT flip this:
+        // invalid stays invalid.
+        $parts = preg_split('/\s+and\s+/', $query) ?: [];
+        $head = $parts[0] ?? '';
+        if ($head !== '' && $head[0] !== '(' && in_array($head, ['not', 'and', 'only', 'or', 'layer'], true)) {
+            return false;
+        }
         $result = $this->evaluateMediaQueryBody($query);
         return $negate ? !$result : $result;
     }
