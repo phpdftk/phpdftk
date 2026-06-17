@@ -1300,6 +1300,13 @@ final class ValueParser
         if ($L === null) {
             return null;
         }
+        // CSS Color 4 §10.5 — `lab` / `lch` lightness clamps to
+        // [0, 100]; `oklab` / `oklch` lightness clamps to [0, 1].
+        // The negative range, and values past the 100 / 1 ceiling,
+        // are valid syntax but render at the boundary (WPT
+        // lab-l-over-100-*, oklab-l-over-1-*).
+        $lMax = $isLightnessPct100 ? 100.0 : 1.0;
+        $L = max(0.0, min($lMax, $L));
 
         $space = match ($name) {
             'lab' => ColorSpace::Lab,

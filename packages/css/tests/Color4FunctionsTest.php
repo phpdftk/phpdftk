@@ -81,6 +81,25 @@ final class Color4FunctionsTest extends TestCase
         self::assertSame(0.0, $color->b);
     }
 
+    public function testLabLightnessClampsAtBoundaries(): void
+    {
+        // CSS Color 4 §10.5 — `lab` / `lch` lightness clamps to
+        // [0, 100]; out-of-range values still parse but pin at the
+        // boundary (WPT lab-l-over-100-1 / lab-l-over-100-2).
+        $high = $this->parseColor('lab(150 150 20)');
+        self::assertEqualsWithDelta(100.0, $high->r, 1e-9, 'lab(150 …) lightness clamps to 100');
+
+        $low = $this->parseColor('lab(-30 50 -10)');
+        self::assertEqualsWithDelta(0.0, $low->r, 1e-9, 'lab(-30 …) lightness clamps to 0');
+
+        // `oklab` / `oklch` lightness clamps to [0, 1].
+        $okHigh = $this->parseColor('oklab(2 0.1 -0.1)');
+        self::assertEqualsWithDelta(1.0, $okHigh->r, 1e-9, 'oklab(2 …) lightness clamps to 1');
+
+        $okLow = $this->parseColor('oklab(-0.5 0.1 -0.1)');
+        self::assertEqualsWithDelta(0.0, $okLow->r, 1e-9, 'oklab(-0.5 …) lightness clamps to 0');
+    }
+
     // -----------------------------------------------------------------------
     // lch()
     // -----------------------------------------------------------------------
