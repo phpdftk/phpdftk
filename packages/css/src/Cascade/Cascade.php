@@ -510,19 +510,41 @@ final class Cascade
         $body = trim($body);
         if (str_starts_with($body, 'not ') || str_starts_with($body, 'not(')) {
             $rest = trim(substr($body, 3));
-            if ($rest === '' || $rest[0] !== '(' || !str_ends_with($rest, ')')) {
+            // CSS Media Queries 4 §3.3 — `not` is a unary operator
+            // over EXACTLY one media-in-parens. `not (X) and (Y)` is
+            // a syntax error: the `not` cannot pair with a trailing
+            // and/or chain unless the whole and/or is grouped
+            // (`not ((X) and (Y))`). Verify the rest is a single
+            // depth-balanced paren expression with nothing trailing.
+            if (!$this->isSingleParenExpression($rest)) {
                 return false;
             }
             return !$this->evaluateMediaCondition(trim(substr($rest, 1, -1)));
         }
         if ($body !== '' && $body[0] === '(') {
             // Top-level looks like `(X) <op> (Y) ...` — split on top-
-            // level `and` / `or` between parenthesised groups. Each
-            // segment's stored op is the operator that PRECEDED it
-            // (null for the first segment), so we combine left-to-
-            // right using the current segment's op.
+            // level `and` / `or` between parenthesised groups.
             $segments = $this->splitMediaConditionAt($body, ['and', 'or']);
             if (count($segments) > 1) {
+                // CSS Media Queries 4 §3.3 — `and` and `or` cannot be
+                // mixed at the same level without explicit grouping
+                // parens: `(A) and (B) or (C)` is invalid syntax. Also
+                // a bare `not (X)` cannot appear as a segment of an
+                // and/or chain — it must be wrapped: `(not (X))`. Both
+                // shapes reject as `not all` per §3.1.
+                $opsSeen = [];
+                foreach ($segments as [$segOp, $segText]) {
+                    if ($segOp !== null) {
+                        $opsSeen[$segOp] = true;
+                    }
+                    $segText = trim($segText);
+                    if ($segText === '' || $segText[0] !== '(' || !str_ends_with($segText, ')')) {
+                        return false;
+                    }
+                }
+                if (isset($opsSeen['and']) && isset($opsSeen['or'])) {
+                    return false;
+                }
                 $result = null;
                 foreach ($segments as [$segOp, $segText]) {
                     $segVal = $this->evaluateMediaCondition(trim($segText));
@@ -530,13 +552,7 @@ final class Cascade
                         $result = $segVal;
                         continue;
                     }
-                    if ($segOp === 'and') {
-                        $result = $result && $segVal;
-                    } elseif ($segOp === 'or') {
-                        $result = $result || $segVal;
-                    } else {
-                        return false;
-                    }
+                    $result = $segOp === 'and' ? ($result && $segVal) : ($result || $segVal);
                 }
                 return (bool) $result;
             }
@@ -546,6 +562,36 @@ final class Cascade
             return false;
         }
         return $this->matchFeatureQuery($body);
+    }
+
+    /**
+     * Test whether `$s` is a single depth-balanced paren expression
+     * with no trailing content — that is, `(X)` where the opening
+     * paren at index 0 only closes at the last character. Used to
+     * enforce the CSS Media Queries 4 §3.3 rule that `not` takes
+     * exactly one `<media-in-parens>` operand.
+     */
+    private function isSingleParenExpression(string $s): bool
+    {
+        $s = trim($s);
+        if ($s === '' || $s[0] !== '(' || !str_ends_with($s, ')')) {
+            return false;
+        }
+        $depth = 0;
+        $n = strlen($s);
+        for ($i = 0; $i < $n; $i++) {
+            if ($s[$i] === '(') {
+                $depth++;
+            } elseif ($s[$i] === ')') {
+                $depth--;
+                // If the outermost `(` closes before the last char,
+                // there's content after it → not a single paren expr.
+                if ($depth === 0 && $i !== $n - 1) {
+                    return false;
+                }
+            }
+        }
+        return $depth === 0;
     }
 
     /**

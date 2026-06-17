@@ -758,6 +758,43 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $values->get('color')->r);
     }
 
+    public function testMediaMixedNotWithAndOrIsInvalid(): void
+    {
+        // CSS Media Queries 4 §3.3 — `not` cannot be mixed with `and`
+        // or `or` at the same level without explicit grouping parens.
+        // `(not X and Y)`, `(not X or Y)`, `(X and not Y)`, `(X or not
+        // Y)` are all parse errors → `not all` → false. Backs WPT
+        // negation-002, which uses all four shapes as "must not
+        // apply" rules.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        foreach ([
+            '(not (monochrome) and (color))',
+            '(not (monochrome) or (color))',
+            '((color) and not (monochrome))',
+            '((color) or not (monochrome))',
+            // Mixed and/or at same level without grouping is also
+            // invalid (§3.3) — `(A) and (B) or (C)` must be written
+            // as `((A) and (B)) or (C)` or `(A) and ((B) or (C))`.
+            '(min-width: 0) and (min-height: 0) or (min-width: 9999px)',
+        ] as $prelude) {
+            $sheet = $this->parser->parseStylesheet(
+                "@media {$prelude} { p { color: red; } }",
+            );
+            $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+            self::assertSame(
+                0.0,
+                $values->get('color')->r,
+                "@media {$prelude} must NOT apply: invalid combination of not with and/or",
+            );
+        }
+        // Positive control: nested groups are valid.
+        $sheet = $this->parser->parseStylesheet(
+            '@media ((not (monochrome)) and (color)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r, 'wrapping the not group makes the combination valid');
+    }
+
     public function testMediaUnknownFeatureEvaluatesFalse(): void
     {
         // Negative: an unrecognised feature (`color-index`) makes
