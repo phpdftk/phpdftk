@@ -879,11 +879,19 @@ final class Cascade
             return true;
         }
         $valueRaw = trim($valueRaw);
-        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(?:\/\s*([\-+]?[0-9]*\.?[0-9]+))?$/', $valueRaw, $m) !== 1) {
+        // CSS Values 4 §10 — `calc(<num> / <num>)` evaluates to a
+        // number that can stand in for the ratio. Handle the simple
+        // single-division form here (WPT mq-calc-008) without falling
+        // through to the full calc engine.
+        if (preg_match('/^calc\s*\(\s*([\-+]?[0-9]*\.?[0-9]+)\s*\/\s*([\-+]?[0-9]*\.?[0-9]+)\s*\)$/i', $valueRaw, $cm) === 1) {
+            $num = (float) $cm[1];
+            $den = (float) $cm[2];
+        } elseif (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(?:\/\s*([\-+]?[0-9]*\.?[0-9]+))?$/', $valueRaw, $m) === 1) {
+            $num = (float) $m[1];
+            $den = isset($m[2]) ? (float) $m[2] : 1.0;
+        } else {
             return false;
         }
-        $num = (float) $m[1];
-        $den = isset($m[2]) ? (float) $m[2] : 1.0;
         // Browsers treat any ratio with a zero numerator or
         // denominator as +∞ for `max-*` and 0 for `min-*` (so a
         // `0/N` ratio always satisfies `max-aspect-ratio` and never
