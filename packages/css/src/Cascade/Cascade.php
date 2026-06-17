@@ -1332,10 +1332,135 @@ final class Cascade
     {
         try {
             $parsed = \Phpdftk\Css\Selector\SelectorParser::parse($selector);
-            return $parsed->selectors !== [];
         } catch (\Throwable) {
             return false;
         }
+        // CSS Conditional Rules 4 §3 — `selector()` takes a SINGLE
+        // `<complex-selector>`, NOT a `<selector-list>`. `selector(div,
+        // div)` is invalid (WPT at-supports-selector-004) and must
+        // evaluate false so the gated rule drops.
+        if (count($parsed->selectors) !== 1) {
+            return false;
+        }
+        // `selector()` reports whether the queried selector is actually
+        // SUPPORTED — not merely parseable. A bare `<ident>(…)`
+        // extension shape, an unknown pseudo-class or pseudo-element,
+        // or any vendor-prefixed (`-webkit-`, `-moz-`) name we don't
+        // implement all evaluate to false (WPT at-supports-selector-003).
+        return $this->selectorIsFullySupported($parsed->selectors[0]);
+    }
+
+    private function selectorIsFullySupported(\Phpdftk\Css\Selector\ComplexSelector $selector): bool
+    {
+        foreach ($selector->compounds as $compound) {
+            // ComplexSelector's compounds carry a CompoundSelector
+            // plus the combinator to the next compound; we only need
+            // the inner one's simple-selector components.
+            $inner = $compound instanceof \Phpdftk\Css\Selector\CompoundSelectorWithCombinator
+                ? $compound->compound
+                : $compound;
+            foreach ($inner->components as $simple) {
+                if (!$this->simpleSelectorIsSupported($simple)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private function simpleSelectorIsSupported(\Phpdftk\Css\Selector\SimpleSelector $simple): bool
+    {
+        if ($simple instanceof \Phpdftk\Css\Selector\PseudoElementSelector) {
+            return $this->isKnownPseudoElement($simple->name)
+                && ($simple->arguments === null
+                    || $this->allSelectorsSupported($simple->arguments));
+        }
+        if ($simple instanceof \Phpdftk\Css\Selector\PseudoClassSelector) {
+            if (!$this->isKnownPseudoClass($simple->name)) {
+                return false;
+            }
+            if ($simple->arguments !== null) {
+                return $this->allSelectorsSupported($simple->arguments);
+            }
+            return true;
+        }
+        return true;
+    }
+
+    private function allSelectorsSupported(\Phpdftk\Css\Selector\SelectorList $list): bool
+    {
+        foreach ($list->selectors as $sel) {
+            if (!$this->selectorIsFullySupported($sel)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whitelist of pseudo-elements we recognise — CSS Pseudo 4 §3 plus
+     * a handful of widely-implemented extensions. Anything not on the
+     * list (notably every vendor-prefixed name) reports unsupported.
+     */
+    private function isKnownPseudoElement(string $name): bool
+    {
+        return in_array(strtolower($name), [
+            'after', 'before',
+            'first-letter', 'first-line',
+            'backdrop', 'marker', 'placeholder', 'file-selector-button',
+            'selection', 'target-text', 'highlight',
+            'spelling-error', 'grammar-error',
+            'cue', 'cue-region',
+            'slotted', 'part', 'theme',
+            'view-transition', 'view-transition-group',
+            'view-transition-image-pair', 'view-transition-old',
+            'view-transition-new',
+            'placeholder-shown', 'details-content',
+            // HTML interactive controls.
+            'picker', 'picker-icon',
+            // Scroll markers.
+            'scroll-marker', 'scroll-marker-group',
+            'scroll-button',
+            // Column boxes.
+            'column',
+            // Search.
+            'search-text',
+            // Form inputs.
+            'first-letter', 'first-line',
+        ], true);
+    }
+
+    /**
+     * Whitelist of pseudo-classes we recognise. Same posture as pseudo-
+     * elements — anything not on the list (notably vendor-prefixed
+     * names like `-webkit-*`) reports unsupported.
+     */
+    private function isKnownPseudoClass(string $name): bool
+    {
+        return in_array(strtolower($name), [
+            'hover', 'active', 'focus', 'focus-visible', 'focus-within',
+            'link', 'visited', 'any-link', 'target', 'target-within',
+            'scope', 'host', 'host-context',
+            'root', 'empty', 'blank',
+            'first-child', 'last-child', 'only-child',
+            'first-of-type', 'last-of-type', 'only-of-type',
+            'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type',
+            'nth-col', 'nth-last-col',
+            'not', 'is', 'where', 'has',
+            'lang', 'dir',
+            'enabled', 'disabled', 'read-only', 'read-write',
+            'required', 'optional', 'placeholder-shown',
+            'checked', 'indeterminate', 'default',
+            'valid', 'invalid', 'in-range', 'out-of-range',
+            'user-invalid', 'user-valid',
+            'autofill',
+            'fullscreen', 'modal', 'picture-in-picture',
+            'popover-open',
+            'past', 'current', 'future',
+            'state',
+            'open', 'closed',
+            'defined',
+        ], true);
     }
 
     /**
