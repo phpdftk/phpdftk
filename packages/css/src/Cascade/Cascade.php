@@ -1430,22 +1430,31 @@ final class Cascade
      */
     private function pickCascadeWinner(string $property, array $indices, array $candidates): ?array
     {
-        // The "excluded layers" set lets us re-pick after a
-        // `revert-layer` knock-out. Key on layer index; the sentinel
-        // string "unlayered" represents the unlayered bucket.
-        $excluded = [];
+        // Two exclusion sets for the rollback loops:
+        //  • `excludedLayers` — keyed on `origin:layer`; populated by
+        //    `revert-layer` knock-outs (CSS Cascade 5 §5.4).
+        //  • `excludedOrigins` — keyed on origin; populated by `revert`
+        //    knock-outs (CSS Cascade 5 §5.3). `revert` drops the whole
+        //    current origin's contribution, so on the next iteration
+        //    we look at the next lower origin (Author → User → UA →
+        //    initial fallback).
+        $excludedLayers = [];
+        $excludedOrigins = [];
         while (true) {
             $best = null;
             foreach ($indices as $idx) {
                 $c = $candidates[$idx];
                 $layer = $c['layerIndex'];
+                if (isset($excludedOrigins[$c['origin']->name])) {
+                    continue;
+                }
                 // Scope the exclusion key by origin so that an author
                 // `revert-layer` only knocks out the author bucket
                 // (not the UA stylesheet's matching candidates, which
                 // live at origin=UserAgent with layerIndex=null too).
                 $layerKey = $c['origin']->name . ':'
                     . ($layer === null ? 'unlayered' : 'L' . $layer);
-                if (isset($excluded[$layerKey])) {
+                if (isset($excludedLayers[$layerKey])) {
                     continue;
                 }
                 $tier = self::tierFor($c['origin'], $c['declaration']->important);
@@ -1467,6 +1476,7 @@ final class Cascade
                         'tier' => $tier,
                         'layerRank' => $layerRank,
                         'layerKey' => $layerKey,
+                        'origin' => $c['origin'],
                         'specificity' => $c['specificity'],
                         'order' => $c['order'],
                     ];
@@ -1485,7 +1495,19 @@ final class Cascade
                 // run dry, in which case the property falls through
                 // to the registry's initial value via
                 // `resolveSpecialKeywords` on `revert-layer`.
-                $excluded[$best['layerKey']] = true;
+                $excludedLayers[$best['layerKey']] = true;
+                continue;
+            }
+            if ($winnerValue instanceof Keyword
+                && strtolower($winnerValue->name) === 'revert'
+            ) {
+                // CSS Cascade 5 §5.3 — `revert` rolls the cascade
+                // back to the next lower origin. Drop every
+                // candidate from the winner's origin and re-pick.
+                // Eventually we either land on the UA stylesheet's
+                // contribution (the next lower origin still in the
+                // candidate list) or run dry → registry initial.
+                $excludedOrigins[$best['origin']->name] = true;
                 continue;
             }
             return [

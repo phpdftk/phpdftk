@@ -1217,6 +1217,27 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $values->get('color')->r);
     }
 
+    public function testRevertRollsBackToLowerOrigin(): void
+    {
+        // CSS Cascade 5 §5.3 — `revert` rolls the cascade back to
+        // the value from a lower origin. Backs WPT revert-val-001:
+        // `display: revert` in an author rule for a <div> reverts
+        // to the UA stylesheet's `div { display: block }` rather
+        // than to the CSS initial value (`inline`).
+        $ua = $this->parser->parseStylesheet(
+            'div { display: block; }',
+            Origin::UserAgent,
+        );
+        $author = $this->parser->parseStylesheet(
+            'div { display: inline; display: revert; }',
+            Origin::Author,
+        );
+        $values = $this->cascade->computeFor([$ua, $author], new FakeElement('div'));
+        $display = $values->get('display');
+        self::assertNotNull($display);
+        self::assertSame('block', $display->name);
+    }
+
     public function testRevertLayerCascadesAcrossMultipleLayers(): void
     {
         // CSS Cascade 5 §5.4 — multiple chained revert-layer
