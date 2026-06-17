@@ -902,18 +902,31 @@ final class Cascade
     private function parseMediaLength(string $value): ?float
     {
         $value = trim($value);
-        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(px|pt|in|cm|mm|q)?$/i', $value, $m) !== 1) {
+        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*([a-z]*)$/i', $value, $m) !== 1) {
             return null;
         }
         $n = (float) $m[1];
         $unit = strtolower($m[2] ?? 'px');
+        // CSS Media Queries 4 §1.3 — `rem` / `em` / `ex` / `ch` inside
+        // an `@media` query use the INITIAL value of `font-size` on
+        // the root element (16 CSS px in the absence of a UA
+        // stylesheet override), NOT the cascaded value. This
+        // intentionally diverges from property-context resolution so
+        // authors can build feature-detection breakpoints that don't
+        // shift when they bump root font-size on `:root`.
+        $rootFontPx = 16.0;
         return match ($unit) {
+            '', 'px' => $n,
             'pt' => $n * 96.0 / 72.0,
             'in' => $n * 96.0,
             'cm' => $n * 96.0 / 2.54,
             'mm' => $n * 96.0 / 25.4,
-            'q' => $n * 96.0 / 101.6,
-            default => $n,
+            'q'  => $n * 96.0 / 101.6,
+            'pc' => $n * 16.0,
+            'em', 'rem' => $n * $rootFontPx,
+            'ex' => $n * $rootFontPx * 0.5,
+            'ch' => $n * $rootFontPx * 0.5,
+            default => null,
         };
     }
 
