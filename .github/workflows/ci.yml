@@ -541,7 +541,7 @@ jobs:
           cat verdict.json
 
       - name: Post or update PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
