@@ -1157,6 +1157,112 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $color->r);
     }
 
+    public function testSupportsShorthandPropertyName(): void
+    {
+        // CSS Conditional Rules 3 §3.1 — `(font: 16px serif)` checks
+        // the `font` shorthand name. The cascade only registers
+        // longhand initials, so the property registry alone says
+        // "no"; the ShorthandExpander's known-shorthand set saves it.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (font: 16px serif) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (background: rgba(0, 0, 0, 0.5)) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsAllowsImportantInValue(): void
+    {
+        // §3.1 — the body uses declaration grammar, which permits a
+        // trailing `!important`. The flag changes specificity, not
+        // parse validity, so it must be stripped before per-type
+        // acceptance kicks in (WPT css-supports-004).
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: green !important) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsUnknownFunctionAcceptedAsGeneralEnclosed(): void
+    {
+        // §3.1 — `<general-enclosed>` consumes any `<ident>(<any-value>)`
+        // shape for forwards-compat and evaluates to false. Crucially
+        // the surrounding OR/AND chain MUST continue past it (WPT
+        // css-supports-036) instead of stopping dead.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports an-extension(of some kind) or (color: green) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsNotIsAFunctionTokenWhenAdjacentToParen(): void
+    {
+        // §3.1 + CSS Syntax 3 — `not(`, `and(`, `or(` are FUNCTION
+        // tokens, NOT the boolean operators. So `not(unknown: x)` is
+        // an unknown function call → false → rule drops (WPT
+        // css-supports-038). The keyword form requires whitespace.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports not(unknown: unknown) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+
+        // And `(color: green) or(color: blue)` — `or(` is a function,
+        // not the operator. The prelude has trailing tokens after
+        // `(color: green)` parses cleanly → syntax error → drop.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: green) or(color: blue) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+
+        // Positive control: the operator keyword still works with ws.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: green) or (color: blue) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsRejectsMixedAndOrOrNotAtSameLevel(): void
+    {
+        // §3.1 — `not` cannot mix with `and`/`or`, and `and` cannot
+        // mix with `or`, at the same level without grouping parens.
+        // All these shapes drop the rule (WPT css-supports-013/014/
+        // 017/019/029/030).
+        foreach ([
+            '(color: green) and (color: green) or (color: green)',
+            '(color: green) or (color: green) and (color: green)',
+            'not (color: rainbow) and not (color: iridescent)',
+            'not (color: rainbow) or (color: green)',
+            '(not (color: rainbow) or (color: green))',
+        ] as $prelude) {
+            $sheet = $this->parser->parseStylesheet(
+                "@supports {$prelude} { p { color: red; } }",
+            );
+            $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+            self::assertSame(
+                0.0,
+                $values->get('color')->r,
+                "@supports {$prelude} must drop — invalid mix of not/and/or at same level",
+            );
+        }
+        // Positive control: nest the `not` in a group and the
+        // disjunction becomes valid.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports ((not (color: rainbow)) or (color: green)) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
     public function testVarLoopFallsBackToInitial(): void
     {
         // Mutually recursive var() references blow the 100-deep cap; cascade

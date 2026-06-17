@@ -130,6 +130,38 @@ final class ShorthandExpander
     }
 
     /**
+     * Test whether a property name is a known shorthand we expand.
+     * Used by `@supports (shorthand: value)` feature detection where
+     * the cascade only registers the longhand initial values, but the
+     * shorthand name itself is still "supported" if we can expand it.
+     */
+    public function isShorthand(string $property): bool
+    {
+        return match (strtolower($property)) {
+            'margin', 'padding',
+            'border-width', 'border-style', 'border-color', 'border-radius',
+            'border-top', 'border-right', 'border-bottom', 'border-left',
+            'border-block', 'border-inline',
+            'border-block-start', 'border-block-end',
+            'border-inline-start', 'border-inline-end',
+            'border', 'outline', 'font', 'text-decoration', 'background',
+            'list-style', 'columns', 'column-rule', 'gap', 'inset',
+            'inset-block', 'inset-inline',
+            'margin-block', 'margin-inline', 'padding-block', 'padding-inline',
+            'overflow', 'flex', 'flex-flow',
+            'grid-column', 'grid-row', 'grid-area',
+            'place-items', 'place-content', 'place-self',
+            'transition', 'animation', 'position-try',
+            'text-emphasis', 'mask', 'border-image', 'mask-border',
+            'page-break-before', 'page-break-after', 'page-break-inside',
+            'inset-area', 'word-wrap', 'grid-gap', 'grid-row-gap', 'grid-column-gap',
+            'text-wrap', 'white-space', 'caret',
+            'font-synthesis', 'font-variant' => true,
+            default => false,
+        };
+    }
+
+    /**
      * Expand a `<prefix>: <start> [<end>]` logical-pair shorthand
      * into `<prefix>-start` / `<prefix>-end`. One value applies
      * to both sides; two values map first → start, second → end

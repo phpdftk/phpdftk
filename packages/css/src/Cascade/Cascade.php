@@ -785,46 +785,86 @@ final class Cascade
         }
         $pos = 0;
         $result = $this->parseSupportsOr($prelude, $pos);
+        // CSS Conditional Rules 3 §3.1 — the entire prelude must be a
+        // single <supports-condition>. Leftover non-whitespace input
+        // means the prelude is a syntax error → drop the rule. WPT
+        // css-supports-039 exercises this with `(color: green)
+        // or(color: blue)` where `or(` is a function token; the OR
+        // parser finishes after `(color: green)` and the trailing
+        // function call shouldn't silently win.
+        $this->skipSupportsWs($prelude, $pos);
+        if ($pos < strlen($prelude)) {
+            return false;
+        }
         return $result;
     }
 
-    /** Recursive-descent: `<and-cond> ( 'or' <and-cond> )*`. */
+    /**
+     * Parse a top-level CSS Conditional Rules 3 §3.1
+     * `<supports-condition>`:
+     *
+     *   not <supports-in-parens>
+     *   <supports-in-parens> [ and <supports-in-parens> ]+
+     *   <supports-in-parens> [ or  <supports-in-parens> ]+
+     *   <supports-in-parens>
+     *
+     * The three forms are mutually exclusive: a `not` cannot be mixed
+     * with `and` / `or` at the same level (`not X and Y` is invalid;
+     * use `(not X) and Y` instead), and `and` cannot be mixed with
+     * `or` at the same level (`X and Y or Z` is invalid; use
+     * `(X and Y) or Z`). Each violation is a syntax error per §3.1,
+     * which makes the at-rule drop entirely. `not`/`and`/`or` nested
+     * INSIDE a `(...)` group are parsed via parseSupportsPrimary →
+     * recursive parseSupportsOr, so grouping parens still combine
+     * arbitrarily.
+     */
     private function parseSupportsOr(string $s, int &$pos): bool
     {
-        $left = $this->parseSupportsAnd($s, $pos);
-        while (true) {
-            $this->skipSupportsWs($s, $pos);
-            if (!$this->consumeSupportsKeyword($s, $pos, 'or')) {
-                break;
-            }
-            $right = $this->parseSupportsAnd($s, $pos);
-            $left = $left || $right;
-        }
-        return $left;
-    }
-
-    /** Recursive-descent: `<unary> ( 'and' <unary> )*`. */
-    private function parseSupportsAnd(string $s, int &$pos): bool
-    {
-        $left = $this->parseSupportsUnary($s, $pos);
-        while (true) {
-            $this->skipSupportsWs($s, $pos);
-            if (!$this->consumeSupportsKeyword($s, $pos, 'and')) {
-                break;
-            }
-            $right = $this->parseSupportsUnary($s, $pos);
-            $left = $left && $right;
-        }
-        return $left;
-    }
-
-    /** Recursive-descent: `'not'? <primary>`. */
-    private function parseSupportsUnary(string $s, int &$pos): bool
-    {
         $this->skipSupportsWs($s, $pos);
-        $negate = $this->consumeSupportsKeyword($s, $pos, 'not');
-        $inner = $this->parseSupportsPrimary($s, $pos);
-        return $negate ? !$inner : $inner;
+        if ($this->consumeSupportsKeyword($s, $pos, 'not')) {
+            $inner = $this->parseSupportsPrimary($s, $pos);
+            // After `not <supports-in-parens>`, no further `and`/`or`
+            // is allowed at this level. Anything trailing is a syntax
+            // error; the supportsPreludeMatches caller already verifies
+            // EOF, but we leave $pos at the first non-ws character so
+            // it sees the leftover.
+            return !$inner;
+        }
+        $left = $this->parseSupportsPrimary($s, $pos);
+        $this->skipSupportsWs($s, $pos);
+        // Look ahead for the FIRST operator after the initial primary
+        // — that pins the operator type for the entire chain.
+        $firstOp = null;
+        if ($this->peekSupportsKeyword($s, $pos, 'and')) {
+            $firstOp = 'and';
+        } elseif ($this->peekSupportsKeyword($s, $pos, 'or')) {
+            $firstOp = 'or';
+        } else {
+            return $left;
+        }
+        // Consume the chosen operator chain. The other operator can
+        // not appear at the same level; if we hit it the rule drops.
+        while ($this->consumeSupportsKeyword($s, $pos, $firstOp)) {
+            $right = $this->parseSupportsPrimary($s, $pos);
+            $left = $firstOp === 'and' ? ($left && $right) : ($left || $right);
+            $this->skipSupportsWs($s, $pos);
+        }
+        return $left;
+    }
+
+    /**
+     * Peek whether a keyword token starts at $pos without consuming
+     * it. Used by parseSupportsOr to pick the operator type before
+     * committing.
+     */
+    private function peekSupportsKeyword(string $s, int $pos, string $kw): bool
+    {
+        $len = strlen($kw);
+        if (strtolower(substr($s, $pos, $len)) !== $kw) {
+            return false;
+        }
+        $next = $s[$pos + $len] ?? '';
+        return $next === '' || ctype_space($next);
     }
 
     /**
@@ -839,31 +879,40 @@ final class Cascade
         if ($pos >= strlen($s)) {
             return false;
         }
-        // Bare feature function form: `selector(...)` etc.
+        // Bare feature function form: `selector(...)`, `font-format(...)`,
+        // `font-tech(...)`, plus the CSS Conditional Rules 3 §3.1
+        // `<general-enclosed>` forwards-compat shape — any other
+        // `<ident>(<any-value>)` consumes its tokens and evaluates
+        // to false. This lets `unknown(...) or (color: green)` keep
+        // parsing the `or` branch instead of stopping dead at the
+        // unknown function (WPT css-supports-036).
         if (preg_match('/\G([A-Za-z][\w-]*)\(/A', $s, $m, 0, $pos) === 1) {
             $name = strtolower($m[1]);
-            if (in_array($name, ['selector', 'font-format', 'font-tech'], true)) {
-                $pos += strlen($m[0]);
-                $start = $pos;
-                $depth = 1;
-                while ($pos < strlen($s)) {
-                    $ch = $s[$pos];
-                    if ($ch === '(') {
-                        $depth++;
-                    } elseif ($ch === ')') {
-                        $depth--;
-                        if ($depth === 0) {
-                            break;
-                        }
+            $pos += strlen($m[0]);
+            $start = $pos;
+            $depth = 1;
+            while ($pos < strlen($s)) {
+                $ch = $s[$pos];
+                if ($ch === '(') {
+                    $depth++;
+                } elseif ($ch === ')') {
+                    $depth--;
+                    if ($depth === 0) {
+                        break;
                     }
-                    $pos++;
                 }
-                $arg = substr($s, $start, $pos - $start);
-                if ($pos < strlen($s)) {
-                    $pos++; // skip closing ')'
-                }
+                $pos++;
+            }
+            $arg = substr($s, $start, $pos - $start);
+            if ($pos < strlen($s)) {
+                $pos++; // skip closing ')'
+            }
+            if (in_array($name, ['selector', 'font-format', 'font-tech'], true)) {
                 return $this->evaluateSupportsFeature($m[1] . '(' . $arg . ')');
             }
+            // <general-enclosed> — unknown function notation. Consume
+            // and evaluate to false per §3.1.
+            return false;
         }
         if ($s[$pos] !== '(') {
             return false;
@@ -889,10 +938,18 @@ final class Cascade
             $pos++; // skip ')'
         }
         // If the body itself contains `and`/`or`/`not` at the top
-        // level, recurse — it's a logical group like `(A and B)`.
+        // level, recurse — it's a logical group like `(A and B)`. The
+        // recursive call must consume the WHOLE body; any trailing
+        // tokens (e.g. `not X or Y` where `not` and `or` are mixed)
+        // make the whole group invalid → false per §3.1.
         if (preg_match('/^(not\s|.*\s(and|or)\s)/i', $body) === 1) {
             $sub = 0;
-            return $this->parseSupportsOr($body, $sub);
+            $result = $this->parseSupportsOr($body, $sub);
+            $this->skipSupportsWs($body, $sub);
+            if ($sub < strlen($body)) {
+                return false;
+            }
+            return $result;
         }
         // CSS Conditional Rules 3 §3 — extra parens around a single
         // sub-expression are allowed. `((color: green))` strips to
@@ -920,9 +977,15 @@ final class Cascade
         if (strtolower(substr($s, $pos, $len)) !== $kw) {
             return false;
         }
-        // Must be followed by whitespace or end (so 'and' doesn't match in 'android').
+        // Must be followed by whitespace or end. Per CSS Conditional
+        // Rules 3 §3.1 and CSS Syntax 3, `not(`, `and(`, `or(` are
+        // FUNCTION tokens — they bind into a function call, NOT the
+        // boolean operator keyword. WPT css-supports-038 / -039 fail
+        // when we accept `not(unknown)` as the `not` operator instead
+        // of as an unknown function. So whitespace (or EOF) is the
+        // ONLY valid boundary after the keyword.
         $next = $s[$pos + $len] ?? '';
-        if ($next !== '' && !ctype_space($next) && $next !== '(') {
+        if ($next !== '' && !ctype_space($next)) {
             return false;
         }
         $pos += $len;
@@ -961,7 +1024,17 @@ final class Cascade
             }
             $prop = strtolower(trim(substr($body, 0, $colonPos)));
             $value = trim(substr($body, $colonPos + 1));
-            if (!$this->registry->has($prop)) {
+            // CSS Conditional Rules 3 §3.1 — the body uses the same
+            // grammar as a declaration, including a trailing
+            // `!important`. The flag changes specificity, not parse
+            // validity, so strip it before per-type acceptance.
+            $value = preg_replace('/\s*!\s*important\s*$/i', '', $value) ?? $value;
+            $value = trim($value);
+            // Property is "supported" if it's in the registry (a
+            // longhand we know about) OR a known shorthand we expand.
+            // Shorthands aren't registered with initial values but
+            // the @supports prelude still names them.
+            if (!$this->registry->has($prop) && !$this->shorthands->isShorthand($prop)) {
                 return false;
             }
             return $this->supportsValueIsAcceptable($prop, $value);
