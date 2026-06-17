@@ -684,11 +684,16 @@ final class Cascade
     }
 
     /**
-     * Match an integer-valued media feature whose value is "false in
-     * the negative range" (CSS Media Queries 4 §3) — `color`,
-     * `color-index`, `monochrome`. Same semantics as
-     * {@see matchDimensionFeature} but parses bare integers instead
-     * of `<length>` values.
+     * Match an integer-valued media feature — `color`, `color-index`,
+     * `monochrome`. Same shape as {@see matchDimensionFeature} but
+     * parses bare integers instead of `<length>` values.
+     *
+     * Compares against the literal queried value (no clamping). The
+     * device values we model are all non-negative; the natural
+     * numeric comparison gives the same answer browsers do for
+     * negative thresholds (WPT mq-negative-range-001/002): `min-color:
+     * -10` always satisfies (8 ≥ -10) and `max-color-index: -10` never
+     * does (0 ≤ -10 is false).
      */
     private function matchIntegerFeature(string $name, string $valueRaw, int $deviceValue): bool
     {
@@ -696,7 +701,7 @@ final class Cascade
         if (!is_numeric($valueRaw)) {
             return false;
         }
-        $queried = max(0, (int) $valueRaw);
+        $queried = (int) $valueRaw;
         return match (true) {
             str_starts_with($name, 'min-') => $deviceValue >= $queried,
             str_starts_with($name, 'max-') => $deviceValue <= $queried,
