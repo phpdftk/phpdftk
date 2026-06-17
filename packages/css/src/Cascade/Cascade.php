@@ -862,24 +862,95 @@ final class Cascade
         if ($viewportExtent === null) {
             return true;
         }
-        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(px|pt|in|cm|mm)?$/', $valueRaw, $m) !== 1) {
+        $px = $this->resolveMediaDimensionValue($valueRaw);
+        if ($px === null) {
             return false;
         }
-        $n = (float) $m[1];
-        $unit = $m[2] ?? 'px';
-        $px = match ($unit) {
-            'pt' => $n * 96.0 / 72.0,
-            'in' => $n * 96.0,
-            'cm' => $n * 96.0 / 2.54,
-            'mm' => $n * 96.0 / 25.4,
-            default => $n,
-        };
+        // CSS Values 4 §10 — `<length>` values used in `@media`
+        // feature queries are clamped to their valid range. For
+        // width / height that means `[0, ∞)` — a negative `calc()`
+        // result like `calc(-100px)` clamps to `0px`, so
+        // `(min-width: calc(-100px))` matches any non-negative
+        // viewport width.
+        $px = max(0.0, $px);
         return match ($name) {
             'min-width', 'min-height' => $viewportExtent >= $px,
             'max-width', 'max-height' => $viewportExtent <= $px,
             'width', 'height' => abs($viewportExtent - $px) < 0.001,
             default => false,
         };
+    }
+
+    /**
+     * Resolve a `<length>` value used in an `@media` feature query
+     * down to absolute pixels. Supports bare unit-suffixed lengths
+     * (`100px`, `5cm`, `72pt`, `0`) plus simple `calc(<sum>)`
+     * arithmetic over those — addition and subtraction at the top
+     * level, sufficient for the canonical `calc(-100px)` clamping
+     * case from CSS Values 4 §10. Returns null when the value
+     * doesn't parse cleanly.
+     */
+    private function resolveMediaDimensionValue(string $raw): ?float
+    {
+        $raw = trim($raw);
+        if (preg_match('/^calc\s*\((.*)\)\s*$/i', $raw, $m) === 1) {
+            return $this->evaluateMediaCalcSum(trim($m[1]));
+        }
+        return $this->parseMediaLength($raw);
+    }
+
+    private function parseMediaLength(string $value): ?float
+    {
+        $value = trim($value);
+        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(px|pt|in|cm|mm|q)?$/i', $value, $m) !== 1) {
+            return null;
+        }
+        $n = (float) $m[1];
+        $unit = strtolower($m[2] ?? 'px');
+        return match ($unit) {
+            'pt' => $n * 96.0 / 72.0,
+            'in' => $n * 96.0,
+            'cm' => $n * 96.0 / 2.54,
+            'mm' => $n * 96.0 / 25.4,
+            'q' => $n * 96.0 / 101.6,
+            default => $n,
+        };
+    }
+
+    /**
+     * Evaluate a sum of media-query lengths: each top-level `+` / `-`
+     * separates a term, every term is a `parseMediaLength` value.
+     * Returns null on any malformation so the caller fails the feature
+     * query — partial evaluation would silently shift a real layout
+     * decision off a spec-invalid value.
+     */
+    private function evaluateMediaCalcSum(string $body): ?float
+    {
+        $body = trim($body);
+        if ($body === '') {
+            return null;
+        }
+        // Split on `+` and `-` operators while keeping the operator
+        // tokens. Whitespace is required around `+` / `-` (CSS Values 4
+        // §10.4) to disambiguate from signed literals; we honour that.
+        $tokens = preg_split('/\s+([+-])\s+/', $body, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if ($tokens === false || $tokens === []) {
+            return null;
+        }
+        $sum = $this->parseMediaLength($tokens[0]);
+        if ($sum === null) {
+            return null;
+        }
+        $count = count($tokens);
+        for ($i = 1; $i + 1 < $count; $i += 2) {
+            $op = $tokens[$i];
+            $value = $this->parseMediaLength($tokens[$i + 1]);
+            if ($value === null) {
+                return null;
+            }
+            $sum = $op === '-' ? $sum - $value : $sum + $value;
+        }
+        return $sum;
     }
 
     private function selectorPseudoElementName(\Phpdftk\Css\Selector\ComplexSelector $sel): ?string

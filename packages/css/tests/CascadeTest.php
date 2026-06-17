@@ -500,6 +500,85 @@ final class CascadeTest extends TestCase
         );
         $values = $cascade->computeFor([$sheet], new FakeElement('p'));
         $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaCalcExpressionEvaluates(): void
+    {
+        // CSS Values 4 §10 — `calc()` is valid inside `@media`
+        // feature query values. `(min-width: calc(400px + 200px))`
+        // should evaluate to 600px and match the 800px viewport.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: calc(400px + 200px)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaCalcNegativeWidthClampsToZero(): void
+    {
+        // CSS Values 4 §10 — negative `<length>` in `@media` feature
+        // value clamps to zero for width / height. `(min-width:
+        // calc(-100px))` clamps to `0px`, so it matches any non-
+        // negative viewport. (calc-in-media-queries-002 fixture.)
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: calc(-100px)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaCalcMixedUnitsResolveCorrectly(): void
+    {
+        // Mixed-unit sum: `1in - 24px` = 96 - 24 = 72 (CSS px).
+        // Viewport at 72px matches `(min-width: calc(1in - 24px))`.
+        $cascade = $this->cascade->withViewport(72.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: calc(1in - 24px)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testMediaMalformedCalcDropsRule(): void
+    {
+        // Negative-first: a malformed `calc(...)` (e.g. operator-only
+        // body, no whitespace around `+`) fails the query — the rule
+        // doesn't apply. Without this guard a half-evaluated value
+        // would silently shift the layout decision against author
+        // intent.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: calc(+)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testMediaCalcBareUnitLengthsStillWork(): void
+    {
+        // Regression guard: the original `(min-width: 600px)` pattern
+        // (no calc()) must keep working alongside the new calc()
+        // support — the resolveMediaDimensionValue helper handles
+        // both shapes.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 600px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
         self::assertSame(1.0, $color->r);
     }
 
