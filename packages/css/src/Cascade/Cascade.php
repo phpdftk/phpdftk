@@ -479,11 +479,118 @@ final class Cascade
                 return false;
             }
             $inside = trim(substr($feature, 1, -1));
-            if (!$this->matchFeatureQuery($inside)) {
+            if (!$this->evaluateMediaCondition($inside)) {
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * Evaluate the body of a parenthesised media condition. Handles
+     * the CSS Media Queries 4 `<media-condition>` shape:
+     *
+     *   `not (...)`               negation of a nested condition
+     *   `(...) and (...)`         conjunction inside a group
+     *   `(...) or (...)`          disjunction inside a group
+     *   `<name>[: <value>]`       a plain feature query
+     *
+     * Pure feature names (no leading `not` / no nested parens) defer
+     * to {@see matchFeatureQuery}.
+     */
+    private function evaluateMediaCondition(string $body): bool
+    {
+        $body = trim($body);
+        if (str_starts_with($body, 'not ') || str_starts_with($body, 'not(')) {
+            $rest = trim(substr($body, 3));
+            if ($rest === '' || $rest[0] !== '(' || !str_ends_with($rest, ')')) {
+                return false;
+            }
+            return !$this->evaluateMediaCondition(trim(substr($rest, 1, -1)));
+        }
+        if ($body !== '' && $body[0] === '(') {
+            // Top-level looks like `(X) <op> (Y) ...` — split on top-
+            // level `and` / `or` between parenthesised groups.
+            $segments = $this->splitMediaConditionAt($body, ['and', 'or']);
+            if (count($segments) > 1) {
+                $result = null;
+                $op = null;
+                foreach ($segments as [$segOp, $segText]) {
+                    $segVal = $this->evaluateMediaCondition(trim($segText));
+                    if ($result === null) {
+                        $result = $segVal;
+                        $op = $segOp;
+                        continue;
+                    }
+                    if ($op === 'and') {
+                        $result = $result && $segVal;
+                    } elseif ($op === 'or') {
+                        $result = $result || $segVal;
+                    } else {
+                        return false;
+                    }
+                    $op = $segOp;
+                }
+                return (bool) $result;
+            }
+            if (str_ends_with($body, ')')) {
+                return $this->evaluateMediaCondition(trim(substr($body, 1, -1)));
+            }
+            return false;
+        }
+        return $this->matchFeatureQuery($body);
+    }
+
+    /**
+     * Split a `(A) and (B) and (C)` (or `or`-joined) string into
+     * `[[op, segment], ...]` pairs, where `op` is the operator that
+     * preceded the segment (`null` for the first). Honors paren depth
+     * so nested `(not (X))` groups don't get torn apart.
+     *
+     * @param list<string> $operators
+     * @return list<array{0: ?string, 1: string}>
+     */
+    private function splitMediaConditionAt(string $body, array $operators): array
+    {
+        $segments = [];
+        $current = '';
+        $currentOp = null;
+        $depth = 0;
+        $i = 0;
+        $n = strlen($body);
+        while ($i < $n) {
+            $ch = $body[$i];
+            if ($ch === '(') {
+                $depth++;
+                $current .= $ch;
+                $i++;
+                continue;
+            }
+            if ($ch === ')') {
+                $depth--;
+                $current .= $ch;
+                $i++;
+                continue;
+            }
+            if ($depth === 0 && ctype_space($ch)) {
+                foreach ($operators as $op) {
+                    $candidate = $op . ' ';
+                    if (substr($body, $i + 1, strlen($candidate)) === $candidate) {
+                        $segments[] = [$currentOp, trim($current)];
+                        $current = '';
+                        $currentOp = $op;
+                        $i += 1 + strlen($candidate);
+                        continue 2;
+                    }
+                }
+            }
+            $current .= $ch;
+            $i++;
+        }
+        if ($current !== '') {
+            $segments[] = [$currentOp, trim($current)];
+        }
+        return $segments;
     }
 
     /**
@@ -494,8 +601,36 @@ final class Cascade
     private function matchFeatureQuery(string $inside): bool
     {
         if (!str_contains($inside, ':')) {
-            // Boolean form `(color)` — unsupported. False per spec.
-            return false;
+            // CSS Media Queries 4 §2.4.4 — boolean form: `(feature)`
+            // matches when the feature's value is non-zero / not the
+            // default "no" answer. We answer for the dimension features
+            // we actually model; everything else stays false so an
+            // unknown feature can never silently match.
+            $name = strtolower(trim($inside));
+            switch ($name) {
+                case 'width':
+                case 'device-width':
+                    return $this->viewportWidth === null || $this->viewportWidth > 0;
+                case 'height':
+                case 'device-height':
+                    return $this->viewportHeight === null || $this->viewportHeight > 0;
+                case 'aspect-ratio':
+                case 'device-aspect-ratio':
+                    return $this->viewportWidth !== null
+                        && $this->viewportHeight !== null
+                        && $this->viewportWidth > 0
+                        && $this->viewportHeight > 0;
+                case 'resolution':
+                    return true;
+                case 'color':
+                    return true;
+                case 'monochrome':
+                case 'color-index':
+                case 'grid':
+                    return false;
+                default:
+                    return false;
+            }
         }
         [$name, $valueRaw] = array_map('trim', explode(':', $inside, 2));
         $name = strtolower($name);
@@ -514,7 +649,59 @@ final class Cascade
         if (in_array($name, ['min-height', 'max-height', 'height'], true)) {
             return $this->matchDimensionFeature($name, $valueRaw, $this->viewportHeight);
         }
+        // CSS Media Queries 4 §4.7 — device-* features mirror the
+        // top-level dimensions for our print-target rendering context;
+        // we don't model paged output devices separately from the
+        // rendered viewport.
+        if (in_array($name, ['min-device-width', 'max-device-width', 'device-width'], true)) {
+            $bare = substr($name, 0, 3) === 'min' ? 'min-width'
+                  : (substr($name, 0, 3) === 'max' ? 'max-width' : 'width');
+            return $this->matchDimensionFeature($bare, $valueRaw, $this->viewportWidth);
+        }
+        if (in_array($name, ['min-device-height', 'max-device-height', 'device-height'], true)) {
+            $bare = substr($name, 0, 3) === 'min' ? 'min-height'
+                  : (substr($name, 0, 3) === 'max' ? 'max-height' : 'height');
+            return $this->matchDimensionFeature($bare, $valueRaw, $this->viewportHeight);
+        }
+        // §4.4 — `color`, `color-index`, `monochrome` are integer
+        // features (bits per channel; palette size; monochrome bits).
+        // We model a color print device: 8-bit color, no palette,
+        // no monochrome. Per §3 these features are "false in the
+        // negative range" — the legacy min-/max- form clamps the
+        // queried value to [0, ∞) before comparison so negative
+        // thresholds always satisfy a `min-` query and never satisfy
+        // a `max-` query (max- against negative clamps to 0).
+        if (in_array($name, ['min-color', 'max-color', 'color'], true)) {
+            return $this->matchIntegerFeature($name, $valueRaw, 8);
+        }
+        if (in_array($name, ['min-color-index', 'max-color-index', 'color-index'], true)) {
+            return $this->matchIntegerFeature($name, $valueRaw, 0);
+        }
+        if (in_array($name, ['min-monochrome', 'max-monochrome', 'monochrome'], true)) {
+            return $this->matchIntegerFeature($name, $valueRaw, 0);
+        }
         return false;
+    }
+
+    /**
+     * Match an integer-valued media feature whose value is "false in
+     * the negative range" (CSS Media Queries 4 §3) — `color`,
+     * `color-index`, `monochrome`. Same semantics as
+     * {@see matchDimensionFeature} but parses bare integers instead
+     * of `<length>` values.
+     */
+    private function matchIntegerFeature(string $name, string $valueRaw, int $deviceValue): bool
+    {
+        $valueRaw = trim($valueRaw);
+        if (!is_numeric($valueRaw)) {
+            return false;
+        }
+        $queried = max(0, (int) $valueRaw);
+        return match (true) {
+            str_starts_with($name, 'min-') => $deviceValue >= $queried,
+            str_starts_with($name, 'max-') => $deviceValue <= $queried,
+            default => $deviceValue === $queried,
+        };
     }
 
     /**

@@ -640,6 +640,86 @@ final class CascadeTest extends TestCase
         }
     }
 
+    public function testMediaBooleanFeatureFormForKnownDimensions(): void
+    {
+        // CSS Media Queries 4 §2.4.4 — `(width)` / `(height)` are
+        // boolean form: match when the feature's value is non-zero.
+        // Without a viewport the cascade is permissive (so author
+        // CSS doesn't silently drop). With a non-zero viewport the
+        // dimension features all match; unknown boolean features
+        // still evaluate to false.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        foreach (['width', 'height', 'device-width', 'device-height', 'aspect-ratio', 'device-aspect-ratio'] as $feature) {
+            $sheet = $this->parser->parseStylesheet(
+                "@media ({$feature}) { p { color: red; } }",
+            );
+            $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+            self::assertSame(
+                1.0,
+                $values->get('color')->r,
+                "({$feature}) must match: viewport dimension is non-zero",
+            );
+        }
+        // Negative: unknown boolean features stay false.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (heİght) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testMediaIntegerFeaturesColorMonochromeColorIndex(): void
+    {
+        // CSS Media Queries 4 §4.4 — color/monochrome/color-index
+        // integer features. We model a color print device: color=8,
+        // monochrome=0, color-index=0. Negative thresholds clamp to
+        // 0 per §3 (false-in-negative-range), so `min-X: -10` matches
+        // any non-negative device value.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        foreach ([
+            '(color)' => 1.0,                    // color=8 > 0 → true
+            '(monochrome)' => 0.0,               // monochrome=0 → false
+            '(color-index)' => 0.0,              // color-index=0 → false
+            '(min-color: -10)' => 1.0,           // clamp → 0; 8 >= 0 → true
+            '(min-color: 16)' => 0.0,            // 8 >= 16 → false
+            '(min-monochrome: -1)' => 1.0,       // clamp → 0; 0 >= 0 → true
+            '(min-color-index: -5)' => 1.0,      // clamp → 0; 0 >= 0 → true
+            '(max-color: 4)' => 0.0,             // 8 <= 4 → false
+            '(max-monochrome: 0)' => 1.0,        // 0 <= 0 → true
+        ] as $feature => $expectedR) {
+            $sheet = $this->parser->parseStylesheet(
+                "@media {$feature} { p { color: red; } }",
+            );
+            $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+            self::assertSame(
+                $expectedR,
+                $values->get('color')->r,
+                "{$feature} → expected color.r={$expectedR}",
+            );
+        }
+    }
+
+    public function testMediaNotConditionInsideGroup(): void
+    {
+        // CSS Media Queries 4 §3.3 — `(not (X))` form for negating a
+        // nested feature query. Backs WPT mq-negative-range-002 which
+        // chains seven `(not (max-X: -100px))` predicates with AND.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@media (not (max-width: -100px)) and (not (max-color: -10)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r, 'both inner queries are false-in-negative-range → outer not flips them → true');
+
+        // Negative: `(not (min-width: 0px))` — min-width: 0 always
+        // matches → not flips it → false → rule drops.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (not (min-width: 0px)) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
     public function testMediaUnknownFeatureEvaluatesFalse(): void
     {
         // Negative: an unrecognised feature (`color-index`) makes
