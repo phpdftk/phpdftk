@@ -459,20 +459,27 @@ final class Cascade
      */
     private function evaluateMediaQueryBody(string $query): bool
     {
-        // Split on top-level ` and ` between feature groups. Features
-        // are parenthesised so they're easy to separate.
-        $parts = preg_split('/\s+and\s+/', $query) ?: [];
-        $typeMatches = true;
-        $first = $parts[0] ?? '';
-        if ($first === '' || $first[0] !== '(') {
-            // First slot is a media type (or empty).
-            $typeMatches = $first === '' || $first === 'all'
-                || $first === 'print';
-            array_shift($parts);
+        $query = trim($query);
+        if ($query === '') {
+            return true;
         }
+        // Modern MQ4 syntax — the body IS a media-condition (no
+        // leading type token), with arbitrary `and` / `or` / `not`
+        // and grouped parens. Delegate to the condition evaluator
+        // which is paren-depth-aware.
+        if ($query[0] === '(') {
+            return $this->evaluateMediaCondition($query);
+        }
+        // Legacy syntax — `<type> [ and (feature) ]*`. Split on
+        // top-level ` and ` (features are parenthesised so they
+        // separate cleanly) and verify each.
+        $parts = preg_split('/\s+and\s+/', $query) ?: [];
+        $first = $parts[0] ?? '';
+        $typeMatches = $first === '' || $first === 'all' || $first === 'print';
         if (!$typeMatches) {
             return false;
         }
+        array_shift($parts);
         foreach ($parts as $featureRaw) {
             $feature = trim($featureRaw);
             if ($feature === '' || $feature[0] !== '(' || !str_ends_with($feature, ')')) {
@@ -510,26 +517,26 @@ final class Cascade
         }
         if ($body !== '' && $body[0] === '(') {
             // Top-level looks like `(X) <op> (Y) ...` — split on top-
-            // level `and` / `or` between parenthesised groups.
+            // level `and` / `or` between parenthesised groups. Each
+            // segment's stored op is the operator that PRECEDED it
+            // (null for the first segment), so we combine left-to-
+            // right using the current segment's op.
             $segments = $this->splitMediaConditionAt($body, ['and', 'or']);
             if (count($segments) > 1) {
                 $result = null;
-                $op = null;
                 foreach ($segments as [$segOp, $segText]) {
                     $segVal = $this->evaluateMediaCondition(trim($segText));
                     if ($result === null) {
                         $result = $segVal;
-                        $op = $segOp;
                         continue;
                     }
-                    if ($op === 'and') {
+                    if ($segOp === 'and') {
                         $result = $result && $segVal;
-                    } elseif ($op === 'or') {
+                    } elseif ($segOp === 'or') {
                         $result = $result || $segVal;
                     } else {
                         return false;
                     }
-                    $op = $segOp;
                 }
                 return (bool) $result;
             }

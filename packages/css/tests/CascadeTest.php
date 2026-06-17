@@ -720,6 +720,44 @@ final class CascadeTest extends TestCase
         self::assertSame(0.0, $values->get('color')->r);
     }
 
+    public function testMediaTopLevelOrAndAndCombination(): void
+    {
+        // CSS Media Queries 4 §3.3 — top-level `(A) or (B)` and
+        // `(A) and (B)`. Backs WPT mq-range-001 where an invalid
+        // feature `(width 500px)` poisons one side of an OR but the
+        // other side stays valid → whole query true.
+        $cascade = $this->cascade->withViewport(800.0, 600.0);
+
+        // OR with one true side — whole thing true.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 9999px) or (min-width: 0) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+
+        // OR with both false sides — whole thing false.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 9999px) or (min-height: 9999px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+
+        // AND with one false side — whole thing false.
+        $sheet = $this->parser->parseStylesheet(
+            '@media (min-width: 0) and (min-width: 9999px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+
+        // Invalid feature inside OR — evaluates to false, the other
+        // valid side carries the query (mq-range-001 scenario).
+        $sheet = $this->parser->parseStylesheet(
+            '@media (width 500px) or (min-width: 0) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
     public function testMediaUnknownFeatureEvaluatesFalse(): void
     {
         // Negative: an unrecognised feature (`color-index`) makes
