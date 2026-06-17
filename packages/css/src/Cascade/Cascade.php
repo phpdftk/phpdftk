@@ -109,6 +109,21 @@ final class Cascade
     private \WeakMap $selPseudoCache;
 
     /**
+     * Layer name → declaration-order index. Populated lazily per
+     * `computeFor` call as we descend into `@layer` blocks. Named
+     * layers reuse the same index across all of their occurrences,
+     * anonymous blocks each get a fresh index.
+     *
+     * Per CSS Cascade 5 §5.3.1 — for normal author declarations, a
+     * higher index (later-declared) wins; unlayered declarations
+     * (index `null` on a candidate) outrank all layered.
+     *
+     * @var array<string, int>
+     */
+    private array $layerIndices = [];
+    private int $nextLayerIndex = 0;
+
+    /**
      * Expand a declaration's shorthand, memoised on the Declaration
      * object itself. Returns `[longhandName, expandedValue]` tuples
      * so the cascade can iterate without per-call array allocation.
@@ -186,10 +201,14 @@ final class Cascade
         //    null, the inverse — rules ending in any pseudo-element are
         //    excluded so the host's cascade doesn't pick up content meant
         //    for a generated box.
+        // Per-call layer-state reset so two sequential computeFor
+        // calls don't accumulate stale layer indices.
+        $this->layerIndices = [];
+        $this->nextLayerIndex = 0;
         $candidates = [];
         $order = 0;
         foreach ($sheets as $sheet) {
-            foreach ($this->activeStyleRules($sheet->rules) as $rule) {
+            foreach ($this->activeStyleRules($sheet->rules) as [$rule, $layerIndex]) {
                 $matchedSpec = null;
                 foreach ($rule->selectors->selectors as $sel) {
                     $selPseudo = $this->selectorPseudoElementName($sel);
@@ -227,6 +246,7 @@ final class Cascade
                             'declaration' => $decl2,
                             'specificity' => $matchedSpec,
                             'origin' => $sheet->origin,
+                            'layerIndex' => $layerIndex,
                             'order' => $order++,
                         ];
                     }
@@ -255,32 +275,31 @@ final class Cascade
                         'declaration' => $decl2,
                         'specificity' => $inlineSpec,
                         'origin' => Origin::Author,
+                        'layerIndex' => null,
                         'order' => $order++,
                     ];
                 }
             }
         }
 
-        // 2. Pick winning declaration per property.
-        /** @var array<string, array{declaration: Declaration, tier: int, specificity: Specificity, order: int}> $byProperty */
+        // 2. Group candidates by property and pick the cascade winner.
+        // We need the full per-property candidate list (not just a
+        // running maximum) so `revert-layer` can re-resolve against
+        // lower-priority declarations after excluding the winner's
+        // layer.
+        /** @var array<string, list<int>> $byProperty index into $candidates */
         $byProperty = [];
-        foreach ($candidates as $c) {
-            $name = $c['declaration']->property;
-            $tier = self::tierFor($c['origin'], $c['declaration']->important);
-            $existing = $byProperty[$name] ?? null;
-            if ($existing === null || $this->shouldReplace($existing, $tier, $c['specificity'], $c['order'])) {
-                $byProperty[$name] = [
-                    'declaration' => $c['declaration'],
-                    'tier' => $tier,
-                    'specificity' => $c['specificity'],
-                    'order' => $c['order'],
-                ];
-            }
+        foreach ($candidates as $idx => $c) {
+            $byProperty[$c['declaration']->property][] = $idx;
         }
 
         // 3. Materialise CascadedValues, then apply inheritance.
         $result = new CascadedValues($this->registry);
-        foreach ($byProperty as $name => $winner) {
+        foreach ($byProperty as $name => $indices) {
+            $winner = $this->pickCascadeWinner($name, $indices, $candidates);
+            if ($winner === null) {
+                continue;
+            }
             $value = $this->resolveSpecialKeywords(
                 $name,
                 $winner['declaration']->value,
@@ -316,17 +335,33 @@ final class Cascade
      * alongside `@supports` query parsing).
      *
      * @param list<\Phpdftk\Css\Sheet\Rule> $rules
-     * @return iterable<StyleRule>
+     * @return iterable<array{0: StyleRule, 1: ?int}>
      */
-    private function activeStyleRules(array $rules): iterable
+    private function activeStyleRules(array $rules, ?int $layerIndex = null): iterable
     {
         foreach ($rules as $rule) {
             if ($rule instanceof StyleRule) {
-                yield $rule;
+                yield [$rule, $layerIndex];
                 continue;
             }
-            if ($rule instanceof \Phpdftk\Css\Sheet\AtRule && $rule->block !== null) {
+            if ($rule instanceof \Phpdftk\Css\Sheet\AtRule) {
                 $name = strtolower($rule->name);
+                // Statement-form `@layer name1, name2;` (no block).
+                // Just registers each name in declaration order so the
+                // priority ranking is locked in before later usages.
+                if ($name === 'layer' && $rule->block === null) {
+                    $parts = preg_split('/\s*,\s*/', trim($rule->prelude)) ?: [];
+                    foreach ($parts as $layerName) {
+                        if ($layerName === '') {
+                            continue;
+                        }
+                        $this->resolveLayerIndex($layerName);
+                    }
+                    continue;
+                }
+                if ($rule->block === null) {
+                    continue;
+                }
                 if ($name === 'media') {
                     if (!$this->mediaPreludeMatches($rule->prelude)) {
                         continue;
@@ -336,15 +371,29 @@ final class Cascade
                         continue;
                     }
                 } elseif ($name === 'layer') {
-                    // CSS Cascade 5 §3.1 — `@layer <name> { ... }`
-                    // block-form. We currently treat layers as
-                    // pass-through (cascade order = source order,
-                    // ignoring layer priority). This is wrong per
-                    // §3.4 for cross-layer conflicts, but it lets
-                    // author CSS inside layer blocks actually
-                    // apply instead of being silently dropped.
-                    // Full layer-priority cascade lands as a
-                    // follow-up.
+                    // CSS Cascade 5 §3.1 — `@layer <name>? { ... }`
+                    // block-form. Resolve the layer name (or assign a
+                    // fresh anonymous index) and pass it down so every
+                    // nested StyleRule remembers which layer it lives
+                    // in. Subsequent occurrences of the SAME named
+                    // layer reuse the previously-assigned index, so
+                    // splitting one layer across multiple `@layer foo
+                    // { ... }` blocks composes correctly. Nested
+                    // `@layer` inside another layer creates a "child"
+                    // layer; we flatten by assigning a fresh index
+                    // (full sub-layer priority lands later).
+                    $prelude = trim($rule->prelude);
+                    $childIndex = $prelude === ''
+                        ? $this->nextLayerIndex++
+                        : $this->resolveLayerIndex($prelude);
+                    $nested = [];
+                    foreach ($rule->block->contents as $item) {
+                        if ($item instanceof \Phpdftk\Css\Sheet\Rule) {
+                            $nested[] = $item;
+                        }
+                    }
+                    yield from $this->activeStyleRules($nested, $childIndex);
+                    continue;
                 } elseif ($name === 'scope') {
                     // CSS Cascade 6 §3 — `@scope (root) [to limit] { ... }`
                     // Same pass-through posture as @layer for now;
@@ -379,9 +428,24 @@ final class Cascade
                         $nested[] = $item;
                     }
                 }
-                yield from $this->activeStyleRules($nested);
+                yield from $this->activeStyleRules($nested, $layerIndex);
             }
         }
+    }
+
+    /**
+     * Look up (or assign) a stable index for a named layer. Named
+     * layers reuse the same index across all occurrences, so the
+     * priority ranking is locked in by the FIRST mention of the name —
+     * even when later styles add more rules to the same layer.
+     */
+    private function resolveLayerIndex(string $name): int
+    {
+        $key = strtolower($name);
+        if (!isset($this->layerIndices[$key])) {
+            $this->layerIndices[$key] = $this->nextLayerIndex++;
+        }
+        return $this->layerIndices[$key];
     }
 
     /**
@@ -1337,18 +1401,155 @@ final class Cascade
     }
 
     /**
-     * @param array{tier: int, specificity: Specificity, order: int} $existing
+     * Pick the cascade winner for one property, honouring layer
+     * priority and `revert-layer` rollback per CSS Cascade 5 §5.3.
+     *
+     * Ranking, highest-priority first:
+     *  1. Tier (origin × importance) — already encoded by `tierFor`.
+     *  2. Layer priority within the author tier — for NORMAL author
+     *     declarations, unlayered outranks any layered candidate, and
+     *     a later-declared layer outranks an earlier-declared one.
+     *     For !IMPORTANT author the order reverses (any layered
+     *     !important outranks unlayered, earlier-declared layer
+     *     outranks later). Outside the author origin layers don't
+     *     apply, so a single bucket suffices.
+     *  3. Specificity (a, b, c).
+     *  4. Source order — later wins.
+     *
+     * When the picked winner's cascaded value is the `revert-layer`
+     * keyword, the spec says to recompute the cascade as if THIS
+     * LAYER didn't exist (CSS Cascade 5 §5.4). We drop every
+     * candidate that shares the winner's layer (including the
+     * unlayered bucket itself when revert-layer appears unlayered)
+     * and re-pick from the remainder, looping until we find a
+     * non-`revert-layer` value or run out of candidates.
+     *
+     * @param list<int> $indices
+     * @param list<array{declaration: Declaration, specificity: Specificity, origin: Origin, layerIndex: ?int, order: int}> $candidates
+     * @return null|array{declaration: Declaration, tier: int, specificity: Specificity, order: int}
      */
-    private function shouldReplace(array $existing, int $tier, Specificity $spec, int $order): bool
+    private function pickCascadeWinner(string $property, array $indices, array $candidates): ?array
     {
-        if ($tier !== $existing['tier']) {
-            return $tier > $existing['tier'];
+        // The "excluded layers" set lets us re-pick after a
+        // `revert-layer` knock-out. Key on layer index; the sentinel
+        // string "unlayered" represents the unlayered bucket.
+        $excluded = [];
+        while (true) {
+            $best = null;
+            foreach ($indices as $idx) {
+                $c = $candidates[$idx];
+                $layer = $c['layerIndex'];
+                // Scope the exclusion key by origin so that an author
+                // `revert-layer` only knocks out the author bucket
+                // (not the UA stylesheet's matching candidates, which
+                // live at origin=UserAgent with layerIndex=null too).
+                $layerKey = $c['origin']->name . ':'
+                    . ($layer === null ? 'unlayered' : 'L' . $layer);
+                if (isset($excluded[$layerKey])) {
+                    continue;
+                }
+                $tier = self::tierFor($c['origin'], $c['declaration']->important);
+                $layerRank = $this->layerRank($c['origin'], $c['declaration']->important, $layer);
+                if ($best === null
+                    || $this->beats(
+                        $tier,
+                        $layerRank,
+                        $c['specificity'],
+                        $c['order'],
+                        $best['tier'],
+                        $best['layerRank'],
+                        $best['specificity'],
+                        $best['order'],
+                    )
+                ) {
+                    $best = [
+                        'declaration' => $c['declaration'],
+                        'tier' => $tier,
+                        'layerRank' => $layerRank,
+                        'layerKey' => $layerKey,
+                        'specificity' => $c['specificity'],
+                        'order' => $c['order'],
+                    ];
+                }
+            }
+            if ($best === null) {
+                return null;
+            }
+            $winnerValue = $best['declaration']->value;
+            if ($winnerValue instanceof Keyword
+                && strtolower($winnerValue->name) === 'revert-layer'
+            ) {
+                // Drop this layer (or the unlayered bucket) from
+                // consideration and re-pick. Eventually we either
+                // hit a concrete value in a lower-priority layer or
+                // run dry, in which case the property falls through
+                // to the registry's initial value via
+                // `resolveSpecialKeywords` on `revert-layer`.
+                $excluded[$best['layerKey']] = true;
+                continue;
+            }
+            return [
+                'declaration' => $best['declaration'],
+                'tier' => $best['tier'],
+                'specificity' => $best['specificity'],
+                'order' => $best['order'],
+            ];
         }
-        $cmp = $spec->compare($existing['specificity']);
+    }
+
+    /**
+     * Numeric layer priority within the author tier. Higher wins.
+     *
+     * Author normal:
+     *   • unlayered → PHP_INT_MAX (always beats any layered).
+     *   • layered N → N (later-declared layers got larger N at
+     *     resolution time, so they outrank earlier-declared).
+     *
+     * Author !important:
+     *   • unlayered → PHP_INT_MIN (any layered !important wins).
+     *   • layered N → -N (first-declared layer's small N becomes
+     *     large after negation, so it outranks later-declared).
+     *
+     * Non-author origins ignore layers — return 0 uniformly so the
+     * ranking collapses back to tier + specificity + source order.
+     */
+    private function layerRank(Origin $origin, bool $important, ?int $layerIndex): int
+    {
+        if ($origin !== Origin::Author) {
+            return 0;
+        }
+        if ($important) {
+            return $layerIndex === null ? PHP_INT_MIN : -$layerIndex;
+        }
+        return $layerIndex === null ? PHP_INT_MAX : $layerIndex;
+    }
+
+    /**
+     * Strict "does A beat B" cascade comparison. Tier first, then
+     * layer priority within the tier, then specificity, then source
+     * order — matches CSS Cascade 5 §6.
+     */
+    private function beats(
+        int $aTier,
+        int $aLayer,
+        Specificity $aSpec,
+        int $aOrder,
+        int $bTier,
+        int $bLayer,
+        Specificity $bSpec,
+        int $bOrder,
+    ): bool {
+        if ($aTier !== $bTier) {
+            return $aTier > $bTier;
+        }
+        if ($aLayer !== $bLayer) {
+            return $aLayer > $bLayer;
+        }
+        $cmp = $aSpec->compare($bSpec);
         if ($cmp !== 0) {
             return $cmp > 0;
         }
-        return $order > $existing['order'];
+        return $aOrder > $bOrder;
     }
 
     /**

@@ -1157,6 +1157,83 @@ final class CascadeTest extends TestCase
         self::assertSame(1.0, $color->r);
     }
 
+    public function testLayerPriorityLaterLayerWinsForNormal(): void
+    {
+        // CSS Cascade 5 §5.3.1 — for normal author declarations,
+        // later-declared layers outrank earlier-declared ones. So
+        // `@layer bar { red }` declared after `@layer foo { green }`
+        // wins, regardless of source order with the @layer rules
+        // themselves.
+        $sheet = $this->parser->parseStylesheet(
+            '@layer foo, bar; '
+            . '@layer bar { p { color: red; } } '
+            . '@layer foo { p { color: green; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        // bar > foo, so bar's `red` wins → r=1.
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testLayerPriorityUnlayeredBeatsLayered(): void
+    {
+        // CSS Cascade 5 §5.3.1 — unlayered author declarations outrank
+        // ANY layered declarations within the same author origin. So a
+        // bare rule wins over even the highest-priority @layer.
+        $sheet = $this->parser->parseStylesheet(
+            '@layer { p { color: red; } } '
+            . 'p { color: green; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testRevertLayerRollsBackToPreviousLayer(): void
+    {
+        // CSS Cascade 5 §5.4 — `revert-layer` rolls back to the value
+        // from a previous cascade layer. Backs WPT revert-layer-001:
+        // higher-priority layer wins, but its winning declaration is
+        // `revert-layer`, so the rollback re-cascades excluding that
+        // layer and the lower layer's value (red) wins.
+        $sheet = $this->parser->parseStylesheet(
+            '@layer { p { color: red; } } '
+            . '@layer { p { color: green; color: revert-layer; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        // Second layer's revert-layer rolls back to first layer's red.
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testRevertLayerInUnlayeredFallsToLayered(): void
+    {
+        // CSS Cascade 5 §5.4 — `revert-layer` in unlayered author
+        // (WPT revert-layer-002 shape). The unlayered's revert-layer
+        // is the cascade winner; rollback excludes the unlayered
+        // author bucket; the @layer's value wins next.
+        $sheet = $this->parser->parseStylesheet(
+            '@layer { p { color: red; } } '
+            . 'p { color: green; color: revert-layer; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testRevertLayerCascadesAcrossMultipleLayers(): void
+    {
+        // CSS Cascade 5 §5.4 — multiple chained revert-layer
+        // declarations cascade through layers until a concrete value
+        // appears (WPT revert-layer-007). Four anonymous layers; the
+        // top three each have revert-layer, so the rollback skips
+        // them and lands on the first layer's concrete red.
+        $sheet = $this->parser->parseStylesheet(
+            '@layer { p { color: red; } } '
+            . '@layer { p { color: green; color: revert-layer; } } '
+            . '@layer { p { color: green; color: revert-layer; } } '
+            . '@layer { p { color: green; color: revert-layer; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
     public function testSupportsShorthandPropertyName(): void
     {
         // CSS Conditional Rules 3 §3.1 — `(font: 16px serif)` checks
