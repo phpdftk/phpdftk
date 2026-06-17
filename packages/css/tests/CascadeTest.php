@@ -607,7 +607,9 @@ final class CascadeTest extends TestCase
             '@supports (mystery-prop: 1) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(0.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
     }
 
     public function testSupportsNotInverts(): void
@@ -618,7 +620,9 @@ final class CascadeTest extends TestCase
             '@supports not (mystery-prop: 1) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsAndConditionRequiresBothMatching(): void
@@ -629,7 +633,9 @@ final class CascadeTest extends TestCase
             '@supports (display: flex) and (color: red) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsAndConditionDropsWhenEitherFails(): void
@@ -639,7 +645,9 @@ final class CascadeTest extends TestCase
             '@supports (display: flex) and (mystery-prop: 1) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(0.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
     }
 
     public function testSupportsOrCondition(): void
@@ -649,7 +657,9 @@ final class CascadeTest extends TestCase
             '@supports (mystery-prop: 1) or (color: red) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsSelectorFunctionEvaluatesParseable(): void
@@ -662,7 +672,9 @@ final class CascadeTest extends TestCase
             '@supports selector(:has(p)) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsSelectorFunctionWithMalformedSelectorDrops(): void
@@ -683,7 +695,9 @@ final class CascadeTest extends TestCase
             '@supports font-format(woff2) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsFontFormatUnknownDrops(): void
@@ -692,7 +706,140 @@ final class CascadeTest extends TestCase
             '@supports font-format(quux) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(0.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testSupportsExtraParensAroundSingleSubcondition(): void
+    {
+        // CSS Conditional Rules 3 §3 — `((color: green))` strips a
+        // legal extra-parens wrapper. The body re-enters
+        // parseSupportsPrimary as a fresh `(...)` rather than being
+        // misread as a malformed `(property: value)` declaration.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports ((color: green)) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testSupportsRejectsInvalidColorValue(): void
+    {
+        // `color: rainbow` — `rainbow` is not a CSS named colour, so
+        // the condition fails and the inner rule must not apply. The
+        // previous behaviour accepted on property-name match alone,
+        // turning every feature-detection stylesheet into a noop on
+        // properties that DO exist but with values that don't.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: rainbow) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        // Initial color (black). Without the validation, this would
+        // be 1.0 (red).
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testSupportsAcceptsNamedColorValue(): void
+    {
+        // Positive: a recognised CSS named colour passes the value
+        // check. Mirror of the invalid-value test above.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: cornflowerblue) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testSupportsAcceptsHexColorValue(): void
+    {
+        // Hex notation is accepted on shape — 3/4/6/8-digit forms.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: #f8a) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testSupportsAcceptsFunctionalColorValue(): void
+    {
+        // Functional colour notation accepts on shape; the cascade's
+        // ValueParser handles argument validation when the rule applies.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: rgb(255, 0, 0)) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
+    }
+
+    public function testSupportsRejectsInvalidColorValueInConjunction(): void
+    {
+        // `(color: blue) and (color: rainbow)` — second sub-condition
+        // fails, so the whole conjunction fails. Without value
+        // validation, both would short-circuit to true.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: blue) and (color: rainbow) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testSupportsRejectsEmptyValue(): void
+    {
+        // Empty value (`(color: )`) is not a valid declaration body —
+        // CSS requires at least one value token after the colon.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (color: ) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
+    }
+
+    public function testSupportsAcceptsCurrentColorAndTransparent(): void
+    {
+        // `currentcolor` and `transparent` are CSS-level keywords
+        // applicable to every colour-typed property; both must pass.
+        $sheet1 = $this->parser->parseStylesheet(
+            '@supports (color: currentcolor) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet1], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+
+        $sheet2 = $this->parser->parseStylesheet(
+            '@supports (background-color: transparent) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet2], new FakeElement('p'));
+        self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testSupportsNonColorPropertyKeepsCurrentBehaviour(): void
+    {
+        // Regression guard: value validation is scoped to colour-typed
+        // properties for now. A `(display: flex)` check still passes
+        // on property-name match — full per-type validation is a
+        // larger lift and tightening it shouldn't silently drop
+        // valid feature-detection.
+        $sheet = $this->parser->parseStylesheet(
+            '@supports (display: flex) { p { color: red; } }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsFontTechVariationsMatches(): void
@@ -701,7 +848,9 @@ final class CascadeTest extends TestCase
             '@supports font-tech(variations) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsFontTechUnknownDrops(): void
@@ -710,7 +859,9 @@ final class CascadeTest extends TestCase
             '@supports font-tech(color-cbdt) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(0.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(0.0, $color->r);
     }
 
     public function testSupportsCombinedSelectorAndPropertyQueries(): void
@@ -721,7 +872,9 @@ final class CascadeTest extends TestCase
             '@supports selector(:has(p)) and (display: grid) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsNotSelectorInverts(): void
@@ -730,7 +883,9 @@ final class CascadeTest extends TestCase
             '@supports not selector(!!!) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testSupportsBooleanFormChecksPropertyExists(): void
@@ -740,7 +895,9 @@ final class CascadeTest extends TestCase
             '@supports (display) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        self::assertSame(1.0, $values->get('color')->r);
+        $color = $values->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r);
     }
 
     public function testVarLoopFallsBackToInitial(): void

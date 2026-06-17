@@ -636,6 +636,15 @@ final class Cascade
             $sub = 0;
             return $this->parseSupportsOr($body, $sub);
         }
+        // CSS Conditional Rules 3 §3 — extra parens around a single
+        // sub-expression are allowed. `((color: green))` strips to
+        // `(color: green)` as the body, which must recurse as a
+        // primary itself rather than being misread as a malformed
+        // `(property: value)` declaration.
+        if ($body !== '' && $body[0] === '(') {
+            $sub = 0;
+            return $this->parseSupportsPrimary($body, $sub);
+        }
         return $this->evaluateSupportsFeature($body);
     }
 
@@ -681,15 +690,111 @@ final class Cascade
             };
         }
         if (str_contains($body, ':')) {
-            // `(property: value)` form — we honour any property the
-            // cascade's registry knows about. Value validation is a
-            // larger lift and pessimistic on edge cases would silently
-            // drop valid author CSS, so we accept on property match.
-            [$prop] = array_map('trim', explode(':', $body, 2));
-            return $this->registry->has(strtolower($prop));
+            // `(property: value)` form — property must be in the
+            // registry AND the value must parse for the property's
+            // known type. Full type validation is a larger lift, but
+            // catching unambiguously-invalid values (e.g. `color:
+            // rainbow` — `rainbow` is not a CSS color) fixes the
+            // common @supports-condition-failure pattern used by
+            // every browser-feature-detection stylesheet in the wild.
+            $colonPos = strpos($body, ':');
+            if ($colonPos === false) {
+                return false;
+            }
+            $prop = strtolower(trim(substr($body, 0, $colonPos)));
+            $value = trim(substr($body, $colonPos + 1));
+            if (!$this->registry->has($prop)) {
+                return false;
+            }
+            return $this->supportsValueIsAcceptable($prop, $value);
         }
         // Boolean form `(property)`.
         return $this->registry->has(strtolower($body));
+    }
+
+    /**
+     * Validate a `(property: value)` body's value against the property's
+     * known type system, narrow enough to catch the common @supports
+     * feature-detection patterns. Full type validation is a larger lift;
+     * this helper catches:
+     *
+     *   - bareword identifiers that aren't named colours, for colour-typed
+     *     properties (`color: rainbow` → false)
+     *   - empty / whitespace-only values
+     *
+     * Other property types currently fall through to "accept", matching
+     * the previous behaviour. Tightening per-type acceptance is additive
+     * and can land per-property.
+     */
+    private function supportsValueIsAcceptable(string $property, string $value): bool
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return false;
+        }
+        // Colour-typed properties: `color`, `background-color`,
+        // `border-*-color`, `outline-color`, `text-decoration-color`, etc.
+        // A bareword that isn't a CSS named colour (or `currentcolor` /
+        // `transparent`) fails the value-validity check.
+        if ($this->isColorTypedProperty($property)) {
+            return $this->isAcceptableColorValue($value);
+        }
+        return true;
+    }
+
+    private function isColorTypedProperty(string $property): bool
+    {
+        return match ($property) {
+            'color',
+            'background-color',
+            'border-top-color',
+            'border-right-color',
+            'border-bottom-color',
+            'border-left-color',
+            'border-block-start-color',
+            'border-block-end-color',
+            'border-inline-start-color',
+            'border-inline-end-color',
+            'outline-color',
+            'text-decoration-color',
+            'text-emphasis-color',
+            'caret-color',
+            'column-rule-color',
+            'fill',
+            'stroke',
+            'flood-color',
+            'lighting-color',
+            'stop-color' => true,
+            default => false,
+        };
+    }
+
+    private function isAcceptableColorValue(string $value): bool
+    {
+        $lower = strtolower($value);
+        // CSS-wide keywords (always acceptable per the cascade).
+        if (in_array($lower, ['inherit', 'initial', 'unset', 'revert', 'revert-layer'], true)) {
+            return true;
+        }
+        // Bare keyword forms: named colour, currentcolor, transparent.
+        if (preg_match('/^[A-Za-z][A-Za-z0-9_-]*$/', $value) === 1) {
+            if ($lower === 'currentcolor' || $lower === 'transparent') {
+                return true;
+            }
+            return isset(\Phpdftk\Css\Value\NamedColors::TABLE[$lower]);
+        }
+        // Hex notation.
+        if (preg_match('/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value) === 1) {
+            return true;
+        }
+        // Functional notation (rgb / rgba / hsl / hwb / lab / lch / oklab /
+        // oklch / color / color-mix) — accept on shape; the cascade's
+        // ValueParser handles the argument validation when the rule actually
+        // applies.
+        if (preg_match('/^(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\s*\(/i', $value) === 1) {
+            return true;
+        }
+        return false;
     }
 
     /**
