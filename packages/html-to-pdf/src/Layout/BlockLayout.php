@@ -699,9 +699,12 @@ final class BlockLayout
         // spec.
         $isHtmlOrBody = $box->element !== null
             && in_array(strtolower($box->element->localName), ['html', 'body'], true);
+        $isAnonymousWrapper = $box instanceof \Phpdftk\HtmlToPdf\Box\AnonymousBlockBox;
         $childCbHeightDefinite = $heightExplicit
             ? true
-            : ($isHtmlOrBody ? $context->containingBlockHeightDefinite : false);
+            : (($isHtmlOrBody || $isAnonymousWrapper)
+                ? $context->containingBlockHeightDefinite
+                : false);
         $childContext = $context
             ->withContainingBlockHeightDefinite($childCbHeight, $childCbHeightDefinite)
             ->withContainingBlock($geo->width, $childCbHeight)
