@@ -170,11 +170,102 @@ final class NamedColors
     public static function lookup(string $name): ?Color
     {
         $key = strtolower($name);
-        if (!isset(self::TABLE[$key])) {
-            // 'transparent' and 'currentcolor' are special — handled separately.
-            return null;
+        if (isset(self::TABLE[$key])) {
+            [$r, $g, $b] = self::TABLE[$key];
+            return new Color($r / 255.0, $g / 255.0, $b / 255.0);
         }
-        [$r, $g, $b] = self::TABLE[$key];
-        return new Color($r / 255.0, $g / 255.0, $b / 255.0);
+        // CSS Color 4 §9 — system colors. Resolved here so both the
+        // modern names (Canvas, CanvasText, …) and the §9.3 deprecated
+        // aliases (Background, MenuText, ThreeDHighlight, …) parse as
+        // valid colors. For a print rendering target with the standard
+        // light theme: white backgrounds, black text, mid-gray
+        // borders. Tests like css-color/deprecated-sameas-* rely on
+        // the deprecated name resolving to the SAME RGB as the modern
+        // alias it stands in for.
+        if (isset(self::SYSTEM_COLORS[$key])) {
+            [$r, $g, $b] = self::SYSTEM_COLORS[$key];
+            return new Color($r / 255.0, $g / 255.0, $b / 255.0);
+        }
+        // 'transparent' and 'currentcolor' are special — handled separately.
+        return null;
     }
+
+    /**
+     * Test whether a bareword names a CSS color we recognise — the
+     * standard palette OR a system color. Used by `@supports` value
+     * acceptance (CSS Cascade 5 §10.5) where a registered color-
+     * typed property accepts any well-formed `<color>`.
+     */
+    public static function knows(string $name): bool
+    {
+        $key = strtolower($name);
+        return isset(self::TABLE[$key]) || isset(self::SYSTEM_COLORS[$key]);
+    }
+
+    /**
+     * CSS Color 4 §9 — system colors. The §9.3 deprecated aliases are
+     * folded in with the same RGB as the modern color they alias, so
+     * `MenuText` and `CanvasText` resolve identically (which the
+     * `deprecated-sameas-*` WPT reftests assert).
+     *
+     * Values pick the standard light-theme palette appropriate for
+     * print:
+     *   • white-canvas family   → (255, 255, 255)
+     *   • black-text family     → (0, 0, 0)
+     *   • mid-gray button-edge  → (192, 192, 192)
+     *   • dark-gray button-text → (128, 128, 128)
+     *   • accent / link tones   → conventional blue/purple/red
+     *
+     * @var array<string, array{0:int,1:int,2:int}>
+     */
+    public const array SYSTEM_COLORS = [
+        // Modern (CSS Color 4 §9.2) canvas family.
+        'canvas' => [255, 255, 255],
+        'canvastext' => [0, 0, 0],
+        // Text accents.
+        'accentcolor' => [0, 0, 238],
+        'accentcolortext' => [255, 255, 255],
+        'linktext' => [0, 0, 238],
+        'visitedtext' => [85, 26, 139],
+        'activetext' => [255, 0, 0],
+        // Button surface.
+        'buttonface' => [192, 192, 192],
+        'buttontext' => [0, 0, 0],
+        'buttonborder' => [128, 128, 128],
+        // Input fields.
+        'field' => [255, 255, 255],
+        'fieldtext' => [0, 0, 0],
+        // Highlights.
+        'highlight' => [0, 0, 238],
+        'highlighttext' => [255, 255, 255],
+        'selecteditem' => [0, 0, 238],
+        'selecteditemtext' => [255, 255, 255],
+        'mark' => [255, 255, 0],
+        'marktext' => [0, 0, 0],
+        'graytext' => [128, 128, 128],
+        // §9.3 deprecated — each aliases a modern name; values mirror
+        // the modern entry above.
+        'activecaption' => [255, 255, 255],         // → Canvas
+        'appworkspace' => [255, 255, 255],          // → Canvas
+        'background' => [255, 255, 255],            // → Canvas
+        'buttonhighlight' => [192, 192, 192],       // → ButtonFace
+        'buttonshadow' => [192, 192, 192],          // → ButtonFace
+        'captiontext' => [0, 0, 0],                 // → CanvasText
+        'inactiveborder' => [128, 128, 128],        // → ButtonBorder
+        'inactivecaption' => [255, 255, 255],       // → Canvas
+        'inactivecaptiontext' => [128, 128, 128],   // → GrayText
+        'infobackground' => [255, 255, 255],        // → Canvas
+        'infotext' => [0, 0, 0],                    // → CanvasText
+        'menu' => [255, 255, 255],                  // → Canvas
+        'menutext' => [0, 0, 0],                    // → CanvasText
+        'scrollbar' => [255, 255, 255],             // → Canvas
+        'threeddarkshadow' => [128, 128, 128],      // → ButtonBorder
+        'threedface' => [192, 192, 192],            // → ButtonFace
+        'threedhighlight' => [128, 128, 128],       // → ButtonBorder
+        'threedlightshadow' => [128, 128, 128],     // → ButtonBorder
+        'threedshadow' => [128, 128, 128],          // → ButtonBorder
+        'window' => [255, 255, 255],                // → Canvas
+        'windowframe' => [128, 128, 128],           // → ButtonBorder
+        'windowtext' => [0, 0, 0],                  // → CanvasText
+    ];
 }

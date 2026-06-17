@@ -1207,7 +1207,7 @@ final class Cascade
             if ($lower === 'currentcolor' || $lower === 'transparent') {
                 return true;
             }
-            return isset(\Phpdftk\Css\Value\NamedColors::TABLE[$lower]);
+            return \Phpdftk\Css\Value\NamedColors::knows($lower);
         }
         // Hex notation.
         if (preg_match('/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value) === 1) {

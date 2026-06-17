@@ -131,6 +131,65 @@ final class ValueParserTest extends TestCase
         self::assertEqualsWithDelta(153 / 255.0, $v->b, 0.001);
     }
 
+    public function testSystemColorsResolveToConcreteRgb(): void
+    {
+        // CSS Color 4 §9.2 — Canvas/CanvasText resolve at parse time
+        // so the cascade can apply them like any other color.
+        $canvas = $this->parser->parseFromString('Canvas');
+        self::assertInstanceOf(Color::class, $canvas);
+        self::assertSame(1.0, $canvas->r);
+        self::assertSame(1.0, $canvas->g);
+        self::assertSame(1.0, $canvas->b);
+
+        $canvasText = $this->parser->parseFromString('CanvasText');
+        self::assertInstanceOf(Color::class, $canvasText);
+        self::assertSame(0.0, $canvasText->r);
+        self::assertSame(0.0, $canvasText->g);
+        self::assertSame(0.0, $canvasText->b);
+    }
+
+    public function testDeprecatedSystemColorsAliasModernEquivalents(): void
+    {
+        // CSS Color 4 §9.3 — deprecated system colors are required to
+        // resolve to the SAME RGB as the modern color they alias.
+        // WPT css-color/deprecated-sameas-* asserts this pairing in
+        // pixel comparisons. Hard-code the spec's mapping table so
+        // any drift surfaces at the unit-test layer.
+        $aliases = [
+            'ActiveCaption' => 'Canvas',
+            'AppWorkspace' => 'Canvas',
+            'Background' => 'Canvas',
+            'CaptionText' => 'CanvasText',
+            'InactiveCaption' => 'Canvas',
+            'InfoBackground' => 'Canvas',
+            'InfoText' => 'CanvasText',
+            'Menu' => 'Canvas',
+            'MenuText' => 'CanvasText',
+            'Scrollbar' => 'Canvas',
+            'ThreeDFace' => 'ButtonFace',
+            'ThreeDHighlight' => 'ButtonBorder',
+            'ThreeDLightShadow' => 'ButtonBorder',
+            'ThreeDDarkShadow' => 'ButtonBorder',
+            'ThreeDShadow' => 'ButtonBorder',
+            'Window' => 'Canvas',
+            'WindowFrame' => 'ButtonBorder',
+            'WindowText' => 'CanvasText',
+            'ButtonHighlight' => 'ButtonFace',
+            'ButtonShadow' => 'ButtonFace',
+            'InactiveBorder' => 'ButtonBorder',
+            'InactiveCaptionText' => 'GrayText',
+        ];
+        foreach ($aliases as $deprecated => $modern) {
+            $a = $this->parser->parseFromString($deprecated);
+            $b = $this->parser->parseFromString($modern);
+            self::assertInstanceOf(Color::class, $a, "{$deprecated} must parse as a color");
+            self::assertInstanceOf(Color::class, $b, "{$modern} must parse as a color");
+            self::assertSame($b->r, $a->r, "{$deprecated} red must match {$modern}");
+            self::assertSame($b->g, $a->g, "{$deprecated} green must match {$modern}");
+            self::assertSame($b->b, $a->b, "{$deprecated} blue must match {$modern}");
+        }
+    }
+
     public function testTransparentKeywordBecomesColor(): void
     {
         $v = $this->parser->parseFromString('transparent');
