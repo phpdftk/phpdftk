@@ -817,14 +817,27 @@ final class BlockLayout
             $containedHeight = $this->resolveContainIntrinsicHeight($style, $context);
             $geo->height = $containedHeight ?? $childTotal;
         } else {
-            $geo->height = $this->resolveLength($heightValue, $context->containingBlockHeight);
-            if ($borderBox) {
-                $geo->height = max(
-                    0.0,
-                    $geo->height
-                        - $geo->borderTop - $geo->borderBottom
-                        - $geo->paddingTop - $geo->paddingBottom,
-                );
+            // CSS 2.1 §10.5 — `height: %` resolves against the
+            // containing block's height ONLY when that height is
+            // definite; otherwise the percentage acts as `auto` and
+            // the box sizes to its children. Without this rule, a
+            // `height: 100%` div inside an auto-height parent would
+            // claim the full viewport height, painting over siblings.
+            $cbHeightForResolve = $context->containingBlockHeight;
+            if ($heightValue instanceof Percentage
+                && !$context->containingBlockHeightDefinite
+            ) {
+                $geo->height = $childTotal;
+            } else {
+                $geo->height = $this->resolveLength($heightValue, $cbHeightForResolve);
+                if ($borderBox) {
+                    $geo->height = max(
+                        0.0,
+                        $geo->height
+                            - $geo->borderTop - $geo->borderBottom
+                            - $geo->paddingTop - $geo->paddingBottom,
+                    );
+                }
             }
         }
         // CSS Sizing 4 §4.2 — `aspect-ratio` constrains height (or
