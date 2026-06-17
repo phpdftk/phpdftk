@@ -61,7 +61,8 @@ final class Renderer
             ->withViewport(
                 $this->options->pageWidth * $cssPxPerPt,
                 $this->options->pageHeight * $cssPxPerPt,
-            );
+            )
+            ->withMatchingMediaTypes($this->options->matchingMediaTypes);
         $this->boxGenerator = new BoxGenerator(
             $this->cascade,
             $this->options->baseDir,

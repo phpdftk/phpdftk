@@ -80,6 +80,16 @@ final class Cascade
          */
         private readonly ?float $viewportWidth = null,
         private readonly ?float $viewportHeight = null,
+        /**
+         * Media types that match this rendering context. Defaults to
+         * `print` for the PDF-output target; the WPT harness and other
+         * "browser-like" embedders can pass `screen` to match the
+         * countless tests that gate on `@media screen and (…)`. Any
+         * type IN this set (plus the universal `all`) matches.
+         *
+         * @var list<string>
+         */
+        private readonly array $matchingMediaTypes = ['print'],
     ) {
         $this->expandedCache = new \WeakMap();
         $this->selPseudoCache = new \WeakMap();
@@ -173,6 +183,29 @@ final class Cascade
             $this->parser,
             $width,
             $height,
+            $this->matchingMediaTypes,
+        );
+    }
+
+    /**
+     * Return a Cascade configured to match additional media types in
+     * `@media` queries — useful when the embedder isn't a pure print
+     * target. Pass `['print', 'screen']` to also honour author CSS
+     * gated on `@media screen` (the assumed default for browser-
+     * targeted WPT tests).
+     *
+     * @param list<string> $types
+     */
+    public function withMatchingMediaTypes(array $types): self
+    {
+        return new self(
+            $this->registry,
+            $this->matcher,
+            $this->shorthands,
+            $this->parser,
+            $this->viewportWidth,
+            $this->viewportHeight,
+            $types,
         );
     }
 
@@ -555,7 +588,9 @@ final class Cascade
         // separate cleanly) and verify each.
         $parts = preg_split('/\s+and\s+/', $query) ?: [];
         $first = $parts[0] ?? '';
-        $typeMatches = $first === '' || $first === 'all' || $first === 'print';
+        $typeMatches = $first === ''
+            || $first === 'all'
+            || in_array($first, $this->matchingMediaTypes, true);
         if (!$typeMatches) {
             return false;
         }
@@ -813,7 +848,62 @@ final class Cascade
         if (in_array($name, ['min-monochrome', 'max-monochrome', 'monochrome'], true)) {
             return $this->matchIntegerFeature($name, $valueRaw, 0);
         }
+        // CSS Media Queries 4 §4.6 — `aspect-ratio` / `device-aspect-
+        // ratio` and their min-/max- prefix forms. Value is a
+        // `<ratio>` (`<number> [ / <number> ]?`). Compares against
+        // the viewport's width / height ratio; with no viewport we
+        // can't decide → return true permissively so author CSS
+        // doesn't silently drop on print contexts.
+        if (in_array($name, [
+            'aspect-ratio', 'min-aspect-ratio', 'max-aspect-ratio',
+            'device-aspect-ratio', 'min-device-aspect-ratio', 'max-device-aspect-ratio',
+        ], true)) {
+            return $this->matchRatioFeature($name, $valueRaw);
+        }
         return false;
+    }
+
+    /**
+     * Evaluate an `(aspect-ratio: <ratio>)` style feature query.
+     * The `<ratio>` may be `<num>` (treated as `<num>/1`) or
+     * `<num>/<num>`. Compares against the viewport width/height
+     * ratio.
+     */
+    private function matchRatioFeature(string $name, string $valueRaw): bool
+    {
+        if ($this->viewportWidth === null
+            || $this->viewportHeight === null
+            || $this->viewportWidth <= 0
+            || $this->viewportHeight <= 0
+        ) {
+            return true;
+        }
+        $valueRaw = trim($valueRaw);
+        if (preg_match('/^([\-+]?[0-9]*\.?[0-9]+)\s*(?:\/\s*([\-+]?[0-9]*\.?[0-9]+))?$/', $valueRaw, $m) !== 1) {
+            return false;
+        }
+        $num = (float) $m[1];
+        $den = isset($m[2]) ? (float) $m[2] : 1.0;
+        // Browsers treat any ratio with a zero numerator or
+        // denominator as +∞ for `max-*` and 0 for `min-*` (so a
+        // `0/N` ratio always satisfies `max-aspect-ratio` and never
+        // satisfies `min-aspect-ratio` — WPT device-aspect-ratio-002
+        // walks the `0/0` shape explicitly).
+        if ($den === 0.0) {
+            return str_starts_with($name, 'max-');
+        }
+        if ($num <= 0.0) {
+            return str_starts_with($name, 'max-');
+        }
+        $queried = $num / $den;
+        $viewport = $this->viewportWidth / $this->viewportHeight;
+        if (str_starts_with($name, 'min-')) {
+            return $viewport >= $queried;
+        }
+        if (str_starts_with($name, 'max-')) {
+            return $viewport <= $queried;
+        }
+        return abs($viewport - $queried) < 1e-6;
     }
 
     /**

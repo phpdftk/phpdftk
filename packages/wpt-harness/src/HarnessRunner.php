@@ -370,7 +370,12 @@ final class HarnessRunner
         $renderer = new \Phpdftk\HtmlToPdf\Renderer(
             (new \Phpdftk\HtmlToPdf\RendererOptions())
                 ->withBaseDir(dirname($path))
-                ->withSandboxRoot($this->wptRoot),
+                ->withSandboxRoot($this->wptRoot)
+                // WPT test corpus is browser-targeted, so the vast
+                // majority of `@media` rules gate on `screen` rather
+                // than `print`. Match both so author CSS applies the
+                // way the test fixtures (and their references) expect.
+                ->withMatchingMediaTypes(['print', 'screen']),
         );
         $result = $renderer->render($html);
         return $result->writer->toBytes();

@@ -88,6 +88,18 @@ final readonly class RendererOptions
          * existing call-site behaviour byte-for-byte.
          */
         public ?HttpResourceLoader $resourceLoader = null,
+        /**
+         * Media types this rendering context matches in `@media`
+         * queries. Defaults to `['print']` (PDF-output target). The
+         * WPT harness sets this to `['print', 'screen']` so author
+         * CSS gated on `@media screen` — by far the most common
+         * shape in browser-targeted test corpora — actually applies
+         * during reftest scoring. The universal `all` always
+         * matches; the type list governs which named buckets do.
+         *
+         * @var list<string>
+         */
+        public array $matchingMediaTypes = ['print'],
     ) {}
 
     public function withPageSize(float $width, float $height): self
@@ -103,6 +115,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -119,6 +132,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -135,6 +149,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -151,6 +166,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -167,6 +183,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -183,6 +200,33 @@ final readonly class RendererOptions
             $this->fontMap,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
+        );
+    }
+
+    /**
+     * Configure which `@media` media types this rendering context
+     * matches. Defaults to `['print']`. Pass `['print', 'screen']`
+     * for a browser-like context (e.g. the WPT harness) where author
+     * CSS gated on `@media screen` should apply. The universal
+     * `all` always matches; this list governs the named ones.
+     *
+     * @param list<string> $types
+     */
+    public function withMatchingMediaTypes(array $types): self
+    {
+        return new self(
+            $this->pageWidth,
+            $this->pageHeight,
+            $this->defaultFont,
+            $this->userAgentStylesheet,
+            $this->strict,
+            $this->baseDir,
+            $this->sandboxRoot,
+            $this->fontMap,
+            $this->faceMap,
+            $this->resourceLoader,
+            $types,
         );
     }
 
@@ -263,6 +307,7 @@ final readonly class RendererOptions
             $normalised,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -310,6 +355,7 @@ final readonly class RendererOptions
             $this->fontMap,
             $merged,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
@@ -355,6 +401,7 @@ final readonly class RendererOptions
             $merged,
             $this->faceMap,
             $this->resourceLoader,
+            $this->matchingMediaTypes,
         );
     }
 
