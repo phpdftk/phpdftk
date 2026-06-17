@@ -136,6 +136,22 @@ final class Cascade
             return $this->expandedCache[$decl];
         }
         $pairs = [];
+        // CSS Cascade 5 §3.2 — the `all` shorthand applies its value
+        // to EVERY CSS property except `direction` and `unicode-bidi`
+        // (which deal with text direction and aren't reset). The
+        // value must be a CSS-wide keyword: `initial` / `inherit` /
+        // `unset` / `revert` / `revert-layer`. Fan out the
+        // declaration so each property cascades on its own.
+        if (strtolower($decl->property) === 'all') {
+            foreach ($this->registry->all() as $propName => $_def) {
+                if ($propName === 'direction' || $propName === 'unicode-bidi') {
+                    continue;
+                }
+                $pairs[] = [$propName, $decl->value];
+            }
+            $this->expandedCache[$decl] = $pairs;
+            return $pairs;
+        }
         foreach ($this->shorthands->expand($decl->property, $decl->value) as $longhand => $value) {
             $pairs[] = [$longhand, $value];
         }
