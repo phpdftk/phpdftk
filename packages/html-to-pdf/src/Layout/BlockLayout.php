@@ -670,9 +670,9 @@ final class BlockLayout
         // auto height (a true two-pass implementation is a follow-up).
         $heightValueForChildCtx = $style->get('height');
         $childCbHeight = $context->containingBlockHeight;
-        if ($this->heightAppliesToDisplay($style)
-            && !$this->isHeightAutoLike($heightValueForChildCtx)
-        ) {
+        $heightExplicit = $this->heightAppliesToDisplay($style)
+            && !$this->isHeightAutoLike($heightValueForChildCtx);
+        if ($heightExplicit) {
             $resolvedHeight = $this->resolveLength(
                 $heightValueForChildCtx,
                 $context->containingBlockHeight,
@@ -687,7 +687,23 @@ final class BlockLayout
             }
             $childCbHeight = $resolvedHeight;
         }
+        // CSS 2.1 §10.5 + CSS Position 3 §3.4 — track whether the
+        // propagated `cbHeight` is definite for descendant percentage
+        // resolution. Definite when this box has an explicit
+        // (non-auto) height OR is `<html>` / `<body>` (the HTML
+        // rendering rules special-case both to inherit the viewport
+        // height, so percentage offsets on their children resolve
+        // against the viewport rather than collapsing to 0). For
+        // every other auto-height intermediate the chain breaks:
+        // descendants' percentage top/bottom/height collapse to 0 per
+        // spec.
+        $isHtmlOrBody = $box->element !== null
+            && in_array(strtolower($box->element->localName), ['html', 'body'], true);
+        $childCbHeightDefinite = $heightExplicit
+            ? true
+            : ($isHtmlOrBody ? $context->containingBlockHeightDefinite : false);
         $childContext = $context
+            ->withContainingBlockHeightDefinite($childCbHeight, $childCbHeightDefinite)
             ->withContainingBlock($geo->width, $childCbHeight)
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
@@ -1770,16 +1786,20 @@ final class BlockLayout
     {
         $cbW = $context->containingBlockWidth;
         $cbH = $context->containingBlockHeight;
+        $heightDefinite = $context->containingBlockHeightDefinite;
         $top = $style->get('top');
         $bottom = $style->get('bottom');
         $left = $style->get('left');
         $right = $style->get('right');
         $dy = 0.0;
         if (!$this->isAuto($top)) {
-            $dy = $this->resolveLength($top, $cbH);
+            $dy = $this->resolveLengthAgainstHeight($top, $cbH, $heightDefinite);
         } elseif (!$this->isAuto($bottom)) {
-            $dy = -$this->resolveLength($bottom, $cbH);
+            $dy = -$this->resolveLengthAgainstHeight($bottom, $cbH, $heightDefinite);
         }
+        // CSS 2.1 / Sizing 3 — `cbWidth` is always definite (the
+        // ancestor's content width is computed before children layout),
+        // so left/right resolve normally.
         $dx = 0.0;
         if (!$this->isAuto($left)) {
             $dx = $this->resolveLength($left, $cbW);
@@ -1787,6 +1807,29 @@ final class BlockLayout
             $dx = -$this->resolveLength($right, $cbW);
         }
         return [$dx, $dy];
+    }
+
+    /**
+     * Resolve a `<length-percentage>` value against the
+     * containing-block HEIGHT, honouring CSS Position 3 §3.4's
+     * "indefinite size → 0" rule for percentages. When `$cbHeightDefinite`
+     * is false and the value is a percentage, the result is 0 per
+     * spec — without this guard, percentages would silently resolve
+     * against whatever fallback height the auto-height ancestor
+     * exposed (typically the viewport), yielding `top: -10000%`
+     * shifts of -80000px that push descendants off the page.
+     * Lengths (px / em / etc.) and other definite values pass through
+     * unchanged.
+     */
+    private function resolveLengthAgainstHeight(
+        ?\Phpdftk\Css\Value\Value $value,
+        float $cbHeight,
+        bool $cbHeightDefinite,
+    ): float {
+        if (!$cbHeightDefinite && $value instanceof Percentage) {
+            return 0.0;
+        }
+        return $this->resolveLength($value, $cbHeight);
     }
 
     /**

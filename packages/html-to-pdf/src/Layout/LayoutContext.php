@@ -54,6 +54,17 @@ final readonly class LayoutContext
          * the initial containing block (the canvas).
          */
         public ?PositionedAncestor $positionedAncestor = null,
+        /**
+         * CSS 2.1 §10.5 + CSS Position 3 §3.4 — whether
+         * `$containingBlockHeight` is the spec's "definite height"
+         * (resolves percentage `top` / `bottom` / `height` directly)
+         * or "indefinite" (those percentages resolve to 0). The
+         * viewport at the root is always definite; descending through
+         * an auto-height intermediate block breaks the chain. The
+         * `<html>` and `<body>` elements are special-cased to inherit
+         * the viewport per the HTML rendering rules.
+         */
+        public bool $containingBlockHeightDefinite = true,
     ) {}
 
     public function withOrigin(float $x, float $y): self
@@ -68,6 +79,7 @@ final readonly class LayoutContext
             $this->fontResolver,
             $this->floatContext,
             $this->positionedAncestor,
+            $this->containingBlockHeightDefinite,
         );
     }
 
@@ -83,6 +95,23 @@ final readonly class LayoutContext
             $this->fontResolver,
             $this->floatContext,
             $this->positionedAncestor,
+            $this->containingBlockHeightDefinite,
+        );
+    }
+
+    public function withContainingBlockHeightDefinite(float $height, bool $definite): self
+    {
+        return new self(
+            $this->containingBlockWidth,
+            $height,
+            $this->originX,
+            $this->originY,
+            $this->lengthContext,
+            $this->defaultFont,
+            $this->fontResolver,
+            $this->floatContext,
+            $this->positionedAncestor,
+            $definite,
         );
     }
 
@@ -98,6 +127,7 @@ final readonly class LayoutContext
             $this->fontResolver,
             $this->floatContext,
             $this->positionedAncestor,
+            $this->containingBlockHeightDefinite,
         );
     }
 
@@ -113,6 +143,7 @@ final readonly class LayoutContext
             $this->fontResolver,
             $ctx,
             $this->positionedAncestor,
+            $this->containingBlockHeightDefinite,
         );
     }
 
@@ -128,6 +159,7 @@ final readonly class LayoutContext
             $this->fontResolver,
             $this->floatContext,
             $pa,
+            $this->containingBlockHeightDefinite,
         );
     }
 }

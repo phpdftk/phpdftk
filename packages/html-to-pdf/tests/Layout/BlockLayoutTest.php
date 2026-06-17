@@ -2494,15 +2494,20 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $child->geometry->x);
     }
 
-    public function testRelativePercentageOnAutoHeightFallsBackToParentCb(): void
+    public function testRelativePercentageOnAutoHeightParentCollapsesToZero(): void
     {
-        // Negative-first guard: when the immediate parent's height is
-        // `auto` (the indefinite case), the spec lets browsers fall
-        // back to the parent's own containing block. We preserve that
-        // — without the fallback, every auto-height intermediate
-        // would zero-out percentage offsets and visually break common
-        // layouts. The auto-height grandparent (body → 800) is what
-        // the offset should resolve against here.
+        // CSS 2.1 §10.5 + CSS Position 3 §3.4 — when the immediate
+        // parent's height is `auto` (indefinite), percentage `top` /
+        // `bottom` on a relative child collapse to 0 per spec. Without
+        // this rule, `top: -10000%` inside a min-height-only parent
+        // would shift descendants off the page using the grandparent's
+        // viewport height as the basis. Browsers match this strict
+        // resolution; lights up `css-position/position-relative-006`
+        // and a handful of related fixtures whose author-comments
+        // explicitly assert "doesn't resolve against indefinite
+        // parent". The `<html>` / `<body>` chain is special-cased to
+        // inherit the viewport's definite height — top-level
+        // percentages on body's direct children DO resolve.
         $box = $this->buildTree(
             '<html><body>'
                 . '<div id="parent" style="width: 100px">'
@@ -2513,8 +2518,29 @@ final class BlockLayoutTest extends TestCase
         $this->layout->layout($box, $this->defaultCtx);
         $child = $this->findById($box, 'child');
         self::assertNotNull($child);
-        // 25% of body's 800 fallback height = 200.
-        self::assertSame(200.0, $child->geometry->y);
+        // Parent (auto-height div) is NOT html/body, so its content
+        // height is indefinite for the child's percentage resolution.
+        // top: 25% → 0.
+        self::assertSame(0.0, $child->geometry->y);
+    }
+
+    public function testRelativePercentageOnTopLevelBodyDescendantUsesViewport(): void
+    {
+        // Positive: body's height is auto, but the HTML rendering
+        // rules treat body as inheriting the viewport's definite
+        // height. So a top-level div in body with `top: 10%` resolves
+        // against the viewport (= 800 in defaultCtx) → 80.
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="child" style="position: relative; top: 10%"></div>'
+                . '</body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->findById($box, 'child');
+        self::assertNotNull($child);
+        // body inherits definite from root → 10% of 800 = 80.
+        self::assertSame(80.0, $child->geometry->y);
     }
 
     public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
