@@ -3241,6 +3241,78 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString(' 792 re', $rects[0], 'rect is body-sized, not canvas-sized');
     }
 
+    public function testContainLayoutOnHtmlSuppressesBodyPropagation(): void
+    {
+        // CSS Containment 3 §4.1 point 5 — layout containment on the
+        // root element blocks `background` (and `overflow`) from
+        // propagating from the body to the canvas. With root
+        // contain:layout and body background red, the body's
+        // background paints at the body's geometry (NOT the canvas)
+        // so the canvas stays transparent.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             html { contain: layout; }
+             body { background-color: red; width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        $rects = array_values(array_filter(
+            $ops,
+            static fn($op) => str_ends_with(rtrim($op), ' re'),
+        ));
+        // Exactly one rect (body's own bg). No canvas-sized propagated rect.
+        self::assertCount(1, $rects);
+        self::assertStringNotContainsString(' 792 re', $rects[0]);
+    }
+
+    public function testContainSizeOnHtmlSuppressesBodyPropagation(): void
+    {
+        // CSS Containment 3 — size containment on the root also
+        // blocks ancestor propagation (the WPT cluster
+        // `contain-html-bg-003 / 004` and `contain-body-bg-003 / 004`
+        // assert this). The mechanic mirrors layout containment:
+        // body's bg paints at body's geometry only.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             html { contain: size; }
+             body { background-color: red; width: 100px; height: 100px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        $rects = array_values(array_filter(
+            $ops,
+            static fn($op) => str_ends_with(rtrim($op), ' re'),
+        ));
+        self::assertCount(1, $rects);
+        self::assertStringNotContainsString(' 792 re', $rects[0]);
+    }
+
     public function testRootBackgroundWinsOverBodyBackgroundOnCanvas(): void
     {
         // When the root has its own background, the body's background

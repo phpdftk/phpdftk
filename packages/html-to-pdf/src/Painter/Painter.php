@@ -429,9 +429,21 @@ final class Painter
 
     private function containKeywordImpliesPaint(string $keyword): bool
     {
-        // `paint` opts in directly. `strict` = layout+paint+style+size
-        // (CSS Containment 3 §2.4). `content` = layout+paint+style.
-        return $keyword === 'paint' || $keyword === 'strict' || $keyword === 'content';
+        // CSS Containment 3 — `paint`, `layout`, and `size`
+        // containment each block ancestor propagation of properties
+        // like `background` and `overflow` to the root (§4.1, point 5
+        // for layout; size containment makes the element fully
+        // independent of its contents which has the same
+        // propagation-blocking effect for `<html>` / `<body>`
+        // backgrounds — covered by the `contain-{html,body}-bg-003/4`
+        // WPT fixtures). `strict` = layout+paint+style+size and
+        // `content` = layout+paint+style both include several of
+        // these so they get the same treatment.
+        return $keyword === 'paint'
+            || $keyword === 'layout'
+            || $keyword === 'size'
+            || $keyword === 'strict'
+            || $keyword === 'content';
     }
 
     private function paintBox(Box $box, ContentStream $stream): void
