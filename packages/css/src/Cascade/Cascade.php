@@ -1112,20 +1112,39 @@ final class Cascade
             $prop = strtolower(trim(substr($body, 0, $colonPos)));
             $value = trim(substr($body, $colonPos + 1));
             // CSS Conditional Rules 3 §3.1 — the body is exactly one
-            // declaration. A trailing `;` is invalid syntax: the
-            // semicolon separates multiple declarations, not part of
-            // one (WPT at-supports-039). Reject any top-level `;`.
-            $depth = 0;
+            // declaration. A top-level `;` separates declarations
+            // (WPT at-supports-039); bare `]`, `}`, `[`, `{` are
+            // token delimiters that never appear at the top level
+            // of a single declaration's value (WPT at-supports-026).
+            // Also balance must be preserved — a left bracket without
+            // its right mate (or vice versa) is a parse error too.
+            $parenDepth = 0;
+            $bracketDepth = 0;
+            $braceDepth = 0;
             $vlen = strlen($value);
             for ($i = 0; $i < $vlen; $i++) {
                 $ch = $value[$i];
-                if ($ch === '(' || $ch === '[' || $ch === '{') {
-                    $depth++;
-                } elseif ($ch === ')' || $ch === ']' || $ch === '}') {
-                    $depth--;
-                } elseif ($depth === 0 && $ch === ';') {
+                if ($ch === '(') {
+                    $parenDepth++;
+                } elseif ($ch === ')') {
+                    $parenDepth--;
+                } elseif ($ch === '[') {
+                    $bracketDepth++;
+                } elseif ($ch === ']') {
+                    $bracketDepth--;
+                } elseif ($ch === '{') {
+                    $braceDepth++;
+                } elseif ($ch === '}') {
+                    $braceDepth--;
+                } elseif ($parenDepth + $bracketDepth + $braceDepth === 0 && $ch === ';') {
                     return false;
                 }
+                if ($parenDepth < 0 || $bracketDepth < 0 || $braceDepth < 0) {
+                    return false;
+                }
+            }
+            if ($parenDepth !== 0 || $bracketDepth !== 0 || $braceDepth !== 0) {
+                return false;
             }
             // The declaration grammar permits a trailing `!important`;
             // the flag changes specificity, not parse validity, so
