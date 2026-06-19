@@ -368,7 +368,33 @@ final class Cascade
         // `color-scheme` would re-evaluate the parent's `light-dark()`
         // value, contradicting WPT light-dark-inheritance.
         $this->resolveLightDarkValues($result);
+        $this->applyFontSizeAdjustZero($result);
         return $result;
+    }
+
+    /**
+     * CSS Fonts 4 §5 — `font-size-adjust: 0` makes the used font-size
+     * 0px regardless of the cascaded `font-size`. We don't compute
+     * the full x-height-ratio remap, but the zero special case
+     * (which intentionally hides text by collapsing its used size)
+     * is handled directly so WPT font-size-adjust-005 / -014 pass.
+     */
+    private function applyFontSizeAdjustZero(CascadedValues $values): void
+    {
+        $adjust = $values->get('font-size-adjust');
+        $isZero = false;
+        if ($adjust instanceof \Phpdftk\Css\Value\Number) {
+            $isZero = abs($adjust->value) < 1e-9;
+        } elseif ($adjust instanceof \Phpdftk\Css\Value\Integer) {
+            $isZero = $adjust->value === 0;
+        }
+        if (!$isZero) {
+            return;
+        }
+        $values->set(
+            'font-size',
+            new Length(0.0, LengthUnit::Px),
+        );
     }
 
     /**
