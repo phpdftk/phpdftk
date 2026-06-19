@@ -23,7 +23,11 @@ final readonly class RelativeColor extends Value
 {
     public function __construct(
         public ColorSpace $space,
-        public Color $source,
+        // Source is a concrete `Color` for literal/named/function-form
+        // origins (`rgb(from red …)`), or a `Keyword` for `currentcolor`
+        // / `transparent` whose value depends on the using element and
+        // must be resolved at paint time. CSS Color 5 §4.
+        public Color|Keyword $source,
         public Value $component1,
         public Value $component2,
         public Value $component3,

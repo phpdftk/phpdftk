@@ -379,6 +379,9 @@ final class Painter
             $current = $box->style->get('color');
             $value = $current instanceof Color ? $current : null;
         }
+        if ($value instanceof \Phpdftk\Css\Value\RelativeColor) {
+            $value = $this->resolveRelativeColor($value, $box);
+        }
         if ($value instanceof Color && $value->space !== \Phpdftk\Css\Value\ColorSpace::sRGB) {
             // CSS Color 4 §17 — every wide-gamut / polar / Lab-family
             // value stores its native components on the Color struct
@@ -388,6 +391,114 @@ final class Painter
             return \Phpdftk\Css\Value\ColorConverter::toSrgb($value);
         }
         return $value;
+    }
+
+    /**
+     * CSS Color 5 §4 relative-color resolution. Returns the resolved
+     * Color or null when the relative-color expression can't be
+     * statically evaluated.
+     *
+     * The common case the WPT relative-currentcolor cluster exercises
+     * is `<colorFn>(from currentColor c1 c2 c3)` where the components
+     * are the bare slot identifiers (`l a b`, `r g b`, …) — that just
+     * round-trips the source through the target color space.
+     */
+    private function resolveRelativeColor(\Phpdftk\Css\Value\RelativeColor $rc, Box $box): ?Color
+    {
+        $source = $rc->source;
+        if ($source instanceof \Phpdftk\Css\Value\Keyword) {
+            $name = strtolower($source->name);
+            if ($name === 'transparent') {
+                $source = new Color(0.0, 0.0, 0.0, 0.0);
+            } elseif ($name === 'currentcolor') {
+                $current = $box->style->get('color');
+                if (!$current instanceof Color) {
+                    return null;
+                }
+                $source = $current;
+            } else {
+                return null;
+            }
+        }
+        // When every component is just its space's slot identifier
+        // (e.g. `lab(from X l a b)`), the relative-color expression
+        // is the identity round-trip — return the source unchanged
+        // and let the painter's sRGB toSrgb path do the final
+        // conversion.
+        $candidates = $this->relativeColorSlotIdents($rc->space);
+        foreach ($candidates as $slotIdents) {
+            if ($this->isIdentMatching($rc->component1, $slotIdents[0])
+                && $this->isIdentMatching($rc->component2, $slotIdents[1])
+                && $this->isIdentMatching($rc->component3, $slotIdents[2])
+                && $this->isAlphaSlotOrOne($rc->alpha)
+            ) {
+                return $source;
+            }
+        }
+        // More general relative expressions (literal substitutions,
+        // calc() over slot identifiers, alpha overrides) aren't
+        // modelled yet — return null so the rule falls through to
+        // its initial.
+        return null;
+    }
+
+    /**
+     * Slot identifier name CANDIDATES for a relative-color
+     * expression's target space. The CSS Color 5 parser maps the
+     * function name to a storage space (`hsl(from …)` and `hwb(from
+     * …)` both land at sRGB), so we accept any slot triple that's
+     * syntactically valid for THE SYNTAX a sRGB-stored relative
+     * color could have been written with.
+     *
+     * Returns an empty array when the space isn't a named family
+     * we model.
+     *
+     * @return list<array{0:string,1:string,2:string}>
+     */
+    private function relativeColorSlotIdents(\Phpdftk\Css\Value\ColorSpace $space): array
+    {
+        return match ($space) {
+            // The sRGB-family spaces accept rgb/hsl/hwb syntax depending
+            // on the relative-color function name; all three are valid
+            // here because we collapsed them onto a single storage space.
+            \Phpdftk\Css\Value\ColorSpace::sRGB,
+            \Phpdftk\Css\Value\ColorSpace::sRGBLinear => [
+                ['r', 'g', 'b'],
+                ['h', 's', 'l'],
+                ['h', 'w', 'b'],
+            ],
+            \Phpdftk\Css\Value\ColorSpace::DisplayP3,
+            \Phpdftk\Css\Value\ColorSpace::DisplayP3Linear,
+            \Phpdftk\Css\Value\ColorSpace::A98RGB,
+            \Phpdftk\Css\Value\ColorSpace::A98RGBLinear,
+            \Phpdftk\Css\Value\ColorSpace::ProPhotoRGB,
+            \Phpdftk\Css\Value\ColorSpace::ProPhotoRGBLinear,
+            \Phpdftk\Css\Value\ColorSpace::Rec2020,
+            \Phpdftk\Css\Value\ColorSpace::Rec2020Linear
+                => [['r', 'g', 'b']],
+            \Phpdftk\Css\Value\ColorSpace::HWB => [['h', 'w', 'b']],
+            \Phpdftk\Css\Value\ColorSpace::Lab => [['l', 'a', 'b']],
+            \Phpdftk\Css\Value\ColorSpace::Lch => [['l', 'c', 'h']],
+            \Phpdftk\Css\Value\ColorSpace::OKLab => [['l', 'a', 'b']],
+            \Phpdftk\Css\Value\ColorSpace::OKLCH => [['l', 'c', 'h']],
+            \Phpdftk\Css\Value\ColorSpace::XYZ,
+            \Phpdftk\Css\Value\ColorSpace::XYZD65,
+            \Phpdftk\Css\Value\ColorSpace::XYZD50 => [['x', 'y', 'z']],
+        };
+    }
+
+    private function isIdentMatching(\Phpdftk\Css\Value\Value $value, string $name): bool
+    {
+        return $value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === $name;
+    }
+
+    private function isAlphaSlotOrOne(\Phpdftk\Css\Value\Value $value): bool
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return abs($value->value - 1.0) < 1e-9;
+        }
+        return $this->isIdentMatching($value, 'alpha');
     }
 
     private function findBodyChild(Box $root): ?Box

@@ -1536,7 +1536,15 @@ final class ValueParser
         }
         $sourceCss = self::serializeTokens(array_slice($tokensAfterFrom, 0, $sourceConsumed));
         $source = $this->parseFromString($sourceCss);
-        if (!($source instanceof Color)) {
+        // `from` accepts a concrete `<color>` OR the `currentcolor` /
+        // `transparent` keywords (CSS Color 5 §4 — those still name
+        // colors at the using element). The painter resolves a
+        // keyword source to a concrete sRGB color before evaluating
+        // the relative formula.
+        if (!($source instanceof Color)
+            && !($source instanceof Keyword
+                && in_array(strtolower($source->name), ['currentcolor', 'transparent'], true))
+        ) {
             return null;
         }
 
