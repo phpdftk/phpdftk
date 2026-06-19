@@ -1593,6 +1593,49 @@ final class Cascade
             'search-text',
             // Form inputs.
             'first-letter', 'first-line',
+            // Well-known WebKit / Mozilla vendor pseudo-elements
+            // browsers expose as form-control internals. WPT
+            // `selector(input::-webkit-slider-thumb)` gates rules on
+            // the EXISTENCE of these names; we don't render their
+            // shadow content but we report them as recognised so
+            // author CSS that probes for them doesn't drop.
+            '-webkit-slider-thumb',
+            '-webkit-slider-runnable-track',
+            '-webkit-progress-bar',
+            '-webkit-progress-value',
+            '-webkit-meter-bar',
+            '-webkit-meter-optimum-value',
+            '-webkit-meter-suboptimum-value',
+            '-webkit-meter-even-less-good-value',
+            '-webkit-scrollbar',
+            '-webkit-scrollbar-thumb',
+            '-webkit-scrollbar-track',
+            '-webkit-scrollbar-corner',
+            '-webkit-scrollbar-button',
+            '-webkit-resizer',
+            '-webkit-search-cancel-button',
+            '-webkit-search-decoration',
+            '-webkit-search-results-button',
+            '-webkit-search-results-decoration',
+            '-webkit-file-upload-button',
+            '-webkit-inner-spin-button',
+            '-webkit-outer-spin-button',
+            '-webkit-calendar-picker-indicator',
+            '-webkit-color-swatch-wrapper',
+            '-webkit-color-swatch',
+            '-webkit-details-marker',
+            '-webkit-input-placeholder',
+            '-webkit-textfield-decoration-container',
+            '-moz-color-swatch',
+            '-moz-focus-inner',
+            '-moz-list-bullet',
+            '-moz-list-number',
+            '-moz-meter-bar',
+            '-moz-progress-bar',
+            '-moz-range-progress',
+            '-moz-range-thumb',
+            '-moz-range-track',
+            '-moz-placeholder',
         ], true);
     }
 
