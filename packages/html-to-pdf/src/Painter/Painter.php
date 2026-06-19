@@ -373,10 +373,22 @@ final class Painter
      */
     private function resolveColorWithCurrentColor(?\Phpdftk\Css\Value\Value $value, Box $box): ?\Phpdftk\Css\Value\Value
     {
+        // CSS Color 5 §5 — `light-dark(<light>, <dark>)` picks the
+        // arm matching the using element's `color-scheme`. We don't
+        // currently track per-box color-scheme, so default to the
+        // light arm (which is also the spec's fallback when no
+        // scheme is declared). Resolve before the currentcolor /
+        // relative checks below so the unwrapped side flows through.
+        if ($value instanceof \Phpdftk\Css\Value\LightDark) {
+            $value = $value->light;
+        }
         if ($value instanceof \Phpdftk\Css\Value\Keyword
             && strtolower($value->name) === 'currentcolor'
         ) {
             $current = $box->style->get('color');
+            if ($current instanceof \Phpdftk\Css\Value\LightDark) {
+                $current = $current->light;
+            }
             $value = $current instanceof Color ? $current : null;
         }
         if ($value instanceof \Phpdftk\Css\Value\RelativeColor) {
