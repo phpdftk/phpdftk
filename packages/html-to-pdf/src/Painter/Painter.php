@@ -481,11 +481,72 @@ final class Painter
                 return $source;
             }
         }
+        // Slot permutations — every component is a bare slot
+        // identifier from SOME valid slot trio, but the slots are
+        // shuffled (e.g. `rgb(from currentColor g r b)` from WPT
+        // relative-currentcolor-rgb-02). Map each component to the
+        // source's value for that slot and rebuild the target color.
+        foreach ($candidates as $slotIdents) {
+            $permuted = $this->resolveSlotPermutation($rc, $source, $slotIdents);
+            if ($permuted !== null) {
+                return $permuted;
+            }
+        }
         // More general relative expressions (literal substitutions,
         // calc() over slot identifiers, alpha overrides) aren't
         // modelled yet — return null so the rule falls through to
         // its initial.
         return null;
+    }
+
+    /**
+     * Resolve a relative-color expression whose components are bare
+     * slot identifiers but possibly shuffled. Returns a new Color
+     * with the source's slot values rearranged, or null when any
+     * component isn't a recognised slot identifier from the given
+     * trio.
+     *
+     * @param array{0:string,1:string,2:string} $slotIdents
+     */
+    private function resolveSlotPermutation(
+        \Phpdftk\Css\Value\RelativeColor $rc,
+        Color $source,
+        array $slotIdents,
+    ): ?Color {
+        // Build slot-name → source-channel-value lookup. For sRGB-
+        // family spaces the slots map onto $source->r/g/b directly;
+        // for the HSL / HWB syntactic slot trios on a sRGB-stored
+        // source we'd need a sRGB→HSL conversion, which we punt on.
+        $sourceChannels = [];
+        if ($slotIdents === ['r', 'g', 'b']) {
+            $sourceChannels = [
+                'r' => $source->r,
+                'g' => $source->g,
+                'b' => $source->b,
+            ];
+        } else {
+            return null;
+        }
+        $alphaSlot = 'alpha';
+        $sourceChannels[$alphaSlot] = $source->a;
+        if (!$this->isAlphaSlotOrOne($rc->alpha)) {
+            return null;
+        }
+        $resolved = [];
+        foreach ([$rc->component1, $rc->component2, $rc->component3] as $i => $comp) {
+            if (!$comp instanceof \Phpdftk\Css\Value\Keyword) {
+                return null;
+            }
+            $name = strtolower($comp->name);
+            if (!isset($sourceChannels[$name])) {
+                return null;
+            }
+            $resolved[$i] = $sourceChannels[$name];
+        }
+        $alpha = $rc->alpha instanceof \Phpdftk\Css\Value\Number
+            ? $rc->alpha->value
+            : $source->a;
+        return new Color($resolved[0], $resolved[1], $resolved[2], $alpha, $source->space);
     }
 
     /**
