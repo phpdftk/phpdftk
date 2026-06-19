@@ -374,20 +374,22 @@ final class Painter
     private function resolveColorWithCurrentColor(?\Phpdftk\Css\Value\Value $value, Box $box): ?\Phpdftk\Css\Value\Value
     {
         // CSS Color 5 §5 — `light-dark(<light>, <dark>)` picks the
-        // arm matching the using element's `color-scheme`. We don't
-        // currently track per-box color-scheme, so default to the
-        // light arm (which is also the spec's fallback when no
-        // scheme is declared). Resolve before the currentcolor /
-        // relative checks below so the unwrapped side flows through.
+        // arm matching the using element's `color-scheme`. Inspect the
+        // box's resolved `color-scheme` to decide: when the cascaded
+        // value lists `dark` (e.g. `color-scheme: dark` or `color-
+        // scheme: light dark` with dark first), pick the dark arm.
+        // Anything else (including the `normal` initial or
+        // `color-scheme: light`) falls back to the light arm — the
+        // spec's default.
         if ($value instanceof \Phpdftk\Css\Value\LightDark) {
-            $value = $value->light;
+            $value = $this->preferredLightDarkArm($box, $value);
         }
         if ($value instanceof \Phpdftk\Css\Value\Keyword
             && strtolower($value->name) === 'currentcolor'
         ) {
             $current = $box->style->get('color');
             if ($current instanceof \Phpdftk\Css\Value\LightDark) {
-                $current = $current->light;
+                $current = $this->preferredLightDarkArm($box, $current);
             }
             $value = $current instanceof Color ? $current : null;
         }
@@ -403,6 +405,38 @@ final class Painter
             return \Phpdftk\Css\Value\ColorConverter::toSrgb($value);
         }
         return $value;
+    }
+
+    /**
+     * Pick the appropriate arm of a `light-dark()` expression based on
+     * the box's resolved `color-scheme`. CSS Color 5 §5 — the spec
+     * default is the light arm; `color-scheme: dark` (or a list whose
+     * first preferred scheme is dark) selects the dark arm.
+     */
+    private function preferredLightDarkArm(Box $box, \Phpdftk\Css\Value\LightDark $value): \Phpdftk\Css\Value\Value
+    {
+        $scheme = $box->style->get('color-scheme');
+        $isDark = false;
+        if ($scheme instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($scheme->name) === 'dark'
+        ) {
+            $isDark = true;
+        } elseif ($scheme instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($scheme->values as $entry) {
+                if (!$entry instanceof \Phpdftk\Css\Value\Keyword) {
+                    continue;
+                }
+                $name = strtolower($entry->name);
+                if ($name === 'dark') {
+                    $isDark = true;
+                    break;
+                }
+                if ($name === 'light') {
+                    break;
+                }
+            }
+        }
+        return $isDark ? $value->dark : $value->light;
     }
 
     /**

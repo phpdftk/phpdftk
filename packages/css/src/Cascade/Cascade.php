@@ -361,7 +361,49 @@ final class Cascade
         $this->applyInheritance($result, $parentValues);
         $this->inheritCustomProperties($result, $parentValues);
         $this->substituteCustomProperties($result);
+        // CSS Color 5 §5 — `light-dark(<light>, <dark>)` is resolved
+        // at COMPUTED-VALUE time using THIS element's `color-scheme`,
+        // so it inherits as the chosen arm (not the symbolic
+        // expression). Without this pass an inner element's
+        // `color-scheme` would re-evaluate the parent's `light-dark()`
+        // value, contradicting WPT light-dark-inheritance.
+        $this->resolveLightDarkValues($result);
         return $result;
+    }
+
+    /**
+     * Walk every cascaded value in `$values` and replace any
+     * `LightDark` instance with its preferred arm — the dark side
+     * when `color-scheme` resolves to a list whose first preferred
+     * scheme is dark, the light side otherwise (matching the spec
+     * default).
+     */
+    private function resolveLightDarkValues(CascadedValues $values): void
+    {
+        $scheme = $values->get('color-scheme');
+        $isDark = false;
+        if ($scheme instanceof Keyword && strtolower($scheme->name) === 'dark') {
+            $isDark = true;
+        } elseif ($scheme instanceof ValueList) {
+            foreach ($scheme->values as $entry) {
+                if (!$entry instanceof Keyword) {
+                    continue;
+                }
+                $name = strtolower($entry->name);
+                if ($name === 'dark') {
+                    $isDark = true;
+                    break;
+                }
+                if ($name === 'light') {
+                    break;
+                }
+            }
+        }
+        foreach ($values->all() as $name => $value) {
+            if ($value instanceof \Phpdftk\Css\Value\LightDark) {
+                $values->set($name, $isDark ? $value->dark : $value->light);
+            }
+        }
     }
 
     /**
