@@ -245,6 +245,7 @@ final class NamedColors
         'graytext' => [128, 128, 128],
         // §9.3 deprecated — each aliases a modern name; values mirror
         // the modern entry above.
+        'activeborder' => [128, 128, 128],          // → ButtonBorder
         'activecaption' => [255, 255, 255],         // → Canvas
         'appworkspace' => [255, 255, 255],          // → Canvas
         'background' => [255, 255, 255],            // → Canvas
