@@ -5692,6 +5692,17 @@ final class Painter
     ): void {
         $pdfY = $this->pageHeight - $topY - $height;
         $stream->saveGraphicsState();
+        // CSS Color §10 — translucent fills (Color::a < 1) need to
+        // composite over whatever's underneath; that's an ExtGState
+        // dictionary in PDF with /ca for non-stroke and /CA for
+        // stroke. Without it the painter would emit a fully-opaque
+        // rect even when the cascaded color said e.g. `rgba(0,0,0,
+        // 0.6)`, masking the background entirely. WPT t422-rgba-*
+        // exercise this with checkerboards behind translucent bands.
+        if ($fill->a < 0.999 && $this->page !== null) {
+            $alphaName = $this->page->ensureOpacityState($fill->a, $fill->a);
+            $stream->setGraphicsState($alphaName);
+        }
         $stream->setFillColorRGB($fill->r, $fill->g, $fill->b);
         $stream->rectangle($x, $pdfY, $width, $height);
         $stream->fill();
