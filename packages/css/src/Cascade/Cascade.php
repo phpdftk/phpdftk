@@ -955,7 +955,7 @@ final class Cascade
      * predicates evaluate to false (we don't model selector support
      * granularity).
      */
-    private function supportsPreludeMatches(string $prelude): bool
+    public function supportsPreludeMatches(string $prelude): bool
     {
         $prelude = trim($prelude);
         if ($prelude === '') {

@@ -1238,7 +1238,7 @@ final class Renderer
     private function loadFontFaces(array $sheets, array &$warnings): iterable
     {
         foreach ($sheets as $sheet) {
-            foreach ($sheet->rules as $rule) {
+            foreach ($this->flattenRules($sheet->rules) as $rule) {
                 if (!$rule instanceof \Phpdftk\Css\Sheet\AtRule) {
                     continue;
                 }
@@ -1396,6 +1396,76 @@ final class Renderer
 
     /**
      * Extract the family name from a `font-family` value inside an
+     * Walk a list of stylesheet rules, descending into nested
+     * `@media all` / `@supports (cond)` / `@layer` blocks so a
+     * `@font-face` (or any other rule the caller cares about) inside
+     * one of those conditional groups still surfaces at the top
+     * level. WPT at-supports-content-002 / -003 / -004 and the
+     * matching at-media-content-* fixtures all nest `@font-face`,
+     * `@keyframes`, or `@counter-style` inside `@media all`.
+     *
+     * We intentionally treat unconditional groups (`@media all`,
+     * `@media`, `@supports` whose prelude trivially passes) as
+     * passthrough. Anything that wouldn't statically pass the
+     * cascade's media/supports matcher gets dropped — we don't
+     * want a `@media not all { @font-face { … } }` block's face
+     * silently loading.
+     *
+     * @param list<\Phpdftk\Css\Sheet\Rule> $rules
+     * @return iterable<\Phpdftk\Css\Sheet\Rule>
+     */
+    private function flattenRules(array $rules): iterable
+    {
+        foreach ($rules as $rule) {
+            yield $rule;
+            if (!$rule instanceof \Phpdftk\Css\Sheet\AtRule || $rule->block === null) {
+                continue;
+            }
+            $name = strtolower($rule->name);
+            if (!in_array($name, ['media', 'supports', 'layer', 'scope', 'starting-style', 'container'], true)) {
+                continue;
+            }
+            $shouldRecurse = match ($name) {
+                'media' => $this->staticallyMatchingMediaPrelude($rule->prelude),
+                'supports' => $this->cascade->supportsPreludeMatches($rule->prelude),
+                default => true,
+            };
+            if (!$shouldRecurse) {
+                continue;
+            }
+            $nested = [];
+            foreach ($rule->block->contents as $item) {
+                if ($item instanceof \Phpdftk\Css\Sheet\Rule) {
+                    $nested[] = $item;
+                }
+            }
+            yield from $this->flattenRules($nested);
+        }
+    }
+
+    /**
+     * Cheap statically-true check for a `@media` prelude — accepts
+     * `all`, `print`, and any comma-separated list mentioning either.
+     * Anything that depends on viewport state (`(min-width: …)`) is
+     * conservatively treated as "true" so author CSS that gates
+     * behind it still surfaces.
+     */
+    private function staticallyMatchingMediaPrelude(string $prelude): bool
+    {
+        $prelude = trim(strtolower($prelude));
+        if ($prelude === '' || $prelude === 'all') {
+            return true;
+        }
+        if (str_starts_with($prelude, 'not all') || str_starts_with($prelude, 'not (')) {
+            // Conservative — `not all` is the canonical "drop this
+            // block" shape used by WPT to pair the active and dropped
+            // alternatives (see at-supports-content-002).
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * `@font-face` block. Accepts a `StringValue` (`"My Font"`) or a
      * `Keyword` or a space-separated `ValueList` of keywords (the
      * unquoted-multi-word form `font-family: My Font`).
