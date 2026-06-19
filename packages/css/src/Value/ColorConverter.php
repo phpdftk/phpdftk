@@ -343,17 +343,36 @@ final class ColorConverter
             $lr = $r;
             $lg = $g;
             $lb = $b;
+        } elseif ($matrix === self::M_LINEAR_PROPHOTORGB_TO_XYZD50) {
+            // ProPhoto RGB — CSS Color 4 §10.6 transfer is a simple
+            // 1.8 power curve in both directions; the sub-threshold
+            // linear segment is handled by the same formula in CSS
+            // (no piecewise split).
+            $lr = $r >= 0.0 ? $r ** 1.8 : -((-$r) ** 1.8);
+            $lg = $g >= 0.0 ? $g ** 1.8 : -((-$g) ** 1.8);
+            $lb = $b >= 0.0 ? $b ** 1.8 : -((-$b) ** 1.8);
+        } elseif ($matrix === self::M_LINEAR_A98RGB_TO_XYZD65) {
+            // Adobe RGB (1998) — CSS Color 4 §10.4: gamma is 563/256
+            // = 2.19921875 (the spec rounds to "approximately 2.2"
+            // but mandates the exact rational). No piecewise split.
+            // The previous shared-with-sRGB transfer pulled the
+            // converted samples 6-7% off green/red (WPT a98rgb-001,
+            // predefined-007/-008).
+            $lr = $r >= 0.0 ? $r ** 2.19921875 : -((-$r) ** 2.19921875);
+            $lg = $g >= 0.0 ? $g ** 2.19921875 : -((-$g) ** 2.19921875);
+            $lb = $b >= 0.0 ? $b ** 2.19921875 : -((-$b) ** 2.19921875);
+        } elseif ($matrix === self::M_LINEAR_REC2020_TO_XYZD65) {
+            // BT.2020 — CSS Color 4 §10.5 piecewise transfer:
+            //   c < β   → c / 4.5
+            //   c ≥ β   → ((|c| + α - 1) / α) ^ (1 / 0.45),  α = 1.09929682680944, β = 0.018053968510807
+            // (Cross-rate signs through.)
+            $lr = self::rec2020Degamma($r);
+            $lg = self::rec2020Degamma($g);
+            $lb = self::rec2020Degamma($b);
         } else {
             $lr = self::srgbDegamma($r);
             $lg = self::srgbDegamma($g);
             $lb = self::srgbDegamma($b);
-            // Most spaces in this group share the sRGB transfer curve. ProPhoto
-            // uses 1.8 — match its source-D50 reference too.
-            if ($matrix === self::M_LINEAR_PROPHOTORGB_TO_XYZD50) {
-                $lr = $r >= 0.0 ? $r ** 1.8 : -((-$r) ** 1.8);
-                $lg = $g >= 0.0 ? $g ** 1.8 : -((-$g) ** 1.8);
-                $lb = $b >= 0.0 ? $b ** 1.8 : -((-$b) ** 1.8);
-            }
         }
         [$x, $y, $z] = self::mul3($matrix, [$lr, $lg, $lb]);
         if ($isD50) {
@@ -390,6 +409,18 @@ final class ColorConverter
             return $sign * $a / 12.92;
         }
         return $sign * ((($a + 0.055) / 1.055) ** 2.4);
+    }
+
+    private static function rec2020Degamma(float $v): float
+    {
+        // BT.2020 transfer (CSS Color 4 §10.5): α = 1.09929682680944,
+        // β linear cutoff 4.5β = 0.081242858298635 (so β ≈ 0.018053).
+        $sign = $v < 0.0 ? -1.0 : 1.0;
+        $a = abs($v);
+        if ($a < 0.08124285829863) {
+            return $sign * $a / 4.5;
+        }
+        return $sign * ((($a + 0.09929682680944) / 1.09929682680944) ** (1.0 / 0.45));
     }
 
     private static function clip01(float $v): float
