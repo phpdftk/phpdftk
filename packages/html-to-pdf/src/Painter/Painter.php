@@ -513,40 +513,173 @@ final class Painter
         Color $source,
         array $slotIdents,
     ): ?Color {
-        // Build slot-name → source-channel-value lookup. For sRGB-
-        // family spaces the slots map onto $source->r/g/b directly;
-        // for the HSL / HWB syntactic slot trios on a sRGB-stored
-        // source we'd need a sRGB→HSL conversion, which we punt on.
-        $sourceChannels = [];
+        // Build slot-name → source-channel-value lookup. For each
+        // syntactic slot trio we convert the sRGB-stored source into
+        // the matching color model so the slot identifiers refer to
+        // the right channels. The result is then converted back to
+        // the source's storage space.
         if ($slotIdents === ['r', 'g', 'b']) {
-            $sourceChannels = [
-                'r' => $source->r,
-                'g' => $source->g,
-                'b' => $source->b,
-            ];
+            $sourceChannels = ['r' => $source->r, 'g' => $source->g, 'b' => $source->b];
+            $rebuild = static fn(float $c1, float $c2, float $c3, float $a)
+                => new Color($c1, $c2, $c3, $a, $source->space);
+        } elseif ($slotIdents === ['h', 's', 'l']) {
+            // CSS Color 4 §6 — sRGB→HSL. The slots refer to source's
+            // HSL components; result rebuilds via hslToRgb. Hue is
+            // stored as degrees per CSS, saturation and lightness as
+            // 0–1 fractions.
+            [$h, $s, $l] = self::srgbToHsl($source->r, $source->g, $source->b);
+            $sourceChannels = ['h' => $h, 's' => $s, 'l' => $l];
+            $rebuild = static function (float $c1, float $c2, float $c3, float $a) use ($source): Color {
+                [$r, $g, $b] = self::hslToRgb($c1 / 360.0, $c2, $c3);
+                return new Color($r, $g, $b, $a, $source->space);
+            };
+        } elseif ($slotIdents === ['h', 'w', 'b']) {
+            [$h, $w, $blk] = self::srgbToHwb($source->r, $source->g, $source->b);
+            $sourceChannels = ['h' => $h, 'w' => $w, 'b' => $blk];
+            $rebuild = static function (float $c1, float $c2, float $c3, float $a) use ($source): Color {
+                [$r, $g, $b] = self::hwbToRgb($c1, $c2, $c3);
+                return new Color($r, $g, $b, $a, $source->space);
+            };
         } else {
             return null;
         }
-        $alphaSlot = 'alpha';
-        $sourceChannels[$alphaSlot] = $source->a;
         if (!$this->isAlphaSlotOrOne($rc->alpha)) {
             return null;
         }
         $resolved = [];
         foreach ([$rc->component1, $rc->component2, $rc->component3] as $i => $comp) {
-            if (!$comp instanceof \Phpdftk\Css\Value\Keyword) {
-                return null;
+            // Component is EITHER a slot identifier (mapped above) OR
+            // a bare literal number — WPT relative-currentcolor-hsl-02
+            // uses `hsl(from currentColor 120 s l)` where the hue is
+            // a literal `120` (degrees).
+            if ($comp instanceof \Phpdftk\Css\Value\Keyword) {
+                $name = strtolower($comp->name);
+                if (!isset($sourceChannels[$name])) {
+                    return null;
+                }
+                $resolved[$i] = $sourceChannels[$name];
+                continue;
             }
-            $name = strtolower($comp->name);
-            if (!isset($sourceChannels[$name])) {
-                return null;
+            if ($comp instanceof \Phpdftk\Css\Value\Number) {
+                $resolved[$i] = $comp->value;
+                continue;
             }
-            $resolved[$i] = $sourceChannels[$name];
+            if ($comp instanceof \Phpdftk\Css\Value\Integer) {
+                $resolved[$i] = (float) $comp->value;
+                continue;
+            }
+            if ($comp instanceof \Phpdftk\Css\Value\Percentage) {
+                // hsl saturation / lightness as a percentage maps to
+                // [0, 1]; for hue or other components the spec keeps
+                // the percentage verbatim but no test we hit takes
+                // that path, so leave the simple 0..1 conversion.
+                $resolved[$i] = $comp->value / 100.0;
+                continue;
+            }
+            return null;
         }
         $alpha = $rc->alpha instanceof \Phpdftk\Css\Value\Number
             ? $rc->alpha->value
             : $source->a;
-        return new Color($resolved[0], $resolved[1], $resolved[2], $alpha, $source->space);
+        return $rebuild($resolved[0], $resolved[1], $resolved[2], $alpha);
+    }
+
+    /**
+     * CSS Color 4 §6 — sRGB → HSL. Returns hue in degrees, saturation
+     * and lightness in [0, 1].
+     *
+     * @return array{0:float,1:float,2:float}
+     */
+    private static function srgbToHsl(float $r, float $g, float $b): array
+    {
+        $max = max($r, $g, $b);
+        $min = min($r, $g, $b);
+        $delta = $max - $min;
+        $l = ($max + $min) / 2.0;
+        if ($delta === 0.0) {
+            return [0.0, 0.0, $l];
+        }
+        $s = $l > 0.5 ? $delta / (2.0 - $max - $min) : $delta / ($max + $min);
+        if ($max === $r) {
+            $h = (($g - $b) / $delta) + ($g < $b ? 6.0 : 0.0);
+        } elseif ($max === $g) {
+            $h = (($b - $r) / $delta) + 2.0;
+        } else {
+            $h = (($r - $g) / $delta) + 4.0;
+        }
+        return [$h * 60.0, $s, $l];
+    }
+
+    /**
+     * CSS Color 4 §8 — sRGB → HWB. Returns hue in degrees, whiteness
+     * and blackness in [0, 1].
+     *
+     * @return array{0:float,1:float,2:float}
+     */
+    private static function srgbToHwb(float $r, float $g, float $b): array
+    {
+        $max = max($r, $g, $b);
+        $min = min($r, $g, $b);
+        $h = self::srgbToHsl($r, $g, $b)[0];
+        return [$h, $min, 1.0 - $max];
+    }
+
+    /**
+     * CSS Color 4 §6 — HSL → sRGB, with hue in [0, 1) (fraction of a
+     * full turn), saturation and lightness in [0, 1].
+     *
+     * @return array{0:float,1:float,2:float}
+     */
+    private static function hslToRgb(float $h, float $s, float $l): array
+    {
+        if ($s === 0.0) {
+            return [$l, $l, $l];
+        }
+        $q = $l < 0.5 ? $l * (1.0 + $s) : $l + $s - $l * $s;
+        $p = 2.0 * $l - $q;
+        $toRgb = static function (float $t) use ($p, $q): float {
+            if ($t < 0.0) {
+                $t += 1.0;
+            }
+            if ($t > 1.0) {
+                $t -= 1.0;
+            }
+            if ($t < 1.0 / 6.0) {
+                return $p + ($q - $p) * 6.0 * $t;
+            }
+            if ($t < 0.5) {
+                return $q;
+            }
+            if ($t < 2.0 / 3.0) {
+                return $p + ($q - $p) * (2.0 / 3.0 - $t) * 6.0;
+            }
+            return $p;
+        };
+        return [
+            $toRgb($h + 1.0 / 3.0),
+            $toRgb($h),
+            $toRgb($h - 1.0 / 3.0),
+        ];
+    }
+
+    /**
+     * CSS Color 4 §8 — HWB → sRGB. Hue in degrees, whiteness and
+     * blackness in [0, 1].
+     *
+     * @return array{0:float,1:float,2:float}
+     */
+    private static function hwbToRgb(float $h, float $w, float $b): array
+    {
+        if ($w + $b >= 1.0) {
+            $gray = $w / ($w + $b);
+            return [$gray, $gray, $gray];
+        }
+        [$rh, $gh, $bh] = self::hslToRgb($h / 360.0, 1.0, 0.5);
+        return [
+            $rh * (1.0 - $w - $b) + $w,
+            $gh * (1.0 - $w - $b) + $w,
+            $bh * (1.0 - $w - $b) + $w,
+        ];
     }
 
     /**

@@ -1038,6 +1038,12 @@ final class ValueParser
             return null;
         }
         $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            // CSS Color 4 §10.5 — `none` in a literal context resolves
+            // to 0. The "missing-component" tag is only meaningful in
+            // interpolation, which we don't model here.
+            return 0.0;
+        }
         if ($t instanceof NumberToken) {
             return fmod(fmod($t->value, 360) + 360, 360) / 360.0; // normalise to [0, 1)
         }
@@ -1065,6 +1071,11 @@ final class ValueParser
             return null;
         }
         $t = $group[0];
+        if ($t instanceof IdentToken && strtolower($t->value) === 'none') {
+            // CSS Color 4 §10.5 — `none` resolves to 0 outside
+            // interpolation contexts.
+            return 0.0;
+        }
         if ($t instanceof PercentageToken) {
             return max(0.0, min(1.0, $t->value / 100.0));
         }
