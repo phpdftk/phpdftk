@@ -2700,33 +2700,11 @@ final class BlockLayout
             isColumnAxis: false,
         );
 
-        // CSS Box Alignment 3 §6 / Grid Layout 2 §11 — `justify-content`
-        // and `align-content` on the grid container distribute the
-        // slack (container size − total tracks) across tracks. We
-        // compute a leading offset and per-track spacing per axis
-        // and bake them into the offsets used by Pass 3.
-        [$colLeading, $colSpacing] = $this->resolveGridContentAlignment(
-            $style,
-            'justify-content',
-            $this->gridTotalExtent($columnTracks, $columnGap),
-            max(0.0, $geo->width),
-            count($columnTracks),
-            $columnGap,
-        );
-        [$rowLeading, $rowSpacing] = $this->resolveGridContentAlignment(
-            $style,
-            'align-content',
-            $this->gridTotalExtent($rowTracks, $rowGap),
-            max(0.0, $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap)),
-            count($rowTracks),
-            $rowGap,
-        );
-
         // Pass 3: lay out each child inside its assigned cell.
         // Track-prefix sums let us cheaply compute (x, y, width,
         // height) per cell range.
-        $colOffsets = $this->gridTrackOffsetsWithSlack($columnTracks, $columnGap, $colLeading, $colSpacing);
-        $rowOffsets = $this->gridTrackOffsetsWithSlack($rowTracks, $rowGap, $rowLeading, $rowSpacing);
+        $colOffsets = $this->gridTrackOffsets($columnTracks, $columnGap);
+        $rowOffsets = $this->gridTrackOffsets($rowTracks, $rowGap);
         foreach ($placements as $p) {
             // Skip items that didn't successfully place.
             if ($p['row'] < 0 || $p['col'] < 0) {
@@ -2737,26 +2715,18 @@ final class BlockLayout
             }
             $cellX = $geo->x + $colOffsets[$p['col']];
             $cellY = $geo->y + $rowOffsets[$p['row']];
-            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $colSpacing);
-            $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowSpacing);
+            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGap);
+            $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowGap);
 
             // CSS Box Alignment 3 §6.2 — `justify-self` (inline axis)
-            // and `align-self` (block axis). `auto` inherits the
-            // container's `justify-items` / `align-items`, which
-            // themselves default to `stretch` for Grid (Grid Layout 2
-            // §11). Other keywords:
+            // and `align-self` (block axis). `auto` → `stretch` for
+            // Grid (matching CSS Grid Layout 2 §11). Other keywords:
             //   `start` — align to cell's main-start
             //   `end`   — align to cell's main-end
             //   `center` — centered
             //   `stretch` — fill the cell
             $justify = $this->gridSelfKeyword($p['box'], 'justify-self');
-            if ($justify === 'stretch' && $this->isAuto($p['box']->style->get('justify-self'))) {
-                $justify = $this->gridContainerKeyword($style, 'justify-items');
-            }
             $alignS = $this->gridSelfKeyword($p['box'], 'align-self');
-            if ($alignS === 'stretch' && $this->isAuto($p['box']->style->get('align-self'))) {
-                $alignS = $this->gridContainerKeyword($style, 'align-items');
-            }
             $isStretchX = $justify === 'stretch';
             $isStretchY = $alignS === 'stretch';
 
@@ -3844,29 +3814,6 @@ final class BlockLayout
     }
 
     /**
-     * Resolve a grid container's `justify-items` / `align-items`
-     * default for items whose `*-self` value is `auto`. Initial value
-     * is `legacy` / `normal`; both alias to `stretch` for grid (CSS
-     * Grid 2 §11).
-     */
-    private function gridContainerKeyword(CascadedValues $style, string $property): string
-    {
-        $value = $style->get($property);
-        if (!$value instanceof Keyword) {
-            return 'stretch';
-        }
-        $name = strtolower($value->name);
-        return match ($name) {
-            'start', 'flex-start', 'self-start' => 'start',
-            'end', 'flex-end', 'self-end' => 'end',
-            'center' => 'center',
-            'stretch' => 'stretch',
-            'normal', 'legacy' => 'stretch',
-            default => 'stretch',
-        };
-    }
-
-    /**
      * Mark a (row, col, rowSpan, colSpan) range as occupied.
      *
      * @param array<int, array<int, true>> $occupied  Mutated in place.
@@ -3899,74 +3846,24 @@ final class BlockLayout
     }
 
     /**
-     * Compute the starting offset of each track — `result[i]` is the
-     * position of track `i`'s start edge. `$leading` shifts the
-     * sequence before track 0 (used by `center` / `end` /
-     * `space-around` / `space-evenly` distributions);
-     * `$interTrackSpacing` separates adjacent tracks (`gap` by
-     * default; `space-between` widens it past `gap`).
+     * Prefix-sum offsets for a track list — `result[i]` = position
+     * of track `i`'s start edge, taking gaps into account.
      *
      * @param list<float> $tracks
      * @return list<float>
      */
-    private function gridTrackOffsetsWithSlack(
-        array $tracks,
-        float $gap,
-        float $leading,
-        float $interTrackSpacing,
-    ): array {
-        $offsets = [$leading];
-        $running = $leading;
+    private function gridTrackOffsets(array $tracks, float $gap): array
+    {
+        $offsets = [0.0];
+        $running = 0.0;
         for ($i = 0; $i < count($tracks); $i++) {
             $running += $tracks[$i];
             if ($i < count($tracks) - 1) {
-                $running += $interTrackSpacing;
+                $running += $gap;
             }
             $offsets[] = $running;
         }
         return $offsets;
-    }
-
-    /**
-     * Resolve a grid container's `justify-content` / `align-content`
-     * into a (leadingOffset, interTrackSpacing) pair. The initial
-     * `normal` resolves to `start` for grid per Box Alignment 3
-     * §6.2. Returns `(0, $gap)` when no slack is available so
-     * authors that opt in to alignment but already pack tightly
-     * don't get extra leading.
-     *
-     * @return array{0: float, 1: float}
-     */
-    private function resolveGridContentAlignment(
-        CascadedValues $style,
-        string $property,
-        float $totalTracksExtent,
-        float $containerExtent,
-        int $trackCount,
-        float $gap,
-    ): array {
-        $slack = $containerExtent - $totalTracksExtent;
-        if ($slack <= 0.0 || $trackCount <= 0) {
-            return [0.0, $gap];
-        }
-        $value = $style->get($property);
-        $keyword = $value instanceof Keyword ? strtolower($value->name) : 'normal';
-        // Aliases & fallbacks: `flex-start` / `flex-end` from authors
-        // who reuse flex shorthands; `normal` / `stretch` keep tracks
-        // packed at the start since Grid track sizing already absorbed
-        // available space (CSS Grid 2 §11.6).
-        // `$trackCount > 0` is implied by the early-return above
-        // (`$trackCount <= 0` exits before this match).
-        return match ($keyword) {
-            'center' => [$slack / 2.0, $gap],
-            'end', 'flex-end', 'right' => [$slack, $gap],
-            'space-between' => $trackCount > 1
-                ? [0.0, $gap + $slack / ($trackCount - 1)]
-                : [0.0, $gap],
-            'space-around' => [($slack / $trackCount) / 2.0, $gap + $slack / $trackCount],
-            'space-evenly' => [$slack / ($trackCount + 1), $gap + $slack / ($trackCount + 1)],
-            default => [0.0, $gap], // start, flex-start, normal, stretch, left, unknown
-        };
     }
 
     /**
