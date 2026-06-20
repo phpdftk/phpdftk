@@ -3136,6 +3136,70 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $block->geometry->y);
     }
 
+    public function testGridJustifyContentCenterShiftsTracksByHalfSlack(): void
+    {
+        // CSS Grid Layout 2 §11 / Box Alignment 3 §6 — when the grid
+        // container is larger than the total track extent, the
+        // `justify-content` slack distribution shifts tracks. `center`
+        // adds half the slack as the leading column offset.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 50px 50px; grid-template-rows: 50px; '
+            . 'width: 200px; justify-content: center;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        // Slack = 200 - 100 = 100; center leading = 50.
+        self::assertSame(50.0, $a->geometry->x);
+        self::assertSame(100.0, $b->geometry->x);
+    }
+
+    public function testGridJustifyContentSpaceBetweenSpreadsTracks(): void
+    {
+        // `space-between` distributes slack as extra inter-track
+        // spacing; for two tracks the entire slack lands between them.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 50px 50px; grid-template-rows: 50px; '
+            . 'width: 200px; justify-content: space-between;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertSame(0.0, $a->geometry->x);
+        // 200 - 100 = 100 slack between tracks → b at x=150.
+        self::assertSame(150.0, $b->geometry->x);
+    }
+
+    public function testGridContainerJustifyItemsCenterAppliesToItemsWithoutSelfOverride(): void
+    {
+        // CSS Grid Layout 2 §11 — `justify-items` on the container is
+        // the default for items whose own `justify-self` is `auto`.
+        // Without this, items stretch (the grid default) even when
+        // the container opts items into center alignment.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 50px; '
+            . 'justify-items: center;">'
+            . '<div class="a" style="width: 40px; height: 20px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // 200 - 40 = 160 slack; center → x shift = 80.
+        self::assertSame(80.0, $a->geometry->x);
+    }
+
     public function testGridGapNormalResolvesToZero(): void
     {
         // Negative: `column-gap: normal` (initial) is zero for grid,
