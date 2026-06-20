@@ -420,8 +420,12 @@ final class ColorConverter
 
     private static function clip01(float $v): float
     {
-        if ($v < 0.0) return 0.0;
-        if ($v > 1.0) return 1.0;
+        if ($v < 0.0) {
+            return 0.0;
+        }
+        if ($v > 1.0) {
+            return 1.0;
+        }
         return $v;
     }
 
