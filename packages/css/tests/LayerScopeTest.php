@@ -115,9 +115,11 @@ final class LayerScopeTest extends TestCase
         self::assertSame(1.0, $values->get('color')->r);
     }
 
-    public function testContainerBlockAppliesPassThrough(): void
+    public function testContainerBlockEvaluatesAgainstViewportProxy(): void
     {
-        // CSS Containment 3 §4.4 — pass-through for now.
+        // CSS Containment 3 §4.4 — `@container (min-width: 400px)`
+        // evaluates against the viewport as a Phase-1 proxy. Default
+        // viewport is null → permissive (applies the rule).
         $sheet = $this->parser->parseStylesheet(
             '@container (min-width: 400px) { p { color: red; } }',
         );
@@ -125,8 +127,25 @@ final class LayerScopeTest extends TestCase
         self::assertSame(1.0, $values->get('color')->r);
     }
 
-    public function testContainerNamedAppliesPassThrough(): void
+    public function testContainerBlockDropsUnsatisfiableQueryAgainstViewport(): void
     {
+        // With a known viewport, `(min-width: 9999999px)` evaluates
+        // to false → rule drops, color stays at the default.
+        $cascade = $this->cascade->withViewport(816.0, 1056.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@container (min-width: 9999999px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        // Default `color` initial is `Color::canvasText` (black /
+        // r=0). Red would have r=1 if the rule applied.
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testContainerNamedAppliesPassThroughForUnsupportedFeature(): void
+    {
+        // `inline-size > 30em` uses MQ5 range syntax + the inline-
+        // size container feature, neither of which the Phase-1
+        // evaluator handles — fall through permissively.
         $sheet = $this->parser->parseStylesheet(
             '@container card (inline-size > 30em) { p { color: red; } }',
         );

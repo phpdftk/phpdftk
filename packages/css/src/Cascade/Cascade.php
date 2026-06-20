@@ -524,12 +524,22 @@ final class Cascade
                 } elseif ($name === 'container') {
                     // CSS Containment 3 §4.4 — `@container [name?]
                     // (query) { ... }`. Container queries resolve
-                    // against the containing element's size at
-                    // layout time. For now we pass-through (rules
-                    // apply unconditionally) so author CSS doesn't
-                    // drop. Full container-query matching needs
-                    // the layout engine to expose containing-block
-                    // sizes back to the cascade.
+                    // against the nearest size-query container's
+                    // dimensions. We don't yet plumb per-element
+                    // container sizes through the cascade (that
+                    // would require a two-pass layout), so we
+                    // evaluate the query against the viewport as
+                    // a Phase-1 approximation: for top-level
+                    // containers (where the viewport IS the
+                    // container) the answer matches; for nested
+                    // containers this may be wrong. Trivially-
+                    // unsatisfiable queries (`(min-width: 9999999px)`)
+                    // drop correctly, and trivially-satisfiable ones
+                    // pass — the common opt-in case where the
+                    // author gates a section on a page-scale size.
+                    if (!$this->containerPreludeMatches($rule->prelude)) {
+                        continue;
+                    }
                 } elseif ($name === 'position-try') {
                     // CSS Anchor Positioning 1 §8 — `@position-try
                     // --fallback { ... }` declares positioning
@@ -596,6 +606,89 @@ final class Cascade
             }
         }
         return false;
+    }
+
+    /**
+     * CSS Containment 3 §4.4 — evaluate an `@container [name?]
+     * (<query>)` prelude. We don't yet thread per-element container
+     * sizes through the cascade, so we evaluate the size query
+     * against the viewport as a Phase-1 proxy. The strict cascade-
+     * level evaluation is correct for top-level containers where the
+     * viewport IS the relevant container, conservatively drops
+     * unsatisfiable queries (e.g. `(min-width: 99999999px)`), and
+     * keeps trivially-satisfiable ones (`(min-width: 0)`).
+     *
+     * We only evaluate queries whose features map cleanly onto the
+     * media-query subset we already model (min-width / max-width /
+     * min-height / max-height plus orientation). Anything else —
+     * `inline-size` / `block-size`, MQ5 range syntax (`width >
+     * 400px`), `style()` / `scroll-state()` — falls through to true
+     * so author CSS doesn't silently drop until full support lands.
+     */
+    private function containerPreludeMatches(string $prelude): bool
+    {
+        $prelude = trim($prelude);
+        if ($prelude === '') {
+            return true;
+        }
+        // Strip an optional leading <container-name>. The name is a
+        // CSS identifier; it must appear BEFORE the first `(`.
+        $parenAt = strpos($prelude, '(');
+        if ($parenAt === false) {
+            return true;
+        }
+        $head = trim(substr($prelude, 0, $parenAt));
+        $body = trim(substr($prelude, $parenAt));
+        if ($body === '') {
+            return true;
+        }
+        // Style queries (`@container style(...)`) and scroll-state
+        // queries land later; accept them permissively.
+        if (stripos($body, 'style(') !== false || stripos($body, 'scroll-state(') !== false) {
+            return true;
+        }
+        // Conservative subset: only evaluate when every feature used
+        // in the body is one our media-query path already knows.
+        // Anything else (range syntax, inline-size / block-size,
+        // unknown feature) → pass through.
+        if (!$this->containerQueryUsesOnlySupportedFeatures($body)) {
+            return true;
+        }
+        $negate = strtolower($head) === 'not';
+        $result = $this->evaluateMediaCondition($body);
+        return $negate ? !$result : $result;
+    }
+
+    /**
+     * Decide whether an `@container` query body uses only features
+     * the cascade-level evaluator can answer (min-width / max-width
+     * / min-height / max-height / width / height / orientation).
+     * Returns true for queries we can evaluate; false for ones that
+     * should pass through unconditionally.
+     */
+    private function containerQueryUsesOnlySupportedFeatures(string $body): bool
+    {
+        // MQ5 range syntax (`(width > 400px)`) — we don't handle the
+        // comparison operators yet; pass through.
+        if (preg_match('/[<>]=?|=/', $body) === 1) {
+            return false;
+        }
+        // Walk parens-balanced `<name>: <value>` features. Each
+        // feature name must be one we support.
+        $supported = [
+            'min-width', 'max-width', 'width',
+            'min-height', 'max-height', 'height',
+            'orientation', 'aspect-ratio',
+            'min-aspect-ratio', 'max-aspect-ratio',
+        ];
+        if (preg_match_all('/\(\s*([a-z-]+)\s*:/i', $body, $matches) > 0) {
+            foreach ($matches[1] as $name) {
+                if (!in_array(strtolower($name), $supported, true)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
