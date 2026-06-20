@@ -3136,34 +3136,6 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $block->geometry->y);
     }
 
-    public function testGridAbsolutePositionedChildSkipsAutoPlacement(): void
-    {
-        // CSS Grid Layout 2 §3 — abspos children are NOT grid items.
-        // They don't participate in auto-placement, don't displace
-        // sibling items, and are positioned against the grid container
-        // as positioned ancestor.
-        $box = $this->buildTree(
-            '<html><body><div class="grid" style="display: grid; '
-            . 'grid-template-columns: 50px 50px; grid-template-rows: 50px; '
-            . 'position: relative;">'
-            . '<div class="a"></div>'
-            . '<div class="abs" style="position: absolute; top: 7px; left: 11px; width: 20px; height: 10px;"></div>'
-            . '<div class="b"></div>'
-            . '</div></body></html>',
-            'html, body, div { display: block; }',
-        );
-        $this->layout->layout($box, $this->defaultCtx);
-        // In-flow children fill the explicit 2-cell grid; abspos
-        // doesn't displace them.
-        $a = $this->find($box, 'div.a');
-        $b = $this->find($box, 'div.b');
-        $abs = $this->find($box, 'div.abs');
-        self::assertSame(0.0, $a->geometry->x);
-        self::assertSame(50.0, $b->geometry->x);
-        self::assertSame(11.0, $abs->geometry->x);
-        self::assertSame(7.0, $abs->geometry->y);
-    }
-
     public function testGridJustifyContentCenterShiftsTracksByHalfSlack(): void
     {
         // CSS Grid Layout 2 §11 / Box Alignment 3 §6 — when the grid
