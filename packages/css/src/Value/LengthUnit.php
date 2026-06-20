@@ -42,6 +42,17 @@ enum LengthUnit: string
     case Dvw = 'dvw';
     case Dvh = 'dvh';
 
+    // Container-relative — CSS Containment 3 §6. Resolve against the
+    // nearest size-query container (an element with
+    // `container-type: size` / `inline-size`); fall through to 0 when
+    // no such container is in scope per spec §6.3.
+    case Cqw = 'cqw';
+    case Cqh = 'cqh';
+    case Cqi = 'cqi';
+    case Cqb = 'cqb';
+    case Cqmin = 'cqmin';
+    case Cqmax = 'cqmax';
+
     public function isAbsolute(): bool
     {
         return in_array($this, [
@@ -56,8 +67,17 @@ enum LengthUnit: string
         ], true);
     }
 
+    public function isContainerRelative(): bool
+    {
+        return in_array($this, [
+            self::Cqw, self::Cqh, self::Cqi, self::Cqb, self::Cqmin, self::Cqmax,
+        ], true);
+    }
+
     public function isViewportRelative(): bool
     {
-        return !$this->isAbsolute() && !$this->isFontRelative();
+        return !$this->isAbsolute()
+            && !$this->isFontRelative()
+            && !$this->isContainerRelative();
     }
 }

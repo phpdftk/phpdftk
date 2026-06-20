@@ -44,6 +44,17 @@ final readonly class LengthContext
          * 0.5 fallback applies when font metrics aren't reachable.
          */
         public float $chWidthRatio = 0.5,
+        /**
+         * Inline / block size of the nearest size-query container
+         * (`container-type: size` for both; `inline-size` populates
+         * only the inline axis). CSS Containment 3 §6 — `cqw` / `cqi`
+         * resolve against `containerInlineSize`; `cqh` / `cqb` against
+         * `containerBlockSize`; `cqmin` / `cqmax` against the smaller
+         * / larger of the two. Zero by default so cq* units resolve
+         * to 0 outside any size container per §6.3.
+         */
+        public float $containerInlineSize = 0.0,
+        public float $containerBlockSize = 0.0,
     ) {}
 
     public function withCurrentFontSize(float $px): self
@@ -57,6 +68,8 @@ final readonly class LengthContext
             $this->percentageBasis,
             $this->xHeightRatio,
             $this->chWidthRatio,
+            $this->containerInlineSize,
+            $this->containerBlockSize,
         );
     }
 
@@ -71,6 +84,8 @@ final readonly class LengthContext
             $px,
             $this->xHeightRatio,
             $this->chWidthRatio,
+            $this->containerInlineSize,
+            $this->containerBlockSize,
         );
     }
 
@@ -85,6 +100,24 @@ final readonly class LengthContext
             $this->percentageBasis,
             $xHeightRatio,
             $chWidthRatio,
+            $this->containerInlineSize,
+            $this->containerBlockSize,
+        );
+    }
+
+    public function withContainerSize(float $inlineSize, float $blockSize): self
+    {
+        return new self(
+            $this->parentFontSize,
+            $this->currentFontSize,
+            $this->rootFontSize,
+            $this->viewportWidth,
+            $this->viewportHeight,
+            $this->percentageBasis,
+            $this->xHeightRatio,
+            $this->chWidthRatio,
+            $inlineSize,
+            $blockSize,
         );
     }
 }

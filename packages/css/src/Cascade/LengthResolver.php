@@ -21,6 +21,9 @@ use Phpdftk\Css\Value\Value;
  *  - vw / vh / vmin / vmax / svw / svh / lvw / lvh / dvw / dvh — viewport
  *    references (the small/large/dynamic variants collapse onto the same
  *    print-medium viewport since there's no UI chrome to subtract).
+ *  - cqw / cqh / cqi / cqb / cqmin / cqmax — nearest size-query
+ *    container's content-box dimensions (CSS Containment 3 §6).
+ *    Resolves to 0 when no size container is in scope.
  *  - Percentage — multiplied against the context's `percentageBasis`.
  */
 final class LengthResolver
@@ -110,6 +113,20 @@ final class LengthResolver
                 => $v * (max($ctx->viewportWidth, $ctx->viewportHeight) / 100.0),
             LengthUnit::Vi => $v * ($ctx->viewportWidth / 100.0),  // assumes horizontal-tb
             LengthUnit::Vb => $v * ($ctx->viewportHeight / 100.0),
+            // CSS Containment 3 §6 — container-relative units resolve
+            // against the nearest size-query container's content box.
+            // `cqw` / `cqi` use the inline size; `cqh` / `cqb` the
+            // block size; `cqmin` / `cqmax` the smaller / larger of
+            // the two. When no size container is in scope, the
+            // container sizes default to 0 (per §6.3 spec fallback).
+            LengthUnit::Cqw, LengthUnit::Cqi
+                => $v * ($ctx->containerInlineSize / 100.0),
+            LengthUnit::Cqh, LengthUnit::Cqb
+                => $v * ($ctx->containerBlockSize / 100.0),
+            LengthUnit::Cqmin
+                => $v * (min($ctx->containerInlineSize, $ctx->containerBlockSize) / 100.0),
+            LengthUnit::Cqmax
+                => $v * (max($ctx->containerInlineSize, $ctx->containerBlockSize) / 100.0),
         };
         return self::clampPx($px);
     }
