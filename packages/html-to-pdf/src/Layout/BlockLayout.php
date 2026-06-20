@@ -1948,14 +1948,32 @@ final class BlockLayout
         $itemMains = [];
         $itemCrosses = [];
         $basisCbMain = $isColumn ? $cbHeight : $geo->width;
+        $mainProp = $isColumn ? 'height' : 'width';
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $itemCtx->lengthContext);
-            $this->layoutBox($child, $itemCtx);
-            // CSS Flexbox 1 §7.2: `flex-basis` overrides the item's
-            // hypothetical main size (width for row, height for
-            // column). `auto` / `content` keep the layoutBox value;
-            // explicit lengths / percentages / unitless 0 replace it.
+            // CSS Flexbox 1 §9.2 — the flex base size: explicit
+            // `flex-basis` wins, else the main-axis size when
+            // declared, else max-content for row-direction items
+            // (auto height in column direction falls through to
+            // layoutBlock's content-derived height).
             $basis = $this->resolveFlexBasis($child->style, $basisCbMain);
+            $mainIsAuto = $this->isAuto($child->style->get($mainProp));
+            if ($basis === null && !$mainIsAuto) {
+                $basis = $this->resolveLength($child->style->get($mainProp), $basisCbMain);
+            }
+            $childCtx = $itemCtx;
+            if (!$isColumn && $basis === null) {
+                // Row + auto basis + auto width → max-content per §9.2.
+                $mm = $this->measureMinMaxContent($child, $itemCtx);
+                $basis = $mm['max'];
+            }
+            // Constrain layout containing-block to the hypothetical
+            // main size so layoutBlock's `width: auto` fill doesn't
+            // stretch the item to the whole container.
+            if (!$isColumn && $basis !== null && $mainIsAuto) {
+                $childCtx = $itemCtx->withContainingBlock($basis, $cbHeight);
+            }
+            $this->layoutBox($child, $childCtx);
             if ($basis !== null) {
                 if ($isColumn) {
                     $child->geometry->height = $basis;

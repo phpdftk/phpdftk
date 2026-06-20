@@ -4591,6 +4591,32 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $flex->children[1]->geometry->x);
     }
 
+    public function testFlexRowAutoWidthItemUsesMaxContentNotContainerWidth(): void
+    {
+        // CSS Flexbox 1 §9.2 — items with `flex-basis: auto` and
+        // `width: auto` get max-content as the hypothetical main
+        // size. Without this, an auto-width item in a wide container
+        // stretches to fill the container (block-layout behaviour)
+        // and the second item gets shrunk to zero.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a">hi</div>'
+                . '<div class="b">there</div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Second item starts where the first ends, not at x=600.
+        $first = $flex->children[0]->geometry;
+        $second = $flex->children[1]->geometry;
+        self::assertLessThan(600.0, $first->width, 'first item should not fill the entire container');
+        self::assertGreaterThan(0.0, $first->width, 'first item should have non-zero max-content width');
+        self::assertLessThanOrEqual($first->outerWidth() + 1.0, $second->x - $first->x);
+    }
+
     public function testFlexNonFlexBlockUnaffected(): void
     {
         // Regression: regular block layout unchanged.
