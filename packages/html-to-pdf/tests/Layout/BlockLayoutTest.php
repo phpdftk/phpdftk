@@ -4591,6 +4591,50 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $flex->children[1]->geometry->x);
     }
 
+    public function testFlexAbsolutePositionedChildSkipsFlexFlow(): void
+    {
+        // CSS Flexbox 1 §3 — abspos children are NOT flex items: they
+        // don't contribute to the main-axis distribution and don't
+        // displace siblings. The two in-flow items pack like the
+        // abspos child wasn't there.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '<div class="abs" style="position: absolute; top: 5px; left: 7px;"></div>'
+                . '<div class="b"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 300px; position: relative; }
+             .flex > div { width: 50px; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Find in-flow children (.a, .b) by class.
+        $a = $b = $abs = null;
+        foreach ($flex->children as $child) {
+            $cls = $child->element?->getAttribute('class') ?? '';
+            if ($cls === 'a') {
+                $a = $child;
+            }
+            if ($cls === 'b') {
+                $b = $child;
+            }
+            if ($cls === 'abs') {
+                $abs = $child;
+            }
+        }
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertNotNull($abs);
+        // In-flow children pack as if abspos child didn't exist.
+        self::assertSame(0.0, $a->geometry->x);
+        self::assertSame(50.0, $b->geometry->x);
+        // Abspos child positioned by its top/left against the flex
+        // container (positioned ancestor).
+        self::assertSame(7.0, $abs->geometry->x);
+        self::assertSame(5.0, $abs->geometry->y);
+    }
+
     public function testFlexColumnGapPercentageResolvesAgainstContainerWidth(): void
     {
         // CSS Box Alignment 3 §8.3 — `column-gap: <percentage>`

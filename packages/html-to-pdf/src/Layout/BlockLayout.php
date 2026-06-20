@@ -1903,8 +1903,25 @@ final class BlockLayout
 
         $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
 
-        $children = $box->children;
-        if ($children === []) {
+        // CSS Flexbox 1 §3 — absolutely-positioned children of a
+        // flex container are NOT flex items. They take their
+        // hypothetical static position from the flex algorithm but
+        // are otherwise removed from the in-flow distribution.
+        // Partition before sort so the flex pass works on the
+        // in-flow set; out-of-flow children are laid out at the end
+        // against the flex container as positioned ancestor.
+        $outOfFlowChildren = [];
+        $inFlowChildren = [];
+        foreach ($box->children as $child) {
+            if ($this->isOutOfFlow($child)) {
+                $outOfFlowChildren[] = $child;
+            } else {
+                $inFlowChildren[] = $child;
+            }
+        }
+        $children = $inFlowChildren;
+
+        if ($children === [] && $outOfFlowChildren === []) {
             $geo->height = $declaredHeight ?? 0.0;
             return $geo->outerHeight();
         }
@@ -1915,6 +1932,14 @@ final class BlockLayout
         $containerMain = $isColumn ? ($declaredHeight ?? -1.0) : $geo->width;
         $containerCross = $isColumn ? $geo->width : ($declaredHeight ?? -1.0);
         $crossDefinite = $isColumn ? true : ($declaredHeight !== null);
+
+        if ($children === []) {
+            // Only abspos children — set container dims and skip flex
+            // distribution, then position abspos at end (below).
+            $geo->height = $declaredHeight ?? 0.0;
+            $this->layoutFlexAbsoluteChildren($outOfFlowChildren, $box, $context);
+            return $geo->outerHeight();
+        }
 
         // CSS Flexbox 1 §5.4: `order` reorders items for layout. Sort
         // is stable on document order for equal `order` values. After
@@ -2264,7 +2289,65 @@ final class BlockLayout
         // Min/max-width and -height clamping (same as layoutBlock).
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
 
+        // CSS Flexbox 1 §3 — lay out absolutely-positioned children
+        // last, AFTER the container's geometry is final so they have
+        // a definite containing block.
+        if ($outOfFlowChildren !== []) {
+            $this->layoutFlexAbsoluteChildren($outOfFlowChildren, $box, $context);
+        }
+
         return $geo->outerHeight();
+    }
+
+    /**
+     * Lay out the absolutely-positioned children of a flex container
+     * after the in-flow flex algorithm has determined the container's
+     * size. The container is the abspos descendants' containing block
+     * (its padding box); static position falls back to the container's
+     * content-box origin.
+     *
+     * @param list<Box> $absChildren
+     */
+    private function layoutFlexAbsoluteChildren(
+        array $absChildren,
+        \Phpdftk\HtmlToPdf\Box\FlexBox $container,
+        LayoutContext $outerContext,
+    ): void {
+        $geo = $container->geometry;
+        $paWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+        $paHeight = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+        $pa = new \Phpdftk\HtmlToPdf\Layout\PositionedAncestor(
+            originX: $geo->x - $geo->paddingLeft,
+            originY: $geo->y - $geo->paddingTop,
+            width: $paWidth,
+            height: $paHeight,
+        );
+        $absCtx = $outerContext
+            ->withContainingBlock($pa->width, $pa->height)
+            ->withPositionedAncestor($pa);
+        foreach ($absChildren as $child) {
+            $this->cascade->resolveLengths($child->style, $absCtx->lengthContext);
+            $absStyle = $child->style;
+            $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
+                || !$this->isAuto($absStyle->get('bottom'));
+            $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
+                || !$this->isAuto($absStyle->get('right'));
+            $absOriginX = $hasLeftAnchor ? $pa->originX : $geo->x;
+            $absOriginY = $hasTopAnchor ? $pa->originY : $geo->y;
+            $this->applyAbsoluteCornerAnchorSize($child, $absCtx);
+            $childLayoutCtx = $absCtx->withOrigin($absOriginX, $absOriginY);
+            $this->layoutBox($child, $childLayoutCtx);
+            [$dx, $dy] = $this->resolveAbsoluteOffsets(
+                $child,
+                $absCtx,
+                $pa->originX,
+                $pa->originY,
+                $absOriginY,
+            );
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+        }
     }
 
     /**
