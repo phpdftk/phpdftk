@@ -2358,31 +2358,9 @@ final class BlockLayout
     }
 
     /**
-     * CSS Grid Layout 2 §3 — `display: grid`. Phase-2 MVP:
-     *  - `grid-template-columns: <length>+` / `grid-template-rows:
-     *    <length>+` define explicit track sizes. The `<length>` list
-     *    becomes a per-track size array.
-     *  - Item placement via `grid-column-start` / `grid-column-end`
-     *    / `grid-row-start` / `grid-row-end` (and the `grid-column`
-     *    / `grid-row` shorthands). 1-based line numbers; negative
-     *    indices count from the end (`-1` = last line). `auto` on
-     *    either end means "auto-flow into the next free cell".
-     *  - Auto-flow walks items in document order, placing un-placed
-     *    items at the next free cell row-by-row (CSS Grid Layout 2
-     *    §6.3 — `grid-auto-flow: row`). Items with at least one
-     *    explicit placement value are placed first; un-placed items
-     *    fill the remaining slots.
-     *  - Each cell's box gets `width = columnTrack[c]`, `height =
-     *    rowTrack[r]`. Multi-cell items sum their spanned tracks +
-     *    the gaps between.
-     *  - `column-gap` / `row-gap` insert spacing between tracks
-     *    (consistent with flexbox + multi-column).
-     *
-     * Deferred (Phase-2 follow-ups): `fr` unit (intrinsic flex
-     * sizing), `auto` track sizing (needs min/max-content), `span
-     * N`, `repeat()` / `auto-fill` / `auto-fit`, `grid-template-
-     * areas`, `grid-auto-{columns,rows}` implicit tracks beyond the
-     * declared template, `justify-self` / `align-self`, subgrid.
+     * Lay out a `display: grid` container per CSS Grid Layout 2.
+     * See `GridBox` for the implemented surface; this function is
+     * the entry point.
      */
     private function layoutGridBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
     {
