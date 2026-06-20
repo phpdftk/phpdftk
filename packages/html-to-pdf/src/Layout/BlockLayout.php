@@ -1850,18 +1850,8 @@ final class BlockLayout
 
     /**
      * Lay out a `display: flex` container per CSS Flexible Box
-     * Layout 1. Phase-1 subset:
-     *
-     *  - `flex-direction: row` only (column / reverse → Phase 2).
-     *  - Single-line only (`flex-wrap: nowrap`; wrap → Phase 2).
-     *  - Items keep their declared `width` (no `flex-grow` /
-     *    `flex-shrink` slack distribution yet).
-     *  - `justify-content`: `flex-start` (default), `flex-end`,
-     *    `center`, `space-between`, `space-around`, `space-evenly`.
-     *  - `align-items`: `stretch` (default), `flex-start`,
-     *    `flex-end`, `center`.
-     *  - `column-gap` (via the existing `column-gap` longhand)
-     *    inserts gaps between items.
+     * Layout 1. See `FlexBox` for the implemented surface; this
+     * function is the entry point.
      *
      * Returns the container's outer height.
      */
