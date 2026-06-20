@@ -3136,6 +3136,27 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $block->geometry->y);
     }
 
+    public function testGridFitContentTrackCapsAtSuppliedLength(): void
+    {
+        // CSS Grid 2 §7.2.4 — `fit-content(<length>)` sizes to
+        // max-content but caps at the length (with min-content as a
+        // floor). Many short words → max-content easily exceeds the
+        // cap and the track caps; min-content (single word) stays
+        // well below the cap so the cap, not the min, wins.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: fit-content(60px); grid-template-rows: 50px;">'
+            . '<div class="a">hi a b c d e f g h i j k l m n o p q r s t u v w x y z</div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        // The track caps at 60px; min-content of any single character
+        // is well under 60.
+        self::assertLessThanOrEqual(60.0, $a->geometry->width);
+    }
+
     public function testGridAbsolutePositionedChildSkipsAutoPlacement(): void
     {
         // CSS Grid Layout 2 §3 — abspos children are NOT grid items.
