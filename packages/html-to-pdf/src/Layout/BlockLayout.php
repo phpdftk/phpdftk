@@ -2483,7 +2483,21 @@ final class BlockLayout
             $style->get('grid-auto-flow'),
         );
 
-        if ($box->children === []) {
+        // CSS Grid Layout 2 §3 — abspos grid children are NOT grid
+        // items: they're removed from auto-placement and the explicit
+        // track sizing pass, and laid out at the end against the grid
+        // container as positioned ancestor.
+        $outOfFlowGridChildren = [];
+        $inFlowGridChildren = [];
+        foreach ($box->children as $child) {
+            if ($this->isOutOfFlow($child)) {
+                $outOfFlowGridChildren[] = $child;
+            } else {
+                $inFlowGridChildren[] = $child;
+            }
+        }
+
+        if ($inFlowGridChildren === [] && $outOfFlowGridChildren === []) {
             $geo->height = $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap);
             $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
             return $geo->outerHeight();
@@ -2507,7 +2521,7 @@ final class BlockLayout
         // default `order: 0` keeps DOM order intact for items that
         // don't opt in.
         $orderedChildren = [];
-        foreach ($box->children as $domIdx => $child) {
+        foreach ($inFlowGridChildren as $domIdx => $child) {
             $orderedChildren[] = [
                 'box' => $child,
                 'order' => $this->resolveGridOrder($child),
@@ -2817,7 +2831,65 @@ final class BlockLayout
         $geo->height = $declaredHeight ?? $this->gridTotalExtent($rowTracks, $rowGap);
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
 
+        // CSS Grid Layout 2 §3 — abspos grid children laid out last,
+        // after the container's geometry is final, against the grid
+        // container as positioned ancestor.
+        if ($outOfFlowGridChildren !== []) {
+            $this->layoutGridAbsoluteChildren($outOfFlowGridChildren, $box, $context);
+        }
+
         return $geo->outerHeight();
+    }
+
+    /**
+     * Lay out the absolutely-positioned children of a grid container
+     * after auto-placement has determined the container's size. The
+     * grid container is the abspos descendants' containing block (its
+     * padding box); static position falls back to the container's
+     * content-box origin.
+     *
+     * @param list<Box> $absChildren
+     */
+    private function layoutGridAbsoluteChildren(
+        array $absChildren,
+        \Phpdftk\HtmlToPdf\Box\GridBox $container,
+        LayoutContext $outerContext,
+    ): void {
+        $geo = $container->geometry;
+        $paWidth = $geo->paddingLeft + $geo->width + $geo->paddingRight;
+        $paHeight = $geo->paddingTop + $geo->height + $geo->paddingBottom;
+        $pa = new \Phpdftk\HtmlToPdf\Layout\PositionedAncestor(
+            originX: $geo->x - $geo->paddingLeft,
+            originY: $geo->y - $geo->paddingTop,
+            width: $paWidth,
+            height: $paHeight,
+        );
+        $absCtx = $outerContext
+            ->withContainingBlock($pa->width, $pa->height)
+            ->withPositionedAncestor($pa);
+        foreach ($absChildren as $child) {
+            $this->cascade->resolveLengths($child->style, $absCtx->lengthContext);
+            $absStyle = $child->style;
+            $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
+                || !$this->isAuto($absStyle->get('bottom'));
+            $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
+                || !$this->isAuto($absStyle->get('right'));
+            $absOriginX = $hasLeftAnchor ? $pa->originX : $geo->x;
+            $absOriginY = $hasTopAnchor ? $pa->originY : $geo->y;
+            $this->applyAbsoluteCornerAnchorSize($child, $absCtx);
+            $childLayoutCtx = $absCtx->withOrigin($absOriginX, $absOriginY);
+            $this->layoutBox($child, $childLayoutCtx);
+            [$dx, $dy] = $this->resolveAbsoluteOffsets(
+                $child,
+                $absCtx,
+                $pa->originX,
+                $pa->originY,
+                $absOriginY,
+            );
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+        }
     }
 
     /**
