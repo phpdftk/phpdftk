@@ -960,6 +960,16 @@ final class ShorthandExpander
         if ($grow !== null && $shrink === null) {
             $out['flex-shrink'] = new Number(1.0);
         }
+        // Per CSS Flexbox 1 §7.2, `flex: <length|percentage>` (a
+        // single non-number value) is shorthand for `flex: 1 1
+        // <value>` — grow and shrink default to 1 when only a basis
+        // is supplied, not the property initial values.
+        if ($grow === null && $basis !== null) {
+            $out['flex-grow'] = new Number(1.0);
+            if ($shrink === null) {
+                $out['flex-shrink'] = new Number(1.0);
+            }
+        }
         return $out;
     }
 

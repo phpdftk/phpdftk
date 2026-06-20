@@ -898,4 +898,34 @@ final class ShorthandExpanderTest extends TestCase
         self::assertCount(3, $fb->values);
         self::assertSame('--a', $fb->values[0]->name);
     }
+
+    public function testFlexShorthandSingleLengthExpandsToOneOneBasis(): void
+    {
+        // CSS Flexbox 1 §7.2 — `flex: 100px` is shorthand for
+        // `flex: 1 1 100px`. Previously grow/shrink were not set.
+        $out = $this->expander->expand('flex', $this->value('100px'));
+        self::assertArrayHasKey('flex-grow', $out);
+        self::assertArrayHasKey('flex-shrink', $out);
+        self::assertArrayHasKey('flex-basis', $out);
+        self::assertSame(1.0, $out['flex-grow']->value);
+        self::assertSame(1.0, $out['flex-shrink']->value);
+        self::assertSame(100.0, $out['flex-basis']->value);
+    }
+
+    public function testFlexShorthandSingleNumberExpandsGrowBasisZero(): void
+    {
+        // `flex: 2` → grow=2, shrink=1, basis=0%.
+        $out = $this->expander->expand('flex', $this->value('2'));
+        self::assertSame(2.0, $out['flex-grow']->value);
+        self::assertSame(1.0, $out['flex-shrink']->value);
+        self::assertSame(0.0, $out['flex-basis']->value);
+    }
+
+    public function testFlexShorthandKeywordAuto(): void
+    {
+        $out = $this->expander->expand('flex', $this->value('auto'));
+        self::assertSame(1.0, $out['flex-grow']->value);
+        self::assertSame(1.0, $out['flex-shrink']->value);
+        self::assertSame('auto', $out['flex-basis']->name);
+    }
 }
