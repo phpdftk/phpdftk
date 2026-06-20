@@ -4591,6 +4591,28 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $flex->children[1]->geometry->x);
     }
 
+    public function testFlexItemPercentHeightResolvesAgainstFlexContainerHeight(): void
+    {
+        // CSS Flexbox 1 §4.5 / CSS 2.1 §10.1 — the containing block
+        // for a flex item is the flex container, so an item's `height:
+        // 50%` resolves to half the flex container's declared height
+        // rather than half the outer block's CB height.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="item"></div>'
+                . '</div></body></html>',
+            // 200px flex container; the body itself is ~600 tall in
+            // the default ctx — without the fix, item height resolved
+            // to 300 (50% of 600) instead of 100 (50% of 200).
+            '.flex { display: flex; width: 100px; height: 200px; }
+             .flex > .item { width: 40px; height: 50%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(100.0, $flex->children[0]->geometry->height);
+    }
+
     public function testFlexAbsolutePositionedChildSkipsFlexFlow(): void
     {
         // CSS Flexbox 1 §3 — abspos children are NOT flex items: they

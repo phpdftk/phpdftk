@@ -1956,13 +1956,20 @@ final class BlockLayout
         // with its declared (or content-derived) size. We use the
         // existing layoutBlock so block-style sizing (margins /
         // padding / borders) works inside items.
+        //
+        // CSS Flexbox 1 §4.5 / CSS 2.1 §10.1 — the containing block
+        // for a flex item is the flex container's content box. Use
+        // the container's declared height when set so percentage
+        // heights on items resolve against the flex container (not
+        // the outer CB).
+        $itemCbHeight = $declaredHeight ?? $cbHeight;
         $itemCtx = $context
-            ->withContainingBlock($geo->width, $cbHeight)
+            ->withContainingBlock($geo->width, $itemCbHeight)
             ->withOrigin($geo->x, $geo->y)
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
         $itemMains = [];
         $itemCrosses = [];
-        $basisCbMain = $isColumn ? $cbHeight : $geo->width;
+        $basisCbMain = $isColumn ? $itemCbHeight : $geo->width;
         $mainProp = $isColumn ? 'height' : 'width';
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $itemCtx->lengthContext);
