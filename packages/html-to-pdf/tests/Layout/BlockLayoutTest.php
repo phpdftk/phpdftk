@@ -4591,6 +4591,25 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $flex->children[1]->geometry->x);
     }
 
+    public function testFlexColumnGapPercentageResolvesAgainstContainerWidth(): void
+    {
+        // CSS Box Alignment 3 §8.3 — `column-gap: <percentage>`
+        // resolves against the flex container's content-box width.
+        // Container is 200px, gap 10% → 20px between items.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div></div><div></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 200px; column-gap: 10%; }
+             .flex > div { width: 50px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Second item: 50 (first item) + 20 (10% of 200) = 70.
+        self::assertSame(70.0, $flex->children[1]->geometry->x);
+    }
+
     public function testFlexRowItemMinWidthAutoFloorsAtMinContent(): void
     {
         // CSS Flexbox 1 §4.5 — `min-width: auto` on a flex item

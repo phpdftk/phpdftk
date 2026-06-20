@@ -1980,8 +1980,19 @@ final class BlockLayout
         // direction, `row-gap` for column direction; the cross-axis
         // gap (between flex lines under `flex-wrap: wrap`) reads the
         // opposite.
-        $gap = $this->resolveFlexMainGap($style, $itemCtx->lengthContext, $isColumn);
-        $crossGap = $this->resolveFlexGapProperty($style, $isColumn ? 'column-gap' : 'row-gap');
+        $gapHeightBasis = $declaredHeight ?? 0.0;
+        $gap = $this->resolveFlexMainGap(
+            $style,
+            $itemCtx->lengthContext,
+            $isColumn,
+            $geo->width,
+            $gapHeightBasis,
+        );
+        $crossGap = $this->resolveFlexGapProperty(
+            $style,
+            $isColumn ? 'column-gap' : 'row-gap',
+            $isColumn ? $geo->width : $gapHeightBasis,
+        );
 
         // CSS Flexbox 1 §6.3: `flex-wrap` controls multi-line flow.
         // `nowrap` (default) keeps everything on one line. `wrap` and
@@ -5037,19 +5048,35 @@ final class BlockLayout
      * back to `0px` for flex per CSS Box Alignment 3 §8.1 (only
      * multi-column resolves `normal` to `1em`).
      */
-    private function resolveFlexMainGap(CascadedValues $style, LengthContext $lc, bool $isColumn): float
-    {
-        return $this->resolveFlexGapProperty($style, $isColumn ? 'row-gap' : 'column-gap');
+    private function resolveFlexMainGap(
+        CascadedValues $style,
+        LengthContext $lc,
+        bool $isColumn,
+        float $cbWidth = 0.0,
+        float $cbHeight = 0.0,
+    ): float {
+        $prop = $isColumn ? 'row-gap' : 'column-gap';
+        $basis = $isColumn ? $cbHeight : $cbWidth;
+        return $this->resolveFlexGapProperty($style, $prop, $basis);
     }
 
-    private function resolveFlexGapProperty(CascadedValues $style, string $prop): float
+    /**
+     * `column-gap` / `row-gap` per Box Alignment 3 §8.3. Percentage
+     * values resolve against the corresponding dimension of the flex
+     * (or grid) container's content box; pass `$basis = 0` when the
+     * dimension is indefinite (percentages then resolve to 0).
+     */
+    private function resolveFlexGapProperty(CascadedValues $style, string $prop, float $basis = 0.0): float
     {
         $value = $style->get($prop);
         if ($value instanceof Length) {
             return max(0.0, $value->value);
         }
         if ($value instanceof Percentage) {
-            return 0.0;
+            if ($basis <= 0.0) {
+                return 0.0;
+            }
+            return max(0.0, $value->value / 100.0 * $basis);
         }
         if ($value instanceof \Phpdftk\Css\Value\Integer
             || $value instanceof \Phpdftk\Css\Value\Number
