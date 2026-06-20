@@ -4676,6 +4676,41 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(70.0, $flex->children[1]->geometry->x);
     }
 
+    public function testContainerTypeInlineSizeExposesWidthToCqDescendants(): void
+    {
+        // CSS Containment 3 §6 — `cqw` / `cqi` on a descendant
+        // resolves against the nearest `container-type: inline-size`
+        // ancestor. Here `.container` opts in with width 200, so the
+        // 50cqw child resolves to 100px.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="container">'
+                . '<div class="child"></div>'
+                . '</div></body></html>',
+            '.container { container-type: inline-size; width: 200px; }
+             .child { width: 50cqw; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->find($box, 'div.child');
+        self::assertSame(100.0, $child->geometry->width);
+    }
+
+    public function testContainerTypeNormalDoesNotPropagateContainerSize(): void
+    {
+        // Default `container-type: normal` does NOT make the box a
+        // size-query container; cq* on descendants falls through to
+        // 0 per spec §6.3.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="wrapper">'
+                . '<div class="child"></div>'
+                . '</div></body></html>',
+            '.wrapper { width: 200px; }
+             .child { width: 50cqw; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->find($box, 'div.child');
+        self::assertSame(0.0, $child->geometry->width);
+    }
+
     public function testFlexRowItemMinWidthAutoFloorsAtMinContent(): void
     {
         // CSS Flexbox 1 §4.5 — `min-width: auto` on a flex item

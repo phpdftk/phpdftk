@@ -705,11 +705,18 @@ final class BlockLayout
             : (($isHtmlOrBody || $isAnonymousWrapper)
                 ? $context->containingBlockHeightDefinite
                 : false);
+        $childLengthCtx = $this->lengthContextFor($style, $context->lengthContext);
+        $childLengthCtx = $this->applyContainerContext(
+            $style,
+            $childLengthCtx,
+            $geo->width,
+            $childCbHeight,
+        );
         $childContext = $context
             ->withContainingBlockHeightDefinite($childCbHeight, $childCbHeightDefinite)
             ->withContainingBlock($geo->width, $childCbHeight)
             ->withOrigin($geo->x, $geo->y)
-            ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
+            ->withLengthContext($childLengthCtx);
         // CSS 2.1 §10.1 — when this box is positioned (relative /
         // absolute / fixed / sticky) it establishes a containing block
         // for its abs-pos descendants. Capture its padding-box rect
@@ -4409,6 +4416,39 @@ final class BlockLayout
             return $parent->withCurrentFontSize($fontSize->value);
         }
         return $parent;
+    }
+
+    /**
+     * If this box opts in as a size-query container (CSS Containment 3
+     * §4 — `container-type: inline-size` / `size`), expose its
+     * content-box dimensions to descendants so `cqw` / `cqh` / `cqi` /
+     * `cqb` / `cqmin` / `cqmax` resolve correctly inside the subtree.
+     * Returns the context unchanged when the box is not a size
+     * container (the default `container-type: normal`).
+     *
+     * Inline-size containers leave the block dimension at the inherited
+     * (often zero) value, so cqh / cqb / cqmin still resolve to 0 — the
+     * box's height isn't known yet at the time descendants resolve
+     * lengths (it stacks up after children lay out).
+     */
+    private function applyContainerContext(
+        CascadedValues $style,
+        LengthContext $childCtx,
+        float $contentBoxWidth,
+        float $contentBoxHeight,
+    ): LengthContext {
+        $type = $style->get('container-type');
+        if (!$type instanceof Keyword) {
+            return $childCtx;
+        }
+        $name = strtolower($type->name);
+        if ($name === 'inline-size') {
+            return $childCtx->withContainerSize($contentBoxWidth, $childCtx->containerBlockSize);
+        }
+        if ($name === 'size') {
+            return $childCtx->withContainerSize($contentBoxWidth, $contentBoxHeight);
+        }
+        return $childCtx;
     }
 
     /**
