@@ -109,6 +109,7 @@ final class ShorthandExpander
             'mask' => $this->expandMask($value),
             'border-image' => $this->expandBorderImage($value),
             'mask-border' => $this->expandMaskBorder($value),
+            'container' => $this->expandContainer($value),
             // Legacy property aliases — these write to BOTH the
             // alias and the modern target so author CSS that still
             // uses the old name keeps working alongside the new one.
@@ -156,7 +157,7 @@ final class ShorthandExpander
             'page-break-before', 'page-break-after', 'page-break-inside',
             'inset-area', 'word-wrap', 'grid-gap', 'grid-row-gap', 'grid-column-gap',
             'text-wrap', 'white-space', 'caret',
-            'font-synthesis', 'font-variant' => true,
+            'font-synthesis', 'font-variant', 'container' => true,
             default => false,
         };
     }
@@ -1123,6 +1124,48 @@ final class ShorthandExpander
      * <'column-rule-color'>` (CSS Multi-column 1 §3.2). Free order; reuses
      * the border-width / border-style / color classifiers because the value
      * grammars match.
+     *
+     * @return array<string, Value>
+     */
+    /**
+     * `container: <container-name> [ / <container-type> ]?` (CSS
+     * Containment 3 §4.5). Either side may be omitted (defaults to
+     * the property initial — `none` for name, `normal` for type).
+     * The author CSS `container: foo` sets the name; `container: foo
+     * / size` sets both; `container: / size` sets just the type.
+     *
+     * @return array<string, Value>
+     */
+    private function expandContainer(Value $value): array
+    {
+        $out = [
+            'container-name' => new Keyword('none'),
+            'container-type' => new Keyword('normal'),
+        ];
+        // Split on the `/` separator. ValueList with Slash separator
+        // is the parsed shape; bare values without `/` show up as a
+        // single Value (Keyword or ValueList of names).
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Slash
+        ) {
+            $namePart = $value->values[0] ?? null;
+            $typePart = $value->values[1] ?? null;
+            if ($namePart !== null) {
+                $out['container-name'] = $namePart;
+            }
+            if ($typePart !== null) {
+                $out['container-type'] = $typePart;
+            }
+            return $out;
+        }
+        // Single value before any `/` — that's the name.
+        $out['container-name'] = $value;
+        return $out;
+    }
+
+    /**
+     * `column-rule: <width> || <style> || <color>` (CSS Multi-column
+     * 1 §3). Composes the three properties from a single declaration.
      *
      * @return array<string, Value>
      */

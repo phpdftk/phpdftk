@@ -928,4 +928,20 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame(1.0, $out['flex-shrink']->value);
         self::assertSame('auto', $out['flex-basis']->name);
     }
+
+    public function testContainerShorthandSingleNameSetsTypeNormal(): void
+    {
+        // `container: foo` → name=foo, type=normal (initial).
+        $out = $this->expander->expand('container', $this->value('foo'));
+        self::assertSame('foo', $out['container-name']->name);
+        self::assertSame('normal', $out['container-type']->name);
+    }
+
+    public function testContainerShorthandWithSlashSetsTypeAndName(): void
+    {
+        // `container: foo / inline-size` → name=foo, type=inline-size.
+        $out = $this->expander->expand('container', $this->value('foo / inline-size'));
+        self::assertSame('foo', $out['container-name']->name);
+        self::assertSame('inline-size', $out['container-type']->name);
+    }
 }
