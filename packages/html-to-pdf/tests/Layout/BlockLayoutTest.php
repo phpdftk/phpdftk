@@ -4591,6 +4591,32 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(100.0, $flex->children[1]->geometry->x);
     }
 
+    public function testFlexRowItemMinWidthAutoFloorsAtMinContent(): void
+    {
+        // CSS Flexbox 1 §4.5 — `min-width: auto` on a flex item
+        // resolves to its min-content size (longest unbreakable word)
+        // when `overflow: visible`. Without this rule, flex-shrink
+        // can drive items below their min-content; assert the floor.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a">looooooooooong</div>'
+                . '<div class="b">tiny</div>'
+                . '</div></body></html>',
+            // 50px container forces shrink; without §4.5 the long item
+            // would compress to ~25px (1:1 shrink with tiny). With the
+            // min-content floor it stays at least as wide as the word.
+            '.flex { display: flex; width: 50px; }
+             .flex > div { height: 10px; flex-shrink: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        $longWidth = $flex->children[0]->geometry->width;
+        // min-content of "looooooooooong" at default font-size is
+        // well above 25px, so any sane floor exceeds the naive shrink.
+        self::assertGreaterThan(25.0, $longWidth, 'min-content floor should keep long word from shrinking past container half');
+    }
+
     public function testFlexRowAutoWidthItemUsesMaxContentNotContainerWidth(): void
     {
         // CSS Flexbox 1 §9.2 — items with `flex-basis: auto` and

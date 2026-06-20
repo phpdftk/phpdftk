@@ -2040,6 +2040,7 @@ final class BlockLayout
                 $gap,
                 $cbWidth,
                 $cbHeight,
+                $itemCtx,
             );
 
             $lineUsed = 0.0;
@@ -3920,6 +3921,7 @@ final class BlockLayout
         float $gap,
         float $cbWidth,
         float $cbHeight,
+        ?LayoutContext $itemCtx = null,
     ): array {
         if ($indices === []) {
             return [];
@@ -3932,6 +3934,7 @@ final class BlockLayout
         $minOuter = [];
         $maxOuter = [];
         $usedFixed = 0.0;
+        $minProp = $isColumn ? 'min-height' : 'min-width';
         foreach ($indices as $i) {
             $baseOuter[$i] = $itemMains[$i];
             $grows[$i] = $this->resolveFlexGrow($children[$i]->style);
@@ -3959,6 +3962,20 @@ final class BlockLayout
                 $maxInner = ($maxInnerVal instanceof Keyword && strtolower($maxInnerVal->name) === 'none')
                     ? null
                     : $this->resolveLength($maxInnerVal, $cbWidth);
+            }
+            // CSS Flexbox 1 §4.5 — `min-width: auto` / `min-height:
+            // auto` on a flex item (in the main axis) resolves to
+            // the item's min-content size when `overflow: visible`.
+            // Without this, items can shrink to zero, hiding text
+            // that wouldn't be hidden by the spec's clamp.
+            if ($itemCtx !== null && $this->isAuto($children[$i]->style->get($minProp))) {
+                $overflow = $children[$i]->style->get('overflow');
+                $isVisible = !($overflow instanceof Keyword)
+                    || strtolower($overflow->name) === 'visible';
+                if ($isVisible) {
+                    $mm = $this->measureMinMaxContent($children[$i], $itemCtx);
+                    $minInner = max($minInner, $mm['min']);
+                }
             }
             $minOuter[$i] = max(0.0, ($minInner > 0.0 ? $minInner : 0.0) + $adornment);
             $maxOuter[$i] = $maxInner !== null && $maxInner > 0.0
