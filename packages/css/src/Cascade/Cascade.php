@@ -674,6 +674,8 @@ final class Cascade
         $supported = [
             'min-width', 'max-width', 'width',
             'min-height', 'max-height', 'height',
+            'min-inline-size', 'max-inline-size', 'inline-size',
+            'min-block-size', 'max-block-size', 'block-size',
             'orientation', 'aspect-ratio',
             'min-aspect-ratio', 'max-aspect-ratio',
         ];
@@ -1075,9 +1077,11 @@ final class Cascade
             switch ($name) {
                 case 'width':
                 case 'device-width':
+                case 'inline-size':  // CSS Containment 3 — alias of width in horizontal-tb
                     return $this->viewportWidth === null || $this->viewportWidth > 0;
                 case 'height':
                 case 'device-height':
+                case 'block-size':   // alias of height in horizontal-tb
                     return $this->viewportHeight === null || $this->viewportHeight > 0;
                 case 'aspect-ratio':
                 case 'device-aspect-ratio':
@@ -1113,6 +1117,20 @@ final class Cascade
         }
         if (in_array($name, ['min-height', 'max-height', 'height'], true)) {
             return $this->matchDimensionFeature($name, $valueRaw, $this->viewportHeight);
+        }
+        // CSS Containment 3 §4.4 — `inline-size` / `block-size`
+        // container features (and their min-/max- prefix forms)
+        // alias to width / height in horizontal writing modes (the
+        // only mode we support for now).
+        if (in_array($name, ['min-inline-size', 'max-inline-size', 'inline-size'], true)) {
+            $bare = substr($name, 0, 3) === 'min' ? 'min-width'
+                  : (substr($name, 0, 3) === 'max' ? 'max-width' : 'width');
+            return $this->matchDimensionFeature($bare, $valueRaw, $this->viewportWidth);
+        }
+        if (in_array($name, ['min-block-size', 'max-block-size', 'block-size'], true)) {
+            $bare = substr($name, 0, 3) === 'min' ? 'min-height'
+                  : (substr($name, 0, 3) === 'max' ? 'max-height' : 'height');
+            return $this->matchDimensionFeature($bare, $valueRaw, $this->viewportHeight);
         }
         // CSS Media Queries 4 §4.7 — device-* features mirror the
         // top-level dimensions for our print-target rendering context;
