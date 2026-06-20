@@ -143,14 +143,42 @@ final class LayerScopeTest extends TestCase
 
     public function testContainerNamedAppliesPassThroughForUnsupportedFeature(): void
     {
-        // `inline-size > 30em` uses MQ5 range syntax + the inline-
-        // size container feature, neither of which the Phase-1
-        // evaluator handles — fall through permissively.
+        // `inline-size > 30em` uses the inline-size container
+        // feature, which the Phase-1 evaluator doesn't know about —
+        // fall through permissively.
         $sheet = $this->parser->parseStylesheet(
             '@container card (inline-size > 30em) { p { color: red; } }',
         );
         $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
         self::assertSame(1.0, $values->get('color')->r);
+    }
+
+    public function testContainerRangeSyntaxWidthGreaterDropsWhenViewportSmaller(): void
+    {
+        // MQ5 range syntax — `(width > 400px)` rewritten to
+        // `min-width: 400px`. Viewport 300 < 400 → rule drops.
+        $cascade = $this->cascade->withViewport(300.0, 600.0);
+        $sheet = $this->parser->parseStylesheet(
+            '@container (width > 400px) { p { color: red; } }',
+        );
+        $values = $cascade->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $values->get('color')->r);
+    }
+
+    public function testContainerRangeSyntaxChainedRespectsBothBounds(): void
+    {
+        // `(100px < width <= 500px)` → `min-width: 100px AND
+        // max-width: 500px`. Viewport 300 satisfies both → rule
+        // applies; viewport 600 fails the upper bound → drops.
+        $sheet = $this->parser->parseStylesheet(
+            '@container (100px < width <= 500px) { p { color: red; } }',
+        );
+        $matchVp = $this->cascade->withViewport(300.0, 600.0)
+            ->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(1.0, $matchVp->get('color')->r);
+        $dropVp = $this->cascade->withViewport(600.0, 600.0)
+            ->computeFor([$sheet], new FakeElement('p'));
+        self::assertSame(0.0, $dropVp->get('color')->r);
     }
 
     public function testPositionTryBlockAppliesPassThrough(): void

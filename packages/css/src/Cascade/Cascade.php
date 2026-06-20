@@ -662,18 +662,14 @@ final class Cascade
     /**
      * Decide whether an `@container` query body uses only features
      * the cascade-level evaluator can answer (min-width / max-width
-     * / min-height / max-height / width / height / orientation).
-     * Returns true for queries we can evaluate; false for ones that
-     * should pass through unconditionally.
+     * / min-height / max-height / width / height / orientation /
+     * aspect-ratio plus the MQ5 range-syntax rewrites on top of
+     * width / height). Returns true for queries we can evaluate;
+     * false for ones that should pass through unconditionally.
      */
     private function containerQueryUsesOnlySupportedFeatures(string $body): bool
     {
-        // MQ5 range syntax (`(width > 400px)`) — we don't handle the
-        // comparison operators yet; pass through.
-        if (preg_match('/[<>]=?|=/', $body) === 1) {
-            return false;
-        }
-        // Walk parens-balanced `<name>: <value>` features. Each
+        // Walk parens-balanced `<name>: <value>` legacy form. Each
         // feature name must be one we support.
         $supported = [
             'min-width', 'max-width', 'width',
@@ -684,6 +680,32 @@ final class Cascade
         if (preg_match_all('/\(\s*([a-z-]+)\s*:/i', $body, $matches) > 0) {
             foreach ($matches[1] as $name) {
                 if (!in_array(strtolower($name), $supported, true)) {
+                    return false;
+                }
+            }
+        }
+        // MQ5 range syntax — `(width > 400px)` etc. Each parens-
+        // balanced range body must use a supported feature on either
+        // side of the comparison operator.
+        if (preg_match_all(
+            '/\(\s*([^()]*?[<>]=?[^()]*?)\s*\)/i',
+            $body,
+            $rangeMatches,
+        ) > 0) {
+            foreach ($rangeMatches[1] as $rangeBody) {
+                // Extract the identifier (a-z-) tokens; require at
+                // least one to be a supported feature.
+                if (preg_match_all('/[a-z][a-z0-9-]*/i', $rangeBody, $tokens) === 0) {
+                    return false;
+                }
+                $hit = false;
+                foreach ($tokens[0] as $tok) {
+                    if (in_array(strtolower($tok), $supported, true)) {
+                        $hit = true;
+                        break;
+                    }
+                }
+                if (!$hit) {
                     return false;
                 }
             }
@@ -923,12 +945,126 @@ final class Cascade
     }
 
     /**
+     * CSS Media Queries 5 §2.5 — rewrite a range-syntax feature
+     * (`width > 400px`, `400px <= width < 800px`) into one or more
+     * legacy-prefix-form constraints (`min-width: 400.001px`, etc.)
+     * that the existing evaluator already handles.
+     *
+     * Strict / non-strict inequality is approximated by the same
+     * legacy form (which uses `>=` / `<=` semantics) since the
+     * floating-point comparison difference is below display
+     * resolution. Returns `null` when the body isn't range syntax,
+     * `[]` when it parses but uses an unknown shape (drop).
+     *
+     * @return list<string>|null
+     */
+    private function rewriteRangeFeature(string $body): ?array
+    {
+        $body = trim($body);
+        // Detect range operators outside string content. The simple
+        // queries we model don't have nested parens or strings, so a
+        // raw scan is fine.
+        if (preg_match('/[<>]=?|=/', $body) !== 1) {
+            // Check it's actually a range, not e.g. `color: rgb(0,0,0)`.
+            if (preg_match('/[<>]/', $body) !== 1) {
+                return null;
+            }
+        }
+        // `<value> <op> <name> <op> <value>` (chained), or
+        // `<name> <op> <value>` / `<value> <op> <name>` (simple).
+        // Identifier match: `[a-z][a-z0-9-]*`.
+        $ident = '[a-z][a-z0-9-]*';
+        // Chained form: a <op> b <op> c, all three required.
+        if (preg_match(
+            '/^(.+?)\s*(<=?|>=?)\s*(' . $ident . ')\s*(<=?|>=?)\s*(.+?)$/i',
+            $body,
+            $m,
+        ) === 1) {
+            $left = trim($m[1]);
+            $op1 = $m[2];
+            $name = strtolower($m[3]);
+            $op2 = $m[4];
+            $right = trim($m[5]);
+            // Rewrite `left op1 name op2 right` into two simple
+            // comparisons against `name`: `name (op1-reversed) left`
+            // AND `name op2 right`.
+            $first = $this->rangeToLegacy($name, $this->reverseOp($op1), $left);
+            $second = $this->rangeToLegacy($name, $op2, $right);
+            if ($first === null || $second === null) {
+                return [];
+            }
+            return [$first, $second];
+        }
+        // Simple form: `<name> <op> <value>` or `<value> <op> <name>`.
+        if (preg_match(
+            '/^(.+?)\s*(<=?|>=?|=)\s*(.+?)$/',
+            $body,
+            $m,
+        ) === 1) {
+            $left = trim($m[1]);
+            $op = $m[2];
+            $right = trim($m[3]);
+            $leftIsName = preg_match('/^' . $ident . '$/i', $left) === 1;
+            $rightIsName = preg_match('/^' . $ident . '$/i', $right) === 1;
+            if ($leftIsName && !$rightIsName) {
+                $rewrite = $this->rangeToLegacy(strtolower($left), $op, $right);
+            } elseif ($rightIsName && !$leftIsName) {
+                $rewrite = $this->rangeToLegacy(strtolower($right), $this->reverseOp($op), $left);
+            } else {
+                return [];
+            }
+            return $rewrite === null ? [] : [$rewrite];
+        }
+        return null;
+    }
+
+    /**
+     * Map a range comparison `(name op value)` to a legacy-prefix
+     * `min-name: value` / `max-name: value` / `name: value`. Returns
+     * null when the comparison can't be expressed in the legacy form.
+     */
+    private function rangeToLegacy(string $name, string $op, string $value): ?string
+    {
+        return match ($op) {
+            '>', '>=' => 'min-' . $name . ': ' . $value,
+            '<', '<=' => 'max-' . $name . ': ' . $value,
+            '='       => $name . ': ' . $value,
+            default   => null,
+        };
+    }
+
+    private function reverseOp(string $op): string
+    {
+        return match ($op) {
+            '<' => '>',
+            '<=' => '>=',
+            '>' => '<',
+            '>=' => '<=',
+            '=' => '=',
+            default => $op,
+        };
+    }
+
+    /**
      * Evaluate one feature query like `min-width: 600px` or
      * `orientation: portrait`. Returns false for any feature the
      * cascade doesn't model.
      */
     private function matchFeatureQuery(string $inside): bool
     {
+        // CSS Media Queries 5 §2.5 — range syntax (`width > 400px`,
+        // `400px < width <= 800px`). Rewrite to one or more
+        // equivalent legacy-prefix-form constraints before falling
+        // through to the existing `name: value` evaluator.
+        $rangeRewrites = $this->rewriteRangeFeature($inside);
+        if ($rangeRewrites !== null) {
+            foreach ($rangeRewrites as $rewrite) {
+                if (!$this->matchFeatureQuery($rewrite)) {
+                    return false;
+                }
+            }
+            return true;
+        }
         if (!str_contains($inside, ':')) {
             // CSS Media Queries 4 §2.4.4 — boolean form: `(feature)`
             // matches when the feature's value is non-zero / not the
