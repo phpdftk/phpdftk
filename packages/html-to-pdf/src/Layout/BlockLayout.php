@@ -3048,28 +3048,6 @@ final class BlockLayout
                 $out[] = ['type' => 'length', 'value' => 0.0];
                 return;
             }
-            if ($name === 'fit-content') {
-                // CSS Grid 2 §7.2.4 — `fit-content(<length>)` sizes
-                // to max-content but clamped at <length>. Recorded as
-                // a content-sized track with a max cap; the post-
-                // placement intrinsic-sizing pass picks the smaller
-                // of max-content and the cap (with min-content as a
-                // floor for narrow items).
-                $arg = $value->arguments[0] ?? null;
-                if ($arg instanceof Length) {
-                    $out[] = ['type' => 'fit-content', 'value' => max(0.0, $arg->value)];
-                    return;
-                }
-                if ($arg instanceof Percentage) {
-                    $out[] = ['type' => 'fit-content', 'value' => max(0.0, $arg->value / 100.0 * $availableSize)];
-                    return;
-                }
-                // Non-resolvable argument — fall back to a zero-width
-                // placeholder rather than dropping the track entirely
-                // so item placement still advances.
-                $out[] = ['type' => 'fit-content', 'value' => 0.0];
-                return;
-            }
         }
         // CSS Grid Layout 2 §7.2 — `auto` / `min-content` /
         // `max-content` track sizes resolve via the content-sizing
@@ -3250,8 +3228,7 @@ final class BlockLayout
         // Bail when there are no content-sized tracks to resolve.
         $hasContentTrack = false;
         foreach ($descriptors as $d) {
-            $t = $d['type'];
-            if ($t === 'auto' || $t === 'min-content' || $t === 'max-content' || $t === 'fit-content') {
+            if ($d['type'] === 'auto' || $d['type'] === 'min-content' || $d['type'] === 'max-content') {
                 $hasContentTrack = true;
                 break;
             }
@@ -3269,9 +3246,7 @@ final class BlockLayout
             $contentTrackIndices = [];
             for ($i = $start; $i < $start + $span && $i < count($descriptors); $i++) {
                 $type = $descriptors[$i]['type'];
-                if ($type === 'auto' || $type === 'min-content'
-                    || $type === 'max-content' || $type === 'fit-content'
-                ) {
+                if ($type === 'auto' || $type === 'min-content' || $type === 'max-content') {
                     $contentTrackIndices[] = $i;
                 }
             }
@@ -3295,13 +3270,6 @@ final class BlockLayout
             foreach ($contentTrackIndices as $i) {
                 $type = $descriptors[$i]['type'];
                 $size = $type === 'min-content' ? $mm['min'] : $intrinsic;
-                // CSS Grid 2 §7.2.4 — `fit-content(<length>)` caps
-                // the track at the supplied length, but never falls
-                // below the item's min-content.
-                if ($type === 'fit-content') {
-                    $cap = (float) $descriptors[$i]['value'];
-                    $size = max($mm['min'], min($intrinsic, $cap));
-                }
                 // Distribute the item's intrinsic size equally
                 // across its content-sized tracks. The track's
                 // current size only grows; it never shrinks under
