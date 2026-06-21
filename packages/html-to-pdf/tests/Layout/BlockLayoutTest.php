@@ -7666,4 +7666,101 @@ final class BlockLayoutTest extends TestCase
         $mm = $this->layout->measureMinMaxContent($t, $this->defaultCtx);
         self::assertSame(0.0, $mm['max']);
     }
+
+    // ------------------------------------------------------------
+    // CSS Writing Modes 4 §3 — block axis swap for vertical modes.
+
+    public function testVerticalLrStacksChildrenLeftToRight(): void
+    {
+        // writing-mode: vertical-lr → block flows left-to-right along
+        // x. With three 50px-wide explicit-width children inside a
+        // 200×100 container, child 0 should be at x=0, child 1 at
+        // x=50, child 2 at x=100. All children share the parent's
+        // content top as their y origin.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i"></div><div class="i"></div><div class="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-lr; width: 200px; height: 100px; }
+             .i { width: 50px; height: 60px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        self::assertCount(3, $c->children);
+        self::assertEqualsWithDelta($c->geometry->x + 0.0, $c->children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($c->geometry->x + 50.0, $c->children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($c->geometry->x + 100.0, $c->children[2]->geometry->x, 0.001);
+        // All children share the container's content-top y.
+        self::assertEqualsWithDelta($c->geometry->y, $c->children[0]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($c->geometry->y, $c->children[1]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($c->geometry->y, $c->children[2]->geometry->y, 0.001);
+    }
+
+    public function testVerticalRlStacksChildrenRightToLeft(): void
+    {
+        // writing-mode: vertical-rl → block flows right-to-left along
+        // x. Child 0's right edge lands at the container's right
+        // content edge; subsequent children stack to the left of it.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i"></div><div class="i"></div><div class="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-rl; width: 200px; height: 100px; }
+             .i { width: 50px; height: 60px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        self::assertCount(3, $c->children);
+        // Child 0 right edge = container right edge = c.x + 200
+        $rightEdge = $c->geometry->x + 200.0;
+        self::assertEqualsWithDelta($rightEdge - 50.0, $c->children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($rightEdge - 100.0, $c->children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($rightEdge - 150.0, $c->children[2]->geometry->x, 0.001);
+        // All children share the container's content-top y.
+        self::assertEqualsWithDelta($c->geometry->y, $c->children[0]->geometry->y, 0.001);
+    }
+
+    public function testHorizontalTbUnchangedByPhase2(): void
+    {
+        // Regression guard: the default writing mode still stacks
+        // along y. Three 60-tall children should produce y offsets
+        // 0, 60, 120 inside the container — never x offsets.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i"></div><div class="i"></div><div class="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { width: 200px; height: 300px; }
+             .i { width: 50px; height: 60px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        self::assertEqualsWithDelta($c->geometry->y + 0.0, $c->children[0]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($c->geometry->y + 60.0, $c->children[1]->geometry->y, 0.001);
+        self::assertEqualsWithDelta($c->geometry->y + 120.0, $c->children[2]->geometry->y, 0.001);
+        // All children share the container's content-left x.
+        self::assertEqualsWithDelta($c->geometry->x, $c->children[0]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($c->geometry->x, $c->children[1]->geometry->x, 0.001);
+        self::assertEqualsWithDelta($c->geometry->x, $c->children[2]->geometry->x, 0.001);
+    }
+
+    public function testVerticalLrChildrenRespectMarginPaddingBorder(): void
+    {
+        // Margin + padding + border on a child contribute to its outer
+        // width, which is what the vertical stacker advances by. Child
+        // 0 outer = 5 + 2 + 3 + 50 + 3 + 2 + 5 = 70px → child 1 at x=70.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i"></div><div class="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-lr; width: 300px; height: 100px; }
+             .i { width: 50px; height: 60px; margin: 0 5px;
+                  padding: 0 3px; border: 2px solid; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        // Child 0 content-box x = c.x + 5 (margin) + 2 (border) + 3 (padding)
+        self::assertEqualsWithDelta($c->geometry->x + 10.0, $c->children[0]->geometry->x, 0.001);
+        // Child 1 content-box x = c.x + outer(70) + margin(5) + border(2) + padding(3)
+        self::assertEqualsWithDelta($c->geometry->x + 80.0, $c->children[1]->geometry->x, 0.001);
+    }
 }

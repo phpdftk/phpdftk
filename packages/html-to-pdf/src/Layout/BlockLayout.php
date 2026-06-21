@@ -7,6 +7,7 @@ namespace Phpdftk\HtmlToPdf\Layout;
 use Phpdftk\Css\Cascade\Cascade;
 use Phpdftk\Css\Cascade\CascadedValues;
 use Phpdftk\Css\Cascade\LengthContext;
+use Phpdftk\Css\Cascade\WritingMode;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\Css\Value\Percentage;
@@ -750,11 +751,31 @@ final class BlockLayout
                 ),
             );
         }
+        // CSS Writing Modes 4 §3 — when the box's own writing-mode is
+        // vertical, children stack along the physical x-axis (block
+        // axis) rather than y. Detected at the box's own style (not
+        // inherited from the cascade chain in another way), so a
+        // horizontal-tb document with a single `writing-mode:
+        // vertical-rl` subtree gets the axis swap scoped to that
+        // subtree's root. Multi-col / inline-only children fall back
+        // to the horizontal codepath for now — vertical multi-col is
+        // §7.3.4 and vertical inline formatting is Phase 4.
+        $wm = WritingMode::fromStyle($style);
         $childTotal = 0.0;
         if ($box->children !== [] && $this->isMultiColumnContainer($box)) {
             $childTotal = $this->layoutMultiColumn($box, $childContext);
         } elseif ($box->children !== [] && $this->allInlineLevel($box->children)) {
             $childTotal = $this->layoutInlineChildren($box, $childContext);
+        } elseif ($wm->isVertical()) {
+            $childTotal = $this->stackChildrenListVertical(
+                $box->children,
+                $childContext,
+                $geo->x,
+                $geo->y,
+                $geo->width,
+                $geo->height,
+                $wm,
+            );
         } else {
             // Defer to the shared list-iterator so out-of-flow children
             // (`position: absolute` / `fixed`), page-break logic, margin
@@ -5327,6 +5348,118 @@ final class BlockLayout
             $prevBottomMargin = $child->geometry->marginBottom;
             $hasPrev = true;
         }
+        return $total;
+    }
+
+    /**
+     * Vertical-mode counterpart to {@see stackChildrenList} — CSS
+     * Writing Modes 4 §3 (block axis is physical x in vertical-rl /
+     * vertical-lr / sideways-rl / sideways-lr).
+     *
+     * Lays children out along the x-axis instead of y:
+     *  - `vertical-lr` / `sideways-lr`: cursor starts at the parent's
+     *    left content edge and advances rightward (block direction +1).
+     *  - `vertical-rl` / `sideways-rl`: cursor starts at the parent's
+     *    right content edge and advances leftward (block direction -1).
+     *    Each child is laid out at the cursor's current x, then
+     *    shifted left by its outer width so its right edge lands at
+     *    that cursor position. (The shift happens after layout because
+     *    the child's outer width isn't known until then.)
+     *
+     * Each child gets the parent's content y as its origin — vertical
+     * containers have a uniform inline-axis extent for all children, so
+     * every child shares the same `originY` and can use up to
+     * `inlineExtent` along physical y.
+     *
+     * The return value is the total block-axis extent consumed (sum of
+     * children outer widths). For an explicit-width parent that value
+     * is informational; for `width: auto` (block-size: auto) the
+     * caller can use it to size the container — wired in a follow-up
+     * commit once auto-sizing is reworked for vertical modes.
+     *
+     * Phase-2 simplifications carried by this routine:
+     *  - Floats and page breaks: skipped. Floats in vertical modes
+     *    flow to the inline edges (CSS WM 4 §7.4) and pages flow
+     *    horizontally (§7.4 / Paged Media); both deferred.
+     *  - Margin collapsing: skipped. Adjacent siblings collapse along
+     *    the block axis (x in vertical), which mirrors §8.3.1 with
+     *    the axes swapped; deferred to a follow-up.
+     *  - Multi-column and inline-only children: routed to the
+     *    horizontal codepath by the caller.
+     *  - Out-of-flow (`position: absolute` / `fixed`): handled
+     *    identically to the horizontal stacker — abs-pos offsets are
+     *    physical and resolve against the positioned ancestor's
+     *    padding box regardless of writing mode.
+     *
+     * @param list<Box> $children
+     */
+    private function stackChildrenListVertical(
+        array $children,
+        LayoutContext $childContext,
+        float $originX,
+        float $originY,
+        float $blockExtent,
+        float $inlineExtent,
+        WritingMode $wm,
+    ): float {
+        $direction = $wm->blockDirection();
+        $cursorX = $direction === 1 ? $originX : ($originX + $blockExtent);
+        $total = 0.0;
+        foreach ($children as $child) {
+            $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
+            // CSS 2.1 §9.6 — out-of-flow children are positioned
+            // independently of the in-flow stacking cursor. Mirror
+            // the horizontal stacker's abs-pos branch: lay out at
+            // the positioned ancestor's origin (or static position
+            // when neither inset axis is anchored), then apply the
+            // resolved offsets. The cursor is not advanced.
+            if ($this->isOutOfFlow($child)) {
+                $absCb = $childContext;
+                $pa = $childContext->positionedAncestor;
+                if ($pa !== null) {
+                    $absCb = $childContext->withContainingBlock($pa->width, $pa->height);
+                }
+                $absStyle = $child->style;
+                $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
+                    || !$this->isAuto($absStyle->get('bottom'));
+                $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
+                    || !$this->isAuto($absStyle->get('right'));
+                $absOriginX = ($pa !== null && $hasLeftAnchor) ? $pa->originX : $cursorX;
+                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $originY;
+                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
+                $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
+                $this->layoutBox($child, $absLayoutCtx);
+                [$dx, $dy] = $this->resolveAbsoluteOffsets(
+                    $child,
+                    $absCb,
+                    $absOriginX,
+                    $absOriginY,
+                    $absOriginY,
+                );
+                if ($dx !== 0.0 || $dy !== 0.0) {
+                    $this->shiftSubtree($child, $dy, $dx);
+                }
+                continue;
+            }
+            // Lay child out at the current cursor X. For vrl/srl the
+            // cursor marks the child's intended RIGHT edge; the post-
+            // layout shift moves the subtree left by its outer width
+            // so its right edge ends up at the cursor.
+            $this->layoutBox($child, $childContext->withOrigin($cursorX, $originY));
+            $childOuterWidth = $child->geometry->outerWidth();
+            if ($direction === -1) {
+                $this->shiftSubtree($child, 0.0, -$childOuterWidth);
+                $cursorX -= $childOuterWidth;
+            } else {
+                $cursorX += $childOuterWidth;
+            }
+            $total += $childOuterWidth;
+        }
+        // Inline-extent extent isn't consumed here — vertical
+        // containers use it for sizing decisions outside this
+        // routine. Reference the parameter so the signature stays
+        // stable as auto-sizing wiring lands in a follow-up.
+        unset($inlineExtent);
         return $total;
     }
 
