@@ -7760,7 +7760,65 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($c);
         // Child 0 content-box x = c.x + 5 (margin) + 2 (border) + 3 (padding)
         self::assertEqualsWithDelta($c->geometry->x + 10.0, $c->children[0]->geometry->x, 0.001);
-        // Child 1 content-box x = c.x + outer(70) + margin(5) + border(2) + padding(3)
-        self::assertEqualsWithDelta($c->geometry->x + 80.0, $c->children[1]->geometry->x, 0.001);
+        // Child 1 content-box x: adjacent 5px + 5px block-axis margins
+        // collapse to max(5,5,0)+min(5,5,0) = 5 per CSS 2.1 §8.3.1
+        // (transposed for vlr — block-end is marginRight on child 0,
+        // block-start is marginLeft on child 1). Naïve advance would
+        // have been outer(70) + margin(5) + border(2) + padding(3) =
+        // 80; collapse reclaims 5, putting child 1 at 75.
+        self::assertEqualsWithDelta($c->geometry->x + 75.0, $c->children[1]->geometry->x, 0.001);
+    }
+
+    public function testVerticalLrAdjacentBlockMarginsCollapse(): void
+    {
+        // CSS 2.1 §8.3.1 transposed for vertical-lr: adjacent
+        // siblings' block-end (right) and block-start (left)
+        // margins collapse. With both children at margin: 0 20px,
+        // the in-between gap is max(20,20,0)+min(20,20,0) = 20,
+        // not 20+20=40. Child 1's x lands at child0.x + outer(50+
+        // 0+0+40) - collapsed-gap-saved(20) = 70 from container
+        // origin.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i"></div><div class="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-lr; width: 300px; height: 100px; }
+             .i { width: 50px; height: 60px; margin: 0 20px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        // Child 0 content x = c.x + 20 (left margin).
+        self::assertEqualsWithDelta($c->geometry->x + 20.0, $c->children[0]->geometry->x, 0.001);
+        // Child 1 content x: outer width 50+20+20 = 90. Naïve
+        // advance to x = c.x + 110. Collapse 20 reclaimed, so
+        // x = c.x + 90.
+        self::assertEqualsWithDelta($c->geometry->x + 90.0, $c->children[1]->geometry->x, 0.001);
+    }
+
+    public function testVerticalRlAdjacentBlockMarginsCollapse(): void
+    {
+        // vrl mirror: block-end of prev is marginLeft, block-start
+        // of next is marginRight. Adjacent 10px + 30px margins
+        // collapse to max(10,30,0)+min = 30 (not 40).
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div class="i a"></div><div class="i b"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-rl; width: 300px; height: 100px; }
+             .i { width: 50px; height: 60px; }
+             .a { margin: 0 0 0 10px; }
+             .b { margin: 0 30px 0 0; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $c = $this->findById($root, 'c');
+        self::assertNotNull($c);
+        // Right edge of container = c.x + 300.
+        $rightEdge = $c->geometry->x + 300.0;
+        // Child 0 (.a) right edge = rightEdge - 0 (a has no right
+        // margin) → its content-x = rightEdge - 50.
+        self::assertEqualsWithDelta($rightEdge - 50.0, $c->children[0]->geometry->x, 0.001);
+        // Naïve next x = rightEdge - 50 - 10 (a's margin-left) -
+        // 30 (b's margin-right) - 50 (b's width) = rightEdge -
+        // 140. Collapse 10 reclaimed → rightEdge - 130.
+        self::assertEqualsWithDelta($rightEdge - 130.0, $c->children[1]->geometry->x, 0.001);
     }
 }

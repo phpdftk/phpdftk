@@ -5441,15 +5441,20 @@ final class BlockLayout
      *  - Floats and page breaks: skipped. Floats in vertical modes
      *    flow to the inline edges (CSS WM 4 §7.4) and pages flow
      *    horizontally (§7.4 / Paged Media); both deferred.
-     *  - Margin collapsing: skipped. Adjacent siblings collapse along
-     *    the block axis (x in vertical), which mirrors §8.3.1 with
-     *    the axes swapped; deferred to a follow-up.
      *  - Multi-column and inline-only children: routed to the
      *    horizontal codepath by the caller.
      *  - Out-of-flow (`position: absolute` / `fixed`): handled
      *    identically to the horizontal stacker — abs-pos offsets are
      *    physical and resolve against the positioned ancestor's
      *    padding box regardless of writing mode.
+     *
+     * Adjacent in-flow siblings collapse their block-axis margins
+     * per CSS 2.1 §8.3.1 with the axes swapped: in `vlr` / `slr`
+     * the block-end margin is the previous child's `marginRight`
+     * and the block-start margin of the next child is `marginLeft`;
+     * `vrl` / `srl` flip the pair (block-end = marginLeft, block-
+     * start = marginRight). Collapsed spacing is the same formula
+     * the horizontal stacker uses — `max(positives) + min(negatives)`.
      *
      * @param list<Box> $children
      */
@@ -5465,6 +5470,8 @@ final class BlockLayout
         $direction = $wm->blockDirection();
         $cursorX = $direction === 1 ? $originX : ($originX + $blockExtent);
         $total = 0.0;
+        $prevBlockEndMargin = 0.0;
+        $hasPrev = false;
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
             // CSS 2.1 §9.6 — out-of-flow children are positioned
@@ -5514,6 +5521,38 @@ final class BlockLayout
                 $cursorX += $childOuterWidth;
             }
             $total += $childOuterWidth;
+            // CSS 2.1 §8.3.1 along the block axis. The "block-end"
+            // physical margin depends on direction: in vlr/slr the
+            // block-end is the right margin (children flow rightward,
+            // each child's right edge is its trailing block edge);
+            // in vrl/srl the block-end is the left margin. The next
+            // child's "block-start" margin is the opposite side.
+            if ($hasPrev) {
+                $childBlockStartMargin = $direction === 1
+                    ? $child->geometry->marginLeft
+                    : $child->geometry->marginRight;
+                $p = $prevBlockEndMargin;
+                $c = $childBlockStartMargin;
+                $collapsed = max($p, $c, 0.0) + min($p, $c, 0.0);
+                $shift = ($p + $c) - $collapsed;
+                if ($shift !== 0.0) {
+                    // Direction-dependent sign: the shift moves the
+                    // child back toward the previous sibling along
+                    // the block axis. vlr advances rightward, so
+                    // shifting "back" means moving leftward
+                    // (negative x). vrl advances leftward, so
+                    // shifting "back" means moving rightward
+                    // (positive x).
+                    $dx = -$shift * $direction;
+                    $this->shiftSubtree($child, 0.0, $dx);
+                    $cursorX += $dx;
+                    $total -= $shift;
+                }
+            }
+            $prevBlockEndMargin = $direction === 1
+                ? $child->geometry->marginRight
+                : $child->geometry->marginLeft;
+            $hasPrev = true;
         }
         // Inline-extent extent isn't consumed here — vertical
         // containers use it for sizing decisions outside this
