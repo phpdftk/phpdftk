@@ -846,7 +846,32 @@ final class BlockLayout
             // `contain-intrinsic-size` value (or zero when unset /
             // `none` / `auto`).
             $containedHeight = $this->resolveContainIntrinsicHeight($style, $context);
-            $geo->height = $containedHeight ?? $childTotal;
+            if ($containedHeight !== null) {
+                $geo->height = $containedHeight;
+            } elseif ($wm->isVertical()) {
+                // CSS Writing Modes 4 §3 + Sizing 4 §6.4 — `height`
+                // is the INLINE-axis dimension in vertical modes.
+                // Sum-of-child-outer-widths (the `childTotal` value
+                // the horizontal codepath uses) composes a block-
+                // axis extent into a vertical dimension and is
+                // nonsense. The closer-to-correct fallback for
+                // both same-mode and orthogonal-flow vertical
+                // containers is max(child outer height) — the
+                // tallest single child's outer extent (CSS WM §7.3
+                // max-content for orthogonal; matches §6 inline-
+                // axis shrink-wrap for same-mode without yet
+                // threading parent WM detection).
+                $maxChildOuterHeight = 0.0;
+                foreach ($box->children as $child) {
+                    $h = $child->geometry->outerHeight();
+                    if ($h > $maxChildOuterHeight) {
+                        $maxChildOuterHeight = $h;
+                    }
+                }
+                $geo->height = $maxChildOuterHeight;
+            } else {
+                $geo->height = $childTotal;
+            }
         } else {
             // CSS 2.1 §10.5 — `height: %` resolves against the
             // containing block's height ONLY when that height is
