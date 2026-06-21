@@ -2766,6 +2766,14 @@ final class BlockLayout
             $alignS = $this->gridSelfKeyword($p['box'], 'align-self');
             $isStretchX = $justify === 'stretch';
             $isStretchY = $alignS === 'stretch';
+            // CSS Sizing 4 §4.2 — explicit `*-self: stretch` defeats
+            // aspect-ratio in THAT axis only; the other (un-stretched)
+            // axis derives its size from the ratio rather than also
+            // stretching. We track "explicit stretch" separately from
+            // "stretch via auto/normal fallback" because the spec only
+            // gives the ratio-defeat power to author-specified stretch.
+            $justifyExplicit = $this->gridSelfIsExplicitStretch($p['box'], 'justify-self');
+            $alignExplicit = $this->gridSelfIsExplicitStretch($p['box'], 'align-self');
 
             $childCtx = $context
                 ->withContainingBlock($cellWidth, $cellHeight)
@@ -2774,6 +2782,41 @@ final class BlockLayout
             $this->layoutBox($p['box'], $childCtx);
 
             $childGeo = $p['box']->geometry;
+            // CSS Sizing 4 §4.2 — one-axis-explicit-stretch + aspect-
+            // ratio: the explicit stretch sizes that axis to the cell,
+            // and the ratio sizes the other axis. Pre-empt the normal
+            // stretch / non-stretch placement so the ratio-derived
+            // dimension wins over both layoutBox's intrinsic sizing
+            // and the cell-fill stretch below.
+            $ratio = $this->resolveAspectRatio($p['box']->style);
+            if ($ratio !== null && $ratio > 0.0) {
+                if ($alignExplicit && !$justifyExplicit) {
+                    $stretchedH = max(
+                        0.0,
+                        $cellHeight - $childGeo->marginTop - $childGeo->marginBottom
+                            - $childGeo->borderTop - $childGeo->borderBottom
+                            - $childGeo->paddingTop - $childGeo->paddingBottom,
+                    );
+                    $childGeo->height = $stretchedH;
+                    $childGeo->width = \Phpdftk\Css\Cascade\LengthResolver::clampPx($stretchedH * $ratio);
+                    $isStretchX = false;
+                    $isStretchY = false;
+                } elseif ($justifyExplicit && !$alignExplicit) {
+                    $stretchedW = max(
+                        0.0,
+                        $cellWidth - $childGeo->marginLeft - $childGeo->marginRight
+                            - $childGeo->borderLeft - $childGeo->borderRight
+                            - $childGeo->paddingLeft - $childGeo->paddingRight,
+                    );
+                    $childGeo->width = $stretchedW;
+                    $childGeo->height = \Phpdftk\Css\Cascade\LengthResolver::clampPx($stretchedW / $ratio);
+                    $isStretchX = false;
+                    $isStretchY = false;
+                }
+                // Both explicit: ratio fully ignored, both axes
+                // stretch normally (current behaviour). Neither
+                // explicit: ratio already applied in layoutBox.
+            }
             $childOuterWidth = $childGeo->outerWidth();
             $childOuterHeight = $childGeo->outerHeight();
             if ($isStretchX) {
@@ -3994,6 +4037,21 @@ final class BlockLayout
             'stretch' => 'stretch',
             default => 'stretch',
         };
+    }
+
+    /**
+     * Distinguish author-specified `stretch` from the
+     * auto/normal-fallback stretch. CSS Sizing 4 §4.2 — only
+     * explicit stretch defeats `aspect-ratio` in that axis; the
+     * auto fallback (the Grid default) does not.
+     */
+    private function gridSelfIsExplicitStretch(Box $box, string $property): bool
+    {
+        $value = $box->style->get($property);
+        if (!$value instanceof Keyword) {
+            return false;
+        }
+        return strtolower($value->name) === 'stretch';
     }
 
     /**
