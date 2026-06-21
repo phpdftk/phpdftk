@@ -369,7 +369,105 @@ final class Cascade
         // value, contradicting WPT light-dark-inheritance.
         $this->resolveLightDarkValues($result);
         $this->applyFontSizeAdjustZero($result);
+        $this->resolveLogicalProperties($result);
         return $result;
+    }
+
+    /**
+     * CSS Logical Properties 1 §3 — every logical longhand maps to
+     * a physical longhand per the element's `writing-mode` +
+     * `direction`. The cascade preserves logical and physical as
+     * separate property entries; this pass collapses the logical
+     * ones into their physical equivalents so layout code can
+     * keep reading `margin-top`, `padding-left`, etc. without
+     * threading WritingMode through every site.
+     *
+     * Precedence rule: if both the logical and the physical entry
+     * were explicitly set, the physical one wins (we don't track
+     * per-property declaration order across the logical/physical
+     * pair). Most authoring uses one OR the other, so this matches
+     * the common case; the edge case of "set both, expect later
+     * wins" lands when we extend the cascade engine itself.
+     */
+    private function resolveLogicalProperties(CascadedValues $values): void
+    {
+        $wm = WritingMode::fromStyle($values);
+        // 1) sizing: block-size / inline-size → height / width
+        $sizingPairs = [
+            'block-size' => $wm->isVertical() ? 'width' : 'height',
+            'inline-size' => $wm->isVertical() ? 'height' : 'width',
+            'min-block-size' => $wm->isVertical() ? 'min-width' : 'min-height',
+            'min-inline-size' => $wm->isVertical() ? 'min-height' : 'min-width',
+            'max-block-size' => $wm->isVertical() ? 'max-width' : 'max-height',
+            'max-inline-size' => $wm->isVertical() ? 'max-height' : 'max-width',
+        ];
+        foreach ($sizingPairs as $logical => $physical) {
+            if ($values->has($logical) && !$values->has($physical)) {
+                $logicalValue = $values->get($logical);
+                if ($logicalValue !== null) {
+                    $values->set($physical, $logicalValue);
+                }
+            }
+        }
+        // 2) edge longhands: margin/padding/inset/border *-block-start/end,
+        // *-inline-start/end → top / right / bottom / left per WM.
+        $edgePrefixes = [
+            ['margin-block-start', 'margin-', 'block-start'],
+            ['margin-block-end', 'margin-', 'block-end'],
+            ['margin-inline-start', 'margin-', 'inline-start'],
+            ['margin-inline-end', 'margin-', 'inline-end'],
+            ['padding-block-start', 'padding-', 'block-start'],
+            ['padding-block-end', 'padding-', 'block-end'],
+            ['padding-inline-start', 'padding-', 'inline-start'],
+            ['padding-inline-end', 'padding-', 'inline-end'],
+            ['inset-block-start', '', 'block-start'],
+            ['inset-block-end', '', 'block-end'],
+            ['inset-inline-start', '', 'inline-start'],
+            ['inset-inline-end', '', 'inline-end'],
+        ];
+        foreach ($edgePrefixes as [$logical, $prefix, $logicalEdge]) {
+            if (!$values->has($logical)) {
+                continue;
+            }
+            $physicalEdge = $wm->physicalEdge($logicalEdge);
+            $physical = $prefix === '' ? $physicalEdge : $prefix . $physicalEdge;
+            if (!$values->has($physical)) {
+                $logicalValue = $values->get($logical);
+                if ($logicalValue !== null) {
+                    $values->set($physical, $logicalValue);
+                }
+            }
+        }
+        // 3) border logical longhands per CSS Logical Properties 1 §7.
+        // Each shape maps to border-<edge>-<sub>: border-block-start-color
+        // → border-top-color under horizontal-tb.
+        $borderTriples = [
+            ['border-block-start-width', 'block-start', '-width'],
+            ['border-block-end-width', 'block-end', '-width'],
+            ['border-inline-start-width', 'inline-start', '-width'],
+            ['border-inline-end-width', 'inline-end', '-width'],
+            ['border-block-start-style', 'block-start', '-style'],
+            ['border-block-end-style', 'block-end', '-style'],
+            ['border-inline-start-style', 'inline-start', '-style'],
+            ['border-inline-end-style', 'inline-end', '-style'],
+            ['border-block-start-color', 'block-start', '-color'],
+            ['border-block-end-color', 'block-end', '-color'],
+            ['border-inline-start-color', 'inline-start', '-color'],
+            ['border-inline-end-color', 'inline-end', '-color'],
+        ];
+        foreach ($borderTriples as [$logical, $logicalEdge, $suffix]) {
+            if (!$values->has($logical)) {
+                continue;
+            }
+            $physicalEdge = $wm->physicalEdge($logicalEdge);
+            $physical = 'border-' . $physicalEdge . $suffix;
+            if (!$values->has($physical)) {
+                $logicalValue = $values->get($logical);
+                if ($logicalValue !== null) {
+                    $values->set($physical, $logicalValue);
+                }
+            }
+        }
     }
 
     /**

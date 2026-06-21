@@ -129,4 +129,62 @@ final class WritingModeTest extends TestCase
         self::assertSame(WritingMode::HORIZONTAL_TB, $wm->mode);
         self::assertSame('ltr', $wm->direction);
     }
+
+    public function testCascadeMapsMarginBlockStartToMarginTopUnderHorizontalTb(): void
+    {
+        $sheet = $this->parser->parseStylesheet('p { margin-block-start: 10px; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $top = $values->get('margin-top');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $top);
+        self::assertSame(10.0, $top->value);
+    }
+
+    public function testCascadeMapsMarginBlockStartToMarginRightUnderVerticalRl(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            'p { writing-mode: vertical-rl; margin-block-start: 10px; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $right = $values->get('margin-right');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $right);
+        self::assertSame(10.0, $right->value);
+        // margin-top untouched (initial 0)
+        $top = $values->get('margin-top');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $top);
+        self::assertSame(0.0, $top->value);
+    }
+
+    public function testCascadeMapsInlineSizeToWidthUnderHorizontalTb(): void
+    {
+        $sheet = $this->parser->parseStylesheet('p { inline-size: 100px; }');
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $width = $values->get('width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $width);
+        self::assertSame(100.0, $width->value);
+    }
+
+    public function testCascadeMapsInlineSizeToHeightUnderVerticalLr(): void
+    {
+        $sheet = $this->parser->parseStylesheet(
+            'p { writing-mode: vertical-lr; inline-size: 100px; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $height = $values->get('height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $height);
+        self::assertSame(100.0, $height->value);
+    }
+
+    public function testCascadePhysicalWinsWhenBothLogicalAndPhysicalDeclared(): void
+    {
+        // Precedence rule: when both logical and physical are
+        // declared, the physical entry wins (full per-declaration
+        // ordering across the pair would need engine changes).
+        $sheet = $this->parser->parseStylesheet(
+            'p { margin-top: 20px; margin-block-start: 10px; }',
+        );
+        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
+        $top = $values->get('margin-top');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $top);
+        self::assertSame(20.0, $top->value);
+    }
 }
