@@ -926,20 +926,22 @@ final class BlockLayout
             }
         }
 
-        // CSS 2.1 §9.4.3 — `position: relative` AND `position: sticky`.
-        // The box and its descendants paint at their original layout
-        // position plus the resolved offsets; siblings continue to
-        // flow against the original position (this function returns
-        // `outerHeight()` from the pre-shift geometry, which is what
-        // stackChildren uses to advance its cursor — so siblings stay
-        // put). Sticky falls back to relative-like behaviour in print
-        // since there's no scrolling viewport for the box to stick
-        // to (CSS Positioning 3 §6.3 — without a scroll container,
-        // sticky degrades to relative offsets at the static position).
+        // CSS 2.1 §9.4.3 — `position: relative` shifts the box (and
+        // its descendants) by the resolved `top` / `right` / `bottom`
+        // / `left` offsets while leaving siblings flowing against the
+        // original position. `position: sticky` is different: per CSS
+        // Positioning 3 §6.3 the box stays at its static position
+        // UNTIL its scroll container has scrolled past the inset; only
+        // then does it "stick" to the inset edge. In a print render
+        // there is no scrolling, so sticky never reaches its stuck
+        // state — it must behave like static (no shift). Applying the
+        // inset as a relative shift here is wrong: a `position: sticky;
+        // right: 100px` element with scrollLeft=0 should sit at its
+        // natural inline position, not move left by 100px.
         $positionValue = $style->get('position');
         if ($positionValue instanceof Keyword) {
             $posName = strtolower($positionValue->name);
-            if ($posName === 'relative' || $posName === 'sticky') {
+            if ($posName === 'relative') {
                 $relativeOuterHeight = $geo->outerHeight();
                 [$dx, $dy] = $this->resolveRelativeOffsets($style, $context);
                 if ($dx !== 0.0 || $dy !== 0.0) {
@@ -947,6 +949,8 @@ final class BlockLayout
                 }
                 return $relativeOuterHeight;
             }
+            // sticky: fall through. The static-position pass already
+            // placed the box; no shift to apply.
         }
 
         return $geo->outerHeight();
