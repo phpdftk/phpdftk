@@ -776,6 +776,34 @@ final class BlockLayout
                 $geo->height,
                 $wm,
             );
+            // CSS Writing Modes 4 §3 + Sizing 4 §6.4 — `width` is
+            // the BLOCK-axis dimension in vertical modes. Auto block-
+            // size shrinks to children content (sum of child outer
+            // widths). The earlier width-resolution step used the
+            // horizontal stretch-to-CB fallback as a tentative
+            // value so descendants' `width: 100%` could resolve
+            // against something; reset to the children-sum now that
+            // their geometry has settled. The min/max-width clamp
+            // below still applies. For vrl, children were laid out
+            // assuming the tentative blockExtent (= CB-stretch);
+            // when childTotal differs, their cursorX positions
+            // would be relative to the wrong right edge. Shift the
+            // whole row rightward so its right edge aligns to the
+            // shrunk width. (Same-mode interior layout still works
+            // because each child stacks against the immediate
+            // sibling — only the row's outer position needs the
+            // adjustment.)
+            if ($widthAuto && $childTotal > 0.0) {
+                if ($wm->blockDirection() === -1) {
+                    $shift = $childTotal - $geo->width;
+                    if ($shift !== 0.0) {
+                        foreach ($box->children as $child) {
+                            $this->shiftSubtree($child, 0.0, $shift);
+                        }
+                    }
+                }
+                $geo->width = $childTotal;
+            }
         } else {
             // Defer to the shared list-iterator so out-of-flow children
             // (`position: absolute` / `fixed`), page-break logic, margin
