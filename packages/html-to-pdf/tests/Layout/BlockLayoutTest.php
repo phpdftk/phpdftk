@@ -3136,6 +3136,54 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $block->geometry->y);
     }
 
+    public function testGridMinmaxLengthFrFloorsAtMinAndDistributesRemainder(): void
+    {
+        // CSS Grid 2 §7.2.4 — `minmax(100px, 1fr) minmax(200px, 1fr)`
+        // in a 600px container reserves 100 + 200 = 300 for floors,
+        // distributes the remaining 300 equally between the two fr
+        // tracks (150 each), and each track ends at floor + share.
+        // Previously the fr max was unhandled and tracks collapsed
+        // to the 0-fallback (or to min — varied), producing a 0/100
+        // or 100/200 split instead of the spec 250/350.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: minmax(100px, 1fr) minmax(200px, 1fr); '
+            . 'grid-template-rows: 50px; width: 600px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertEqualsWithDelta(250.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(350.0, $b->geometry->width, 0.001);
+        self::assertEqualsWithDelta(250.0, $b->geometry->x, 0.001);
+    }
+
+    public function testGridMinmaxZeroFrCollapsesToShareOnly(): void
+    {
+        // `minmax(0, 1fr)` — floor is 0, fr distribution uses full
+        // available space. This is the most common minmax pattern in
+        // author CSS for "flexible but at least the minmax min" and
+        // was previously collapsing to a zero-width track.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); '
+            . 'grid-template-rows: 50px; width: 600px;">'
+            . '<div class="a"></div>'
+            . '<div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertEqualsWithDelta(300.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(300.0, $b->geometry->width, 0.001);
+    }
+
     public function testGridGapNormalResolvesToZero(): void
     {
         // Negative: `column-gap: normal` (initial) is zero for grid,

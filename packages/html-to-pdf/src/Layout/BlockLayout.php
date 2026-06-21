@@ -2807,7 +2807,7 @@ final class BlockLayout
      * Phase-2 still defers `auto`, `min-content`, `max-content`,
      * `minmax()`, `fit-content()`, `auto-fill` / `auto-fit`.
      *
-     * @return list<array{type: string, value: float}>
+     * @return list<array{type: string, value: float, minFloor?: float}>
      */
     /**
      * CSS Grid 1 §7.2.3 — count how many `auto-fill` / `auto-fit`
@@ -2875,7 +2875,7 @@ final class BlockLayout
      * for `<length>` / `<flex>` tracks. `repeat()` is expanded; any
      * other shape is silently skipped (Phase-2 will widen later).
      *
-     * @param list<array{type: string, value: float}> $out
+     * @param list<array{type: string, value: float, minFloor?: float}> $out
      */
     private function collectGridTrackDescriptors(
         \Phpdftk\Css\Value\Value $value,
@@ -2936,21 +2936,67 @@ final class BlockLayout
                 return;
             }
             if ($name === 'minmax') {
-                // `minmax(<min>, <max>)` — Phase-2 honours the max
-                // size when it's a fixed length so auto-fill can
-                // count tracks. Falls through to skip otherwise.
-                $maxArg = $value->arguments[1] ?? null;
-                if ($maxArg instanceof Length) {
-                    $out[] = ['type' => 'length', 'value' => $maxArg->value];
-                    return;
-                }
+                // CSS Grid 2 §7.2.4 — `minmax(<min>, <max>)`. The min
+                // resolves to a per-track floor; the max picks the
+                // descriptor type (fr / length / intrinsic).
                 $minArg = $value->arguments[0] ?? null;
+                $maxArg = $value->arguments[1] ?? null;
+
+                // Numeric floor from `<length>` / `<percentage>` mins.
+                // `auto` / `min-content` / `max-content` mins leave the
+                // floor at 0 here; the content-sizing pass lifts the
+                // track to the measured min-content/max-content of
+                // items spanning it.
+                $minFloor = 0.0;
                 if ($minArg instanceof Length) {
-                    $out[] = ['type' => 'length', 'value' => $minArg->value];
+                    $minFloor = max(0.0, $minArg->value);
+                } elseif ($minArg instanceof Percentage) {
+                    $minFloor = max(0.0, $minArg->value / 100.0 * $availableSize);
+                }
+
+                // `minmax(<min>, <fr>)` — flexible track with floor.
+                // Previously fell through (collapsed to 0); fr layout
+                // honours the floor in resolveGridTrackSizes.
+                if ($maxArg instanceof \Phpdftk\Css\Value\CssFunction
+                    && strtolower($maxArg->name) === 'fr'
+                ) {
+                    $factor = $this->numericValueOrNull($maxArg->arguments[0] ?? null);
+                    if ($factor !== null && $factor > 0) {
+                        $out[] = [
+                            'type' => 'fr',
+                            'value' => $factor,
+                            'minFloor' => $minFloor,
+                        ];
+                        return;
+                    }
+                }
+                // `minmax(<min>, <length>|<percentage>)` — fixed track
+                // at max(<max>, floor).
+                if ($maxArg instanceof Length) {
+                    $out[] = ['type' => 'length', 'value' => max($maxArg->value, $minFloor)];
                     return;
                 }
-                // Both intrinsic — leave as 0 placeholder.
-                $out[] = ['type' => 'length', 'value' => 0.0];
+                if ($maxArg instanceof Percentage) {
+                    $resolved = max(0.0, $maxArg->value / 100.0 * $availableSize);
+                    $out[] = ['type' => 'length', 'value' => max($resolved, $minFloor)];
+                    return;
+                }
+                // `minmax(<min>, <intrinsic-keyword>)` — content-sized
+                // track with the resolved min as a floor.
+                if ($maxArg instanceof Keyword) {
+                    $maxName = strtolower($maxArg->name);
+                    if ($maxName === 'auto' || $maxName === 'min-content' || $maxName === 'max-content') {
+                        $out[] = [
+                            'type' => $maxName,
+                            'value' => 0.0,
+                            'minFloor' => $minFloor,
+                        ];
+                        return;
+                    }
+                }
+                // Unrecognised max — degrade to a fixed track at the
+                // min floor so item placement still has a slot to fill.
+                $out[] = ['type' => 'length', 'value' => $minFloor];
                 return;
             }
         }
@@ -3120,7 +3166,7 @@ final class BlockLayout
      * Phase-2 simplification.
      *
      * @param array<int, float> $resolved      Mutated track sizes.
-     * @param list<array{type: string, value: float}> $descriptors
+     * @param list<array{type: string, value: float, minFloor?: float}> $descriptors
      * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
      */
     private function resolveGridContentSizedTracks(
@@ -3183,6 +3229,20 @@ final class BlockLayout
                 if (($resolved[$i] ?? 0.0) < $share) {
                     $resolved[$i] = $share;
                 }
+            }
+        }
+        // CSS Grid 2 §7.2.4 — a `minmax(<length|percent>, <intrinsic>)`
+        // track sets a minFloor that the content-sizing pass must
+        // respect. Items spanning the track might be smaller than the
+        // floor; clamp up so the floor wins.
+        foreach ($descriptors as $i => $d) {
+            $floor = (float) ($d['minFloor'] ?? 0.0);
+            if ($floor <= 0.0) {
+                continue;
+            }
+            $current = (float) ($resolved[$i] ?? 0.0);
+            if ($current < $floor) {
+                $resolved[$i] = $floor;
             }
         }
     }
@@ -3396,7 +3456,7 @@ final class BlockLayout
      * tracks pass through; `fr` tracks divide the remaining space
      * after fixed widths + gaps are subtracted.
      *
-     * @param list<array{type: string, value: float}> $tracks
+     * @param list<array{type: string, value: float, minFloor?: float}> $tracks
      * @return list<float>
      */
     private function resolveGridTrackSizes(array $tracks, float $containerExtent, float $gap): array
@@ -3410,6 +3470,11 @@ final class BlockLayout
             if ($t['type'] === 'length') {
                 $fixedTotal += $t['value'];
             } elseif ($t['type'] === 'fr') {
+                // CSS Grid 2 §7.2.4 — fr tracks coming from
+                // `minmax(<length>, <fr>)` carry a floor that's
+                // reserved before the remaining space is distributed
+                // among fr factors.
+                $fixedTotal += (float) ($t['minFloor'] ?? 0.0);
                 $frTotal += $t['value'];
             }
             // `auto` / `min-content` / `max-content` tracks contribute
@@ -3423,8 +3488,12 @@ final class BlockLayout
             if ($t['type'] === 'length') {
                 $resolved[] = $t['value'];
             } elseif ($t['type'] === 'fr') {
+                $floor = (float) ($t['minFloor'] ?? 0.0);
                 $share = $frTotal > 0.0 ? $frSpace * ($t['value'] / $frTotal) : 0.0;
-                $resolved[] = $share;
+                // Each fr track gets its floor plus a slice of the
+                // remaining (floor-adjusted) space proportional to
+                // its fr factor.
+                $resolved[] = $floor + $share;
             } else {
                 // Auto / min-content / max-content — leave at 0; the
                 // content-sizing pass overwrites this with the
