@@ -3368,6 +3368,7 @@ final class BlockLayout
         if ($text === '' || trim($text) === '') {
             return ['min' => 0.0, 'max' => 0.0];
         }
+        $whiteSpace = $this->resolveTextBoxWhiteSpace($box);
         $font = $context->defaultFont;
         if ($font === null) {
             // No font registered — fall back to a character-count
@@ -3391,6 +3392,45 @@ final class BlockLayout
             : 12.0;
         $ctx = new \Phpdftk\Text\ShapingContext($font, $fontSize);
         $shaper = new \Phpdftk\Text\Shaper();
+        // CSS Text 3 §4 / Sizing 3 §5 — preserved white-space modes
+        // compute max-content per LINE (split on `\n`) rather than
+        // as a single collapsed text run. Without this, `pre`,
+        // `pre-wrap`, etc. would report a single-line width even
+        // though forced line breaks make several narrower lines.
+        if (in_array($whiteSpace, ['pre', 'pre-wrap', 'pre-line', 'break-spaces'], true)) {
+            $maxAdvance = 0.0;
+            foreach (explode("\n", $text) as $line) {
+                if ($whiteSpace === 'pre-line') {
+                    // §3.3 step 4 — pre-line collapses internal
+                    // whitespace runs to a single space and trims
+                    // the line's leading / trailing whitespace.
+                    $line = preg_replace('/[ \t]+/', ' ', $line) ?? $line;
+                    $line = trim($line, " \t");
+                }
+                if ($line === '') {
+                    continue;
+                }
+                $shaped = $shaper->shapeRun($line, $ctx);
+                $maxAdvance = max($maxAdvance, $shaped->totalAdvance);
+            }
+            if ($whiteSpace === 'pre') {
+                // No soft-wrap opportunities: min == max (each
+                // forced-break line is one unbreakable run).
+                return ['min' => $maxAdvance, 'max' => $maxAdvance];
+            }
+            // pre-wrap / pre-line / break-spaces admit soft wrap at
+            // whitespace; min-content is the widest unbreakable word.
+            $words = preg_split('/\s+/', trim($text)) ?: [];
+            $minAdvance = 0.0;
+            foreach ($words as $w) {
+                if ($w === '') {
+                    continue;
+                }
+                $shaped = $shaper->shapeRun($w, $ctx);
+                $minAdvance = max($minAdvance, $shaped->totalAdvance);
+            }
+            return ['min' => $minAdvance, 'max' => $maxAdvance];
+        }
         $full = $shaper->shapeRun($text, $ctx);
         $maxAdvance = $full->totalAdvance;
         // CSS Text 3 §6 / Sizing 3 §5.2 — under `overflow-wrap:
@@ -3420,6 +3460,43 @@ final class BlockLayout
             $minAdvance = max($minAdvance, $shaped->totalAdvance);
         }
         return ['min' => $minAdvance, 'max' => $maxAdvance];
+    }
+
+    /**
+     * Resolve the effective `white-space` mode for a text box's
+     * intrinsic-sizing pass. Reads the shorthand `white-space` first,
+     * falling back to the `white-space-collapse` longhand when the
+     * shorthand is absent or `normal`. Returns one of `normal`,
+     * `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces`.
+     */
+    private function resolveTextBoxWhiteSpace(Box $box): string
+    {
+        $value = $box->style->get('white-space');
+        if ($value instanceof \Phpdftk\Css\Value\Keyword) {
+            $name = strtolower($value->name);
+            if (in_array(
+                $name,
+                ['normal', 'nowrap', 'pre', 'pre-wrap', 'pre-line', 'break-spaces'],
+                true,
+            )) {
+                return $name;
+            }
+        }
+        $collapse = $box->style->get('white-space-collapse');
+        if ($collapse instanceof \Phpdftk\Css\Value\Keyword) {
+            $name = strtolower($collapse->name);
+            // CSS Text 4 §3 — `white-space-collapse` keywords map onto
+            // the legacy `white-space` modes when paired with default
+            // `text-wrap-mode: wrap`.
+            return match ($name) {
+                'preserve' => 'pre',
+                'preserve-breaks' => 'pre-line',
+                'preserve-spaces' => 'pre-wrap',
+                'break-spaces' => 'break-spaces',
+                default => 'normal',
+            };
+        }
+        return 'normal';
     }
 
     /**
