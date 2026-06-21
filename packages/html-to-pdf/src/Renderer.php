@@ -178,6 +178,16 @@ final class Renderer
             defaultFont: $this->options->defaultFont,
             fontResolver: $fontResolver,
         );
+        // CSS Writing Modes 4 §3.1 — when the root element's
+        // `writing-mode` / `direction` are at the initial value but
+        // the first `<body>` child sets them to something else, the
+        // body's *used* values propagate to the root for layout
+        // purposes. Mirrors the CSS Backgrounds 3 §3.11.2 propagation
+        // pattern already applied by the painter for background
+        // colour. Only the root box's used style changes; computed
+        // values stay as-cascaded so descendants keep inheriting
+        // from the original chain.
+        $this->propagateBodyWritingModeToRoot($root);
         $this->layout->layout($root, $layoutCtx);
 
         // If the document contains non-whitespace text but no font was
@@ -422,6 +432,53 @@ final class Renderer
      * heading level, the rendered text content, and the box's top-edge Y
      * in layout space. Headings without text content are skipped.
      *
+     * CSS Writing Modes 4 §3.1 — body-to-root propagation. When the
+     * root element's `writing-mode` / `direction` are at the initial
+     * value (`horizontal-tb` / `ltr`) but the first in-flow `<body>`
+     * child sets either to a non-initial value, the body's used
+     * values propagate up to the root for layout. Only the root's
+     * own style is mutated; descendants keep inheriting from the
+     * original cascade chain.
+     */
+    private function propagateBodyWritingModeToRoot(\Phpdftk\HtmlToPdf\Box\Box $root): void
+    {
+        $body = null;
+        foreach ($root->children as $child) {
+            if ($child->element !== null && strtolower($child->element->localName) === 'body') {
+                $body = $child;
+                break;
+            }
+        }
+        if ($body === null) {
+            return;
+        }
+        $rootWm = $root->style->get('writing-mode');
+        $rootIsHtb = $rootWm === null
+            || ($rootWm instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($rootWm->name) === 'horizontal-tb');
+        if ($rootIsHtb) {
+            $bodyWm = $body->style->get('writing-mode');
+            if ($bodyWm instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($bodyWm->name) !== 'horizontal-tb'
+            ) {
+                $root->style->set('writing-mode', $bodyWm);
+            }
+        }
+        $rootDir = $root->style->get('direction');
+        $rootIsLtr = $rootDir === null
+            || ($rootDir instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($rootDir->name) === 'ltr');
+        if ($rootIsLtr) {
+            $bodyDir = $body->style->get('direction');
+            if ($bodyDir instanceof \Phpdftk\Css\Value\Keyword
+                && strtolower($bodyDir->name) !== 'ltr'
+            ) {
+                $root->style->set('direction', $bodyDir);
+            }
+        }
+    }
+
+    /**
      * @return list<array{level: int, text: string, layoutY: float}>
      */
     private function collectHeadings(\Phpdftk\HtmlToPdf\Box\Box $root): array
