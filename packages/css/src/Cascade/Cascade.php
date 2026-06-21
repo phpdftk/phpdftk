@@ -369,8 +369,46 @@ final class Cascade
         // value, contradicting WPT light-dark-inheritance.
         $this->resolveLightDarkValues($result);
         $this->applyFontSizeAdjustZero($result);
+        // CSS Tables 3 §2.3 + CSS Writing Modes 4 §3 — the
+        // `writing-mode` and `direction` properties do not apply to
+        // internal table boxes (`table-row-group` / `table-header-
+        // group` / `table-footer-group` / `table-row` / `table-
+        // column` / `table-column-group`). When an author declares
+        // them on `<tr>`, `<thead>`, `<tbody>`, `<tfoot>`, `<col>`,
+        // or `<colgroup>` the cascade still computes a value but the
+        // table layout algorithm uses the table's writing-mode for
+        // row stacking and the cell-axis swap. Override the computed
+        // value back to the inherited (parent) one so downstream
+        // logical-property resolution and layout dispatch see the
+        // table's effective WM.
+        $this->forceTableInternalWritingMode($result, $element, $parentValues);
         $this->resolveLogicalProperties($result);
         return $result;
+    }
+
+    /**
+     * @see computeFor — call site explains the spec rule.
+     */
+    private function forceTableInternalWritingMode(
+        CascadedValues $result,
+        MatchableElement $element,
+        ?CascadedValues $parentValues,
+    ): void {
+        if ($parentValues === null) {
+            return;
+        }
+        $local = strtolower($element->localName());
+        if (!in_array($local, ['tr', 'thead', 'tbody', 'tfoot', 'col', 'colgroup'], true)) {
+            return;
+        }
+        $parentWm = $parentValues->get('writing-mode');
+        if ($parentWm !== null) {
+            $result->set('writing-mode', $parentWm);
+        }
+        $parentDir = $parentValues->get('direction');
+        if ($parentDir !== null) {
+            $result->set('direction', $parentDir);
+        }
     }
 
     /**
