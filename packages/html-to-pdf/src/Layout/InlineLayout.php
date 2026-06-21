@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\HtmlToPdf\Layout;
 
+use Phpdftk\Css\Cascade\WritingMode;
 use Phpdftk\Css\Value\Length;
 use Phpdftk\HtmlToPdf\Box\AtomicInlineBox;
 use Phpdftk\HtmlToPdf\Box\Box;
@@ -317,7 +318,49 @@ final class InlineLayout
         $lines = $this->applyTextOverflow($lines, $availableWidth, $parent, $shapingCtx, $letterSpacing);
 
         $lines = $this->applyTextAlign($lines, $availableWidth, $parent);
+        // CSS Writing Modes 4 §3 — for a vertical-mode block container
+        // hosting an inline formatting context, lines should sit at the
+        // block-start edge of the container's content area:
+        //  - `vrl` / `sideways-rl`: block-start = right edge → shift the
+        //    line's fragments rightward by (availableWidth - lineWidth)
+        //    so the visible content lands at the right.
+        //  - `vlr` / `sideways-lr`: block-start = left edge → no shift.
+        //
+        // Phase-4 scaffold: text glyphs still lay out horizontally
+        // (per the current Shaper-driven flow) — full vertical text
+        // shaping with rotated glyphs comes in a later commit. The
+        // immediate win is that single-line atomic inline content
+        // (`<img>`, inline-block divs) lands at the visually-correct
+        // block-start edge in `vrl` containers.
+        $lines = $this->applyVerticalLineShift($lines, $availableWidth, $parent);
         return [$lines, $y];
+    }
+
+    /**
+     * @param list<LineBox> $lines
+     * @return list<LineBox>
+     */
+    private function applyVerticalLineShift(array $lines, float $availableWidth, Box $parent): array
+    {
+        $wm = WritingMode::fromStyle($parent->style);
+        // Only `vrl` / `sideways-rl` (block direction -1) need the
+        // shift; horizontal-tb and `vlr` / `sideways-lr` already place
+        // lines at the visually-correct block-start when fragments
+        // start at x = 0.
+        if (!$wm->isVertical() || $wm->blockDirection() !== -1) {
+            return $lines;
+        }
+        $out = [];
+        foreach ($lines as $line) {
+            $lineWidth = $line->totalWidth();
+            $shift = $availableWidth - $lineWidth;
+            if ($shift <= 0.0) {
+                $out[] = $line;
+                continue;
+            }
+            $out[] = new LineBox($line->y, $line->height, $this->shiftFragments($line->fragments, $shift));
+        }
+        return $out;
     }
 
     /**
