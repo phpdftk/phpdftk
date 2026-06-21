@@ -898,6 +898,16 @@ final class BlockLayout
         if ($minHeight > 0.0 && $geo->height < $minHeight) {
             $geo->height = $minHeight;
         }
+        // CSS Sizing 4 §5.2 — when width was derived from height via
+        // aspect-ratio AND the height was just clamped up by min-height
+        // (or down by max-height), the width needs to re-derive so the
+        // ratio still holds. Without this re-derivation a box with
+        // `aspect-ratio:1; width:auto; height:100%; min-height:100px`
+        // inside an indefinite-height parent gets width=0 (from
+        // height=0 × 1) instead of width=100 (the post-clamp height).
+        if ($ratio !== null && $ratio > 0.0 && $widthAuto && !$heightIsAuto) {
+            $geo->width = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->height * $ratio);
+        }
 
         if ($heightIsAuto
             && $box->children !== []
@@ -1989,6 +1999,26 @@ final class BlockLayout
             $mainIsAuto = $this->isAuto($child->style->get($mainProp));
             if ($basis === null && !$mainIsAuto) {
                 $basis = $this->resolveLength($child->style->get($mainProp), $basisCbMain);
+            }
+            // CSS Flexbox 1 §9.9 / Sizing 4 §4.2 — transferred size
+            // suggestion. When the item has an aspect-ratio and a
+            // definite cross-axis size, use the cross size × ratio
+            // (row direction) or cross size / ratio (column direction)
+            // as the main-axis suggestion before falling back to
+            // max-content. This makes `<img>` and `aspect-ratio`-
+            // bearing flex items size correctly from their cross
+            // dimension instead of stretching to fill or shrinking
+            // to their intrinsic main.
+            if ($basis === null && $mainIsAuto) {
+                $transferred = $this->aspectRatioTransfer(
+                    $child->style,
+                    $isColumn,
+                    $cbWidth,
+                    $itemCbHeight,
+                );
+                if ($transferred !== null) {
+                    $basis = $transferred;
+                }
             }
             $childCtx = $itemCtx;
             if (!$isColumn && $basis === null) {
@@ -4518,6 +4548,51 @@ final class BlockLayout
             return $childCtx->withContainerSize($contentBoxWidth, $contentBoxHeight);
         }
         return $childCtx;
+    }
+
+    /**
+     * CSS Sizing 4 §4.2 / Flexbox 1 §9.9 — compute the transferred
+     * main-axis size for a flex item with an aspect-ratio and a
+     * definite cross-axis size.
+     *
+     * Returns the main-axis size in CSS pixels, or null when:
+     *  - the item has no aspect-ratio set, or
+     *  - the cross-axis size is `auto` / indeterminate, or
+     *  - the cross-axis value can't be resolved against a known basis.
+     *
+     * Cross-axis percentage values resolve against the appropriate CB
+     * (row direction → height CB; column direction → width CB).
+     */
+    private function aspectRatioTransfer(
+        CascadedValues $style,
+        bool $isColumn,
+        float $cbWidth,
+        float $cbHeight,
+    ): ?float {
+        $ratio = $this->resolveAspectRatio($style);
+        if ($ratio === null || $ratio <= 0.0) {
+            return null;
+        }
+        $crossProp = $isColumn ? 'width' : 'height';
+        $crossValue = $style->get($crossProp);
+        if ($this->isAuto($crossValue)) {
+            return null;
+        }
+        $cbForCross = $isColumn ? $cbWidth : $cbHeight;
+        if ($crossValue instanceof Length) {
+            $cross = $crossValue->value;
+        } elseif ($crossValue instanceof Percentage) {
+            if ($cbForCross <= 0.0) {
+                return null;
+            }
+            $cross = max(0.0, $crossValue->value / 100.0 * $cbForCross);
+        } else {
+            return null;
+        }
+        if ($cross <= 0.0) {
+            return null;
+        }
+        return $isColumn ? $cross / $ratio : $cross * $ratio;
     }
 
     /**

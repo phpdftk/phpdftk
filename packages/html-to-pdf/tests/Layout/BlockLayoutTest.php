@@ -4705,6 +4705,51 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(5.0, $abs->geometry->y);
     }
 
+    public function testFlexRowItemAspectRatioWithDefiniteHeightTransfersToWidth(): void
+    {
+        // CSS Flexbox 1 §9.9 — a row-direction flex item with
+        // aspect-ratio + a definite height uses height × ratio as
+        // the main-axis (width) suggestion. Without this rule, the
+        // item would fall through to max-content (empty box → 0)
+        // and shrink to nothing.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div>'
+                . '</div></body></html>',
+            '.flex { display: flex; width: 600px; align-items: flex-start; }
+             .flex > div { height: 100px; aspect-ratio: 2; flex-grow: 0; flex-shrink: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // height 100 × ratio 2 = width 200.
+        self::assertEqualsWithDelta(200.0, $flex->children[0]->geometry->width, 0.001);
+    }
+
+    public function testBlockAspectRatioReDerivesWidthAfterMinHeightLift(): void
+    {
+        // CSS Sizing 4 §5.2 — when width was derived from height via
+        // aspect-ratio and min-height lifts the height afterward, the
+        // width must re-derive so the ratio holds.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<div class="parent">'
+                . '<div class="ar"></div>'
+                . '</div></body></html>',
+            // Indefinite-height parent → height: 100% resolves to 0,
+            // then min-height: 100px lifts to 100, then aspect-ratio
+            // must re-derive width = 100 × 1 = 100. Without the
+            // re-derivation, width stays at 0 (height was 0 when the
+            // ratio first fired).
+            '.parent { display: block; width: 400px; }
+             .ar { aspect-ratio: 1; width: auto; height: 100%; min-height: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ar = $this->find($box, 'div.ar');
+        self::assertEqualsWithDelta(100.0, $ar->geometry->width, 0.001);
+        self::assertEqualsWithDelta(100.0, $ar->geometry->height, 0.001);
+    }
+
     public function testFlexColumnGapPercentageResolvesAgainstContainerWidth(): void
     {
         // CSS Box Alignment 3 §8.3 — `column-gap: <percentage>`
