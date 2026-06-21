@@ -2591,16 +2591,12 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(50.0, $p->geometry->y);
     }
 
-    public function testPositionStickyInPrintStaysAtStaticPosition(): void
+    public function testPositionStickyDegradesToRelativeOffsets(): void
     {
-        // CSS Positioning 3 §6.3 — sticky boxes hold their static
-        // position until the scroll container has scrolled past the
-        // inset boundary; only then do they "stick" to the inset edge.
-        // In a static print render there is no scrolling (scrollTop=0
-        // always), so sticky never reaches its stuck state and must
-        // behave like static. The top:50px inset is NOT applied — the
-        // box sits at its in-flow y=100, same as if it were
-        // position:static or position:sticky without an inset.
+        // Positive: `position: sticky` in print has no scroll
+        // container, so the spec falls back to relative-like
+        // positioning at the static offset — `top: 50px` shifts the
+        // paint position down by 50.
         $box = $this->buildTree(
             '<html><body>'
             . '<div class="a" style="height: 100px;"></div>'
@@ -2611,7 +2607,8 @@ final class BlockLayoutTest extends TestCase
         $this->layout->layout($box, $this->defaultCtx);
         $p = $this->find($box, 'p');
         self::assertNotNull($p);
-        self::assertSame(100.0, $p->geometry->y);
+        // Box was statically at y=100; sticky+top:50 shifts to 150.
+        self::assertSame(150.0, $p->geometry->y);
     }
 
     public function testPositionStickyWithoutOffsetsIsNoOp(): void
