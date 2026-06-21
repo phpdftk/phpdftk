@@ -780,24 +780,31 @@ final class BlockLayout
             // the BLOCK-axis dimension in vertical modes. Auto block-
             // size shrinks to children content (sum of child outer
             // widths). The earlier width-resolution step used the
-            // horizontal stretch-to-CB fallback as a tentative
-            // value so descendants' `width: 100%` could resolve
-            // against something; reset to the children-sum now that
+            // horizontal stretch-to-CB fallback as a tentative value
+            // so descendants' `width: 100%` could resolve against
+            // something stable; reset to the children-sum now that
             // their geometry has settled. The min/max-width clamp
-            // below still applies. For vrl, children were laid out
-            // assuming the tentative blockExtent (= CB-stretch);
-            // when childTotal differs, their cursorX positions
-            // would be relative to the wrong right edge. Shift the
-            // whole row rightward so its right edge aligns to the
-            // shrunk width. (Same-mode interior layout still works
-            // because each child stacks against the immediate
-            // sibling — only the row's outer position needs the
-            // adjustment.)
+            // below still applies.
+            //
+            // For `vrl` / `sideways-rl` (block direction -1) children
+            // were laid out anchored to the tentative CB-stretched
+            // right edge — when the container shrinks to the
+            // children-sum, the in-flow row needs to shift rightward
+            // by `childTotal - tentativeWidth` so its right edge
+            // realigns to the now-smaller container. Out-of-flow
+            // (`position: absolute` / `fixed`) children skip the
+            // shift: they were placed against the positioned
+            // ancestor's padding box and shifting them with the
+            // in-flow row would knock them off that anchor (which
+            // regresses css-position fixtures).
             if ($widthAuto && $childTotal > 0.0) {
                 if ($wm->blockDirection() === -1) {
                     $shift = $childTotal - $geo->width;
                     if ($shift !== 0.0) {
                         foreach ($box->children as $child) {
+                            if ($this->isOutOfFlow($child)) {
+                                continue;
+                            }
                             $this->shiftSubtree($child, 0.0, $shift);
                         }
                     }
