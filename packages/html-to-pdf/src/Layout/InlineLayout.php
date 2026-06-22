@@ -350,15 +350,26 @@ final class InlineLayout
         if (!$wm->isVertical() || $wm->blockDirection() !== -1) {
             return $lines;
         }
+        // CSS WM 4 §3 — in vertical writing modes, line boxes stack
+        // along the block axis (right-to-left for vrl), NOT along
+        // the inline axis. Each line occupies a vertical column at
+        // y = 0 (top of the container); subsequent lines are pushed
+        // further left by the cumulative block-extent (= sum of
+        // prior line heights). The painter pairs this with a 90°
+        // text-matrix rotation so glyphs flow downward inside each
+        // column.
         $out = [];
+        $cumBlock = 0.0;
         foreach ($lines as $line) {
             $lineWidth = $line->totalWidth();
-            $shift = $availableWidth - $lineWidth;
+            $shift = $availableWidth - $lineWidth - $cumBlock;
             if ($shift <= 0.0) {
-                $out[] = $line;
+                $out[] = new LineBox(0.0, $line->height, $line->fragments);
+                $cumBlock += $line->height;
                 continue;
             }
-            $out[] = new LineBox($line->y, $line->height, $this->shiftFragments($line->fragments, $shift));
+            $out[] = new LineBox(0.0, $line->height, $this->shiftFragments($line->fragments, $shift));
+            $cumBlock += $line->height;
         }
         return $out;
     }

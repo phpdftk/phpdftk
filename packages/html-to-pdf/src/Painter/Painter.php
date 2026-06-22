@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\HtmlToPdf\Painter;
 
+use Phpdftk\Css\Cascade\WritingMode;
 use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\HtmlToPdf\Box\Box;
@@ -2723,9 +2724,26 @@ final class Painter
         // CSS Fonts 4 §6.4.1 lets browsers synthesise oblique from regular
         // when no real italic face is registered; this is the same trick.
         $skew = $fragment->isItalic ? 0.213 : 0.0;
-        // Tm reseats the text matrix at each fragment's left baseline, which
-        // is simpler than tracking incremental Td offsets between fragments.
-        $stream->setTextMatrix(1, 0, $skew, 1, $x, $pdfY);
+        // CSS Writing Modes 4 §5 — for vertical writing modes,
+        // rotate the text matrix 90° clockwise so the line's
+        // horizontal advance (text-space x) becomes a vertical
+        // descent in PDF (page-space -y). Anchor at the line's
+        // TOP-LEFT corner — `applyVerticalLineShift` placed every
+        // line at y = 0 and shifted fragments along x to stack
+        // lines as parallel columns right-to-left for vrl; the
+        // anchor here matches that placement.
+        $wm = WritingMode::fromStyle($box->style);
+        if ($wm->isVertical()) {
+            $columnX = $box->geometry->x + $fragment->x + $offsetX;
+            $columnTopLayoutY = $box->geometry->y + $line->y + $offsetY;
+            $columnTopPdfY = $this->pageHeight - $columnTopLayoutY;
+            $stream->setTextMatrix(0.0, -1.0, 1.0, 0.0, $columnX, $columnTopPdfY);
+        } else {
+            // Tm reseats the text matrix at each fragment's left baseline,
+            // which is simpler than tracking incremental Td offsets between
+            // fragments.
+            $stream->setTextMatrix(1, 0, $skew, 1, $x, $pdfY);
+        }
         // Fake-bold via text rendering mode 2 (fill + stroke). Stroke
         // contributes ≈ fontSize × 0.04 of extra thickness — visually close
         // to the design-weight increment for bold. Match the stroke color
