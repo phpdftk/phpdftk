@@ -584,20 +584,30 @@ final class BlockLayout
         // is allowed to be `auto`; we record that separately and resolve to
         // 0 here, then redistribute slack into auto sides after width is
         // computed (CSS 2.1 §10.3.3).
+        // CSS Writing Modes 4 §7.4 — percentages on margin/padding
+        // resolve against the CONTAINING BLOCK's inline-axis size.
+        // For a horizontal-tb CB that's `cbWidth`; for a vertical-*
+        // CB it's `cbHeight`. The parent's writing mode reaches us
+        // via `$context->parentWritingMode` (null at the root,
+        // which defaults to horizontal-tb).
+        $cbInlineSize = $context->parentWritingMode !== null
+            && $context->parentWritingMode->isVertical()
+            ? $context->containingBlockHeight
+            : $cbWidth;
         $marginTopValue = $style->get('margin-top');
         $marginRightValue = $style->get('margin-right');
         $marginBottomValue = $style->get('margin-bottom');
         $marginLeftValue = $style->get('margin-left');
         $marginLeftAuto = $this->isAuto($marginLeftValue);
         $marginRightAuto = $this->isAuto($marginRightValue);
-        $geo->marginTop = $this->isAuto($marginTopValue) ? 0.0 : $this->resolveLength($marginTopValue, $cbWidth);
-        $geo->marginRight = $marginRightAuto ? 0.0 : $this->resolveLength($marginRightValue, $cbWidth);
-        $geo->marginBottom = $this->isAuto($marginBottomValue) ? 0.0 : $this->resolveLength($marginBottomValue, $cbWidth);
-        $geo->marginLeft = $marginLeftAuto ? 0.0 : $this->resolveLength($marginLeftValue, $cbWidth);
-        $geo->paddingTop = $this->resolveLength($style->get('padding-top'), $cbWidth);
-        $geo->paddingRight = $this->resolveLength($style->get('padding-right'), $cbWidth);
-        $geo->paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbWidth);
-        $geo->paddingLeft = $this->resolveLength($style->get('padding-left'), $cbWidth);
+        $geo->marginTop = $this->isAuto($marginTopValue) ? 0.0 : $this->resolveLength($marginTopValue, $cbInlineSize);
+        $geo->marginRight = $marginRightAuto ? 0.0 : $this->resolveLength($marginRightValue, $cbInlineSize);
+        $geo->marginBottom = $this->isAuto($marginBottomValue) ? 0.0 : $this->resolveLength($marginBottomValue, $cbInlineSize);
+        $geo->marginLeft = $marginLeftAuto ? 0.0 : $this->resolveLength($marginLeftValue, $cbInlineSize);
+        $geo->paddingTop = $this->resolveLength($style->get('padding-top'), $cbInlineSize);
+        $geo->paddingRight = $this->resolveLength($style->get('padding-right'), $cbInlineSize);
+        $geo->paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbInlineSize);
+        $geo->paddingLeft = $this->resolveLength($style->get('padding-left'), $cbInlineSize);
         $geo->borderTop = $this->resolveBorderWidth($style, 'top');
         $geo->borderRight = $this->resolveBorderWidth($style, 'right');
         $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
@@ -784,7 +794,8 @@ final class BlockLayout
             ->withContainingBlockHeightDefinite($childCbHeight, $childCbHeightDefinite)
             ->withContainingBlock($geo->width, $childCbHeight)
             ->withOrigin($geo->x, $geo->y)
-            ->withLengthContext($childLengthCtx);
+            ->withLengthContext($childLengthCtx)
+            ->withParentWritingMode(WritingMode::fromStyle($style));
         // CSS 2.1 §10.1 — when this box is positioned (relative /
         // absolute / fixed / sticky) it establishes a containing block
         // for its abs-pos descendants. Capture its padding-box rect

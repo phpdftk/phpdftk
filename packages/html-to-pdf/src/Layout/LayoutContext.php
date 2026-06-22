@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phpdftk\HtmlToPdf\Layout;
 
 use Phpdftk\Css\Cascade\LengthContext;
+use Phpdftk\Css\Cascade\WritingMode;
 use Phpdftk\FontParser\FontFaceData;
 
 /**
@@ -65,6 +66,17 @@ final readonly class LayoutContext
          * the viewport per the HTML rendering rules.
          */
         public bool $containingBlockHeightDefinite = true,
+        /**
+         * CSS Writing Modes 4 §7.4 — the containing block's writing
+         * mode determines which axis is the inline-axis for
+         * percentage resolution of margin / padding. In `horizontal-
+         * tb` the inline axis is x, so percentages resolve against
+         * `containingBlockWidth`; in `vertical-*` the inline axis is
+         * y, so they resolve against `containingBlockHeight`. Set
+         * by the parent when it dispatches children; null at the
+         * root (initial value = `horizontal-tb`, the default basis).
+         */
+        public ?WritingMode $parentWritingMode = null,
     ) {}
 
     public function withOrigin(float $x, float $y): self
@@ -80,6 +92,7 @@ final readonly class LayoutContext
             $this->floatContext,
             $this->positionedAncestor,
             $this->containingBlockHeightDefinite,
+            $this->parentWritingMode,
         );
     }
 
@@ -96,6 +109,7 @@ final readonly class LayoutContext
             $this->floatContext,
             $this->positionedAncestor,
             $this->containingBlockHeightDefinite,
+            $this->parentWritingMode,
         );
     }
 
@@ -128,6 +142,7 @@ final readonly class LayoutContext
             $this->floatContext,
             $this->positionedAncestor,
             $this->containingBlockHeightDefinite,
+            $this->parentWritingMode,
         );
     }
 
@@ -144,6 +159,7 @@ final readonly class LayoutContext
             $ctx,
             $this->positionedAncestor,
             $this->containingBlockHeightDefinite,
+            $this->parentWritingMode,
         );
     }
 
@@ -160,6 +176,24 @@ final readonly class LayoutContext
             $this->floatContext,
             $pa,
             $this->containingBlockHeightDefinite,
+            $this->parentWritingMode,
+        );
+    }
+
+    public function withParentWritingMode(?WritingMode $wm): self
+    {
+        return new self(
+            $this->containingBlockWidth,
+            $this->containingBlockHeight,
+            $this->originX,
+            $this->originY,
+            $this->lengthContext,
+            $this->defaultFont,
+            $this->fontResolver,
+            $this->floatContext,
+            $this->positionedAncestor,
+            $this->containingBlockHeightDefinite,
+            $wm,
         );
     }
 }
