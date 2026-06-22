@@ -4502,6 +4502,26 @@ final class BlockLayout
                     $minInner = max($minInner, $mm['min']);
                 }
             }
+            // CSS Flexbox 1 §4.5 transferred size suggestion — when a
+            // flex item has an aspect ratio and a definite cross
+            // size, its automatic minimum on the main axis is at
+            // least the transferred size (cross ÷ ratio in column
+            // direction, cross × ratio in row). We apply this even
+            // when the explicit min-axis-size is `0` (the CSS 2.1
+            // initial value) because Flexbox §4.5 redefines the
+            // automatic minimum for replaced flex items — without
+            // it, an `<img width=100>` in a `flex-direction: column;
+            // height: 0` container shrinks to zero instead of
+            // honouring its 100 ÷ 2 = 50 px transferred floor.
+            $transferred = $this->aspectRatioTransfer(
+                $children[$i]->style,
+                $isColumn,
+                $cbWidth,
+                $cbHeight,
+            );
+            if ($transferred !== null && $transferred > 0.0) {
+                $minInner = max($minInner, $transferred);
+            }
             $minOuter[$i] = max(0.0, ($minInner > 0.0 ? $minInner : 0.0) + $adornment);
             $maxOuter[$i] = $maxInner !== null && $maxInner > 0.0
                 ? $maxInner + $adornment

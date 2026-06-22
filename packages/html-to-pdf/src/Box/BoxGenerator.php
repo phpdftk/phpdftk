@@ -1808,8 +1808,30 @@ final class BoxGenerator
                 $hValue = $values->get('height');
                 $wUnset = !$values->has('width') || $this->isAutoLength($wValue);
                 $hUnset = !$values->has('height') || $this->isAutoLength($hValue);
+                // Replaced elements have an intrinsic aspect ratio
+                // per CSS Sizing 4 §5.1. Expose it as the
+                // `aspect-ratio` cascade value (when the author
+                // hasn't overridden it) so layout primitives like
+                // `aspectRatioTransfer` and Flexbox §4.5 automatic
+                // minimum sizing can read it without re-decoding
+                // the image.
+                $natural = $this->naturalImageSize($element->getAttribute('src'));
+                if ($natural !== null) {
+                    [$nw, $nh] = $natural;
+                    if ($nw > 0 && $nh > 0 && !$values->has('aspect-ratio')) {
+                        $values->set(
+                            'aspect-ratio',
+                            new \Phpdftk\Css\Value\ValueList(
+                                [
+                                    new \Phpdftk\Css\Value\Number((float) $nw),
+                                    new \Phpdftk\Css\Value\Number((float) $nh),
+                                ],
+                                \Phpdftk\Css\Value\ListSeparator::Slash,
+                            ),
+                        );
+                    }
+                }
                 if ($wUnset || $hUnset) {
-                    $natural = $this->naturalImageSize($element->getAttribute('src'));
                     if ($natural !== null) {
                         [$nw, $nh] = $natural;
                         if ($wUnset && $hUnset) {
