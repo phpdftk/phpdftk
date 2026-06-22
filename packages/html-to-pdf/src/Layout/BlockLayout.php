@@ -865,18 +865,37 @@ final class BlockLayout
             // in-flow row would knock them off that anchor (which
             // regresses css-position fixtures).
             if ($widthAuto && $childTotal > 0.0) {
-                if ($wm->blockDirection() === -1) {
-                    $shift = $childTotal - $geo->width;
-                    if ($shift !== 0.0) {
-                        foreach ($box->children as $child) {
-                            if ($this->isOutOfFlow($child)) {
-                                continue;
+                // CSS Position 3 §3 — when ANY in-flow descendant of
+                // the row carries `position: relative` / `sticky` /
+                // `absolute` / `fixed`, that descendant anchors to
+                // the positioned ancestor's pre-shrink padding box
+                // (CSS 2.1 §10.1). Shrinking the container to its
+                // children-sum and shifting the in-flow row to the
+                // new right edge would move those descendants
+                // off-anchor and regress css-position fixtures.
+                // Skip the shrink for that subtree — the container
+                // stays at the tentative CB-stretch width, which
+                // composes with the unchanged descendant
+                // coordinates. As a side effect this ALSO unlocks
+                // css-writing-modes fixtures that anchor their
+                // visual reference against the wider non-shrunk
+                // box (a class of §3 reftests).
+                $skipShrink = $wm->blockDirection() === -1
+                    && $this->subtreeContainsPositioned($box);
+                if (!$skipShrink) {
+                    if ($wm->blockDirection() === -1) {
+                        $shift = $childTotal - $geo->width;
+                        if ($shift !== 0.0) {
+                            foreach ($box->children as $child) {
+                                if ($this->isOutOfFlow($child)) {
+                                    continue;
+                                }
+                                $this->shiftSubtree($child, 0.0, $shift);
                             }
-                            $this->shiftSubtree($child, 0.0, $shift);
                         }
                     }
+                    $geo->width = $childTotal;
                 }
-                $geo->width = $childTotal;
             }
         } else {
             // Defer to the shared list-iterator so out-of-flow children
@@ -1774,6 +1793,26 @@ final class BlockLayout
             || $lower === 'absolute'
             || $lower === 'fixed'
             || $lower === 'sticky';
+    }
+
+    /**
+     * Pre-order DFS for any positioned descendant in the subtree
+     * rooted at `$box` (the box itself is INCLUDED in the search).
+     * Used by the vertical-rl shrink path to decide whether shifting
+     * the in-flow row would knock a positioned descendant off its
+     * positioned-ancestor anchor.
+     */
+    private function subtreeContainsPositioned(Box $box): bool
+    {
+        if ($this->isPositioned($box->style)) {
+            return true;
+        }
+        foreach ($box->children as $child) {
+            if ($this->subtreeContainsPositioned($child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
