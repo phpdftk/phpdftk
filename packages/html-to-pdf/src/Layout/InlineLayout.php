@@ -49,6 +49,15 @@ final class InlineLayout
      */
     private ?FontResolver $currentFontResolver = null;
 
+    /**
+     * Captured at the top of each `layout()` call so atomic-inline
+     * width-percentage resolution (CSS Sizing 3 §6.2: % on an inline
+     * box resolves against its containing block) can see the basis
+     * without threading the value through `collectTokens` /
+     * `walkInline`.
+     */
+    private float $currentAvailableWidth = 0.0;
+
     public function __construct(
         private readonly Shaper $shaper = new Shaper(),
         private readonly LineBreaker $lineBreaker = new LineBreaker(),
@@ -65,6 +74,7 @@ final class InlineLayout
     public function layout(Box $parent, float $availableWidth, LayoutContext $context): array
     {
         $this->currentFontResolver = $context->fontResolver;
+        $this->currentAvailableWidth = $availableWidth;
         if ($availableWidth <= 0.0) {
             return [[], 0.0];
         }
@@ -1115,7 +1125,17 @@ final class InlineLayout
             // already includes padding + border, so the content
             // shrinks by that inset instead of the outer growing.
             $widthValue = $box->style->get('width');
-            $declaredWidth = $widthValue instanceof Length ? $widthValue->value : 0.0;
+            // CSS Sizing 3 §6.2 — percentages on atomic-inline
+            // `width` resolve against the inline-formatting-context's
+            // containing block (= the `availableWidth` parameter).
+            // Without this, `<canvas style="width: 100%">` collapses
+            // to 0 instead of stretching to fill the line.
+            $declaredWidth = match (true) {
+                $widthValue instanceof Length => $widthValue->value,
+                $widthValue instanceof \Phpdftk\Css\Value\Percentage
+                    => $this->currentAvailableWidth * ($widthValue->value / 100.0),
+                default => 0.0,
+            };
             $atomicPadLeft = self::atomicLength($box->style->get('padding-left'));
             $atomicPadRight = self::atomicLength($box->style->get('padding-right'));
             $atomicBorderLeft = self::atomicBorderWidth($box->style, 'left');
