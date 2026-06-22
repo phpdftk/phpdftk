@@ -2115,27 +2115,48 @@ final class BlockLayout
         $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
         $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
 
-        $widthValue = $style->get('width');
-        $widthAuto = $this->isAuto($widthValue);
-        $geo->width = $widthAuto
-            ? max(
-                0.0,
-                $cbWidth - $geo->marginLeft - $geo->marginRight
-                    - $geo->borderLeft - $geo->borderRight
-                    - $geo->paddingLeft - $geo->paddingRight,
-            )
-            : $this->resolveLength($widthValue, $cbWidth);
-
-        $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
-        $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
-
         // CSS Flexbox 1 §5.1: `flex-direction` picks the main axis.
         // `row` / `row-reverse` use the inline axis (x); `column` /
         // `column-reverse` use the block axis (y). The `*-reverse`
-        // variants flip main-start ↔ main-end.
+        // variants flip main-start ↔ main-end. Resolved before the
+        // width pass so a shrink-to-fit container knows which axis
+        // its items aggregate along.
         $direction = $this->flexKeyword($style, 'flex-direction', 'row');
         $isColumn = $direction === 'column' || $direction === 'column-reverse';
         $reverseDirection = $direction === 'row-reverse' || $direction === 'column-reverse';
+
+        $widthValue = $style->get('width');
+        $widthAuto = $this->isAuto($widthValue);
+        $availableWidth = max(
+            0.0,
+            $cbWidth - $geo->marginLeft - $geo->marginRight
+                - $geo->borderLeft - $geo->borderRight
+                - $geo->paddingLeft - $geo->paddingRight,
+        );
+        if (!$widthAuto) {
+            $geo->width = $this->resolveLength($widthValue, $cbWidth);
+        } elseif ($this->flexContainerNeedsShrinkToFit($box, $style)) {
+            // CSS Flexbox 1 §9.7 + CSS 2.1 §10.3.5 — a flex container
+            // that is floated, abspos, or inline-flex sizes by
+            // shrink-to-fit when `width: auto`. The intrinsic
+            // contribution is direction-dependent: row sums item
+            // max-content widths; column takes the max. Without this
+            // the container balloons to the full CB width even when
+            // its items are tiny (e.g. `flex-direction: column` with
+            // a single `<img width=20>` would draw a 700 px wide
+            // background instead of a 20 px column).
+            $intrinsic = $this->flexAutoIntrinsicWidth(
+                $box,
+                $context,
+                $isColumn,
+            );
+            $geo->width = min($intrinsic['max'], max($intrinsic['min'], $availableWidth));
+        } else {
+            $geo->width = $availableWidth;
+        }
+
+        $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
+        $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
         $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
 
@@ -4690,6 +4711,83 @@ final class BlockLayout
             return strtolower($value->name);
         }
         return $default;
+    }
+
+    /**
+     * A flex container with `width: auto` sizes by shrink-to-fit
+     * (rather than filling its containing block) when it is
+     * floated, absolutely positioned, or `display: inline-flex`.
+     * CSS Flexbox 1 §9.7 + CSS 2.1 §10.3.5 / §10.3.7.
+     */
+    private function flexContainerNeedsShrinkToFit(Box $box, CascadedValues $style): bool
+    {
+        if ($this->floatSide($box) !== null) {
+            return true;
+        }
+        $position = $style->get('position');
+        if ($position instanceof Keyword) {
+            $p = strtolower($position->name);
+            if ($p === 'absolute' || $p === 'fixed') {
+                return true;
+            }
+        }
+        $display = $style->get('display');
+        if ($display instanceof Keyword
+            && strtolower($display->name) === 'inline-flex'
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Intrinsic-width contribution of a shrink-to-fit flex
+     * container, expressed as a `{min, max}` pair. Column-direction
+     * containers take the max of item max-contents (each item is
+     * its own line); row-direction containers sum item
+     * max-contents and add the main-axis gap between them.
+     * Border / padding of the container itself are added on top so
+     * the returned values are content-box widths usable directly
+     * as `$geo->width`.
+     *
+     * @return array{min: float, max: float}
+     */
+    private function flexAutoIntrinsicWidth(
+        \Phpdftk\HtmlToPdf\Box\FlexBox $box,
+        LayoutContext $context,
+        bool $isColumn,
+    ): array {
+        $childCtx = $context;
+        $maxContent = 0.0;
+        $minContent = 0.0;
+        $itemMaxes = [];
+        $itemMins = [];
+        foreach ($box->children as $child) {
+            if ($this->isOutOfFlow($child)) {
+                continue;
+            }
+            $mm = $this->measureMinMaxContent($child, $childCtx);
+            $childStyle = $child->style;
+            $mbpx = $this->resolveLength($childStyle->get('margin-left'), $context->containingBlockWidth)
+                + $this->resolveLength($childStyle->get('margin-right'), $context->containingBlockWidth)
+                + $this->resolveBorderWidth($childStyle, 'left')
+                + $this->resolveBorderWidth($childStyle, 'right')
+                + $this->resolveLength($childStyle->get('padding-left'), $context->containingBlockWidth)
+                + $this->resolveLength($childStyle->get('padding-right'), $context->containingBlockWidth);
+            $itemMaxes[] = $mm['max'] + $mbpx;
+            $itemMins[] = $mm['min'] + $mbpx;
+        }
+        if ($itemMaxes === []) {
+            $maxContent = 0.0;
+            $minContent = 0.0;
+        } elseif ($isColumn) {
+            $maxContent = max($itemMaxes);
+            $minContent = max($itemMins);
+        } else {
+            $maxContent = array_sum($itemMaxes);
+            $minContent = max($itemMins);
+        }
+        return ['max' => $maxContent, 'min' => $minContent];
     }
 
     /**
