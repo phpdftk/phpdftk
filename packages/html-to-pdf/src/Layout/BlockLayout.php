@@ -1039,6 +1039,18 @@ final class BlockLayout
                             - $geo->paddingTop - $geo->paddingBottom,
                     );
                 }
+                // CSS Tables 3 §6.5.1 — the `height` property on a
+                // table-cell is the cell's *minimum* content height;
+                // the row distribution can grow the cell to fit its
+                // descendants. Without this, a
+                // `<td height=20 overflow=hidden>` containing a 300
+                // px child clipped at 20 px instead of growing the
+                // row to 300 px (the actual browser behaviour).
+                if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+                    && $childTotal > $geo->height
+                ) {
+                    $geo->height = $childTotal;
+                }
             }
         }
         // CSS Sizing 4 §4.2 — `aspect-ratio` constrains height (or
