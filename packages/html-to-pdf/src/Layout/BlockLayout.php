@@ -881,7 +881,8 @@ final class BlockLayout
                 // visual reference against the wider non-shrunk
                 // box (a class of §3 reftests).
                 $skipShrink = $wm->blockDirection() === -1
-                    && $this->subtreeContainsPositioned($box);
+                    && ($this->subtreeContainsPositioned($box)
+                        || $this->subtreeContainsTable($box));
                 if (!$skipShrink) {
                     if ($wm->blockDirection() === -1) {
                         $shift = $childTotal - $geo->width;
@@ -1809,6 +1810,26 @@ final class BlockLayout
         }
         foreach ($box->children as $child) {
             if ($this->subtreeContainsPositioned($child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Companion to {@see subtreeContainsPositioned} — detects any
+     * `TableBox` descendant. Tables run their own column-width and
+     * row-stacking algorithms that resolve against the pre-shrink
+     * container width; shrinking the parent leaves the table's
+     * resolved geometry inconsistent with the new edge.
+     */
+    private function subtreeContainsTable(Box $box): bool
+    {
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
+            return true;
+        }
+        foreach ($box->children as $child) {
+            if ($this->subtreeContainsTable($child)) {
                 return true;
             }
         }
