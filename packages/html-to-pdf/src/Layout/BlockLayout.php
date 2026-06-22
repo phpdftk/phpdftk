@@ -2995,7 +2995,18 @@ final class BlockLayout
             $childGeo = $p['box']->geometry;
             $childOuterWidth = $childGeo->outerWidth();
             $childOuterHeight = $childGeo->outerHeight();
-            if ($isStretchX) {
+            // CSS Box Alignment 3 §6.2 + CSS Grid 2 §11 — `stretch`
+            // alignment only applies to grid items whose own
+            // `width` / `height` is `auto`. An explicit length wins
+            // over the stretch fill, so the item paints at its
+            // authored dimensions even when smaller (or larger)
+            // than the cell. Previously we unconditionally
+            // overrode the size on the x-axis and used a weak
+            // `<` guard on y, which mis-sized items with explicit
+            // length declarations.
+            $childWidthAuto = $this->isAuto($p['box']->style->get('width'));
+            $childHeightAuto = $this->isHeightAutoLike($p['box']->style->get('height'));
+            if ($isStretchX && $childWidthAuto) {
                 // Stretch fills the cell minus the child's own
                 // surroundings — matches Phase-2 default behaviour.
                 $childGeo->width = $cellWidth
@@ -3004,7 +3015,7 @@ final class BlockLayout
                     - $childGeo->paddingLeft - $childGeo->paddingRight;
                 $childOuterWidth = $childGeo->outerWidth();
             }
-            if ($isStretchY && $childOuterHeight < $cellHeight) {
+            if ($isStretchY && $childHeightAuto && $childOuterHeight < $cellHeight) {
                 $childGeo->height = $cellHeight
                     - $childGeo->marginTop - $childGeo->marginBottom
                     - $childGeo->borderTop - $childGeo->borderBottom

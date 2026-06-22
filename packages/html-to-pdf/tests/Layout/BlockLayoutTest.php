@@ -4225,8 +4225,15 @@ final class BlockLayoutTest extends TestCase
         );
         $this->layout->layout($box, $this->defaultCtx);
         $narrow = $this->find($box, 'div.narrow');
-        // Track sizes to widest child (120px); narrow stretches to fill.
-        self::assertEqualsWithDelta(120.0, $narrow->geometry->width, 0.001);
+        $wide = $this->find($box, 'div.wide');
+        // CSS Box Alignment 3 §6.2 + CSS Grid 2 §11 — track sizes to
+        // widest child's outer width (120px), but `stretch` only
+        // applies to items whose own `width` is `auto`. Both
+        // children here declare explicit lengths, so each paints
+        // at its authored width instead of stretching to the
+        // 120 px track. Track width still tracks the widest child.
+        self::assertEqualsWithDelta(40.0, $narrow->geometry->width, 0.001);
+        self::assertEqualsWithDelta(120.0, $wide->geometry->width, 0.001);
     }
 
     public function testGridMinContentTrackUsesChildMin(): void
