@@ -2019,8 +2019,15 @@ final class BoxGenerator
         if ($raw === '') {
             return null;
         }
-        if (preg_match('/^\d+(?:\.\d+)?$/', $raw) === 1) {
-            return (float) $raw;
+        // HTML 5 §2.4.4.4 "rules for parsing dimension values" — skip
+        // a leading number, then accept (and ignore) a trailing `px`
+        // suffix per the relaxed dimension form. Browsers treat
+        // `width="100"` and `width="100px"` identically on
+        // `<img>` / `<embed>` / `<iframe>` / `<video>`; rejecting
+        // the `px` form drops the value back to `width: auto` and
+        // mis-sizes the replaced element.
+        if (preg_match('/^(\d+(?:\.\d+)?)(?:px)?$/i', $raw, $m) === 1) {
+            return (float) $m[1];
         }
         return null;
     }
