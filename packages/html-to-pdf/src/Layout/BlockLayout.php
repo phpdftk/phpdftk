@@ -395,6 +395,13 @@ final class BlockLayout
      */
     private function layoutTableRow(\Phpdftk\HtmlToPdf\Box\TableRowBox $row, LayoutContext $context): float
     {
+        // CSS Writing Modes 4 §3 + Tables 3 §2 — vertical-mode tables
+        // swap the row/cell axes. Rows inherit writing-mode from the
+        // table via {@see Cascade::forceTableInternalWritingMode}.
+        $rowWm = WritingMode::fromStyle($row->style);
+        if ($rowWm->isVertical()) {
+            return $this->layoutTableRowVertical($row, $context);
+        }
         $geo = $row->geometry;
         $geo->x = $context->originX;
         $geo->y = $context->originY;
@@ -505,6 +512,66 @@ final class BlockLayout
             }
         }
         return $maxHeight;
+    }
+
+    /**
+     * CSS Writing Modes 4 §3 + Tables 3 §2 — vertical-mode row
+     * counterpart to {@see layoutTableRow}. The row's block axis
+     * lies along physical x and its inline axis along y, so:
+     *  - The row's `width` is its block extent (= max cell outer
+     *    width) — set after measurement.
+     *  - The row's `height` is its inline extent (= sum of cell
+     *    outer heights, the cells' own intrinsic sizing) — set
+     *    after measurement, not pre-stretched to the table's CB.
+     *  - Cells stack along the inline axis (y), each at its own
+     *    intrinsic height. No uniform inline-extent split (that
+     *    overrides explicit cell heights, which is what trips
+     *    the simplest vertical-table fixtures).
+     *
+     * The caller (`stackChildrenListVertical` via `layoutBox`)
+     * reads `$row->geometry->outerWidth()` to advance its block
+     * cursor, then shifts the row subtree leftward for vrl/srl.
+     *
+     * Initial-commit simplifications:
+     *  - No rowspan / colspan honouring (each cell single).
+     *  - No vertical-align stretching within a row.
+     *  - Captions still flow through `layoutBlock`'s vertical
+     *    branch above this routine.
+     */
+    private function layoutTableRowVertical(
+        \Phpdftk\HtmlToPdf\Box\TableRowBox $row,
+        LayoutContext $context,
+    ): float {
+        $geo = $row->geometry;
+        $geo->x = $context->originX;
+        $geo->y = $context->originY;
+        $cells = array_values(array_filter(
+            $row->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        ));
+        if ($cells === []) {
+            $geo->width = 0.0;
+            $geo->height = 0.0;
+            return 0.0;
+        }
+        $maxCellBlockExtent = 0.0;
+        $cursorY = $geo->y;
+        foreach ($cells as $cell) {
+            $cellCtx = $context
+                ->withContainingBlock(
+                    $context->containingBlockWidth,
+                    $context->containingBlockHeight,
+                )
+                ->withOrigin($geo->x, $cursorY);
+            $this->cascade->resolveLengths($cell->style, $cellCtx->lengthContext);
+            $this->layoutBlock($cell, $cellCtx);
+            $cellOuterHeight = $cell->geometry->outerHeight();
+            $maxCellBlockExtent = max($maxCellBlockExtent, $cell->geometry->outerWidth());
+            $cursorY += $cellOuterHeight;
+        }
+        $geo->width = $maxCellBlockExtent;
+        $geo->height = $cursorY - $geo->y;
+        return $geo->outerHeight();
     }
 
     private function layoutBlock(Box $box, LayoutContext $context): float
