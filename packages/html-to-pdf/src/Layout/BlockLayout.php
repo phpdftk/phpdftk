@@ -5014,10 +5014,53 @@ final class BlockLayout
         } else {
             return null;
         }
+        // CSS Flexbox 1 §4.5 — the cross-axis input to the transferred
+        // suggestion is clamped by the item's min/max cross size.
+        // `max-height: 50px` on an `<img height=2000>` lets the
+        // image's main-axis floor be the small clamped value, not
+        // the raw declared 2000. Same shape on the other axis.
+        $maxCross = $this->resolveCrossSizeClamp($style, $isColumn, $cbWidth, $cbHeight, 'max');
+        $minCross = $this->resolveCrossSizeClamp($style, $isColumn, $cbWidth, $cbHeight, 'min');
+        if ($maxCross !== null) {
+            $cross = min($cross, $maxCross);
+        }
+        if ($minCross !== null) {
+            $cross = max($cross, $minCross);
+        }
         if ($cross <= 0.0) {
             return null;
         }
         return $isColumn ? $cross / $ratio : $cross * $ratio;
+    }
+
+    /**
+     * Resolve `min-` or `max-` cross-size for `aspectRatioTransfer`.
+     * Returns null when the property is `none` / `auto` or
+     * unrepresentable (e.g. a percentage against an indefinite CB).
+     */
+    private function resolveCrossSizeClamp(
+        CascadedValues $style,
+        bool $isColumn,
+        float $cbWidth,
+        float $cbHeight,
+        string $variant,
+    ): ?float {
+        $prop = $variant . '-' . ($isColumn ? 'width' : 'height');
+        $value = $style->get($prop);
+        if ($value instanceof Keyword) {
+            return null;
+        }
+        $cbForCross = $isColumn ? $cbWidth : $cbHeight;
+        if ($value instanceof Length) {
+            return $value->value;
+        }
+        if ($value instanceof Percentage) {
+            if ($cbForCross <= 0.0) {
+                return null;
+            }
+            return max(0.0, $value->value / 100.0 * $cbForCross);
+        }
+        return null;
     }
 
     /**
