@@ -191,6 +191,13 @@ final class Tokenizer
 
     private function preprocess(string $input): string
     {
+        // WHATWG §13.2.3.5 — strip a single leading U+FEFF byte order
+        // mark (UTF-8 encoded as `\xEF\xBB\xBF`) before tokenising.
+        // Without this the BOM tokenises as a text node and the first
+        // following block child is pushed down by one line height.
+        if (str_starts_with($input, "\xEF\xBB\xBF")) {
+            $input = substr($input, 3);
+        }
         // CRLF → LF, then CR → LF per WHATWG §13.2.3.5.
         $input = str_replace("\r\n", "\n", $input);
         $input = str_replace("\r", "\n", $input);
