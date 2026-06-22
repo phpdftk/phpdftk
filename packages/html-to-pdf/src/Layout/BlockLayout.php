@@ -648,6 +648,18 @@ final class BlockLayout
             );
             if ($containedWidth !== null) {
                 $contentWidth = min($contentWidth, $containedWidth);
+            } elseif ($this->blockNeedsShrinkToFit($box, $style)) {
+                // CSS 2.1 §10.3.5 (floats) and §10.3.7 (abspos with
+                // both insets `auto`): when `width: auto`, the box
+                // shrink-to-fits — content-box width is
+                // `min(max-content, max(min-content, available))`.
+                // Phase-1 always stretched to the CB which mis-sized
+                // floats with no explicit width (e.g. a
+                // `float: left; aspect-ratio: 1/1` div containing a
+                // 100 px child filled the viewport instead of
+                // collapsing to a 100×100 square).
+                $mm = $this->measureMinMaxContent($box, $context);
+                $contentWidth = min($mm['max'], max($mm['min'], $contentWidth));
             }
         } else {
             $contentWidth = $this->resolveLength($widthValue, $cbWidth);
@@ -4731,6 +4743,33 @@ final class BlockLayout
             return strtolower($value->name);
         }
         return $default;
+    }
+
+    /**
+     * Returns true when a plain block box with `width: auto` sizes
+     * by shrink-to-fit instead of stretch-fill. Per CSS 2.1
+     * §10.3.5 (floats), §10.3.7 (abspos with both insets `auto`),
+     * and §10.3.9 (inline-block).
+     */
+    private function blockNeedsShrinkToFit(Box $box, CascadedValues $style): bool
+    {
+        if ($this->floatSide($box) !== null) {
+            return true;
+        }
+        $position = $style->get('position');
+        if ($position instanceof Keyword) {
+            $p = strtolower($position->name);
+            if ($p === 'absolute' || $p === 'fixed') {
+                return true;
+            }
+        }
+        $display = $style->get('display');
+        if ($display instanceof Keyword
+            && in_array(strtolower($display->name), ['inline-block', 'inline-table'], true)
+        ) {
+            return true;
+        }
+        return false;
     }
 
     /**
