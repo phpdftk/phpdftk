@@ -95,6 +95,14 @@ final class Renderer
 
         $document = $this->htmlParser->parseDocument($html);
         $this->applyDocumentMetadata($document, $writer);
+        // HTML 5 §4.2.3 — `<base href="...">` in the document head
+        // sets the document base URL for relative resolution of
+        // `src` / `href` etc. We rewrite the affected attributes in
+        // place so the rest of the pipeline (BoxGenerator's
+        // `naturalImageSize`, the painter's `resolveImageSrc`)
+        // consumes the post-base form without needing to know
+        // about the `<base>` element.
+        $this->applyBaseHref($document);
         $sheets = $this->collectStylesheets($css, $document);
         // @font-face parsing: walk every sheet for `@font-face` rules,
         // decode their `data:font/*` sources, and merge the parsed
@@ -967,6 +975,96 @@ final class Renderer
      * stomp on an `/Info` already populated by the caller via
      * `PdfWriter::setInfo`.
      */
+    /**
+     * HTML 5 §4.2.3 — `<base href="...">` in the document head
+     * sets the document base URL. We walk the tree once: if a
+     * `<base href>` is present, prepend its (relative-form) value
+     * to any `src` attribute that doesn't already carry a scheme
+     * or an absolute path. The first `<base href>` wins per spec.
+     *
+     * Out-of-scope: absolute `<base href>` URLs (e.g.
+     * `https://example.com/`) — our pipeline is local-file based
+     * and the painter rejects HTTP src paths anyway, so a full
+     * URL base would simply skip resolution. Relative bases
+     * (`resources/`) are by far the common WPT pattern.
+     */
+    private function applyBaseHref(Document $document): void
+    {
+        $base = $this->findFirstBaseHref($document);
+        if ($base === null || $base === '') {
+            return;
+        }
+        // Only relative bases without a scheme or leading slash —
+        // those are the ones we can fold into the existing
+        // baseDir-relative resolver.
+        if (preg_match('~^([a-z][a-z0-9+.-]*:|/)~i', $base) === 1) {
+            return;
+        }
+        $this->rewriteRelativeSrcAttributes($document, $base);
+    }
+
+    private function findFirstBaseHref(Document $document): ?string
+    {
+        $head = $document->head;
+        if ($head === null) {
+            return null;
+        }
+        for ($n = $head->firstChild; $n !== null; $n = $n->nextSibling) {
+            if (!($n instanceof \Phpdftk\Html\Dom\Element)) {
+                continue;
+            }
+            if (strtolower($n->localName) === 'base') {
+                $href = $n->getAttribute('href');
+                if ($href !== null && $href !== '') {
+                    return $href;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function rewriteRelativeSrcAttributes(Document $document, string $base): void
+    {
+        $body = $document->body;
+        if ($body !== null) {
+            $this->rewriteRelativeSrcInSubtree($body, $base);
+        }
+        // `<img>` etc. in `<head>` is uncommon but spec-legal; also
+        // walk the head for completeness so a `<link rel="icon">`
+        // (when we later honour it) sees the same resolved URL.
+        $head = $document->head;
+        if ($head !== null) {
+            $this->rewriteRelativeSrcInSubtree($head, $base);
+        }
+    }
+
+    private function rewriteRelativeSrcInSubtree(\Phpdftk\Html\Dom\Element $root, string $base): void
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            for ($n = $node->firstChild; $n !== null; $n = $n->nextSibling) {
+                if (!($n instanceof \Phpdftk\Html\Dom\Element)) {
+                    continue;
+                }
+                $tag = strtolower($n->localName);
+                $attrName = match ($tag) {
+                    'img', 'embed', 'iframe', 'video', 'audio', 'source', 'track', 'script' => 'src',
+                    default => null,
+                };
+                if ($attrName !== null) {
+                    $value = $n->getAttribute($attrName);
+                    if ($value !== null && $value !== ''
+                        && preg_match('~^([a-z][a-z0-9+.-]*:|/)~i', $value) !== 1
+                    ) {
+                        $n->setAttribute($attrName, $base . $value);
+                    }
+                }
+                $stack[] = $n;
+            }
+        }
+    }
+
     private function applyDocumentMetadata(Document $document, PdfWriter $writer): void
     {
         $title = $this->findTextOfFirstElement($document, 'title');
