@@ -119,8 +119,15 @@ final class CalcEvaluator
         }
         return match ($func) {
             CalcFunction::Calc => $args[0] ?? NAN,
-            CalcFunction::Min => $args === [] ? NAN : min(...$args),
-            CalcFunction::Max => $args === [] ? NAN : max(...$args),
+            // PHP's `min()` / `max()` require an array or at least
+            // two arguments — the single-element case (`max(50%)`)
+            // would throw "must be of type array, float given".
+            CalcFunction::Min => count($args) === 1
+                ? $args[0]
+                : ($args === [] ? NAN : min(...$args)),
+            CalcFunction::Max => count($args) === 1
+                ? $args[0]
+                : ($args === [] ? NAN : max(...$args)),
             CalcFunction::Clamp => count($args) === 3
                 ? max($args[0], min($args[1], $args[2]))
                 : NAN,
