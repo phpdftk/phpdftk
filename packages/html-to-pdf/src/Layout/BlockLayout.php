@@ -4949,6 +4949,24 @@ final class BlockLayout
                 $value->value / 100.0 * $percentageBasis,
             );
         }
+        // CSS Values 4 §10 — `calc()` / `min()` / `max()` / `clamp()`.
+        // Evaluate against the percentage basis the caller passed in.
+        // Without this, properties like `height: max(calc(100%))`
+        // silently resolve to 0 because the Calc value never gets
+        // reduced — the percentage needs a basis to fold into a pixel
+        // value, and the cascade can't supply one without knowing the
+        // containing block.
+        if ($value instanceof \Phpdftk\Css\Value\Calc) {
+            $px = \Phpdftk\Css\Cascade\CalcEvaluator::evaluate(
+                $value,
+                new \Phpdftk\Css\Cascade\LengthContext(
+                    percentageBasis: $percentageBasis,
+                ),
+            );
+            if (!is_nan($px)) {
+                return \Phpdftk\Css\Cascade\LengthResolver::clampPx($px);
+            }
+        }
         return 0.0;
     }
 
