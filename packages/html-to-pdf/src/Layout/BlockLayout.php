@@ -725,7 +725,7 @@ final class BlockLayout
                 if ($maxKeyword === 'stretch') {
                     $maxWidth = $clampAvailable;
                 } else {
-                    $clampMm ??= $this->measureMinMaxContent($box, $context);
+                    $clampMm = $this->measureMinMaxContent($box, $context);
                     $maxWidth = match ($maxKeyword) {
                         'max-content' => $clampMm['max'],
                         'min-content' => $clampMm['min'],
@@ -756,7 +756,9 @@ final class BlockLayout
             if ($minKeyword === 'stretch') {
                 $minWidth = $clampAvailable;
             } else {
-                $clampMm ??= $this->measureMinMaxContent($box, $context);
+                if ($clampMm === null) {
+                    $clampMm = $this->measureMinMaxContent($box, $context);
+                }
                 $minWidth = match ($minKeyword) {
                     'max-content' => $clampMm['max'],
                     'min-content' => $clampMm['min'],
