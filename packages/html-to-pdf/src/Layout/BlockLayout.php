@@ -1992,7 +1992,18 @@ final class BlockLayout
             }
             $style->set('width', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
         }
-        if ($this->isHeightAutoLike($style->get('height'))
+        $heightValue = $style->get('height');
+        $heightKw = $this->sizingKeywordName($heightValue);
+        // CSS Sizing 4 §6.3 — `height: max-content | min-content |
+        // fit-content` express children-derived size, not "fill the
+        // slack from inset:0". Skip the slack pre-fill for those
+        // keywords so the regular auto-height path measures the
+        // children's natural stack. `stretch` shares the
+        // fill-available semantics with `auto`, so it stays on the
+        // pre-fill path.
+        $shouldFillSlackHeight = $this->isHeightAutoLike($heightValue)
+            && ($heightKw === null || $heightKw === 'stretch');
+        if ($shouldFillSlackHeight
             && !$this->isAuto($top)
             && !$this->isAuto($bottom)
         ) {
