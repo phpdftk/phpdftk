@@ -2176,14 +2176,41 @@ final class BlockLayout
 
         $widthValue = $style->get('width');
         $widthAuto = $this->isAuto($widthValue);
+        $widthKeyword = $this->sizingKeywordName($widthValue);
         $availableWidth = max(
             0.0,
             $cbWidth - $geo->marginLeft - $geo->marginRight
                 - $geo->borderLeft - $geo->borderRight
                 - $geo->paddingLeft - $geo->paddingRight,
         );
-        if (!$widthAuto) {
+        if (!$widthAuto && $widthKeyword === null) {
             $geo->width = $this->resolveLength($widthValue, $cbWidth);
+        } elseif ($widthKeyword !== null) {
+            // CSS Sizing 4 §6.3 — `width: max-content | min-content |
+            // fit-content | stretch` on a flex container. The
+            // intrinsic min/max are direction-dependent: row sums
+            // item max-content widths along the inline axis; column
+            // takes the max — same shape as the shrink-to-fit path,
+            // just driven by an author keyword instead of CSS 2.1
+            // §10.3.5's float/abspos trigger.
+            if ($widthKeyword === 'stretch') {
+                $geo->width = $availableWidth;
+            } else {
+                $intrinsic = $this->flexAutoIntrinsicWidth(
+                    $box,
+                    $context,
+                    $isColumn,
+                );
+                $geo->width = match ($widthKeyword) {
+                    'max-content' => $intrinsic['max'],
+                    'min-content' => $intrinsic['min'],
+                    'fit-content' => min(
+                        $intrinsic['max'],
+                        max($intrinsic['min'], $availableWidth),
+                    ),
+                    default => 0.0,
+                };
+            }
         } elseif ($this->flexContainerNeedsShrinkToFit($box, $style)) {
             // CSS Flexbox 1 §9.7 + CSS 2.1 §10.3.5 — a flex container
             // that is floated, abspos, or inline-flex sizes by
