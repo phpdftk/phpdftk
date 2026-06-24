@@ -2760,14 +2760,44 @@ final class BlockLayout
 
         $widthValue = $style->get('width');
         $widthAuto = $this->isAuto($widthValue);
-        $geo->width = $widthAuto
-            ? max(
-                0.0,
-                $cbWidth - $geo->marginLeft - $geo->marginRight
-                    - $geo->borderLeft - $geo->borderRight
-                    - $geo->paddingLeft - $geo->paddingRight,
-            )
-            : $this->resolveLength($widthValue, $cbWidth);
+        $widthKeyword = $this->sizingKeywordName($widthValue);
+        $availableWidth = max(
+            0.0,
+            $cbWidth - $geo->marginLeft - $geo->marginRight
+                - $geo->borderLeft - $geo->borderRight
+                - $geo->paddingLeft - $geo->paddingRight,
+        );
+        if ($widthAuto) {
+            $geo->width = $availableWidth;
+        } elseif ($widthKeyword !== null) {
+            // CSS Sizing 4 §6.3 — `width: max-content | min-content |
+            // fit-content | stretch` on a grid container. A
+            // spec-correct min/max-content for a grid sums column
+            // tracks under the corresponding constraint; our Phase-2
+            // grid only sizes explicit-length tracks, so we fall back
+            // to {@see measureMinMaxContent} which aggregates child
+            // intrinsics. That's an undersize when the template has
+            // gaps or `1fr` tracks the children don't span — fine
+            // for the common "all-length, one-item-per-column"
+            // shape these tests use, and still strictly better than
+            // the prior zero-keyword collapse.
+            if ($widthKeyword === 'stretch') {
+                $geo->width = $availableWidth;
+            } else {
+                $mm = $this->measureMinMaxContent($box, $context);
+                $geo->width = match ($widthKeyword) {
+                    'max-content' => $mm['max'],
+                    'min-content' => $mm['min'],
+                    'fit-content' => min(
+                        $mm['max'],
+                        max($mm['min'], $availableWidth),
+                    ),
+                    default => 0.0,
+                };
+            }
+        } else {
+            $geo->width = $this->resolveLength($widthValue, $cbWidth);
+        }
 
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
