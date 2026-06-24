@@ -2118,25 +2118,30 @@ final class BlockLayout
         //   - `rtl`: `margin-right = 0`, `margin-left = -slack`
         $marginLeft = $style->get('margin-left');
         $marginRight = $style->get('margin-right');
+        $widthStyleValue = $style->get('width');
+        $widthKw = $this->sizingKeywordName($widthStyleValue);
+        // `width: max-content / min-content / fit-content` counts as
+        // "definite" for §10.3.7 — layout has already resolved them to
+        // a children-derived length. Bare `auto` still falls through
+        // to the no-distribute branch because the box was sized to
+        // fill the slack already. `stretch` shares that fill-available
+        // behaviour with `auto`, so it stays excluded too.
+        $widthIsDefinite = !$this->isAuto($widthStyleValue)
+            && ($widthKw === null || ($widthKw !== 'stretch'));
         if (!$this->isAuto($left)
             && !$this->isAuto($right)
-            && !$this->isAuto($style->get('width'))
+            && $widthIsDefinite
             && $this->isAuto($marginLeft)
             && $this->isAuto($marginRight)
         ) {
             $leftPx = $this->resolveLength($left, $cbWidth);
             $rightPx = $this->resolveLength($right, $cbWidth);
-            $borderBox = $this->isBorderBoxSizing($style);
-            $widthPx = $this->resolveLength($style->get('width'), $cbWidth);
-            // Under content-box sizing, the declared `width` is the
-            // content-box; add own borders + padding for the outer.
-            $outer = $widthPx;
-            if (!$borderBox) {
-                $outer += $this->resolveBorderWidth($style, 'left')
-                    + $this->resolveBorderWidth($style, 'right')
-                    + $this->resolveLength($style->get('padding-left'), $cbWidth)
-                    + $this->resolveLength($style->get('padding-right'), $cbWidth);
-            }
+            // Read from post-layout geometry so keywords work and the
+            // box-sizing branch isn't needed.
+            $geo = $child->geometry;
+            $outer = $geo->borderLeft + $geo->paddingLeft
+                + $geo->width
+                + $geo->paddingRight + $geo->borderRight;
             $slack = $cbWidth - $leftPx - $rightPx - $outer;
             if ($slack >= 0.0) {
                 $resolvedMarginLeft = $slack / 2.0;
