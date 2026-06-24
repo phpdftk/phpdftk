@@ -627,6 +627,7 @@ final class BlockLayout
             $widthValue = new Keyword('auto');
         }
         $widthAuto = $this->isAuto($widthValue);
+        $widthKeyword = $this->sizingKeywordName($widthValue);
         $borderBox = $this->isBorderBoxSizing($style);
         if ($widthAuto) {
             // CSS Sizing 4 §6.1 — `contain: size` substitutes the
@@ -660,6 +661,30 @@ final class BlockLayout
                 // collapsing to a 100×100 square).
                 $mm = $this->measureMinMaxContent($box, $context);
                 $contentWidth = min($mm['max'], max($mm['min'], $contentWidth));
+            }
+        } elseif ($widthKeyword !== null) {
+            // CSS Sizing 4 §6.3 — `width: max-content | min-content |
+            // fit-content | stretch` resolves to a content-box width
+            // computed from the box's intrinsic sizes (or the available
+            // size for `stretch`). Per CSS Sizing 3 §6.4 box-sizing has
+            // no effect on the keyword: the result is already a
+            // content-box value, so no border/padding subtraction.
+            $available = max(
+                0.0,
+                $cbWidth - $geo->marginLeft - $geo->marginRight
+                    - $geo->borderLeft - $geo->borderRight
+                    - $geo->paddingLeft - $geo->paddingRight,
+            );
+            if ($widthKeyword === 'stretch') {
+                $contentWidth = $available;
+            } else {
+                $mm = $this->measureMinMaxContent($box, $context);
+                $contentWidth = match ($widthKeyword) {
+                    'max-content' => $mm['max'],
+                    'min-content' => $mm['min'],
+                    'fit-content' => min($mm['max'], max($mm['min'], $available)),
+                    default => 0.0,
+                };
             }
         } else {
             $contentWidth = $this->resolveLength($widthValue, $cbWidth);
@@ -5223,10 +5248,10 @@ final class BlockLayout
      * Treating them as "auto-like" here lets boxes that opt into
      * those keywords lay out at the children-summed height rather
      * than the `0` the unknown-keyword path produces. The width
-     * axis keeps strict `auto` semantics — width keywords have
-     * spec-distinct behaviour (min-content shrink-wrap, etc.) and
-     * widening them blindly regresses min/max-content shrink-wrap
-     * tests. Width-side refinement is tracked in #17 follow-ups.
+     * axis takes the spec-distinct path in {@see sizingKeywordName}
+     * — fit-content / max-content / min-content / stretch each
+     * resolve to their own value via {@see measureMinMaxContent}
+     * rather than collapsing to `auto`.
      */
     private function isHeightAutoLike(?\Phpdftk\Css\Value\Value $value): bool
     {
@@ -5236,6 +5261,25 @@ final class BlockLayout
         return match (strtolower($value->name)) {
             'auto', 'max-content', 'min-content', 'fit-content', 'stretch' => true,
             default => false,
+        };
+    }
+
+    /**
+     * CSS Sizing 4 §3 — recognise the sizing keywords that drive
+     * intrinsic-content width: `max-content`, `min-content`,
+     * `fit-content`, and `stretch`. Returns the canonical lowercase
+     * name when the value is one of those keywords, null otherwise
+     * (including `auto`, since `auto` has its own resolution path).
+     */
+    private function sizingKeywordName(?\Phpdftk\Css\Value\Value $value): ?string
+    {
+        if (!$value instanceof Keyword) {
+            return null;
+        }
+        $name = strtolower($value->name);
+        return match ($name) {
+            'max-content', 'min-content', 'fit-content', 'stretch' => $name,
+            default => null,
         };
     }
 
