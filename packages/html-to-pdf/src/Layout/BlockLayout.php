@@ -707,9 +707,38 @@ final class BlockLayout
         $horizontalInset = $borderBox
             ? $geo->borderLeft + $geo->borderRight + $geo->paddingLeft + $geo->paddingRight
             : 0.0;
+        // Sizing keywords on min/max-width share the keyword-to-width
+        // resolution with the `width` branch (CSS Sizing 4 §6.3) —
+        // pre-compute the available content-box size once and lazily
+        // intrinsic-measure when one of the clamps actually needs it.
+        $clampAvailable = max(
+            0.0,
+            $cbWidth - $geo->marginLeft - $geo->marginRight
+                - $geo->borderLeft - $geo->borderRight
+                - $geo->paddingLeft - $geo->paddingRight,
+        );
+        $clampMm = null;
         $maxWidthValue = $style->get('max-width');
         if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
-            $maxWidth = max(0.0, $this->resolveLength($maxWidthValue, $cbWidth) - $horizontalInset);
+            $maxKeyword = $this->sizingKeywordName($maxWidthValue);
+            if ($maxKeyword !== null) {
+                if ($maxKeyword === 'stretch') {
+                    $maxWidth = $clampAvailable;
+                } else {
+                    $clampMm ??= $this->measureMinMaxContent($box, $context);
+                    $maxWidth = match ($maxKeyword) {
+                        'max-content' => $clampMm['max'],
+                        'min-content' => $clampMm['min'],
+                        'fit-content' => min(
+                            $clampMm['max'],
+                            max($clampMm['min'], $clampAvailable),
+                        ),
+                        default => 0.0,
+                    };
+                }
+            } else {
+                $maxWidth = max(0.0, $this->resolveLength($maxWidthValue, $cbWidth) - $horizontalInset);
+            }
             // Spec: `max-width: 0` (or `max-width: 0%`) is a real
             // constraint — clamp the content-box width to zero.
             // Only `none` removes the upper bound.
@@ -722,7 +751,25 @@ final class BlockLayout
             }
         }
         $minWidthValue = $style->get('min-width');
-        $minWidth = max(0.0, $this->resolveLength($minWidthValue, $cbWidth) - $horizontalInset);
+        $minKeyword = $this->sizingKeywordName($minWidthValue);
+        if ($minKeyword !== null) {
+            if ($minKeyword === 'stretch') {
+                $minWidth = $clampAvailable;
+            } else {
+                $clampMm ??= $this->measureMinMaxContent($box, $context);
+                $minWidth = match ($minKeyword) {
+                    'max-content' => $clampMm['max'],
+                    'min-content' => $clampMm['min'],
+                    'fit-content' => min(
+                        $clampMm['max'],
+                        max($clampMm['min'], $clampAvailable),
+                    ),
+                    default => 0.0,
+                };
+            }
+        } else {
+            $minWidth = max(0.0, $this->resolveLength($minWidthValue, $cbWidth) - $horizontalInset);
+        }
         if ($minWidth > 0.0 && $contentWidth < $minWidth) {
             $contentWidth = $minWidth;
             $widthAuto = false;
