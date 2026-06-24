@@ -2071,23 +2071,32 @@ final class BlockLayout
         // axis has no direction-conditioned tie-break.
         $marginTopValue = $style->get('margin-top');
         $marginBottomValue = $style->get('margin-bottom');
+        $heightStyleValue = $style->get('height');
+        $heightKw = $this->sizingKeywordName($heightStyleValue);
+        // `height: max-content / min-content / fit-content` is also
+        // "definite" in the §10.6.5 sense — the layout pass has
+        // already resolved it to a children-derived length. Only
+        // bare `auto` and `stretch` keep the slack-fill semantics
+        // that exclude margin distribution.
+        $heightIsDefinite = !$this->isHeightAutoLike($heightStyleValue)
+            || ($heightKw !== null && $heightKw !== 'stretch');
         if (!$this->isAuto($top)
             && !$this->isAuto($bottom)
-            && !$this->isHeightAutoLike($style->get('height'))
+            && $heightIsDefinite
             && $this->isAuto($marginTopValue)
             && $this->isAuto($marginBottomValue)
         ) {
             $topPx = $this->resolveLength($top, $cbHeight);
             $bottomPx = $this->resolveLength($bottom, $cbHeight);
-            $borderBoxH = $this->isBorderBoxSizing($style);
-            $heightPx = $this->resolveLength($style->get('height'), $cbHeight);
-            $outerH = $heightPx;
-            if (!$borderBoxH) {
-                $outerH += $this->resolveBorderWidth($style, 'top')
-                    + $this->resolveBorderWidth($style, 'bottom')
-                    + $this->resolveLength($style->get('padding-top'), $cbWidth)
-                    + $this->resolveLength($style->get('padding-bottom'), $cbWidth);
-            }
+            // Read the post-layout content-box height + padding +
+            // border from geometry rather than re-resolving the style
+            // value: keywords don't go through `resolveLength` and
+            // border-box vs. content-box no longer needs a branch
+            // here, since geometry is always content-box.
+            $geo = $child->geometry;
+            $outerH = $geo->borderTop + $geo->paddingTop
+                + $geo->height
+                + $geo->paddingBottom + $geo->borderBottom;
             $slackH = $cbHeight - $topPx - $bottomPx - $outerH;
             $dy = $originY + $topPx + ($slackH / 2.0) - $cursorY;
         }
