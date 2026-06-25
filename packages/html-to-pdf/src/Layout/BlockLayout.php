@@ -3008,8 +3008,9 @@ final class BlockLayout
         );
 
         if ($box->children === []) {
-            $geo->height = $declaredHeightForFr ?? $this->gridTotalExtent($rowTracks, $rowGap);
-            $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
+            $rowExtent = $this->gridTotalExtent($rowTracks, $rowGap);
+            $geo->height = $declaredHeightForFr ?? $rowExtent;
+            $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $rowExtent);
             return $geo->outerHeight();
         }
 
@@ -3319,8 +3320,9 @@ final class BlockLayout
         }
 
         $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
-        $geo->height = $declaredHeight ?? $this->gridTotalExtent($rowTracks, $rowGap);
-        $this->clampMinMax($style, $geo, $cbWidth, $cbHeight);
+        $rowExtent = $this->gridTotalExtent($rowTracks, $rowGap);
+        $geo->height = $declaredHeight ?? $rowExtent;
+        $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $rowExtent);
 
         return $geo->outerHeight();
     }
@@ -5139,8 +5141,13 @@ final class BlockLayout
      * mirroring `layoutBlock`'s clamp pass — extracted so flex
      * containers honour the same constraints.
      */
-    private function clampMinMax(CascadedValues $style, \Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo, float $cbWidth, float $cbHeight): void
-    {
+    private function clampMinMax(
+        CascadedValues $style,
+        \Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo,
+        float $cbWidth,
+        float $cbHeight,
+        ?float $intrinsicBlockSize = null,
+    ): void {
         // CSS Sizing 3 §10 — `max-*` is `none`, an explicit length or a
         // percentage. When `none`, no ceiling. Otherwise the resolved
         // value clamps the box even when it resolves to zero (`max-
@@ -5166,12 +5173,28 @@ final class BlockLayout
         }
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
-            $maxHeight = $this->resolveLength($maxHeightValue, $cbHeight);
+            // CSS Sizing 4 §6.3 — `max-height: max-content | min-content |
+            // fit-content` on a grid / flex container resolves to its
+            // intrinsic block size (the row-track extent for grid), which
+            // the caller passes in. `resolveLength` returns 0 for the
+            // keyword, so without this the box would clamp to zero.
+            $maxHeightKw = $this->sizingKeywordName($maxHeightValue);
+            if ($maxHeightKw !== null && $maxHeightKw !== 'stretch' && $intrinsicBlockSize !== null) {
+                $maxHeight = $intrinsicBlockSize;
+            } else {
+                $maxHeight = $this->resolveLength($maxHeightValue, $cbHeight);
+            }
             if ($maxHeight >= 0.0 && $geo->height > $maxHeight) {
                 $geo->height = $maxHeight;
             }
         }
-        $minHeight = $this->resolveLength($style->get('min-height'), $cbHeight);
+        $minHeightValue = $style->get('min-height');
+        $minHeightKw = $this->sizingKeywordName($minHeightValue);
+        if ($minHeightKw !== null && $minHeightKw !== 'stretch' && $intrinsicBlockSize !== null) {
+            $minHeight = $intrinsicBlockSize;
+        } else {
+            $minHeight = $this->resolveLength($minHeightValue, $cbHeight);
+        }
         if ($minHeight > 0.0 && $geo->height < $minHeight) {
             $geo->height = $minHeight;
         }
