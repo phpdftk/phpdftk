@@ -628,6 +628,7 @@ final class BlockLayout
         }
         $widthAuto = $this->isAuto($widthValue);
         $widthKeyword = $this->sizingKeywordName($widthValue);
+        $fitContentArg = $widthKeyword === null ? $this->fitContentArgument($widthValue) : null;
         $borderBox = $this->isBorderBoxSizing($style);
         if ($widthAuto) {
             // CSS Sizing 4 §6.1 — `contain: size` substitutes the
@@ -659,7 +660,7 @@ final class BlockLayout
                 // `float: left; aspect-ratio: 1/1` div containing a
                 // 100 px child filled the viewport instead of
                 // collapsing to a 100×100 square).
-                $mm = $this->measureMinMaxContent($box, $context);
+                $mm = $this->measureContentMinMax($box, $context);
                 $contentWidth = min($mm['max'], max($mm['min'], $contentWidth));
             }
         } elseif ($widthKeyword !== null) {
@@ -678,7 +679,7 @@ final class BlockLayout
             if ($widthKeyword === 'stretch') {
                 $contentWidth = $available;
             } else {
-                $mm = $this->measureMinMaxContent($box, $context);
+                $mm = $this->measureContentMinMax($box, $context);
                 $contentWidth = match ($widthKeyword) {
                     'max-content' => $mm['max'],
                     'min-content' => $mm['min'],
@@ -686,6 +687,15 @@ final class BlockLayout
                     default => 0.0,
                 };
             }
+        } elseif ($fitContentArg !== null) {
+            // CSS Sizing 3 §5.1.1 — `width: fit-content(<length-percentage>)`
+            // resolves to `min(max-content, max(min-content, limit))`,
+            // where the limit is the resolved argument. Like the
+            // fit-content keyword this is already a content-box value, so
+            // box-sizing does not subtract border/padding.
+            $limit = $this->resolveLength($fitContentArg, $cbWidth);
+            $mm = $this->measureContentMinMax($box, $context);
+            $contentWidth = min($mm['max'], max($mm['min'], $limit));
         } else {
             $contentWidth = $this->resolveLength($widthValue, $cbWidth);
             if ($borderBox) {
@@ -721,11 +731,12 @@ final class BlockLayout
         $maxWidthValue = $style->get('max-width');
         if (!($maxWidthValue instanceof Keyword && strtolower($maxWidthValue->name) === 'none')) {
             $maxKeyword = $this->sizingKeywordName($maxWidthValue);
+            $maxFitArg = $maxKeyword === null ? $this->fitContentArgument($maxWidthValue) : null;
             if ($maxKeyword !== null) {
                 if ($maxKeyword === 'stretch') {
                     $maxWidth = $clampAvailable;
                 } else {
-                    $clampMm = $this->measureMinMaxContent($box, $context);
+                    $clampMm = $this->measureContentMinMax($box, $context);
                     $maxWidth = match ($maxKeyword) {
                         'max-content' => $clampMm['max'],
                         'min-content' => $clampMm['min'],
@@ -736,6 +747,15 @@ final class BlockLayout
                         default => 0.0,
                     };
                 }
+            } elseif ($maxFitArg !== null) {
+                // CSS Sizing 3 §5.1.1 — `max-width: fit-content(L)`
+                // shares the keyword's content-box resolution. This is
+                // the first clamp evaluated, so `$clampMm` is still null.
+                $clampMm = $this->measureContentMinMax($box, $context);
+                $maxWidth = min(
+                    $clampMm['max'],
+                    max($clampMm['min'], $this->resolveLength($maxFitArg, $cbWidth)),
+                );
             } else {
                 $maxWidth = max(0.0, $this->resolveLength($maxWidthValue, $cbWidth) - $horizontalInset);
             }
@@ -752,12 +772,13 @@ final class BlockLayout
         }
         $minWidthValue = $style->get('min-width');
         $minKeyword = $this->sizingKeywordName($minWidthValue);
+        $minFitArg = $minKeyword === null ? $this->fitContentArgument($minWidthValue) : null;
         if ($minKeyword !== null) {
             if ($minKeyword === 'stretch') {
                 $minWidth = $clampAvailable;
             } else {
                 if ($clampMm === null) {
-                    $clampMm = $this->measureMinMaxContent($box, $context);
+                    $clampMm = $this->measureContentMinMax($box, $context);
                 }
                 $minWidth = match ($minKeyword) {
                     'max-content' => $clampMm['max'],
@@ -769,6 +790,16 @@ final class BlockLayout
                     default => 0.0,
                 };
             }
+        } elseif ($minFitArg !== null) {
+            // CSS Sizing 3 §5.1.1 — `min-width: fit-content(L)`
+            // shares the keyword's content-box resolution.
+            if ($clampMm === null) {
+                $clampMm = $this->measureContentMinMax($box, $context);
+            }
+            $minWidth = min(
+                $clampMm['max'],
+                max($clampMm['min'], $this->resolveLength($minFitArg, $cbWidth)),
+            );
         } else {
             $minWidth = max(0.0, $this->resolveLength($minWidthValue, $cbWidth) - $horizontalInset);
         }
@@ -2858,7 +2889,7 @@ final class BlockLayout
             if ($widthKeyword === 'stretch') {
                 $geo->width = $availableWidth;
             } else {
-                $mm = $this->measureMinMaxContent($box, $context);
+                $mm = $this->measureContentMinMax($box, $context);
                 $geo->width = match ($widthKeyword) {
                     'max-content' => $mm['max'],
                     'min-content' => $mm['min'],
@@ -3744,26 +3775,50 @@ final class BlockLayout
         if ($explicit instanceof Length && $explicit->value > 0.0) {
             return ['min' => $explicit->value, 'max' => $explicit->value];
         }
+        return $this->measureContentMinMax($box, $context);
+    }
+
+    /**
+     * Min / max-content of a box derived purely from its contents,
+     * ignoring its own explicit `width`. {@see measureMinMaxContent}
+     * short-circuits on a declared width because that is the box's
+     * contribution to a *parent's* intrinsic size. But when the box is
+     * being self-sized under a sizing keyword or `fit-content()` — e.g.
+     * `width: 10px; min-width: fit-content(100px)` — the keyword must
+     * resolve against the content size, not the (overridden-anyway)
+     * explicit width.
+     *
+     * @return array{min: float, max: float}
+     */
+    private function measureContentMinMax(Box $box, LayoutContext $context): array
+    {
+        if ($box instanceof TextBox) {
+            return $this->measureTextBoxMinMax($box, $context);
+        }
         // CSS Sizing 4 §6.1 — `contain: size` (or `strict`)
         // overrides the child-derived intrinsic size with the
-        // declared `contain-intrinsic-(size|width|inline-size)`.
-        // Applied AFTER the explicit-width check so author CSS
-        // still wins, before the child aggregation so children
-        // aren't measured (the whole point of size containment).
+        // declared `contain-intrinsic-(size|width|inline-size)`,
+        // before the child aggregation so children aren't measured
+        // (the whole point of size containment).
         $contained = $this->resolveContainIntrinsicWidth($box->style);
         if ($contained !== null) {
             return ['min' => $contained, 'max' => $contained];
         }
-        if ($box instanceof AtomicInlineBox) {
+        if ($box instanceof AtomicInlineBox || $box instanceof InlineBox) {
             return $this->aggregateChildrenMinMax($box, $context, inline: true);
         }
-        if ($box instanceof InlineBox) {
-            return $this->aggregateChildrenMinMax($box, $context, inline: true);
-        }
-        // Block / anonymous-block / table cell — children stack
-        // vertically, so each child gets its full max-content extent
-        // and the container needs the widest of them.
-        return $this->aggregateChildrenMinMax($box, $context, inline: false);
+        // Block / anonymous-block / table cell. When the children are
+        // all inline-level the box establishes an inline formatting
+        // context: they flow horizontally onto line boxes, so the
+        // container's max-content is their SUM (CSS Sizing 3 §5.1) —
+        // e.g. two `display: inline-block` siblings sit side-by-side.
+        // Otherwise the children stack vertically (block formatting) and
+        // the container needs the widest of them.
+        return $this->aggregateChildrenMinMax(
+            $box,
+            $context,
+            inline: $this->allInlineLevel($box->children),
+        );
     }
 
     /**
@@ -5412,6 +5467,33 @@ final class BlockLayout
             'max-content', 'min-content', 'fit-content', 'stretch' => $name,
             default => null,
         };
+    }
+
+    /**
+     * CSS Sizing 3 §5.1.1 — `fit-content(<length-percentage>)`. The
+     * function form behaves like the `fit-content` keyword but with the
+     * stretch-fit available size replaced by an explicit limit, so the
+     * result is `min(max-content, max(min-content, limit))`. Returns the
+     * limit value (a Length / Percentage / Calc to resolve against the
+     * inline-axis percentage basis) when the value is a well-formed
+     * single-argument `fit-content()` call, null otherwise.
+     */
+    private function fitContentArgument(?\Phpdftk\Css\Value\Value $value): ?\Phpdftk\Css\Value\Value
+    {
+        if (!$value instanceof \Phpdftk\Css\Value\CssFunction) {
+            return null;
+        }
+        if (strtolower($value->name) !== 'fit-content' || count($value->arguments) !== 1) {
+            return null;
+        }
+        $arg = $value->arguments[0];
+        if ($arg instanceof Length
+            || $arg instanceof Percentage
+            || $arg instanceof \Phpdftk\Css\Value\Calc
+        ) {
+            return $arg;
+        }
+        return null;
     }
 
     /**
