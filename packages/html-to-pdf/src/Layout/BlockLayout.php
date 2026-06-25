@@ -1207,11 +1207,20 @@ final class BlockLayout
         // `none` keyword removes the upper bound.
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
-            if ($this->sizingKeywordName($maxHeightValue) === 'stretch') {
+            $maxHeightKw = $this->sizingKeywordName($maxHeightValue);
+            if ($maxHeightKw === 'stretch') {
                 // `max-height: stretch` — the stretch-fit block size is
                 // already content-box, so no inset subtraction. An
                 // indefinite containing block leaves the bound off.
                 $maxHeight = $this->stretchFitContentHeight($box, $context);
+            } elseif ($maxHeightKw !== null) {
+                // CSS Sizing 4 §6.3 — `max-height: max-content |
+                // min-content | fit-content` on the block axis resolves
+                // to the children-derived content height. The three
+                // intrinsic block sizes only diverge when content height
+                // varies with inline size; approximate with the height
+                // at the resolved width ($childTotal, content-box).
+                $maxHeight = $childTotal;
             } else {
                 $maxHeight = max(0.0, $this->resolveLength($maxHeightValue, $context->containingBlockHeight) - $verticalInset);
             }
@@ -1220,8 +1229,13 @@ final class BlockLayout
             }
         }
         $minHeightValue = $style->get('min-height');
-        if ($this->sizingKeywordName($minHeightValue) === 'stretch') {
+        $minHeightKw = $this->sizingKeywordName($minHeightValue);
+        if ($minHeightKw === 'stretch') {
             $minHeight = $this->stretchFitContentHeight($box, $context) ?? 0.0;
+        } elseif ($minHeightKw !== null) {
+            // Block-axis intrinsic min-height — same content-height
+            // approximation as the max-height keyword path above.
+            $minHeight = $childTotal;
         } else {
             $minHeight = max(0.0, $this->resolveLength($minHeightValue, $context->containingBlockHeight) - $verticalInset);
         }
