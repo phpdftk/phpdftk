@@ -1089,7 +1089,17 @@ final class BlockLayout
             $heightValue = new Keyword('auto');
         }
         $heightIsAuto = $this->isHeightAutoLike($heightValue);
-        if ($heightIsAuto) {
+        $stretchHeight = $this->sizingKeywordName($heightValue) === 'stretch'
+            ? $this->stretchFitContentHeight($box, $context)
+            : null;
+        if ($stretchHeight !== null) {
+            // CSS Sizing 4 §5.2.2 — `height: stretch` against a definite
+            // containing block fills the available block size. Once
+            // resolved it is a definite length, so clear the auto flag
+            // (aspect-ratio + the min/max clamps treat it as explicit).
+            $geo->height = $stretchHeight;
+            $heightIsAuto = false;
+        } elseif ($heightIsAuto) {
             // CSS Containment 3 §4.5 — `contain: size` (or `strict` /
             // `content` aliases) makes the box's intrinsic size NOT
             // depend on its children. CSS Sizing 4 §6 substitutes the
@@ -1197,12 +1207,24 @@ final class BlockLayout
         // `none` keyword removes the upper bound.
         $maxHeightValue = $style->get('max-height');
         if (!($maxHeightValue instanceof Keyword && strtolower($maxHeightValue->name) === 'none')) {
-            $maxHeight = max(0.0, $this->resolveLength($maxHeightValue, $context->containingBlockHeight) - $verticalInset);
-            if ($geo->height > $maxHeight) {
+            if ($this->sizingKeywordName($maxHeightValue) === 'stretch') {
+                // `max-height: stretch` — the stretch-fit block size is
+                // already content-box, so no inset subtraction. An
+                // indefinite containing block leaves the bound off.
+                $maxHeight = $this->stretchFitContentHeight($box, $context);
+            } else {
+                $maxHeight = max(0.0, $this->resolveLength($maxHeightValue, $context->containingBlockHeight) - $verticalInset);
+            }
+            if ($maxHeight !== null && $geo->height > $maxHeight) {
                 $geo->height = $maxHeight;
             }
         }
-        $minHeight = max(0.0, $this->resolveLength($style->get('min-height'), $context->containingBlockHeight) - $verticalInset);
+        $minHeightValue = $style->get('min-height');
+        if ($this->sizingKeywordName($minHeightValue) === 'stretch') {
+            $minHeight = $this->stretchFitContentHeight($box, $context) ?? 0.0;
+        } else {
+            $minHeight = max(0.0, $this->resolveLength($minHeightValue, $context->containingBlockHeight) - $verticalInset);
+        }
         if ($minHeight > 0.0 && $geo->height < $minHeight) {
             $geo->height = $minHeight;
         }
@@ -5448,6 +5470,33 @@ final class BlockLayout
             'auto', 'max-content', 'min-content', 'fit-content', 'stretch' => true,
             default => false,
         };
+    }
+
+    /**
+     * CSS Sizing 4 §5.2.2 — the stretch-fit *content* block size for an
+     * in-flow box: the containing block's content height minus the box's
+     * own block-axis margins, border and padding. Per csswg issue 11044
+     * the block-end (bottom) margin is treated as 0 for this purpose.
+     * Returns null when the containing block's block size is indefinite —
+     * `stretch` then has no available size to fill and behaves like the
+     * automatic (content-derived) size. Used for `height: stretch` and
+     * the `min-height` / `max-height: stretch` clamps. The result is a
+     * content-box value, so the clamp sites must not re-subtract the
+     * border-box inset.
+     */
+    private function stretchFitContentHeight(Box $box, LayoutContext $context): ?float
+    {
+        if (!$context->containingBlockHeightDefinite) {
+            return null;
+        }
+        $geo = $box->geometry;
+        return max(
+            0.0,
+            $context->containingBlockHeight
+                - $geo->marginTop
+                - $geo->borderTop - $geo->borderBottom
+                - $geo->paddingTop - $geo->paddingBottom,
+        );
     }
 
     /**
