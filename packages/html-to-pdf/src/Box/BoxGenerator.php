@@ -1874,6 +1874,44 @@ final class BoxGenerator
                 }
             }
         }
+        // HTML 5 §4.12.5 — a `<canvas>` is a replaced element whose
+        // intrinsic dimensions are its `width` / `height` content
+        // attributes (default 300 x 150). When BOTH are given
+        // explicitly, apply them as presentational width/height (unless
+        // the author set CSS dims, mirroring the `<img>` path) so block
+        // layout sizes the canvas, and expose the intrinsic ratio as
+        // `aspect-ratio` so the replaced-element keyword sizing can
+        // transfer a definite cross size into a `min-content` /
+        // `max-content` main size. An attribute-less canvas keeps the
+        // default 300 x 150 handled downstream — forcing that default
+        // here disturbs cases (object-view-box, vertical writing modes)
+        // that already render correctly. Skip under `contain: size`,
+        // where CSS Containment 3 §4.1 substitutes `contain-intrinsic-
+        // size` for the intrinsic size.
+        $canvasW = $tag === 'canvas' ? $this->parseHtmlLength($element->getAttribute('width') ?? '') : null;
+        $canvasH = $tag === 'canvas' ? $this->parseHtmlLength($element->getAttribute('height') ?? '') : null;
+        if ($canvasW !== null && $canvasW > 0.0
+            && $canvasH !== null && $canvasH > 0.0
+            && !$this->hasSizeContainment($values)
+        ) {
+            foreach (['width' => $canvasW, 'height' => $canvasH] as $attr => $val) {
+                if (!$values->has($attr) || $this->isAutoLength($values->get($attr))) {
+                    $values->set($attr, new \Phpdftk\Css\Value\Length($val, \Phpdftk\Css\Value\LengthUnit::Px));
+                }
+            }
+            if (!$values->has('aspect-ratio')) {
+                $values->set(
+                    'aspect-ratio',
+                    new \Phpdftk\Css\Value\ValueList(
+                        [
+                            new \Phpdftk\Css\Value\Number($canvasW),
+                            new \Phpdftk\Css\Value\Number($canvasH),
+                        ],
+                        \Phpdftk\Css\Value\ListSeparator::Slash,
+                    ),
+                );
+            }
+        }
         // HTML 5 §4.4.5.1: `<ol type="A">` / `"a"` / `"I"` / `"i"` / `"1"`
         // maps to a `list-style-type` keyword. `<ul type="..."` is the
         // older HTML 4 form; supported because real-world docs still use
@@ -1953,6 +1991,30 @@ final class BoxGenerator
     private function isAutoLength(?\Phpdftk\Css\Value\Value $v): bool
     {
         return $v instanceof Keyword && strtolower($v->name) === 'auto';
+    }
+
+    /**
+     * CSS Containment 3 §2 — `true` when the cascaded `contain` enables
+     * size containment: the `size` or `strict` keyword, or a list that
+     * includes `size`. (`content` = layout|paint|style does NOT contain
+     * size.) Under size containment a replaced element's intrinsic size
+     * is taken from `contain-intrinsic-size`, so attribute / natural
+     * dimensions must not be applied.
+     */
+    private function hasSizeContainment(\Phpdftk\Css\Cascade\CascadedValues $values): bool
+    {
+        $contain = $values->get('contain');
+        if ($contain instanceof Keyword) {
+            return in_array(strtolower($contain->name), ['size', 'strict'], true);
+        }
+        if ($contain instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($contain->values as $part) {
+                if ($part instanceof Keyword && strtolower($part->name) === 'size') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

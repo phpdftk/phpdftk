@@ -427,6 +427,11 @@ final class InlineLayout
             $height = $heightValue instanceof Length && $heightValue->value > 0.0
                 ? $heightValue->value
                 : $width;
+            // CSS Sizing 3 §5.2 — replaced min/max-width / -height clamps
+            // (incl. min/max-content transferred through the intrinsic
+            // ratio). Without this `max-width: min-content` on a sized
+            // <canvas>/<img> is ignored.
+            [$width, $height] = $this->clampAtomicReplaced($child->style, $width, $height);
             $child->geometry->x = $parent->geometry->x + $currentX;
             $child->geometry->y = $parent->geometry->y;
             $child->geometry->width = $width;
@@ -2072,5 +2077,111 @@ final class InlineLayout
         $value = $style->get('box-sizing');
         return $value instanceof \Phpdftk\Css\Value\Keyword
             && strtolower($value->name) === 'border-box';
+    }
+
+    /**
+     * Intrinsic aspect ratio (width / height) of a replaced atomic box,
+     * read from the `aspect-ratio` cascade value the box generator
+     * exposes for `<img>` / `<canvas>`. Null when absent or malformed.
+     */
+    private static function atomicAspectRatio(\Phpdftk\Css\Cascade\CascadedValues $style): ?float
+    {
+        $value = $style->get('aspect-ratio');
+        if ($value instanceof \Phpdftk\Css\Value\ValueList
+            && $value->separator === \Phpdftk\Css\Value\ListSeparator::Slash
+            && count($value->values) >= 2
+        ) {
+            $w = self::atomicNumeric($value->values[0]);
+            $h = self::atomicNumeric($value->values[1]);
+            if ($w !== null && $h !== null && $h > 0.0) {
+                return $w / $h;
+            }
+        }
+        $direct = self::atomicNumeric($value);
+        return ($direct !== null && $direct > 0.0) ? $direct : null;
+    }
+
+    private static function atomicNumeric(?\Phpdftk\Css\Value\Value $v): ?float
+    {
+        if ($v instanceof \Phpdftk\Css\Value\Integer) {
+            return (float) $v->value;
+        }
+        if ($v instanceof \Phpdftk\Css\Value\Number) {
+            return $v->value;
+        }
+        return null;
+    }
+
+    /**
+     * CSS Sizing 3 §5.2 + csswg issue 3973 — resolve a min/max-width or
+     * min/max-height value for a replaced atomic box to pixels. Lengths
+     * pass through; `min-content` / `max-content` / `fit-content`
+     * transfer the box's definite cross size through the intrinsic
+     * aspect ratio (a replaced element's content-based size in one axis
+     * is the other axis times the ratio). Returns null when the
+     * constraint does not apply (`none` / `auto` / `stretch`, a block-
+     * axis percentage, or a keyword with no ratio to transfer through).
+     */
+    private function resolveAtomicMinMax(
+        \Phpdftk\Css\Cascade\CascadedValues $style,
+        string $property,
+        float $crossContentSize,
+        ?float $ratio,
+        bool $isWidth,
+    ): ?float {
+        $v = $style->get($property);
+        if ($v instanceof \Phpdftk\Css\Value\Keyword) {
+            $name = strtolower($v->name);
+            if (in_array($name, ['min-content', 'max-content', 'fit-content'], true)) {
+                if ($ratio === null || $ratio <= 0.0) {
+                    return null;
+                }
+                return $isWidth ? $crossContentSize * $ratio : $crossContentSize / $ratio;
+            }
+            return null;
+        }
+        if ($v instanceof Length) {
+            return \Phpdftk\Css\Cascade\LengthResolver::clampPx($v->value);
+        }
+        if ($v instanceof \Phpdftk\Css\Value\Percentage && $isWidth) {
+            return $this->currentAvailableWidth * ($v->value / 100.0);
+        }
+        return null;
+    }
+
+    /**
+     * Apply the replaced-element min/max-width / -height clamps to a
+     * resolved (content-box) width / height pair. The width clamps
+     * transfer the original height through the ratio (and vice versa)
+     * so each keyword resolves against the definite cross size, not a
+     * value another clamp on the same call already changed.
+     *
+     * @return array{0: float, 1: float} clamped [width, height]
+     */
+    private function clampAtomicReplaced(
+        \Phpdftk\Css\Cascade\CascadedValues $style,
+        float $width,
+        float $height,
+    ): array {
+        $ratio = self::atomicAspectRatio($style);
+        $origWidth = $width;
+        $origHeight = $height;
+        $maxW = $this->resolveAtomicMinMax($style, 'max-width', $origHeight, $ratio, true);
+        if ($maxW !== null && $width > $maxW) {
+            $width = $maxW;
+        }
+        $minW = $this->resolveAtomicMinMax($style, 'min-width', $origHeight, $ratio, true);
+        if ($minW !== null && $width < $minW) {
+            $width = $minW;
+        }
+        $maxH = $this->resolveAtomicMinMax($style, 'max-height', $origWidth, $ratio, false);
+        if ($maxH !== null && $height > $maxH) {
+            $height = $maxH;
+        }
+        $minH = $this->resolveAtomicMinMax($style, 'min-height', $origWidth, $ratio, false);
+        if ($minH !== null && $height < $minH) {
+            $height = $minH;
+        }
+        return [$width, $height];
     }
 }
