@@ -12,6 +12,7 @@ export default defineConfig({
 			components: {
 				Header: './src/components/Header.astro',
 				Hero: './src/components/Hero.astro',
+				Footer: './src/components/Footer.astro',
 			},
 			sidebar: [
 				{ label: 'Overview', slug: 'index' },

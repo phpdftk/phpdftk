@@ -1,0 +1,30 @@
+---
+// Wrap Starlight's default footer and append a support link. Imports the
+// real default component directly (not the `virtual:` alias) so overriding
+// `Footer` here does not recurse into itself.
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default {...Astro.props}><slot /></Default>
+
+<div class="phpdftk-support print:hidden">
+	<a href="https://buymeacoffee.com/phpdftk" target="_blank" rel="noopener noreferrer">
+		☕ Support phpdftk
+	</a>
+</div>
+
+<style>
+	.phpdftk-support {
+		margin-top: 1rem;
+		text-align: center;
+		font-size: var(--sl-text-sm);
+	}
+	.phpdftk-support a {
+		color: var(--sl-color-gray-3);
+		text-decoration: none;
+	}
+	.phpdftk-support a:hover {
+		color: var(--sl-color-text-accent);
+		text-decoration: underline;
+	}
+</style>

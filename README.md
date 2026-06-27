@@ -4,6 +4,7 @@
 [![Coverage](https://raw.githubusercontent.com/phpdftk/phpdftk/_coverage/latest/coverage-badge.svg)](https://phpdftk.dev/coverage/)
 [![PHP 8.4+](https://img.shields.io/badge/php-8.4%2B-8892BF.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-support-FFDD00.svg?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/phpdftk)
 
 A PHP 8.4 monorepo for generating and manipulating PDF files. Every object in the PDF specification maps 1:1 to a PHP class, with each `/Field` from the spec mapping directly to a camelCase property.
 
@@ -292,6 +293,12 @@ vendor/bin/phpstan analyse
 # Benchmarks
 vendor/phpbench/phpbench/phpbench run --report=default
 ```
+
+## Support
+
+phpdftk is MIT-licensed and free to use. If it saves you time, you can support ongoing development:
+
+- ☕ [Buy Me a Coffee](https://buymeacoffee.com/phpdftk)
 
 ## License
 
