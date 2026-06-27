@@ -281,6 +281,32 @@ switch ($subcommand) {
         $results = $runner->run($filter);
         $agg = ReportPublisher::aggregate($results);
 
+        // Machine-readable summary for the regression-gate scoreboard.
+        // `--json` (bare) prints JSON to stdout and exits — keeps stdout
+        // clean for the caller. `--json=<path>` writes the file and still
+        // prints the human summary below.
+        $jsonOpt = $parsed['opts']['json'] ?? null;
+        if ($jsonOpt !== null) {
+            $payload = json_encode([
+                'filter' => $filter,
+                'total' => count($results),
+                'pass' => $agg['pass'],
+                'fail' => $agg['fail'],
+                'outOfScope' => $agg['outOfScope'],
+                'pendingSubstrate' => $agg['pendingSubstrate'],
+                'skipped' => $agg['skipped'],
+                'harnessError' => $agg['harnessError'],
+                'inScopeTotal' => $agg['inScopeTotal'],
+                'inScopePassRate' => $agg['inScopePassRate'],
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+            if (is_string($jsonOpt)) {
+                file_put_contents($jsonOpt, $payload);
+            } else {
+                echo $payload;
+                exit(0);
+            }
+        }
+
         printf("WPT harness — corpus: %s\n", $root);
         if ($filter !== null) {
             printf("Filter: %s\n", $filter);
@@ -892,6 +918,9 @@ Usage: wpt <subcommand> [options]
 
 Subcommands:
   run [--root=<path>] [--filter=<glob>]   Classify the corpus + print summary
+      [--json[=<path>]] [--show-fails[=N]] `--json` prints the JSON summary to
+                                           stdout (and exits); `--json=<path>`
+                                           writes it and keeps the human summary
   classify <test-id>                       Show verdict for one ID
   cross-browser [--root=<path>] [--filter=<glob>]
                 [--shard=K/N] [--engines=<csv>] [--json=<path>]

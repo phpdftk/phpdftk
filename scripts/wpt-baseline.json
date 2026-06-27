@@ -1,0 +1,11 @@
+{
+  "_comment": "Per-bucket in-scope PASS-COUNT floor for the WPT regression gate (scripts/wpt-scoreboard.php). Gate on counts, not percentages: counts are stable while the corpus total drifts. `tolerance` absorbs rasterisation ±1 jitter. Refresh after intentional gains with: php scripts/wpt-scoreboard.php --update. Numbers are settler-OFF (deterministic, no Playwright dependency).",
+  "settler": "off",
+  "tolerance": 2,
+  "buckets": {
+    "html":   { "filter": "html/**",   "pass": 568,   "inScopeTotal": 584 },
+    "css":    { "filter": "css/**",    "pass": 14217, "inScopeTotal": 21270 },
+    "svg":    { "filter": "svg/**",    "pass": 164,   "inScopeTotal": 174 },
+    "mathml": { "filter": "mathml/**", "pass": 166,   "inScopeTotal": 167 }
+  }
+}

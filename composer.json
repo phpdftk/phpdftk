@@ -124,6 +124,7 @@
         "fetch:math-font": "@php scripts/fetch-math-font.php",
         "wpt": "packages/wpt-harness/bin/wpt",
         "wpt:smoke": "packages/wpt-harness/bin/wpt run --root=packages/wpt-harness/fixtures/smoke",
+        "wpt:gate": "php scripts/wpt-scoreboard.php",
         "cb-sweep:daemon": [
             "docker compose up -d --wait chromium firefox webkit",
             "@php packages/wpt-harness/bin/wpt cb-sweep --daemon-base=http://127.0.0.1:910 --engines=chromium,firefox,webkit --scope=rendering --skip-testharness",

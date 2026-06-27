@@ -1,0 +1,126 @@
+name: WPT regression gate
+
+# Guards against silent backsliding of the WPT in-scope pass rate.
+# `scripts/wpt-scoreboard.php` runs `wpt run --json` per bucket and fails
+# when any bucket's pass COUNT drops below its committed floor in
+# `scripts/wpt-baseline.json` (minus `tolerance`, which absorbs the ±1
+# rasterisation jitter that exists even settler-OFF).
+#
+# Runs:
+#   - Nightly via cron, so drift surfaces within 24 h (full corpus).
+#   - On manual dispatch — optionally with `only=<csv>` to scope buckets,
+#     or `update=true` to regenerate the baseline IN CI and upload it as
+#     an artifact (download + commit to re-baseline; CI fonts differ from
+#     a dev's machine, so the baseline is environment-specific).
+#   - On PRs that touch the renderer / CSS engine / harness — fast buckets
+#     only (css is ~30 min, left to nightly).
+#
+# IMPORTANT: pass counts depend on installed fonts. The committed baseline
+# must be generated in THIS workflow's environment (Ubuntu + the fonts
+# installed below) — use the `update` dispatch, not a local run, to set
+# the numbers nightly gates against.
+
+on:
+  schedule:
+    # 05:30 UTC nightly — after the cross-browser oracle (04:30).
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated bucket names to gate (default: all)'
+        required: false
+        default: ''
+      update:
+        description: 'Regenerate the baseline and upload it as an artifact'
+        type: boolean
+        required: false
+        default: false
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/html-to-pdf/**'
+      - 'packages/css/**'
+      - 'packages/wpt-harness/**'
+      - 'scripts/wpt-scoreboard.php'
+      - 'scripts/wpt-baseline.json'
+      - '.github/workflows/wpt-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    strategy:
+      # One bucket per cell so they run in parallel and a regression
+      # points at a specific bucket. css is the slow one (~30 min); the
+      # fast buckets finish in a couple of minutes.
+      fail-fast: false
+      matrix:
+        bucket: [html, css, svg, mathml]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip slow buckets on PRs
+        id: scope
+        run: |
+          # css is too slow for per-PR feedback — nightly covers it.
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ matrix.bucket }}" = "css" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Filter to dispatch selection
+        id: only
+        if: steps.scope.outputs.skip != 'true'
+        run: |
+          ONLY="${{ github.event.inputs.only }}"
+          if [ -n "$ONLY" ] && ! echo ",$ONLY," | grep -q ",${{ matrix.bucket }},"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize WPT corpus submodule
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true'
+        run: git submodule update --init --depth 1 vendor-data/wpt
+
+      - name: Setup PHP
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: zlib, openssl, simplexml, intl
+          coverage: none
+
+      - name: Install system fonts and ImageMagick
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            fonts-liberation fonts-dejavu-core fonts-stix fonts-noto-core \
+            fonts-noto-color-emoji icc-profiles-free imagemagick ghostscript
+
+      - name: Install Composer dependencies
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true'
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Gate ${{ matrix.bucket }}
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true' && github.event.inputs.update != 'true'
+        run: php scripts/wpt-scoreboard.php --only=${{ matrix.bucket }} --json=scoreboard-${{ matrix.bucket }}.json
+
+      - name: Regenerate baseline (update dispatch)
+        if: steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true' && github.event.inputs.update == 'true'
+        run: php scripts/wpt-scoreboard.php --only=${{ matrix.bucket }} --update
+
+      - name: Upload scoreboard / baseline
+        if: always() && steps.scope.outputs.skip != 'true' && steps.only.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpt-${{ github.event.inputs.update == 'true' && 'baseline' || 'scoreboard' }}-${{ matrix.bucket }}
+          path: |
+            scoreboard-${{ matrix.bucket }}.json
+            scripts/wpt-baseline.json
+          if-no-files-found: ignore
+          retention-days: 14
