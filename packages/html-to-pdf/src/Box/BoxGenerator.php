@@ -134,7 +134,11 @@ final class BoxGenerator
         ?CascadedValues $parentValues,
     ): ?Box {
         $values = $this->cascade->computeFor($sheets, $element, $parentValues);
-        $this->applyPresentationalAttributes($element, $values);
+        $this->applyPresentationalAttributes(
+            $element,
+            $values,
+            $parentValues !== null && $this->isFlexOrGridContainer($parentValues),
+        );
         $display = $this->displayKeyword($values);
         if ($display === 'none') {
             return null;
@@ -425,7 +429,7 @@ final class BoxGenerator
                 // building). Recurse via the helper so nested
                 // `display: contents` chains flatten cleanly.
                 $childCascade = $this->cascade->computeFor($sheets, $n, $values);
-                $this->applyPresentationalAttributes($n, $childCascade);
+                $this->applyPresentationalAttributes($n, $childCascade, $this->isFlexOrGridContainer($values));
                 if ($this->displayKeyword($childCascade) === 'contents') {
                     foreach ($this->expandDisplayContents($n, $sheets, $values) as $grandchild) {
                         $rawChildren[] = $grandchild;
@@ -1655,6 +1659,21 @@ final class BoxGenerator
         return false;
     }
 
+    /**
+     * `true` when the cascaded display establishes a flex or grid
+     * formatting context, so its children are flex / grid items whose
+     * min/max sizing is owned by the flex / grid algorithm rather than
+     * the replaced-element box-gen constraint pass.
+     */
+    private function isFlexOrGridContainer(CascadedValues $values): bool
+    {
+        return in_array(
+            $this->displayKeyword($values),
+            ['flex', 'inline-flex', 'grid', 'inline-grid'],
+            true,
+        );
+    }
+
     private function displayKeyword(CascadedValues $values): string
     {
         $display = $values->get('display');
@@ -1742,7 +1761,7 @@ final class BoxGenerator
         for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
             if ($n instanceof Element) {
                 $childCascade = $this->cascade->computeFor($sheets, $n, $values);
-                $this->applyPresentationalAttributes($n, $childCascade);
+                $this->applyPresentationalAttributes($n, $childCascade, $this->isFlexOrGridContainer($values));
                 if ($this->displayKeyword($childCascade) === 'contents') {
                     foreach ($this->expandDisplayContents($n, $sheets, $values) as $g) {
                         $result[] = $g;
@@ -1780,7 +1799,7 @@ final class BoxGenerator
      * author CSS still wins, but they provide the size to layout for
      * elements that lack explicit `width` / `height` declarations.
      */
-    private function applyPresentationalAttributes(Element $element, CascadedValues $values): void
+    private function applyPresentationalAttributes(Element $element, CascadedValues $values, bool $parentIsFlexOrGrid = false): void
     {
         $tag = strtolower($element->localName);
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
@@ -1806,8 +1825,12 @@ final class BoxGenerator
             if ($tag === 'img') {
                 $wValue = $values->get('width');
                 $hValue = $values->get('height');
-                $wUnset = !$values->has('width') || $this->isAutoLength($wValue);
-                $hUnset = !$values->has('height') || $this->isAutoLength($hValue);
+                // CSS Sizing 3 §5.2 — `min-content` / `max-content` /
+                // `fit-content` on a replaced element resolve to its
+                // intrinsic (natural) size, so for dimension derivation
+                // they behave like `auto`.
+                $wUnset = !$values->has('width') || $this->isReplacedSizeAuto($wValue);
+                $hUnset = !$values->has('height') || $this->isReplacedSizeAuto($hValue);
                 // Replaced elements have an intrinsic aspect ratio
                 // per CSS Sizing 4 §5.1. Expose it as the
                 // `aspect-ratio` cascade value (when the author
@@ -1835,8 +1858,23 @@ final class BoxGenerator
                     if ($natural !== null) {
                         [$nw, $nh] = $natural;
                         if ($wUnset && $hUnset) {
-                            $values->set('width', new \Phpdftk\Css\Value\Length((float) $nw, \Phpdftk\Css\Value\LengthUnit::Px));
-                            $values->set('height', new \Phpdftk\Css\Value\Length((float) $nh, \Phpdftk\Css\Value\LengthUnit::Px));
+                            // Both dimensions auto / intrinsic: start at the
+                            // natural size, then apply any length `min/max-
+                            // width|height` preserving the aspect ratio
+                            // (CSS 2.1 §10.4 constraint-violation table —
+                            // e.g. `max-width: 100px` on a 150x150 image
+                            // yields 100x100, not 100x150). Percentage /
+                            // keyword min-max are left to the layout-time
+                            // replaced clamp. A flex / grid *item*'s min/max
+                            // is resolved by the flex / grid algorithm (which
+                            // also transfers through the ratio), so leave the
+                            // natural size untouched there to avoid double-
+                            // applying the constraint.
+                            [$uw, $uh] = $parentIsFlexOrGrid
+                                ? [(float) $nw, (float) $nh]
+                                : $this->constrainReplacedNaturalSize((float) $nw, (float) $nh, $values);
+                            $values->set('width', new \Phpdftk\Css\Value\Length($uw, \Phpdftk\Css\Value\LengthUnit::Px));
+                            $values->set('height', new \Phpdftk\Css\Value\Length($uh, \Phpdftk\Css\Value\LengthUnit::Px));
                         } elseif ($wUnset && $hValue instanceof \Phpdftk\Css\Value\Length && $nh > 0) {
                             // Under `box-sizing: border-box`, the declared
                             // height includes the padding/border vertical
@@ -1991,6 +2029,62 @@ final class BoxGenerator
     private function isAutoLength(?\Phpdftk\Css\Value\Value $v): bool
     {
         return $v instanceof Keyword && strtolower($v->name) === 'auto';
+    }
+
+    /**
+     * `true` when a replaced element's width/height is `auto` or one of
+     * the intrinsic sizing keywords (`min-content` / `max-content` /
+     * `fit-content`), all of which resolve to the natural dimension for
+     * dimension derivation. {@see isAutoLength} but also matching the
+     * content keywords.
+     */
+    private function isReplacedSizeAuto(?\Phpdftk\Css\Value\Value $v): bool
+    {
+        return $v instanceof Keyword
+            && in_array(strtolower($v->name), ['auto', 'min-content', 'max-content', 'fit-content'], true);
+    }
+
+    /**
+     * CSS 2.1 §10.4 — given a replaced element's natural size and a
+     * cascaded-values bundle, apply any *length* `min/max-width|height`
+     * while preserving the aspect ratio. Percentage and keyword
+     * constraints are skipped here (no containing block at box-gen time;
+     * the layout-time replaced clamp handles those). The clamp order
+     * (max then min, width before height) approximates the §10.4
+     * constraint-violation table for the common single-constraint cases.
+     *
+     * @return array{0: float, 1: float} used [width, height]
+     */
+    private function constrainReplacedNaturalSize(float $w, float $h, \Phpdftk\Css\Cascade\CascadedValues $values): array
+    {
+        if ($h <= 0.0 || $w <= 0.0) {
+            return [$w, $h];
+        }
+        $ratio = $w / $h;
+        $len = static function (?\Phpdftk\Css\Value\Value $v): ?float {
+            return $v instanceof \Phpdftk\Css\Value\Length && $v->value >= 0.0 ? $v->value : null;
+        };
+        $maxW = $len($values->get('max-width'));
+        $maxH = $len($values->get('max-height'));
+        $minW = $len($values->get('min-width'));
+        $minH = $len($values->get('min-height'));
+        if ($maxW !== null && $w > $maxW) {
+            $w = $maxW;
+            $h = $w / $ratio;
+        }
+        if ($maxH !== null && $h > $maxH) {
+            $h = $maxH;
+            $w = $h * $ratio;
+        }
+        if ($minW !== null && $w < $minW) {
+            $w = $minW;
+            $h = $w / $ratio;
+        }
+        if ($minH !== null && $h < $minH) {
+            $h = $minH;
+            $w = $h * $ratio;
+        }
+        return [$w, $h];
     }
 
     /**
