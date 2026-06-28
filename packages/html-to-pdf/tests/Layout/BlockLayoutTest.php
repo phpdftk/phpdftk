@@ -6309,6 +6309,59 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $div->geometry->height);
     }
 
+    public function testAspectRatioBlockSizeFlooredByTallerContent(): void
+    {
+        // CSS Sizing 4 §4.1 — the ratio-derived block size is a
+        // *preferred* size, not a hard cap: a `width: 100px;
+        // aspect-ratio: 2/1` box prefers height 50, but a 100px-tall
+        // child floors the used height to 100 so content isn't
+        // clipped.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; aspect-ratio: 2/1">'
+                . '<div class="kid" style="height: 100px"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(100.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioBlockSizeNotFlooredWhenScrollContainer(): void
+    {
+        // CSS Sizing 4 §5.1 — a scroll container's content-based
+        // automatic minimum size is zero, so `overflow: hidden` (a
+        // scroll container) keeps the ratio-derived height and lets
+        // taller content scroll/clip. Width 100, aspect-ratio 1/1 →
+        // height 100 even though the child is 500px tall.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; aspect-ratio: 1/1; overflow: hidden">'
+                . '<div style="height: 500px"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(100.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioBlockSizeKeptWhenContentShorter(): void
+    {
+        // Inverse of the floor: when content is shorter than the
+        // ratio-derived height the ratio still wins. Width 200,
+        // aspect-ratio 2/1 → height 100; a 10px child does not pull
+        // the box below 100.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 200px; aspect-ratio: 2/1">'
+                . '<div style="height: 10px"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(100.0, $div->geometry->height, 0.001);
+    }
+
     public function testAspectRatioIgnoredWhenHeightExplicit(): void
     {
         // Explicit height wins over aspect-ratio — width 200,

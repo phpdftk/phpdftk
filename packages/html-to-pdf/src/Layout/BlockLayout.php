@@ -1185,13 +1185,23 @@ final class BlockLayout
             // computed side to the same browser-style ceiling we use
             // for resolved Lengths.
             if ($heightIsAuto && !$widthAuto && $geo->width > 0.0) {
-                $geo->height = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio);
+                $geo->height = $this->aspectRatioBlockSize(
+                    \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio),
+                    $childTotal,
+                    $wm,
+                    $box,
+                );
             } elseif ($widthAuto && !$heightIsAuto && $geo->height > 0.0) {
                 $geo->width = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->height * $ratio);
             } elseif ($heightIsAuto && $geo->width > 0.0) {
                 // Both auto path retained for the historic case
                 // where height defaults to width / ratio.
-                $geo->height = \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio);
+                $geo->height = $this->aspectRatioBlockSize(
+                    \Phpdftk\Css\Cascade\LengthResolver::clampPx($geo->width / $ratio),
+                    $childTotal,
+                    $wm,
+                    $box,
+                );
             }
         }
         // CSS 2.1 §10.7 — clamp to [min-height, max-height]. Symmetric
@@ -5434,6 +5444,62 @@ final class BlockLayout
             return $direct;
         }
         return null;
+    }
+
+    /**
+     * CSS Sizing 4 §4.1 + §5.1 — the block size derived from
+     * `aspect-ratio` (when the inline size is definite and the block
+     * size is auto) is a *preferred* size, not a hard constraint: a
+     * box whose content-based automatic minimum size is larger is
+     * grown to fit, so the ratio never clips content. That floor is
+     * the box's content-based automatic minimum size, which applies
+     * only to boxes that are NOT scroll containers — a scroll
+     * container's automatic minimum is zero, so `overflow: hidden /
+     * auto / scroll` keeps the ratio-derived size and scrolls/clips
+     * the overflow instead. In vertical writing modes the block axis
+     * is horizontal and derived differently upstream, so the floor is
+     * skipped there.
+     *
+     * Restricted to in-flow boxes: absolutely-positioned boxes size
+     * through their own algorithm and honour an explicit
+     * `min-height` (e.g. `min-height: 0`, which our cascade can't
+     * distinguish from the unset `auto` default), so applying the
+     * content floor there would wrongly grow `min-height: 0` abspos
+     * boxes past the ratio.
+     */
+    private function aspectRatioBlockSize(
+        float $ratioBlockSize,
+        float $contentBlockSize,
+        WritingMode $wm,
+        Box $box,
+    ): float {
+        if (!$wm->isVertical()
+            && !$this->isOutOfFlow($box)
+            && !$this->isScrollContainer($box->style)
+            && $contentBlockSize > $ratioBlockSize
+        ) {
+            return $contentBlockSize;
+        }
+        return $ratioBlockSize;
+    }
+
+    /**
+     * CSS Overflow 3 §3.3 — a box establishes a scroll container when
+     * either overflow axis is `scroll`, `auto`, or `hidden` (hidden is
+     * programmatically scrollable). `visible` and `clip` do not.
+     */
+    private function isScrollContainer(CascadedValues $style): bool
+    {
+        foreach (['overflow-x', 'overflow-y'] as $prop) {
+            $v = $style->get($prop);
+            if ($v instanceof Keyword) {
+                $name = strtolower($v->name);
+                if ($name === 'scroll' || $name === 'auto' || $name === 'hidden') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
