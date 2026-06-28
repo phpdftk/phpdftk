@@ -203,8 +203,14 @@ final class PropertyRegistry
         $r->register($initial('z-index', new Keyword('auto')));
         $r->register($initial('width', new Keyword('auto')));
         $r->register($initial('height', new Keyword('auto')));
-        $r->register($initial('min-width', $zero));
-        $r->register($initial('min-height', $zero));
+        // CSS Sizing 3 §5 — the initial value of `min-width` /
+        // `min-height` is `auto`, not `0`. `auto` resolves to `0` for
+        // most boxes, but to the content-based automatic minimum size
+        // for flex items (Flexbox §4.5), grid items, and aspect-ratio
+        // boxes (Sizing 4 §5.1) — so layout must distinguish the unset
+        // default from an authored `0`.
+        $r->register($initial('min-width', new Keyword('auto')));
+        $r->register($initial('min-height', new Keyword('auto')));
         $r->register($initial('max-width', new Keyword('none')));
         $r->register($initial('max-height', new Keyword('none')));
         $r->register($initial('margin-top', $zero));
@@ -555,8 +561,8 @@ final class PropertyRegistry
         // equivalents at used-value time.
         $r->register($initial('block-size', new Keyword('auto')));
         $r->register($initial('inline-size', new Keyword('auto')));
-        $r->register($initial('min-block-size', new Length(0.0, LengthUnit::Px)));
-        $r->register($initial('min-inline-size', new Length(0.0, LengthUnit::Px)));
+        $r->register($initial('min-block-size', new Keyword('auto')));
+        $r->register($initial('min-inline-size', new Keyword('auto')));
         $r->register($initial('max-block-size', new Keyword('none')));
         $r->register($initial('max-inline-size', new Keyword('none')));
 

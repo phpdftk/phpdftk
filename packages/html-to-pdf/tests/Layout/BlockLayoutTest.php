@@ -5689,6 +5689,63 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(175.0, $this->flexItemWidth($flex, 'c'));
     }
 
+    public function testFlexItemMinWidthAutoFloorsAtMinContent(): void
+    {
+        // CSS Flexbox 1 §4.5 — `min-width: auto` (the initial value)
+        // on a row flex item resolves to its content-based minimum.
+        // A zero-width container would otherwise shrink the item to 0,
+        // but its text content's min-content width (the widest word)
+        // is the floor, so the item cannot shrink below it. "WWWW" in
+        // 16px Ahem ≈ 64px; the exact width depends on the test font,
+        // so assert only that the item is floored well above zero.
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex"><div class="a">WWWW WWWW</div></div></body></html>',
+            '.flex { display: flex; width: 0px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        // Floored at the widest word — strictly positive, not 0.
+        self::assertGreaterThan(0.0, $this->flexItemWidth($flex, 'a'));
+    }
+
+    public function testFlexItemEmptySizedShrinksBelowSpecifiedWidth(): void
+    {
+        // CSS Flexbox 1 §4.5 — the automatic minimum is the SMALLER of
+        // the content size suggestion and the specified size
+        // suggestion. An empty `width: 400px` item has a content
+        // min-content of 0, so `min(0, 400) = 0` and it shrinks
+        // freely: two 400px items in a 600px container shrink to
+        // 300 each (NOT floored at their declared 400).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex">'
+                . '<div class="a"></div><div class="b"></div></div></body></html>',
+            '.flex { display: flex; width: 600px; }
+             .flex > div { width: 400px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'a'));
+        self::assertSame(300.0, $this->flexItemWidth($flex, 'b'));
+    }
+
+    public function testFlexItemExplicitMinWidthZeroOptsOutOfContentFloor(): void
+    {
+        // CSS Flexbox 1 §4.5 — an authored `min-width: 0` replaces the
+        // `auto` automatic minimum, so a text item can shrink below
+        // its min-content width (down to the container's 0).
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="flex"><div class="a">WWWW WWWW</div></div></body></html>',
+            '.flex { display: flex; width: 0px; }
+             .flex > div { min-width: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $flex = $this->find($box, 'div');
+        self::assertNotNull($flex);
+        self::assertSame(0.0, $this->flexItemWidth($flex, 'a'));
+    }
+
     public function testFlexShrinkNoOpWhenNoOverflow(): void
     {
         // Negative: when items already fit, shrink has nothing to do.

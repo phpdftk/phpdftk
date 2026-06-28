@@ -2453,6 +2453,7 @@ final class BlockLayout
             ->withLengthContext($this->lengthContextFor($style, $context->lengthContext));
         $itemMains = [];
         $itemCrosses = [];
+        $itemContentBlock = [];
         $basisCbMain = $isColumn ? $itemCbHeight : $geo->width;
         $mainProp = $isColumn ? 'height' : 'width';
         foreach ($children as $child) {
@@ -2500,6 +2501,12 @@ final class BlockLayout
                 $childCtx = $itemCtx->withContainingBlock($basis, $cbHeight);
             }
             $this->layoutBox($child, $childCtx);
+            // Capture the laid-out content block size BEFORE the basis
+            // override clobbers it. For a column flex item this is the
+            // item's true min-content height (line-box aware, and free
+            // of any `flex-basis` / explicit-height substitution) — the
+            // content size suggestion the §4.5 automatic minimum needs.
+            $itemContentBlock[] = $child->geometry->height;
             if ($basis !== null) {
                 if ($isColumn) {
                     $child->geometry->height = $basis;
@@ -2578,6 +2585,7 @@ final class BlockLayout
                 $cbWidth,
                 $cbHeight,
                 $itemCtx,
+                $itemContentBlock,
             );
 
             $lineUsed = 0.0;
@@ -4718,6 +4726,10 @@ final class BlockLayout
      * @param list<Box> $children
      * @param list<int> $indices
      * @param list<float> $itemMains  Per-index OUTER main size (in/out).
+     * @param list<float> $itemContentBlock  Per-index laid-out content
+     *        block size (height), captured before any flex-basis /
+     *        explicit-height override — the §4.5 content size suggestion
+     *        for column items.
      * @return array<int, float>  Final outer main size, keyed by index.
      */
     private function resolveFlexLineMainSizes(
@@ -4730,6 +4742,7 @@ final class BlockLayout
         float $cbWidth,
         float $cbHeight,
         ?LayoutContext $itemCtx = null,
+        array $itemContentBlock = [],
     ): array {
         if ($indices === []) {
             return [];
@@ -4771,38 +4784,77 @@ final class BlockLayout
                     ? null
                     : $this->resolveLength($maxInnerVal, $cbWidth);
             }
-            // CSS Flexbox 1 §4.5 — `min-width: auto` / `min-height:
-            // auto` on a flex item (in the main axis) resolves to
-            // the item's min-content size when `overflow: visible`.
-            // Without this, items can shrink to zero, hiding text
-            // that wouldn't be hidden by the spec's clamp.
-            if ($itemCtx !== null && $this->isAuto($children[$i]->style->get($minProp))) {
-                $overflow = $children[$i]->style->get('overflow');
-                $isVisible = !($overflow instanceof Keyword)
-                    || strtolower($overflow->name) === 'visible';
-                if ($isVisible) {
-                    $mm = $this->measureMinMaxContent($children[$i], $itemCtx);
-                    $minInner = max($minInner, $mm['min']);
-                }
-            }
-            // CSS Flexbox 1 §4.5 transferred size suggestion — when a
-            // flex item has an aspect ratio and a definite cross
-            // size, its automatic minimum on the main axis is at
-            // least the transferred size (cross ÷ ratio in column
-            // direction, cross × ratio in row). We apply this even
-            // when the explicit min-axis-size is `0` (the CSS 2.1
-            // initial value) because Flexbox §4.5 redefines the
-            // automatic minimum for replaced flex items — without
-            // it, an `<img width=100>` in a `flex-direction: column;
-            // height: 0` container shrinks to zero instead of
-            // honouring its 100 ÷ 2 = 50 px transferred floor.
+            // CSS Flexbox 1 §4.5 — automatic minimum size. When the
+            // main-axis `min-{width,height}` is `auto` (the initial
+            // value) and the item is not a scroll container, the used
+            // minimum is the item's content-based minimum size: the
+            // smaller of its content size suggestion and — when that
+            // exists — its specified size suggestion, else its
+            // transferred size suggestion. Each is capped by the max
+            // main size. An authored `min-*: <length>` (including `0`)
+            // opts out and keeps its resolved value, so a sized-but-
+            // empty `min-width: 0` item still shrinks to zero.
             $transferred = $this->aspectRatioTransfer(
                 $children[$i]->style,
                 $isColumn,
                 $cbWidth,
                 $cbHeight,
             );
-            if ($transferred !== null && $transferred > 0.0) {
+            if ($itemCtx !== null && $this->isAuto($children[$i]->style->get($minProp))) {
+                // §4.5 — the content floor applies only when the item's
+                // overflow IN THE MAIN AXIS is visible (a scroll
+                // container in that axis has a zero automatic minimum).
+                // Read the per-axis longhand: the `overflow` shorthand
+                // expands into `overflow-x` / `overflow-y`, so an
+                // authored `overflow-x: hidden` is invisible to a
+                // shorthand lookup.
+                $overflow = $children[$i]->style->get($isColumn ? 'overflow-y' : 'overflow-x');
+                $isVisible = !($overflow instanceof Keyword)
+                    || strtolower($overflow->name) === 'visible';
+                if ($isVisible) {
+                    // Content size suggestion: the item's content-based
+                    // min-content size in the main axis. For a row this
+                    // is the inline min-content width via
+                    // measureContentMinMax (which, unlike
+                    // measureMinMaxContent, is NOT short-circuited by
+                    // the item's declared width — so an empty
+                    // `width: 400px` item reports 0 and stays
+                    // shrinkable).
+                    $contentSuggestion = $this->flexItemContentMainMin(
+                        $children[$i],
+                        $isColumn,
+                        $itemCtx,
+                        $transferred,
+                        $itemContentBlock[$i] ?? 0.0,
+                    );
+                    // Specified size suggestion: the definite used main
+                    // size (the post-flex-basis base size, when the
+                    // main-size property is definite). Undefined for an
+                    // `auto` main size, in which case the transferred
+                    // suggestion (cross × ratio) takes its place.
+                    $mainDefinite = !$this->isAuto(
+                        $children[$i]->style->get($isColumn ? 'height' : 'width'),
+                    );
+                    $specified = $mainDefinite ? max(0.0, $baseOuter[$i] - $adornment) : null;
+                    $auto = $contentSuggestion;
+                    if ($specified !== null) {
+                        $auto = min($auto, $specified);
+                    } elseif ($transferred !== null && $transferred > 0.0) {
+                        $auto = min($auto, $transferred);
+                    }
+                    if ($maxInner !== null && $maxInner > 0.0) {
+                        $auto = min($auto, $maxInner);
+                    }
+                    $minInner = max($minInner, $auto);
+                }
+            } elseif ($transferred !== null && $transferred > 0.0) {
+                // Main-axis min is an explicit length (the §4.5
+                // automatic minimum is opted out), but an aspect-ratio
+                // item whose base size derives from its cross axis
+                // (e.g. `flex-basis: content` with a definite cross
+                // size) is still sized to its transferred size — floor
+                // by it so the ratio is honoured rather than collapsing
+                // to a small explicit `height`/`width`.
                 $minInner = max($minInner, $transferred);
             }
             $minOuter[$i] = max(0.0, ($minInner > 0.0 ? $minInner : 0.0) + $adornment);
@@ -5322,6 +5374,71 @@ final class BlockLayout
             return $childCtx->withContainerSize($contentBoxWidth, $contentBoxHeight);
         }
         return $childCtx;
+    }
+
+    /**
+     * CSS Flexbox 1 §4.5 — the *content size suggestion* of a flex
+     * item: its content-based min-content size in the MAIN axis.
+     *
+     *  - Replaced / atomic items with a definite-cross aspect ratio
+     *    report their transferred size (cross × ratio) — an `<img
+     *    width:100px height:30px-square-ratio>` resolves its min-content
+     *    main size from the ratio, not the declared `width` (Flexbox
+     *    §4.5 case "d"). Without a usable ratio they report their
+     *    laid-out natural main size.
+     *  - Text items report their laid-out main size.
+     *  - Other (block) items in a ROW use `measureContentMinMax` — the
+     *    inline min-content width that is NOT short-circuited by the
+     *    item's own declared width, so a sized-but-empty item reports
+     *    0. In a COLUMN the main axis is the block axis; the content
+     *    block size is the laid-out content height captured before any
+     *    flex-basis / explicit-height override (`$contentBlock`) —
+     *    line-box aware (inline children sharing a line aren't
+     *    double-counted) and free of the basis substitution that
+     *    would otherwise read back e.g. a `flex-basis: 100%` size.
+     */
+    private function flexItemContentMainMin(
+        Box $item,
+        bool $isColumn,
+        LayoutContext $itemCtx,
+        ?float $transferred,
+        float $contentBlock,
+    ): float {
+        // Any item with a usable aspect ratio (definite cross size)
+        // derives its main-axis min-content size from the ratio — the
+        // transferred size (cross × ratio) — regardless of box type or
+        // whether it has content. This is §4.5's "content size
+        // suggestion ... clamped, if it has an aspect ratio, by the
+        // cross size converted through the ratio".
+        if ($transferred !== null && $transferred > 0.0) {
+            return $transferred;
+        }
+        if ($isColumn) {
+            // When `height` is auto, the captured pre-basis content
+            // height IS the content block size (line-box aware, and
+            // free of a `flex-basis` substitution that layoutBox never
+            // applies). When `height` is an explicit length /
+            // percentage, layoutBox already baked it into that captured
+            // value, masking the content — so sum the in-flow child
+            // outer heights instead (line boxes stack, so text content
+            // stays line-aware; an empty item contributes 0 and the
+            // specified-size suggestion caps the rest via `min`).
+            if ($this->isAuto($item->style->get('height'))) {
+                return max(0.0, $contentBlock);
+            }
+            $sum = 0.0;
+            foreach ($item->children as $child) {
+                if ($this->isOutOfFlow($child)) {
+                    continue;
+                }
+                $sum += $child->geometry->outerHeight();
+            }
+            return $sum;
+        }
+        if ($item instanceof AtomicInlineBox || $item instanceof TextBox) {
+            return $item->geometry->width;
+        }
+        return $this->measureContentMinMax($item, $itemCtx)['min'];
     }
 
     /**
