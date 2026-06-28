@@ -5460,12 +5460,12 @@ final class BlockLayout
      * is horizontal and derived differently upstream, so the floor is
      * skipped there.
      *
-     * Restricted to in-flow boxes: absolutely-positioned boxes size
-     * through their own algorithm and honour an explicit
-     * `min-height` (e.g. `min-height: 0`, which our cascade can't
-     * distinguish from the unset `auto` default), so applying the
-     * content floor there would wrongly grow `min-height: 0` abspos
-     * boxes past the ratio.
+     * The content floor IS the box's `min-height: auto` automatic
+     * minimum, so it applies only when the block-axis min size is
+     * `auto` (the unset default, or an explicit `auto`). An explicit
+     * `min-height` length — including `min-height: 0` — replaces the
+     * automatic minimum, so the ratio-derived size wins and content
+     * overflows. {@see blockSizeMinIsAuto}.
      */
     private function aspectRatioBlockSize(
         float $ratioBlockSize,
@@ -5474,13 +5474,32 @@ final class BlockLayout
         Box $box,
     ): float {
         if (!$wm->isVertical()
-            && !$this->isOutOfFlow($box)
+            && $this->blockSizeMinIsAuto($box->style)
             && !$this->isScrollContainer($box->style)
             && $contentBlockSize > $ratioBlockSize
         ) {
             return $contentBlockSize;
         }
         return $ratioBlockSize;
+    }
+
+    /**
+     * CSS Sizing 4 §5.1 — `true` when the block-axis minimum size
+     * resolves to `auto` (the automatic content-based minimum): either
+     * `min-height` was never authored (the registry default, which we
+     * store as `0` but which is semantically `auto`) or it is the
+     * explicit `auto` keyword. An authored length / percentage —
+     * notably `min-height: 0` — replaces the automatic minimum, so
+     * this returns false. Distinguishing unset from authored-`0` is
+     * why this reads {@see CascadedValues::has} rather than the
+     * resolved value.
+     */
+    private function blockSizeMinIsAuto(CascadedValues $style): bool
+    {
+        if (!$style->has('min-height')) {
+            return true;
+        }
+        return $this->isAuto($style->get('min-height'));
     }
 
     /**

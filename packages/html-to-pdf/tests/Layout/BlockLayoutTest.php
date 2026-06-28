@@ -6345,6 +6345,25 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $div->geometry->height, 0.001);
     }
 
+    public function testAspectRatioBlockSizeNotFlooredWhenMinHeightExplicitZero(): void
+    {
+        // CSS Sizing 4 §5.1 — an authored `min-height: 0` replaces the
+        // `auto` automatic content-based minimum, so the ratio-derived
+        // height wins and taller content overflows. Width 100,
+        // aspect-ratio 1/1 → height 100 even though the child is 500px;
+        // the explicit `0` (which our cascade must distinguish from the
+        // unset default) suppresses the content floor.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 100px; aspect-ratio: 1/1; min-height: 0">'
+                . '<div style="height: 500px"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(100.0, $div->geometry->height, 0.001);
+    }
+
     public function testAspectRatioBlockSizeKeptWhenContentShorter(): void
     {
         // Inverse of the floor: when content is shorter than the
