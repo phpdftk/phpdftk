@@ -6248,6 +6248,53 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(200.0, $div->geometry->height, 0.001);
     }
 
+    public function testAspectRatioAutoKeywordWithRatioApplies(): void
+    {
+        // CSS Sizing 4 §4.2 — `aspect-ratio: auto 16/9` on a
+        // non-replaced box has no natural ratio to prefer, so the
+        // explicit `16/9` wins exactly like the bare ratio. Width 320
+        // → height 180. The `auto` token rides along in a space-
+        // separated sub-list of the slash value and must be unwrapped.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 320px; aspect-ratio: auto 16/9"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(180.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioRatioBeforeAutoKeywordApplies(): void
+    {
+        // The `auto && <ratio>` grammar is order-independent — `16/9
+        // auto` parses with `auto` trailing the denominator and must
+        // resolve identically to `auto 16/9`. Width 320 → height 180.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 320px; aspect-ratio: 16/9 auto"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(180.0, $div->geometry->height, 0.001);
+    }
+
+    public function testAspectRatioAutoKeywordWithSingleNumberApplies(): void
+    {
+        // `auto && <ratio>` where the ratio is a bare `<number>`
+        // (no slash) — `auto 1.5` resolves to 1.5:1. Width 300 →
+        // height 200.
+        $box = $this->buildTree(
+            '<html><body><div style="width: 300px; aspect-ratio: auto 1.5"></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $div = $this->find($box, 'div');
+        self::assertNotNull($div);
+        self::assertEqualsWithDelta(200.0, $div->geometry->height, 0.001);
+    }
+
     public function testAspectRatioAutoIsNoOp(): void
     {
         // Default `aspect-ratio: auto` doesn't change height — empty

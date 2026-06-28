@@ -5408,7 +5408,13 @@ final class BlockLayout
      *  - `<number>` (e.g. `1.5`) → ratio.
      *  - `<number> / <number>` (e.g. `16/9`) → first divided by
      *    second (parses as ValueList with Slash separator).
-     * Returns null on `auto` / unknown / zero denominator.
+     *  - `auto && <ratio>` (e.g. `auto 1/1`, `16/9 auto`) → the
+     *    `auto` keyword pairs with the explicit ratio. For a
+     *    non-replaced box (this path) there is no natural ratio to
+     *    prefer, so the explicit ratio always wins; the `auto`
+     *    token rides along in a space-separated sub-list which
+     *    {@see ratioComponent} unwraps.
+     * Returns null on bare `auto` / unknown / zero denominator.
      */
     private function resolveAspectRatio(CascadedValues $style): ?float
     {
@@ -5417,17 +5423,41 @@ final class BlockLayout
             && $value->separator === \Phpdftk\Css\Value\ListSeparator::Slash
             && count($value->values) >= 2
         ) {
-            $w = $this->numericValue($value->values[0]);
-            $h = $this->numericValue($value->values[1]);
+            $w = $this->ratioComponent($value->values[0]);
+            $h = $this->ratioComponent($value->values[1]);
             if ($w !== null && $h !== null && $h > 0.0) {
                 return $w / $h;
             }
         }
-        $direct = $this->numericValue($value);
+        $direct = $this->ratioComponent($value);
         if ($direct !== null && $direct > 0.0) {
             return $direct;
         }
         return null;
+    }
+
+    /**
+     * Extract the numeric component of one side of an `aspect-ratio`
+     * value. A side may be a bare `<number>` or a space-separated
+     * `auto <number>` / `<number> auto` pairing (CSS Sizing 4 §4.2 —
+     * `auto && <ratio>`); the `auto` keyword is dropped and the
+     * number returned. Returns null when no number is present (e.g.
+     * a bare `auto`).
+     */
+    private function ratioComponent(?\Phpdftk\Css\Value\Value $v): ?float
+    {
+        if ($v instanceof \Phpdftk\Css\Value\ValueList
+            && $v->separator === \Phpdftk\Css\Value\ListSeparator::Space
+        ) {
+            foreach ($v->values as $part) {
+                $n = $this->numericValue($part);
+                if ($n !== null) {
+                    return $n;
+                }
+            }
+            return null;
+        }
+        return $this->numericValue($v);
     }
 
     private function numericValue(?\Phpdftk\Css\Value\Value $v): ?float
