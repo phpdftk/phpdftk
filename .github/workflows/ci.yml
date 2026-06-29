@@ -240,7 +240,14 @@ jobs:
 
           git add .
           git commit -m "coverage: ${{ steps.target.outputs.dir }}" --allow-empty
-          git push origin _coverage
+          # Concurrent PR runs race on the shared _coverage branch; each
+          # writes its own pr/<num>/<sha>/ path, so retry with a rebase
+          # onto the latest tip (same pattern as the _phpdoc push).
+          for attempt in 1 2 3 4 5; do
+            git push origin _coverage && break
+            echo "push rejected (attempt $attempt) — re-syncing _coverage and retrying"
+            git pull --rebase origin _coverage
+          done
 
       - name: Cleanup worktree
         if: always()
