@@ -19,11 +19,13 @@ final class FloatContext
     /** @var list<FloatItem> */
     private array $items = [];
 
+    /** @param array<string, mixed>|null $shape */
     public function addLeft(float $left, float $top, float $width, float $height, ?array $shape = null): void
     {
         $this->items[] = new FloatItem('left', $left, $top, $width, $height, $shape);
     }
 
+    /** @param array<string, mixed>|null $shape */
     public function addRight(float $left, float $top, float $width, float $height, ?array $shape = null): void
     {
         $this->items[] = new FloatItem('right', $left, $top, $width, $height, $shape);

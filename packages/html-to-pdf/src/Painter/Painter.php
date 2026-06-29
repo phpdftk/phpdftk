@@ -4995,7 +4995,7 @@ final class Painter
             $names[] = $family->value;
         } elseif ($family instanceof \Phpdftk\Css\Value\Keyword) {
             $names[] = $family->name;
-        } elseif ($family instanceof \Phpdftk\Css\Value\CommaList) {
+        } elseif ($family instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($family->values as $entry) {
                 if ($entry instanceof \Phpdftk\Css\Value\StringValue) {
                     $names[] = $entry->value;
@@ -5022,6 +5022,14 @@ final class Painter
      * math-font data threaded in. Falls back to the cached default
      * renderer when no MATH-table font matches the cascade -
      * keeps the common "no math font" path zero-cost.
+     *
+     * Intentionally retained but not yet wired into the paint path:
+     * switching to the per-element renderer regresses
+     * `painting-stretchy-operator-001` and `frac-default-padding`
+     * (see the call site in {@see paintMathml}). Kept as the #105
+     * math-font-handoff substrate.
+     *
+     * @phpstan-ignore method.unused
      */
     private function mathmlRendererFor(
         \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,

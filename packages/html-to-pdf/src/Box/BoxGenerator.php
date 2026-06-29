@@ -1695,7 +1695,7 @@ final class BoxGenerator
                 }
             }
             if ($names !== []) {
-                $outside = $names[0] ?? null;
+                $outside = $names[0];
                 $inside = $names[1] ?? null;
                 if ($outside === 'inline' && $inside !== null) {
                     return 'inline-' . $inside;

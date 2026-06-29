@@ -10,6 +10,11 @@ namespace Phpdftk\HtmlToPdf\Layout;
  */
 final readonly class FloatItem
 {
+    /**
+     * @param array<string, mixed>|null $shape CSS Shapes 1 §3 exclusion
+     *        shape (a kind-keyed dict: `circle` / `ellipse` / `polygon`
+     *        / `path`), or null for the float's bounding rectangle.
+     */
     public function __construct(
         /** `'left'` or `'right'` per CSS 2.1 §9.5. */
         public string $side,

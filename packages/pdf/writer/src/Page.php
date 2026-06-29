@@ -523,7 +523,9 @@ final class Page
             $height = $natHeight;
         } elseif ($width !== null && $height === null) {
             $height = $natHeight * ($width / $natWidth);
-        } elseif ($width === null && $height !== null) {
+        } elseif ($width === null) {
+            // Reached only when $height is non-null (the both-null and
+            // width-only branches above are exhausted).
             $width = $natWidth * ($height / $natHeight);
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\SvgToPdf;
 
+use Phpdftk\Css\Cascade\CascadedValues;
 use Phpdftk\Svg\Css\CssBridge;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\SvgDocument;
@@ -87,7 +88,7 @@ final class SvgCascadeProjector
      * declaration, then recurses into children with the new
      * cascade as their parent values.
      */
-    private function walk(Element $element, $parentValues): void
+    private function walk(Element $element, ?CascadedValues $parentValues): void
     {
         $document = $element instanceof SvgDocument
             ? $element

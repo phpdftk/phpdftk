@@ -1501,6 +1501,7 @@ final class BlockLayout
         ];
     }
 
+    /** @return array<string, mixed>|null */
     private function resolveShapeOutsideShape(Box $float, float $refWidth, float $refHeight): ?array
     {
         $value = $float->style->get('shape-outside');
@@ -3386,7 +3387,7 @@ final class BlockLayout
         foreach ($iterTracks as $idx => $t) {
             // Anything non-fixed (`fr`, intrinsic) makes the count
             // indeterminate per §7.2.3; fall back to 1.
-            if (($t['type'] ?? null) !== 'length') {
+            if ($t['type'] !== 'length') {
                 return 1;
             }
             $iterSize += max(0.0, $t['value']);
@@ -3403,6 +3404,7 @@ final class BlockLayout
         return max(1, $count);
     }
 
+    /** @return list<array{type: string, value: float, minFloor?: float}> */
     private function parseGridTrackList(
         ?\Phpdftk\Css\Value\Value $value,
         float $availableSize = 0.0,
@@ -4196,6 +4198,10 @@ final class BlockLayout
         return 0;
     }
 
+    /**
+     * @param array<string, array{rowStart: int, colStart: int, rowEnd: int, colEnd: int}> $areaMap
+     * @return array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}
+     */
     private function resolveGridPlacement(
         Box $child,
         int $columnCount,

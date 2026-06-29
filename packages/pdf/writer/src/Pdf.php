@@ -1198,7 +1198,9 @@ class Pdf
         } elseif ($width !== null && $height === null) {
             $w = $width;
             $h = $naturalH * ($width / $naturalW);
-        } elseif ($width === null && $height !== null) {
+        } elseif ($width === null) {
+            // Reached only when $height is non-null (both-null and
+            // width-only branches above are exhausted).
             $h = $height;
             $w = $naturalW * ($height / $naturalH);
         } else {

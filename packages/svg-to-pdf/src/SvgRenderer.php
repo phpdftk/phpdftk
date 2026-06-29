@@ -240,7 +240,9 @@ final class SvgRenderer
         } elseif ($width !== null && $height === null) {
             $w = $width;
             $h = $aspect > 0.0 ? $width / $aspect : $width;
-        } elseif ($width === null && $height !== null) {
+        } elseif ($width === null) {
+            // Reached only when $height is non-null (both-null and
+            // width-only branches above are exhausted).
             $h = $height;
             $w = $height * $aspect;
         } else {
@@ -302,7 +304,9 @@ final class SvgRenderer
         } elseif ($width !== null && $height === null) {
             $w = $width;
             $h = $aspect > 0.0 ? $width / $aspect : $width;
-        } elseif ($width === null && $height !== null) {
+        } elseif ($width === null) {
+            // Reached only when $height is non-null (both-null and
+            // width-only branches above are exhausted).
             $h = $height;
             $w = $height * $aspect;
         } else {

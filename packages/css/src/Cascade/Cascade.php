@@ -2147,7 +2147,9 @@ final class Cascade
             return null;
         }
         $n = (float) $m[1];
-        $unit = strtolower($m[2] ?? 'px');
+        // The `([a-z]*)` group always captures (empty when no unit),
+        // and the `match` below folds '' into the `px` case.
+        $unit = strtolower($m[2]);
         // CSS Media Queries 4 §1.3 — `rem` / `em` / `ex` / `ch` inside
         // an `@media` query use the INITIAL value of `font-size` on
         // the root element (16 CSS px in the absence of a UA
