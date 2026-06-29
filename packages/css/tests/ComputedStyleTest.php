@@ -8,6 +8,9 @@ use Phpdftk\Css\Cascade\CascadedValues;
 use Phpdftk\Css\Cascade\ComputedStyle;
 use Phpdftk\Css\Cascade\PropertyRegistry;
 use Phpdftk\Css\Value\Color;
+use Phpdftk\Css\Value\ColorMix;
+use Phpdftk\Css\Value\ColorSpace;
+use Phpdftk\Css\Value\ContrastColor;
 use Phpdftk\Css\Value\Integer;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
@@ -324,5 +327,99 @@ final class ComputedStyleTest extends TestCase
             \Phpdftk\Css\Value\ListSeparator::Space,
         ));
         self::assertSame(1.0, $this->style->getColor()->r);
+    }
+
+    // ---- Full getter sweep ---------------------------------------------
+
+    /**
+     * Every zero-argument typed getter must return a value (its declared
+     * non-nullable type, defaulting to the registry initial) without
+     * throwing — guards the whole accessor surface in one shot.
+     */
+    public function testEveryZeroArgGetterReturnsRegistryDefault(): void
+    {
+        $ref = new \ReflectionClass(ComputedStyle::class);
+        $called = 0;
+        foreach ($ref->getMethods(\ReflectionMethod::IS_PUBLIC) as $m) {
+            if (!str_starts_with($m->getName(), 'get') || $m->getNumberOfRequiredParameters() !== 0) {
+                continue; // skip get()/getUnknown()/getCustomProperty() (need a name)
+            }
+            $result = $m->invoke($this->style);
+            self::assertNotNull($result, $m->getName() . ' returned null');
+            $called++;
+        }
+        // Sanity: the sweep actually exercised the bulk of the surface.
+        self::assertGreaterThan(100, $called);
+    }
+
+    // ---- Type-union branches -------------------------------------------
+
+    public function testFontWeightKeywordAndNumericBranches(): void
+    {
+        self::assertInstanceOf(Keyword::class, $this->style->getFontWeight()); // default 'normal'
+        $this->values->set('font-weight', new Integer(700));
+        self::assertSame(700, $this->style->getFontWeight()->value);
+    }
+
+    public function testLineHeightNumberLengthAndKeywordBranches(): void
+    {
+        self::assertInstanceOf(Keyword::class, $this->style->getLineHeight()); // default 'normal'
+        $this->values->set('line-height', new Number(1.5));
+        self::assertSame(1.5, $this->style->getLineHeight()->value);
+        $this->values->set('line-height', new Length(20.0, LengthUnit::Px));
+        self::assertInstanceOf(Length::class, $this->style->getLineHeight());
+    }
+
+    public function testZIndexAutoAndIntegerBranches(): void
+    {
+        self::assertInstanceOf(Keyword::class, $this->style->getZIndex()); // default 'auto'
+        $this->values->set('z-index', new Integer(5));
+        self::assertSame(5, $this->style->getZIndex()->value);
+    }
+
+    public function testColumnCountKeywordAndIntegerBranches(): void
+    {
+        self::assertInstanceOf(Keyword::class, $this->style->getColumnCount()); // default 'auto'
+        $this->values->set('column-count', new Integer(3));
+        self::assertSame(3, $this->style->getColumnCount()->value);
+    }
+
+    // ---- Colour-resolution chain ---------------------------------------
+
+    public function testGetColorResolvesSrgbColorMix(): void
+    {
+        // color-mix(in srgb, red 50%, blue 50%) → (0.5, 0, 0.5).
+        $this->values->set('color', new ColorMix(
+            ColorSpace::sRGB,
+            new Color(1.0, 0.0, 0.0),
+            50.0,
+            new Color(0.0, 0.0, 1.0),
+            50.0,
+        ));
+        $c = $this->style->getColor();
+        self::assertEqualsWithDelta(0.5, $c->r, 1e-9);
+        self::assertEqualsWithDelta(0.0, $c->g, 1e-9);
+        self::assertEqualsWithDelta(0.5, $c->b, 1e-9);
+    }
+
+    public function testGetColorContrastPicksBlackOnLightBaseAndWhiteOnDark(): void
+    {
+        // contrast-color(white) → black (white is the lighter half).
+        $this->values->set('color', new ContrastColor(new Color(1.0, 1.0, 1.0)));
+        self::assertSame([0.0, 0.0, 0.0], [$this->style->getColor()->r, $this->style->getColor()->g, $this->style->getColor()->b]);
+        // contrast-color(black) → white.
+        $this->values->set('color', new ContrastColor(new Color(0.0, 0.0, 0.0)));
+        self::assertSame([1.0, 1.0, 1.0], [$this->style->getColor()->r, $this->style->getColor()->g, $this->style->getColor()->b]);
+    }
+
+    public function testColorSchemeDarkSelectsDarkLightDarkBranch(): void
+    {
+        // `color-scheme: dark` (no `light`) opts into the dark branch.
+        $this->values->set('color-scheme', new Keyword('dark'));
+        $this->values->set('color', new \Phpdftk\Css\Value\LightDark(
+            new Color(1.0, 1.0, 1.0),
+            new Color(0.0, 0.0, 0.0),
+        ));
+        self::assertSame(0.0, $this->style->getColor()->r);
     }
 }
