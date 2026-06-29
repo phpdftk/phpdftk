@@ -127,7 +127,7 @@ jobs:
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Restore browser-cache PDFs
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: var/wpt/browser-cache
           key: cross-browser-cache-${{ env.CACHE_GENERATION }}-${{ steps.manifest-hash.outputs.hash }}-shard-${{ matrix.shard }}
