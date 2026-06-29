@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/html/src/Dom</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">html</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Dom</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="Element.php.html#26"><circle cx="566.7" cy="76.1" r="20.0" class="bubble-warning"><title>Phpdftk\Html\Dom\Element — Coverage: 70.4% | Lines: 135 | Complexity: 83</title></circle></a>
+ <a href="Node.php.html#16"><circle cx="745.2" cy="247.7" r="13.6" class="bubble-success"><title>Phpdftk\Html\Dom\Node — Coverage: 95.2% | Lines: 62 | Complexity: 31</title></circle></a>
+ <a href="Document.php.html#12"><circle cx="677.1" cy="241.1" r="11.2" class="bubble-warning"><title>Phpdftk\Html\Dom\Document — Coverage: 85.7% | Lines: 42 | Complexity: 33</title></circle></a>
+ <a href="ClassList.php.html#14"><circle cx="733.5" cy="284.0" r="9.6" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList — Coverage: 93.5% | Lines: 31 | Complexity: 20</title></circle></a>
+ <a href="ShadowRoot.php.html#15"><circle cx="628.4" cy="326.9" r="7.5" class="bubble-warning"><title>Phpdftk\Html\Dom\ShadowRoot — Coverage: 78.9% | Lines: 19 | Complexity: 7</title></circle></a>
+ <a href="Text.php.html#10"><circle cx="325.3" cy="313.7" r="7.5" class="bubble-danger"><title>Phpdftk\Html\Dom\Text — Coverage: 36.8% | Lines: 19 | Complexity: 11</title></circle></a>
+ <a href="HTMLSlotElement.php.html#15"><circle cx="60.0" cy="326.9" r="6.7" class="bubble-danger"><title>Phpdftk\Html\Dom\HTMLSlotElement — Coverage: 0.0% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="DocumentType.php.html#11"><circle cx="420.0" cy="330.2" r="5.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentType — Coverage: 50.0% | Lines: 10 | Complexity: 6</title></circle></a>
+ <a href="Comment.php.html#7"><circle cx="510.0" cy="330.2" r="4.9" class="bubble-warning"><title>Phpdftk\Html\Dom\Comment — Coverage: 62.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="DocumentFragment.php.html#11"><circle cx="204.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentFragment — Coverage: 20.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="Attr.php.html#15"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Html\Dom\Attr — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ShadowRootInit.php.html#10"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Html\Dom\ShadowRootInit — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="Element.php.html#26">Phpdftk\Html\Dom\Element</a></td><td class="text-right">262.20</td><td class="text-right">70.4%</td></tr>
+  <tr><td><a href="HTMLSlotElement.php.html#15">Phpdftk\Html\Dom\HTMLSlotElement</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Text.php.html#10">Phpdftk\Html\Dom\Text</a></td><td class="text-right">41.48</td><td class="text-right">36.8%</td></tr>
+  <tr><td><a href="Document.php.html#12">Phpdftk\Html\Dom\Document</a></td><td class="text-right">36.17</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="Node.php.html#16">Phpdftk\Html\Dom\Node</a></td><td class="text-right">31</td><td class="text-right">95.2%</td></tr>
+  <tr><td><a href="ClassList.php.html#14">Phpdftk\Html\Dom\ClassList</a></td><td class="text-right">20.11</td><td class="text-right">93.5%</td></tr>
+  <tr><td><a href="DocumentFragment.php.html#11">Phpdftk\Html\Dom\DocumentFragment</a></td><td class="text-right">12.19</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#11">Phpdftk\Html\Dom\DocumentType</a></td><td class="text-right">10.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="Comment.php.html#7">Phpdftk\Html\Dom\Comment</a></td><td class="text-right">7.90</td><td class="text-right">62.5%</td></tr>
+  <tr><td><a href="ShadowRoot.php.html#15">Phpdftk\Html\Dom\ShadowRoot</a></td><td class="text-right">7.46</td><td class="text-right">78.9%</td></tr>
+  <tr><td><a href="Attr.php.html#15">Phpdftk\Html\Dom\Attr</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRootInit.php.html#10">Phpdftk\Html\Dom\ShadowRootInit</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DocumentMode.php.html#10">Phpdftk\Html\Dom\DocumentMode</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HTMLTemplateElement.php.html#23">Phpdftk\Html\Dom\HTMLTemplateElement</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NodeType.php.html#10">Phpdftk\Html\Dom\NodeType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRootMode.php.html#7">Phpdftk\Html\Dom\ShadowRootMode</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SlotAssignment.php.html#7">Phpdftk\Html\Dom\SlotAssignment</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">4</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">6</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">8</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="Node.php.html#109"><circle cx="745.7" cy="53.0" r="20.0" class="bubble-success"><title>Phpdftk\Html\Dom\Node::insertBefore — Coverage: 95.2% | Lines: 21 | Complexity: 9</title></circle></a>
+ <a href="Element.php.html#390"><circle cx="780.0" cy="185.0" r="16.3" class="bubble-success"><title>Phpdftk\Html\Dom\Element::shallowClone — Coverage: 100.0% | Lines: 14 | Complexity: 5</title></circle></a>
+ <a href="Node.php.html#150"><circle cx="720.0" cy="218.0" r="15.1" class="bubble-success"><title>Phpdftk\Html\Dom\Node::removeChild — Coverage: 91.7% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="Element.php.html#160"><circle cx="780.0" cy="218.0" r="14.5" class="bubble-success"><title>Phpdftk\Html\Dom\Element::querySelectorAll — Coverage: 100.0% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="Element.php.html#353"><circle cx="714.5" cy="185.0" r="14.5" class="bubble-success"><title>Phpdftk\Html\Dom\Element::isShadowHostEligible — Coverage: 90.9% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="HTMLSlotElement.php.html#33"><circle cx="60.0" cy="185.0" r="13.8" class="bubble-danger"><title>Phpdftk\Html\Dom\HTMLSlotElement::assignedNodes — Coverage: 0.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="Text.php.html#46"><circle cx="60.0" cy="218.0" r="13.8" class="bubble-danger"><title>Phpdftk\Html\Dom\Text::splitText — Coverage: 0.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="ClassList.php.html#45"><circle cx="780.0" cy="185.0" r="12.3" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::toggle — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="Document.php.html#164"><circle cx="780.0" cy="152.0" r="12.3" class="bubble-success"><title>Phpdftk\Html\Dom\Document::findById — Coverage: 100.0% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="Element.php.html#102"><circle cx="780.0" cy="218.0" r="12.3" class="bubble-success"><title>Phpdftk\Html\Dom\Element::setAttribute — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Element.php.html#335"><circle cx="780.0" cy="251.0" r="12.3" class="bubble-success"><title>Phpdftk\Html\Dom\Element::attachShadow — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Document.php.html#86"><circle cx="780.0" cy="152.0" r="11.5" class="bubble-success"><title>Phpdftk\Html\Dom\Document::createElement — Coverage: 100.0% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="Document.php.html#137"><circle cx="574.3" cy="152.0" r="11.5" class="bubble-warning"><title>Phpdftk\Html\Dom\Document::findHtmlChild — Coverage: 71.4% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="Element.php.html#299"><circle cx="60.0" cy="185.0" r="11.5" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::indexAmongTypeSiblings — Coverage: 0.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="Element.php.html#313"><circle cx="60.0" cy="185.0" r="11.5" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::indexAmongTypeSiblingsFromEnd — Coverage: 0.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="ShadowRoot.php.html#24"><circle cx="780.0" cy="317.0" r="11.5" class="bubble-success"><title>Phpdftk\Html\Dom\ShadowRoot::__construct — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#23"><circle cx="780.0" cy="251.0" r="10.7" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::add — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#191"><circle cx="60.0" cy="218.0" r="10.7" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::closest — Coverage: 0.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="ClassList.php.html#35"><circle cx="780.0" cy="284.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::remove — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Document.php.html#152"><circle cx="780.0" cy="152.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\Document::collectByTagName — Coverage: 100.0% | Lines: 5 | Complexity: 6</title></circle></a>
+ <a href="Element.php.html#133"><circle cx="780.0" cy="251.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\Element::children — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#277"><circle cx="60.0" cy="251.0" r="9.8" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::indexAmongSiblings — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#288"><circle cx="780.0" cy="251.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\Element::indexAmongSiblingsFromEnd — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#373"><circle cx="780.0" cy="152.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\Element::collectByTagName — Coverage: 100.0% | Lines: 5 | Complexity: 6</title></circle></a>
+ <a href="Node.php.html#171"><circle cx="636.0" cy="284.0" r="9.8" class="bubble-warning"><title>Phpdftk\Html\Dom\Node::replaceChild — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Node.php.html#186"><circle cx="780.0" cy="251.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\Node::cloneNode — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ShadowRoot.php.html#51"><circle cx="780.0" cy="218.0" r="9.8" class="bubble-success"><title>Phpdftk\Html\Dom\ShadowRoot::collectSlots — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="ClassList.php.html#83"><circle cx="600.0" cy="251.0" r="8.7" class="bubble-warning"><title>Phpdftk\Html\Dom\ClassList::assertValidToken — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Document.php.html#124"><circle cx="780.0" cy="317.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Document::getElementsByTagName — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#180"><circle cx="60.0" cy="317.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\Document::shallowClone — Coverage: 0.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#17"><circle cx="780.0" cy="317.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\DocumentType::__construct — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#59"><circle cx="780.0" cy="317.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Element::__construct — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#145"><circle cx="780.0" cy="284.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Element::getElementsByTagName — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Element.php.html#236"><circle cx="60.0" cy="284.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::allAttributes — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Element.php.html#251"><circle cx="60.0" cy="251.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::previousElementSibling — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#261"><circle cx="60.0" cy="251.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::nextElementSibling — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="HTMLSlotElement.php.html#54"><circle cx="60.0" cy="317.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\HTMLSlotElement::assignedElements — Coverage: 0.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Node.php.html#60"><circle cx="780.0" cy="284.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Node::childNodes — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Node.php.html#81"><circle cx="780.0" cy="284.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Node::textContent — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Node.php.html#94"><circle cx="780.0" cy="251.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Node::setTextContent — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Node.php.html#201"><circle cx="780.0" cy="251.0" r="8.7" class="bubble-success"><title>Phpdftk\Html\Dom\Node::isAncestorOf — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ShadowRoot.php.html#63"><circle cx="60.0" cy="317.0" r="8.7" class="bubble-danger"><title>Phpdftk\Html\Dom\ShadowRoot::shallowClone — Coverage: 0.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#70"><circle cx="780.0" cy="284.0" r="7.6" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::tokens — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Element.php.html#184"><circle cx="780.0" cy="317.0" r="7.6" class="bubble-success"><title>Phpdftk\Html\Dom\Element::matches — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ShadowRoot.php.html#43"><circle cx="780.0" cy="317.0" r="7.6" class="bubble-success"><title>Phpdftk\Html\Dom\ShadowRoot::slots — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#11"><circle cx="780.0" cy="317.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Comment::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#37"><circle cx="60.0" cy="317.0" r="6.2" class="bubble-danger"><title>Phpdftk\Html\Dom\Comment::shallowClone — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="DocumentFragment.php.html#28"><circle cx="60.0" cy="317.0" r="6.2" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentFragment::shallowClone — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#49"><circle cx="60.0" cy="317.0" r="6.2" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentType::shallowClone — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#178"><circle cx="780.0" cy="317.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Element::querySelector — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#218"><circle cx="780.0" cy="251.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Element::elementId — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="Element.php.html#245"><circle cx="780.0" cy="284.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Element::parentElement — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Text.php.html#14"><circle cx="780.0" cy="317.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Text::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#67"><circle cx="780.0" cy="317.0" r="6.2" class="bubble-success"><title>Phpdftk\Html\Dom\Text::shallowClone — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Attr.php.html#17"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Attr::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Attr.php.html#27"><circle cx="780.0" cy="284.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Attr::qualifiedName — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ClassList.php.html#16"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#18"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::contains — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#59"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::values — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#64"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\ClassList::count — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassList.php.html#78"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\ClassList::write — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#17"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Comment::nodeType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#22"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Comment::nodeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#27"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Comment::textContent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Comment.php.html#32"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\Comment::setTextContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#69"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#76"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::nodeType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#81"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::nodeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#104"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::createTextNode — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#109"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::createComment — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#114"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::createDocumentFragment — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Document.php.html#132"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Document::getElementById — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentFragment.php.html#13"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\DocumentFragment::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentFragment.php.html#18"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentFragment::nodeType — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentFragment.php.html#23"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentFragment::nodeName — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#29"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentType::nodeType — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#34"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\DocumentType::nodeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#39"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentType::textContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DocumentType.php.html#44"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\DocumentType::setTextContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#71"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::nodeType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#76"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::nodeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#82"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::attributes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#87"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::hasAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#92"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::getAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#97"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::getAttributeNode — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#122"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::setAttributeNode — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#127"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::removeAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#208"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::localName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#213"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::namespaceUri — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#225"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::classes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#230"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::getAttributeValue — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#272"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\Element::elementChildren — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Element.php.html#385"><circle cx="780.0" cy="284.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Element::canonicalAttrKey — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="HTMLSlotElement.php.html#69"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\HTMLSlotElement::setAssignedNodes — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Node.php.html#46"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Node::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Node.php.html#69"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Node::hasChildNodes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Node.php.html#104"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Node::appendChild — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ShadowRootInit.php.html#12"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\ShadowRootInit::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#20"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Text::nodeType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#25"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Text::nodeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#30"><circle cx="780.0" cy="317.0" r="4.4" class="bubble-success"><title>Phpdftk\Html\Dom\Text::textContent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#35"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\Text::setTextContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Text.php.html#62"><circle cx="60.0" cy="317.0" r="4.4" class="bubble-danger"><title>Phpdftk\Html\Dom\Text::length — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="Element.php.html#299">Phpdftk\Html\Dom\Element::indexAmongTypeSiblings</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#313">Phpdftk\Html\Dom\Element::indexAmongTypeSiblingsFromEnd</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HTMLSlotElement.php.html#33">Phpdftk\Html\Dom\HTMLSlotElement::assignedNodes</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#191">Phpdftk\Html\Dom\Element::closest</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Text.php.html#46">Phpdftk\Html\Dom\Text::splitText</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#251">Phpdftk\Html\Dom\Element::previousElementSibling</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#261">Phpdftk\Html\Dom\Element::nextElementSibling</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#277">Phpdftk\Html\Dom\Element::indexAmongSiblings</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Node.php.html#109">Phpdftk\Html\Dom\Node::insertBefore</a></td><td class="text-right">9</td><td class="text-right">95.2%</td></tr>
+  <tr><td><a href="Document.php.html#137">Phpdftk\Html\Dom\Document::findHtmlChild</a></td><td class="text-right">6.84</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="Document.php.html#86">Phpdftk\Html\Dom\Document::createElement</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#152">Phpdftk\Html\Dom\Document::collectByTagName</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#164">Phpdftk\Html\Dom\Document::findById</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#236">Phpdftk\Html\Dom\Element::allAttributes</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#373">Phpdftk\Html\Dom\Element::collectByTagName</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#353">Phpdftk\Html\Dom\Element::isShadowHostEligible</a></td><td class="text-right">5.02</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="ClassList.php.html#45">Phpdftk\Html\Dom\ClassList::toggle</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#390">Phpdftk\Html\Dom\Element::shallowClone</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#150">Phpdftk\Html\Dom\Node::removeChild</a></td><td class="text-right">4.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="Element.php.html#102">Phpdftk\Html\Dom\Element::setAttribute</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#160">Phpdftk\Html\Dom\Element::querySelectorAll</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRoot.php.html#51">Phpdftk\Html\Dom\ShadowRoot::collectSlots</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#83">Phpdftk\Html\Dom\ClassList::assertValidToken</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#23">Phpdftk\Html\Dom\ClassList::add</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#133">Phpdftk\Html\Dom\Element::children</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#218">Phpdftk\Html\Dom\Element::elementId</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#288">Phpdftk\Html\Dom\Element::indexAmongSiblingsFromEnd</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#335">Phpdftk\Html\Dom\Element::attachShadow</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#94">Phpdftk\Html\Dom\Node::setTextContent</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#186">Phpdftk\Html\Dom\Node::cloneNode</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#201">Phpdftk\Html\Dom\Node::isAncestorOf</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#171">Phpdftk\Html\Dom\Node::replaceChild</a></td><td class="text-right">2.03</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="Attr.php.html#27">Phpdftk\Html\Dom\Attr::qualifiedName</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#35">Phpdftk\Html\Dom\ClassList::remove</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#64">Phpdftk\Html\Dom\ClassList::count</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#70">Phpdftk\Html\Dom\ClassList::tokens</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Comment.php.html#32">Phpdftk\Html\Dom\Comment::setTextContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Comment.php.html#37">Phpdftk\Html\Dom\Comment::shallowClone</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Document.php.html#180">Phpdftk\Html\Dom\Document::shallowClone</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentFragment.php.html#18">Phpdftk\Html\Dom\DocumentFragment::nodeType</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentFragment.php.html#23">Phpdftk\Html\Dom\DocumentFragment::nodeName</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentFragment.php.html#28">Phpdftk\Html\Dom\DocumentFragment::shallowClone</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#29">Phpdftk\Html\Dom\DocumentType::nodeType</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#39">Phpdftk\Html\Dom\DocumentType::textContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#44">Phpdftk\Html\Dom\DocumentType::setTextContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#49">Phpdftk\Html\Dom\DocumentType::shallowClone</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#97">Phpdftk\Html\Dom\Element::getAttributeNode</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#145">Phpdftk\Html\Dom\Element::getElementsByTagName</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#245">Phpdftk\Html\Dom\Element::parentElement</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#272">Phpdftk\Html\Dom\Element::elementChildren</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Element.php.html#385">Phpdftk\Html\Dom\Element::canonicalAttrKey</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HTMLSlotElement.php.html#54">Phpdftk\Html\Dom\HTMLSlotElement::assignedElements</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HTMLSlotElement.php.html#69">Phpdftk\Html\Dom\HTMLSlotElement::setAssignedNodes</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Node.php.html#60">Phpdftk\Html\Dom\Node::childNodes</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#81">Phpdftk\Html\Dom\Node::textContent</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRoot.php.html#63">Phpdftk\Html\Dom\ShadowRoot::shallowClone</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Text.php.html#35">Phpdftk\Html\Dom\Text::setTextContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Text.php.html#62">Phpdftk\Html\Dom\Text::length</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Attr.php.html#17">Phpdftk\Html\Dom\Attr::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#16">Phpdftk\Html\Dom\ClassList::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#18">Phpdftk\Html\Dom\ClassList::contains</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#59">Phpdftk\Html\Dom\ClassList::values</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassList.php.html#78">Phpdftk\Html\Dom\ClassList::write</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Comment.php.html#11">Phpdftk\Html\Dom\Comment::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Comment.php.html#17">Phpdftk\Html\Dom\Comment::nodeType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Comment.php.html#22">Phpdftk\Html\Dom\Comment::nodeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Comment.php.html#27">Phpdftk\Html\Dom\Comment::textContent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#69">Phpdftk\Html\Dom\Document::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#76">Phpdftk\Html\Dom\Document::nodeType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#81">Phpdftk\Html\Dom\Document::nodeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#104">Phpdftk\Html\Dom\Document::createTextNode</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#109">Phpdftk\Html\Dom\Document::createComment</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#114">Phpdftk\Html\Dom\Document::createDocumentFragment</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#124">Phpdftk\Html\Dom\Document::getElementsByTagName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Document.php.html#132">Phpdftk\Html\Dom\Document::getElementById</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DocumentFragment.php.html#13">Phpdftk\Html\Dom\DocumentFragment::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#17">Phpdftk\Html\Dom\DocumentType::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DocumentType.php.html#34">Phpdftk\Html\Dom\DocumentType::nodeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#59">Phpdftk\Html\Dom\Element::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#71">Phpdftk\Html\Dom\Element::nodeType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#76">Phpdftk\Html\Dom\Element::nodeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#82">Phpdftk\Html\Dom\Element::attributes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#87">Phpdftk\Html\Dom\Element::hasAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#92">Phpdftk\Html\Dom\Element::getAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#122">Phpdftk\Html\Dom\Element::setAttributeNode</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#127">Phpdftk\Html\Dom\Element::removeAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#178">Phpdftk\Html\Dom\Element::querySelector</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#184">Phpdftk\Html\Dom\Element::matches</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#208">Phpdftk\Html\Dom\Element::localName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#213">Phpdftk\Html\Dom\Element::namespaceUri</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#225">Phpdftk\Html\Dom\Element::classes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Element.php.html#230">Phpdftk\Html\Dom\Element::getAttributeValue</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#46">Phpdftk\Html\Dom\Node::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#69">Phpdftk\Html\Dom\Node::hasChildNodes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#104">Phpdftk\Html\Dom\Node::appendChild</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRoot.php.html#24">Phpdftk\Html\Dom\ShadowRoot::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRoot.php.html#43">Phpdftk\Html\Dom\ShadowRoot::slots</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShadowRootInit.php.html#12">Phpdftk\Html\Dom\ShadowRootInit::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Text.php.html#14">Phpdftk\Html\Dom\Text::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Text.php.html#20">Phpdftk\Html\Dom\Text::nodeType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Text.php.html#25">Phpdftk\Html\Dom\Text::nodeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Text.php.html#30">Phpdftk\Html\Dom\Text::textContent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Text.php.html#67">Phpdftk\Html\Dom\Text::shallowClone</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#51">Phpdftk\Html\Dom\Node::nodeType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#57">Phpdftk\Html\Dom\Node::nodeName</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Node.php.html#199">Phpdftk\Html\Dom\Node::shallowClone</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:06:03 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>
