@@ -136,6 +136,9 @@
         <h2 class="phpdocumentor-content__title">
     OpenTypeData
 
+        <span class="phpdocumentor-element__extends">
+        extends <a href="classes/Phpdftk-FontParser-FontFaceData.html"><abbr title="\Phpdftk\FontParser\FontFaceData">FontFaceData</abbr></a>
+    </span>
     
             <div class="phpdocumentor-element__package">
             in package
@@ -157,7 +160,7 @@
         <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">13</span>
+    <span class="phpdocumentor-element-found-in__line">16</span>
 
     </aside>
 
@@ -165,7 +168,10 @@
 
 
     <section class="phpdocumentor-description"><p>Mirrors TrueTypeData but adds the CFF table bytes and stores the
-full raw font file for potential whole-file embedding.</p>
+full raw font file for potential whole-file embedding. Both extend
+<a href="classes/Phpdftk-FontParser-FontFaceData.html"><abbr title="\Phpdftk\FontParser\FontFaceData">FontFaceData</abbr></a> so consumers that don't care about the outline
+format (Shaper, FontResolver, layout) can take the base type, and
+the PdfWriter dispatches CFF vs glyf embedding via <code class="prettyprint">instanceof</code>.</p>
 </section>
 
 
@@ -193,13 +199,13 @@ full raw font file for potential whole-file embedding.</p>
 </h4>
 <dl class="phpdocumentor-table-of-contents">
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ascent">$ascent</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_ascent">$ascent</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_capHeight">$capHeight</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_capHeight">$capHeight</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
@@ -211,121 +217,127 @@ full raw font file for potential whole-file embedding.</p>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_charWidths">$charWidths</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_charWidths">$charWidths</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_descent">$descent</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_descent">$descent</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_embeddingAllowed">$embeddingAllowed</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_embeddingAllowed">$embeddingAllowed</a>
     <span>
                         &nbsp;: bool            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_familyName">$familyName</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_familyName">$familyName</a>
     <span>
                         &nbsp;: string            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_flags">$flags</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_flags">$flags</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBBox">$fontBBox</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBBox">$fontBBox</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBytes">$fontBytes</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBytes">$fontBytes</a>
     <span>
                         &nbsp;: string            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fullUnicodeToGid">$fullUnicodeToGid</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_fullUnicodeToGid">$fullUnicodeToGid</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_glyphWidths">$glyphWidths</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_glyphWidths">$glyphWidths</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_italicAngle">$italicAngle</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_italicAngle">$italicAngle</a>
     <span>
                         &nbsp;: float            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_kernPairs">$kernPairs</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_kernPairs">$kernPairs</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;|null            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ligatures">$ligatures</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_ligatures">$ligatures</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;|null            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_postScriptName">$postScriptName</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_mathTable">$mathTable</a>
+    <span>
+                        &nbsp;: <a href="classes/Phpdftk-FontParser-MathTableData.html"><abbr title="\Phpdftk\FontParser\MathTableData">MathTableData</abbr></a>|null            </span>
+</dt>
+
+            <dt class="phpdocumentor-table-of-contents__entry -property -public">
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_postScriptName">$postScriptName</a>
     <span>
                         &nbsp;: string            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_stemV">$stemV</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_stemV">$stemV</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlinePosition">$underlinePosition</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlinePosition">$underlinePosition</a>
     <span>
                         &nbsp;: int|null            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlineThickness">$underlineThickness</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlineThickness">$underlineThickness</a>
     <span>
                         &nbsp;: int|null            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unicodeMap">$unicodeMap</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_unicodeMap">$unicodeMap</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unitsPerEm">$unitsPerEm</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_unitsPerEm">$unitsPerEm</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_verticalWidths">$verticalWidths</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_verticalWidths">$verticalWidths</a>
     <span>
                         &nbsp;: array&lt;string|int, mixed&gt;|null            </span>
 </dt>
 
             <dt class="phpdocumentor-table-of-contents__entry -property -public">
-    <a class="" href="classes/Phpdftk-FontParser-OpenTypeData.html#property_xHeight">$xHeight</a>
+    <a class="" href="classes/Phpdftk-FontParser-FontFaceData.html#property_xHeight">$xHeight</a>
     <span>
                         &nbsp;: int            </span>
 </dt>
@@ -366,15 +378,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_ascent">
         $ascent
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ascent" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_ascent" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">44</span>
+    <span class="phpdocumentor-element-found-in__line">48</span>
 
     </aside>
 
@@ -403,15 +415,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_capHeight">
         $capHeight
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_capHeight" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_capHeight" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">46</span>
+    <span class="phpdocumentor-element-found-in__line">50</span>
 
     </aside>
 
@@ -448,7 +460,7 @@ full raw font file for potential whole-file embedding.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">54</span>
+    <span class="phpdocumentor-element-found-in__line">59</span>
 
     </aside>
 
@@ -477,15 +489,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_charWidths">
         $charWidths
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_charWidths" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_charWidths" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">52</span>
+    <span class="phpdocumentor-element-found-in__line">56</span>
 
     </aside>
 
@@ -514,15 +526,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_descent">
         $descent
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_descent" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_descent" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">45</span>
+    <span class="phpdocumentor-element-found-in__line">49</span>
 
     </aside>
 
@@ -551,15 +563,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_embeddingAllowed">
         $embeddingAllowed
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_embeddingAllowed" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_embeddingAllowed" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">56</span>
+    <span class="phpdocumentor-element-found-in__line">59</span>
 
     </aside>
 
@@ -588,15 +600,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_familyName">
         $familyName
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_familyName" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_familyName" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">43</span>
+    <span class="phpdocumentor-element-found-in__line">47</span>
 
     </aside>
 
@@ -625,15 +637,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_flags">
         $flags
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_flags" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_flags" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">50</span>
+    <span class="phpdocumentor-element-found-in__line">54</span>
 
     </aside>
 
@@ -662,15 +674,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_fontBBox">
         $fontBBox
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBBox" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBBox" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">51</span>
+    <span class="phpdocumentor-element-found-in__line">55</span>
 
     </aside>
 
@@ -699,15 +711,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_fontBytes">
         $fontBytes
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBytes" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBytes" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">55</span>
+    <span class="phpdocumentor-element-found-in__line">58</span>
 
     </aside>
 
@@ -736,15 +748,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_fullUnicodeToGid">
         $fullUnicodeToGid
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fullUnicodeToGid" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fullUnicodeToGid" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">58</span>
+    <span class="phpdocumentor-element-found-in__line">61</span>
 
     </aside>
 
@@ -773,15 +785,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_glyphWidths">
         $glyphWidths
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_glyphWidths" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_glyphWidths" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">59</span>
+    <span class="phpdocumentor-element-found-in__line">62</span>
 
     </aside>
 
@@ -810,15 +822,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_italicAngle">
         $italicAngle
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_italicAngle" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_italicAngle" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">48</span>
+    <span class="phpdocumentor-element-found-in__line">52</span>
 
     </aside>
 
@@ -847,15 +859,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_kernPairs">
         $kernPairs
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_kernPairs" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_kernPairs" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">60</span>
+    <span class="phpdocumentor-element-found-in__line">63</span>
 
     </aside>
 
@@ -884,15 +896,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_ligatures">
         $ligatures
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ligatures" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_ligatures" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">61</span>
+    <span class="phpdocumentor-element-found-in__line">64</span>
 
     </aside>
 
@@ -919,17 +931,54 @@ full raw font file for potential whole-file embedding.</p>
             -public
                                                                     "
 >
-    <h4 class="phpdocumentor-element__name" id="property_postScriptName">
-        $postScriptName
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_postScriptName" class="headerlink"><i class="fas fa-link"></i></a>
+    <h4 class="phpdocumentor-element__name" id="property_mathTable">
+        $mathTable
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_mathTable" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">42</span>
+    <span class="phpdocumentor-element-found-in__line">68</span>
+
+    </aside>
+
+    
+    
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+        <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__type"><a href="classes/Phpdftk-FontParser-MathTableData.html"><abbr title="\Phpdftk\FontParser\MathTableData">MathTableData</abbr></a>|null</span>
+    <span class="phpdocumentor-signature__name">$mathTable</span>
+     = <span class="phpdocumentor-signature__default-value">null</span></code>
+
+    
+    
+    
+
+        
+        
+
+</article>
+                    <article
+        class="
+            phpdocumentor-element
+            -property
+            -public
+                                                                    "
+>
+    <h4 class="phpdocumentor-element__name" id="property_postScriptName">
+        $postScriptName
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_postScriptName" class="headerlink"><i class="fas fa-link"></i></a>
+
+        <span class="phpdocumentor-element__modifiers">
+                                            </span>
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">46</span>
 
     </aside>
 
@@ -958,15 +1007,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_stemV">
         $stemV
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_stemV" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_stemV" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">49</span>
+    <span class="phpdocumentor-element-found-in__line">53</span>
 
     </aside>
 
@@ -995,15 +1044,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_underlinePosition">
         $underlinePosition
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlinePosition" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlinePosition" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">63</span>
+    <span class="phpdocumentor-element-found-in__line">66</span>
 
     </aside>
 
@@ -1032,15 +1081,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_underlineThickness">
         $underlineThickness
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlineThickness" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlineThickness" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">64</span>
+    <span class="phpdocumentor-element-found-in__line">67</span>
 
     </aside>
 
@@ -1069,15 +1118,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_unicodeMap">
         $unicodeMap
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unicodeMap" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_unicodeMap" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">53</span>
+    <span class="phpdocumentor-element-found-in__line">57</span>
 
     </aside>
 
@@ -1106,15 +1155,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_unitsPerEm">
         $unitsPerEm
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unitsPerEm" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_unitsPerEm" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">57</span>
+    <span class="phpdocumentor-element-found-in__line">60</span>
 
     </aside>
 
@@ -1143,15 +1192,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_verticalWidths">
         $verticalWidths
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_verticalWidths" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_verticalWidths" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">62</span>
+    <span class="phpdocumentor-element-found-in__line">65</span>
 
     </aside>
 
@@ -1180,15 +1229,15 @@ full raw font file for potential whole-file embedding.</p>
 >
     <h4 class="phpdocumentor-element__name" id="property_xHeight">
         $xHeight
-        <a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_xHeight" class="headerlink"><i class="fas fa-link"></i></a>
+        <a href="classes/Phpdftk-FontParser-FontFaceData.html#property_xHeight" class="headerlink"><i class="fas fa-link"></i></a>
 
         <span class="phpdocumentor-element__modifiers">
                                             </span>
     </h4>
     <aside class="phpdocumentor-element-found-in">
-    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/FontFaceData.php"><a href="files/packages-font-parser-src-fontfacedata.html"><abbr title="packages/font-parser/src/FontFaceData.php">FontFaceData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">47</span>
+    <span class="phpdocumentor-element-found-in__line">51</span>
 
     </aside>
 
@@ -1230,14 +1279,14 @@ full raw font file for potential whole-file embedding.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/font-parser/src/OpenTypeData.php"><a href="files/packages-font-parser-src-opentypedata.html"><abbr title="packages/font-parser/src/OpenTypeData.php">OpenTypeData.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">41</span>
+    <span class="phpdocumentor-element-found-in__line">46</span>
 
     </aside>
 
     
     <code class="phpdocumentor-code phpdocumentor-signature ">
     <span class="phpdocumentor-signature__visibility">public</span>
-                    <span class="phpdocumentor-signature__name">__construct</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$postScriptName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$familyName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ascent</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$descent</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$capHeight</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$xHeight</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$italicAngle</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stemV</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$flags</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fontBBox</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$charWidths</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$unicodeMap</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$cffBytes</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fontBytes</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$embeddingAllowed</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$unitsPerEm</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">1000</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fullUnicodeToGid</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$glyphWidths</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array&lt;int, int&gt;&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$kernPairs</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array&lt;int, array{components: int[], ligature: int}&gt;&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ligatures</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$verticalWidths</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$underlinePosition</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$underlineThickness</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">mixed</span></code>
+                    <span class="phpdocumentor-signature__name">__construct</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$postScriptName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$familyName</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ascent</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$descent</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$capHeight</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$xHeight</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$italicAngle</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stemV</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$flags</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fontBBox</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$charWidths</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$unicodeMap</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$cffBytes</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fontBytes</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$embeddingAllowed</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int&nbsp;</span><span class="phpdocumentor-signature__argument__name">$unitsPerEm</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">1000</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fullUnicodeToGid</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$glyphWidths</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">[]</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array&lt;int, int&gt;&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$kernPairs</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array&lt;int, array{components: int[], ligature: int}&gt;&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$ligatures</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, int&gt;|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$verticalWidths</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$underlinePosition</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">int|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$underlineThickness</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-FontParser-MathTableData.html"><abbr title="\Phpdftk\FontParser\MathTableData">MathTableData</abbr></a>|null&nbsp;</span><span class="phpdocumentor-signature__argument__name">$mathTable</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">null</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">mixed</span></code>
 
     <div class="phpdocumentor-label-line">
         </div>
@@ -1453,6 +1502,16 @@ the baseline (design units; negative = below baseline). Null if the table is mis
 </section>
 
             </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$mathTable</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-FontParser-MathTableData.html"><abbr title="\Phpdftk\FontParser\MathTableData">MathTableData</abbr></a>|null</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">null</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Parsed <code class="prettyprint">MATH</code> table when the font has one (Latin Modern Math,
+STIX Two Math, Cambria Math, ...). Null for non-math fonts.</p>
+</section>
+
+            </dd>
             </dl>
 
     
@@ -1576,29 +1635,30 @@ the baseline (design units; negative = below baseline). Null if the table is mis
                             <li class="phpdocumentor-on-this-page-section__title">Properties</li>
                 <li>
                     <ul class="phpdocumentor-list -clean">
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ascent">$ascent</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_capHeight">$capHeight</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_ascent">$ascent</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_capHeight">$capHeight</a></li>
                                                     <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_cffBytes">$cffBytes</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_charWidths">$charWidths</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_descent">$descent</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_embeddingAllowed">$embeddingAllowed</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_familyName">$familyName</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_flags">$flags</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBBox">$fontBBox</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fontBytes">$fontBytes</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_fullUnicodeToGid">$fullUnicodeToGid</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_glyphWidths">$glyphWidths</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_italicAngle">$italicAngle</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_kernPairs">$kernPairs</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_ligatures">$ligatures</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_postScriptName">$postScriptName</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_stemV">$stemV</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlinePosition">$underlinePosition</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_underlineThickness">$underlineThickness</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unicodeMap">$unicodeMap</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_unitsPerEm">$unitsPerEm</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_verticalWidths">$verticalWidths</a></li>
-                                                    <li class=""><a href="classes/Phpdftk-FontParser-OpenTypeData.html#property_xHeight">$xHeight</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_charWidths">$charWidths</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_descent">$descent</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_embeddingAllowed">$embeddingAllowed</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_familyName">$familyName</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_flags">$flags</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBBox">$fontBBox</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fontBytes">$fontBytes</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_fullUnicodeToGid">$fullUnicodeToGid</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_glyphWidths">$glyphWidths</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_italicAngle">$italicAngle</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_kernPairs">$kernPairs</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_ligatures">$ligatures</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_mathTable">$mathTable</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_postScriptName">$postScriptName</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_stemV">$stemV</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlinePosition">$underlinePosition</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_underlineThickness">$underlineThickness</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_unicodeMap">$unicodeMap</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_unitsPerEm">$unitsPerEm</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_verticalWidths">$verticalWidths</a></li>
+                                                    <li class=""><a href="classes/Phpdftk-FontParser-FontFaceData.html#property_xHeight">$xHeight</a></li>
                                             </ul>
                 </li>
             

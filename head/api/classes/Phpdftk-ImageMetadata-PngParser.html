@@ -194,6 +194,29 @@ are detected since PDF handles transparency via SMask, not inline.</p>
 </h4>
 <dl class="phpdocumentor-table-of-contents">
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeAlphaPng">decodeAlphaPng()</a>
+    <span>
+                                &nbsp;: array{colour: string, alpha: string, width: int, height: int, components: int}|null    </span>
+</dt>
+<dd>Decode an 8-bit alpha PNG (color type 4 = grayscale+alpha,
+type 6 = RGB+alpha) into separate colour and alpha streams.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeIndexedPng">decodeIndexedPng()</a>
+    <span>
+                                &nbsp;: array{colour: string, alpha: ?string, width: int, height: int}|null    </span>
+</dt>
+<dd>Decode an 8-bit indexed-colour PNG (color type 3) into the
+separate colour + alpha streams a PDF Image XObject embeds.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-ImageMetadata-PngParser.html#method_extractIdatData">extractIdatData()</a>
+    <span>
+                                &nbsp;: string|null    </span>
+</dt>
+<dd>Extract the concatenated `IDAT` chunk payload from a PNG.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-ImageMetadata-PngParser.html#method_parse">parse()</a>
     <span>
                                 &nbsp;: <a href="classes/Phpdftk-ImageMetadata-ImageInfo.html"><abbr title="\Phpdftk\ImageMetadata\ImageInfo">ImageInfo</abbr></a>    </span>
@@ -225,6 +248,183 @@ are detected since PDF handles transparency via SMask, not inline.</p>
             -public
                                     -static                    "
 >
+    <h4 class="phpdocumentor-element__name" id="method_decodeAlphaPng">
+        decodeAlphaPng()
+        <a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeAlphaPng" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/image-metadata/src/PngParser.php"><a href="files/packages-image-metadata-src-pngparser.html"><abbr title="packages/image-metadata/src/PngParser.php">PngParser.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">45</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Decode an 8-bit alpha PNG (color type 4 = grayscale+alpha,
+type 6 = RGB+alpha) into separate colour and alpha streams.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">decodeAlphaPng</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$data</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array{colour: string, alpha: string, width: int, height: int, components: int}|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>The PDF caller then emits the colour as the main Image
+XObject and the alpha as an <code class="prettyprint">/SMask</code> reference attached to
+it. Returns null for non-alpha PNGs, non-8-bit depths, or
+any decode failure (corrupt IDAT, bad filter byte, etc.).</p>
+<p>Output streams are raw (uncompressed) per-pixel bytes —
+colour: 1 byte/px (grayscale) or 3 bytes/px (RGB).
+alpha:  1 byte/px (grayscale always).</p>
+<p>The caller is expected to FlateDecode-compress them before
+embedding in the PDF.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$data</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array{colour: string, alpha: string, width: int, height: int, components: int}|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_decodeIndexedPng">
+        decodeIndexedPng()
+        <a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeIndexedPng" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/image-metadata/src/PngParser.php"><a href="files/packages-image-metadata-src-pngparser.html"><abbr title="packages/image-metadata/src/PngParser.php">PngParser.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">166</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Decode an 8-bit indexed-colour PNG (color type 3) into the
+separate colour + alpha streams a PDF Image XObject embeds.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">decodeIndexedPng</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$data</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">array{colour: string, alpha: ?string, width: int, height: int}|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Walks the IDAT data through PNG filter reversal, indexes each
+pixel into the PLTE palette, and (when the optional tRNS
+chunk is present) looks up per-palette-index alpha.</p>
+<p>Returns null for non-indexed PNGs, unsupported bit depths
+(anything outside 1 / 2 / 4 / 8), missing PLTE, or any decode
+failure.</p>
+<p>Output: colour = 3 bytes/px (RGB). alpha = 1 byte/px when
+tRNS is present; null when the palette is fully opaque (the
+caller skips the SMask).</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$data</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">array{colour: string, alpha: ?string, width: int, height: int}|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
+    <h4 class="phpdocumentor-element__name" id="method_extractIdatData">
+        extractIdatData()
+        <a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_extractIdatData" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/image-metadata/src/PngParser.php"><a href="files/packages-image-metadata-src-pngparser.html"><abbr title="packages/image-metadata/src/PngParser.php">PngParser.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">297</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Extract the concatenated `IDAT` chunk payload from a PNG.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+            <span class="phpdocumentor-signature__static">static</span>        <span class="phpdocumentor-signature__name">extractIdatData</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$data</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string|null</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>The payload is already DEFLATE-compressed PNG-filter-coded
+pixel data, suitable for embedding in a PDF Image XObject
+with <code class="prettyprint">/Filter /FlateDecode</code> + <code class="prettyprint">/DecodeParms &lt;&lt;Predictor 15 Columns W Colors N BitsPerComponent B&gt;&gt;</code> — PDF readers
+decompress + unfilter via the predictor without an
+intermediate raw-RGB buffer.</p>
+<p>Returns null when the PNG signature is invalid or no IDAT
+chunks are present.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$data</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string|null</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                    -static                    "
+>
     <h4 class="phpdocumentor-element__name" id="method_parse">
         parse()
         <a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_parse" class="headerlink"><i class="fas fa-link"></i></a>
@@ -233,7 +433,7 @@ are detected since PDF handles transparency via SMask, not inline.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/image-metadata/src/PngParser.php"><a href="files/packages-image-metadata-src-pngparser.html"><abbr title="packages/image-metadata/src/PngParser.php">PngParser.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">28</span>
+    <span class="phpdocumentor-element-found-in__line">318</span>
 
     </aside>
 
@@ -430,6 +630,9 @@ are detected since PDF handles transparency via SMask, not inline.</p>
                         <li class="phpdocumentor-on-this-page-section__title">Methods</li>
             <li>
                 <ul class="phpdocumentor-list -clean">
+                                            <li class=""><a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeAlphaPng">decodeAlphaPng()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeIndexedPng">decodeIndexedPng()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_extractIdatData">extractIdatData()</a></li>
                                             <li class=""><a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_parse">parse()</a></li>
                                             <li class=""><a href="classes/Phpdftk-ImageMetadata-PngParser.html#method_parseFile">parseFile()</a></li>
                                     </ul>

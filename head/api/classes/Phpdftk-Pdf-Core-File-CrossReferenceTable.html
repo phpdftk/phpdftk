@@ -157,7 +157,7 @@
         <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/CrossReferenceTable.php"><a href="files/packages-pdf-core-src-file-crossreferencetable.html"><abbr title="packages/pdf/core/src/File/CrossReferenceTable.php">CrossReferenceTable.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">19</span>
+    <span class="phpdocumentor-element-found-in__line">22</span>
 
     </aside>
 
@@ -166,8 +166,10 @@
 
     <section class="phpdocumentor-description"><p>The fixed 20-byte entry width is mandated by the spec so that readers can
 seek directly to any entry by index without parsing the entire table:</p>
-<p>OOOOOOOOOO GGGGG n \r\n   (in-use object: O = 10-digit byte offset)
-OOOOOOOOOO GGGGG f \r\n   (free object: O = next free object number)</p>
+<p>OOOOOOOOOO GGGGG n\r\n   (in-use object: O = 10-digit byte offset)
+OOOOOOOOOO GGGGG f\r\n   (free object: O = next free object number)</p>
+<p>Per §7.5.4 the two-character EOL is one of <code class="prettyprint">SP CR</code>, <code class="prettyprint">SP LF</code>, or <code class="prettyprint">CR LF</code>;
+we use <code class="prettyprint">CR LF</code> (no trailing space) so the entry totals exactly 20 bytes.</p>
 <p>Object 0 is always emitted as the free-list head with generation 65535,
 which signals that it can never be reused.</p>
 </section>
@@ -246,7 +248,7 @@ which signals that it can never be reused.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/CrossReferenceTable.php"><a href="files/packages-pdf-core-src-file-crossreferencetable.html"><abbr title="packages/pdf/core/src/File/CrossReferenceTable.php">CrossReferenceTable.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">27</span>
+    <span class="phpdocumentor-element-found-in__line">30</span>
 
     </aside>
 
@@ -298,7 +300,7 @@ which signals that it can never be reused.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/CrossReferenceTable.php"><a href="files/packages-pdf-core-src-file-crossreferencetable.html"><abbr title="packages/pdf/core/src/File/CrossReferenceTable.php">CrossReferenceTable.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">46</span>
+    <span class="phpdocumentor-element-found-in__line">49</span>
 
     </aside>
 
@@ -349,7 +351,7 @@ which signals that it can never be reused.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/core/src/File/CrossReferenceTable.php"><a href="files/packages-pdf-core-src-file-crossreferencetable.html"><abbr title="packages/pdf/core/src/File/CrossReferenceTable.php">CrossReferenceTable.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">37</span>
+    <span class="phpdocumentor-element-found-in__line">40</span>
 
     </aside>
 
