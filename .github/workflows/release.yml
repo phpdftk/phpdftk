@@ -29,7 +29,7 @@ jobs:
     if: needs.release-please.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -110,7 +110,7 @@ jobs:
   #         - package: crypt
   #           directory: packages/crypt
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@v7
   #       with:
   #         fetch-depth: 0
   #

@@ -59,7 +59,7 @@ jobs:
       matrix:
         bucket: [html, css, svg, mathml]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Skip slow buckets on PRs
         id: scope
