@@ -11,6 +11,7 @@ use Phpdftk\Css\Parser;
 use Phpdftk\Css\Value\Color;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
+use Phpdftk\Css\Value\Number;
 use PHPUnit\Framework\TestCase;
 
 final class ShorthandExpanderTest extends TestCase
@@ -943,5 +944,94 @@ final class ShorthandExpanderTest extends TestCase
         $out = $this->expander->expand('container', $this->value('foo / inline-size'));
         self::assertSame('foo', $out['container-name']->name);
         self::assertSame('inline-size', $out['container-type']->name);
+    }
+
+    // ---- flex --------------------------------------------------------------
+
+    public function testFlexKeywordNone(): void
+    {
+        $out = $this->expander->expand('flex', new Keyword('none'));
+        self::assertSame(0.0, $out['flex-grow']->value);
+        self::assertSame(0.0, $out['flex-shrink']->value);
+        self::assertSame('auto', $out['flex-basis']->name);
+    }
+
+    public function testFlexKeywordInitial(): void
+    {
+        $out = $this->expander->expand('flex', new Keyword('initial'));
+        self::assertSame(0.0, $out['flex-grow']->value);
+        self::assertSame(1.0, $out['flex-shrink']->value);
+        self::assertSame('auto', $out['flex-basis']->name);
+    }
+
+    public function testFlexTwoNumbersSetsGrowAndShrink(): void
+    {
+        // `flex: 2 3` → grow 2, shrink 3, basis defaults to 0.
+        $out = $this->expander->expand('flex', $this->value('2 3'));
+        self::assertSame(2.0, $out['flex-grow']->value);
+        self::assertSame(3.0, $out['flex-shrink']->value);
+        self::assertInstanceOf(Length::class, $out['flex-basis']);
+        self::assertSame(0.0, $out['flex-basis']->value);
+    }
+
+    // ---- flex-flow ---------------------------------------------------------
+
+    public function testFlexFlowDirectionAndWrap(): void
+    {
+        $out = $this->expander->expand('flex-flow', $this->value('column wrap'));
+        self::assertSame('column', $out['flex-direction']->name);
+        self::assertSame('wrap', $out['flex-wrap']->name);
+    }
+
+    public function testFlexFlowDirectionOnlyAndWrapOnly(): void
+    {
+        $dirOnly = $this->expander->expand('flex-flow', $this->value('row-reverse'));
+        self::assertSame('row-reverse', $dirOnly['flex-direction']->name);
+        self::assertArrayNotHasKey('flex-wrap', $dirOnly);
+
+        $wrapOnly = $this->expander->expand('flex-flow', $this->value('nowrap'));
+        self::assertSame('nowrap', $wrapOnly['flex-wrap']->name);
+        self::assertArrayNotHasKey('flex-direction', $wrapOnly);
+    }
+
+    // ---- overflow ----------------------------------------------------------
+
+    public function testOverflowSingleValueAppliesToBothAxes(): void
+    {
+        $out = $this->expander->expand('overflow', new Keyword('hidden'));
+        self::assertSame('hidden', $out['overflow-x']->name);
+        self::assertSame('hidden', $out['overflow-y']->name);
+        self::assertSame('hidden', $out['overflow']->name);
+    }
+
+    public function testOverflowTwoValuesSplitAxes(): void
+    {
+        $out = $this->expander->expand('overflow', $this->value('scroll auto'));
+        self::assertSame('scroll', $out['overflow-x']->name);
+        self::assertSame('auto', $out['overflow-y']->name);
+        self::assertSame('scroll', $out['overflow']->name); // legacy mirrors X
+    }
+
+    // ---- gap / columns -----------------------------------------------------
+
+    public function testGapRowAndColumn(): void
+    {
+        $two = $this->expander->expand('gap', $this->value('10px 20px'));
+        self::assertSame(10.0, $two['row-gap']->value);
+        self::assertSame(20.0, $two['column-gap']->value);
+        // single value applies to both.
+        $one = $this->expander->expand('gap', $this->value('5px'));
+        self::assertSame(5.0, $one['row-gap']->value);
+        self::assertSame(5.0, $one['column-gap']->value);
+    }
+
+    public function testColumnsAutoAssignedToCountWhenWidthSet(): void
+    {
+        // `columns: 200px auto` → width 200px, the `auto` fills the count slot.
+        $out = $this->expander->expand('columns', $this->value('200px auto'));
+        self::assertInstanceOf(Length::class, $out['column-width']);
+        self::assertSame(200.0, $out['column-width']->value);
+        self::assertInstanceOf(Keyword::class, $out['column-count']);
+        self::assertSame('auto', $out['column-count']->name);
     }
 }
