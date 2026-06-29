@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/svg</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="index.html">svg</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/Element.php.html#20"><circle cx="752.3" cy="121.2" r="20.0" class="bubble-success"><title>Phpdftk\Svg\Element — Coverage: 96.2% | Lines: 182 | Complexity: 104</title></circle></a>
+ <a href="src/Path/PathData.php.html#16"><circle cx="751.9" cy="257.6" r="16.8" class="bubble-success"><title>Phpdftk\Svg\Path\PathData — Coverage: 96.1% | Lines: 128 | Complexity: 42</title></circle></a>
+ <a href="src/Parser.php.html#33"><circle cx="742.1" cy="196.0" r="14.4" class="bubble-success"><title>Phpdftk\Svg\Parser — Coverage: 94.7% | Lines: 95 | Complexity: 70</title></circle></a>
+ <a href="src/Value/Color.php.html#30"><circle cx="748.7" cy="306.0" r="14.2" class="bubble-success"><title>Phpdftk\Svg\Value\Color — Coverage: 95.7% | Lines: 92 | Complexity: 20</title></circle></a>
+ <a href="src/Value/Transform.php.html#24"><circle cx="761.5" cy="275.2" r="13.1" class="bubble-success"><title>Phpdftk\Svg\Value\Transform — Coverage: 97.4% | Lines: 78 | Complexity: 34</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#21"><circle cx="142.3" cy="253.2" r="12.4" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement — Coverage: 11.4% | Lines: 70 | Complexity: 44</title></circle></a>
+ <a href="src/Marker.php.html#27"><circle cx="585.0" cy="264.2" r="10.3" class="bubble-warning"><title>Phpdftk\Svg\Marker — Coverage: 72.9% | Lines: 48 | Complexity: 39</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#22"><circle cx="713.0" cy="295.0" r="9.7" class="bubble-success"><title>Phpdftk\Svg\Gradient\Gradient — Coverage: 90.7% | Lines: 43 | Complexity: 25</title></circle></a>
+ <a href="src/Css/CssBridge.php.html#41"><circle cx="690.0" cy="323.6" r="8.4" class="bubble-warning"><title>Phpdftk\Svg\Css\CssBridge — Coverage: 87.5% | Lines: 32 | Complexity: 12</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#21"><circle cx="702.9" cy="306.0" r="7.8" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix — Coverage: 89.3% | Lines: 28 | Complexity: 20</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#20"><circle cx="660.0" cy="312.6" r="7.3" class="bubble-warning"><title>Phpdftk\Svg\Text\TextPositioningElement — Coverage: 83.3% | Lines: 24 | Complexity: 17</title></circle></a>
+ <a href="src/Gradient/Stop.php.html#21"><circle cx="686.1" cy="325.8" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Gradient\Stop — Coverage: 87.0% | Lines: 23 | Complexity: 11</title></circle></a>
+ <a href="src/Pattern.php.html#26"><circle cx="717.4" cy="319.2" r="7.1" class="bubble-success"><title>Phpdftk\Svg\Pattern — Coverage: 91.3% | Lines: 23 | Complexity: 14</title></circle></a>
+ <a href="src/Use_.php.html#19"><circle cx="717.4" cy="317.0" r="7.1" class="bubble-success"><title>Phpdftk\Svg\Use_ — Coverage: 91.3% | Lines: 23 | Complexity: 15</title></circle></a>
+ <a href="src/Mask.php.html#14"><circle cx="747.3" cy="308.2" r="7.0" class="bubble-success"><title>Phpdftk\Svg\Mask — Coverage: 95.5% | Lines: 22 | Complexity: 19</title></circle></a>
+ <a href="src/Image.php.html#17"><circle cx="708.0" cy="319.2" r="6.6" class="bubble-success"><title>Phpdftk\Svg\Image — Coverage: 90.0% | Lines: 20 | Complexity: 14</title></circle></a>
+ <a href="src/Filter/FeColorMatrix.php.html#17"><circle cx="666.3" cy="323.6" r="6.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix — Coverage: 84.2% | Lines: 19 | Complexity: 12</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#22"><circle cx="628.4" cy="321.4" r="6.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeFunc — Coverage: 78.9% | Lines: 19 | Complexity: 13</title></circle></a>
+ <a href="src/ViewportElement.php.html#15"><circle cx="780.0" cy="328.0" r="5.9" class="bubble-success"><title>Phpdftk\Svg\ViewportElement — Coverage: 100.0% | Lines: 16 | Complexity: 10</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#15"><circle cx="684.0" cy="328.0" r="5.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow — Coverage: 86.7% | Lines: 15 | Complexity: 10</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#17"><circle cx="732.0" cy="319.2" r="5.7" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient — Coverage: 93.3% | Lines: 15 | Complexity: 14</title></circle></a>
+ <a href="src/Shape/Rect.php.html#17"><circle cx="684.0" cy="325.8" r="5.7" class="bubble-warning"><title>Phpdftk\Svg\Shape\Rect — Coverage: 86.7% | Lines: 15 | Complexity: 11</title></circle></a>
+ <a href="src/Value/Paint.php.html#26"><circle cx="780.0" cy="332.4" r="5.7" class="bubble-success"><title>Phpdftk\Svg\Value\Paint — Coverage: 100.0% | Lines: 15 | Complexity: 8</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#19"><circle cx="780.0" cy="325.8" r="5.5" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence — Coverage: 100.0% | Lines: 14 | Complexity: 11</title></circle></a>
+ <a href="src/SvgDocument.php.html#18"><circle cx="780.0" cy="325.8" r="5.5" class="bubble-success"><title>Phpdftk\Svg\SvgDocument — Coverage: 100.0% | Lines: 14 | Complexity: 11</title></circle></a>
+ <a href="src/View.php.html#18"><circle cx="677.1" cy="336.8" r="5.5" class="bubble-warning"><title>Phpdftk\Svg\View — Coverage: 85.7% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#14"><circle cx="724.6" cy="330.2" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Shape\Ellipse — Coverage: 92.3% | Lines: 13 | Complexity: 9</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#17"><circle cx="240.0" cy="330.2" r="5.1" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting — Coverage: 25.0% | Lines: 12 | Complexity: 9</title></circle></a>
+ <a href="src/Filter.php.html#25"><circle cx="649.1" cy="328.0" r="4.9" class="bubble-warning"><title>Phpdftk\Svg\Filter — Coverage: 81.8% | Lines: 11 | Complexity: 10</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#20"><circle cx="321.8" cy="332.4" r="4.9" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeDiffuseLighting — Coverage: 36.4% | Lines: 11 | Complexity: 8</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#16"><circle cx="714.5" cy="332.4" r="4.9" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient — Coverage: 90.9% | Lines: 11 | Complexity: 8</title></circle></a>
+ <a href="src/Value/Transform/Rotate.php.html#14"><circle cx="780.0" cy="341.2" r="4.9" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Rotate — Coverage: 100.0% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="src/Animation.php.html#21"><circle cx="348.0" cy="328.0" r="4.7" class="bubble-danger"><title>Phpdftk\Svg\Animation — Coverage: 40.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="src/Filter/FeGaussianBlur.php.html#16"><circle cx="708.0" cy="334.6" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="src/Filter/FeMorphology.php.html#15"><circle cx="708.0" cy="334.6" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#19"><circle cx="564.0" cy="328.0" r="4.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeSpotLight — Coverage: 70.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#35"><circle cx="780.0" cy="328.0" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive — Coverage: 100.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="src/Desc.php.html#12"><circle cx="620.0" cy="336.8" r="4.4" class="bubble-warning"><title>Phpdftk\Svg\Desc — Coverage: 77.8% | Lines: 9 | Complexity: 6</title></circle></a>
+ <a href="src/Filter/FeBlend.php.html#17"><circle cx="780.0" cy="341.2" r="4.4" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#17"><circle cx="700.0" cy="332.4" r="4.4" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeComposite — Coverage: 88.9% | Lines: 9 | Complexity: 8</title></circle></a>
+ <a href="src/Title.php.html#13"><circle cx="620.0" cy="336.8" r="4.4" class="bubble-warning"><title>Phpdftk\Svg\Title — Coverage: 77.8% | Lines: 9 | Complexity: 6</title></circle></a>
+ <a href="src/ClipPath.php.html#13"><circle cx="780.0" cy="339.0" r="4.2" class="bubble-success"><title>Phpdftk\Svg\ClipPath — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#17"><circle cx="780.0" cy="334.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap — Coverage: 100.0% | Lines: 7 | Complexity: 7</title></circle></a>
+ <a href="src/ForeignObject.php.html#21"><circle cx="780.0" cy="334.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject — Coverage: 100.0% | Lines: 7 | Complexity: 7</title></circle></a>
+ <a href="src/Filter/FeFlood.php.html#12"><circle cx="780.0" cy="341.2" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/Path.php.html#14"><circle cx="780.0" cy="341.2" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/StyleElement.php.html#17"><circle cx="780.0" cy="341.2" r="4.0" class="bubble-success"><title>Phpdftk\Svg\StyleElement — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/AnimateTransform.php.html#13"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Svg\AnimateTransform — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Filter/FeImage.php.html#13"><circle cx="636.0" cy="341.2" r="4.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeImage — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="src/Shape/Line.php.html#13"><circle cx="780.0" cy="339.0" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="src/A_.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Svg\A_ — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="src/AnimateMotion.php.html#12"><circle cx="600.0" cy="341.2" r="4.0" class="bubble-warning"><title>Phpdftk\Svg\AnimateMotion — Coverage: 75.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FePointLight.php.html#16"><circle cx="780.0" cy="341.2" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="src/Shape/Circle.php.html#13"><circle cx="780.0" cy="341.2" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Circle — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeDistantLight.php.html#17"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="src/Filter/FeOffset.php.html#13"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="src/MPath.php.html#13"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\MPath — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/Scale.php.html#13"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Scale — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeMergeNode.php.html#14"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Shape/Polygon.php.html#14"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polygon — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Shape/Polyline.php.html#14"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polyline — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/Matrix.php.html#13"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Matrix — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/SkewX.php.html#12"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewX — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/SkewY.php.html#12"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewY — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/Translate.php.html#12"><circle cx="780.0" cy="345.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Translate — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Animate.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Defs.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Defs — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComponentTransfer.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComponentTransfer — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncA.php.html#7"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncA — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncB.php.html#7"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncB — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncG.php.html#7"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncG — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncR.php.html#7"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncR — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMerge.php.html#20"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMerge — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeTile.php.html#14"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTile — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Group.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Group — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Metadata.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Metadata — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/ArcTo.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\ArcTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/ClosePath.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\ClosePath — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/CurveTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\CurveTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/HorizontalLineTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\HorizontalLineTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/LineTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\LineTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/MoveTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\MoveTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/QuadraticCurveTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\QuadraticCurveTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/SmoothCurveTo.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\SmoothCurveTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/SmoothQuadraticCurveTo.php.html#11"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\SmoothQuadraticCurveTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/VerticalLineTo.php.html#8"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\VerticalLineTo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Script.php.html#18"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Script — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/SetElement.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\SetElement — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Switch_.php.html#28"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Switch_ — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Symbol.php.html#14"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Symbol — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextElement.php.html#13"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextElement — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/Tspan.php.html#12"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\Tspan — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Paint/SolidColor.php.html#16"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Paint\SolidColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Paint/Url.php.html#17"><circle cx="780.0" cy="347.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Paint\Url — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#21">Phpdftk\Svg\Css\MatchableSvgElement</a></td><td class="text-right">1389.20</td><td class="text-right">11.4%</td></tr>
+  <tr><td><a href="src/Element.php.html#20">Phpdftk\Svg\Element</a></td><td class="text-right">104</td><td class="text-right">96.2%</td></tr>
+  <tr><td><a href="src/Parser.php.html#33">Phpdftk\Svg\Parser</a></td><td class="text-right">70.71</td><td class="text-right">94.7%</td></tr>
+  <tr><td><a href="src/Marker.php.html#27">Phpdftk\Svg\Marker</a></td><td class="text-right">69.22</td><td class="text-right">72.9%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#17">Phpdftk\Svg\Filter\FeSpecularLighting</a></td><td class="text-right">43.17</td><td class="text-right">25.0%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#16">Phpdftk\Svg\Path\PathData</a></td><td class="text-right">42</td><td class="text-right">96.1%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#24">Phpdftk\Svg\Value\Transform</a></td><td class="text-right">34</td><td class="text-right">97.4%</td></tr>
+  <tr><td><a href="src/Animation.php.html#21">Phpdftk\Svg\Animation</a></td><td class="text-right">31.60</td><td class="text-right">40.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#22">Phpdftk\Svg\Gradient\Gradient</a></td><td class="text-right">25.50</td><td class="text-right">90.7%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#20">Phpdftk\Svg\Filter\FeDiffuseLighting</a></td><td class="text-right">24.49</td><td class="text-right">36.4%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#21">Phpdftk\Svg\Filter\FeConvolveMatrix</a></td><td class="text-right">20.49</td><td class="text-right">89.3%</td></tr>
+  <tr><td><a href="src/Value/Color.php.html#30">Phpdftk\Svg\Value\Color</a></td><td class="text-right">20</td><td class="text-right">95.7%</td></tr>
+  <tr><td><a href="src/Mask.php.html#14">Phpdftk\Svg\Mask</a></td><td class="text-right">19</td><td class="text-right">95.5%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#20">Phpdftk\Svg\Text\TextPositioningElement</a></td><td class="text-right">18.34</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Use_.php.html#19">Phpdftk\Svg\Use_</a></td><td class="text-right">15.15</td><td class="text-right">91.3%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#22">Phpdftk\Svg\Filter\FeFunc</a></td><td class="text-right">14.58</td><td class="text-right">78.9%</td></tr>
+  <tr><td><a href="src/Image.php.html#17">Phpdftk\Svg\Image</a></td><td class="text-right">14.20</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#26">Phpdftk\Svg\Pattern</a></td><td class="text-right">14.13</td><td class="text-right">91.3%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#17">Phpdftk\Svg\Gradient\RadialGradient</a></td><td class="text-right">14.06</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#19">Phpdftk\Svg\Filter\FeSpotLight</a></td><td class="text-right">12.70</td><td class="text-right">70.0%</td></tr>
+  <tr><td><a href="src/Filter/FeColorMatrix.php.html#17">Phpdftk\Svg\Filter\FeColorMatrix</a></td><td class="text-right">12.57</td><td class="text-right">84.2%</td></tr>
+  <tr><td><a href="src/Css/CssBridge.php.html#41">Phpdftk\Svg\Css\CssBridge</a></td><td class="text-right">12.28</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#17">Phpdftk\Svg\Shape\Rect</a></td><td class="text-right">11.29</td><td class="text-right">86.7%</td></tr>
+  <tr><td><a href="src/Gradient/Stop.php.html#21">Phpdftk\Svg\Gradient\Stop</a></td><td class="text-right">11.27</td><td class="text-right">87.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#19">Phpdftk\Svg\Filter\FeTurbulence</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SvgDocument.php.html#18">Phpdftk\Svg\SvgDocument</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#25">Phpdftk\Svg\Filter</a></td><td class="text-right">10.60</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#15">Phpdftk\Svg\Filter\FeDropShadow</a></td><td class="text-right">10.24</td><td class="text-right">86.7%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#35">Phpdftk\Svg\Filter\FilterPrimitive</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ViewportElement.php.html#15">Phpdftk\Svg\ViewportElement</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#14">Phpdftk\Svg\Shape\Ellipse</a></td><td class="text-right">9.04</td><td class="text-right">92.3%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#17">Phpdftk\Svg\Filter\FeComposite</a></td><td class="text-right">8.09</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#16">Phpdftk\Svg\Gradient\LinearGradient</a></td><td class="text-right">8.05</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="src/Value/Paint.php.html#26">Phpdftk\Svg\Value\Paint</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeGaussianBlur.php.html#16">Phpdftk\Svg\Filter\FeGaussianBlur</a></td><td class="text-right">7.05</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMorphology.php.html#15">Phpdftk\Svg\Filter\FeMorphology</a></td><td class="text-right">7.05</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#17">Phpdftk\Svg\Filter\FeDisplacementMap</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#21">Phpdftk\Svg\ForeignObject</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Desc.php.html#12">Phpdftk\Svg\Desc</a></td><td class="text-right">6.40</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/Title.php.html#13">Phpdftk\Svg\Title</a></td><td class="text-right">6.40</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/View.php.html#18">Phpdftk\Svg\View</a></td><td class="text-right">6.10</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/ClipPath.php.html#13">Phpdftk\Svg\ClipPath</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#13">Phpdftk\Svg\Shape\Line</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateMotion.php.html#12">Phpdftk\Svg\AnimateMotion</a></td><td class="text-right">4.25</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/Filter/FeImage.php.html#13">Phpdftk\Svg\Filter\FeImage</a></td><td class="text-right">4.13</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Filter/FeBlend.php.html#17">Phpdftk\Svg\Filter\FeBlend</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFlood.php.html#12">Phpdftk\Svg\Filter\FeFlood</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FePointLight.php.html#16">Phpdftk\Svg\Filter\FePointLight</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path.php.html#14">Phpdftk\Svg\Path</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Circle.php.html#13">Phpdftk\Svg\Shape\Circle</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/StyleElement.php.html#17">Phpdftk\Svg\StyleElement</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Rotate.php.html#14">Phpdftk\Svg\Value\Transform\Rotate</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/A_.php.html#23">Phpdftk\Svg\A_</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateTransform.php.html#13">Phpdftk\Svg\AnimateTransform</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDistantLight.php.html#17">Phpdftk\Svg\Filter\FeDistantLight</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeOffset.php.html#13">Phpdftk\Svg\Filter\FeOffset</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMergeNode.php.html#14">Phpdftk\Svg\Filter\FeMergeNode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MPath.php.html#13">Phpdftk\Svg\MPath</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polygon.php.html#14">Phpdftk\Svg\Shape\Polygon</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polyline.php.html#14">Phpdftk\Svg\Shape\Polyline</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Matrix.php.html#13">Phpdftk\Svg\Value\Transform\Matrix</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Scale.php.html#13">Phpdftk\Svg\Value\Transform\Scale</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewX.php.html#12">Phpdftk\Svg\Value\Transform\SkewX</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewY.php.html#12">Phpdftk\Svg\Value\Transform\SkewY</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Translate.php.html#12">Phpdftk\Svg\Value\Transform\Translate</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animate.php.html#12">Phpdftk\Svg\Animate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Defs.php.html#13">Phpdftk\Svg\Defs</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComponentTransfer.php.html#13">Phpdftk\Svg\Filter\FeComponentTransfer</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncA.php.html#7">Phpdftk\Svg\Filter\FeFuncA</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncB.php.html#7">Phpdftk\Svg\Filter\FeFuncB</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncG.php.html#7">Phpdftk\Svg\Filter\FeFuncG</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncR.php.html#7">Phpdftk\Svg\Filter\FeFuncR</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMerge.php.html#20">Phpdftk\Svg\Filter\FeMerge</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTile.php.html#14">Phpdftk\Svg\Filter\FeTile</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Group.php.html#13">Phpdftk\Svg\Group</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Metadata.php.html#13">Phpdftk\Svg\Metadata</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/ArcTo.php.html#12">Phpdftk\Svg\Path\ArcTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/ClosePath.php.html#12">Phpdftk\Svg\Path\ClosePath</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/CurveTo.php.html#8">Phpdftk\Svg\Path\CurveTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/HorizontalLineTo.php.html#8">Phpdftk\Svg\Path\HorizontalLineTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/LineTo.php.html#8">Phpdftk\Svg\Path\LineTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/MoveTo.php.html#8">Phpdftk\Svg\Path\MoveTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/QuadraticCurveTo.php.html#8">Phpdftk\Svg\Path\QuadraticCurveTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/SmoothCurveTo.php.html#12">Phpdftk\Svg\Path\SmoothCurveTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/SmoothQuadraticCurveTo.php.html#11">Phpdftk\Svg\Path\SmoothQuadraticCurveTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/VerticalLineTo.php.html#8">Phpdftk\Svg\Path\VerticalLineTo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Script.php.html#18">Phpdftk\Svg\Script</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SetElement.php.html#13">Phpdftk\Svg\SetElement</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Switch_.php.html#28">Phpdftk\Svg\Switch_</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Symbol.php.html#14">Phpdftk\Svg\Symbol</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text.php.html#12">Phpdftk\Svg\Text</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextElement.php.html#13">Phpdftk\Svg\Text\TextElement</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/Tspan.php.html#12">Phpdftk\Svg\Text\Tspan</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/SolidColor.php.html#16">Phpdftk\Svg\Value\Paint\SolidColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/Url.php.html#17">Phpdftk\Svg\Value\Paint\Url</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Exception/InvalidSvgException.php.html#12">Phpdftk\Svg\Exception\InvalidSvgException</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/GenericElement.php.html#15">Phpdftk\Svg\GenericElement</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Node.php.html#16">Phpdftk\Svg\Node</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/CurrentColor.php.html#14">Phpdftk\Svg\Value\Paint\CurrentColor</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/None_.php.html#13">Phpdftk\Svg\Value\Paint\None_</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="src/Path/PathData.php.html#96"><circle cx="780.0" cy="304.6" r="20.0" class="bubble-success"><title>Phpdftk\Svg\Path\PathData::readCommand — Coverage: 100.0% | Lines: 71 | Complexity: 11</title></circle></a>
+ <a href="src/Parser.php.html#90"><circle cx="780.0" cy="90.1" r="18.8" class="bubble-success"><title>Phpdftk\Svg\Parser::makeElementForName — Coverage: 100.0% | Lines: 63 | Complexity: 63</title></circle></a>
+ <a href="src/Value/Color.php.html#104"><circle cx="780.0" cy="341.8" r="17.6" class="bubble-success"><title>Phpdftk\Svg\Value\Color::namedColors — Coverage: 100.0% | Lines: 55 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform.php.html#86"><circle cx="780.0" cy="267.5" r="14.4" class="bubble-success"><title>Phpdftk\Svg\Value\Transform::makeFunction — Coverage: 100.0% | Lines: 37 | Complexity: 20</title></circle></a>
+ <a href="src/Parser.php.html#43"><circle cx="663.9" cy="325.2" r="13.2" class="bubble-warning"><title>Phpdftk\Svg\Parser::parse — Coverage: 83.9% | Lines: 31 | Complexity: 6</title></circle></a>
+ <a href="src/Path/PathData.php.html#21"><circle cx="754.3" cy="292.2" r="12.6" class="bubble-success"><title>Phpdftk\Svg\Path\PathData::parse — Coverage: 96.4% | Lines: 28 | Complexity: 14</title></circle></a>
+ <a href="src/Value/Transform.php.html#36"><circle cx="748.7" cy="317.0" r="11.4" class="bubble-success"><title>Phpdftk\Svg\Value\Transform::parse — Coverage: 95.7% | Lines: 23 | Complexity: 8</title></circle></a>
+ <a href="src/Element.php.html#435"><circle cx="740.0" cy="321.1" r="10.1" class="bubble-success"><title>Phpdftk\Svg\Element::presentationOrStyle — Coverage: 94.4% | Lines: 18 | Complexity: 7</title></circle></a>
+ <a href="src/Element.php.html#301"><circle cx="737.6" cy="304.6" r="9.8" class="bubble-success"><title>Phpdftk\Svg\Element::fontFamily — Coverage: 94.1% | Lines: 17 | Complexity: 11</title></circle></a>
+ <a href="src/Value/Color.php.html#71"><circle cx="695.3" cy="317.0" r="9.8" class="bubble-warning"><title>Phpdftk\Svg\Value\Color::parseRgb — Coverage: 88.2% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="src/Element.php.html#256"><circle cx="732.0" cy="321.1" r="9.2" class="bubble-success"><title>Phpdftk\Svg\Element::strokeDasharray — Coverage: 93.3% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="src/Value/Paint.php.html#32"><circle cx="780.0" cy="317.0" r="9.2" class="bubble-success"><title>Phpdftk\Svg\Value\Paint::parse — Coverage: 100.0% | Lines: 15 | Complexity: 8</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#118"><circle cx="728.6" cy="321.1" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Gradient\Gradient::resolveStops — Coverage: 92.9% | Lines: 14 | Complexity: 7</title></circle></a>
+ <a href="src/ViewportElement.php.html#24"><circle cx="780.0" cy="317.0" r="8.9" class="bubble-success"><title>Phpdftk\Svg\ViewportElement::viewBox — Coverage: 100.0% | Lines: 14 | Complexity: 8</title></circle></a>
+ <a href="src/Css/CssBridge.php.html#118"><circle cx="669.2" cy="325.2" r="8.6" class="bubble-warning"><title>Phpdftk\Svg\Css\CssBridge::presentationAttributeSheet — Coverage: 84.6% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="src/Element.php.html#478"><circle cx="669.2" cy="325.2" r="8.6" class="bubble-warning"><title>Phpdftk\Svg\Element::parsePoints — Coverage: 84.6% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="src/Marker.php.html#104"><circle cx="558.5" cy="308.8" r="8.6" class="bubble-warning"><title>Phpdftk\Svg\Marker::orient — Coverage: 69.2% | Lines: 13 | Complexity: 10</title></circle></a>
+ <a href="src/Gradient/Stop.php.html#28"><circle cx="660.0" cy="329.4" r="8.2" class="bubble-warning"><title>Phpdftk\Svg\Gradient\Stop::offset — Coverage: 83.3% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="src/Marker.php.html#37"><circle cx="660.0" cy="333.5" r="8.2" class="bubble-warning"><title>Phpdftk\Svg\Marker::viewBox — Coverage: 83.3% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="src/Path/PathData.php.html#194"><circle cx="540.0" cy="321.1" r="8.2" class="bubble-warning"><title>Phpdftk\Svg\Path\PathData::readFlag — Coverage: 66.7% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="src/Pattern.php.html#68"><circle cx="660.0" cy="333.5" r="8.2" class="bubble-warning"><title>Phpdftk\Svg\Pattern::viewBox — Coverage: 83.3% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="src/View.php.html#28"><circle cx="660.0" cy="333.5" r="8.2" class="bubble-warning"><title>Phpdftk\Svg\View::viewBox — Coverage: 83.3% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="src/Path/PathData.php.html#172"><circle cx="780.0" cy="325.2" r="7.9" class="bubble-success"><title>Phpdftk\Svg\Path\PathData::readNumber — Coverage: 100.0% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="src/Value/Color.php.html#32"><circle cx="780.0" cy="329.4" r="7.9" class="bubble-success"><title>Phpdftk\Svg\Value\Color::parse — Coverage: 100.0% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="src/Filter/FeColorMatrix.php.html#44"><circle cx="636.0" cy="329.4" r="7.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix::values — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#46"><circle cx="636.0" cy="329.4" r="7.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::kernelMatrix — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#36"><circle cx="636.0" cy="329.4" r="7.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeFunc::tableValues — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="src/Value/Transform.php.html#149"><circle cx="780.0" cy="345.9" r="7.5" class="bubble-success"><title>Phpdftk\Svg\Value\Transform::multiply — Coverage: 100.0% | Lines: 10 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Rotate.php.html#22"><circle cx="780.0" cy="337.6" r="7.5" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Rotate::toMatrix — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="src/Css/CssBridge.php.html#71"><circle cx="780.0" cy="345.9" r="7.1" class="bubble-success"><title>Phpdftk\Svg\Css\CssBridge::computeStyle — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="src/Css/CssBridge.php.html#95"><circle cx="620.0" cy="333.5" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Css\CssBridge::collectAuthorSheets — Coverage: 77.8% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#87"><circle cx="700.0" cy="333.5" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Gradient\Gradient::href — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="src/Marker.php.html#55"><circle cx="540.0" cy="308.8" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Marker::refX — Coverage: 66.7% | Lines: 9 | Complexity: 10</title></circle></a>
+ <a href="src/Marker.php.html#73"><circle cx="460.0" cy="308.8" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Marker::refY — Coverage: 55.6% | Lines: 9 | Complexity: 10</title></circle></a>
+ <a href="src/Use_.php.html#60"><circle cx="700.0" cy="333.5" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Use_::href — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="src/Value/Color.php.html#53"><circle cx="620.0" cy="329.4" r="7.1" class="bubble-warning"><title>Phpdftk\Svg\Value\Color::parseHex — Coverage: 77.8% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#155"><circle cx="60.0" cy="333.5" r="6.7" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::parentElementChildren — Coverage: 0.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#52"><circle cx="780.0" cy="329.4" r="6.7" class="bubble-success"><title>Phpdftk\Svg\Element::findByTag — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="src/Filter/FeColorMatrix.php.html#24"><circle cx="690.0" cy="325.2" r="6.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix::type — Coverage: 87.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="src/ClipPath.php.html#27"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\ClipPath::clipPathUnits — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#76"><circle cx="60.0" cy="337.6" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::previousElementSibling — Coverage: 0.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#89"><circle cx="60.0" cy="333.5" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::nextElementSibling — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Desc.php.html#24"><circle cx="574.3" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Desc::collectText — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#177"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::fillRule — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#191"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::strokeWidth — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#205"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::strokeLinecap — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#222"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::strokeLinejoin — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#236"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::strokeMiterlimit — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#333"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::fontSize — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#366"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::fontStyle — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#387"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Element::textShadow — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#409"><circle cx="677.1" cy="337.6" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Element::parseClampedFraction — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="src/Filter/FeBlend.php.html#24"><circle cx="780.0" cy="341.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::mode — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#31"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::order — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#46"><circle cx="60.0" cy="333.5" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::kernelUnitLength — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#35"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow::stdDeviation — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeGaussianBlur.php.html#28"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeGaussianBlur::stdDeviation — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeMorphology.php.html#31"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeMorphology::radius — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#47"><circle cx="60.0" cy="333.5" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::kernelUnitLength — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#29"><circle cx="780.0" cy="333.5" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::baseFrequency — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#68"><circle cx="780.0" cy="329.4" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Gradient\Gradient::spreadMethod — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="src/Image.php.html#77"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Image::parseOptionalNonNegativeLength — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Mask.php.html#77"><circle cx="780.0" cy="329.4" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Mask::parseUnitsAttribute — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#62"><circle cx="574.3" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Text\TextPositioningElement::textLength — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#79"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Text\TextPositioningElement::lengthAdjust — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Title.php.html#25"><circle cx="574.3" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Title::collectText — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Use_.php.html#88"><circle cx="677.1" cy="333.5" r="6.3" class="bubble-warning"><title>Phpdftk\Svg\Use_::optionalLength — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#74"><circle cx="780.0" cy="337.6" r="5.8" class="bubble-success"><title>Phpdftk\Svg\Element::parseLengthOrZero — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/Element.php.html#92"><circle cx="780.0" cy="333.5" r="5.8" class="bubble-success"><title>Phpdftk\Svg\Element::transform — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#31"><circle cx="780.0" cy="333.5" r="5.8" class="bubble-success"><title>Phpdftk\Svg\Gradient\Gradient::gradientUnits — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#49"><circle cx="540.0" cy="333.5" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Gradient\Gradient::gradientTransform — Coverage: 66.7% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#43"><circle cx="660.0" cy="337.6" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Gradient\LinearGradient::parseOptionalLength — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#58"><circle cx="660.0" cy="337.6" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Gradient\RadialGradient::parseOptionalLength — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/Gradient/Stop.php.html#57"><circle cx="660.0" cy="337.6" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Gradient\Stop::stopOpacity — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/Image.php.html#55"><circle cx="660.0" cy="337.6" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Image::href — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/Mask.php.html#91"><circle cx="660.0" cy="337.6" r="5.8" class="bubble-warning"><title>Phpdftk\Svg\Mask::parseOptionalLength — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/SvgDocument.php.html#33"><circle cx="780.0" cy="337.6" r="5.8" class="bubble-success"><title>Phpdftk\Svg\SvgDocument::findById — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="src/SvgDocument.php.html#57"><circle cx="780.0" cy="325.2" r="5.8" class="bubble-success"><title>Phpdftk\Svg\SvgDocument::indexInto — Coverage: 100.0% | Lines: 6 | Complexity: 6</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#38"><circle cx="636.0" cy="337.6" r="5.3" class="bubble-warning"><title>Phpdftk\Svg\Css\MatchableSvgElement::elementId — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#103"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::elementChildren — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#114"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::indexAmongSiblings — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#124"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::indexAmongSiblingsFromEnd — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#134"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::indexAmongTypeSiblings — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#144"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::indexAmongTypeSiblingsFromEnd — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#171"><circle cx="60.0" cy="337.6" r="5.3" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::sameTypeSiblings — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Element.php.html#111"><circle cx="780.0" cy="333.5" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Element::classList — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="src/Element.php.html#351"><circle cx="780.0" cy="337.6" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Element::fontWeight — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Path/PathData.php.html#83"><circle cx="780.0" cy="337.6" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Path\PathData::isCommandLetter — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#31"><circle cx="636.0" cy="337.6" r="5.3" class="bubble-warning"><title>Phpdftk\Svg\Shape\Ellipse::rx — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#42"><circle cx="780.0" cy="337.6" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Shape\Ellipse::ry — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Shape/Rect.php.html#52"><circle cx="636.0" cy="337.6" r="5.3" class="bubble-warning"><title>Phpdftk\Svg\Shape\Rect::rx — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Shape/Rect.php.html#63"><circle cx="636.0" cy="337.6" r="5.3" class="bubble-warning"><title>Phpdftk\Svg\Shape\Rect::ry — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/StyleElement.php.html#29"><circle cx="780.0" cy="337.6" r="5.3" class="bubble-success"><title>Phpdftk\Svg\StyleElement::cssText — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#95"><circle cx="636.0" cy="333.5" r="5.3" class="bubble-warning"><title>Phpdftk\Svg\Text\TextPositioningElement::parseNumberList — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="src/AnimateTransform.php.html#20"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\AnimateTransform::type — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#187"><circle cx="60.0" cy="337.6" r="4.7" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::positionAmong — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="src/Element.php.html#126"><circle cx="780.0" cy="337.6" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Element::inlineStyleText — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="src/Element.php.html#283"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Element::strokeDashoffset — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Element.php.html#400"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Element::parsePaint — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#52"><circle cx="600.0" cy="341.8" r="4.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow::floodOpacity — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeFlood.php.html#29"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::floodOpacity — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#24"><circle cx="780.0" cy="337.6" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::type — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="src/Gradient/Stop.php.html#48"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Gradient\Stop::stopColor — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Path.php.html#35"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Path::d — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform.php.html#74"><circle cx="780.0" cy="341.8" r="4.7" class="bubble-success"><title>Phpdftk\Svg\Value\Transform::toMatrix — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="src/Element.php.html#462"><circle cx="540.0" cy="341.8" r="4.1" class="bubble-warning"><title>Phpdftk\Svg\Element::parseNumberPrefix — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#24"><circle cx="780.0" cy="341.8" r="4.1" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::operator — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform.php.html#134"><circle cx="540.0" cy="341.8" r="4.1" class="bubble-warning"><title>Phpdftk\Svg\Value\Transform::parseNumberList — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="src/A_.php.html#30"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\A_::href — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#70"><circle cx="60.0" cy="341.8" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::parentElement — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Element.php.html#45"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::appendChild — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#52"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::filterUnits — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter.php.html#58"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::primitiveUnits — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter.php.html#64"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter::href — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#63"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::divisor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#74"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::targetX — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#80"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::targetY — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#86"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::edgeMode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#44"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::channel — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeGaussianBlur.php.html#45"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur::edgeMode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeImage.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::href — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMorphology.php.html#22"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology::operator — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#61"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::limitingConeAngle — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#51"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::stitchTiles — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#57"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::type — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#37"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::x — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#43"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::y — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#49"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::width — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#55"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::height — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/ForeignObject.php.html#38"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject::width — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/ForeignObject.php.html#44"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject::height — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#35"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::r — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#52"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::fr — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="src/Image.php.html#71"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::preserveAspectRatio — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/MPath.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\MPath::href — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Marker.php.html#131"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Marker::markerUnits — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Mask.php.html#62"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::width — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="src/Mask.php.html#68"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::height — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="src/Pattern.php.html#53"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::patternUnits — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Pattern.php.html#59"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::patternContentUnits — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Pattern.php.html#91"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::href — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#82"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::resolve — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="src/Value/Transform/Scale.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Scale::toMatrix — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="src/A_.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\A_::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/A_.php.html#36"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\A_::target — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animate.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animate::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnimateMotion.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\AnimateMotion::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnimateMotion.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\AnimateMotion::path — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnimateMotion.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\AnimateMotion::rotate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnimateMotion.php.html#29"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\AnimateMotion::keyPoints — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/AnimateTransform.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\AnimateTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animation::attributeName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#28"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::attributeType — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#33"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::begin — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#38"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animation::dur — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#43"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::end — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#48"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::repeatCount — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#53"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animation::from — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#58"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Animation::to — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#63"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::by — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Animation.php.html#68"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Animation::values — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ClipPath.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ClipPath::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/CssBridge.php.html#60"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Css\CssBridge::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#26"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Css\MatchableSvgElement::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Css\MatchableSvgElement::localName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#33"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::namespaceUri — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#49"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Css\MatchableSvgElement::classes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#54"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::hasAttribute — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#59"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Css\MatchableSvgElement::getAttributeValue — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Css/MatchableSvgElement.php.html#65"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Css\MatchableSvgElement::allAttributes — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Defs.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Defs::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Desc.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Desc::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Desc.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Desc::text — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#30"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::getAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#35"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::hasAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#40"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::setAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#139"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::fill — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#149"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::stroke — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#155"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::fillOpacity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#161"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::strokeOpacity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Element.php.html#167"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Element::opacity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#32"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#37"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#42"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::width — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter.php.html#47"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter::height — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeBlend.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeBlend.php.html#35"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::in2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeColorMatrix.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeColorMatrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComponentTransfer.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComponentTransfer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#31"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeComposite::in2 — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#36"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#46"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k3 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeComposite.php.html#51"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k4 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#69"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::bias — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeConvolveMatrix.php.html#92"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::preserveAlpha — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::lightingColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#32"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::surfaceScale — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDiffuseLighting.php.html#37"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::diffuseConstant — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::in2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::scale — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#34"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::xChannelSelector — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDisplacementMap.php.html#39"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::yChannelSelector — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDistantLight.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDistantLight.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::azimuth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDistantLight.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::elevation — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#17"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::dx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::dy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeDropShadow.php.html#47"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::floodColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFlood.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFlood.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::floodColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#53"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::slope — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#58"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::intercept — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#63"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeFunc::amplitude — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#68"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::exponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFunc.php.html#73"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeFunc::offset — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncA.php.html#9"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncA::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncB.php.html#9"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncB::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncG.php.html#9"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncG::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeFuncR.php.html#9"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncR::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeGaussianBlur.php.html#18"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeImage.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeImage.php.html#26"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::preserveAspectRatio — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeImage.php.html#36"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeImage::crossOrigin — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMerge.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMerge::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMergeNode.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMergeNode.php.html#21"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode::in — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeMorphology.php.html#17"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeOffset.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeOffset.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::dx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeOffset.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::dy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FePointLight.php.html#18"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FePointLight.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FePointLight.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FePointLight.php.html#33"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::z — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#24"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::lightingColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#29"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::surfaceScale — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#34"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::specularConstant — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpecularLighting.php.html#39"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::specularExponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#21"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#26"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#31"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::y — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#36"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::z — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtX — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#46"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtY — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#51"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtZ — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeSpotLight.php.html#56"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::specularExponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeTile.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTile::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#21"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::numOctaves — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FeTurbulence.php.html#46"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::seed — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#66"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::in — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Filter/FilterPrimitive.php.html#76"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::result — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ForeignObject.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ForeignObject.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ForeignObject.php.html#33"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ForeignObject::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/Gradient.php.html#109"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\Gradient::stops — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#18"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient::x1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient::y1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#33"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient::x2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/LinearGradient.php.html#38"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\LinearGradient::y2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::cx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::cy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::fx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/RadialGradient.php.html#46"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\RadialGradient::fy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Gradient/Stop.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Gradient\Stop::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Group.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Group::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Image.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Image.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Image.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Image.php.html#39"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::width — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Image.php.html#44"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Image::height — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/MPath.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\MPath::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Marker.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Marker::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Marker.php.html#88"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Marker::markerWidth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Marker.php.html#93"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Marker::markerHeight — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Mask.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Mask.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::maskUnits — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Mask.php.html#38"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::maskContentUnits — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Mask.php.html#48"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Mask.php.html#53"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Mask::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Metadata.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Metadata::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Parser.php.html#38"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Parser::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path::dRaw — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/ArcTo.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\ArcTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/ClosePath.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\ClosePath::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/CurveTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\CurveTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/HorizontalLineTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\HorizontalLineTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/LineTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\LineTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/MoveTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\MoveTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/PathData.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\PathData::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/QuadraticCurveTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\QuadraticCurveTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/SmoothCurveTo.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\SmoothCurveTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/SmoothQuadraticCurveTo.php.html#13"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\SmoothQuadraticCurveTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Path/VerticalLineTo.php.html#10"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Path\VerticalLineTo::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Pattern.php.html#28"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Pattern.php.html#33"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Pattern.php.html#38"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Pattern.php.html#43"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::width — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Pattern.php.html#48"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Pattern::height — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Script.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Script::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/SetElement.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\SetElement::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Circle.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Circle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Circle.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Circle::cx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Circle.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Circle::cy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Circle.php.html#30"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Circle::r — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Ellipse::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#21"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Ellipse::cx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Ellipse.php.html#26"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Ellipse::cy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Line.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Line.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line::x1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Line.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line::y1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Line.php.html#30"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line::x2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Line.php.html#35"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Line::y2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Polygon.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polygon::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Polygon.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polygon::points — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Polyline.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polyline::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Polyline.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Polyline::points — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Rect.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Rect::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Rect.php.html#25"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Rect::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Rect.php.html#31"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Rect::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Rect.php.html#36"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Rect::width — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Shape/Rect.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Shape\Rect::height — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/StyleElement.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\StyleElement::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/SvgDocument.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\SvgDocument::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/SvgDocument.php.html#49"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\SvgDocument::invalidateIdIndex — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Switch_.php.html#30"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Switch_::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Symbol.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Symbol::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextElement.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextElement::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#23"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextPositioningElement::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#29"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextPositioningElement::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#35"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextPositioningElement::dx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#41"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextPositioningElement::dy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/TextPositioningElement.php.html#53"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\TextPositioningElement::rotate — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Text/Tspan.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Text\Tspan::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Title.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Title::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Title.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Title::text — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#21"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#33"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#43"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::width — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Use_.php.html#49"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Use_::height — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Paint/SolidColor.php.html#18"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Paint\SolidColor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Paint/Url.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Paint\Url::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Matrix.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Matrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Matrix.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Matrix::toMatrix — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Rotate.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Rotate::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Scale.php.html#15"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Scale::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/SkewX.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewX::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/SkewX.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewX::toMatrix — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/SkewY.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewY::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/SkewY.php.html#16"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\SkewY::toMatrix — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Translate.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Translate::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/Value/Transform/Translate.php.html#19"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Value\Transform\Translate::toMatrix — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/View.php.html#20"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\View::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/View.php.html#46"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\View::preserveAspectRatio — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ViewportElement.php.html#48"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ViewportElement::widthAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="src/ViewportElement.php.html#54"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Svg\ViewportElement::heightAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="src/Parser.php.html#90">Phpdftk\Svg\Parser::makeElementForName</a></td><td class="text-right">63</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#89">Phpdftk\Svg\Css\MatchableSvgElement::nextElementSibling</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#155">Phpdftk\Svg\Css\MatchableSvgElement::parentElementChildren</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#46">Phpdftk\Svg\Filter\FeDiffuseLighting::kernelUnitLength</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#47">Phpdftk\Svg\Filter\FeSpecularLighting::kernelUnitLength</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#86">Phpdftk\Svg\Value\Transform::makeFunction</a></td><td class="text-right">20</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#73">Phpdftk\Svg\Marker::refY</a></td><td class="text-right">18.78</td><td class="text-right">55.6%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#21">Phpdftk\Svg\Path\PathData::parse</a></td><td class="text-right">14</td><td class="text-right">96.4%</td></tr>
+  <tr><td><a href="src/Marker.php.html#55">Phpdftk\Svg\Marker::refX</a></td><td class="text-right">13.70</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Marker.php.html#104">Phpdftk\Svg\Marker::orient</a></td><td class="text-right">12.91</td><td class="text-right">69.2%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#76">Phpdftk\Svg\Css\MatchableSvgElement::previousElementSibling</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#103">Phpdftk\Svg\Css\MatchableSvgElement::elementChildren</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#114">Phpdftk\Svg\Css\MatchableSvgElement::indexAmongSiblings</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#124">Phpdftk\Svg\Css\MatchableSvgElement::indexAmongSiblingsFromEnd</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#134">Phpdftk\Svg\Css\MatchableSvgElement::indexAmongTypeSiblings</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#144">Phpdftk\Svg\Css\MatchableSvgElement::indexAmongTypeSiblingsFromEnd</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#171">Phpdftk\Svg\Css\MatchableSvgElement::sameTypeSiblings</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#187">Phpdftk\Svg\Css\MatchableSvgElement::positionAmong</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#301">Phpdftk\Svg\Element::fontFamily</a></td><td class="text-right">11.02</td><td class="text-right">94.1%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#96">Phpdftk\Svg\Path\PathData::readCommand</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#194">Phpdftk\Svg\Path\PathData::readFlag</a></td><td class="text-right">8.81</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Value/Color.php.html#71">Phpdftk\Svg\Value\Color::parseRgb</a></td><td class="text-right">8.10</td><td class="text-right">88.2%</td></tr>
+  <tr><td><a href="src/Value/Paint.php.html#32">Phpdftk\Svg\Value\Paint::parse</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#36">Phpdftk\Svg\Value\Transform::parse</a></td><td class="text-right">8</td><td class="text-right">95.7%</td></tr>
+  <tr><td><a href="src/ViewportElement.php.html#24">Phpdftk\Svg\ViewportElement::viewBox</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#118">Phpdftk\Svg\Gradient\Gradient::resolveStops</a></td><td class="text-right">7.02</td><td class="text-right">92.9%</td></tr>
+  <tr><td><a href="src/Element.php.html#256">Phpdftk\Svg\Element::strokeDasharray</a></td><td class="text-right">7.01</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="src/Element.php.html#435">Phpdftk\Svg\Element::presentationOrStyle</a></td><td class="text-right">7.01</td><td class="text-right">94.4%</td></tr>
+  <tr><td><a href="src/Parser.php.html#43">Phpdftk\Svg\Parser::parse</a></td><td class="text-right">6.15</td><td class="text-right">83.9%</td></tr>
+  <tr><td><a href="src/Css/CssBridge.php.html#118">Phpdftk\Svg\Css\CssBridge::presentationAttributeSheet</a></td><td class="text-right">6.13</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="src/Element.php.html#478">Phpdftk\Svg\Element::parsePoints</a></td><td class="text-right">6.13</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="src/Filter/FeColorMatrix.php.html#24">Phpdftk\Svg\Filter\FeColorMatrix::type</a></td><td class="text-right">6.07</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#70">Phpdftk\Svg\Css\MatchableSvgElement::parentElement</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#172">Phpdftk\Svg\Path\PathData::readNumber</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SvgDocument.php.html#57">Phpdftk\Svg\SvgDocument::indexInto</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Color.php.html#53">Phpdftk\Svg\Value\Color::parseHex</a></td><td class="text-right">5.27</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/Filter/FeColorMatrix.php.html#44">Phpdftk\Svg\Filter\FeColorMatrix::values</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#46">Phpdftk\Svg\Filter\FeConvolveMatrix::kernelMatrix</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#36">Phpdftk\Svg\Filter\FeFunc::tableValues</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Gradient/Stop.php.html#28">Phpdftk\Svg\Gradient\Stop::offset</a></td><td class="text-right">5.12</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Element.php.html#52">Phpdftk\Svg\Element::findByTag</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#68">Phpdftk\Svg\Gradient\Gradient::spreadMethod</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#77">Phpdftk\Svg\Mask::parseUnitsAttribute</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Color.php.html#32">Phpdftk\Svg\Value\Color::parse</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#49">Phpdftk\Svg\Gradient\Gradient::gradientTransform</a></td><td class="text-right">4.59</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Desc.php.html#24">Phpdftk\Svg\Desc::collectText</a></td><td class="text-right">4.37</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#62">Phpdftk\Svg\Text\TextPositioningElement::textLength</a></td><td class="text-right">4.37</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="src/Title.php.html#25">Phpdftk\Svg\Title::collectText</a></td><td class="text-right">4.37</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="src/Css/CssBridge.php.html#95">Phpdftk\Svg\Css\CssBridge::collectAuthorSheets</a></td><td class="text-right">4.18</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#95">Phpdftk\Svg\Text\TextPositioningElement::parseNumberList</a></td><td class="text-right">4.13</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#37">Phpdftk\Svg\Marker::viewBox</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#68">Phpdftk\Svg\Pattern::viewBox</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/View.php.html#28">Phpdftk\Svg\View::viewBox</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#31">Phpdftk\Svg\Filter\FeConvolveMatrix::order</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#35">Phpdftk\Svg\Filter\FeDropShadow::stdDeviation</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Filter/FeGaussianBlur.php.html#28">Phpdftk\Svg\Filter\FeGaussianBlur::stdDeviation</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Filter/FeMorphology.php.html#31">Phpdftk\Svg\Filter\FeMorphology::radius</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Image.php.html#77">Phpdftk\Svg\Image::parseOptionalNonNegativeLength</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#79">Phpdftk\Svg\Text\TextPositioningElement::lengthAdjust</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Use_.php.html#88">Phpdftk\Svg\Use_::optionalLength</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#87">Phpdftk\Svg\Gradient\Gradient::href</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="src/Use_.php.html#60">Phpdftk\Svg\Use_::href</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="src/ClipPath.php.html#27">Phpdftk\Svg\ClipPath::clipPathUnits</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#92">Phpdftk\Svg\Element::transform</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#111">Phpdftk\Svg\Element::classList</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#177">Phpdftk\Svg\Element::fillRule</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#191">Phpdftk\Svg\Element::strokeWidth</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#205">Phpdftk\Svg\Element::strokeLinecap</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#222">Phpdftk\Svg\Element::strokeLinejoin</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#236">Phpdftk\Svg\Element::strokeMiterlimit</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#333">Phpdftk\Svg\Element::fontSize</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#366">Phpdftk\Svg\Element::fontStyle</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#387">Phpdftk\Svg\Element::textShadow</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#29">Phpdftk\Svg\Filter\FeTurbulence::baseFrequency</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#31">Phpdftk\Svg\Gradient\Gradient::gradientUnits</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#38">Phpdftk\Svg\Css\MatchableSvgElement::elementId</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#31">Phpdftk\Svg\Shape\Ellipse::rx</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#52">Phpdftk\Svg\Shape\Rect::rx</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#63">Phpdftk\Svg\Shape\Rect::ry</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#43">Phpdftk\Svg\Gradient\LinearGradient::parseOptionalLength</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#58">Phpdftk\Svg\Gradient\RadialGradient::parseOptionalLength</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Gradient/Stop.php.html#57">Phpdftk\Svg\Gradient\Stop::stopOpacity</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Image.php.html#55">Phpdftk\Svg\Image::href</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Mask.php.html#91">Phpdftk\Svg\Mask::parseOptionalLength</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="src/Element.php.html#409">Phpdftk\Svg\Element::parseClampedFraction</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="src/Element.php.html#74">Phpdftk\Svg\Element::parseLengthOrZero</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#126">Phpdftk\Svg\Element::inlineStyleText</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#351">Phpdftk\Svg\Element::fontWeight</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#24">Phpdftk\Svg\Filter\FeFunc::type</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#35">Phpdftk\Svg\Gradient\RadialGradient::r</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#52">Phpdftk\Svg\Gradient\RadialGradient::fr</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#62">Phpdftk\Svg\Mask::width</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#68">Phpdftk\Svg\Mask::height</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#83">Phpdftk\Svg\Path\PathData::isCommandLetter</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#42">Phpdftk\Svg\Shape\Ellipse::ry</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/StyleElement.php.html#29">Phpdftk\Svg\StyleElement::cssText</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SvgDocument.php.html#33">Phpdftk\Svg\SvgDocument::findById</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Rotate.php.html#22">Phpdftk\Svg\Value\Transform\Rotate::toMatrix</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#462">Phpdftk\Svg\Element::parseNumberPrefix</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#134">Phpdftk\Svg\Value\Transform::parseNumberList</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#52">Phpdftk\Svg\Filter\FeDropShadow::floodOpacity</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="src/AnimateMotion.php.html#29">Phpdftk\Svg\AnimateMotion::keyPoints</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/AnimateTransform.php.html#20">Phpdftk\Svg\AnimateTransform::type</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#28">Phpdftk\Svg\Animation::attributeType</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#33">Phpdftk\Svg\Animation::begin</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#43">Phpdftk\Svg\Animation::end</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#48">Phpdftk\Svg\Animation::repeatCount</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#63">Phpdftk\Svg\Animation::by</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#68">Phpdftk\Svg\Animation::values</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#33">Phpdftk\Svg\Css\MatchableSvgElement::namespaceUri</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#54">Phpdftk\Svg\Css\MatchableSvgElement::hasAttribute</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#65">Phpdftk\Svg\Css\MatchableSvgElement::allAttributes</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#283">Phpdftk\Svg\Element::strokeDashoffset</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#400">Phpdftk\Svg\Element::parsePaint</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#52">Phpdftk\Svg\Filter::filterUnits</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#58">Phpdftk\Svg\Filter::primitiveUnits</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#64">Phpdftk\Svg\Filter::href</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeBlend.php.html#24">Phpdftk\Svg\Filter\FeBlend::mode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#24">Phpdftk\Svg\Filter\FeComposite::operator</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#31">Phpdftk\Svg\Filter\FeComposite::in2</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#63">Phpdftk\Svg\Filter\FeConvolveMatrix::divisor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#74">Phpdftk\Svg\Filter\FeConvolveMatrix::targetX</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#80">Phpdftk\Svg\Filter\FeConvolveMatrix::targetY</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#86">Phpdftk\Svg\Filter\FeConvolveMatrix::edgeMode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#44">Phpdftk\Svg\Filter\FeDisplacementMap::channel</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFlood.php.html#29">Phpdftk\Svg\Filter\FeFlood::floodOpacity</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#63">Phpdftk\Svg\Filter\FeFunc::amplitude</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#73">Phpdftk\Svg\Filter\FeFunc::offset</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeGaussianBlur.php.html#45">Phpdftk\Svg\Filter\FeGaussianBlur::edgeMode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeImage.php.html#36">Phpdftk\Svg\Filter\FeImage::crossOrigin</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMorphology.php.html#22">Phpdftk\Svg\Filter\FeMorphology::operator</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#24">Phpdftk\Svg\Filter\FeSpecularLighting::lightingColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#29">Phpdftk\Svg\Filter\FeSpecularLighting::surfaceScale</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#31">Phpdftk\Svg\Filter\FeSpotLight::y</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#46">Phpdftk\Svg\Filter\FeSpotLight::pointsAtY</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#51">Phpdftk\Svg\Filter\FeSpotLight::pointsAtZ</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#61">Phpdftk\Svg\Filter\FeSpotLight::limitingConeAngle</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#51">Phpdftk\Svg\Filter\FeTurbulence::stitchTiles</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#57">Phpdftk\Svg\Filter\FeTurbulence::type</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#37">Phpdftk\Svg\Filter\FilterPrimitive::x</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#43">Phpdftk\Svg\Filter\FilterPrimitive::y</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#49">Phpdftk\Svg\Filter\FilterPrimitive::width</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#55">Phpdftk\Svg\Filter\FilterPrimitive::height</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#38">Phpdftk\Svg\ForeignObject::width</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#44">Phpdftk\Svg\ForeignObject::height</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Stop.php.html#48">Phpdftk\Svg\Gradient\Stop::stopColor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#71">Phpdftk\Svg\Image::preserveAspectRatio</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#131">Phpdftk\Svg\Marker::markerUnits</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path.php.html#35">Phpdftk\Svg\Path::d</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#53">Phpdftk\Svg\Pattern::patternUnits</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#59">Phpdftk\Svg\Pattern::patternContentUnits</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#82">Phpdftk\Svg\Use_::resolve</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Color.php.html#104">Phpdftk\Svg\Value\Color::namedColors</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#74">Phpdftk\Svg\Value\Transform::toMatrix</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/A_.php.html#25">Phpdftk\Svg\A_::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/A_.php.html#30">Phpdftk\Svg\A_::href</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/A_.php.html#36">Phpdftk\Svg\A_::target</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animate.php.html#14">Phpdftk\Svg\Animate::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateMotion.php.html#14">Phpdftk\Svg\AnimateMotion::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateMotion.php.html#19">Phpdftk\Svg\AnimateMotion::path</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateMotion.php.html#24">Phpdftk\Svg\AnimateMotion::rotate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/AnimateTransform.php.html#15">Phpdftk\Svg\AnimateTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#23">Phpdftk\Svg\Animation::attributeName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#38">Phpdftk\Svg\Animation::dur</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#53">Phpdftk\Svg\Animation::from</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Animation.php.html#58">Phpdftk\Svg\Animation::to</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ClipPath.php.html#15">Phpdftk\Svg\ClipPath::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/CssBridge.php.html#60">Phpdftk\Svg\Css\CssBridge::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/CssBridge.php.html#71">Phpdftk\Svg\Css\CssBridge::computeStyle</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#26">Phpdftk\Svg\Css\MatchableSvgElement::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#28">Phpdftk\Svg\Css\MatchableSvgElement::localName</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#49">Phpdftk\Svg\Css\MatchableSvgElement::classes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Css/MatchableSvgElement.php.html#59">Phpdftk\Svg\Css\MatchableSvgElement::getAttributeValue</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Defs.php.html#15">Phpdftk\Svg\Defs::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Desc.php.html#14">Phpdftk\Svg\Desc::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Desc.php.html#19">Phpdftk\Svg\Desc::text</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#28">Phpdftk\Svg\Element::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#30">Phpdftk\Svg\Element::getAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#35">Phpdftk\Svg\Element::hasAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#40">Phpdftk\Svg\Element::setAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#45">Phpdftk\Svg\Element::appendChild</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#139">Phpdftk\Svg\Element::fill</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#149">Phpdftk\Svg\Element::stroke</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#155">Phpdftk\Svg\Element::fillOpacity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#161">Phpdftk\Svg\Element::strokeOpacity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Element.php.html#167">Phpdftk\Svg\Element::opacity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#27">Phpdftk\Svg\Filter::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#32">Phpdftk\Svg\Filter::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#37">Phpdftk\Svg\Filter::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#42">Phpdftk\Svg\Filter::width</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter.php.html#47">Phpdftk\Svg\Filter::height</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeBlend.php.html#19">Phpdftk\Svg\Filter\FeBlend::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeBlend.php.html#35">Phpdftk\Svg\Filter\FeBlend::in2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeColorMatrix.php.html#19">Phpdftk\Svg\Filter\FeColorMatrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComponentTransfer.php.html#15">Phpdftk\Svg\Filter\FeComponentTransfer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#19">Phpdftk\Svg\Filter\FeComposite::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#36">Phpdftk\Svg\Filter\FeComposite::k1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#41">Phpdftk\Svg\Filter\FeComposite::k2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#46">Phpdftk\Svg\Filter\FeComposite::k3</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeComposite.php.html#51">Phpdftk\Svg\Filter\FeComposite::k4</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#23">Phpdftk\Svg\Filter\FeConvolveMatrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#69">Phpdftk\Svg\Filter\FeConvolveMatrix::bias</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeConvolveMatrix.php.html#92">Phpdftk\Svg\Filter\FeConvolveMatrix::preserveAlpha</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#22">Phpdftk\Svg\Filter\FeDiffuseLighting::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#27">Phpdftk\Svg\Filter\FeDiffuseLighting::lightingColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#32">Phpdftk\Svg\Filter\FeDiffuseLighting::surfaceScale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDiffuseLighting.php.html#37">Phpdftk\Svg\Filter\FeDiffuseLighting::diffuseConstant</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#19">Phpdftk\Svg\Filter\FeDisplacementMap::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#24">Phpdftk\Svg\Filter\FeDisplacementMap::in2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#29">Phpdftk\Svg\Filter\FeDisplacementMap::scale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#34">Phpdftk\Svg\Filter\FeDisplacementMap::xChannelSelector</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDisplacementMap.php.html#39">Phpdftk\Svg\Filter\FeDisplacementMap::yChannelSelector</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDistantLight.php.html#19">Phpdftk\Svg\Filter\FeDistantLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDistantLight.php.html#24">Phpdftk\Svg\Filter\FeDistantLight::azimuth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDistantLight.php.html#29">Phpdftk\Svg\Filter\FeDistantLight::elevation</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#17">Phpdftk\Svg\Filter\FeDropShadow::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#22">Phpdftk\Svg\Filter\FeDropShadow::dx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#27">Phpdftk\Svg\Filter\FeDropShadow::dy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeDropShadow.php.html#47">Phpdftk\Svg\Filter\FeDropShadow::floodColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFlood.php.html#14">Phpdftk\Svg\Filter\FeFlood::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFlood.php.html#24">Phpdftk\Svg\Filter\FeFlood::floodColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#53">Phpdftk\Svg\Filter\FeFunc::slope</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#58">Phpdftk\Svg\Filter\FeFunc::intercept</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFunc.php.html#68">Phpdftk\Svg\Filter\FeFunc::exponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncA.php.html#9">Phpdftk\Svg\Filter\FeFuncA::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncB.php.html#9">Phpdftk\Svg\Filter\FeFuncB::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncG.php.html#9">Phpdftk\Svg\Filter\FeFuncG::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeFuncR.php.html#9">Phpdftk\Svg\Filter\FeFuncR::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeGaussianBlur.php.html#18">Phpdftk\Svg\Filter\FeGaussianBlur::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeImage.php.html#15">Phpdftk\Svg\Filter\FeImage::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeImage.php.html#20">Phpdftk\Svg\Filter\FeImage::href</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeImage.php.html#26">Phpdftk\Svg\Filter\FeImage::preserveAspectRatio</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMerge.php.html#22">Phpdftk\Svg\Filter\FeMerge::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMergeNode.php.html#16">Phpdftk\Svg\Filter\FeMergeNode::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMergeNode.php.html#21">Phpdftk\Svg\Filter\FeMergeNode::in</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeMorphology.php.html#17">Phpdftk\Svg\Filter\FeMorphology::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeOffset.php.html#15">Phpdftk\Svg\Filter\FeOffset::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeOffset.php.html#20">Phpdftk\Svg\Filter\FeOffset::dx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeOffset.php.html#25">Phpdftk\Svg\Filter\FeOffset::dy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FePointLight.php.html#18">Phpdftk\Svg\Filter\FePointLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FePointLight.php.html#23">Phpdftk\Svg\Filter\FePointLight::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FePointLight.php.html#28">Phpdftk\Svg\Filter\FePointLight::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FePointLight.php.html#33">Phpdftk\Svg\Filter\FePointLight::z</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#19">Phpdftk\Svg\Filter\FeSpecularLighting::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#34">Phpdftk\Svg\Filter\FeSpecularLighting::specularConstant</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpecularLighting.php.html#39">Phpdftk\Svg\Filter\FeSpecularLighting::specularExponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#21">Phpdftk\Svg\Filter\FeSpotLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#26">Phpdftk\Svg\Filter\FeSpotLight::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#36">Phpdftk\Svg\Filter\FeSpotLight::z</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#41">Phpdftk\Svg\Filter\FeSpotLight::pointsAtX</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeSpotLight.php.html#56">Phpdftk\Svg\Filter\FeSpotLight::specularExponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTile.php.html#16">Phpdftk\Svg\Filter\FeTile::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#21">Phpdftk\Svg\Filter\FeTurbulence::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#41">Phpdftk\Svg\Filter\FeTurbulence::numOctaves</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FeTurbulence.php.html#46">Phpdftk\Svg\Filter\FeTurbulence::seed</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#66">Phpdftk\Svg\Filter\FilterPrimitive::in</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Filter/FilterPrimitive.php.html#76">Phpdftk\Svg\Filter\FilterPrimitive::result</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#23">Phpdftk\Svg\ForeignObject::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#28">Phpdftk\Svg\ForeignObject::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ForeignObject.php.html#33">Phpdftk\Svg\ForeignObject::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Gradient.php.html#109">Phpdftk\Svg\Gradient\Gradient::stops</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#18">Phpdftk\Svg\Gradient\LinearGradient::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#23">Phpdftk\Svg\Gradient\LinearGradient::x1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#28">Phpdftk\Svg\Gradient\LinearGradient::y1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#33">Phpdftk\Svg\Gradient\LinearGradient::x2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/LinearGradient.php.html#38">Phpdftk\Svg\Gradient\LinearGradient::y2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#19">Phpdftk\Svg\Gradient\RadialGradient::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#24">Phpdftk\Svg\Gradient\RadialGradient::cx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#29">Phpdftk\Svg\Gradient\RadialGradient::cy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#41">Phpdftk\Svg\Gradient\RadialGradient::fx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/RadialGradient.php.html#46">Phpdftk\Svg\Gradient\RadialGradient::fy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Gradient/Stop.php.html#23">Phpdftk\Svg\Gradient\Stop::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Group.php.html#15">Phpdftk\Svg\Group::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#19">Phpdftk\Svg\Image::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#24">Phpdftk\Svg\Image::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#29">Phpdftk\Svg\Image::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#39">Phpdftk\Svg\Image::width</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Image.php.html#44">Phpdftk\Svg\Image::height</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MPath.php.html#15">Phpdftk\Svg\MPath::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/MPath.php.html#20">Phpdftk\Svg\MPath::href</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#29">Phpdftk\Svg\Marker::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#88">Phpdftk\Svg\Marker::markerWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Marker.php.html#93">Phpdftk\Svg\Marker::markerHeight</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#16">Phpdftk\Svg\Mask::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#27">Phpdftk\Svg\Mask::maskUnits</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#38">Phpdftk\Svg\Mask::maskContentUnits</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#48">Phpdftk\Svg\Mask::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Mask.php.html#53">Phpdftk\Svg\Mask::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Metadata.php.html#15">Phpdftk\Svg\Metadata::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Parser.php.html#38">Phpdftk\Svg\Parser::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path.php.html#16">Phpdftk\Svg\Path::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path.php.html#25">Phpdftk\Svg\Path::dRaw</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/ArcTo.php.html#14">Phpdftk\Svg\Path\ArcTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/ClosePath.php.html#14">Phpdftk\Svg\Path\ClosePath::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/CurveTo.php.html#10">Phpdftk\Svg\Path\CurveTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/HorizontalLineTo.php.html#10">Phpdftk\Svg\Path\HorizontalLineTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/LineTo.php.html#10">Phpdftk\Svg\Path\LineTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/MoveTo.php.html#10">Phpdftk\Svg\Path\MoveTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/PathData.php.html#19">Phpdftk\Svg\Path\PathData::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/QuadraticCurveTo.php.html#10">Phpdftk\Svg\Path\QuadraticCurveTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/SmoothCurveTo.php.html#14">Phpdftk\Svg\Path\SmoothCurveTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/SmoothQuadraticCurveTo.php.html#13">Phpdftk\Svg\Path\SmoothQuadraticCurveTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Path/VerticalLineTo.php.html#10">Phpdftk\Svg\Path\VerticalLineTo::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#28">Phpdftk\Svg\Pattern::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#33">Phpdftk\Svg\Pattern::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#38">Phpdftk\Svg\Pattern::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#43">Phpdftk\Svg\Pattern::width</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#48">Phpdftk\Svg\Pattern::height</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Pattern.php.html#91">Phpdftk\Svg\Pattern::href</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Script.php.html#20">Phpdftk\Svg\Script::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SetElement.php.html#15">Phpdftk\Svg\SetElement::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Circle.php.html#15">Phpdftk\Svg\Shape\Circle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Circle.php.html#20">Phpdftk\Svg\Shape\Circle::cx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Circle.php.html#25">Phpdftk\Svg\Shape\Circle::cy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Circle.php.html#30">Phpdftk\Svg\Shape\Circle::r</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#16">Phpdftk\Svg\Shape\Ellipse::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#21">Phpdftk\Svg\Shape\Ellipse::cx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Ellipse.php.html#26">Phpdftk\Svg\Shape\Ellipse::cy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#15">Phpdftk\Svg\Shape\Line::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#20">Phpdftk\Svg\Shape\Line::x1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#25">Phpdftk\Svg\Shape\Line::y1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#30">Phpdftk\Svg\Shape\Line::x2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Line.php.html#35">Phpdftk\Svg\Shape\Line::y2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polygon.php.html#16">Phpdftk\Svg\Shape\Polygon::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polygon.php.html#22">Phpdftk\Svg\Shape\Polygon::points</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polyline.php.html#16">Phpdftk\Svg\Shape\Polyline::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Polyline.php.html#22">Phpdftk\Svg\Shape\Polyline::points</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#19">Phpdftk\Svg\Shape\Rect::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#25">Phpdftk\Svg\Shape\Rect::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#31">Phpdftk\Svg\Shape\Rect::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#36">Phpdftk\Svg\Shape\Rect::width</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Shape/Rect.php.html#41">Phpdftk\Svg\Shape\Rect::height</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/StyleElement.php.html#19">Phpdftk\Svg\StyleElement::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SvgDocument.php.html#23">Phpdftk\Svg\SvgDocument::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/SvgDocument.php.html#49">Phpdftk\Svg\SvgDocument::invalidateIdIndex</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Switch_.php.html#30">Phpdftk\Svg\Switch_::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Symbol.php.html#16">Phpdftk\Svg\Symbol::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text.php.html#14">Phpdftk\Svg\Text::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextElement.php.html#15">Phpdftk\Svg\Text\TextElement::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#23">Phpdftk\Svg\Text\TextPositioningElement::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#29">Phpdftk\Svg\Text\TextPositioningElement::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#35">Phpdftk\Svg\Text\TextPositioningElement::dx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#41">Phpdftk\Svg\Text\TextPositioningElement::dy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/TextPositioningElement.php.html#53">Phpdftk\Svg\Text\TextPositioningElement::rotate</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Text/Tspan.php.html#14">Phpdftk\Svg\Text\Tspan::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Title.php.html#15">Phpdftk\Svg\Title::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Title.php.html#20">Phpdftk\Svg\Title::text</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#21">Phpdftk\Svg\Use_::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#27">Phpdftk\Svg\Use_::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#33">Phpdftk\Svg\Use_::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#43">Phpdftk\Svg\Use_::width</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Use_.php.html#49">Phpdftk\Svg\Use_::height</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/SolidColor.php.html#18">Phpdftk\Svg\Value\Paint\SolidColor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Paint/Url.php.html#19">Phpdftk\Svg\Value\Paint\Url::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#27">Phpdftk\Svg\Value\Transform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform.php.html#149">Phpdftk\Svg\Value\Transform::multiply</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Matrix.php.html#15">Phpdftk\Svg\Value\Transform\Matrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Matrix.php.html#24">Phpdftk\Svg\Value\Transform\Matrix::toMatrix</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Rotate.php.html#16">Phpdftk\Svg\Value\Transform\Rotate::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Scale.php.html#15">Phpdftk\Svg\Value\Transform\Scale::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Scale.php.html#20">Phpdftk\Svg\Value\Transform\Scale::toMatrix</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewX.php.html#14">Phpdftk\Svg\Value\Transform\SkewX::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewX.php.html#16">Phpdftk\Svg\Value\Transform\SkewX::toMatrix</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewY.php.html#14">Phpdftk\Svg\Value\Transform\SkewY::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/SkewY.php.html#16">Phpdftk\Svg\Value\Transform\SkewY::toMatrix</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Translate.php.html#14">Phpdftk\Svg\Value\Transform\Translate::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/Value/Transform/Translate.php.html#19">Phpdftk\Svg\Value\Transform\Translate::toMatrix</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/View.php.html#20">Phpdftk\Svg\View::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/View.php.html#46">Phpdftk\Svg\View::preserveAspectRatio</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ViewportElement.php.html#48">Phpdftk\Svg\ViewportElement::widthAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="src/ViewportElement.php.html#54">Phpdftk\Svg\ViewportElement::heightAttribute</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:21:17 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>
