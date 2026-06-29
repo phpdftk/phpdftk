@@ -115,7 +115,7 @@ jobs:
         # Firefox runs through the Linux Docker image built from
         # `scripts/cross-browser/Dockerfile`. Buildx makes the build
         # cache-friendly with the layer-restoration step below.
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build cross-browser Docker image (Firefox CLI)
         run: cd scripts/cross-browser && docker build -t phpdftk/cross-browser:ci .
