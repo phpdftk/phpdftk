@@ -107,9 +107,14 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Run tests with coverage
+        # No memory cap: PCOV instrumentation plus the HTML report
+        # renderer scale with the (growing) codebase and exceeded the
+        # 512M used elsewhere — the report-generation step OOM'd while
+        # the test run itself passed. This is the report job, not the
+        # correctness gate (`test` above runs `--no-coverage`).
         run: |
           mkdir -p build/coverage
-          php -d memory_limit=512M vendor/bin/phpunit \
+          php -d memory_limit=-1 vendor/bin/phpunit \
             --coverage-clover build/coverage/clover.xml \
             --coverage-html build/coverage/html
 
@@ -325,7 +330,16 @@ jobs:
 
           git add .
           git commit -m "phpdoc: ${{ steps.target.outputs.dir }}" --allow-empty
-          git push origin _phpdoc
+          # Concurrent PR runs all push to the shared _phpdoc branch and
+          # race; each writes to its own pr/<num>/<sha>/ path, so a
+          # rejected push just needs a rebase onto the latest tip and a
+          # retry (no real conflicts). Without this, simultaneous PRs
+          # fail with "! [rejected] (fetch first)".
+          for attempt in 1 2 3 4 5; do
+            git push origin _phpdoc && break
+            echo "push rejected (attempt $attempt) — re-syncing _phpdoc and retrying"
+            git pull --rebase origin _phpdoc
+          done
 
       - name: Cleanup worktree
         if: always()
