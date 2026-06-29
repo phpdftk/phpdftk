@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phpdftk\Css\Tests;
 
 use Phpdftk\Css\Token\AtKeywordToken;
+use Phpdftk\Css\Token\BadUrlToken;
 use Phpdftk\Css\Token\CdcToken;
 use Phpdftk\Css\Token\CdoToken;
 use Phpdftk\Css\Token\ColonToken;
@@ -314,5 +315,56 @@ final class TokenizerTest extends TestCase
         self::assertCount(4, $tokens);
         self::assertInstanceOf(IdentToken::class, $tokens[0]);
         self::assertInstanceOf(EofToken::class, $tokens[3]);
+    }
+
+    // ---- url() token edge cases ----------------------------------------
+
+    public function testUrlTrimsSurroundingWhitespace(): void
+    {
+        // Internal whitespace before the closing paren is consumed.
+        $tokens = $this->withoutWhitespace($this->tokenize('url(  image.png  )'));
+        self::assertInstanceOf(UrlToken::class, $tokens[0]);
+        self::assertSame('image.png', $tokens[0]->value);
+    }
+
+    public function testUnterminatedUrlAtEofStillProducesUrlToken(): void
+    {
+        // EOF before the closing paren — the consumed prefix is kept.
+        $tokens = $this->withoutWhitespace($this->tokenize('url(image.png'));
+        self::assertInstanceOf(UrlToken::class, $tokens[0]);
+        self::assertSame('image.png', $tokens[0]->value);
+    }
+
+    public function testUrlWithInteriorWhitespaceIsBadUrl(): void
+    {
+        // Whitespace followed by more content (not the closing paren) is
+        // invalid for an unquoted url → BadUrlToken (remnants consumed
+        // through the closing paren).
+        $tokens = $this->withoutWhitespace($this->tokenize('url(foo bar)x'));
+        self::assertInstanceOf(BadUrlToken::class, $tokens[0]);
+        // The bad-url remnant consumer swallowed up to and including ')'.
+        self::assertInstanceOf(IdentToken::class, $tokens[1]);
+        self::assertSame('x', $tokens[1]->value);
+    }
+
+    public function testUrlWithIllegalQuoteIsBadUrl(): void
+    {
+        $tokens = $this->withoutWhitespace($this->tokenize("url(foo'bar)"));
+        self::assertInstanceOf(BadUrlToken::class, $tokens[0]);
+    }
+
+    public function testUrlWithValidEscapeIsConsumed(): void
+    {
+        // `\26 ` is the CSS escape for U+0026 AMPERSAND.
+        $tokens = $this->withoutWhitespace($this->tokenize('url(a\\26 b)'));
+        self::assertInstanceOf(UrlToken::class, $tokens[0]);
+        self::assertSame('a&b', $tokens[0]->value);
+    }
+
+    public function testUrlWithInvalidEscapeIsBadUrl(): void
+    {
+        // A backslash immediately before a newline is not a valid escape.
+        $tokens = $this->withoutWhitespace($this->tokenize("url(a\\\nb)"));
+        self::assertInstanceOf(BadUrlToken::class, $tokens[0]);
     }
 }
