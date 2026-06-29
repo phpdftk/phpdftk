@@ -191,7 +191,7 @@ jobs:
           php-version: '8.4'
 
       - name: Download every shard's result
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: shard-artifacts
           pattern: cross-browser-shard-*
