@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/css/src/Selector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">css</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Selector</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">200</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">250</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="SelectorParser.php.html#45"><circle cx="699.1" cy="113.7" r="20.0" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser — Coverage: 88.8% | Lines: 356 | Complexity: 179</title></circle></a>
+ <a href="Matcher.php.html#21"><circle cx="692.7" cy="90.0" r="18.5" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher — Coverage: 87.9% | Lines: 305 | Complexity: 197</title></circle></a>
+ <a href="AnPlusBParser.php.html#22"><circle cx="478.6" cy="278.7" r="9.8" class="bubble-warning"><title>Phpdftk\Css\Selector\AnPlusBParser — Coverage: 58.1% | Lines: 86 | Complexity: 54</title></circle></a>
+ <a href="PseudoClassSelector.php.html#26"><circle cx="669.2" cy="331.5" r="5.4" class="bubble-warning"><title>Phpdftk\Css\Selector\PseudoClassSelector — Coverage: 84.6% | Lines: 26 | Complexity: 14</title></circle></a>
+ <a href="AnPlusB.php.html#13"><circle cx="483.5" cy="334.2" r="4.4" class="bubble-warning"><title>Phpdftk\Css\Selector\AnPlusB — Coverage: 58.8% | Lines: 17 | Complexity: 12</title></circle></a>
+ <a href="AttributeSelector.php.html#18"><circle cx="636.0" cy="336.8" r="4.1" class="bubble-warning"><title>Phpdftk\Css\Selector\AttributeSelector — Coverage: 80.0% | Lines: 15 | Complexity: 10</title></circle></a>
+ <a href="PseudoElementSelector.php.html#16"><circle cx="265.7" cy="339.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Selector\PseudoElementSelector — Coverage: 28.6% | Lines: 14 | Complexity: 8</title></circle></a>
+ <a href="ComplexSelector.php.html#15"><circle cx="724.6" cy="340.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ComplexSelector — Coverage: 92.3% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="CompoundSelector.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelector — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="Specificity.php.html#15"><circle cx="780.0" cy="339.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity — Coverage: 100.0% | Lines: 7 | Complexity: 8</title></circle></a>
+ <a href="SelectorList.php.html#16"><circle cx="780.0" cy="344.7" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorList — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="TypeSelector.php.html#19"><circle cx="636.0" cy="344.7" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Selector\TypeSelector — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="UniversalSelector.php.html#11"><circle cx="348.0" cy="344.7" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Selector\UniversalSelector — Coverage: 40.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="ClassSelector.php.html#10"><circle cx="780.0" cy="346.0" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ClassSelector — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="IdSelector.php.html#10"><circle cx="780.0" cy="346.0" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\IdSelector — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="CompoundSelectorWithCombinator.php.html#16"><circle cx="780.0" cy="348.7" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelectorWithCombinator — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="AnPlusBParser.php.html#22">Phpdftk\Css\Selector\AnPlusBParser</a></td><td class="text-right">267.89</td><td class="text-right">58.1%</td></tr>
+  <tr><td><a href="Matcher.php.html#21">Phpdftk\Css\Selector\Matcher</a></td><td class="text-right">266.28</td><td class="text-right">87.9%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#45">Phpdftk\Css\Selector\SelectorParser</a></td><td class="text-right">224.45</td><td class="text-right">88.8%</td></tr>
+  <tr><td><a href="PseudoElementSelector.php.html#16">Phpdftk\Css\Selector\PseudoElementSelector</a></td><td class="text-right">31.32</td><td class="text-right">28.6%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#13">Phpdftk\Css\Selector\AnPlusB</a></td><td class="text-right">22.05</td><td class="text-right">58.8%</td></tr>
+  <tr><td><a href="PseudoClassSelector.php.html#26">Phpdftk\Css\Selector\PseudoClassSelector</a></td><td class="text-right">14.71</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="AttributeSelector.php.html#18">Phpdftk\Css\Selector\AttributeSelector</a></td><td class="text-right">10.80</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#15">Phpdftk\Css\Selector\Specificity</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="UniversalSelector.php.html#11">Phpdftk\Css\Selector\UniversalSelector</a></td><td class="text-right">7.46</td><td class="text-right">40.0%</td></tr>
+  <tr><td><a href="ComplexSelector.php.html#15">Phpdftk\Css\Selector\ComplexSelector</a></td><td class="text-right">7.02</td><td class="text-right">92.3%</td></tr>
+  <tr><td><a href="CompoundSelector.php.html#15">Phpdftk\Css\Selector\CompoundSelector</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TypeSelector.php.html#19">Phpdftk\Css\Selector\TypeSelector</a></td><td class="text-right">4.13</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="SelectorList.php.html#16">Phpdftk\Css\Selector\SelectorList</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassSelector.php.html#10">Phpdftk\Css\Selector\ClassSelector</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IdSelector.php.html#10">Phpdftk\Css\Selector\IdSelector</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CompoundSelectorWithCombinator.php.html#16">Phpdftk\Css\Selector\CompoundSelectorWithCombinator</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttributeMatchType.php.html#18">Phpdftk\Css\Selector\AttributeMatchType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Combinator.php.html#16">Phpdftk\Css\Selector\Combinator</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorSyntaxException.php.html#13">Phpdftk\Css\Selector\SelectorSyntaxException</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SimpleSelector.php.html#12">Phpdftk\Css\Selector\SimpleSelector</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="AnPlusBParser.php.html#46"><circle cx="396.0" cy="125.6" r="20.0" class="bubble-danger"><title>Phpdftk\Css\Selector\AnPlusBParser::parse — Coverage: 46.7% | Lines: 60 | Complexity: 34</title></circle></a>
+ <a href="SelectorParser.php.html#299"><circle cx="662.2" cy="191.6" r="19.1" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::parseAttributeSelector — Coverage: 83.6% | Lines: 55 | Complexity: 24</title></circle></a>
+ <a href="Matcher.php.html#193"><circle cx="708.0" cy="66.2" r="16.3" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchPseudoClass — Coverage: 90.0% | Lines: 40 | Complexity: 43</title></circle></a>
+ <a href="Matcher.php.html#49"><circle cx="625.7" cy="251.0" r="13.7" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchAt — Coverage: 78.6% | Lines: 28 | Complexity: 15</title></circle></a>
+ <a href="Matcher.php.html#620"><circle cx="780.0" cy="251.0" r="13.7" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::relativeSelectorMatches — Coverage: 100.0% | Lines: 28 | Complexity: 15</title></circle></a>
+ <a href="SelectorParser.php.html#232"><circle cx="780.0" cy="237.8" r="13.7" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::tryParseTypeOrUniversal — Coverage: 100.0% | Lines: 28 | Complexity: 17</title></circle></a>
+ <a href="Matcher.php.html#137"><circle cx="753.3" cy="251.0" r="13.4" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchAttribute — Coverage: 96.3% | Lines: 27 | Complexity: 15</title></circle></a>
+ <a href="SelectorParser.php.html#88"><circle cx="646.7" cy="277.4" r="13.4" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::parseComplexSelectorList — Coverage: 81.5% | Lines: 27 | Complexity: 11</title></circle></a>
+ <a href="SelectorParser.php.html#437"><circle cx="693.6" cy="257.6" r="12.9" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::buildPseudoClassFunction — Coverage: 88.0% | Lines: 25 | Complexity: 14</title></circle></a>
+ <a href="SelectorParser.php.html#491"><circle cx="780.0" cy="284.0" r="12.6" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseCombinator — Coverage: 100.0% | Lines: 24 | Complexity: 10</title></circle></a>
+ <a href="Matcher.php.html#293"><circle cx="686.1" cy="277.4" r="12.4" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchNthChild — Coverage: 87.0% | Lines: 23 | Complexity: 11</title></circle></a>
+ <a href="SelectorParser.php.html#402"><circle cx="748.7" cy="297.2" r="12.4" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parsePseudoSelector — Coverage: 95.7% | Lines: 23 | Complexity: 8</title></circle></a>
+ <a href="SelectorParser.php.html#632"><circle cx="780.0" cy="231.2" r="11.3" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::serializeToken — Coverage: 100.0% | Lines: 19 | Complexity: 18</title></circle></a>
+ <a href="SelectorParser.php.html#185"><circle cx="737.6" cy="317.0" r="10.6" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseComplexSelector — Coverage: 94.1% | Lines: 17 | Complexity: 5</title></circle></a>
+ <a href="Matcher.php.html#337"><circle cx="780.0" cy="323.6" r="10.3" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::isHtmlCaseInsensitiveAttribute — Coverage: 100.0% | Lines: 16 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#416"><circle cx="492.0" cy="290.6" r="10.0" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchDefault — Coverage: 60.0% | Lines: 15 | Complexity: 9</title></circle></a>
+ <a href="SelectorParser.php.html#143"><circle cx="732.0" cy="330.2" r="10.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseRelativeComplexSelector — Coverage: 93.3% | Lines: 15 | Complexity: 3</title></circle></a>
+ <a href="SelectorParser.php.html#274"><circle cx="732.0" cy="297.2" r="10.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::tryParseSubclassOrPseudo — Coverage: 93.3% | Lines: 15 | Complexity: 8</title></circle></a>
+ <a href="SelectorParser.php.html#379"><circle cx="732.0" cy="270.8" r="10.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseAttrMatcher — Coverage: 93.3% | Lines: 15 | Complexity: 12</title></circle></a>
+ <a href="SelectorParser.php.html#164"><circle cx="625.7" cy="303.8" r="9.7" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::tryParseLeadingCombinator — Coverage: 78.6% | Lines: 14 | Complexity: 7</title></circle></a>
+ <a href="SelectorParser.php.html#548"><circle cx="677.1" cy="317.0" r="9.7" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::collectUntilMatchingParen — Coverage: 85.7% | Lines: 14 | Complexity: 5</title></circle></a>
+ <a href="AttributeSelector.php.html#33"><circle cx="613.8" cy="297.2" r="9.3" class="bubble-warning"><title>Phpdftk\Css\Selector\AttributeSelector::toString — Coverage: 76.9% | Lines: 13 | Complexity: 8</title></circle></a>
+ <a href="Matcher.php.html#102"><circle cx="780.0" cy="290.6" r="8.9" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::simpleMatches — Coverage: 100.0% | Lines: 12 | Complexity: 9</title></circle></a>
+ <a href="Matcher.php.html#550"><circle cx="660.0" cy="303.8" r="8.9" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchLang — Coverage: 83.3% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="SelectorParser.php.html#210"><circle cx="780.0" cy="317.0" r="8.9" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseCompoundSelector — Coverage: 100.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Matcher.php.html#446"><circle cx="649.1" cy="310.4" r="8.6" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::isFirstSubmitInForm — Coverage: 81.8% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="Matcher.php.html#577"><circle cx="780.0" cy="284.0" r="8.6" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchDir — Coverage: 100.0% | Lines: 11 | Complexity: 10</title></circle></a>
+ <a href="SelectorParser.php.html#581"><circle cx="60.0" cy="290.6" r="8.6" class="bubble-danger"><title>Phpdftk\Css\Selector\SelectorParser::skipToNextSelector — Coverage: 0.0% | Lines: 11 | Complexity: 9</title></circle></a>
+ <a href="AnPlusBParser.php.html#28"><circle cx="708.0" cy="323.6" r="8.2" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusBParser::parseWithOf — Coverage: 90.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="PseudoClassSelector.php.html#64"><circle cx="636.0" cy="317.0" r="8.2" class="bubble-warning"><title>Phpdftk\Css\Selector\PseudoClassSelector::toString — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="SelectorParser.php.html#524"><circle cx="708.0" cy="303.8" r="8.2" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::startsCompound — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="Matcher.php.html#386"><circle cx="700.0" cy="317.0" r="7.7" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchChecked — Coverage: 88.9% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="PseudoClassSelector.php.html#35"><circle cx="700.0" cy="323.6" r="7.7" class="bubble-warning"><title>Phpdftk\Css\Selector\PseudoClassSelector::specificity — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="ComplexSelector.php.html#44"><circle cx="690.0" cy="323.6" r="7.3" class="bubble-warning"><title>Phpdftk\Css\Selector\ComplexSelector::toString — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#469"><circle cx="780.0" cy="323.6" r="7.3" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::descendantsInOrder — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#488"><circle cx="510.0" cy="323.6" r="7.3" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::isSubmitControl — Coverage: 62.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#508"><circle cx="690.0" cy="310.4" r="7.3" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchPlaceholderShown — Coverage: 87.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="AnPlusB.php.html#31"><circle cx="780.0" cy="330.2" r="6.8" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusB::matches — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="AnPlusB.php.html#44"><circle cx="60.0" cy="310.4" r="6.8" class="bubble-danger"><title>Phpdftk\Css\Selector\AnPlusB::toString — Coverage: 0.0% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="Matcher.php.html#120"><circle cx="471.4" cy="317.0" r="6.8" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchType — Coverage: 57.1% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="Matcher.php.html#272"><circle cx="471.4" cy="317.0" r="6.8" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::matchNth — Coverage: 57.1% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="PseudoElementSelector.php.html#23"><circle cx="368.6" cy="323.6" r="6.8" class="bubble-danger"><title>Phpdftk\Css\Selector\PseudoElementSelector::specificity — Coverage: 42.9% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#598"><circle cx="780.0" cy="330.2" r="6.3" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::hasMatches — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="PseudoClassSelector.php.html#52"><circle cx="660.0" cy="323.6" r="6.3" class="bubble-warning"><title>Phpdftk\Css\Selector\PseudoClassSelector::argumentMaxSpecificity — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="PseudoElementSelector.php.html#36"><circle cx="60.0" cy="330.2" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Selector\PseudoElementSelector::toString — Coverage: 0.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="SelectorParser.php.html#53"><circle cx="780.0" cy="343.4" r="6.3" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parse — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="AnPlusBParser.php.html#164"><circle cx="636.0" cy="317.0" r="5.8" class="bubble-warning"><title>Phpdftk\Css\Selector\AnPlusBParser::trimWhitespace — Coverage: 80.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="SelectorParser.php.html#571"><circle cx="780.0" cy="330.2" r="5.8" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::skipWhitespace — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="AnPlusBParser.php.html#185"><circle cx="780.0" cy="323.6" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusBParser::findOfKeyword — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="ComplexSelector.php.html#35"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\ComplexSelector::specificity — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="CompoundSelector.php.html#20"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelector::specificity — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="CompoundSelector.php.html#29"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelector::toString — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Matcher.php.html#26"><circle cx="780.0" cy="330.2" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::listMatches — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Matcher.php.html#36"><circle cx="600.0" cy="336.8" r="5.2" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::complexMatches — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Matcher.php.html#92"><circle cx="780.0" cy="330.2" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::compoundMatches — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Matcher.php.html#184"><circle cx="600.0" cy="323.6" r="5.2" class="bubble-warning"><title>Phpdftk\Css\Selector\Matcher::wordListIncludes — Coverage: 75.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="Matcher.php.html#365"><circle cx="780.0" cy="343.4" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::isFormControl — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Matcher.php.html#541"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchLink — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="SelectorList.php.html#29"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorList::toString — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="SelectorParser.php.html#474"><circle cx="600.0" cy="330.2" r="5.2" class="bubble-warning"><title>Phpdftk\Css\Selector\SelectorParser::buildPseudoElementFunction — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="SelectorParser.php.html#616"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::serializeTokens — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="AnPlusBParser.php.html#176"><circle cx="540.0" cy="330.2" r="4.5" class="bubble-warning"><title>Phpdftk\Css\Selector\AnPlusBParser::skipWs — Coverage: 66.7% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="Matcher.php.html#528"><circle cx="780.0" cy="330.2" r="4.5" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchReadOnly — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="SelectorParser.php.html#69"><circle cx="780.0" cy="343.4" r="4.5" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseTokens — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="SelectorParser.php.html#484"><circle cx="780.0" cy="343.4" r="4.5" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::parseTokensInner — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Specificity.php.html#35"><circle cx="780.0" cy="330.2" r="4.5" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity::compare — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="TypeSelector.php.html#31"><circle cx="540.0" cy="336.8" r="4.5" class="bubble-warning"><title>Phpdftk\Css\Selector\TypeSelector::toString — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="UniversalSelector.php.html#20"><circle cx="60.0" cy="336.8" r="4.5" class="bubble-danger"><title>Phpdftk\Css\Selector\UniversalSelector::toString — Coverage: 0.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="AnPlusBParser.php.html#149"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusBParser::isNDimensionUnit — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="SelectorParser.php.html#77"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="SelectorParser.php.html#626"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::serializeTokenRange — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="AnPlusB.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusB::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AnPlusB.php.html#17"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusB::odd — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AnPlusB.php.html#22"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusB::even — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AnPlusBParser.php.html#143"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AnPlusBParser::dimensionACoefficient — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AnPlusBParser.php.html#155"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Selector\AnPlusBParser::isNLikeIdent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AttributeSelector.php.html#20"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AttributeSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AttributeSelector.php.html#28"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\AttributeSelector::specificity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassSelector.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ClassSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassSelector.php.html#14"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ClassSelector::specificity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ClassSelector.php.html#19"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ClassSelector::toString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComplexSelector.php.html#29"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\ComplexSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CompoundSelector.php.html#18"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CompoundSelectorWithCombinator.php.html#18"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\CompoundSelectorWithCombinator::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IdSelector.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\IdSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IdSelector.php.html#14"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\IdSelector::specificity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IdSelector.php.html#19"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\IdSelector::toString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Matcher.php.html#377"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchDisabled — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Matcher.php.html#668"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Matcher::matchPseudoElement — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PseudoClassSelector.php.html#28"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\PseudoClassSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PseudoElementSelector.php.html#18"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\PseudoElementSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SelectorList.php.html#19"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorList::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SelectorList.php.html#24"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorList::isEmpty — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SelectorParser.php.html#600"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::eof — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SelectorParser.php.html#605"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::peek — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SelectorParser.php.html#610"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\SelectorParser::peekAt — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Specificity.php.html#17"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Specificity.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity::add — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Specificity.php.html#29"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity::max — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Specificity.php.html#42"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\Specificity::__toString — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TypeSelector.php.html#21"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\TypeSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TypeSelector.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\TypeSelector::specificity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UniversalSelector.php.html#13"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\UniversalSelector::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UniversalSelector.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Selector\UniversalSelector::specificity — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="AnPlusBParser.php.html#46">Phpdftk\Css\Selector\AnPlusBParser::parse</a></td><td class="text-right">209.37</td><td class="text-right">46.7%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#581">Phpdftk\Css\Selector\SelectorParser::skipToNextSelector</a></td><td class="text-right">90</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#193">Phpdftk\Css\Selector\Matcher::matchPseudoClass</a></td><td class="text-right">44.85</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#44">Phpdftk\Css\Selector\AnPlusB::toString</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#299">Phpdftk\Css\Selector\SelectorParser::parseAttributeSelector</a></td><td class="text-right">26.52</td><td class="text-right">83.6%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#632">Phpdftk\Css\Selector\SelectorParser::serializeToken</a></td><td class="text-right">18</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#49">Phpdftk\Css\Selector\Matcher::matchAt</a></td><td class="text-right">17.21</td><td class="text-right">78.6%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#232">Phpdftk\Css\Selector\SelectorParser::tryParseTypeOrUniversal</a></td><td class="text-right">17</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#137">Phpdftk\Css\Selector\Matcher::matchAttribute</a></td><td class="text-right">15</td><td class="text-right">96.3%</td></tr>
+  <tr><td><a href="Matcher.php.html#620">Phpdftk\Css\Selector\Matcher::relativeSelectorMatches</a></td><td class="text-right">15</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#437">Phpdftk\Css\Selector\SelectorParser::buildPseudoClassFunction</a></td><td class="text-right">14.34</td><td class="text-right">88.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#416">Phpdftk\Css\Selector\Matcher::matchDefault</a></td><td class="text-right">14.18</td><td class="text-right">60.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#379">Phpdftk\Css\Selector\SelectorParser::parseAttrMatcher</a></td><td class="text-right">12.04</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="PseudoElementSelector.php.html#36">Phpdftk\Css\Selector\PseudoElementSelector::toString</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#88">Phpdftk\Css\Selector\SelectorParser::parseComplexSelectorList</a></td><td class="text-right">11.77</td><td class="text-right">81.5%</td></tr>
+  <tr><td><a href="Matcher.php.html#293">Phpdftk\Css\Selector\Matcher::matchNthChild</a></td><td class="text-right">11.27</td><td class="text-right">87.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#577">Phpdftk\Css\Selector\Matcher::matchDir</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#491">Phpdftk\Css\Selector\SelectorParser::parseCombinator</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#102">Phpdftk\Css\Selector\Matcher::simpleMatches</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttributeSelector.php.html#33">Phpdftk\Css\Selector\AttributeSelector::toString</a></td><td class="text-right">8.79</td><td class="text-right">76.9%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#274">Phpdftk\Css\Selector\SelectorParser::tryParseSubclassOrPseudo</a></td><td class="text-right">8.02</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#402">Phpdftk\Css\Selector\SelectorParser::parsePseudoSelector</a></td><td class="text-right">8</td><td class="text-right">95.7%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#164">Phpdftk\Css\Selector\SelectorParser::tryParseLeadingCombinator</a></td><td class="text-right">7.48</td><td class="text-right">78.6%</td></tr>
+  <tr><td><a href="Matcher.php.html#550">Phpdftk\Css\Selector\Matcher::matchLang</a></td><td class="text-right">7.23</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#524">Phpdftk\Css\Selector\SelectorParser::startsCompound</a></td><td class="text-right">7.05</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="PseudoElementSelector.php.html#23">Phpdftk\Css\Selector\PseudoElementSelector::specificity</a></td><td class="text-right">6.99</td><td class="text-right">42.9%</td></tr>
+  <tr><td><a href="Matcher.php.html#120">Phpdftk\Css\Selector\Matcher::matchType</a></td><td class="text-right">6.97</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="Matcher.php.html#272">Phpdftk\Css\Selector\Matcher::matchNth</a></td><td class="text-right">6.97</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="Matcher.php.html#446">Phpdftk\Css\Selector\Matcher::isFirstSubmitInForm</a></td><td class="text-right">6.22</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="Matcher.php.html#508">Phpdftk\Css\Selector\Matcher::matchPlaceholderShown</a></td><td class="text-right">6.07</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="UniversalSelector.php.html#20">Phpdftk\Css\Selector\UniversalSelector::toString</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#164">Phpdftk\Css\Selector\AnPlusBParser::trimWhitespace</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="PseudoClassSelector.php.html#64">Phpdftk\Css\Selector\PseudoClassSelector::toString</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#548">Phpdftk\Css\Selector\SelectorParser::collectUntilMatchingParen</a></td><td class="text-right">5.07</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="Matcher.php.html#386">Phpdftk\Css\Selector\Matcher::matchChecked</a></td><td class="text-right">5.03</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#185">Phpdftk\Css\Selector\SelectorParser::parseComplexSelector</a></td><td class="text-right">5.01</td><td class="text-right">94.1%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#210">Phpdftk\Css\Selector\SelectorParser::parseCompoundSelector</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#488">Phpdftk\Css\Selector\Matcher::isSubmitControl</a></td><td class="text-right">4.84</td><td class="text-right">62.5%</td></tr>
+  <tr><td><a href="Matcher.php.html#184">Phpdftk\Css\Selector\Matcher::wordListIncludes</a></td><td class="text-right">4.25</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="PseudoClassSelector.php.html#52">Phpdftk\Css\Selector\PseudoClassSelector::argumentMaxSpecificity</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="ComplexSelector.php.html#44">Phpdftk\Css\Selector\ComplexSelector::toString</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#28">Phpdftk\Css\Selector\AnPlusBParser::parseWithOf</a></td><td class="text-right">4.02</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="PseudoClassSelector.php.html#35">Phpdftk\Css\Selector\PseudoClassSelector::specificity</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#185">Phpdftk\Css\Selector\AnPlusBParser::findOfKeyword</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#337">Phpdftk\Css\Selector\Matcher::isHtmlCaseInsensitiveAttribute</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#469">Phpdftk\Css\Selector\Matcher::descendantsInOrder</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#176">Phpdftk\Css\Selector\AnPlusBParser::skipWs</a></td><td class="text-right">3.33</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#474">Phpdftk\Css\Selector\SelectorParser::buildPseudoElementFunction</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#31">Phpdftk\Css\Selector\AnPlusB::matches</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#26">Phpdftk\Css\Selector\Matcher::listMatches</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#92">Phpdftk\Css\Selector\Matcher::compoundMatches</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#528">Phpdftk\Css\Selector\Matcher::matchReadOnly</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#598">Phpdftk\Css\Selector\Matcher::hasMatches</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#143">Phpdftk\Css\Selector\SelectorParser::parseRelativeComplexSelector</a></td><td class="text-right">3.00</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#571">Phpdftk\Css\Selector\SelectorParser::skipWhitespace</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#35">Phpdftk\Css\Selector\Specificity::compare</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TypeSelector.php.html#31">Phpdftk\Css\Selector\TypeSelector::toString</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="Matcher.php.html#36">Phpdftk\Css\Selector\Matcher::complexMatches</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#149">Phpdftk\Css\Selector\AnPlusBParser::isNDimensionUnit</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#155">Phpdftk\Css\Selector\AnPlusBParser::isNLikeIdent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComplexSelector.php.html#35">Phpdftk\Css\Selector\ComplexSelector::specificity</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CompoundSelector.php.html#20">Phpdftk\Css\Selector\CompoundSelector::specificity</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CompoundSelector.php.html#29">Phpdftk\Css\Selector\CompoundSelector::toString</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#377">Phpdftk\Css\Selector\Matcher::matchDisabled</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#541">Phpdftk\Css\Selector\Matcher::matchLink</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorList.php.html#29">Phpdftk\Css\Selector\SelectorList::toString</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#616">Phpdftk\Css\Selector\SelectorParser::serializeTokens</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#29">Phpdftk\Css\Selector\Specificity::max</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#15">Phpdftk\Css\Selector\AnPlusB::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#17">Phpdftk\Css\Selector\AnPlusB::odd</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusB.php.html#22">Phpdftk\Css\Selector\AnPlusB::even</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnPlusBParser.php.html#143">Phpdftk\Css\Selector\AnPlusBParser::dimensionACoefficient</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttributeSelector.php.html#20">Phpdftk\Css\Selector\AttributeSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttributeSelector.php.html#28">Phpdftk\Css\Selector\AttributeSelector::specificity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassSelector.php.html#12">Phpdftk\Css\Selector\ClassSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassSelector.php.html#14">Phpdftk\Css\Selector\ClassSelector::specificity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ClassSelector.php.html#19">Phpdftk\Css\Selector\ClassSelector::toString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComplexSelector.php.html#29">Phpdftk\Css\Selector\ComplexSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CompoundSelector.php.html#18">Phpdftk\Css\Selector\CompoundSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CompoundSelectorWithCombinator.php.html#18">Phpdftk\Css\Selector\CompoundSelectorWithCombinator::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IdSelector.php.html#12">Phpdftk\Css\Selector\IdSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IdSelector.php.html#14">Phpdftk\Css\Selector\IdSelector::specificity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IdSelector.php.html#19">Phpdftk\Css\Selector\IdSelector::toString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#365">Phpdftk\Css\Selector\Matcher::isFormControl</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Matcher.php.html#668">Phpdftk\Css\Selector\Matcher::matchPseudoElement</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PseudoClassSelector.php.html#28">Phpdftk\Css\Selector\PseudoClassSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PseudoElementSelector.php.html#18">Phpdftk\Css\Selector\PseudoElementSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorList.php.html#19">Phpdftk\Css\Selector\SelectorList::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorList.php.html#24">Phpdftk\Css\Selector\SelectorList::isEmpty</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#53">Phpdftk\Css\Selector\SelectorParser::parse</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#69">Phpdftk\Css\Selector\SelectorParser::parseTokens</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#77">Phpdftk\Css\Selector\SelectorParser::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#484">Phpdftk\Css\Selector\SelectorParser::parseTokensInner</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#600">Phpdftk\Css\Selector\SelectorParser::eof</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#605">Phpdftk\Css\Selector\SelectorParser::peek</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#610">Phpdftk\Css\Selector\SelectorParser::peekAt</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SelectorParser.php.html#626">Phpdftk\Css\Selector\SelectorParser::serializeTokenRange</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#17">Phpdftk\Css\Selector\Specificity::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#23">Phpdftk\Css\Selector\Specificity::add</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Specificity.php.html#42">Phpdftk\Css\Selector\Specificity::__toString</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TypeSelector.php.html#21">Phpdftk\Css\Selector\TypeSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TypeSelector.php.html#26">Phpdftk\Css\Selector\TypeSelector::specificity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="UniversalSelector.php.html#13">Phpdftk\Css\Selector\UniversalSelector::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="UniversalSelector.php.html#15">Phpdftk\Css\Selector\UniversalSelector::specificity</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SimpleSelector.php.html#14">Phpdftk\Css\Selector\SimpleSelector::specificity</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SimpleSelector.php.html#16">Phpdftk\Css\Selector\SimpleSelector::toString</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

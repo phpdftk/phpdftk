@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/css/src/Cascade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">css</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Cascade</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">200</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">400</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">600</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ShorthandExpander.php.html#38"><circle cx="713.5" cy="70.6" r="20.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander — Coverage: 90.8% | Lines: 1169 | Complexity: 508</title></circle></a>
+ <a href="Cascade.php.html#41"><circle cx="653.5" cy="78.9" r="19.8" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade — Coverage: 82.4% | Lines: 1150 | Complexity: 493</title></circle></a>
+ <a href="PropertyRegistry.php.html#34"><circle cx="776.5" cy="340.6" r="11.9" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyRegistry — Coverage: 99.5% | Lines: 411 | Complexity: 17</title></circle></a>
+ <a href="ComputedStyle.php.html#42"><circle cx="383.1" cy="241.7" r="8.9" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle — Coverage: 44.9% | Lines: 234 | Complexity: 197</title></circle></a>
+ <a href="WritingMode.php.html#38"><circle cx="614.6" cy="324.7" r="5.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\WritingMode — Coverage: 77.0% | Lines: 74 | Complexity: 46</title></circle></a>
+ <a href="CalcEvaluator.php.html#47"><circle cx="60.0" cy="313.7" r="4.9" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator — Coverage: 0.0% | Lines: 69 | Complexity: 66</title></circle></a>
+ <a href="LengthResolver.php.html#29"><circle cx="693.6" cy="332.9" r="4.1" class="bubble-warning"><title>Phpdftk\Css\Cascade\LengthResolver — Coverage: 88.0% | Lines: 50 | Complexity: 31</title></circle></a>
+ <a href="LengthContext.php.html#22"><circle cx="780.0" cy="347.2" r="4.1" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext — Coverage: 100.0% | Lines: 49 | Complexity: 5</title></circle></a>
+ <a href="CascadedValues.php.html#19"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues — Coverage: 100.0% | Lines: 19 | Complexity: 12</title></circle></a>
+ <a href="PropertyDefinition.php.html#20"><circle cx="780.0" cy="349.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyDefinition — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ComputedStyle.php.html#42">Phpdftk\Css\Cascade\ComputedStyle</a></td><td class="text-right">6699.11</td><td class="text-right">44.9%</td></tr>
+  <tr><td><a href="CalcEvaluator.php.html#47">Phpdftk\Css\Cascade\CalcEvaluator</a></td><td class="text-right">4422</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#41">Phpdftk\Css\Cascade\Cascade</a></td><td class="text-right">1810.21</td><td class="text-right">82.4%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#38">Phpdftk\Css\Cascade\ShorthandExpander</a></td><td class="text-right">711.50</td><td class="text-right">90.8%</td></tr>
+  <tr><td><a href="WritingMode.php.html#38">Phpdftk\Css\Cascade\WritingMode</a></td><td class="text-right">71.65</td><td class="text-right">77.0%</td></tr>
+  <tr><td><a href="LengthResolver.php.html#29">Phpdftk\Css\Cascade\LengthResolver</a></td><td class="text-right">32.66</td><td class="text-right">88.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#34">Phpdftk\Css\Cascade\PropertyRegistry</a></td><td class="text-right">17</td><td class="text-right">99.5%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#19">Phpdftk\Css\Cascade\CascadedValues</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#22">Phpdftk\Css\Cascade\LengthContext</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyDefinition.php.html#20">Phpdftk\Css\Cascade\PropertyDefinition</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="PropertyRegistry.php.html#110"><circle cx="780.0" cy="321.1" r="20.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyRegistry::default — Coverage: 100.0% | Lines: 394 | Complexity: 7</title></circle></a>
+ <a href="ShorthandExpander.php.html#1269"><circle cx="634.4" cy="234.5" r="9.5" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandMask — Coverage: 79.8% | Lines: 89 | Complexity: 28</title></circle></a>
+ <a href="Cascade.php.html#240"><circle cx="770.3" cy="251.0" r="8.7" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::computeFor — Coverage: 98.6% | Lines: 74 | Complexity: 24</title></circle></a>
+ <a href="Cascade.php.html#1191"><circle cx="600.0" cy="152.0" r="8.5" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::matchFeatureQuery — Coverage: 75.0% | Lines: 72 | Complexity: 48</title></circle></a>
+ <a href="ShorthandExpander.php.html#2092"><circle cx="780.0" cy="275.8" r="8.4" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandAnimation — Coverage: 100.0% | Lines: 69 | Complexity: 18</title></circle></a>
+ <a href="ShorthandExpander.php.html#47"><circle cx="714.5" cy="110.8" r="8.2" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expand — Coverage: 90.9% | Lines: 66 | Complexity: 58</title></circle></a>
+ <a href="ShorthandExpander.php.html#512"><circle cx="758.2" cy="230.4" r="8.2" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFont — Coverage: 97.0% | Lines: 66 | Complexity: 29</title></circle></a>
+ <a href="ShorthandExpander.php.html#665"><circle cx="758.2" cy="238.6" r="8.2" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBackground — Coverage: 97.0% | Lines: 66 | Complexity: 27</title></circle></a>
+ <a href="ShorthandExpander.php.html#1657"><circle cx="702.5" cy="267.5" r="8.1" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFontVariant — Coverage: 89.2% | Lines: 65 | Complexity: 20</title></circle></a>
+ <a href="Cascade.php.html#430"><circle cx="708.0" cy="267.5" r="7.8" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::resolveLogicalProperties — Coverage: 90.0% | Lines: 60 | Complexity: 20</title></circle></a>
+ <a href="ShorthandExpander.php.html#1534"><circle cx="696.0" cy="222.1" r="7.8" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandMaskBorder — Coverage: 88.3% | Lines: 60 | Complexity: 31</title></circle></a>
+ <a href="Cascade.php.html#1954"><circle cx="60.0" cy="345.9" r="7.5" class="bubble-danger"><title>Phpdftk\Css\Cascade\Cascade::isKnownPseudoElement — Coverage: 0.0% | Lines: 56 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#1505"><circle cx="740.7" cy="267.5" r="7.5" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::parseSupportsPrimary — Coverage: 94.5% | Lines: 55 | Complexity: 20</title></circle></a>
+ <a href="Cascade.php.html#2264"><circle cx="766.2" cy="296.4" r="7.3" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::pickCascadeWinner — Coverage: 98.1% | Lines: 52 | Complexity: 13</title></circle></a>
+ <a href="ShorthandExpander.php.html#1401"><circle cx="720.0" cy="251.0" r="7.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBorderImage — Coverage: 91.7% | Lines: 48 | Complexity: 24</title></circle></a>
+ <a href="ShorthandExpander.php.html#905"><circle cx="596.2" cy="251.0" r="6.9" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFlex — Coverage: 74.5% | Lines: 47 | Complexity: 24</title></circle></a>
+ <a href="Cascade.php.html#1631"><circle cx="639.1" cy="242.8" r="6.8" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::evaluateSupportsFeature — Coverage: 80.4% | Lines: 46 | Complexity: 26</title></circle></a>
+ <a href="Cascade.php.html#593"><circle cx="747.3" cy="246.9" r="6.7" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::activeStyleRules — Coverage: 95.5% | Lines: 44 | Complexity: 25</title></circle></a>
+ <a href="Cascade.php.html#1099"><circle cx="682.7" cy="300.5" r="6.1" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::rewriteRangeFeature — Coverage: 86.5% | Lines: 37 | Complexity: 12</title></circle></a>
+ <a href="Cascade.php.html#1761"><circle cx="741.1" cy="329.4" r="6.1" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::valueOnlyUsesKnownFunctions — Coverage: 94.6% | Lines: 37 | Complexity: 5</title></circle></a>
+ <a href="ShorthandExpander.php.html#772"><circle cx="721.6" cy="296.4" r="6.1" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandListStyle — Coverage: 91.9% | Lines: 37 | Complexity: 13</title></circle></a>
+ <a href="ShorthandExpander.php.html#833"><circle cx="780.0" cy="284.0" r="6.1" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandTextDecoration — Coverage: 100.0% | Lines: 37 | Complexity: 16</title></circle></a>
+ <a href="ShorthandExpander.php.html#1850"><circle cx="760.5" cy="292.2" r="6.1" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandWhiteSpace — Coverage: 97.3% | Lines: 37 | Complexity: 14</title></circle></a>
+ <a href="LengthResolver.php.html#85"><circle cx="714.5" cy="255.1" r="5.8" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthResolver::toPx — Coverage: 90.9% | Lines: 33 | Complexity: 23</title></circle></a>
+ <a href="ShorthandExpander.php.html#2034"><circle cx="780.0" cy="317.0" r="5.8" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandTransition — Coverage: 100.0% | Lines: 33 | Complexity: 8</title></circle></a>
+ <a href="Cascade.php.html#1042"><circle cx="780.0" cy="312.9" r="5.7" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::splitMediaConditionAt — Coverage: 100.0% | Lines: 32 | Complexity: 9</title></circle></a>
+ <a href="WritingMode.php.html#108"><circle cx="735.0" cy="267.5" r="5.7" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::physicalEdge — Coverage: 93.8% | Lines: 32 | Complexity: 20</title></circle></a>
+ <a href="CalcEvaluator.php.html#113"><circle cx="60.0" cy="172.6" r="5.6" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator::callFunc — Coverage: 0.0% | Lines: 31 | Complexity: 43</title></circle></a>
+ <a href="Cascade.php.html#944"><circle cx="756.0" cy="267.5" r="5.5" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::evaluateMediaCondition — Coverage: 96.7% | Lines: 30 | Complexity: 20</title></circle></a>
+ <a href="Cascade.php.html#806"><circle cx="702.9" cy="308.8" r="5.3" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::containerQueryUsesOnlySupportedFeatures — Coverage: 89.3% | Lines: 28 | Complexity: 10</title></circle></a>
+ <a href="Cascade.php.html#2538"><circle cx="651.4" cy="317.0" r="5.3" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::resolveLengths — Coverage: 82.1% | Lines: 28 | Complexity: 8</title></circle></a>
+ <a href="ShorthandExpander.php.html#1754"><circle cx="753.3" cy="308.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFontSynthesis — Coverage: 96.3% | Lines: 27 | Complexity: 10</title></circle></a>
+ <a href="ShorthandExpander.php.html#225"><circle cx="607.2" cy="325.2" r="5.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandGridArea — Coverage: 76.0% | Lines: 25 | Complexity: 6</title></circle></a>
+ <a href="ShorthandExpander.php.html#351"><circle cx="780.0" cy="292.2" r="5.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandOutline — Coverage: 100.0% | Lines: 25 | Complexity: 14</title></circle></a>
+ <a href="ShorthandExpander.php.html#1217"><circle cx="722.4" cy="321.1" r="5.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandPositionTry — Coverage: 92.0% | Lines: 25 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#1323"><circle cx="60.0" cy="300.5" r="4.9" class="bubble-danger"><title>Phpdftk\Css\Cascade\Cascade::matchRatioFeature — Coverage: 0.0% | Lines: 24 | Complexity: 12</title></circle></a>
+ <a href="Cascade.php.html#2030"><circle cx="780.0" cy="345.9" r="4.9" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::isKnownPseudoClass — Coverage: 100.0% | Lines: 24 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#1818"><circle cx="780.0" cy="337.6" r="4.7" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::isColorTypedProperty — Coverage: 100.0% | Lines: 22 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#402"><circle cx="780.0" cy="300.5" r="4.7" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::classifyBorderComponents — Coverage: 100.0% | Lines: 22 | Complexity: 12</title></circle></a>
+ <a href="ShorthandExpander.php.html#1088"><circle cx="714.5" cy="288.1" r="4.7" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandColumns — Coverage: 90.9% | Lines: 22 | Complexity: 15</title></circle></a>
+ <a href="ShorthandExpander.php.html#1914"><circle cx="714.5" cy="308.8" r="4.7" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandTextWrap — Coverage: 90.9% | Lines: 22 | Complexity: 10</title></circle></a>
+ <a href="Cascade.php.html#894"><circle cx="677.1" cy="300.5" r="4.6" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::evaluateMediaQueryBody — Coverage: 85.7% | Lines: 21 | Complexity: 12</title></circle></a>
+ <a href="ShorthandExpander.php.html#139"><circle cx="780.0" cy="337.6" r="4.6" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::isShorthand — Coverage: 100.0% | Lines: 21 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#1172"><circle cx="780.0" cy="304.6" r="4.6" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandColumnRule — Coverage: 100.0% | Lines: 21 | Complexity: 11</title></circle></a>
+ <a href="CalcEvaluator.php.html#55"><circle cx="60.0" cy="300.5" r="4.3" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator::eval — Coverage: 0.0% | Lines: 18 | Complexity: 12</title></circle></a>
+ <a href="Cascade.php.html#2143"><circle cx="460.0" cy="296.4" r="4.3" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::parseMediaLength — Coverage: 55.6% | Lines: 18 | Complexity: 13</title></circle></a>
+ <a href="Cascade.php.html#2500"><circle cx="740.0" cy="317.0" r="4.3" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::substituteValue — Coverage: 94.4% | Lines: 18 | Complexity: 8</title></circle></a>
+ <a href="ComputedStyle.php.html#790"><circle cx="700.0" cy="329.4" r="4.3" class="bubble-warning"><title>Phpdftk\Css\Cascade\ComputedStyle::resolveColorMix — Coverage: 88.9% | Lines: 18 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#543"><circle cx="568.2" cy="304.6" r="4.2" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::resolveLightDarkValues — Coverage: 70.6% | Lines: 17 | Complexity: 11</title></circle></a>
+ <a href="Cascade.php.html#764"><circle cx="568.2" cy="317.0" r="4.2" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::containerPreludeMatches — Coverage: 70.6% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="Cascade.php.html#1450"><circle cx="780.0" cy="317.0" r="4.2" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::parseSupportsOr — Coverage: 100.0% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="Cascade.php.html#2183"><circle cx="652.9" cy="317.0" r="4.2" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::evaluateMediaCalcSum — Coverage: 82.4% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="ShorthandExpander.php.html#1802"><circle cx="780.0" cy="312.9" r="4.2" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandCaret — Coverage: 100.0% | Lines: 17 | Complexity: 9</title></circle></a>
+ <a href="WritingMode.php.html#153"><circle cx="780.0" cy="325.2" r="4.2" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::fromStyle — Coverage: 100.0% | Lines: 17 | Complexity: 6</title></circle></a>
+ <a href="Cascade.php.html#858"><circle cx="690.0" cy="308.8" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::matchSingleMediaQuery — Coverage: 87.5% | Lines: 16 | Complexity: 10</title></circle></a>
+ <a href="ShorthandExpander.php.html#1968"><circle cx="735.0" cy="321.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandTextEmphasis — Coverage: 93.8% | Lines: 16 | Complexity: 7</title></circle></a>
+ <a href="ShorthandExpander.php.html#300"><circle cx="732.0" cy="325.2" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFourSided — Coverage: 93.3% | Lines: 15 | Complexity: 6</title></circle></a>
+ <a href="ShorthandExpander.php.html#1037"><circle cx="684.0" cy="325.2" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandInset — Coverage: 86.7% | Lines: 15 | Complexity: 6</title></circle></a>
+ <a href="ShorthandExpander.php.html#1139"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandContainer — Coverage: 100.0% | Lines: 15 | Complexity: 5</title></circle></a>
+ <a href="WritingMode.php.html#178"><circle cx="60.0" cy="325.2" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\WritingMode::fromValues — Coverage: 0.0% | Lines: 15 | Complexity: 6</title></circle></a>
+ <a href="Cascade.php.html#143"><circle cx="471.4" cy="321.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::expandDeclaration — Coverage: 57.1% | Lines: 14 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#2591"><circle cx="728.6" cy="321.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::resolveValueLengths — Coverage: 92.9% | Lines: 14 | Complexity: 7</title></circle></a>
+ <a href="CalcEvaluator.php.html#83"><circle cx="60.0" cy="321.1" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator::resolveLeaf — Coverage: 0.0% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#1010"><circle cx="724.6" cy="312.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::isSingleParenExpression — Coverage: 92.3% | Lines: 13 | Complexity: 9</title></circle></a>
+ <a href="ShorthandExpander.php.html#272"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandGridLine — Coverage: 100.0% | Lines: 13 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#982"><circle cx="60.0" cy="321.1" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandFlexFlow — Coverage: 0.0% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#518"><circle cx="420.0" cy="333.5" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\Cascade::applyFontSizeAdjustZero — Coverage: 50.0% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="Cascade.php.html#1845"><circle cx="660.0" cy="321.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::isAcceptableColorValue — Coverage: 83.3% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#2212"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::selectorPseudoElementName — Coverage: 100.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#2415"><circle cx="540.0" cy="312.9" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::resolveSpecialKeywords — Coverage: 66.7% | Lines: 12 | Complexity: 9</title></circle></a>
+ <a href="LengthContext.php.html#60"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext::withCurrentFontSize — Coverage: 100.0% | Lines: 12 | Complexity: 1</title></circle></a>
+ <a href="LengthContext.php.html#76"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext::withPercentageBasis — Coverage: 100.0% | Lines: 12 | Complexity: 1</title></circle></a>
+ <a href="LengthContext.php.html#92"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext::withFontMetrics — Coverage: 100.0% | Lines: 12 | Complexity: 1</title></circle></a>
+ <a href="LengthContext.php.html#108"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext::withContainerSize — Coverage: 100.0% | Lines: 12 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#392"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::forceTableInternalWritingMode — Coverage: 100.0% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#1920"><circle cx="452.7" cy="321.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::simpleSelectorIsSupported — Coverage: 54.5% | Lines: 11 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#2101"><circle cx="714.5" cy="321.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::matchDimensionFeature — Coverage: 90.9% | Lines: 11 | Complexity: 7</title></circle></a>
+ <a href="ComputedStyle.php.html#396"><circle cx="649.1" cy="321.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ComputedStyle::expectBorderWidth — Coverage: 81.8% | Lines: 11 | Complexity: 7</title></circle></a>
+ <a href="ShorthandExpander.php.html#1011"><circle cx="714.5" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandOverflow — Coverage: 90.9% | Lines: 11 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#2064"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::evaluateSupportsFontFormat — Coverage: 100.0% | Lines: 10 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#880"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::prefersDarkScheme — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="LengthResolver.php.html#141"><circle cx="564.0" cy="333.5" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\LengthResolver::resolveValue — Coverage: 70.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#1065"><circle cx="708.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandGap — Coverage: 90.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#2215"><circle cx="420.0" cy="329.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ShorthandExpander::isEasingValue — Coverage: 50.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#177"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::withViewport — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#199"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::withMatchingMediaTypes — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#1409"><circle cx="700.0" cy="337.6" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::supportsPreludeMatches — Coverage: 88.9% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#1609"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::consumeSupportsKeyword — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="Cascade.php.html#2482"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::substituteCustomProperties — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="ComputedStyle.php.html#899"><circle cx="700.0" cy="329.4" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ComputedStyle::extractSchemeIdents — Coverage: 88.9% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="ShorthandExpander.php.html#174"><circle cx="700.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandLogicalPair — Coverage: 88.9% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#196"><circle cx="700.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandPlaceShorthand — Coverage: 88.9% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="Cascade.php.html#1730"><circle cx="690.0" cy="333.5" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::supportsValueIsAcceptable — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Cascade.php.html#1902"><circle cx="600.0" cy="329.4" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::selectorIsFullySupported — Coverage: 75.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#2387"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::beats — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Cascade.php.html#2436"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::applyInheritance — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="ComputedStyle.php.html#828"><circle cx="690.0" cy="333.5" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ComputedStyle::resolveContrastColor — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="ComputedStyle.php.html#847"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::relativeLuminance — Coverage: 100.0% | Lines: 8 | Complexity: 2</title></circle></a>
+ <a href="PropertyRegistry.php.html#89"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyRegistry::inheritingNames — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#2005"><circle cx="690.0" cy="333.5" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontSize — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Cascade.php.html#54"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::tierFor — Coverage: 100.0% | Lines: 7 | Complexity: 8</title></circle></a>
+ <a href="Cascade.php.html#733"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::mediaPreludeMatches — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#1174"><circle cx="368.6" cy="321.1" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\Cascade::reverseOp — Coverage: 42.9% | Lines: 7 | Complexity: 7</title></circle></a>
+ <a href="Cascade.php.html#1380"><circle cx="677.1" cy="329.4" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::matchIntegerFeature — Coverage: 85.7% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="LengthResolver.php.html#63"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthResolver::clampPx — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#625"><circle cx="780.0" cy="321.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontWeight — Coverage: 100.0% | Lines: 7 | Complexity: 7</title></circle></a>
+ <a href="CalcEvaluator.php.html#164"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator::resolveValue — Coverage: 0.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#1880"><circle cx="540.0" cy="337.6" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::evaluateSupportsSelector — Coverage: 66.7% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="CascadedValues.php.html#48"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::get — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="PropertyRegistry.php.html#50"><circle cx="660.0" cy="337.6" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\PropertyRegistry::register — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#450"><circle cx="300.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ShorthandExpander::stripSlashTail — Coverage: 33.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#476"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeBorderStyle — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#639"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontStretch — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#1993"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::isColorComponent — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#2199"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::joinComma — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Cascade.php.html#1164"><circle cx="636.0" cy="329.4" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::rangeToLegacy — Coverage: 80.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#1489"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::peekSupportsKeyword — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#2085"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::evaluateSupportsFontTech — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#2371"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::layerRank — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="Cascade.php.html#2460"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::inheritCustomProperties — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="CascadedValues.php.html#29"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::set — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#775"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::resolveColorChain — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#465"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeBorderWidth — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#1482"><circle cx="636.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBorderAxis — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Cascade.php.html#225"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::anonymousFromParent — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#705"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::resolveLayerIndex — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Cascade.php.html#1939"><circle cx="600.0" cy="337.6" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\Cascade::allSelectorsSupported — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#2134"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::resolveMediaDimensionValue — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="CascadedValues.php.html#39"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::has — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#156"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getLineHeight — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="ComputedStyle.php.html#622"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getListStyleType — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#644"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPage — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#928"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::expectLengthOrPercentage — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#936"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::expectLengthPercentageOrKeyword — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="ShorthandExpander.php.html#1514"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::alias — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#1952"><circle cx="780.0" cy="329.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeMaskImage — Coverage: 100.0% | Lines: 4 | Complexity: 5</title></circle></a>
+ <a href="ShorthandExpander.php.html#2183"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::toCommaLayers — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#872"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::resolveLightDark — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="ShorthandExpander.php.html#330"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBorderSide — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#437"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::toComponents — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#612"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontStyle — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#1498"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBorderLogicalSide — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#1626"><circle cx="540.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Cascade\ShorthandExpander::joinSpace — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="WritingMode.php.html#68"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::blockDirection — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="Cascade.php.html#70"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Cascade.php.html#1602"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\Cascade::skipSupportsWs — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#66"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getCustomProperty — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#150"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getFontWeight — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#249"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTabSize — Coverage: 0.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#294"><circle cx="780.0" cy="337.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getZIndex — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#588"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getOrder — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#672"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getOrphans — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#678"><circle cx="60.0" cy="341.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getWidows — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#688"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnCount — Coverage: 0.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#752"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::expectKeyword — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#758"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::expectColor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#764"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::expectColorOrKeyword — Coverage: 0.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#916"><circle cx="60.0" cy="341.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::expectLength — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#922"><circle cx="60.0" cy="337.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::expectLengthOrKeyword — Coverage: 0.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="ComputedStyle.php.html#944"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::expectNumber — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ShorthandExpander.php.html#339"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::expandBorder — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="CalcEvaluator.php.html#50"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\CalcEvaluator::evaluate — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CascadedValues.php.html#27"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CascadedValues.php.html#61"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::all — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CascadedValues.php.html#67"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::customProperties — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CascadedValues.php.html#76"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\CascadedValues::normalise — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ComputedStyle.php.html#44"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#50"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::get — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#55"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::has — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#61"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::all — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#72"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getUnknown — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#81"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#86"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#91"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundImage — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#96"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundRepeat — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#101"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundPosition — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#106"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundSize — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#111"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundAttachment — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#116"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundOrigin — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#121"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBackgroundClip — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#126"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOpacity — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#135"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFontFamily — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#140"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFontSize — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#145"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFontStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#164"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextAlign — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#169"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextAlignLast — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#174"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationLine — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#179"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#184"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#189"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationThickness — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#194"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextTransform — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#199"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextIndent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#204"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextJustify — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#209"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getLetterSpacing — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#214"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getWordSpacing — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#219"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getWhiteSpace — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#224"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getWordBreak — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#229"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOverflowWrap — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#234"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getVerticalAlign — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#239"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getDirection — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#244"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getUnicodeBidi — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#255"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getQuotes — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#264"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getDisplay — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#269"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPosition — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#274"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTop — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#279"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getRight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#284"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBottom — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#289"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getLeft — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#300"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getWidth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#305"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getHeight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#310"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMinWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#315"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMinHeight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#320"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getMaxWidth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#325"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMaxHeight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#330"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getMarginTop — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#335"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMarginRight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#340"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMarginBottom — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#345"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getMarginLeft — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#350"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPaddingTop — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#355"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPaddingRight — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#360"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPaddingBottom — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#365"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getPaddingLeft — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#370"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderTopWidth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#375"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderRightWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#380"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#385"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#414"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderTopStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#419"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderRightStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#424"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#429"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#434"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderTopColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#439"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderRightColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#444"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#449"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#454"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderTopLeftRadius — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#459"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderTopRightRadius — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#464"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomLeftRadius — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#469"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomRightRadius — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#474"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getBoxSizing — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#479"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBoxShadow — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#484"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOverflow — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#489"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOverflowX — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#494"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOverflowY — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#499"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getVisibility — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#504"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOutlineWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#509"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOutlineStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#514"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOutlineColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#519"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getOutlineOffset — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#524"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFloat — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#529"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getClear — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#534"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getAspectRatio — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#543"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFlexDirection — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#548"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFlexWrap — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#553"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getJustifyContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#558"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getAlignItems — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#563"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getAlignContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#568"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getAlignSelf — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#573"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getFlexGrow — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#578"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ComputedStyle::getFlexShrink — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#583"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFlexBasis — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#594"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getRowGap — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#599"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnGap — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#608"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBorderCollapse — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#613"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getCaptionSide — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#630"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getListStylePosition — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#635"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getListStyleImage — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#652"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBreakBefore — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#657"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBreakAfter — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#662"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBreakInside — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#667"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getBoxDecorationBreak — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#694"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#699"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleWidth — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#704"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleStyle — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#709"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#714"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnSpan — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#719"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getColumnFill — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#728"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTextShadow — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#733"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getClipPath — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#738"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getFilter — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ComputedStyle.php.html#743"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\ComputedStyle::getTransform — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LengthContext.php.html#24"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\LengthContext::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PropertyDefinition.php.html#22"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyDefinition::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PropertyRegistry.php.html#65"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyRegistry::get — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PropertyRegistry.php.html#70"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\PropertyRegistry::has — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PropertyRegistry.php.html#76"><circle cx="60.0" cy="345.9" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Cascade\PropertyRegistry::all — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#487"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ShorthandExpander.php.html#620"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontVariant — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="WritingMode.php.html#46"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="WritingMode.php.html#52"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::blockAxis — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="WritingMode.php.html#58"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::inlineAxis — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="WritingMode.php.html#81"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::inlineDirection — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="WritingMode.php.html#86"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::isVertical — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="WritingMode.php.html#91"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::isHorizontal — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="WritingMode.php.html#96"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Cascade\WritingMode::isSideways — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="CalcEvaluator.php.html#113">Phpdftk\Css\Cascade\CalcEvaluator::callFunc</a></td><td class="text-right">1892</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CalcEvaluator.php.html#55">Phpdftk\Css\Cascade\CalcEvaluator::eval</a></td><td class="text-right">156</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1323">Phpdftk\Css\Cascade\Cascade::matchRatioFeature</a></td><td class="text-right">156</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1191">Phpdftk\Css\Cascade\Cascade::matchFeatureQuery</a></td><td class="text-right">84.00</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#47">Phpdftk\Css\Cascade\ShorthandExpander::expand</a></td><td class="text-right">60.53</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="CalcEvaluator.php.html#83">Phpdftk\Css\Cascade\CalcEvaluator::resolveLeaf</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#982">Phpdftk\Css\Cascade\ShorthandExpander::expandFlexFlow</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#178">Phpdftk\Css\Cascade\WritingMode::fromValues</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1269">Phpdftk\Css\Cascade\ShorthandExpander::expandMask</a></td><td class="text-right">34.49</td><td class="text-right">79.8%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#905">Phpdftk\Css\Cascade\ShorthandExpander::expandFlex</a></td><td class="text-right">33.59</td><td class="text-right">74.5%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1534">Phpdftk\Css\Cascade\ShorthandExpander::expandMaskBorder</a></td><td class="text-right">32.53</td><td class="text-right">88.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#1631">Phpdftk\Css\Cascade\Cascade::evaluateSupportsFeature</a></td><td class="text-right">31.06</td><td class="text-right">80.4%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#512">Phpdftk\Css\Cascade\ShorthandExpander::expandFont</a></td><td class="text-right">29</td><td class="text-right">97.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2143">Phpdftk\Css\Cascade\Cascade::parseMediaLength</a></td><td class="text-right">27.84</td><td class="text-right">55.6%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#665">Phpdftk\Css\Cascade\ShorthandExpander::expandBackground</a></td><td class="text-right">27</td><td class="text-right">97.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#593">Phpdftk\Css\Cascade\Cascade::activeStyleRules</a></td><td class="text-right">25</td><td class="text-right">95.5%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1401">Phpdftk\Css\Cascade\ShorthandExpander::expandBorderImage</a></td><td class="text-right">24.33</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="Cascade.php.html#240">Phpdftk\Css\Cascade\Cascade::computeFor</a></td><td class="text-right">24</td><td class="text-right">98.6%</td></tr>
+  <tr><td><a href="LengthResolver.php.html#85">Phpdftk\Css\Cascade\LengthResolver::toPx</a></td><td class="text-right">23.40</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1657">Phpdftk\Css\Cascade\ShorthandExpander::expandFontVariant</a></td><td class="text-right">20.50</td><td class="text-right">89.2%</td></tr>
+  <tr><td><a href="Cascade.php.html#430">Phpdftk\Css\Cascade\Cascade::resolveLogicalProperties</a></td><td class="text-right">20.40</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#108">Phpdftk\Css\Cascade\WritingMode::physicalEdge</a></td><td class="text-right">20.10</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="Cascade.php.html#1505">Phpdftk\Css\Cascade\Cascade::parseSupportsPrimary</a></td><td class="text-right">20.06</td><td class="text-right">94.5%</td></tr>
+  <tr><td><a href="Cascade.php.html#944">Phpdftk\Css\Cascade\Cascade::evaluateMediaCondition</a></td><td class="text-right">20</td><td class="text-right">96.7%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2092">Phpdftk\Css\Cascade\ShorthandExpander::expandAnimation</a></td><td class="text-right">18</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1174">Phpdftk\Css\Cascade\Cascade::reverseOp</a></td><td class="text-right">16.14</td><td class="text-right">42.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#833">Phpdftk\Css\Cascade\ShorthandExpander::expandTextDecoration</a></td><td class="text-right">16</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1088">Phpdftk\Css\Cascade\ShorthandExpander::expandColumns</a></td><td class="text-right">15.17</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="Cascade.php.html#543">Phpdftk\Css\Cascade\Cascade::resolveLightDarkValues</a></td><td class="text-right">14.08</td><td class="text-right">70.6%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#351">Phpdftk\Css\Cascade\ShorthandExpander::expandOutline</a></td><td class="text-right">14</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1850">Phpdftk\Css\Cascade\ShorthandExpander::expandWhiteSpace</a></td><td class="text-right">14</td><td class="text-right">97.3%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#772">Phpdftk\Css\Cascade\ShorthandExpander::expandListStyle</a></td><td class="text-right">13.09</td><td class="text-right">91.9%</td></tr>
+  <tr><td><a href="Cascade.php.html#2264">Phpdftk\Css\Cascade\Cascade::pickCascadeWinner</a></td><td class="text-right">13</td><td class="text-right">98.1%</td></tr>
+  <tr><td><a href="Cascade.php.html#894">Phpdftk\Css\Cascade\Cascade::evaluateMediaQueryBody</a></td><td class="text-right">12.42</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="Cascade.php.html#1099">Phpdftk\Css\Cascade\Cascade::rewriteRangeFeature</a></td><td class="text-right">12.36</td><td class="text-right">86.5%</td></tr>
+  <tr><td><a href="CalcEvaluator.php.html#164">Phpdftk\Css\Cascade\CalcEvaluator::resolveValue</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2415">Phpdftk\Css\Cascade\Cascade::resolveSpecialKeywords</a></td><td class="text-right">12.00</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#249">Phpdftk\Css\Cascade\ComputedStyle::getTabSize</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#622">Phpdftk\Css\Cascade\ComputedStyle::getListStyleType</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#644">Phpdftk\Css\Cascade\ComputedStyle::getPage</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#688">Phpdftk\Css\Cascade\ComputedStyle::getColumnCount</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#764">Phpdftk\Css\Cascade\ComputedStyle::expectColorOrKeyword</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#922">Phpdftk\Css\Cascade\ComputedStyle::expectLengthOrKeyword</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#928">Phpdftk\Css\Cascade\ComputedStyle::expectLengthOrPercentage</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#402">Phpdftk\Css\Cascade\ShorthandExpander::classifyBorderComponents</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1920">Phpdftk\Css\Cascade\Cascade::simpleSelectorIsSupported</a></td><td class="text-right">11.60</td><td class="text-right">54.5%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1172">Phpdftk\Css\Cascade\ShorthandExpander::expandColumnRule</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#143">Phpdftk\Css\Cascade\Cascade::expandDeclaration</a></td><td class="text-right">10.86</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="Cascade.php.html#858">Phpdftk\Css\Cascade\Cascade::matchSingleMediaQuery</a></td><td class="text-right">10.20</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="Cascade.php.html#806">Phpdftk\Css\Cascade\Cascade::containerQueryUsesOnlySupportedFeatures</a></td><td class="text-right">10.12</td><td class="text-right">89.3%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1914">Phpdftk\Css\Cascade\ShorthandExpander::expandTextWrap</a></td><td class="text-right">10.08</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1754">Phpdftk\Css\Cascade\ShorthandExpander::expandFontSynthesis</a></td><td class="text-right">10</td><td class="text-right">96.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#764">Phpdftk\Css\Cascade\Cascade::containerPreludeMatches</a></td><td class="text-right">9.63</td><td class="text-right">70.6%</td></tr>
+  <tr><td><a href="Cascade.php.html#1010">Phpdftk\Css\Cascade\Cascade::isSingleParenExpression</a></td><td class="text-right">9.04</td><td class="text-right">92.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#1042">Phpdftk\Css\Cascade\Cascade::splitMediaConditionAt</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1802">Phpdftk\Css\Cascade\ShorthandExpander::expandCaret</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2538">Phpdftk\Css\Cascade\Cascade::resolveLengths</a></td><td class="text-right">8.36</td><td class="text-right">82.1%</td></tr>
+  <tr><td><a href="Cascade.php.html#2183">Phpdftk\Css\Cascade\Cascade::evaluateMediaCalcSum</a></td><td class="text-right">8.35</td><td class="text-right">82.4%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2215">Phpdftk\Css\Cascade\ShorthandExpander::isEasingValue</a></td><td class="text-right">8.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2500">Phpdftk\Css\Cascade\Cascade::substituteValue</a></td><td class="text-right">8.01</td><td class="text-right">94.4%</td></tr>
+  <tr><td><a href="Cascade.php.html#54">Phpdftk\Css\Cascade\Cascade::tierFor</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1450">Phpdftk\Css\Cascade\Cascade::parseSupportsOr</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2034">Phpdftk\Css\Cascade\ShorthandExpander::expandTransition</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#396">Phpdftk\Css\Cascade\ComputedStyle::expectBorderWidth</a></td><td class="text-right">7.29</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="Cascade.php.html#1845">Phpdftk\Css\Cascade\Cascade::isAcceptableColorValue</a></td><td class="text-right">7.23</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#2101">Phpdftk\Css\Cascade\Cascade::matchDimensionFeature</a></td><td class="text-right">7.04</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1217">Phpdftk\Css\Cascade\ShorthandExpander::expandPositionTry</a></td><td class="text-right">7.03</td><td class="text-right">92.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2591">Phpdftk\Css\Cascade\Cascade::resolveValueLengths</a></td><td class="text-right">7.02</td><td class="text-right">92.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1968">Phpdftk\Css\Cascade\ShorthandExpander::expandTextEmphasis</a></td><td class="text-right">7.01</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#110">Phpdftk\Css\Cascade\PropertyRegistry::default</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#625">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontWeight</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#225">Phpdftk\Css\Cascade\ShorthandExpander::expandGridArea</a></td><td class="text-right">6.50</td><td class="text-right">76.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1037">Phpdftk\Css\Cascade\ShorthandExpander::expandInset</a></td><td class="text-right">6.09</td><td class="text-right">86.7%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#300">Phpdftk\Css\Cascade\ShorthandExpander::expandFourSided</a></td><td class="text-right">6.01</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#518">Phpdftk\Css\Cascade\Cascade::applyFontSizeAdjustZero</a></td><td class="text-right">6.00</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#678">Phpdftk\Css\Cascade\ComputedStyle::getWidows</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#916">Phpdftk\Css\Cascade\ComputedStyle::expectLength</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#153">Phpdftk\Css\Cascade\WritingMode::fromStyle</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#450">Phpdftk\Css\Cascade\ShorthandExpander::stripSlashTail</a></td><td class="text-right">5.67</td><td class="text-right">33.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#1902">Phpdftk\Css\Cascade\Cascade::selectorIsFullySupported</a></td><td class="text-right">5.39</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1164">Phpdftk\Css\Cascade\Cascade::rangeToLegacy</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1380">Phpdftk\Css\Cascade\Cascade::matchIntegerFeature</a></td><td class="text-right">5.07</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#790">Phpdftk\Css\Cascade\ComputedStyle::resolveColorMix</a></td><td class="text-right">5.03</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#899">Phpdftk\Css\Cascade\ComputedStyle::extractSchemeIdents</a></td><td class="text-right">5.03</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="Cascade.php.html#392">Phpdftk\Css\Cascade\Cascade::forceTableInternalWritingMode</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#733">Phpdftk\Css\Cascade\Cascade::mediaPreludeMatches</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1761">Phpdftk\Css\Cascade\Cascade::valueOnlyUsesKnownFunctions</a></td><td class="text-right">5.00</td><td class="text-right">94.6%</td></tr>
+  <tr><td><a href="Cascade.php.html#2212">Phpdftk\Css\Cascade\Cascade::selectorPseudoElementName</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2371">Phpdftk\Css\Cascade\Cascade::layerRank</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2436">Phpdftk\Css\Cascade\Cascade::applyInheritance</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2482">Phpdftk\Css\Cascade\Cascade::substituteCustomProperties</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#880">Phpdftk\Css\Cascade\ComputedStyle::prefersDarkScheme</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1139">Phpdftk\Css\Cascade\ShorthandExpander::expandContainer</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1952">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeMaskImage</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthResolver.php.html#141">Phpdftk\Css\Cascade\LengthResolver::resolveValue</a></td><td class="text-right">4.43</td><td class="text-right">70.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1730">Phpdftk\Css\Cascade\Cascade::supportsValueIsAcceptable</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#828">Phpdftk\Css\Cascade\ComputedStyle::resolveContrastColor</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2005">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontSize</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1065">Phpdftk\Css\Cascade\ShorthandExpander::expandGap</a></td><td class="text-right">4.02</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1609">Phpdftk\Css\Cascade\Cascade::consumeSupportsKeyword</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2387">Phpdftk\Css\Cascade\Cascade::beats</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2460">Phpdftk\Css\Cascade\Cascade::inheritCustomProperties</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#156">Phpdftk\Css\Cascade\ComputedStyle::getLineHeight</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#936">Phpdftk\Css\Cascade\ComputedStyle::expectLengthPercentageOrKeyword</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthResolver.php.html#63">Phpdftk\Css\Cascade\LengthResolver::clampPx</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#89">Phpdftk\Css\Cascade\PropertyRegistry::inheritingNames</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#272">Phpdftk\Css\Cascade\ShorthandExpander::expandGridLine</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1993">Phpdftk\Css\Cascade\ShorthandExpander::isColorComponent</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1880">Phpdftk\Css\Cascade\Cascade::evaluateSupportsSelector</a></td><td class="text-right">3.33</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="Cascade.php.html#1939">Phpdftk\Css\Cascade\Cascade::allSelectorsSupported</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#50">Phpdftk\Css\Cascade\PropertyRegistry::register</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="Cascade.php.html#1409">Phpdftk\Css\Cascade\Cascade::supportsPreludeMatches</a></td><td class="text-right">3.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1011">Phpdftk\Css\Cascade\ShorthandExpander::expandOverflow</a></td><td class="text-right">3.01</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="Cascade.php.html#1489">Phpdftk\Css\Cascade\Cascade::peekSupportsKeyword</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1602">Phpdftk\Css\Cascade\Cascade::skipSupportsWs</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1818">Phpdftk\Css\Cascade\Cascade::isColorTypedProperty</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#48">Phpdftk\Css\Cascade\CascadedValues::get</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#150">Phpdftk\Css\Cascade\ComputedStyle::getFontWeight</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#294">Phpdftk\Css\Cascade\ComputedStyle::getZIndex</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#872">Phpdftk\Css\Cascade\ComputedStyle::resolveLightDark</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#139">Phpdftk\Css\Cascade\ShorthandExpander::isShorthand</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#465">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeBorderWidth</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2183">Phpdftk\Css\Cascade\ShorthandExpander::toCommaLayers</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#68">Phpdftk\Css\Cascade\WritingMode::blockDirection</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1626">Phpdftk\Css\Cascade\ShorthandExpander::joinSpace</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1482">Phpdftk\Css\Cascade\ShorthandExpander::expandBorderAxis</a></td><td class="text-right">2.03</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#174">Phpdftk\Css\Cascade\ShorthandExpander::expandLogicalPair</a></td><td class="text-right">2.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#196">Phpdftk\Css\Cascade\ShorthandExpander::expandPlaceShorthand</a></td><td class="text-right">2.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="CalcEvaluator.php.html#50">Phpdftk\Css\Cascade\CalcEvaluator::evaluate</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#705">Phpdftk\Css\Cascade\Cascade::resolveLayerIndex</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#1954">Phpdftk\Css\Cascade\Cascade::isKnownPseudoElement</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2134">Phpdftk\Css\Cascade\Cascade::resolveMediaDimensionValue</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#29">Phpdftk\Css\Cascade\CascadedValues::set</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#39">Phpdftk\Css\Cascade\CascadedValues::has</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#76">Phpdftk\Css\Cascade\CascadedValues::normalise</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#66">Phpdftk\Css\Cascade\ComputedStyle::getCustomProperty</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#86">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#91">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundImage</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#96">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundRepeat</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#101">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundPosition</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#106">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundSize</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#111">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundAttachment</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#116">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundOrigin</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#121">Phpdftk\Css\Cascade\ComputedStyle::getBackgroundClip</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#126">Phpdftk\Css\Cascade\ComputedStyle::getOpacity</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#135">Phpdftk\Css\Cascade\ComputedStyle::getFontFamily</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#140">Phpdftk\Css\Cascade\ComputedStyle::getFontSize</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#145">Phpdftk\Css\Cascade\ComputedStyle::getFontStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#164">Phpdftk\Css\Cascade\ComputedStyle::getTextAlign</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#174">Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationLine</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#179">Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#184">Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#189">Phpdftk\Css\Cascade\ComputedStyle::getTextDecorationThickness</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#194">Phpdftk\Css\Cascade\ComputedStyle::getTextTransform</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#199">Phpdftk\Css\Cascade\ComputedStyle::getTextIndent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#204">Phpdftk\Css\Cascade\ComputedStyle::getTextJustify</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#209">Phpdftk\Css\Cascade\ComputedStyle::getLetterSpacing</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#214">Phpdftk\Css\Cascade\ComputedStyle::getWordSpacing</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#219">Phpdftk\Css\Cascade\ComputedStyle::getWhiteSpace</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#224">Phpdftk\Css\Cascade\ComputedStyle::getWordBreak</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#229">Phpdftk\Css\Cascade\ComputedStyle::getOverflowWrap</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#234">Phpdftk\Css\Cascade\ComputedStyle::getVerticalAlign</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#239">Phpdftk\Css\Cascade\ComputedStyle::getDirection</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#244">Phpdftk\Css\Cascade\ComputedStyle::getUnicodeBidi</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#255">Phpdftk\Css\Cascade\ComputedStyle::getQuotes</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#269">Phpdftk\Css\Cascade\ComputedStyle::getPosition</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#274">Phpdftk\Css\Cascade\ComputedStyle::getTop</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#279">Phpdftk\Css\Cascade\ComputedStyle::getRight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#284">Phpdftk\Css\Cascade\ComputedStyle::getBottom</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#289">Phpdftk\Css\Cascade\ComputedStyle::getLeft</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#305">Phpdftk\Css\Cascade\ComputedStyle::getHeight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#310">Phpdftk\Css\Cascade\ComputedStyle::getMinWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#315">Phpdftk\Css\Cascade\ComputedStyle::getMinHeight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#325">Phpdftk\Css\Cascade\ComputedStyle::getMaxHeight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#335">Phpdftk\Css\Cascade\ComputedStyle::getMarginRight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#340">Phpdftk\Css\Cascade\ComputedStyle::getMarginBottom</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#345">Phpdftk\Css\Cascade\ComputedStyle::getMarginLeft</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#350">Phpdftk\Css\Cascade\ComputedStyle::getPaddingTop</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#355">Phpdftk\Css\Cascade\ComputedStyle::getPaddingRight</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#360">Phpdftk\Css\Cascade\ComputedStyle::getPaddingBottom</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#365">Phpdftk\Css\Cascade\ComputedStyle::getPaddingLeft</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#375">Phpdftk\Css\Cascade\ComputedStyle::getBorderRightWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#380">Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#385">Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#414">Phpdftk\Css\Cascade\ComputedStyle::getBorderTopStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#419">Phpdftk\Css\Cascade\ComputedStyle::getBorderRightStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#424">Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#429">Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#434">Phpdftk\Css\Cascade\ComputedStyle::getBorderTopColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#439">Phpdftk\Css\Cascade\ComputedStyle::getBorderRightColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#444">Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#449">Phpdftk\Css\Cascade\ComputedStyle::getBorderLeftColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#454">Phpdftk\Css\Cascade\ComputedStyle::getBorderTopLeftRadius</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#459">Phpdftk\Css\Cascade\ComputedStyle::getBorderTopRightRadius</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#464">Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomLeftRadius</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#469">Phpdftk\Css\Cascade\ComputedStyle::getBorderBottomRightRadius</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#479">Phpdftk\Css\Cascade\ComputedStyle::getBoxShadow</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#484">Phpdftk\Css\Cascade\ComputedStyle::getOverflow</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#489">Phpdftk\Css\Cascade\ComputedStyle::getOverflowX</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#494">Phpdftk\Css\Cascade\ComputedStyle::getOverflowY</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#499">Phpdftk\Css\Cascade\ComputedStyle::getVisibility</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#504">Phpdftk\Css\Cascade\ComputedStyle::getOutlineWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#509">Phpdftk\Css\Cascade\ComputedStyle::getOutlineStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#514">Phpdftk\Css\Cascade\ComputedStyle::getOutlineColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#519">Phpdftk\Css\Cascade\ComputedStyle::getOutlineOffset</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#524">Phpdftk\Css\Cascade\ComputedStyle::getFloat</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#529">Phpdftk\Css\Cascade\ComputedStyle::getClear</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#534">Phpdftk\Css\Cascade\ComputedStyle::getAspectRatio</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#543">Phpdftk\Css\Cascade\ComputedStyle::getFlexDirection</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#548">Phpdftk\Css\Cascade\ComputedStyle::getFlexWrap</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#553">Phpdftk\Css\Cascade\ComputedStyle::getJustifyContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#558">Phpdftk\Css\Cascade\ComputedStyle::getAlignItems</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#563">Phpdftk\Css\Cascade\ComputedStyle::getAlignContent</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#568">Phpdftk\Css\Cascade\ComputedStyle::getAlignSelf</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#583">Phpdftk\Css\Cascade\ComputedStyle::getFlexBasis</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#588">Phpdftk\Css\Cascade\ComputedStyle::getOrder</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#594">Phpdftk\Css\Cascade\ComputedStyle::getRowGap</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#599">Phpdftk\Css\Cascade\ComputedStyle::getColumnGap</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#608">Phpdftk\Css\Cascade\ComputedStyle::getBorderCollapse</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#613">Phpdftk\Css\Cascade\ComputedStyle::getCaptionSide</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#630">Phpdftk\Css\Cascade\ComputedStyle::getListStylePosition</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#635">Phpdftk\Css\Cascade\ComputedStyle::getListStyleImage</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#652">Phpdftk\Css\Cascade\ComputedStyle::getBreakBefore</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#657">Phpdftk\Css\Cascade\ComputedStyle::getBreakAfter</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#662">Phpdftk\Css\Cascade\ComputedStyle::getBreakInside</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#667">Phpdftk\Css\Cascade\ComputedStyle::getBoxDecorationBreak</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#672">Phpdftk\Css\Cascade\ComputedStyle::getOrphans</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#694">Phpdftk\Css\Cascade\ComputedStyle::getColumnWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#699">Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleWidth</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#704">Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleStyle</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#709">Phpdftk\Css\Cascade\ComputedStyle::getColumnRuleColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#714">Phpdftk\Css\Cascade\ComputedStyle::getColumnSpan</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#719">Phpdftk\Css\Cascade\ComputedStyle::getColumnFill</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#728">Phpdftk\Css\Cascade\ComputedStyle::getTextShadow</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#733">Phpdftk\Css\Cascade\ComputedStyle::getClipPath</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#738">Phpdftk\Css\Cascade\ComputedStyle::getFilter</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#743">Phpdftk\Css\Cascade\ComputedStyle::getTransform</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#752">Phpdftk\Css\Cascade\ComputedStyle::expectKeyword</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#758">Phpdftk\Css\Cascade\ComputedStyle::expectColor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#847">Phpdftk\Css\Cascade\ComputedStyle::relativeLuminance</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#944">Phpdftk\Css\Cascade\ComputedStyle::expectNumber</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#76">Phpdftk\Css\Cascade\PropertyRegistry::all</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#437">Phpdftk\Css\Cascade\ShorthandExpander::toComponents</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#476">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeBorderStyle</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#612">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontStyle</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#620">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontVariant</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#639">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeFontStretch</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#2199">Phpdftk\Css\Cascade\ShorthandExpander::joinComma</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#52">Phpdftk\Css\Cascade\WritingMode::blockAxis</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#58">Phpdftk\Css\Cascade\WritingMode::inlineAxis</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#81">Phpdftk\Css\Cascade\WritingMode::inlineDirection</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#96">Phpdftk\Css\Cascade\WritingMode::isSideways</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#70">Phpdftk\Css\Cascade\Cascade::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#177">Phpdftk\Css\Cascade\Cascade::withViewport</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#199">Phpdftk\Css\Cascade\Cascade::withMatchingMediaTypes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#225">Phpdftk\Css\Cascade\Cascade::anonymousFromParent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2030">Phpdftk\Css\Cascade\Cascade::isKnownPseudoClass</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2064">Phpdftk\Css\Cascade\Cascade::evaluateSupportsFontFormat</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Cascade.php.html#2085">Phpdftk\Css\Cascade\Cascade::evaluateSupportsFontTech</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#27">Phpdftk\Css\Cascade\CascadedValues::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#61">Phpdftk\Css\Cascade\CascadedValues::all</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CascadedValues.php.html#67">Phpdftk\Css\Cascade\CascadedValues::customProperties</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#44">Phpdftk\Css\Cascade\ComputedStyle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#50">Phpdftk\Css\Cascade\ComputedStyle::get</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#55">Phpdftk\Css\Cascade\ComputedStyle::has</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#61">Phpdftk\Css\Cascade\ComputedStyle::all</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#72">Phpdftk\Css\Cascade\ComputedStyle::getUnknown</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#81">Phpdftk\Css\Cascade\ComputedStyle::getColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#169">Phpdftk\Css\Cascade\ComputedStyle::getTextAlignLast</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#264">Phpdftk\Css\Cascade\ComputedStyle::getDisplay</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#300">Phpdftk\Css\Cascade\ComputedStyle::getWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#320">Phpdftk\Css\Cascade\ComputedStyle::getMaxWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#330">Phpdftk\Css\Cascade\ComputedStyle::getMarginTop</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#370">Phpdftk\Css\Cascade\ComputedStyle::getBorderTopWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#474">Phpdftk\Css\Cascade\ComputedStyle::getBoxSizing</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#573">Phpdftk\Css\Cascade\ComputedStyle::getFlexGrow</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#578">Phpdftk\Css\Cascade\ComputedStyle::getFlexShrink</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ComputedStyle.php.html#775">Phpdftk\Css\Cascade\ComputedStyle::resolveColorChain</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#24">Phpdftk\Css\Cascade\LengthContext::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#60">Phpdftk\Css\Cascade\LengthContext::withCurrentFontSize</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#76">Phpdftk\Css\Cascade\LengthContext::withPercentageBasis</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#92">Phpdftk\Css\Cascade\LengthContext::withFontMetrics</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthContext.php.html#108">Phpdftk\Css\Cascade\LengthContext::withContainerSize</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyDefinition.php.html#22">Phpdftk\Css\Cascade\PropertyDefinition::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#65">Phpdftk\Css\Cascade\PropertyRegistry::get</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PropertyRegistry.php.html#70">Phpdftk\Css\Cascade\PropertyRegistry::has</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#330">Phpdftk\Css\Cascade\ShorthandExpander::expandBorderSide</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#339">Phpdftk\Css\Cascade\ShorthandExpander::expandBorder</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#487">Phpdftk\Css\Cascade\ShorthandExpander::looksLikeColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1498">Phpdftk\Css\Cascade\ShorthandExpander::expandBorderLogicalSide</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ShorthandExpander.php.html#1514">Phpdftk\Css\Cascade\ShorthandExpander::alias</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#46">Phpdftk\Css\Cascade\WritingMode::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#86">Phpdftk\Css\Cascade\WritingMode::isVertical</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="WritingMode.php.html#91">Phpdftk\Css\Cascade\WritingMode::isHorizontal</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

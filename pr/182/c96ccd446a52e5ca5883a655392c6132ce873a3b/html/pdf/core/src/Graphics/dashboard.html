@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/pdf/core/src/Graphics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../../index.html">pdf</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">core</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Graphics</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ExtGState.php.html#20"><circle cx="695.8" cy="99.2" r="20.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ExtGState — Coverage: 88.3% | Lines: 77 | Complexity: 38</title></circle></a>
+ <a href="XObject/ImageXObject.php.html#19"><circle cx="780.0" cy="198.2" r="16.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject — Coverage: 100.0% | Lines: 54 | Complexity: 23</title></circle></a>
+ <a href="XObject/FormXObject.php.html#27"><circle cx="780.0" cy="231.2" r="14.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\FormXObject — Coverage: 100.0% | Lines: 38 | Complexity: 18</title></circle></a>
+ <a href="Pattern/TilingPattern.php.html#25"><circle cx="742.1" cy="323.6" r="9.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern — Coverage: 94.7% | Lines: 19 | Complexity: 4</title></circle></a>
+ <a href="Function/FunctionType0.php.html#19"><circle cx="780.0" cy="310.4" r="9.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType0 — Coverage: 100.0% | Lines: 18 | Complexity: 6</title></circle></a>
+ <a href="Shading/MeshShading.php.html#23"><circle cx="780.0" cy="310.4" r="9.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\MeshShading — Coverage: 100.0% | Lines: 18 | Complexity: 6</title></circle></a>
+ <a href="Halftone/HalftoneType1.php.html#21"><circle cx="780.0" cy="303.8" r="8.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1 — Coverage: 100.0% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="SoftMask.php.html#19"><circle cx="724.6" cy="317.0" r="8.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\SoftMask — Coverage: 92.3% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="ColorSpace/DeviceN.php.html#22"><circle cx="720.0" cy="330.2" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN — Coverage: 91.7% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType2.php.html#15"><circle cx="720.0" cy="317.0" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2 — Coverage: 91.7% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Shading/ShadingType3.php.html#15"><circle cx="720.0" cy="317.0" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3 — Coverage: 91.7% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Shading/ShadingType4.php.html#16"><circle cx="780.0" cy="330.2" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4 — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType5.php.html#16"><circle cx="780.0" cy="330.2" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5 — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType6.php.html#15"><circle cx="780.0" cy="330.2" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6 — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType7.php.html#15"><circle cx="780.0" cy="330.2" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7 — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="Pattern/ShadingPattern.php.html#23"><circle cx="714.5" cy="317.0" r="7.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern — Coverage: 90.9% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="ColorSpace/CalRGB.php.html#19"><circle cx="636.0" cy="317.0" r="7.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="Function/FunctionType2.php.html#16"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType2 — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Function/FunctionType3.php.html#17"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType3 — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Halftone/HalftoneType10.php.html#21"><circle cx="708.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10 — Coverage: 90.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Halftone/HalftoneType16.php.html#21"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16 — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Halftone/HalftoneType5.php.html#22"><circle cx="780.0" cy="323.6" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType5 — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="Halftone/HalftoneType6.php.html#22"><circle cx="780.0" cy="330.2" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6 — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Shading/Shading.php.html#25"><circle cx="780.0" cy="323.6" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\Shading — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="Shading/ShadingType1.php.html#17"><circle cx="636.0" cy="317.0" r="7.2" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1 — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="ColorSpace/Indexed.php.html#19"><circle cx="780.0" cy="336.8" r="6.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="ColorSpace/Separation.php.html#21"><circle cx="780.0" cy="336.8" r="6.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="ColorSpace/CalGray.php.html#20"><circle cx="690.0" cy="323.6" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="ColorSpace/Lab.php.html#17"><circle cx="690.0" cy="323.6" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Function/FunctionType4.php.html#22"><circle cx="780.0" cy="330.2" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType4 — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Function/Func.php.html#24"><circle cx="780.0" cy="336.8" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\Func — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="XObject/PostScriptXObject.php.html#19"><circle cx="780.0" cy="330.2" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="ColorSpace/Pattern.php.html#19"><circle cx="780.0" cy="330.2" r="4.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ColorSpace/ICCBased.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ColorSpace/DeviceCMYK.php.html#10"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceCMYK — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceGray.php.html#10"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceGray — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceRGB.php.html#10"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ExtGState.php.html#20">Phpdftk\Pdf\Core\Graphics\ExtGState</a></td><td class="text-right">40.31</td><td class="text-right">88.3%</td></tr>
+  <tr><td><a href="XObject/ImageXObject.php.html#19">Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject</a></td><td class="text-right">23</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/FormXObject.php.html#27">Phpdftk\Pdf\Core\Graphics\XObject\FormXObject</a></td><td class="text-right">18</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType1.php.html#21">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType0.php.html#19">Phpdftk\Pdf\Core\Graphics\Function\FunctionType0</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/MeshShading.php.html#23">Phpdftk\Pdf\Core\Graphics\Shading\MeshShading</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/CalRGB.php.html#19">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType1.php.html#17">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="Pattern/ShadingPattern.php.html#23">Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern</a></td><td class="text-right">5.02</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="Shading/ShadingType2.php.html#15">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2</a></td><td class="text-right">5.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="Shading/ShadingType3.php.html#15">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3</a></td><td class="text-right">5.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="SoftMask.php.html#19">Phpdftk\Pdf\Core\Graphics\SoftMask</a></td><td class="text-right">5.01</td><td class="text-right">92.3%</td></tr>
+  <tr><td><a href="ColorSpace/CalGray.php.html#20">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="ColorSpace/Lab.php.html#17">Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType5.php.html#22">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType5</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/TilingPattern.php.html#25">Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern</a></td><td class="text-right">4.00</td><td class="text-right">94.7%</td></tr>
+  <tr><td><a href="Shading/Shading.php.html#25">Phpdftk\Pdf\Core\Graphics\Shading\Shading</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceN.php.html#22">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN</a></td><td class="text-right">3.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType10.php.html#21">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10</a></td><td class="text-right">3.01</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="ColorSpace/Pattern.php.html#19">Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType2.php.html#16">Phpdftk\Pdf\Core\Graphics\Function\FunctionType2</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType3.php.html#17">Phpdftk\Pdf\Core\Graphics\Function\FunctionType3</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType4.php.html#22">Phpdftk\Pdf\Core\Graphics\Function\FunctionType4</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType16.php.html#21">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType6.php.html#22">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType4.php.html#16">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType5.php.html#16">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType6.php.html#15">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType7.php.html#15">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/PostScriptXObject.php.html#19">Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/ICCBased.php.html#20">Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Indexed.php.html#19">Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Separation.php.html#21">Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/Func.php.html#24">Phpdftk\Pdf\Core\Graphics\Function\Func</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceCMYK.php.html#10">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceCMYK</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceGray.php.html#10">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceGray</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceRGB.php.html#10">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/ColorSpace.php.html#12">Phpdftk\Pdf\Core\Graphics\ColorSpace\ColorSpace</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ExtGState.php.html#59"><circle cx="695.8" cy="99.2" r="20.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ExtGState::toPdf — Coverage: 88.3% | Lines: 77 | Complexity: 38</title></circle></a>
+ <a href="XObject/ImageXObject.php.html#67"><circle cx="780.0" cy="204.8" r="16.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::toPdf — Coverage: 100.0% | Lines: 49 | Complexity: 22</title></circle></a>
+ <a href="XObject/FormXObject.php.html#57"><circle cx="780.0" cy="237.8" r="13.7" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\FormXObject::toPdf — Coverage: 100.0% | Lines: 36 | Complexity: 17</title></circle></a>
+ <a href="Halftone/HalftoneType1.php.html#31"><circle cx="780.0" cy="303.8" r="8.8" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1::toPdf — Coverage: 100.0% | Lines: 15 | Complexity: 7</title></circle></a>
+ <a href="Shading/MeshShading.php.html#51"><circle cx="780.0" cy="317.0" r="8.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\MeshShading::populateCommon — Coverage: 100.0% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="Function/FunctionType0.php.html#48"><circle cx="780.0" cy="323.6" r="7.9" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::toPdf — Coverage: 100.0% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="Pattern/TilingPattern.php.html#61"><circle cx="714.5" cy="336.8" r="7.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::toPdf — Coverage: 90.9% | Lines: 11 | Complexity: 2</title></circle></a>
+ <a href="SoftMask.php.html#32"><circle cx="714.5" cy="323.6" r="7.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\SoftMask::toPdf — Coverage: 90.9% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="Halftone/HalftoneType5.php.html#29"><circle cx="780.0" cy="323.6" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType5::toPdf — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="Shading/Shading.php.html#34"><circle cx="780.0" cy="323.6" r="7.2" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\Shading::baseDictionary — Coverage: 100.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="ColorSpace/CalRGB.php.html#31"><circle cx="620.0" cy="323.6" r="6.8" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB::toPdf — Coverage: 77.8% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="ColorSpace/DeviceN.php.html#39"><circle cx="700.0" cy="336.8" r="6.8" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN::toPdf — Coverage: 88.9% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="Pattern/ShadingPattern.php.html#42"><circle cx="700.0" cy="330.2" r="6.8" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::toPdf — Coverage: 88.9% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType2.php.html#37"><circle cx="690.0" cy="330.2" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::toPdf — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType3.php.html#37"><circle cx="690.0" cy="330.2" r="6.4" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::toPdf — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Shading/ShadingType4.php.html#20"><circle cx="780.0" cy="343.4" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::__construct — Coverage: 100.0% | Lines: 8 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType5.php.html#20"><circle cx="780.0" cy="343.4" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::__construct — Coverage: 100.0% | Lines: 8 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType6.php.html#19"><circle cx="780.0" cy="343.4" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::__construct — Coverage: 100.0% | Lines: 8 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType7.php.html#19"><circle cx="780.0" cy="343.4" r="6.4" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::__construct — Coverage: 100.0% | Lines: 8 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/CalGray.php.html#31"><circle cx="677.1" cy="330.2" r="6.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray::toPdf — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="ColorSpace/Lab.php.html#28"><circle cx="677.1" cy="330.2" r="6.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab::toPdf — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Halftone/HalftoneType10.php.html#36"><circle cx="677.1" cy="336.8" r="6.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10::toPdf — Coverage: 85.7% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="Halftone/HalftoneType16.php.html#36"><circle cx="780.0" cy="336.8" r="6.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16::toPdf — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="Halftone/HalftoneType6.php.html#37"><circle cx="780.0" cy="336.8" r="6.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6::toPdf — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="Pattern/TilingPattern.php.html#38"><circle cx="780.0" cy="343.4" r="6.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::__construct — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType1.php.html#36"><circle cx="574.3" cy="330.2" r="6.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::toPdf — Coverage: 71.4% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="ColorSpace/Indexed.php.html#35"><circle cx="780.0" cy="343.4" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/Separation.php.html#37"><circle cx="780.0" cy="343.4" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation::toPdf — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="Function/Func.php.html#31"><circle cx="780.0" cy="336.8" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\Func::baseDictionary — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Function/FunctionType0.php.html#29"><circle cx="780.0" cy="343.4" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::__construct — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType2.php.html#39"><circle cx="780.0" cy="343.4" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::toPdf — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType3.php.html#40"><circle cx="780.0" cy="343.4" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::toPdf — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Shading/MeshShading.php.html#35"><circle cx="780.0" cy="343.4" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\MeshShading::__construct — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="XObject/ImageXObject.php.html#53"><circle cx="780.0" cy="343.4" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::__construct — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="XObject/PostScriptXObject.php.html#31"><circle cx="780.0" cy="336.8" r="5.1" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject::toPdf — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Function/FunctionType2.php.html#22"><circle cx="780.0" cy="343.4" r="4.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::__construct — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType3.php.html#23"><circle cx="780.0" cy="343.4" r="4.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::__construct — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType4.php.html#39"><circle cx="780.0" cy="343.4" r="4.6" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::toPdf — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceN.php.html#29"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/Indexed.php.html#25"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/Pattern.php.html#28"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ColorSpace/Separation.php.html#27"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType4.php.html#27"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Halftone/HalftoneType10.php.html#29"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Halftone/HalftoneType16.php.html#29"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Halftone/HalftoneType6.php.html#30"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType2.php.html#22"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType3.php.html#22"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType4.php.html#43"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType5.php.html#43"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType6.php.html#42"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType7.php.html#42"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::toPdf — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType1.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="SoftMask.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\SoftMask::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="XObject/FormXObject.php.html#51"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\FormXObject::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/CalGray.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/CalRGB.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceCMYK.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceCMYK::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceGray.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceGray::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/DeviceRGB.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/ICCBased.php.html#24"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/ICCBased.php.html#29"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased::toPdf — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/Lab.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorSpace/Pattern.php.html#23"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType0.php.html#43"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::getFunctionType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType2.php.html#34"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::getFunctionType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType3.php.html#35"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::getFunctionType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Function/FunctionType4.php.html#34"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::getFunctionType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Pattern/ShadingPattern.php.html#32"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Pattern/ShadingPattern.php.html#37"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::getPatternType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Pattern/TilingPattern.php.html#56"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::getPatternType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType1.php.html#31"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType2.php.html#32"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType3.php.html#32"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType4.php.html#38"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType5.php.html#38"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType6.php.html#37"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Shading/ShadingType7.php.html#37"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::getShadingType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="XObject/PostScriptXObject.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ExtGState.php.html#59">Phpdftk\Pdf\Core\Graphics\ExtGState::toPdf</a></td><td class="text-right">40.31</td><td class="text-right">88.3%</td></tr>
+  <tr><td><a href="XObject/ImageXObject.php.html#67">Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::toPdf</a></td><td class="text-right">22</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/FormXObject.php.html#57">Phpdftk\Pdf\Core\Graphics\XObject\FormXObject::toPdf</a></td><td class="text-right">17</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType1.php.html#31">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType1::toPdf</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/MeshShading.php.html#51">Phpdftk\Pdf\Core\Graphics\Shading\MeshShading::populateCommon</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/CalRGB.php.html#31">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB::toPdf</a></td><td class="text-right">4.18</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="SoftMask.php.html#32">Phpdftk\Pdf\Core\Graphics\SoftMask::toPdf</a></td><td class="text-right">4.01</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="Function/FunctionType0.php.html#48">Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType5.php.html#29">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType5::toPdf</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/Shading.php.html#34">Phpdftk\Pdf\Core\Graphics\Shading\Shading::baseDictionary</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType1.php.html#36">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::toPdf</a></td><td class="text-right">3.21</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="ColorSpace/CalGray.php.html#31">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray::toPdf</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ColorSpace/Lab.php.html#28">Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab::toPdf</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="Shading/ShadingType2.php.html#37">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::toPdf</a></td><td class="text-right">3.02</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="Shading/ShadingType3.php.html#37">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::toPdf</a></td><td class="text-right">3.02</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="Pattern/ShadingPattern.php.html#42">Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::toPdf</a></td><td class="text-right">3.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceN.php.html#39">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN::toPdf</a></td><td class="text-right">2.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType10.php.html#36">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10::toPdf</a></td><td class="text-right">2.01</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ColorSpace/Pattern.php.html#28">Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/Func.php.html#31">Phpdftk\Pdf\Core\Graphics\Function\Func::baseDictionary</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType16.php.html#36">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType6.php.html#37">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/TilingPattern.php.html#61">Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::toPdf</a></td><td class="text-right">2.00</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="XObject/PostScriptXObject.php.html#31">Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject::toPdf</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/CalGray.php.html#26">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalGray::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/CalRGB.php.html#26">Phpdftk\Pdf\Core\Graphics\ColorSpace\CalRGB::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceCMYK.php.html#12">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceCMYK::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceGray.php.html#12">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceGray::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceN.php.html#29">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceN::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/DeviceRGB.php.html#12">Phpdftk\Pdf\Core\Graphics\ColorSpace\DeviceRGB::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/ICCBased.php.html#24">Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/ICCBased.php.html#29">Phpdftk\Pdf\Core\Graphics\ColorSpace\ICCBased::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Indexed.php.html#25">Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Indexed.php.html#35">Phpdftk\Pdf\Core\Graphics\ColorSpace\Indexed::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Lab.php.html#23">Phpdftk\Pdf\Core\Graphics\ColorSpace\Lab::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Pattern.php.html#23">Phpdftk\Pdf\Core\Graphics\ColorSpace\Pattern::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Separation.php.html#27">Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace/Separation.php.html#37">Phpdftk\Pdf\Core\Graphics\ColorSpace\Separation::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType0.php.html#29">Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType0.php.html#43">Phpdftk\Pdf\Core\Graphics\Function\FunctionType0::getFunctionType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType2.php.html#22">Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType2.php.html#34">Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::getFunctionType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType2.php.html#39">Phpdftk\Pdf\Core\Graphics\Function\FunctionType2::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType3.php.html#23">Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType3.php.html#35">Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::getFunctionType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType3.php.html#40">Phpdftk\Pdf\Core\Graphics\Function\FunctionType3::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType4.php.html#27">Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType4.php.html#34">Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::getFunctionType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/FunctionType4.php.html#39">Phpdftk\Pdf\Core\Graphics\Function\FunctionType4::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType10.php.html#29">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType10::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType16.php.html#29">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType16::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Halftone/HalftoneType6.php.html#30">Phpdftk\Pdf\Core\Graphics\Halftone\HalftoneType6::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/ShadingPattern.php.html#32">Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/ShadingPattern.php.html#37">Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern::getPatternType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/TilingPattern.php.html#38">Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Pattern/TilingPattern.php.html#56">Phpdftk\Pdf\Core\Graphics\Pattern\TilingPattern::getPatternType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/MeshShading.php.html#35">Phpdftk\Pdf\Core\Graphics\Shading\MeshShading::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType1.php.html#23">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType1.php.html#31">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType1::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType2.php.html#22">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType2.php.html#32">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType3.php.html#22">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType3.php.html#32">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType4.php.html#20">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType4.php.html#38">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType4.php.html#43">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType4::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType5.php.html#20">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType5.php.html#38">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType5.php.html#43">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType5::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType6.php.html#19">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType6.php.html#37">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType6.php.html#42">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType6::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType7.php.html#19">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType7.php.html#37">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::getShadingType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/ShadingType7.php.html#42">Phpdftk\Pdf\Core\Graphics\Shading\ShadingType7::toPdf</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SoftMask.php.html#26">Phpdftk\Pdf\Core\Graphics\SoftMask::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/FormXObject.php.html#51">Phpdftk\Pdf\Core\Graphics\XObject\FormXObject::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/ImageXObject.php.html#53">Phpdftk\Pdf\Core\Graphics\XObject\ImageXObject::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XObject/PostScriptXObject.php.html#26">Phpdftk\Pdf\Core\Graphics\XObject\PostScriptXObject::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Function/Func.php.html#29">Phpdftk\Pdf\Core\Graphics\Function\Func::getFunctionType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/MeshShading.php.html#49">Phpdftk\Pdf\Core\Graphics\Shading\MeshShading::getShadingType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Shading/Shading.php.html#32">Phpdftk\Pdf\Core\Graphics\Shading\Shading::getShadingType</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

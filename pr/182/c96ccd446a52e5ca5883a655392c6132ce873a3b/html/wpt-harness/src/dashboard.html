@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/wpt-harness/src</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">wpt-harness</a></li>
+         <li class="breadcrumb-item"><a href="index.html">src</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="HarnessRunner.php.html#25"><circle cx="456.7" cy="73.6" r="20.0" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner — Coverage: 55.1% | Lines: 216 | Complexity: 67</title></circle></a>
+ <a href="BrowserOracle.php.html#26"><circle cx="454.6" cy="81.9" r="18.1" class="bubble-warning"><title>Phpdftk\WptHarness\BrowserOracle — Coverage: 54.8% | Lines: 177 | Complexity: 65</title></circle></a>
+ <a href="ConsensusScorer.php.html#31"><circle cx="60.0" cy="246.9" r="14.1" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer — Coverage: 0.0% | Lines: 107 | Complexity: 25</title></circle></a>
+ <a href="Manifest.php.html#55"><circle cx="763.1" cy="189.1" r="12.5" class="bubble-success"><title>Phpdftk\WptHarness\Manifest — Coverage: 97.6% | Lines: 85 | Complexity: 39</title></circle></a>
+ <a href="Scorer.php.html#24"><circle cx="71.2" cy="296.4" r="10.9" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer — Coverage: 1.6% | Lines: 64 | Complexity: 13</title></circle></a>
+ <a href="CrossBrowserRunner.php.html#25"><circle cx="60.0" cy="288.1" r="9.8" class="bubble-danger"><title>Phpdftk\WptHarness\CrossBrowserRunner — Coverage: 0.0% | Lines: 52 | Complexity: 15</title></circle></a>
+ <a href="DomSettler.php.html#75"><circle cx="338.2" cy="296.4" r="9.0" class="bubble-danger"><title>Phpdftk\WptHarness\DomSettler — Coverage: 38.6% | Lines: 44 | Complexity: 13</title></circle></a>
+ <a href="Rasteriser.php.html#18"><circle cx="531.7" cy="317.0" r="7.3" class="bubble-warning"><title>Phpdftk\WptHarness\Rasteriser — Coverage: 65.5% | Lines: 29 | Complexity: 8</title></circle></a>
+ <a href="ReportPublisher.php.html#21"><circle cx="722.4" cy="308.8" r="6.8" class="bubble-success"><title>Phpdftk\WptHarness\ReportPublisher — Coverage: 92.0% | Lines: 25 | Complexity: 10</title></circle></a>
+ <a href="TestResult.php.html#14"><circle cx="780.0" cy="345.9" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\TestResult — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ConsensusScorer.php.html#31">Phpdftk\WptHarness\ConsensusScorer</a></td><td class="text-right">650</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#25">Phpdftk\WptHarness\HarnessRunner</a></td><td class="text-right">473.54</td><td class="text-right">55.1%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#26">Phpdftk\WptHarness\BrowserOracle</a></td><td class="text-right">455.10</td><td class="text-right">54.8%</td></tr>
+  <tr><td><a href="CrossBrowserRunner.php.html#25">Phpdftk\WptHarness\CrossBrowserRunner</a></td><td class="text-right">240</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#24">Phpdftk\WptHarness\Scorer</a></td><td class="text-right">174.20</td><td class="text-right">1.6%</td></tr>
+  <tr><td><a href="DomSettler.php.html#75">Phpdftk\WptHarness\DomSettler</a></td><td class="text-right">52.05</td><td class="text-right">38.6%</td></tr>
+  <tr><td><a href="Manifest.php.html#55">Phpdftk\WptHarness\Manifest</a></td><td class="text-right">39</td><td class="text-right">97.6%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#18">Phpdftk\WptHarness\Rasteriser</a></td><td class="text-right">10.62</td><td class="text-right">65.5%</td></tr>
+  <tr><td><a href="ReportPublisher.php.html#21">Phpdftk\WptHarness\ReportPublisher</a></td><td class="text-right">10.05</td><td class="text-right">92.0%</td></tr>
+  <tr><td><a href="TestResult.php.html#14">Phpdftk\WptHarness\TestResult</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ConsensusVerdict.php.html#26">Phpdftk\WptHarness\ConsensusVerdict</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TestStatus.php.html#18">Phpdftk\WptHarness\TestStatus</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="HarnessRunner.php.html#108"><circle cx="324.7" cy="152.0" r="20.0" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::runRendered — Coverage: 36.8% | Lines: 68 | Complexity: 9</title></circle></a>
+ <a href="ConsensusScorer.php.html#80"><circle cx="60.0" cy="152.0" r="19.7" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer::score — Coverage: 0.0% | Lines: 66 | Complexity: 9</title></circle></a>
+ <a href="Scorer.php.html#45"><circle cx="60.0" cy="196.0" r="17.3" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer::diff — Coverage: 0.0% | Lines: 51 | Complexity: 7</title></circle></a>
+ <a href="BrowserOracle.php.html#237"><circle cx="107.0" cy="174.0" r="16.4" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::dispatch — Coverage: 6.5% | Lines: 46 | Complexity: 8</title></circle></a>
+ <a href="BrowserOracle.php.html#307"><circle cx="727.3" cy="130.0" r="15.5" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::dispatchDaemon — Coverage: 92.7% | Lines: 41 | Complexity: 10</title></circle></a>
+ <a href="CrossBrowserRunner.php.html#89"><circle cx="60.0" cy="240.0" r="13.7" class="bubble-danger"><title>Phpdftk\WptHarness\CrossBrowserRunner::runOne — Coverage: 0.0% | Lines: 32 | Complexity: 5</title></circle></a>
+ <a href="DomSettler.php.html#158"><circle cx="113.3" cy="218.0" r="12.6" class="bubble-danger"><title>Phpdftk\WptHarness\DomSettler::settle — Coverage: 7.4% | Lines: 27 | Complexity: 6</title></circle></a>
+ <a href="Manifest.php.html#111"><circle cx="780.0" cy="86.0" r="12.6" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::loadFromDirectory — Coverage: 100.0% | Lines: 27 | Complexity: 12</title></circle></a>
+ <a href="ReportPublisher.php.html#48"><circle cx="780.0" cy="152.0" r="11.6" class="bubble-success"><title>Phpdftk\WptHarness\ReportPublisher::aggregate — Coverage: 100.0% | Lines: 23 | Complexity: 9</title></circle></a>
+ <a href="HarnessRunner.php.html#343"><circle cx="608.6" cy="240.0" r="11.1" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner::renderHtmlToPdf — Coverage: 76.2% | Lines: 21 | Complexity: 5</title></circle></a>
+ <a href="Rasteriser.php.html#32"><circle cx="708.0" cy="262.0" r="10.8" class="bubble-success"><title>Phpdftk\WptHarness\Rasteriser::rasterise — Coverage: 90.0% | Lines: 20 | Complexity: 4</title></circle></a>
+ <a href="ConsensusScorer.php.html#193"><circle cx="60.0" cy="174.0" r="10.3" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer::pickConsensus — Coverage: 0.0% | Lines: 18 | Complexity: 8</title></circle></a>
+ <a href="ConsensusScorer.php.html#230"><circle cx="60.0" cy="262.0" r="10.3" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer::describeDisagreement — Coverage: 0.0% | Lines: 18 | Complexity: 4</title></circle></a>
+ <a href="HarnessRunner.php.html#296"><circle cx="420.0" cy="152.0" r="10.3" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::locateLinkRelMatchReference — Coverage: 50.0% | Lines: 18 | Complexity: 9</title></circle></a>
+ <a href="BrowserOracle.php.html#89"><circle cx="695.3" cy="196.0" r="10.0" class="bubble-warning"><title>Phpdftk\WptHarness\BrowserOracle::render — Coverage: 88.2% | Lines: 17 | Complexity: 7</title></circle></a>
+ <a href="BrowserOracle.php.html#153"><circle cx="780.0" cy="240.0" r="10.0" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::daemonReady — Coverage: 100.0% | Lines: 17 | Complexity: 5</title></circle></a>
+ <a href="HarnessRunner.php.html#211"><circle cx="60.0" cy="196.0" r="9.7" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::parseFuzzyMeta — Coverage: 0.0% | Lines: 16 | Complexity: 7</title></circle></a>
+ <a href="Manifest.php.html#73"><circle cx="780.0" cy="218.0" r="9.7" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::classify — Coverage: 100.0% | Lines: 16 | Complexity: 6</title></circle></a>
+ <a href="Manifest.php.html#187"><circle cx="780.0" cy="240.0" r="9.7" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::globToRegex — Coverage: 100.0% | Lines: 16 | Complexity: 5</title></circle></a>
+ <a href="HarnessRunner.php.html#431"><circle cx="677.1" cy="218.0" r="9.1" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner::discoverTests — Coverage: 85.7% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="Manifest.php.html#238"><circle cx="780.0" cy="152.0" r="9.1" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::normaliseRules — Coverage: 100.0% | Lines: 14 | Complexity: 9</title></circle></a>
+ <a href="HarnessRunner.php.html#266"><circle cx="780.0" cy="284.0" r="8.7" class="bubble-success"><title>Phpdftk\WptHarness\HarnessRunner::locateReference — Coverage: 100.0% | Lines: 13 | Complexity: 3</title></circle></a>
+ <a href="HarnessRunner.php.html#384"><circle cx="60.0" cy="240.0" r="8.7" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::renderSvgToPdf — Coverage: 0.0% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="HarnessRunner.php.html#462"><circle cx="669.2" cy="240.0" r="8.7" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner::testIdFromPath — Coverage: 84.6% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="DomSettler.php.html#136"><circle cx="649.1" cy="262.0" r="8.0" class="bubble-warning"><title>Phpdftk\WptHarness\DomSettler::maybeSettle — Coverage: 81.8% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="HarnessRunner.php.html#57"><circle cx="714.5" cy="218.0" r="8.0" class="bubble-success"><title>Phpdftk\WptHarness\HarnessRunner::run — Coverage: 90.9% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="HarnessRunner.php.html#82"><circle cx="780.0" cy="306.0" r="8.0" class="bubble-success"><title>Phpdftk\WptHarness\HarnessRunner::runOne — Coverage: 100.0% | Lines: 11 | Complexity: 2</title></circle></a>
+ <a href="CrossBrowserRunner.php.html#145"><circle cx="60.0" cy="306.0" r="7.7" class="bubble-danger"><title>Phpdftk\WptHarness\CrossBrowserRunner::renderOurs — Coverage: 0.0% | Lines: 10 | Complexity: 2</title></circle></a>
+ <a href="BrowserOracle.php.html#133"><circle cx="220.0" cy="196.0" r="7.3" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::isAvailable — Coverage: 22.2% | Lines: 9 | Complexity: 7</title></circle></a>
+ <a href="HarnessRunner.php.html#328"><circle cx="690.0" cy="306.0" r="6.9" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner::renderToPng — Coverage: 87.5% | Lines: 8 | Complexity: 2</title></circle></a>
+ <a href="BrowserOracle.php.html#197"><circle cx="60.0" cy="218.0" r="6.4" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::macFirefoxPath — Coverage: 0.0% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="BrowserOracle.php.html#365"><circle cx="574.3" cy="240.0" r="6.4" class="bubble-warning"><title>Phpdftk\WptHarness\BrowserOracle::translateFixturePath — Coverage: 71.4% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="CrossBrowserRunner.php.html#32"><circle cx="60.0" cy="262.0" r="6.4" class="bubble-danger"><title>Phpdftk\WptHarness\CrossBrowserRunner::__construct — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="Manifest.php.html#216"><circle cx="574.3" cy="284.0" r="6.4" class="bubble-warning"><title>Phpdftk\WptHarness\Manifest::loadJsonFile — Coverage: 71.4% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="BrowserOracle.php.html#176"><circle cx="660.0" cy="284.0" r="5.9" class="bubble-warning"><title>Phpdftk\WptHarness\BrowserOracle::daemonUrlFor — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="Rasteriser.php.html#73"><circle cx="60.0" cy="328.0" r="5.9" class="bubble-danger"><title>Phpdftk\WptHarness\Rasteriser::isAvailable — Coverage: 0.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="Scorer.php.html#136"><circle cx="60.0" cy="328.0" r="5.9" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer::isAvailable — Coverage: 0.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="BrowserOracle.php.html#226"><circle cx="60.0" cy="262.0" r="5.4" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::clearCache — Coverage: 0.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="HarnessRunner.php.html#237"><circle cx="636.0" cy="284.0" r="5.4" class="bubble-warning"><title>Phpdftk\WptHarness\HarnessRunner::resolveTestFile — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BrowserOracle.php.html#188"><circle cx="60.0" cy="284.0" r="4.9" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::firefoxAvailable — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="BrowserOracle.php.html#214"><circle cx="780.0" cy="328.0" r="4.9" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::cachedPath — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="BrowserOracle.php.html#384"><circle cx="780.0" cy="328.0" r="4.9" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::cacheKey — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="ConsensusScorer.php.html#175"><circle cx="60.0" cy="284.0" r="4.9" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer::compareScore — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="DomSettler.php.html#114"><circle cx="780.0" cy="328.0" r="4.9" class="bubble-success"><title>Phpdftk\WptHarness\DomSettler::needsSettling — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Scorer.php.html#114"><circle cx="60.0" cy="306.0" r="4.9" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer::dimensions — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BrowserOracle.php.html#392"><circle cx="60.0" cy="328.0" r="4.2" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::binaryAvailable — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="BrowserOracle.php.html#399"><circle cx="60.0" cy="328.0" r="4.2" class="bubble-danger"><title>Phpdftk\WptHarness\BrowserOracle::dockerDaemonRunning — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="BrowserOracle.php.html#406"><circle cx="780.0" cy="306.0" r="4.2" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::ensureCacheDir — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="CrossBrowserRunner.php.html#164"><circle cx="60.0" cy="262.0" r="4.2" class="bubble-danger"><title>Phpdftk\WptHarness\CrossBrowserRunner::cleanupResult — Coverage: 0.0% | Lines: 3 | Complexity: 4</title></circle></a>
+ <a href="Manifest.php.html#181"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::matches — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ReportPublisher.php.html#26"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\ReportPublisher::publish — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="BrowserOracle.php.html#40"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\BrowserOracle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ConsensusScorer.php.html#55"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\ConsensusScorer::__construct — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DomSettler.php.html#77"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\DomSettler::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DomSettler.php.html#202"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\DomSettler::cacheKeyFor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HarnessRunner.php.html#30"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\HarnessRunner::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HarnessRunner.php.html#404"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::manifest — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HarnessRunner.php.html#409"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::rasteriser — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HarnessRunner.php.html#414"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::scorer — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="HarnessRunner.php.html#419"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\HarnessRunner::wptRoot — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Manifest.php.html#61"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Manifest.php.html#161"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::outOfScopeRules — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Manifest.php.html#169"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Manifest::pendingSubstrateRules — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Rasteriser.php.html#20"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Rasteriser::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Rasteriser.php.html#58"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\Rasteriser::dpi — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Rasteriser.php.html#63"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\Rasteriser::ghostscriptBinary — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Scorer.php.html#26"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\Scorer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Scorer.php.html#123"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer::passThreshold — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Scorer.php.html#128"><circle cx="60.0" cy="328.0" r="4.0" class="bubble-danger"><title>Phpdftk\WptHarness\Scorer::compareBinary — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TestResult.php.html#50"><circle cx="780.0" cy="328.0" r="4.0" class="bubble-success"><title>Phpdftk\WptHarness\TestResult::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ConsensusScorer.php.html#80">Phpdftk\WptHarness\ConsensusScorer::score</a></td><td class="text-right">90</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ConsensusScorer.php.html#193">Phpdftk\WptHarness\ConsensusScorer::pickConsensus</a></td><td class="text-right">72</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#237">Phpdftk\WptHarness\BrowserOracle::dispatch</a></td><td class="text-right">60.28</td><td class="text-right">6.5%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#211">Phpdftk\WptHarness\HarnessRunner::parseFuzzyMeta</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#45">Phpdftk\WptHarness\Scorer::diff</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#197">Phpdftk\WptHarness\BrowserOracle::macFirefoxPath</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="DomSettler.php.html#158">Phpdftk\WptHarness\DomSettler::settle</a></td><td class="text-right">34.58</td><td class="text-right">7.4%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#133">Phpdftk\WptHarness\BrowserOracle::isAvailable</a></td><td class="text-right">30.05</td><td class="text-right">22.2%</td></tr>
+  <tr><td><a href="CrossBrowserRunner.php.html#89">Phpdftk\WptHarness\CrossBrowserRunner::runOne</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#384">Phpdftk\WptHarness\HarnessRunner::renderSvgToPdf</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#108">Phpdftk\WptHarness\HarnessRunner::runRendered</a></td><td class="text-right">29.48</td><td class="text-right">36.8%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#226">Phpdftk\WptHarness\BrowserOracle::clearCache</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ConsensusScorer.php.html#230">Phpdftk\WptHarness\ConsensusScorer::describeDisagreement</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CrossBrowserRunner.php.html#32">Phpdftk\WptHarness\CrossBrowserRunner::__construct</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CrossBrowserRunner.php.html#164">Phpdftk\WptHarness\CrossBrowserRunner::cleanupResult</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#296">Phpdftk\WptHarness\HarnessRunner::locateLinkRelMatchReference</a></td><td class="text-right">19.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#188">Phpdftk\WptHarness\BrowserOracle::firefoxAvailable</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ConsensusScorer.php.html#175">Phpdftk\WptHarness\ConsensusScorer::compareScore</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#111">Phpdftk\WptHarness\Manifest::loadFromDirectory</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#307">Phpdftk\WptHarness\BrowserOracle::dispatchDaemon</a></td><td class="text-right">10.04</td><td class="text-right">92.7%</td></tr>
+  <tr><td><a href="Manifest.php.html#238">Phpdftk\WptHarness\Manifest::normaliseRules</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ReportPublisher.php.html#48">Phpdftk\WptHarness\ReportPublisher::aggregate</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#89">Phpdftk\WptHarness\BrowserOracle::render</a></td><td class="text-right">7.08</td><td class="text-right">88.2%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#431">Phpdftk\WptHarness\HarnessRunner::discoverTests</a></td><td class="text-right">6.10</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#57">Phpdftk\WptHarness\HarnessRunner::run</a></td><td class="text-right">6.03</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="CrossBrowserRunner.php.html#145">Phpdftk\WptHarness\CrossBrowserRunner::renderOurs</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#73">Phpdftk\WptHarness\Manifest::classify</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#114">Phpdftk\WptHarness\Scorer::dimensions</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#365">Phpdftk\WptHarness\BrowserOracle::translateFixturePath</a></td><td class="text-right">5.58</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#343">Phpdftk\WptHarness\HarnessRunner::renderHtmlToPdf</a></td><td class="text-right">5.34</td><td class="text-right">76.2%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#462">Phpdftk\WptHarness\HarnessRunner::testIdFromPath</a></td><td class="text-right">5.09</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#153">Phpdftk\WptHarness\BrowserOracle::daemonReady</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#187">Phpdftk\WptHarness\Manifest::globToRegex</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DomSettler.php.html#136">Phpdftk\WptHarness\DomSettler::maybeSettle</a></td><td class="text-right">4.10</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#32">Phpdftk\WptHarness\Rasteriser::rasterise</a></td><td class="text-right">4.02</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#216">Phpdftk\WptHarness\Manifest::loadJsonFile</a></td><td class="text-right">3.21</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#237">Phpdftk\WptHarness\HarnessRunner::resolveTestFile</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#176">Phpdftk\WptHarness\BrowserOracle::daemonUrlFor</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#266">Phpdftk\WptHarness\HarnessRunner::locateReference</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#328">Phpdftk\WptHarness\HarnessRunner::renderToPng</a></td><td class="text-right">2.01</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#392">Phpdftk\WptHarness\BrowserOracle::binaryAvailable</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#399">Phpdftk\WptHarness\BrowserOracle::dockerDaemonRunning</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#406">Phpdftk\WptHarness\BrowserOracle::ensureCacheDir</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ConsensusScorer.php.html#55">Phpdftk\WptHarness\ConsensusScorer::__construct</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#82">Phpdftk\WptHarness\HarnessRunner::runOne</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#404">Phpdftk\WptHarness\HarnessRunner::manifest</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#409">Phpdftk\WptHarness\HarnessRunner::rasteriser</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#414">Phpdftk\WptHarness\HarnessRunner::scorer</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#419">Phpdftk\WptHarness\HarnessRunner::wptRoot</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#58">Phpdftk\WptHarness\Rasteriser::dpi</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#63">Phpdftk\WptHarness\Rasteriser::ghostscriptBinary</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#73">Phpdftk\WptHarness\Rasteriser::isAvailable</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ReportPublisher.php.html#26">Phpdftk\WptHarness\ReportPublisher::publish</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#123">Phpdftk\WptHarness\Scorer::passThreshold</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#128">Phpdftk\WptHarness\Scorer::compareBinary</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#136">Phpdftk\WptHarness\Scorer::isAvailable</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#40">Phpdftk\WptHarness\BrowserOracle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#214">Phpdftk\WptHarness\BrowserOracle::cachedPath</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BrowserOracle.php.html#384">Phpdftk\WptHarness\BrowserOracle::cacheKey</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DomSettler.php.html#77">Phpdftk\WptHarness\DomSettler::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DomSettler.php.html#114">Phpdftk\WptHarness\DomSettler::needsSettling</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DomSettler.php.html#202">Phpdftk\WptHarness\DomSettler::cacheKeyFor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HarnessRunner.php.html#30">Phpdftk\WptHarness\HarnessRunner::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#61">Phpdftk\WptHarness\Manifest::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#161">Phpdftk\WptHarness\Manifest::outOfScopeRules</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#169">Phpdftk\WptHarness\Manifest::pendingSubstrateRules</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Manifest.php.html#181">Phpdftk\WptHarness\Manifest::matches</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Rasteriser.php.html#20">Phpdftk\WptHarness\Rasteriser::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Scorer.php.html#26">Phpdftk\WptHarness\Scorer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TestResult.php.html#50">Phpdftk\WptHarness\TestResult::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

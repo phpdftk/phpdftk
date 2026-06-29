@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/css/src/Value</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">css</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Value</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ColorConverter.php.html#31"><circle cx="60.0" cy="86.0" r="20.0" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter — Coverage: 0.0% | Lines: 166 | Complexity: 80</title></circle></a>
+ <a href="Color.php.html#12"><circle cx="162.9" cy="260.9" r="10.1" class="bubble-danger"><title>Phpdftk\Css\Value\Color — Coverage: 14.3% | Lines: 42 | Complexity: 27</title></circle></a>
+ <a href="ColorMix.php.html#26"><circle cx="82.5" cy="277.4" r="8.8" class="bubble-danger"><title>Phpdftk\Css\Value\ColorMix — Coverage: 3.1% | Lines: 32 | Complexity: 22</title></circle></a>
+ <a href="RelativeColor.php.html#22"><circle cx="84.0" cy="277.4" r="8.5" class="bubble-danger"><title>Phpdftk\Css\Value\RelativeColor — Coverage: 3.3% | Lines: 30 | Complexity: 22</title></circle></a>
+ <a href="InterpolationMethodCss.php.html#14"><circle cx="613.8" cy="277.4" r="7.9" class="bubble-warning"><title>Phpdftk\Css\Value\InterpolationMethodCss — Coverage: 76.9% | Lines: 26 | Complexity: 22</title></circle></a>
+ <a href="ConicGradient.php.html#20"><circle cx="744.0" cy="313.7" r="6.9" class="bubble-success"><title>Phpdftk\Css\Value\ConicGradient — Coverage: 95.0% | Lines: 20 | Complexity: 11</title></circle></a>
+ <a href="XywhShape.php.html#16"><circle cx="732.0" cy="340.1" r="6.0" class="bubble-success"><title>Phpdftk\Css\Value\XywhShape — Coverage: 93.3% | Lines: 15 | Complexity: 3</title></circle></a>
+ <a href="RadialGradient.php.html#12"><circle cx="111.4" cy="323.6" r="5.8" class="bubble-danger"><title>Phpdftk\Css\Value\RadialGradient — Coverage: 7.1% | Lines: 14 | Complexity: 8</title></circle></a>
+ <a href="EllipseShape.php.html#12"><circle cx="115.4" cy="323.6" r="5.6" class="bubble-danger"><title>Phpdftk\Css\Value\EllipseShape — Coverage: 7.7% | Lines: 13 | Complexity: 8</title></circle></a>
+ <a href="CircleShape.php.html#12"><circle cx="780.0" cy="326.9" r="5.4" class="bubble-success"><title>Phpdftk\Css\Value\CircleShape — Coverage: 100.0% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="InsetShape.php.html#13"><circle cx="720.0" cy="340.1" r="5.4" class="bubble-success"><title>Phpdftk\Css\Value\InsetShape — Coverage: 91.7% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="LengthUnit.php.html#12"><circle cx="60.0" cy="330.2" r="5.4" class="bubble-danger"><title>Phpdftk\Css\Value\LengthUnit — Coverage: 0.0% | Lines: 12 | Complexity: 6</title></circle></a>
+ <a href="RectShape.php.html#17"><circle cx="480.0" cy="340.1" r="5.4" class="bubble-warning"><title>Phpdftk\Css\Value\RectShape — Coverage: 58.3% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="MatrixTransform.php.html#8"><circle cx="125.5" cy="336.8" r="5.1" class="bubble-danger"><title>Phpdftk\Css\Value\MatrixTransform — Coverage: 9.1% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="RotateTransform.php.html#7"><circle cx="125.5" cy="326.9" r="5.1" class="bubble-danger"><title>Phpdftk\Css\Value\RotateTransform — Coverage: 9.1% | Lines: 11 | Complexity: 7</title></circle></a>
+ <a href="ViewTimeline.php.html#21"><circle cx="649.1" cy="330.2" r="5.1" class="bubble-warning"><title>Phpdftk\Css\Value\ViewTimeline — Coverage: 81.8% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="ImageSetOption.php.html#19"><circle cx="132.0" cy="330.2" r="4.9" class="bubble-danger"><title>Phpdftk\Css\Value\ImageSetOption — Coverage: 10.0% | Lines: 10 | Complexity: 6</title></circle></a>
+ <a href="LinearEasingStop.php.html#14"><circle cx="708.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Css\Value\LinearEasingStop — Coverage: 90.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="NamedColors.php.html#16"><circle cx="780.0" cy="333.5" r="4.9" class="bubble-success"><title>Phpdftk\Css\Value\NamedColors — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="AnchorFunction.php.html#21"><circle cx="780.0" cy="336.8" r="4.7" class="bubble-success"><title>Phpdftk\Css\Value\AnchorFunction — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="AnchorSizeFunction.php.html#15"><circle cx="140.0" cy="336.8" r="4.7" class="bubble-danger"><title>Phpdftk\Css\Value\AnchorSizeFunction — Coverage: 11.1% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="CubicBezier.php.html#14"><circle cx="780.0" cy="336.8" r="4.7" class="bubble-success"><title>Phpdftk\Css\Value\CubicBezier — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="ScrollTimeline.php.html#20"><circle cx="700.0" cy="333.5" r="4.7" class="bubble-warning"><title>Phpdftk\Css\Value\ScrollTimeline — Coverage: 88.9% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="TargetFunction.php.html#28"><circle cx="780.0" cy="333.5" r="4.7" class="bubble-success"><title>Phpdftk\Css\Value\TargetFunction — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="AttrFunction.php.html#23"><circle cx="780.0" cy="336.8" r="4.4" class="bubble-success"><title>Phpdftk\Css\Value\AttrFunction — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="EnvFunction.php.html#25"><circle cx="690.0" cy="336.8" r="4.4" class="bubble-warning"><title>Phpdftk\Css\Value\EnvFunction — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="DeviceCmyk.php.html#25"><circle cx="677.1" cy="336.8" r="4.1" class="bubble-warning"><title>Phpdftk\Css\Value\DeviceCmyk — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FontFeatureSettings.php.html#15"><circle cx="677.1" cy="340.1" r="4.1" class="bubble-warning"><title>Phpdftk\Css\Value\FontFeatureSettings — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="FontVariationSettings.php.html#15"><circle cx="677.1" cy="340.1" r="4.1" class="bubble-warning"><title>Phpdftk\Css\Value\FontVariationSettings — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="PolygonShape.php.html#14"><circle cx="780.0" cy="340.1" r="4.1" class="bubble-success"><title>Phpdftk\Css\Value\PolygonShape — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="ScaleTransform.php.html#7"><circle cx="162.9" cy="330.2" r="4.1" class="bubble-danger"><title>Phpdftk\Css\Value\ScaleTransform — Coverage: 14.3% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="TranslateTransform.php.html#7"><circle cx="162.9" cy="333.5" r="4.1" class="bubble-danger"><title>Phpdftk\Css\Value\TranslateTransform — Coverage: 14.3% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="LinearGradient.php.html#12"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LinearGradient — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="ValueList.php.html#7"><circle cx="180.0" cy="333.5" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\ValueList — Coverage: 16.7% | Lines: 6 | Complexity: 5</title></circle></a>
+ <a href="AngleUnit.php.html#7"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\AngleUnit — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="Calc.php.html#12"><circle cx="204.0" cy="340.1" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Calc — Coverage: 20.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Filter.php.html#17"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Filter — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="FilterFunction.php.html#14"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FilterFunction — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="FontVariationValue.php.html#13"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontVariationValue — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="GradientStop.php.html#11"><circle cx="636.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Value\GradientStop — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ImageSet.php.html#18"><circle cx="204.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\ImageSet — Coverage: 20.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="LinearEasing.php.html#22"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LinearEasing — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="PaintFunction.php.html#16"><circle cx="492.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Value\PaintFunction — Coverage: 60.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="SkewTransform.php.html#7"><circle cx="204.0" cy="333.5" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\SkewTransform — Coverage: 20.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="Angle.php.html#7"><circle cx="420.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Angle — Coverage: 50.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="CrossFadeOption.php.html#12"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CrossFadeOption — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="CustomProperty.php.html#17"><circle cx="240.0" cy="340.1" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CustomProperty — Coverage: 25.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="ElementFunction.php.html#27"><circle cx="600.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Value\ElementFunction — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Number.php.html#7"><circle cx="600.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Value\Number — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Percentage.php.html#7"><circle cx="600.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\Css\Value\Percentage — Coverage: 75.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="StepsEasing.php.html#13"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StepsEasing — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="StringFunction.php.html#24"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StringFunction — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="Time.php.html#11"><circle cx="420.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Time — Coverage: 50.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="CalcFunc.php.html#7"><circle cx="300.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CalcFunc — Coverage: 33.3% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="CrossFade.php.html#21"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CrossFade — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="CssFunction.php.html#12"><circle cx="300.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CssFunction — Coverage: 33.3% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Length.php.html#7"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Length — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="PathShape.php.html#17"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\PathShape — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="TimeUnit.php.html#11"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\TimeUnit — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="CalcBinary.php.html#7"><circle cx="420.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CalcBinary — Coverage: 50.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="CalcLeaf.php.html#7"><circle cx="420.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CalcLeaf — Coverage: 50.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ContrastColor.php.html#18"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ContrastColor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FontFeatureValue.php.html#15"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontFeatureValue — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Integer.php.html#7"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Integer — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Keyword.php.html#12"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Keyword — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="LightDark.php.html#20"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LightDark — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="StringValue.php.html#11"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StringValue — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Transform.php.html#12"><circle cx="420.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Transform — Coverage: 50.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Url.php.html#7"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Url — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ColorConverter.php.html#31">Phpdftk\Css\Value\ColorConverter</a></td><td class="text-right">6480</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Color.php.html#12">Phpdftk\Css\Value\Color</a></td><td class="text-right">486.08</td><td class="text-right">14.3%</td></tr>
+  <tr><td><a href="ColorMix.php.html#26">Phpdftk\Css\Value\ColorMix</a></td><td class="text-right">462.03</td><td class="text-right">3.1%</td></tr>
+  <tr><td><a href="RelativeColor.php.html#22">Phpdftk\Css\Value\RelativeColor</a></td><td class="text-right">459.20</td><td class="text-right">3.3%</td></tr>
+  <tr><td><a href="RadialGradient.php.html#12">Phpdftk\Css\Value\RadialGradient</a></td><td class="text-right">59.24</td><td class="text-right">7.1%</td></tr>
+  <tr><td><a href="EllipseShape.php.html#12">Phpdftk\Css\Value\EllipseShape</a></td><td class="text-right">58.34</td><td class="text-right">7.7%</td></tr>
+  <tr><td><a href="RotateTransform.php.html#7">Phpdftk\Css\Value\RotateTransform</a></td><td class="text-right">43.81</td><td class="text-right">9.1%</td></tr>
+  <tr><td><a href="LengthUnit.php.html#12">Phpdftk\Css\Value\LengthUnit</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ImageSetOption.php.html#19">Phpdftk\Css\Value\ImageSetOption</a></td><td class="text-right">32.24</td><td class="text-right">10.0%</td></tr>
+  <tr><td><a href="ScaleTransform.php.html#7">Phpdftk\Css\Value\ScaleTransform</a></td><td class="text-right">28.67</td><td class="text-right">14.3%</td></tr>
+  <tr><td><a href="InterpolationMethodCss.php.html#14">Phpdftk\Css\Value\InterpolationMethodCss</a></td><td class="text-right">27.95</td><td class="text-right">76.9%</td></tr>
+  <tr><td><a href="TranslateTransform.php.html#7">Phpdftk\Css\Value\TranslateTransform</a></td><td class="text-right">20.74</td><td class="text-right">14.3%</td></tr>
+  <tr><td><a href="ValueList.php.html#7">Phpdftk\Css\Value\ValueList</a></td><td class="text-right">19.47</td><td class="text-right">16.7%</td></tr>
+  <tr><td><a href="SkewTransform.php.html#7">Phpdftk\Css\Value\SkewTransform</a></td><td class="text-right">17.80</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="MatrixTransform.php.html#8">Phpdftk\Css\Value\MatrixTransform</a></td><td class="text-right">16.02</td><td class="text-right">9.1%</td></tr>
+  <tr><td><a href="AnchorSizeFunction.php.html#15">Phpdftk\Css\Value\AnchorSizeFunction</a></td><td class="text-right">15.24</td><td class="text-right">11.1%</td></tr>
+  <tr><td><a href="ConicGradient.php.html#20">Phpdftk\Css\Value\ConicGradient</a></td><td class="text-right">11</td><td class="text-right">95.0%</td></tr>
+  <tr><td><a href="Calc.php.html#12">Phpdftk\Css\Value\Calc</a></td><td class="text-right">7.61</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="CircleShape.php.html#12">Phpdftk\Css\Value\CircleShape</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CustomProperty.php.html#17">Phpdftk\Css\Value\CustomProperty</a></td><td class="text-right">6.80</td><td class="text-right">25.0%</td></tr>
+  <tr><td><a href="ViewTimeline.php.html#21">Phpdftk\Css\Value\ViewTimeline</a></td><td class="text-right">6.22</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="Angle.php.html#7">Phpdftk\Css\Value\Angle</a></td><td class="text-right">6.00</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="Time.php.html#11">Phpdftk\Css\Value\Time</a></td><td class="text-right">6.00</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="LinearEasingStop.php.html#14">Phpdftk\Css\Value\LinearEasingStop</a></td><td class="text-right">5.03</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="ScrollTimeline.php.html#20">Phpdftk\Css\Value\ScrollTimeline</a></td><td class="text-right">5.03</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="AngleUnit.php.html#7">Phpdftk\Css\Value\AngleUnit</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NamedColors.php.html#16">Phpdftk\Css\Value\NamedColors</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TargetFunction.php.html#28">Phpdftk\Css\Value\TargetFunction</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DeviceCmyk.php.html#25">Phpdftk\Css\Value\DeviceCmyk</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ImageSet.php.html#18">Phpdftk\Css\Value\ImageSet</a></td><td class="text-right">4.05</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="EnvFunction.php.html#25">Phpdftk\Css\Value\EnvFunction</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="AnchorFunction.php.html#21">Phpdftk\Css\Value\AnchorFunction</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttrFunction.php.html#23">Phpdftk\Css\Value\AttrFunction</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CubicBezier.php.html#14">Phpdftk\Css\Value\CubicBezier</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearGradient.php.html#12">Phpdftk\Css\Value\LinearGradient</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RectShape.php.html#17">Phpdftk\Css\Value\RectShape</a></td><td class="text-right">3.65</td><td class="text-right">58.3%</td></tr>
+  <tr><td><a href="PaintFunction.php.html#16">Phpdftk\Css\Value\PaintFunction</a></td><td class="text-right">3.58</td><td class="text-right">60.0%</td></tr>
+  <tr><td><a href="CalcFunc.php.html#7">Phpdftk\Css\Value\CalcFunc</a></td><td class="text-right">3.19</td><td class="text-right">33.3%</td></tr>
+  <tr><td><a href="CssFunction.php.html#12">Phpdftk\Css\Value\CssFunction</a></td><td class="text-right">3.19</td><td class="text-right">33.3%</td></tr>
+  <tr><td><a href="ElementFunction.php.html#27">Phpdftk\Css\Value\ElementFunction</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="Number.php.html#7">Phpdftk\Css\Value\Number</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="Percentage.php.html#7">Phpdftk\Css\Value\Percentage</a></td><td class="text-right">3.14</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="GradientStop.php.html#11">Phpdftk\Css\Value\GradientStop</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="FontFeatureSettings.php.html#15">Phpdftk\Css\Value\FontFeatureSettings</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="FontVariationSettings.php.html#15">Phpdftk\Css\Value\FontVariationSettings</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="InsetShape.php.html#13">Phpdftk\Css\Value\InsetShape</a></td><td class="text-right">3.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="CrossFadeOption.php.html#12">Phpdftk\Css\Value\CrossFadeOption</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontVariationValue.php.html#13">Phpdftk\Css\Value\FontVariationValue</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Length.php.html#7">Phpdftk\Css\Value\Length</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearEasing.php.html#22">Phpdftk\Css\Value\LinearEasing</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PathShape.php.html#17">Phpdftk\Css\Value\PathShape</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PolygonShape.php.html#14">Phpdftk\Css\Value\PolygonShape</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StepsEasing.php.html#13">Phpdftk\Css\Value\StepsEasing</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringFunction.php.html#24">Phpdftk\Css\Value\StringFunction</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TimeUnit.php.html#11">Phpdftk\Css\Value\TimeUnit</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XywhShape.php.html#16">Phpdftk\Css\Value\XywhShape</a></td><td class="text-right">3.00</td><td class="text-right">93.3%</td></tr>
+  <tr><td><a href="CalcBinary.php.html#7">Phpdftk\Css\Value\CalcBinary</a></td><td class="text-right">2.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="CalcLeaf.php.html#7">Phpdftk\Css\Value\CalcLeaf</a></td><td class="text-right">2.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="Transform.php.html#12">Phpdftk\Css\Value\Transform</a></td><td class="text-right">2.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="ContrastColor.php.html#18">Phpdftk\Css\Value\ContrastColor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossFade.php.html#21">Phpdftk\Css\Value\CrossFade</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Filter.php.html#17">Phpdftk\Css\Value\Filter</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterFunction.php.html#14">Phpdftk\Css\Value\FilterFunction</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFeatureValue.php.html#15">Phpdftk\Css\Value\FontFeatureValue</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Integer.php.html#7">Phpdftk\Css\Value\Integer</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Keyword.php.html#12">Phpdftk\Css\Value\Keyword</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LightDark.php.html#20">Phpdftk\Css\Value\LightDark</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringValue.php.html#11">Phpdftk\Css\Value\StringValue</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Url.php.html#7">Phpdftk\Css\Value\Url</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BasicShape.php.html#16">Phpdftk\Css\Value\BasicShape</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcExpression.php.html#17">Phpdftk\Css\Value\CalcExpression</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcFunction.php.html#11">Phpdftk\Css\Value\CalcFunction</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcOp.php.html#7">Phpdftk\Css\Value\CalcOp</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorSpace.php.html#7">Phpdftk\Css\Value\ColorSpace</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterKind.php.html#15">Phpdftk\Css\Value\FilterKind</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Gradient.php.html#8">Phpdftk\Css\Value\Gradient</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="GradientShape.php.html#7">Phpdftk\Css\Value\GradientShape</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="HueInterpolation.php.html#19">Phpdftk\Css\Value\HueInterpolation</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ListSeparator.php.html#7">Phpdftk\Css\Value\ListSeparator</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StepsJumpTerm.php.html#17">Phpdftk\Css\Value\StepsJumpTerm</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TargetFunctionKind.php.html#11">Phpdftk\Css\Value\TargetFunctionKind</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TransformFunction.php.html#7">Phpdftk\Css\Value\TransformFunction</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Value.php.html#15">Phpdftk\Css\Value\Value</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">25</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ColorMix.php.html#38"><circle cx="60.0" cy="99.2" r="20.0" class="bubble-danger"><title>Phpdftk\Css\Value\ColorMix::toCss — Coverage: 0.0% | Lines: 30 | Complexity: 19</title></circle></a>
+ <a href="InterpolationMethodCss.php.html#18"><circle cx="636.0" cy="72.8" r="18.3" class="bubble-warning"><title>Phpdftk\Css\Value\InterpolationMethodCss::serialise — Coverage: 80.0% | Lines: 25 | Complexity: 21</title></circle></a>
+ <a href="ColorConverter.php.html#325"><circle cx="60.0" cy="191.6" r="17.5" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromWideRgb — Coverage: 0.0% | Lines: 23 | Complexity: 12</title></circle></a>
+ <a href="Color.php.html#22"><circle cx="231.4" cy="284.0" r="16.7" class="bubble-danger"><title>Phpdftk\Css\Value\Color::toCss — Coverage: 23.8% | Lines: 21 | Complexity: 5</title></circle></a>
+ <a href="ColorConverter.php.html#175"><circle cx="60.0" cy="231.2" r="16.3" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::gamutMapByChroma — Coverage: 0.0% | Lines: 20 | Complexity: 9</title></circle></a>
+ <a href="Color.php.html#51"><circle cx="60.0" cy="99.2" r="15.9" class="bubble-danger"><title>Phpdftk\Css\Value\Color::serializeSpace — Coverage: 0.0% | Lines: 19 | Complexity: 19</title></circle></a>
+ <a href="ColorConverter.php.html#82"><circle cx="60.0" cy="112.4" r="15.9" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::toSrgb — Coverage: 0.0% | Lines: 19 | Complexity: 18</title></circle></a>
+ <a href="ConicGradient.php.html#43"><circle cx="742.1" cy="218.0" r="15.9" class="bubble-success"><title>Phpdftk\Css\Value\ConicGradient::toCss — Coverage: 94.7% | Lines: 19 | Complexity: 10</title></circle></a>
+ <a href="RelativeColor.php.html#57"><circle cx="60.0" cy="112.4" r="15.1" class="bubble-danger"><title>Phpdftk\Css\Value\RelativeColor::spaceName — Coverage: 0.0% | Lines: 17 | Complexity: 18</title></circle></a>
+ <a href="ColorConverter.php.html#237"><circle cx="60.0" cy="244.4" r="13.7" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::hslToSrgb — Coverage: 0.0% | Lines: 14 | Complexity: 8</title></circle></a>
+ <a href="XywhShape.php.html#29"><circle cx="728.6" cy="323.6" r="13.7" class="bubble-success"><title>Phpdftk\Css\Value\XywhShape::toCss — Coverage: 92.9% | Lines: 14 | Complexity: 2</title></circle></a>
+ <a href="RadialGradient.php.html#29"><circle cx="60.0" cy="257.6" r="13.2" class="bubble-danger"><title>Phpdftk\Css\Value\RadialGradient::toCss — Coverage: 0.0% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="ColorConverter.php.html#265"><circle cx="60.0" cy="297.2" r="12.6" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::labToXyzD50 — Coverage: 0.0% | Lines: 12 | Complexity: 4</title></circle></a>
+ <a href="EllipseShape.php.html#21"><circle cx="60.0" cy="257.6" r="12.6" class="bubble-danger"><title>Phpdftk\Css\Value\EllipseShape::toCss — Coverage: 0.0% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="RelativeColor.php.html#37"><circle cx="60.0" cy="310.4" r="12.6" class="bubble-danger"><title>Phpdftk\Css\Value\RelativeColor::toCss — Coverage: 0.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="CircleShape.php.html#31"><circle cx="780.0" cy="270.8" r="12.1" class="bubble-success"><title>Phpdftk\Css\Value\CircleShape::toCss — Coverage: 100.0% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="ColorConverter.php.html#122"><circle cx="60.0" cy="310.4" r="12.1" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::lchToSrgbGamutMapped — Coverage: 0.0% | Lines: 11 | Complexity: 3</title></circle></a>
+ <a href="InsetShape.php.html#28"><circle cx="714.5" cy="323.6" r="12.1" class="bubble-success"><title>Phpdftk\Css\Value\InsetShape::toCss — Coverage: 90.9% | Lines: 11 | Complexity: 2</title></circle></a>
+ <a href="RectShape.php.html#30"><circle cx="452.7" cy="323.6" r="12.1" class="bubble-warning"><title>Phpdftk\Css\Value\RectShape::toCss — Coverage: 54.5% | Lines: 11 | Complexity: 2</title></circle></a>
+ <a href="ColorConverter.php.html#139"><circle cx="60.0" cy="310.4" r="11.5" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::oklchToSrgbGamutMapped — Coverage: 0.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="ViewTimeline.php.html#29"><circle cx="636.0" cy="284.0" r="11.5" class="bubble-warning"><title>Phpdftk\Css\Value\ViewTimeline::toCss — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="LinearEasingStop.php.html#21"><circle cx="700.0" cy="297.2" r="11.0" class="bubble-warning"><title>Phpdftk\Css\Value\LinearEasingStop::toCss — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="MatrixTransform.php.html#19"><circle cx="60.0" cy="336.8" r="11.0" class="bubble-danger"><title>Phpdftk\Css\Value\MatrixTransform::toCss — Coverage: 0.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="RotateTransform.php.html#16"><circle cx="60.0" cy="297.2" r="11.0" class="bubble-danger"><title>Phpdftk\Css\Value\RotateTransform::toCss — Coverage: 0.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="AnchorFunction.php.html#44"><circle cx="780.0" cy="310.4" r="10.3" class="bubble-success"><title>Phpdftk\Css\Value\AnchorFunction::toCss — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="AnchorSizeFunction.php.html#23"><circle cx="60.0" cy="310.4" r="10.3" class="bubble-danger"><title>Phpdftk\Css\Value\AnchorSizeFunction::toCss — Coverage: 0.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#208"><circle cx="60.0" cy="323.6" r="10.3" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromHwb — Coverage: 0.0% | Lines: 8 | Complexity: 2</title></circle></a>
+ <a href="NamedColors.php.html#170"><circle cx="780.0" cy="310.4" r="10.3" class="bubble-success"><title>Phpdftk\Css\Value\NamedColors::lookup — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="ScrollTimeline.php.html#27"><circle cx="690.0" cy="297.2" r="10.3" class="bubble-warning"><title>Phpdftk\Css\Value\ScrollTimeline::toCss — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="TargetFunction.php.html#38"><circle cx="780.0" cy="297.2" r="10.3" class="bubble-success"><title>Phpdftk\Css\Value\TargetFunction::toCss — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="AttrFunction.php.html#43"><circle cx="780.0" cy="310.4" r="9.7" class="bubble-success"><title>Phpdftk\Css\Value\AttrFunction::toCss — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="CubicBezier.php.html#23"><circle cx="780.0" cy="336.8" r="9.7" class="bubble-success"><title>Phpdftk\Css\Value\CubicBezier::toCss — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="EnvFunction.php.html#36"><circle cx="677.1" cy="310.4" r="9.7" class="bubble-warning"><title>Phpdftk\Css\Value\EnvFunction::toCss — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#293"><circle cx="60.0" cy="336.8" r="8.9" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromOklab — Coverage: 0.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="ColorConverter.php.html#379"><circle cx="60.0" cy="336.8" r="8.9" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromLinearSrgb — Coverage: 0.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="DeviceCmyk.php.html#36"><circle cx="660.0" cy="310.4" r="8.9" class="bubble-warning"><title>Phpdftk\Css\Value\DeviceCmyk::toCss — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="FontFeatureSettings.php.html#22"><circle cx="660.0" cy="323.6" r="8.9" class="bubble-warning"><title>Phpdftk\Css\Value\FontFeatureSettings::toCss — Coverage: 83.3% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="FontVariationSettings.php.html#22"><circle cx="660.0" cy="323.6" r="8.9" class="bubble-warning"><title>Phpdftk\Css\Value\FontVariationSettings::toCss — Coverage: 83.3% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="ImageSetOption.php.html#27"><circle cx="60.0" cy="310.4" r="8.9" class="bubble-danger"><title>Phpdftk\Css\Value\ImageSetOption::toCss — Coverage: 0.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="PolygonShape.php.html#25"><circle cx="780.0" cy="323.6" r="8.9" class="bubble-success"><title>Phpdftk\Css\Value\PolygonShape::toCss — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="TranslateTransform.php.html#15"><circle cx="60.0" cy="297.2" r="8.9" class="bubble-danger"><title>Phpdftk\Css\Value\TranslateTransform::toCss — Coverage: 0.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="AngleUnit.php.html#15"><circle cx="780.0" cy="284.0" r="8.2" class="bubble-success"><title>Phpdftk\Css\Value\AngleUnit::toDegrees — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="ColorConverter.php.html#389"><circle cx="60.0" cy="310.4" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::srgbGamma — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#399"><circle cx="60.0" cy="310.4" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::srgbDegamma — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#409"><circle cx="60.0" cy="310.4" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::rec2020Degamma — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#421"><circle cx="60.0" cy="310.4" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::clip01 — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ColorConverter.php.html#437"><circle cx="60.0" cy="336.8" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::mul3 — Coverage: 0.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="LinearGradient.php.html#23"><circle cx="780.0" cy="310.4" r="8.2" class="bubble-success"><title>Phpdftk\Css\Value\LinearGradient::toCss — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ScaleTransform.php.html#15"><circle cx="60.0" cy="310.4" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ScaleTransform::toCss — Coverage: 0.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ValueList.php.html#12"><circle cx="60.0" cy="297.2" r="8.2" class="bubble-danger"><title>Phpdftk\Css\Value\ValueList::toCss — Coverage: 0.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="Calc.php.html#16"><circle cx="60.0" cy="323.6" r="7.3" class="bubble-danger"><title>Phpdftk\Css\Value\Calc::toCss — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="ColorConverter.php.html#224"><circle cx="60.0" cy="323.6" r="7.3" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::hueToSrgb — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Filter.php.html#24"><circle cx="780.0" cy="336.8" r="7.3" class="bubble-success"><title>Phpdftk\Css\Value\Filter::toCss — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="FilterFunction.php.html#24"><circle cx="780.0" cy="336.8" r="7.3" class="bubble-success"><title>Phpdftk\Css\Value\FilterFunction::toCss — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="FontVariationValue.php.html#20"><circle cx="780.0" cy="323.6" r="7.3" class="bubble-success"><title>Phpdftk\Css\Value\FontVariationValue::toCss — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="GradientStop.php.html#15"><circle cx="600.0" cy="323.6" r="7.3" class="bubble-warning"><title>Phpdftk\Css\Value\GradientStop::toCss — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="ImageSet.php.html#25"><circle cx="60.0" cy="336.8" r="7.3" class="bubble-danger"><title>Phpdftk\Css\Value\ImageSet::toCss — Coverage: 0.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="LinearEasing.php.html#29"><circle cx="780.0" cy="323.6" r="7.3" class="bubble-success"><title>Phpdftk\Css\Value\LinearEasing::toCss — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="PaintFunction.php.html#24"><circle cx="420.0" cy="323.6" r="7.3" class="bubble-danger"><title>Phpdftk\Css\Value\PaintFunction::toCss — Coverage: 50.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="CrossFadeOption.php.html#19"><circle cx="780.0" cy="323.6" r="6.3" class="bubble-success"><title>Phpdftk\Css\Value\CrossFadeOption::toCss — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="CustomProperty.php.html#21"><circle cx="60.0" cy="323.6" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\CustomProperty::toCss — Coverage: 0.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ElementFunction.php.html#34"><circle cx="540.0" cy="323.6" r="6.3" class="bubble-warning"><title>Phpdftk\Css\Value\ElementFunction::toCss — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="ImageSetOption.php.html#39"><circle cx="60.0" cy="323.6" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\ImageSetOption::formatResolution — Coverage: 0.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="LengthUnit.php.html#56"><circle cx="60.0" cy="336.8" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\LengthUnit::isAbsolute — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="LengthUnit.php.html#63"><circle cx="60.0" cy="336.8" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\LengthUnit::isFontRelative — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="LengthUnit.php.html#70"><circle cx="60.0" cy="336.8" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\LengthUnit::isContainerRelative — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="LengthUnit.php.html#77"><circle cx="60.0" cy="310.4" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\LengthUnit::isViewportRelative — Coverage: 0.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="Number.php.html#11"><circle cx="540.0" cy="323.6" r="6.3" class="bubble-warning"><title>Phpdftk\Css\Value\Number::toCss — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Percentage.php.html#11"><circle cx="540.0" cy="323.6" r="6.3" class="bubble-warning"><title>Phpdftk\Css\Value\Percentage::toCss — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="SkewTransform.php.html#11"><circle cx="60.0" cy="323.6" r="6.3" class="bubble-danger"><title>Phpdftk\Css\Value\SkewTransform::toCss — Coverage: 0.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="StepsEasing.php.html#20"><circle cx="780.0" cy="323.6" r="6.3" class="bubble-success"><title>Phpdftk\Css\Value\StepsEasing::toCss — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="StringFunction.php.html#31"><circle cx="780.0" cy="323.6" r="6.3" class="bubble-success"><title>Phpdftk\Css\Value\StringFunction::toCss — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="TimeUnit.php.html#16"><circle cx="780.0" cy="310.4" r="6.3" class="bubble-success"><title>Phpdftk\Css\Value\TimeUnit::toSeconds — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="Angle.php.html#16"><circle cx="60.0" cy="323.6" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\Angle::toCss — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="CalcFunc.php.html#12"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\CalcFunc::toCss — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ColorConverter.php.html#106"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::labToSrgb — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ColorConverter.php.html#287"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::lchToLab — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ColorConverter.php.html#305"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromXyzD65 — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="ColorConverter.php.html#311"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\ColorConverter::fromXyzD50 — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="CrossFade.php.html#28"><circle cx="780.0" cy="336.8" r="5.2" class="bubble-success"><title>Phpdftk\Css\Value\CrossFade::toCss — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="CssFunction.php.html#17"><circle cx="60.0" cy="336.8" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\CssFunction::toCss — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Length.php.html#11"><circle cx="780.0" cy="323.6" r="5.2" class="bubble-success"><title>Phpdftk\Css\Value\Length::toCss — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="NamedColors.php.html#199"><circle cx="780.0" cy="323.6" r="5.2" class="bubble-success"><title>Phpdftk\Css\Value\NamedColors::knows — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="PathShape.php.html#24"><circle cx="780.0" cy="323.6" r="5.2" class="bubble-success"><title>Phpdftk\Css\Value\PathShape::toCss — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Time.php.html#20"><circle cx="60.0" cy="323.6" r="5.2" class="bubble-danger"><title>Phpdftk\Css\Value\Time::toCss — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="AnchorFunction.php.html#23"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\AnchorFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AnchorSizeFunction.php.html#17"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\AnchorSizeFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Angle.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Angle::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Angle.php.html#11"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Angle::toDegrees — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AttrFunction.php.html#25"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\AttrFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Calc.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Calc::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CalcBinary.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CalcBinary::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CalcBinary.php.html#15"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CalcBinary::toCss — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CalcFunc.php.html#10"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CalcFunc::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CalcLeaf.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CalcLeaf::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CalcLeaf.php.html#11"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\CalcLeaf::toCss — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CircleShape.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CircleShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Color.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Color::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Color.php.html#75"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Color::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ColorMix.php.html#28"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ColorMix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ColorMix.php.html#73"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\ColorMix::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ConicGradient.php.html#33"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ConicGradient::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ContrastColor.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ContrastColor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ContrastColor.php.html#22"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ContrastColor::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossFade.php.html#26"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CrossFade::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossFadeOption.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CrossFadeOption::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CssFunction.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CssFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CubicBezier.php.html#16"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CubicBezier::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CubicBezier.php.html#34"><circle cx="780.0" cy="323.6" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CubicBezier::trim — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="CustomProperty.php.html#19"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\CustomProperty::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="DeviceCmyk.php.html#27"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\DeviceCmyk::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ElementFunction.php.html#29"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ElementFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="EllipseShape.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\EllipseShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="EnvFunction.php.html#30"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\EnvFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Filter.php.html#22"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Filter::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FilterFunction.php.html#19"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FilterFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontFeatureSettings.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontFeatureSettings::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontFeatureValue.php.html#17"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontFeatureValue::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontFeatureValue.php.html#22"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontFeatureValue::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontVariationSettings.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontVariationSettings::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontVariationValue.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\FontVariationValue::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="GradientStop.php.html#13"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\GradientStop::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ImageSet.php.html#23"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ImageSet::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ImageSetOption.php.html#21"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ImageSetOption::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InsetShape.php.html#23"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\InsetShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Integer.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Integer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Integer.php.html#11"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Integer::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InterpolationMethodCss.php.html#16"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\InterpolationMethodCss::__construct — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Keyword.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Keyword::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Keyword.php.html#16"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Keyword::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Length.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Length::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LightDark.php.html#22"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LightDark::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LightDark.php.html#27"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LightDark::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LinearEasing.php.html#27"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LinearEasing::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LinearEasingStop.php.html#16"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LinearEasingStop::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LinearGradient.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\LinearGradient::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="MatrixTransform.php.html#10"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\MatrixTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="MatrixTransform.php.html#32"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\MatrixTransform::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Number.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Number::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PaintFunction.php.html#19"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\PaintFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PathShape.php.html#19"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\PathShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Percentage.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Percentage::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PolygonShape.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\PolygonShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RadialGradient.php.html#17"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\RadialGradient::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RectShape.php.html#25"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\RectShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RelativeColor.php.html#24"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\RelativeColor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RotateTransform.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\RotateTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RotateTransform.php.html#30"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\RotateTransform::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ScaleTransform.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ScaleTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ScaleTransform.php.html#26"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\ScaleTransform::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ScrollTimeline.php.html#22"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ScrollTimeline::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SkewTransform.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\SkewTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SkewTransform.php.html#19"><circle cx="60.0" cy="323.6" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\SkewTransform::trim — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="StepsEasing.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StepsEasing::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StringFunction.php.html#26"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StringFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StringValue.php.html#13"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StringValue::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="StringValue.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\StringValue::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TargetFunction.php.html#30"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\TargetFunction::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Time.php.html#13"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Time::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Time.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Time::toSeconds — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Transform.php.html#15"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Transform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Transform.php.html#17"><circle cx="60.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\Css\Value\Transform::toCss — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TranslateTransform.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\TranslateTransform::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Url.php.html#9"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Url::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Url.php.html#11"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\Url::toCss — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ValueList.php.html#10"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ValueList::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ViewTimeline.php.html#23"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\ViewTimeline::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="XywhShape.php.html#21"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Css\Value\XywhShape::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="Color.php.html#51">Phpdftk\Css\Value\Color::serializeSpace</a></td><td class="text-right">380</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorMix.php.html#38">Phpdftk\Css\Value\ColorMix::toCss</a></td><td class="text-right">380</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#82">Phpdftk\Css\Value\ColorConverter::toSrgb</a></td><td class="text-right">342</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="RelativeColor.php.html#57">Phpdftk\Css\Value\RelativeColor::spaceName</a></td><td class="text-right">342</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#325">Phpdftk\Css\Value\ColorConverter::fromWideRgb</a></td><td class="text-right">156</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#175">Phpdftk\Css\Value\ColorConverter::gamutMapByChroma</a></td><td class="text-right">90</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#237">Phpdftk\Css\Value\ColorConverter::hslToSrgb</a></td><td class="text-right">72</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="EllipseShape.php.html#21">Phpdftk\Css\Value\EllipseShape::toCss</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="RadialGradient.php.html#29">Phpdftk\Css\Value\RadialGradient::toCss</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="InterpolationMethodCss.php.html#18">Phpdftk\Css\Value\InterpolationMethodCss::serialise</a></td><td class="text-right">24.53</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#265">Phpdftk\Css\Value\ColorConverter::labToXyzD50</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="RotateTransform.php.html#16">Phpdftk\Css\Value\RotateTransform::toCss</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="TranslateTransform.php.html#15">Phpdftk\Css\Value\TranslateTransform::toCss</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ValueList.php.html#12">Phpdftk\Css\Value\ValueList::toCss</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Color.php.html#22">Phpdftk\Css\Value\Color::toCss</a></td><td class="text-right">16.06</td><td class="text-right">23.8%</td></tr>
+  <tr><td><a href="AnchorSizeFunction.php.html#23">Phpdftk\Css\Value\AnchorSizeFunction::toCss</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#122">Phpdftk\Css\Value\ColorConverter::lchToSrgbGamutMapped</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#139">Phpdftk\Css\Value\ColorConverter::oklchToSrgbGamutMapped</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#389">Phpdftk\Css\Value\ColorConverter::srgbGamma</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#399">Phpdftk\Css\Value\ColorConverter::srgbDegamma</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#409">Phpdftk\Css\Value\ColorConverter::rec2020Degamma</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#421">Phpdftk\Css\Value\ColorConverter::clip01</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ImageSetOption.php.html#27">Phpdftk\Css\Value\ImageSetOption::toCss</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="LengthUnit.php.html#77">Phpdftk\Css\Value\LengthUnit::isViewportRelative</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="RelativeColor.php.html#37">Phpdftk\Css\Value\RelativeColor::toCss</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ScaleTransform.php.html#15">Phpdftk\Css\Value\ScaleTransform::toCss</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ConicGradient.php.html#43">Phpdftk\Css\Value\ConicGradient::toCss</a></td><td class="text-right">10.01</td><td class="text-right">94.7%</td></tr>
+  <tr><td><a href="Angle.php.html#16">Phpdftk\Css\Value\Angle::toCss</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Calc.php.html#16">Phpdftk\Css\Value\Calc::toCss</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CircleShape.php.html#31">Phpdftk\Css\Value\CircleShape::toCss</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Color.php.html#75">Phpdftk\Css\Value\Color::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#208">Phpdftk\Css\Value\ColorConverter::fromHwb</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#224">Phpdftk\Css\Value\ColorConverter::hueToSrgb</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorMix.php.html#73">Phpdftk\Css\Value\ColorMix::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CustomProperty.php.html#21">Phpdftk\Css\Value\CustomProperty::toCss</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ImageSetOption.php.html#39">Phpdftk\Css\Value\ImageSetOption::formatResolution</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="MatrixTransform.php.html#32">Phpdftk\Css\Value\MatrixTransform::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="RotateTransform.php.html#30">Phpdftk\Css\Value\RotateTransform::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ScaleTransform.php.html#26">Phpdftk\Css\Value\ScaleTransform::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="SkewTransform.php.html#11">Phpdftk\Css\Value\SkewTransform::toCss</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="SkewTransform.php.html#19">Phpdftk\Css\Value\SkewTransform::trim</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Time.php.html#20">Phpdftk\Css\Value\Time::toCss</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ViewTimeline.php.html#29">Phpdftk\Css\Value\ViewTimeline::toCss</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="AngleUnit.php.html#15">Phpdftk\Css\Value\AngleUnit::toDegrees</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ScrollTimeline.php.html#27">Phpdftk\Css\Value\ScrollTimeline::toCss</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="LinearEasingStop.php.html#21">Phpdftk\Css\Value\LinearEasingStop::toCss</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="TargetFunction.php.html#38">Phpdftk\Css\Value\TargetFunction::toCss</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DeviceCmyk.php.html#36">Phpdftk\Css\Value\DeviceCmyk::toCss</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="EnvFunction.php.html#36">Phpdftk\Css\Value\EnvFunction::toCss</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="AnchorFunction.php.html#44">Phpdftk\Css\Value\AnchorFunction::toCss</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttrFunction.php.html#43">Phpdftk\Css\Value\AttrFunction::toCss</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearGradient.php.html#23">Phpdftk\Css\Value\LinearGradient::toCss</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="NamedColors.php.html#170">Phpdftk\Css\Value\NamedColors::lookup</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TimeUnit.php.html#16">Phpdftk\Css\Value\TimeUnit::toSeconds</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PaintFunction.php.html#24">Phpdftk\Css\Value\PaintFunction::toCss</a></td><td class="text-right">2.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="RectShape.php.html#30">Phpdftk\Css\Value\RectShape::toCss</a></td><td class="text-right">2.38</td><td class="text-right">54.5%</td></tr>
+  <tr><td><a href="ElementFunction.php.html#34">Phpdftk\Css\Value\ElementFunction::toCss</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="Number.php.html#11">Phpdftk\Css\Value\Number::toCss</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="Percentage.php.html#11">Phpdftk\Css\Value\Percentage::toCss</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="GradientStop.php.html#15">Phpdftk\Css\Value\GradientStop::toCss</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="FontFeatureSettings.php.html#22">Phpdftk\Css\Value\FontFeatureSettings::toCss</a></td><td class="text-right">2.02</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="FontVariationSettings.php.html#22">Phpdftk\Css\Value\FontVariationSettings::toCss</a></td><td class="text-right">2.02</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="CalcBinary.php.html#15">Phpdftk\Css\Value\CalcBinary::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CalcFunc.php.html#12">Phpdftk\Css\Value\CalcFunc::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CalcLeaf.php.html#11">Phpdftk\Css\Value\CalcLeaf::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#106">Phpdftk\Css\Value\ColorConverter::labToSrgb</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#287">Phpdftk\Css\Value\ColorConverter::lchToLab</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#293">Phpdftk\Css\Value\ColorConverter::fromOklab</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#305">Phpdftk\Css\Value\ColorConverter::fromXyzD65</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#311">Phpdftk\Css\Value\ColorConverter::fromXyzD50</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#379">Phpdftk\Css\Value\ColorConverter::fromLinearSrgb</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="ColorConverter.php.html#437">Phpdftk\Css\Value\ColorConverter::mul3</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CrossFadeOption.php.html#19">Phpdftk\Css\Value\CrossFadeOption::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CssFunction.php.html#17">Phpdftk\Css\Value\CssFunction::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="CubicBezier.php.html#34">Phpdftk\Css\Value\CubicBezier::trim</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontVariationValue.php.html#20">Phpdftk\Css\Value\FontVariationValue::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ImageSet.php.html#25">Phpdftk\Css\Value\ImageSet::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="InsetShape.php.html#28">Phpdftk\Css\Value\InsetShape::toCss</a></td><td class="text-right">2.00</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="InterpolationMethodCss.php.html#16">Phpdftk\Css\Value\InterpolationMethodCss::__construct</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="Length.php.html#11">Phpdftk\Css\Value\Length::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LengthUnit.php.html#56">Phpdftk\Css\Value\LengthUnit::isAbsolute</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="LengthUnit.php.html#63">Phpdftk\Css\Value\LengthUnit::isFontRelative</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="LengthUnit.php.html#70">Phpdftk\Css\Value\LengthUnit::isContainerRelative</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="LinearEasing.php.html#29">Phpdftk\Css\Value\LinearEasing::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MatrixTransform.php.html#19">Phpdftk\Css\Value\MatrixTransform::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="NamedColors.php.html#199">Phpdftk\Css\Value\NamedColors::knows</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PathShape.php.html#24">Phpdftk\Css\Value\PathShape::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PolygonShape.php.html#25">Phpdftk\Css\Value\PolygonShape::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StepsEasing.php.html#20">Phpdftk\Css\Value\StepsEasing::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringFunction.php.html#31">Phpdftk\Css\Value\StringFunction::toCss</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Transform.php.html#17">Phpdftk\Css\Value\Transform::toCss</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="XywhShape.php.html#29">Phpdftk\Css\Value\XywhShape::toCss</a></td><td class="text-right">2.00</td><td class="text-right">92.9%</td></tr>
+  <tr><td><a href="AnchorFunction.php.html#23">Phpdftk\Css\Value\AnchorFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AnchorSizeFunction.php.html#17">Phpdftk\Css\Value\AnchorSizeFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Angle.php.html#9">Phpdftk\Css\Value\Angle::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Angle.php.html#11">Phpdftk\Css\Value\Angle::toDegrees</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="AttrFunction.php.html#25">Phpdftk\Css\Value\AttrFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Calc.php.html#14">Phpdftk\Css\Value\Calc::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcBinary.php.html#9">Phpdftk\Css\Value\CalcBinary::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcFunc.php.html#10">Phpdftk\Css\Value\CalcFunc::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcLeaf.php.html#9">Phpdftk\Css\Value\CalcLeaf::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CircleShape.php.html#14">Phpdftk\Css\Value\CircleShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Color.php.html#14">Phpdftk\Css\Value\Color::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ColorMix.php.html#28">Phpdftk\Css\Value\ColorMix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ConicGradient.php.html#33">Phpdftk\Css\Value\ConicGradient::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ContrastColor.php.html#20">Phpdftk\Css\Value\ContrastColor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ContrastColor.php.html#22">Phpdftk\Css\Value\ContrastColor::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossFade.php.html#26">Phpdftk\Css\Value\CrossFade::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossFade.php.html#28">Phpdftk\Css\Value\CrossFade::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossFadeOption.php.html#14">Phpdftk\Css\Value\CrossFadeOption::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CssFunction.php.html#15">Phpdftk\Css\Value\CssFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CubicBezier.php.html#16">Phpdftk\Css\Value\CubicBezier::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CubicBezier.php.html#23">Phpdftk\Css\Value\CubicBezier::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CustomProperty.php.html#19">Phpdftk\Css\Value\CustomProperty::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DeviceCmyk.php.html#27">Phpdftk\Css\Value\DeviceCmyk::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ElementFunction.php.html#29">Phpdftk\Css\Value\ElementFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="EllipseShape.php.html#14">Phpdftk\Css\Value\EllipseShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="EnvFunction.php.html#30">Phpdftk\Css\Value\EnvFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Filter.php.html#22">Phpdftk\Css\Value\Filter::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Filter.php.html#24">Phpdftk\Css\Value\Filter::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterFunction.php.html#19">Phpdftk\Css\Value\FilterFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterFunction.php.html#24">Phpdftk\Css\Value\FilterFunction::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFeatureSettings.php.html#20">Phpdftk\Css\Value\FontFeatureSettings::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFeatureValue.php.html#17">Phpdftk\Css\Value\FontFeatureValue::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFeatureValue.php.html#22">Phpdftk\Css\Value\FontFeatureValue::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontVariationSettings.php.html#20">Phpdftk\Css\Value\FontVariationSettings::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontVariationValue.php.html#15">Phpdftk\Css\Value\FontVariationValue::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="GradientStop.php.html#13">Phpdftk\Css\Value\GradientStop::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ImageSet.php.html#23">Phpdftk\Css\Value\ImageSet::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ImageSetOption.php.html#21">Phpdftk\Css\Value\ImageSetOption::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InsetShape.php.html#23">Phpdftk\Css\Value\InsetShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Integer.php.html#9">Phpdftk\Css\Value\Integer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Integer.php.html#11">Phpdftk\Css\Value\Integer::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Keyword.php.html#14">Phpdftk\Css\Value\Keyword::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Keyword.php.html#16">Phpdftk\Css\Value\Keyword::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Length.php.html#9">Phpdftk\Css\Value\Length::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LightDark.php.html#22">Phpdftk\Css\Value\LightDark::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LightDark.php.html#27">Phpdftk\Css\Value\LightDark::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearEasing.php.html#27">Phpdftk\Css\Value\LinearEasing::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearEasingStop.php.html#16">Phpdftk\Css\Value\LinearEasingStop::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LinearGradient.php.html#15">Phpdftk\Css\Value\LinearGradient::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MatrixTransform.php.html#10">Phpdftk\Css\Value\MatrixTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Number.php.html#9">Phpdftk\Css\Value\Number::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PaintFunction.php.html#19">Phpdftk\Css\Value\PaintFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PathShape.php.html#19">Phpdftk\Css\Value\PathShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Percentage.php.html#9">Phpdftk\Css\Value\Percentage::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PolygonShape.php.html#20">Phpdftk\Css\Value\PolygonShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RadialGradient.php.html#17">Phpdftk\Css\Value\RadialGradient::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RectShape.php.html#25">Phpdftk\Css\Value\RectShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RelativeColor.php.html#24">Phpdftk\Css\Value\RelativeColor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="RotateTransform.php.html#9">Phpdftk\Css\Value\RotateTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ScaleTransform.php.html#9">Phpdftk\Css\Value\ScaleTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ScrollTimeline.php.html#22">Phpdftk\Css\Value\ScrollTimeline::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="SkewTransform.php.html#9">Phpdftk\Css\Value\SkewTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StepsEasing.php.html#15">Phpdftk\Css\Value\StepsEasing::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringFunction.php.html#26">Phpdftk\Css\Value\StringFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringValue.php.html#13">Phpdftk\Css\Value\StringValue::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="StringValue.php.html#15">Phpdftk\Css\Value\StringValue::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TargetFunction.php.html#30">Phpdftk\Css\Value\TargetFunction::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Time.php.html#13">Phpdftk\Css\Value\Time::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Time.php.html#15">Phpdftk\Css\Value\Time::toSeconds</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Transform.php.html#15">Phpdftk\Css\Value\Transform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TranslateTransform.php.html#9">Phpdftk\Css\Value\TranslateTransform::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Url.php.html#9">Phpdftk\Css\Value\Url::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Url.php.html#11">Phpdftk\Css\Value\Url::toCss</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ValueList.php.html#10">Phpdftk\Css\Value\ValueList::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ViewTimeline.php.html#23">Phpdftk\Css\Value\ViewTimeline::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="XywhShape.php.html#21">Phpdftk\Css\Value\XywhShape::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CalcExpression.php.html#19">Phpdftk\Css\Value\CalcExpression::toCss</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TransformFunction.php.html#9">Phpdftk\Css\Value\TransformFunction::toCss</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="Value.php.html#17">Phpdftk\Css\Value\Value::toCss</a></td><td class="text-right">0</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

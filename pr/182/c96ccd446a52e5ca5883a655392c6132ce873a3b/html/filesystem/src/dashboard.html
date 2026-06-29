@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/filesystem/src</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">filesystem</a></li>
+         <li class="breadcrumb-item"><a href="index.html">src</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ResourceLoader.php.html#33"><circle cx="698.5" cy="53.0" r="20.0" class="bubble-warning"><title>Phpdftk\Filesystem\ResourceLoader — Coverage: 88.7% | Lines: 53 | Complexity: 27</title></circle></a>
+ <a href="LocalFilesystem.php.html#7"><circle cx="780.0" cy="152.0" r="12.9" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem — Coverage: 100.0% | Lines: 22 | Complexity: 18</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ResourceLoader.php.html#33">Phpdftk\Filesystem\ResourceLoader</a></td><td class="text-right">28.06</td><td class="text-right">88.7%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#7">Phpdftk\Filesystem\LocalFilesystem</a></td><td class="text-right">18</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ResourceLoader.php.html#91"><circle cx="677.1" cy="108.0" r="20.0" class="bubble-warning"><title>Phpdftk\Filesystem\ResourceLoader::resolveLocalPath — Coverage: 85.7% | Lines: 21 | Complexity: 11</title></circle></a>
+ <a href="ResourceLoader.php.html#141"><circle cx="745.7" cy="130.0" r="20.0" class="bubble-success"><title>Phpdftk\Filesystem\ResourceLoader::decodeDataUrl — Coverage: 95.2% | Lines: 21 | Complexity: 10</title></circle></a>
+ <a href="ResourceLoader.php.html#62"><circle cx="636.0" cy="240.0" r="13.8" class="bubble-warning"><title>Phpdftk\Filesystem\ResourceLoader::load — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="LocalFilesystem.php.html#57"><circle cx="780.0" cy="196.0" r="12.3" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::writeFile — Coverage: 100.0% | Lines: 8 | Complexity: 7</title></circle></a>
+ <a href="LocalFilesystem.php.html#9"><circle cx="780.0" cy="306.0" r="7.6" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::readFile — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="LocalFilesystem.php.html#26"><circle cx="780.0" cy="306.0" r="7.6" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::readPrefix — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="LocalFilesystem.php.html#42"><circle cx="780.0" cy="306.0" r="7.6" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::openReadable — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="LocalFilesystem.php.html#75"><circle cx="780.0" cy="284.0" r="7.6" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::assertReadableFile — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="LocalFilesystem.php.html#84"><circle cx="780.0" cy="306.0" r="6.2" class="bubble-success"><title>Phpdftk\Filesystem\LocalFilesystem::assertLocalPath — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ResourceLoader.php.html#44"><circle cx="780.0" cy="328.0" r="4.4" class="bubble-success"><title>Phpdftk\Filesystem\ResourceLoader::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="ResourceLoader.php.html#91">Phpdftk\Filesystem\ResourceLoader::resolveLocalPath</a></td><td class="text-right">11.35</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="ResourceLoader.php.html#141">Phpdftk\Filesystem\ResourceLoader::decodeDataUrl</a></td><td class="text-right">10</td><td class="text-right">95.2%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#57">Phpdftk\Filesystem\LocalFilesystem::writeFile</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ResourceLoader.php.html#62">Phpdftk\Filesystem\ResourceLoader::load</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#75">Phpdftk\Filesystem\LocalFilesystem::assertReadableFile</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#9">Phpdftk\Filesystem\LocalFilesystem::readFile</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#26">Phpdftk\Filesystem\LocalFilesystem::readPrefix</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#42">Phpdftk\Filesystem\LocalFilesystem::openReadable</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LocalFilesystem.php.html#84">Phpdftk\Filesystem\LocalFilesystem::assertLocalPath</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ResourceLoader.php.html#44">Phpdftk\Filesystem\ResourceLoader::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

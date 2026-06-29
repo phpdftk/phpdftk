@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/html-to-pdf/src/Layout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">html-to-pdf</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Layout</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">500</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">1000</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">1500</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2000</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="BlockLayout.php.html#47"><circle cx="605.5" cy="116.9" r="20.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout — Coverage: 75.8% | Lines: 3556 | Complexity: 1413</title></circle></a>
+ <a href="InlineLayout.php.html#43"><circle cx="660.6" cy="290.4" r="10.6" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout — Coverage: 83.4% | Lines: 1007 | Complexity: 361</title></circle></a>
+ <a href="FloatContext.php.html#17"><circle cx="554.7" cy="339.6" r="4.1" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FloatContext — Coverage: 68.7% | Lines: 147 | Complexity: 63</title></circle></a>
+ <a href="FontResolver.php.html#32"><circle cx="574.3" cy="341.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FontResolver — Coverage: 71.4% | Lines: 105 | Complexity: 54</title></circle></a>
+ <a href="LayoutContext.php.html#26"><circle cx="780.0" cy="348.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext — Coverage: 100.0% | Lines: 91 | Complexity: 8</title></circle></a>
+ <a href="CounterFormat.php.html#13"><circle cx="769.1" cy="345.5" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat — Coverage: 98.5% | Lines: 66 | Complexity: 27</title></circle></a>
+ <a href="FontFace.php.html#21"><circle cx="780.0" cy="349.0" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontFace — Coverage: 100.0% | Lines: 20 | Complexity: 6</title></circle></a>
+ <a href="BoxGeometry.php.html#20"><circle cx="780.0" cy="349.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BoxGeometry — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="LineBox.php.html#16"><circle cx="780.0" cy="349.5" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LineBox — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="FloatItem.php.html#11"><circle cx="780.0" cy="349.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatItem — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontMatch.php.html#19"><circle cx="780.0" cy="349.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontMatch — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InlineFragment.php.html#19"><circle cx="780.0" cy="349.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineFragment — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="MultiColumnLayout.php.html#19"><circle cx="780.0" cy="349.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\MultiColumnLayout — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PositionedAncestor.php.html#17"><circle cx="780.0" cy="349.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\PositionedAncestor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="BlockLayout.php.html#47">Phpdftk\HtmlToPdf\Layout\BlockLayout</a></td><td class="text-right">29852.43</td><td class="text-right">75.8%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#43">Phpdftk\HtmlToPdf\Layout\InlineLayout</a></td><td class="text-right">955.40</td><td class="text-right">83.4%</td></tr>
+  <tr><td><a href="FloatContext.php.html#17">Phpdftk\HtmlToPdf\Layout\FloatContext</a></td><td class="text-right">184.62</td><td class="text-right">68.7%</td></tr>
+  <tr><td><a href="FontResolver.php.html#32">Phpdftk\HtmlToPdf\Layout\FontResolver</a></td><td class="text-right">122.01</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#13">Phpdftk\HtmlToPdf\Layout\CounterFormat</a></td><td class="text-right">27</td><td class="text-right">98.5%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#26">Phpdftk\HtmlToPdf\Layout\LayoutContext</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFace.php.html#21">Phpdftk\HtmlToPdf\Layout\FontFace</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LineBox.php.html#16">Phpdftk\HtmlToPdf\Layout\LineBox</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BoxGeometry.php.html#20">Phpdftk\HtmlToPdf\Layout\BoxGeometry</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatItem.php.html#11">Phpdftk\HtmlToPdf\Layout\FloatItem</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontMatch.php.html#19">Phpdftk\HtmlToPdf\Layout\FontMatch</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineFragment.php.html#19">Phpdftk\HtmlToPdf\Layout\InlineFragment</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MultiColumnLayout.php.html#19">Phpdftk\HtmlToPdf\Layout\MultiColumnLayout</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PositionedAncestor.php.html#17">Phpdftk\HtmlToPdf\Layout\PositionedAncestor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">200</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="BlockLayout.php.html#577"><circle cx="611.4" cy="122.3" r="20.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutBlock — Coverage: 76.6% | Lines: 363 | Complexity: 138</title></circle></a>
+ <a href="BlockLayout.php.html#2295"><circle cx="670.9" cy="186.7" r="18.1" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFlexBox — Coverage: 84.8% | Lines: 297 | Complexity: 99</title></circle></a>
+ <a href="BlockLayout.php.html#2900"><circle cx="708.8" cy="236.2" r="17.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutGridBox — Coverage: 90.1% | Lines: 263 | Complexity: 69</title></circle></a>
+ <a href="InlineLayout.php.html#74"><circle cx="738.7" cy="298.9" r="13.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::layout — Coverage: 94.3% | Lines: 157 | Complexity: 31</title></circle></a>
+ <a href="BlockLayout.php.html#4741"><circle cx="704.7" cy="251.0" r="13.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexLineMainSizes — Coverage: 89.5% | Lines: 153 | Complexity: 60</title></circle></a>
+ <a href="InlineLayout.php.html#1050"><circle cx="740.9" cy="310.4" r="11.9" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::walkInline — Coverage: 94.6% | Lines: 129 | Complexity: 24</title></circle></a>
+ <a href="BlockLayout.php.html#1586"><circle cx="60.0" cy="282.4" r="11.3" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenSvgPath — Coverage: 0.0% | Lines: 115 | Complexity: 41</title></circle></a>
+ <a href="BlockLayout.php.html#6214"><circle cx="780.0" cy="297.2" r="10.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildrenList — Coverage: 100.0% | Lines: 94 | Complexity: 32</title></circle></a>
+ <a href="BlockLayout.php.html#3430"><circle cx="503.1" cy="292.2" r="9.3" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::collectGridTrackDescriptors — Coverage: 61.5% | Lines: 78 | Complexity: 35</title></circle></a>
+ <a href="BlockLayout.php.html#396"><circle cx="749.1" cy="318.6" r="8.8" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutTableRow — Coverage: 95.7% | Lines: 70 | Complexity: 19</title></circle></a>
+ <a href="InlineLayout.php.html#1371"><circle cx="584.6" cy="318.6" r="8.8" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveOpenTypeFeatures — Coverage: 72.9% | Lines: 70 | Complexity: 19</title></circle></a>
+ <a href="InlineLayout.php.html#1690"><circle cx="736.4" cy="312.1" r="8.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::tokeniseText — Coverage: 93.9% | Lines: 66 | Complexity: 23</title></circle></a>
+ <a href="BlockLayout.php.html#2122"><circle cx="690.0" cy="313.7" r="8.4" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAbsoluteOffsets — Coverage: 87.5% | Lines: 64 | Complexity: 22</title></circle></a>
+ <a href="BlockLayout.php.html#4325"><circle cx="731.2" cy="308.8" r="8.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridTemplateAreas — Coverage: 93.2% | Lines: 59 | Complexity: 25</title></circle></a>
+ <a href="BlockLayout.php.html#3909"><circle cx="506.9" cy="312.1" r="8.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::measureTextBoxMinMax — Coverage: 62.1% | Lines: 58 | Complexity: 23</title></circle></a>
+ <a href="BlockLayout.php.html#6421"><circle cx="482.1" cy="320.3" r="8.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildrenListVertical — Coverage: 58.6% | Lines: 58 | Complexity: 18</title></circle></a>
+ <a href="InlineLayout.php.html#1831"><circle cx="693.6" cy="321.9" r="7.4" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::splitBidiRuns — Coverage: 88.0% | Lines: 50 | Complexity: 17</title></circle></a>
+ <a href="BlockLayout.php.html#6116"><circle cx="720.0" cy="323.6" r="7.3" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutColumnarRun — Coverage: 91.7% | Lines: 48 | Complexity: 16</title></circle></a>
+ <a href="BlockLayout.php.html#1505"><circle cx="200.9" cy="315.4" r="7.1" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveShapeOutsideShape — Coverage: 19.6% | Lines: 46 | Complexity: 21</title></circle></a>
+ <a href="BlockLayout.php.html#7455"><circle cx="764.0" cy="325.2" r="7.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::collapseBorders — Coverage: 97.8% | Lines: 45 | Complexity: 15</title></circle></a>
+ <a href="BlockLayout.php.html#305"><circle cx="780.0" cy="333.5" r="6.9" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutBox — Coverage: 100.0% | Lines: 43 | Complexity: 10</title></circle></a>
+ <a href="BlockLayout.php.html#6005"><circle cx="727.3" cy="338.4" r="6.7" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutMultiColumn — Coverage: 92.7% | Lines: 41 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#7553"><circle cx="762.4" cy="326.9" r="6.7" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::collapseOuterCellsAgainstTableBorder — Coverage: 97.6% | Lines: 41 | Complexity: 14</title></circle></a>
+ <a href="BlockLayout.php.html#2041"><circle cx="780.0" cy="331.9" r="6.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::applyAbsoluteCornerAnchorSize — Coverage: 100.0% | Lines: 38 | Complexity: 11</title></circle></a>
+ <a href="BlockLayout.php.html#6929"><circle cx="685.3" cy="323.6" r="6.5" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::collectColumnWidths — Coverage: 86.8% | Lines: 38 | Complexity: 16</title></circle></a>
+ <a href="BlockLayout.php.html#6736"><circle cx="780.0" cy="328.6" r="6.4" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::avoidLineSplitsAcrossPages — Coverage: 100.0% | Lines: 37 | Complexity: 13</title></circle></a>
+ <a href="BlockLayout.php.html#1897"><circle cx="300.0" cy="333.5" r="6.3" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::shapeOutsideExclusionRect — Coverage: 33.3% | Lines: 36 | Complexity: 10</title></circle></a>
+ <a href="BlockLayout.php.html#3722"><circle cx="680.0" cy="310.4" r="6.3" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridContentSizedTracks — Coverage: 86.1% | Lines: 36 | Complexity: 24</title></circle></a>
+ <a href="BlockLayout.php.html#7015"><circle cx="718.3" cy="323.6" r="6.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAutoColumnContentWidths — Coverage: 91.4% | Lines: 35 | Complexity: 16</title></circle></a>
+ <a href="BlockLayout.php.html#1360"><circle cx="758.8" cy="340.1" r="6.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFloat — Coverage: 97.1% | Lines: 34 | Complexity: 6</title></circle></a>
+ <a href="InlineLayout.php.html#593"><circle cx="737.6" cy="341.8" r="6.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::trimFragmentToFit — Coverage: 94.1% | Lines: 34 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#2831"><circle cx="780.0" cy="336.8" r="6.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFlexAbsoluteChildren — Coverage: 100.0% | Lines: 33 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#7193"><circle cx="758.2" cy="335.1" r="6.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::precomputeTableCellGrid — Coverage: 97.0% | Lines: 33 | Complexity: 9</title></circle></a>
+ <a href="InlineLayout.php.html#523"><circle cx="627.3" cy="331.9" r="6.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextOverflow — Coverage: 78.8% | Lines: 33 | Complexity: 11</title></circle></a>
+ <a href="InlineLayout.php.html#646"><circle cx="692.7" cy="325.2" r="6.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextAlign — Coverage: 87.9% | Lines: 33 | Complexity: 15</title></circle></a>
+ <a href="FloatContext.php.html#190"><circle cx="667.5" cy="335.1" r="5.9" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::shapeRightEdgeLocal — Coverage: 84.4% | Lines: 32 | Complexity: 9</title></circle></a>
+ <a href="FloatContext.php.html#239"><circle cx="60.0" cy="335.1" r="5.9" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::shapeLeftEdgeLocal — Coverage: 0.0% | Lines: 32 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#1463"><circle cx="199.4" cy="333.5" r="5.8" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::applyInsetShape — Coverage: 19.4% | Lines: 31 | Complexity: 10</title></circle></a>
+ <a href="BlockLayout.php.html#4205"><circle cx="780.0" cy="346.7" r="5.8" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridPlacement — Coverage: 100.0% | Lines: 31 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#987"><circle cx="756.0" cy="340.1" r="5.7" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::collectTokens — Coverage: 96.7% | Lines: 30 | Complexity: 6</title></circle></a>
+ <a href="FontResolver.php.html#172"><circle cx="432.4" cy="315.4" r="5.7" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::pickWeight — Coverage: 51.7% | Lines: 29 | Complexity: 21</title></circle></a>
+ <a href="BlockLayout.php.html#541"><circle cx="60.0" cy="345.1" r="5.6" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutTableRowVertical — Coverage: 0.0% | Lines: 28 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5143"><circle cx="60.0" cy="341.8" r="5.5" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flexAutoIntrinsicWidth — Coverage: 0.0% | Lines: 27 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#4428"><circle cx="780.0" cy="330.2" r="5.4" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridLine — Coverage: 100.0% | Lines: 26 | Complexity: 12</title></circle></a>
+ <a href="BlockLayout.php.html#5212"><circle cx="420.0" cy="318.6" r="5.1" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::clampMinMax — Coverage: 50.0% | Lines: 24 | Complexity: 19</title></circle></a>
+ <a href="BlockLayout.php.html#5463"><circle cx="510.0" cy="328.6" r="5.1" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::aspectRatioTransfer — Coverage: 62.5% | Lines: 24 | Complexity: 13</title></circle></a>
+ <a href="InlineLayout.php.html#407"><circle cx="750.0" cy="335.1" r="5.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::layoutAtomicOnly — Coverage: 95.8% | Lines: 24 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#1734"><circle cx="60.0" cy="345.1" r="4.9" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenCubic — Coverage: 0.0% | Lines: 22 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4113"><circle cx="780.0" cy="335.1" r="4.9" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridTrackSizes — Coverage: 100.0% | Lines: 22 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#6528"><circle cx="681.8" cy="330.2" r="4.9" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumns — Coverage: 86.4% | Lines: 22 | Complexity: 12</title></circle></a>
+ <a href="InlineLayout.php.html#1969"><circle cx="780.0" cy="345.1" r="4.9" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyWordSpacing — Coverage: 100.0% | Lines: 22 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#3587"><circle cx="368.6" cy="333.5" r="4.8" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridAutoFlow — Coverage: 42.9% | Lines: 21 | Complexity: 10</title></circle></a>
+ <a href="InlineLayout.php.html#1911"><circle cx="780.0" cy="346.7" r="4.8" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyLetterSpacing — Coverage: 100.0% | Lines: 21 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5833"><circle cx="456.0" cy="333.5" r="4.7" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::containsSize — Coverage: 55.0% | Lines: 20 | Complexity: 10</title></circle></a>
+ <a href="FontFace.php.html#28"><circle cx="780.0" cy="340.1" r="4.7" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontFace::__construct — Coverage: 100.0% | Lines: 20 | Complexity: 6</title></circle></a>
+ <a href="FontResolver.php.html#66"><circle cx="744.0" cy="340.1" r="4.7" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::resolveMatch — Coverage: 95.0% | Lines: 20 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#4016"><circle cx="401.1" cy="335.1" r="4.6" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveTextBoxWhiteSpace — Coverage: 47.4% | Lines: 19 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#4487"><circle cx="780.0" cy="328.6" r="4.6" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridLineValue — Coverage: 100.0% | Lines: 19 | Complexity: 13</title></circle></a>
+ <a href="BlockLayout.php.html#4676"><circle cx="780.0" cy="338.4" r="4.6" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::sortFlexItemsByOrder — Coverage: 100.0% | Lines: 19 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#7153"><circle cx="666.3" cy="338.4" r="4.6" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnWidthGrid — Coverage: 84.2% | Lines: 19 | Complexity: 7</title></circle></a>
+ <a href="FloatContext.php.html#46"><circle cx="552.6" cy="343.4" r="4.6" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::fitSlot — Coverage: 68.4% | Lines: 19 | Complexity: 4</title></circle></a>
+ <a href="FloatContext.php.html#295"><circle cx="704.2" cy="331.9" r="4.6" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::polygonEdgesAt — Coverage: 89.5% | Lines: 19 | Complexity: 11</title></circle></a>
+ <a href="BlockLayout.php.html#151"><circle cx="660.0" cy="330.2" r="4.5" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::applyTextBoxTrimTree — Coverage: 83.3% | Lines: 18 | Complexity: 12</title></circle></a>
+ <a href="BlockLayout.php.html#237"><circle cx="60.0" cy="341.8" r="4.5" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::trimEdgeLineLeading — Coverage: 0.0% | Lines: 18 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#1776"><circle cx="60.0" cy="343.4" r="4.5" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenQuadratic — Coverage: 0.0% | Lines: 18 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#2238"><circle cx="780.0" cy="341.8" r="4.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveRelativeOffsets — Coverage: 100.0% | Lines: 18 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#3373"><circle cx="60.0" cy="336.8" r="4.5" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::computeAutoFillCount — Coverage: 0.0% | Lines: 18 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#3629"><circle cx="740.0" cy="340.1" r="4.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::placeFullyAutoRowMajor — Coverage: 94.4% | Lines: 18 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#3675"><circle cx="660.0" cy="340.1" r="4.5" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::placeFullyAutoColumnMajor — Coverage: 83.3% | Lines: 18 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#5271"><circle cx="420.0" cy="340.1" r="4.5" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveLength — Coverage: 50.0% | Lines: 18 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#7088"><circle cx="780.0" cy="335.1" r="4.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::applyColWidth — Coverage: 100.0% | Lines: 18 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#7402"><circle cx="780.0" cy="338.4" r="4.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::reorderTableCaptions — Coverage: 100.0% | Lines: 18 | Complexity: 7</title></circle></a>
+ <a href="CounterFormat.php.html#47"><circle cx="780.0" cy="345.1" r="4.5" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat::toCjkDecimal — Coverage: 100.0% | Lines: 18 | Complexity: 3</title></circle></a>
+ <a href="InlineLayout.php.html#1542"><circle cx="540.0" cy="335.1" r="4.5" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::decorationLines — Coverage: 66.7% | Lines: 18 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#189"><circle cx="695.3" cy="335.1" r="4.3" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::findLineHost — Coverage: 88.2% | Lines: 17 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#7691"><circle cx="737.6" cy="335.1" r="4.3" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCollapsedJoint — Coverage: 94.1% | Lines: 17 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#5879"><circle cx="690.0" cy="336.8" r="4.2" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveContainIntrinsicHeight — Coverage: 87.5% | Lines: 16 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#5917"><circle cx="735.0" cy="336.8" r="4.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveContainIntrinsicWidth — Coverage: 93.8% | Lines: 16 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#7250"><circle cx="735.0" cy="338.4" r="4.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::collectTableRows — Coverage: 93.8% | Lines: 16 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#7346"><circle cx="690.0" cy="338.4" r="4.2" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::finalizeRowspanHeights — Coverage: 87.5% | Lines: 16 | Complexity: 7</title></circle></a>
+ <a href="InlineLayout.php.html#458"><circle cx="735.0" cy="343.4" r="4.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveTabSize — Coverage: 93.8% | Lines: 16 | Complexity: 4</title></circle></a>
+ <a href="InlineLayout.php.html#1516"><circle cx="780.0" cy="341.8" r="4.2" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveBoxFont — Coverage: 100.0% | Lines: 16 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#1617"><circle cx="645.0" cy="333.5" r="4.2" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::isBreakAll — Coverage: 81.2% | Lines: 16 | Complexity: 10</title></circle></a>
+ <a href="InlineLayout.php.html#2161"><circle cx="600.0" cy="335.1" r="4.2" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::clampAtomicReplaced — Coverage: 75.0% | Lines: 16 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#106"><circle cx="780.0" cy="345.1" r="4.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layout — Coverage: 100.0% | Lines: 15 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4646"><circle cx="780.0" cy="340.1" r="4.1" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::partitionFlexLines — Coverage: 100.0% | Lines: 15 | Complexity: 6</title></circle></a>
+ <a href="InlineLayout.php.html#353"><circle cx="204.0" cy="341.8" r="4.1" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyVerticalLineShift — Coverage: 20.0% | Lines: 15 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#1486"><circle cx="252.0" cy="330.2" r="4.1" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveStretch — Coverage: 26.7% | Lines: 15 | Complexity: 12</title></circle></a>
+ <a href="BlockLayout.php.html#5009"><circle cx="471.4" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexBasis — Coverage: 57.1% | Lines: 14 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#5406"><circle cx="574.3" cy="335.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flexItemContentMainMin — Coverage: 71.4% | Lines: 14 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#6696"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutInlineChildren — Coverage: 100.0% | Lines: 14 | Complexity: 1</title></circle></a>
+ <a href="CounterFormat.php.html#76"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat::toGreek — Coverage: 100.0% | Lines: 14 | Complexity: 3</title></circle></a>
+ <a href="FontResolver.php.html#281"><circle cx="265.7" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::familyToString — Coverage: 28.6% | Lines: 14 | Complexity: 7</title></circle></a>
+ <a href="InlineLayout.php.html#2047"><circle cx="265.7" cy="335.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicBorderWidth — Coverage: 28.6% | Lines: 14 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#4052"><circle cx="669.2" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::intrinsicBreaksAnywhere — Coverage: 84.6% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#6078"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::splitByColumnSpan — Coverage: 100.0% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="CounterFormat.php.html#118"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat::toRoman — Coverage: 100.0% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="FontResolver.php.html#108"><circle cx="669.2" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::pickFace — Coverage: 84.6% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="InlineLayout.php.html#2125"><circle cx="336.9" cy="335.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveAtomicMinMax — Coverage: 38.5% | Lines: 13 | Complexity: 9</title></circle></a>
+ <a href="LayoutContext.php.html#82"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withOrigin — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#99"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withContainingBlock — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#132"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withLengthContext — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#149"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withFloatContext — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#166"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withPositionedAncestor — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#183"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withParentWritingMode — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#3851"><circle cx="720.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::measureContentMinMax — Coverage: 91.7% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#5083"><circle cx="660.0" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::blockNeedsShrinkToFit — Coverage: 83.3% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#5110"><circle cx="600.0" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flexContainerNeedsShrinkToFit — Coverage: 75.0% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#5513"><circle cx="300.0" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCrossSizeClamp — Coverage: 33.3% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#5552"><circle cx="780.0" cy="335.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAspectRatio — Coverage: 100.0% | Lines: 12 | Complexity: 9</title></circle></a>
+ <a href="CounterFormat.php.html#20"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat::format — Coverage: 100.0% | Lines: 12 | Complexity: 12</title></circle></a>
+ <a href="InlineLayout.php.html#497"><circle cx="720.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::lineBounds — Coverage: 91.7% | Lines: 12 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#855"><circle cx="60.0" cy="341.8" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::capitalizeWords — Coverage: 0.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#885"><circle cx="660.0" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLineHeight — Coverage: 83.3% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="InlineLayout.php.html#953"><circle cx="660.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::justifyFragments — Coverage: 83.3% | Lines: 12 | Complexity: 6</title></circle></a>
+ <a href="LayoutContext.php.html#116"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::withContainingBlockHeightDefinite — Coverage: 100.0% | Lines: 12 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#3885"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::aggregateChildrenMinMax — Coverage: 100.0% | Lines: 11 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5692"><circle cx="649.1" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::widthAppliesToDisplay — Coverage: 81.8% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#5969"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isMultiColumnContainer — Coverage: 100.0% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#6612"><circle cx="649.1" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexGapProperty — Coverage: 81.8% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="FontResolver.php.html#146"><circle cx="714.5" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::filterByClosestStretch — Coverage: 90.9% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#1832"><circle cx="60.0" cy="340.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCircleRadius — Coverage: 0.0% | Lines: 10 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#4529"><circle cx="636.0" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::gridSelfKeyword — Coverage: 80.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#5762"><circle cx="60.0" cy="346.7" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::stretchFitContentHeight — Coverage: 0.0% | Lines: 10 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5805"><circle cx="204.0" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::fitContentArgument — Coverage: 20.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#7632"><circle cx="204.0" cy="336.8" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::cellOccupying — Coverage: 20.0% | Lines: 10 | Complexity: 8</title></circle></a>
+ <a href="BlockLayout.php.html#7736"><circle cx="348.0" cy="333.5" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::borderStylePrecedence — Coverage: 40.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="InlineLayout.php.html#714"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::lineUsedWidth — Coverage: 100.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#837"><circle cx="60.0" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::toFullWidth — Coverage: 0.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="InlineLayout.php.html#1321"><circle cx="420.0" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveWeight — Coverage: 50.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="InlineLayout.php.html#2087"><circle cx="780.0" cy="335.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicAspectRatio — Coverage: 100.0% | Lines: 10 | Complexity: 9</title></circle></a>
+ <a href="BlockLayout.php.html#1864"><circle cx="60.0" cy="340.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveEllipseRadius — Coverage: 0.0% | Lines: 9 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#4606"><circle cx="700.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::gridSpanExtent — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#5327"><circle cx="220.0" cy="338.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveBorderWidthValue — Coverage: 22.2% | Lines: 9 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#5365"><circle cx="620.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::applyContainerContext — Coverage: 77.8% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#6571"><circle cx="700.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnGap — Coverage: 88.9% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#7304"><circle cx="620.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveRowIndex — Coverage: 77.8% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="CounterFormat.php.html#102"><circle cx="700.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\CounterFormat::toAlpha — Coverage: 88.9% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="FloatContext.php.html#142"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::leftEdgeAt — Coverage: 100.0% | Lines: 9 | Complexity: 6</title></circle></a>
+ <a href="FloatContext.php.html#331"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::rightEdgeAt — Coverage: 100.0% | Lines: 9 | Complexity: 6</title></circle></a>
+ <a href="FontResolver.php.html#264"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::iterateFamilies — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#778"><circle cx="620.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::textAlignLastKeyword — Coverage: 77.8% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#817"><circle cx="460.0" cy="338.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextTransform — Coverage: 55.6% | Lines: 9 | Complexity: 7</title></circle></a>
+ <a href="BlockLayout.php.html#290"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::lineHeightPx — Coverage: 0.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#1973"><circle cx="690.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isPositioned — Coverage: 87.5% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#4586"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::gridTrackOffsets — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5655"><circle cx="690.0" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::ratioComponent — Coverage: 87.5% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#6632"><circle cx="690.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleWidth — Coverage: 87.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#6671"><circle cx="690.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::allInlineLevel — Coverage: 87.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="FloatContext.php.html#88"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::clearTo — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#1813"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveShapePosition — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#4257"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::matchedAreaName — Coverage: 100.0% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#5633"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isScrollContainer — Coverage: 100.0% | Lines: 7 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#5714"><circle cx="574.3" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::heightAppliesToDisplay — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#6656"><circle cx="677.1" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleColor — Coverage: 85.7% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#6828"><circle cx="677.1" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::ceilToPage — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#7659"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::rimResolve — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#7767"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveInlineLengths — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="FloatContext.php.html#352"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::nextFloatBottomBelow — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#1466"><circle cx="368.6" cy="341.8" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::iterateKeywords — Coverage: 42.9% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="InlineLayout.php.html#1667"><circle cx="677.1" cy="341.8" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveVerticalAlign — Coverage: 85.7% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#1993"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::subtreeContainsPositioned — Coverage: 0.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#2013"><circle cx="60.0" cy="343.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::subtreeContainsTable — Coverage: 0.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#3408"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridTrackList — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#3823"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::measureMinMaxContent — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#4189"><circle cx="420.0" cy="345.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridOrder — Coverage: 50.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4275"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::lineValueAreaName — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4705"><circle cx="660.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexOrder — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5039"><circle cx="660.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexGrow — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5056"><circle cx="660.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexShrink — Coverage: 83.3% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5593"><circle cx="780.0" cy="341.8" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::aspectRatioBlockSize — Coverage: 100.0% | Lines: 6 | Complexity: 5</title></circle></a>
+ <a href="BlockLayout.php.html#5784"><circle cx="660.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::sizingKeywordName — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#6809"><circle cx="420.0" cy="345.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::intStyle — Coverage: 50.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#7129"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::parseLegacyWidth — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#7277"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::maxColumnsFromGrid — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#7326"><circle cx="660.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCellRowspan — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#7755"><circle cx="660.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::cellColspan — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="InlineLayout.php.html#912"><circle cx="420.0" cy="345.1" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveTextIndent — Coverage: 50.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="InlineLayout.php.html#1344"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveStyle — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="InlineLayout.php.html#1996"><circle cx="660.0" cy="340.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::isWordSeparatorAt — Coverage: 83.3% | Lines: 6 | Complexity: 6</title></circle></a>
+ <a href="BlockLayout.php.html#1327"><circle cx="636.0" cy="343.4" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::floatSide — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#1341"><circle cx="636.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::clearSide — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#1957"><circle cx="636.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isOutOfFlow — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4294"><circle cx="492.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::areaNameToLine — Coverage: 60.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4567"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isGridRangeOccupied — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#4627"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::gridTotalExtent — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5671"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::numericValue — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5739"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isHeightAutoLike — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="BlockLayout.php.html#7294"><circle cx="636.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCellColumn — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1294"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::lineHeightFor — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="InlineLayout.php.html#2104"><circle cx="636.0" cy="345.1" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicNumeric — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#276"><circle cx="60.0" cy="346.7" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::fontSizePx — Coverage: 0.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5068"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::flexKeyword — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5198"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveExplicitHeightOrNull — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5311"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveBorderWidth — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5343"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::lengthContextFor — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5953"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::shiftSubtree — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6647"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleStyle — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#7722"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::borderStyleName — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#749"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLogicalTextAlign — Coverage: 100.0% | Lines: 4 | Complexity: 6</title></circle></a>
+ <a href="InlineLayout.php.html#763"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::isTextJustifyNone — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#801"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::textAlignKeyword — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#924"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::whiteSpaceKeyword — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#937"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::shiftFragments — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1942"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLetterSpacing — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1955"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveWordSpacing — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#2014"><circle cx="600.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::dominantFontSize — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="LineBox.php.html#25"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LineBox::totalWidth — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#2277"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveLengthAgainstHeight — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#3568"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::numericValueOrNull — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4082"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridAutoTrackSize — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#4163"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridGap — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#4552"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::markGridOccupied — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#5187"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isBorderBoxSizing — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#5620"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::blockSizeMinIsAuto — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6594"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexMainGap — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#6841"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesPageBreakBefore — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="BlockLayout.php.html#6853"><circle cx="540.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresNamedPage — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6885"><circle cx="540.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresForcedBreak — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6909"><circle cx="540.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresForcedColumnBreak — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#7431"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isBorderCollapse — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BoxGeometry.php.html#40"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BoxGeometry::outerWidth — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="BoxGeometry.php.html#47"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BoxGeometry::outerHeight — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="FloatContext.php.html#164"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::itemRightEdgeAt — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="FloatContext.php.html#175"><circle cx="540.0" cy="346.7" r="4.0" class="bubble-warning"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::itemLeftEdgeAt — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="FontResolver.php.html#239"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::weightSatisfies — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="FontResolver.php.html#246"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::styleSatisfies — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#737"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::isRtlDirection — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#2034"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicLength — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#2075"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicIsBorderBoxSizing — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#4098"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::growGridRows — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6101"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isColumnSpanAll — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6861"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesPageBreakAfter — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6873"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::avoidsBreakInside — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6879"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresBreakInsideAvoid — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FloatContext.php.html#112"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::placeLeft — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="FloatContext.php.html#128"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::placeRight — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="FontResolver.php.html#50"><circle cx="60.0" cy="348.4" r="4.0" class="bubble-danger"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::resolve — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="InlineLayout.php.html#1310"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::boxFontSize — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1586"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveColor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1592"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveBackground — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="InlineLayout.php.html#1604"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveDecorationColor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#96"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#5682"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::isAuto — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="BlockLayout.php.html#6201"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildren — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#6893"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesColumnBreakBefore — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#6898"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesColumnBreakAfter — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="BlockLayout.php.html#7731"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\BlockLayout::borderDeclaredWidth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FloatContext.php.html#23"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::addLeft — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FloatContext.php.html#29"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatContext::addRight — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FloatItem.php.html#18"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FloatItem::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontMatch.php.html#21"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontMatch::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FontResolver.php.html#38"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\FontResolver::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InlineFragment.php.html#21"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineFragment::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InlineLayout.php.html#61"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="InlineLayout.php.html#1577"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\InlineLayout::mergeDecorationLines — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LayoutContext.php.html#28"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LayoutContext::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="LineBox.php.html#19"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\LineBox::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="MultiColumnLayout.php.html#21"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\MultiColumnLayout::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PositionedAncestor.php.html#19"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\HtmlToPdf\Layout\PositionedAncestor::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="BlockLayout.php.html#1586">Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenSvgPath</a></td><td class="text-right">1722</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#577">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutBlock</a></td><td class="text-right">382.51</td><td class="text-right">76.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1505">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveShapeOutsideShape</a></td><td class="text-right">250.49</td><td class="text-right">19.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2295">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFlexBox</a></td><td class="text-right">133.09</td><td class="text-right">84.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3430">Phpdftk\HtmlToPdf\Layout\BlockLayout::collectGridTrackDescriptors</a></td><td class="text-right">104.70</td><td class="text-right">61.5%</td></tr>
+  <tr><td><a href="FloatContext.php.html#239">Phpdftk\HtmlToPdf\Layout\FloatContext::shapeLeftEdgeLocal</a></td><td class="text-right">90</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2900">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutGridBox</a></td><td class="text-right">73.60</td><td class="text-right">90.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3373">Phpdftk\HtmlToPdf\Layout\BlockLayout::computeAutoFillCount</a></td><td class="text-right">72</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#172">Phpdftk\HtmlToPdf\Layout\FontResolver::pickWeight</a></td><td class="text-right">70.62</td><td class="text-right">51.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1486">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveStretch</a></td><td class="text-right">68.79</td><td class="text-right">26.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4741">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexLineMainSizes</a></td><td class="text-right">64.12</td><td class="text-right">89.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5212">Phpdftk\HtmlToPdf\Layout\BlockLayout::clampMinMax</a></td><td class="text-right">64.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1463">Phpdftk\HtmlToPdf\Layout\BlockLayout::applyInsetShape</a></td><td class="text-right">62.45</td><td class="text-right">19.4%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#837">Phpdftk\HtmlToPdf\Layout\InlineLayout::toFullWidth</a></td><td class="text-right">56</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3909">Phpdftk\HtmlToPdf\Layout\BlockLayout::measureTextBoxMinMax</a></td><td class="text-right">51.87</td><td class="text-right">62.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1832">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCircleRadius</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1864">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveEllipseRadius</a></td><td class="text-right">42</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6421">Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildrenListVertical</a></td><td class="text-right">40.96</td><td class="text-right">58.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7632">Phpdftk\HtmlToPdf\Layout\BlockLayout::cellOccupying</a></td><td class="text-right">40.77</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1897">Phpdftk\HtmlToPdf\Layout\BlockLayout::shapeOutsideExclusionRect</a></td><td class="text-right">39.63</td><td class="text-right">33.3%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2047">Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicBorderWidth</a></td><td class="text-right">38.52</td><td class="text-right">28.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5805">Phpdftk\HtmlToPdf\Layout\BlockLayout::fitContentArgument</a></td><td class="text-right">32.09</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6214">Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildrenList</a></td><td class="text-right">32</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7736">Phpdftk\HtmlToPdf\Layout\BlockLayout::borderStylePrecedence</a></td><td class="text-right">31.60</td><td class="text-right">40.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#74">Phpdftk\HtmlToPdf\Layout\InlineLayout::layout</a></td><td class="text-right">31.18</td><td class="text-right">94.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5327">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveBorderWidthValue</a></td><td class="text-right">30.05</td><td class="text-right">22.2%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#237">Phpdftk\HtmlToPdf\Layout\BlockLayout::trimEdgeLineLeading</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5143">Phpdftk\HtmlToPdf\Layout\BlockLayout::flexAutoIntrinsicWidth</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#855">Phpdftk\HtmlToPdf\Layout\InlineLayout::capitalizeWords</a></td><td class="text-right">30</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3587">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridAutoFlow</a></td><td class="text-right">28.66</td><td class="text-right">42.9%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2125">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveAtomicMinMax</a></td><td class="text-right">27.88</td><td class="text-right">38.5%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1371">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveOpenTypeFeatures</a></td><td class="text-right">26.22</td><td class="text-right">72.9%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3722">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridContentSizedTracks</a></td><td class="text-right">25.54</td><td class="text-right">86.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4325">Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridTemplateAreas</a></td><td class="text-right">25.19</td><td class="text-right">93.2%</td></tr>
+  <tr><td><a href="FontResolver.php.html#281">Phpdftk\HtmlToPdf\Layout\FontResolver::familyToString</a></td><td class="text-right">24.86</td><td class="text-right">28.6%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1050">Phpdftk\HtmlToPdf\Layout\InlineLayout::walkInline</a></td><td class="text-right">24.09</td><td class="text-right">94.6%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1690">Phpdftk\HtmlToPdf\Layout\InlineLayout::tokeniseText</a></td><td class="text-right">23.12</td><td class="text-right">93.9%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2122">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAbsoluteOffsets</a></td><td class="text-right">22.95</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5463">Phpdftk\HtmlToPdf\Layout\BlockLayout::aspectRatioTransfer</a></td><td class="text-right">21.91</td><td class="text-right">62.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5513">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCrossSizeClamp</a></td><td class="text-right">21.52</td><td class="text-right">33.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4016">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveTextBoxWhiteSpace</a></td><td class="text-right">20.81</td><td class="text-right">47.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#290">Phpdftk\HtmlToPdf\Layout\BlockLayout::lineHeightPx</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1776">Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenQuadratic</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1813">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveShapePosition</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1993">Phpdftk\HtmlToPdf\Layout\BlockLayout::subtreeContainsPositioned</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2013">Phpdftk\HtmlToPdf\Layout\BlockLayout::subtreeContainsTable</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5833">Phpdftk\HtmlToPdf\Layout\BlockLayout::containsSize</a></td><td class="text-right">19.11</td><td class="text-right">55.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#396">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutTableRow</a></td><td class="text-right">19</td><td class="text-right">95.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#353">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyVerticalLineShift</a></td><td class="text-right">17.80</td><td class="text-right">20.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1831">Phpdftk\HtmlToPdf\Layout\InlineLayout::splitBidiRuns</a></td><td class="text-right">17.50</td><td class="text-right">88.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6929">Phpdftk\HtmlToPdf\Layout\BlockLayout::collectColumnWidths</a></td><td class="text-right">16.58</td><td class="text-right">86.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7015">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAutoColumnContentWidths</a></td><td class="text-right">16.16</td><td class="text-right">91.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6116">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutColumnarRun</a></td><td class="text-right">16.15</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#646">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextAlign</a></td><td class="text-right">15.40</td><td class="text-right">87.9%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7455">Phpdftk\HtmlToPdf\Layout\BlockLayout::collapseBorders</a></td><td class="text-right">15</td><td class="text-right">97.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7553">Phpdftk\HtmlToPdf\Layout\BlockLayout::collapseOuterCellsAgainstTableBorder</a></td><td class="text-right">14</td><td class="text-right">97.6%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1321">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveWeight</a></td><td class="text-right">13.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5009">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexBasis</a></td><td class="text-right">13.04</td><td class="text-right">57.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4487">Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridLineValue</a></td><td class="text-right">13</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6736">Phpdftk\HtmlToPdf\Layout\BlockLayout::avoidLineSplitsAcrossPages</a></td><td class="text-right">13</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#151">Phpdftk\HtmlToPdf\Layout\BlockLayout::applyTextBoxTrimTree</a></td><td class="text-right">12.67</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6528">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumns</a></td><td class="text-right">12.37</td><td class="text-right">86.4%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#523">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextOverflow</a></td><td class="text-right">12.15</td><td class="text-right">78.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#541">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutTableRowVertical</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1734">Phpdftk\HtmlToPdf\Layout\BlockLayout::flattenCubic</a></td><td class="text-right">12</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4428">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridLine</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#20">Phpdftk\HtmlToPdf\Layout\CounterFormat::format</a></td><td class="text-right">12</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1542">Phpdftk\HtmlToPdf\Layout\InlineLayout::decorationLines</a></td><td class="text-right">12.00</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#817">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyTextTransform</a></td><td class="text-right">11.30</td><td class="text-right">55.6%</td></tr>
+  <tr><td><a href="FloatContext.php.html#295">Phpdftk\HtmlToPdf\Layout\FloatContext::polygonEdgesAt</a></td><td class="text-right">11.14</td><td class="text-right">89.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2041">Phpdftk\HtmlToPdf\Layout\BlockLayout::applyAbsoluteCornerAnchorSize</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5406">Phpdftk\HtmlToPdf\Layout\BlockLayout::flexItemContentMainMin</a></td><td class="text-right">10.89</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1617">Phpdftk\HtmlToPdf\Layout\InlineLayout::isBreakAll</a></td><td class="text-right">10.66</td><td class="text-right">81.2%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5271">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveLength</a></td><td class="text-right">10.50</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2161">Phpdftk\HtmlToPdf\Layout\InlineLayout::clampAtomicReplaced</a></td><td class="text-right">10.27</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#305">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutBox</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1466">Phpdftk\HtmlToPdf\Layout\InlineLayout::iterateKeywords</a></td><td class="text-right">9.66</td><td class="text-right">42.9%</td></tr>
+  <tr><td><a href="FloatContext.php.html#190">Phpdftk\HtmlToPdf\Layout\FloatContext::shapeRightEdgeLocal</a></td><td class="text-right">9.31</td><td class="text-right">84.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#189">Phpdftk\HtmlToPdf\Layout\BlockLayout::findLineHost</a></td><td class="text-right">9.13</td><td class="text-right">88.2%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7691">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCollapsedJoint</a></td><td class="text-right">9.02</td><td class="text-right">94.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4113">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridTrackSizes</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5552">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveAspectRatio</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7088">Phpdftk\HtmlToPdf\Layout\BlockLayout::applyColWidth</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7193">Phpdftk\HtmlToPdf\Layout\BlockLayout::precomputeTableCellGrid</a></td><td class="text-right">9</td><td class="text-right">97.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#407">Phpdftk\HtmlToPdf\Layout\InlineLayout::layoutAtomicOnly</a></td><td class="text-right">9</td><td class="text-right">95.8%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2087">Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicAspectRatio</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5879">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveContainIntrinsicHeight</a></td><td class="text-right">8.12</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5917">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveContainIntrinsicWidth</a></td><td class="text-right">8.02</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2831">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFlexAbsoluteChildren</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5110">Phpdftk\HtmlToPdf\Layout\BlockLayout::flexContainerNeedsShrinkToFit</a></td><td class="text-right">7.77</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4529">Phpdftk\HtmlToPdf\Layout\BlockLayout::gridSelfKeyword</a></td><td class="text-right">7.39</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5083">Phpdftk\HtmlToPdf\Layout\BlockLayout::blockNeedsShrinkToFit</a></td><td class="text-right">7.23</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#885">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLineHeight</a></td><td class="text-right">7.23</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7153">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnWidthGrid</a></td><td class="text-right">7.19</td><td class="text-right">84.2%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4052">Phpdftk\HtmlToPdf\Layout\BlockLayout::intrinsicBreaksAnywhere</a></td><td class="text-right">7.18</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7346">Phpdftk\HtmlToPdf\Layout\BlockLayout::finalizeRowspanHeights</a></td><td class="text-right">7.10</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6005">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutMultiColumn</a></td><td class="text-right">7.02</td><td class="text-right">92.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7250">Phpdftk\HtmlToPdf\Layout\BlockLayout::collectTableRows</a></td><td class="text-right">7.01</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4676">Phpdftk\HtmlToPdf\Layout\BlockLayout::sortFlexItemsByOrder</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7402">Phpdftk\HtmlToPdf\Layout\BlockLayout::reorderTableCaptions</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6612">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexGapProperty</a></td><td class="text-right">6.22</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3675">Phpdftk\HtmlToPdf\Layout\BlockLayout::placeFullyAutoColumnMajor</a></td><td class="text-right">6.17</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#953">Phpdftk\HtmlToPdf\Layout\InlineLayout::justifyFragments</a></td><td class="text-right">6.17</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1996">Phpdftk\HtmlToPdf\Layout\InlineLayout::isWordSeparatorAt</a></td><td class="text-right">6.17</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="FontResolver.php.html#108">Phpdftk\HtmlToPdf\Layout\FontResolver::pickFace</a></td><td class="text-right">6.13</td><td class="text-right">84.6%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6671">Phpdftk\HtmlToPdf\Layout\BlockLayout::allInlineLevel</a></td><td class="text-right">6.07</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3629">Phpdftk\HtmlToPdf\Layout\BlockLayout::placeFullyAutoRowMajor</a></td><td class="text-right">6.01</td><td class="text-right">94.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#276">Phpdftk\HtmlToPdf\Layout\BlockLayout::fontSizePx</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1360">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutFloat</a></td><td class="text-right">6</td><td class="text-right">97.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4257">Phpdftk\HtmlToPdf\Layout\BlockLayout::matchedAreaName</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4646">Phpdftk\HtmlToPdf\Layout\BlockLayout::partitionFlexLines</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5633">Phpdftk\HtmlToPdf\Layout\BlockLayout::isScrollContainer</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5762">Phpdftk\HtmlToPdf\Layout\BlockLayout::stretchFitContentHeight</a></td><td class="text-right">6</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5969">Phpdftk\HtmlToPdf\Layout\BlockLayout::isMultiColumnContainer</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#142">Phpdftk\HtmlToPdf\Layout\FloatContext::leftEdgeAt</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#331">Phpdftk\HtmlToPdf\Layout\FloatContext::rightEdgeAt</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontFace.php.html#28">Phpdftk\HtmlToPdf\Layout\FontFace::__construct</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#66">Phpdftk\HtmlToPdf\Layout\FontResolver::resolveMatch</a></td><td class="text-right">6</td><td class="text-right">95.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#749">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLogicalTextAlign</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#987">Phpdftk\HtmlToPdf\Layout\InlineLayout::collectTokens</a></td><td class="text-right">6</td><td class="text-right">96.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7304">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveRowIndex</a></td><td class="text-right">5.27</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#778">Phpdftk\HtmlToPdf\Layout\InlineLayout::textAlignLastKeyword</a></td><td class="text-right">5.27</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6656">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleColor</a></td><td class="text-right">5.07</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1667">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveVerticalAlign</a></td><td class="text-right">5.07</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1973">Phpdftk\HtmlToPdf\Layout\BlockLayout::isPositioned</a></td><td class="text-right">5.05</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5655">Phpdftk\HtmlToPdf\Layout\BlockLayout::ratioComponent</a></td><td class="text-right">5.05</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6571">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnGap</a></td><td class="text-right">5.03</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3851">Phpdftk\HtmlToPdf\Layout\BlockLayout::measureContentMinMax</a></td><td class="text-right">5.01</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#593">Phpdftk\HtmlToPdf\Layout\InlineLayout::trimFragmentToFit</a></td><td class="text-right">5.01</td><td class="text-right">94.1%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2238">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveRelativeOffsets</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5593">Phpdftk\HtmlToPdf\Layout\BlockLayout::aspectRatioBlockSize</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6078">Phpdftk\HtmlToPdf\Layout\BlockLayout::splitByColumnSpan</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#118">Phpdftk\HtmlToPdf\Layout\CounterFormat::toRoman</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#88">Phpdftk\HtmlToPdf\Layout\FloatContext::clearTo</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#352">Phpdftk\HtmlToPdf\Layout\FloatContext::nextFloatBottomBelow</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#264">Phpdftk\HtmlToPdf\Layout\FontResolver::iterateFamilies</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#714">Phpdftk\HtmlToPdf\Layout\InlineLayout::lineUsedWidth</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1516">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveBoxFont</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#46">Phpdftk\HtmlToPdf\Layout\FloatContext::fitSlot</a></td><td class="text-right">4.50</td><td class="text-right">68.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5714">Phpdftk\HtmlToPdf\Layout\BlockLayout::heightAppliesToDisplay</a></td><td class="text-right">4.37</td><td class="text-right">71.4%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5365">Phpdftk\HtmlToPdf\Layout\BlockLayout::applyContainerContext</a></td><td class="text-right">4.18</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1327">Phpdftk\HtmlToPdf\Layout\BlockLayout::floatSide</a></td><td class="text-right">4.13</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4189">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridOrder</a></td><td class="text-right">4.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6809">Phpdftk\HtmlToPdf\Layout\BlockLayout::intStyle</a></td><td class="text-right">4.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#912">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveTextIndent</a></td><td class="text-right">4.12</td><td class="text-right">50.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5692">Phpdftk\HtmlToPdf\Layout\BlockLayout::widthAppliesToDisplay</a></td><td class="text-right">4.10</td><td class="text-right">81.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5784">Phpdftk\HtmlToPdf\Layout\BlockLayout::sizingKeywordName</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7326">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCellRowspan</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7755">Phpdftk\HtmlToPdf\Layout\BlockLayout::cellColspan</a></td><td class="text-right">4.07</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6632">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleWidth</a></td><td class="text-right">4.03</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4606">Phpdftk\HtmlToPdf\Layout\BlockLayout::gridSpanExtent</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#102">Phpdftk\HtmlToPdf\Layout\CounterFormat::toAlpha</a></td><td class="text-right">4.02</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="FontResolver.php.html#146">Phpdftk\HtmlToPdf\Layout\FontResolver::filterByClosestStretch</a></td><td class="text-right">4.01</td><td class="text-right">90.9%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3408">Phpdftk\HtmlToPdf\Layout\BlockLayout::parseGridTrackList</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3823">Phpdftk\HtmlToPdf\Layout\BlockLayout::measureMinMaxContent</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4567">Phpdftk\HtmlToPdf\Layout\BlockLayout::isGridRangeOccupied</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5739">Phpdftk\HtmlToPdf\Layout\BlockLayout::isHeightAutoLike</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#458">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveTabSize</a></td><td class="text-right">4.00</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4294">Phpdftk\HtmlToPdf\Layout\BlockLayout::areaNameToLine</a></td><td class="text-right">3.58</td><td class="text-right">60.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1341">Phpdftk\HtmlToPdf\Layout\BlockLayout::clearSide</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#1957">Phpdftk\HtmlToPdf\Layout\BlockLayout::isOutOfFlow</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2104">Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicNumeric</a></td><td class="text-right">3.07</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4705">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexOrder</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5039">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexGrow</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5056">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexShrink</a></td><td class="text-right">3.04</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6828">Phpdftk\HtmlToPdf\Layout\BlockLayout::ceilToPage</a></td><td class="text-right">3.03</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#106">Phpdftk\HtmlToPdf\Layout\BlockLayout::layout</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#2277">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveLengthAgainstHeight</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3568">Phpdftk\HtmlToPdf\Layout\BlockLayout::numericValueOrNull</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#3885">Phpdftk\HtmlToPdf\Layout\BlockLayout::aggregateChildrenMinMax</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4163">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridGap</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4275">Phpdftk\HtmlToPdf\Layout\BlockLayout::lineValueAreaName</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4552">Phpdftk\HtmlToPdf\Layout\BlockLayout::markGridOccupied</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4586">Phpdftk\HtmlToPdf\Layout\BlockLayout::gridTrackOffsets</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5311">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveBorderWidth</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5671">Phpdftk\HtmlToPdf\Layout\BlockLayout::numericValue</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6594">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveFlexMainGap</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6841">Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesPageBreakBefore</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7129">Phpdftk\HtmlToPdf\Layout\BlockLayout::parseLegacyWidth</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7277">Phpdftk\HtmlToPdf\Layout\BlockLayout::maxColumnsFromGrid</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7659">Phpdftk\HtmlToPdf\Layout\BlockLayout::rimResolve</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7767">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveInlineLengths</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#47">Phpdftk\HtmlToPdf\Layout\CounterFormat::toCjkDecimal</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CounterFormat.php.html#76">Phpdftk\HtmlToPdf\Layout\CounterFormat::toGreek</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1294">Phpdftk\HtmlToPdf\Layout\InlineLayout::lineHeightFor</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1344">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveStyle</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1969">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyWordSpacing</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6853">Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresNamedPage</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6885">Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresForcedBreak</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6909">Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresForcedColumnBreak</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="FloatContext.php.html#175">Phpdftk\HtmlToPdf\Layout\FloatContext::itemLeftEdgeAt</a></td><td class="text-right">2.15</td><td class="text-right">66.7%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5068">Phpdftk\HtmlToPdf\Layout\BlockLayout::flexKeyword</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5343">Phpdftk\HtmlToPdf\Layout\BlockLayout::lengthContextFor</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6647">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveColumnRuleStyle</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7722">Phpdftk\HtmlToPdf\Layout\BlockLayout::borderStyleName</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#763">Phpdftk\HtmlToPdf\Layout\InlineLayout::isTextJustifyNone</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#801">Phpdftk\HtmlToPdf\Layout\InlineLayout::textAlignKeyword</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#924">Phpdftk\HtmlToPdf\Layout\InlineLayout::whiteSpaceKeyword</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2014">Phpdftk\HtmlToPdf\Layout\InlineLayout::dominantFontSize</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7294">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveCellColumn</a></td><td class="text-right">2.03</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4082">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridAutoTrackSize</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4098">Phpdftk\HtmlToPdf\Layout\BlockLayout::growGridRows</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4205">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveGridPlacement</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#4627">Phpdftk\HtmlToPdf\Layout\BlockLayout::gridTotalExtent</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5187">Phpdftk\HtmlToPdf\Layout\BlockLayout::isBorderBoxSizing</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5198">Phpdftk\HtmlToPdf\Layout\BlockLayout::resolveExplicitHeightOrNull</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5620">Phpdftk\HtmlToPdf\Layout\BlockLayout::blockSizeMinIsAuto</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5682">Phpdftk\HtmlToPdf\Layout\BlockLayout::isAuto</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#5953">Phpdftk\HtmlToPdf\Layout\BlockLayout::shiftSubtree</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6101">Phpdftk\HtmlToPdf\Layout\BlockLayout::isColumnSpanAll</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6861">Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesPageBreakAfter</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6873">Phpdftk\HtmlToPdf\Layout\BlockLayout::avoidsBreakInside</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6879">Phpdftk\HtmlToPdf\Layout\BlockLayout::declaresBreakInsideAvoid</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7431">Phpdftk\HtmlToPdf\Layout\BlockLayout::isBorderCollapse</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#164">Phpdftk\HtmlToPdf\Layout\FloatContext::itemRightEdgeAt</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#50">Phpdftk\HtmlToPdf\Layout\FontResolver::resolve</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#246">Phpdftk\HtmlToPdf\Layout\FontResolver::styleSatisfies</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#497">Phpdftk\HtmlToPdf\Layout\InlineLayout::lineBounds</a></td><td class="text-right">2.00</td><td class="text-right">91.7%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#737">Phpdftk\HtmlToPdf\Layout\InlineLayout::isRtlDirection</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#937">Phpdftk\HtmlToPdf\Layout\InlineLayout::shiftFragments</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1310">Phpdftk\HtmlToPdf\Layout\InlineLayout::boxFontSize</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1586">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveColor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1592">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveBackground</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1604">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveDecorationColor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1911">Phpdftk\HtmlToPdf\Layout\InlineLayout::applyLetterSpacing</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1942">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLetterSpacing</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1955">Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveWordSpacing</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2034">Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicLength</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#2075">Phpdftk\HtmlToPdf\Layout\InlineLayout::atomicIsBorderBoxSizing</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LineBox.php.html#25">Phpdftk\HtmlToPdf\Layout\LineBox::totalWidth</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#96">Phpdftk\HtmlToPdf\Layout\BlockLayout::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6201">Phpdftk\HtmlToPdf\Layout\BlockLayout::stackChildren</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6696">Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutInlineChildren</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6893">Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesColumnBreakBefore</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#6898">Phpdftk\HtmlToPdf\Layout\BlockLayout::forcesColumnBreakAfter</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BlockLayout.php.html#7731">Phpdftk\HtmlToPdf\Layout\BlockLayout::borderDeclaredWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BoxGeometry.php.html#40">Phpdftk\HtmlToPdf\Layout\BoxGeometry::outerWidth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BoxGeometry.php.html#47">Phpdftk\HtmlToPdf\Layout\BoxGeometry::outerHeight</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#23">Phpdftk\HtmlToPdf\Layout\FloatContext::addLeft</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#29">Phpdftk\HtmlToPdf\Layout\FloatContext::addRight</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#112">Phpdftk\HtmlToPdf\Layout\FloatContext::placeLeft</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatContext.php.html#128">Phpdftk\HtmlToPdf\Layout\FloatContext::placeRight</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FloatItem.php.html#18">Phpdftk\HtmlToPdf\Layout\FloatItem::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontMatch.php.html#21">Phpdftk\HtmlToPdf\Layout\FontMatch::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#38">Phpdftk\HtmlToPdf\Layout\FontResolver::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FontResolver.php.html#239">Phpdftk\HtmlToPdf\Layout\FontResolver::weightSatisfies</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineFragment.php.html#21">Phpdftk\HtmlToPdf\Layout\InlineFragment::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#61">Phpdftk\HtmlToPdf\Layout\InlineLayout::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="InlineLayout.php.html#1577">Phpdftk\HtmlToPdf\Layout\InlineLayout::mergeDecorationLines</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#28">Phpdftk\HtmlToPdf\Layout\LayoutContext::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#82">Phpdftk\HtmlToPdf\Layout\LayoutContext::withOrigin</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#99">Phpdftk\HtmlToPdf\Layout\LayoutContext::withContainingBlock</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#116">Phpdftk\HtmlToPdf\Layout\LayoutContext::withContainingBlockHeightDefinite</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#132">Phpdftk\HtmlToPdf\Layout\LayoutContext::withLengthContext</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#149">Phpdftk\HtmlToPdf\Layout\LayoutContext::withFloatContext</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#166">Phpdftk\HtmlToPdf\Layout\LayoutContext::withPositionedAncestor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LayoutContext.php.html#183">Phpdftk\HtmlToPdf\Layout\LayoutContext::withParentWritingMode</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="LineBox.php.html#19">Phpdftk\HtmlToPdf\Layout\LineBox::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="MultiColumnLayout.php.html#21">Phpdftk\HtmlToPdf\Layout\MultiColumnLayout::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PositionedAncestor.php.html#19">Phpdftk\HtmlToPdf\Layout\PositionedAncestor::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Mon Jun 29 3:01:52 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>
