@@ -1,6 +1,6 @@
 {
   "packages/pdf/core": "1.0.0",
-  "packages/pdf/writer": "1.0.0",
+  "packages/pdf/writer": "1.0.1",
   "packages/pdf/reader": "1.0.0",
   "packages/pdf/toolkit": "1.0.0",
   "packages/pdf/conformance": "1.0.0",
