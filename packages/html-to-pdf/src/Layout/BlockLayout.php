@@ -2126,6 +2126,18 @@ final class BlockLayout
         float $originY,
         float $cursorY,
     ): array {
+        // CSS Writing Modes 4 §7.1 / CSS Position 3 §4.2 — when the
+        // containing block is in a vertical writing mode the §10.3.7
+        // (inline-axis: static position + direction-based over-constraint
+        // tie-break) and §10.6.4 (block-axis: even split) algorithms run
+        // on the SWAPPED physical axes: the inline algorithm on physical
+        // Y (top/bottom/height) and the block algorithm on physical X
+        // (left/right/width). The horizontal-tb path below is left
+        // byte-identical.
+        $cbWm = $childContext->parentWritingMode;
+        if ($cbWm !== null && $cbWm->isVertical()) {
+            return $this->resolveAbsoluteOffsetsVertical($child, $childContext, $originX, $originY, $cursorY);
+        }
         $style = $child->style;
         $cbWidth = $childContext->containingBlockWidth;
         $cbHeight = $childContext->containingBlockHeight;
@@ -2231,6 +2243,103 @@ final class BlockLayout
             }
             $dx = $leftPx + $resolvedMarginLeft;
         }
+        return [$dx, $dy];
+    }
+
+    /**
+     * Vertical-writing-mode containing block variant of
+     * {@see resolveAbsoluteOffsets}. The §10.3.7 inline algorithm (with
+     * static position + `direction` over-constraint tie-break) runs on
+     * the physical Y axis (top / bottom / height) and the §10.6.4 block
+     * algorithm (even split, no direction) runs on the physical X axis
+     * (left / right / width) — the mirror of the horizontal-tb mapping.
+     * `vertical-lr` vs `vertical-rl` does not change the block-axis even
+     * split (it is symmetric); the inline-axis tie-break uses the
+     * containing block's `direction` (inline-start = top for ltr, bottom
+     * for rtl), read off the child which inherits it.
+     *
+     * @return array{0:float, 1:float} `[dx, dy]`
+     */
+    private function resolveAbsoluteOffsetsVertical(
+        Box $child,
+        LayoutContext $childContext,
+        float $originX,
+        float $originY,
+        float $cursorY,
+    ): array {
+        $style = $child->style;
+        $cbWidth = $childContext->containingBlockWidth;
+        $cbHeight = $childContext->containingBlockHeight;
+        $top = $style->get('top');
+        $bottom = $style->get('bottom');
+        $left = $style->get('left');
+        $right = $style->get('right');
+        $geo = $child->geometry;
+
+        // --- Block axis = physical X (left / right / width), §10.6.4
+        //     even split. Mirrors the horizontal-tb `dy` branch. ---
+        $dx = 0.0;
+        if (!$this->isAuto($left)) {
+            $dx = $this->resolveLength($left, $cbWidth);
+        } elseif (!$this->isAuto($right)) {
+            $dx = $cbWidth - $this->resolveLength($right, $cbWidth) - $child->geometry->outerWidth();
+        }
+        $widthStyleValue = $style->get('width');
+        $widthKw = $this->sizingKeywordName($widthStyleValue);
+        $widthIsDefinite = !$this->isAuto($widthStyleValue)
+            && ($widthKw === null || $widthKw !== 'stretch');
+        if (!$this->isAuto($left)
+            && !$this->isAuto($right)
+            && $widthIsDefinite
+            && $this->isAuto($style->get('margin-left'))
+            && $this->isAuto($style->get('margin-right'))
+        ) {
+            $leftPx = $this->resolveLength($left, $cbWidth);
+            $rightPx = $this->resolveLength($right, $cbWidth);
+            $outerW = $geo->borderLeft + $geo->paddingLeft + $geo->width
+                + $geo->paddingRight + $geo->borderRight;
+            $slackW = $cbWidth - $leftPx - $rightPx - $outerW;
+            $dx = $leftPx + ($slackW / 2.0);
+        }
+
+        // --- Inline axis = physical Y (top / bottom / height), §10.3.7
+        //     with direction over-constraint tie-break. Mirrors the
+        //     horizontal-tb `dx` branch. ---
+        $dy = 0.0;
+        if (!$this->isAuto($top)) {
+            $dy = $this->resolveLength($top, $cbHeight);
+        } elseif (!$this->isAuto($bottom)) {
+            $dy = $cbHeight - $this->resolveLength($bottom, $cbHeight) - $child->geometry->outerHeight();
+        }
+        $heightStyleValue = $style->get('height');
+        $heightKw = $this->sizingKeywordName($heightStyleValue);
+        $heightIsDefinite = !$this->isHeightAutoLike($heightStyleValue)
+            || ($heightKw !== null && $heightKw !== 'stretch');
+        if (!$this->isAuto($top)
+            && !$this->isAuto($bottom)
+            && $heightIsDefinite
+            && $this->isAuto($style->get('margin-top'))
+            && $this->isAuto($style->get('margin-bottom'))
+        ) {
+            $topPx = $this->resolveLength($top, $cbHeight);
+            $bottomPx = $this->resolveLength($bottom, $cbHeight);
+            $outerH = $geo->borderTop + $geo->paddingTop + $geo->height
+                + $geo->paddingBottom + $geo->borderBottom;
+            $slackH = $cbHeight - $topPx - $bottomPx - $outerH;
+            if ($slackH >= 0.0) {
+                $resolvedMarginTop = $slackH / 2.0;
+            } else {
+                // Over-constrained: honour the inline-start inset, zero
+                // its margin. Inline-start is `top` for ltr, `bottom`
+                // for rtl — so rtl pushes the slack onto margin-top.
+                $directionValue = $style->get('direction');
+                $isRtl = $directionValue instanceof Keyword
+                    && strtolower($directionValue->name) === 'rtl';
+                $resolvedMarginTop = $isRtl ? $slackH : 0.0;
+            }
+            $dy = $topPx + $resolvedMarginTop;
+        }
+
         return [$dx, $dy];
     }
 

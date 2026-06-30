@@ -2771,6 +2771,86 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y, $ap->geometry->y, 0.5, 'inline abspos sits on the content line');
     }
 
+    // ------------------------------------------------------------
+    // CSS Writing Modes 4 §7.1 — abspos in a vertical-mode CB runs the
+    // §10.3.7 inline algorithm on physical Y and the §10.6.4 block
+    // algorithm on physical X (axes swapped vs horizontal-tb).
+    // ------------------------------------------------------------
+
+    /**
+     * @return array{0: float, 1: float} the abspos span's [x, y]
+     */
+    private function verticalAbsposGeo(string $cbExtraStyle, string $spanStyle): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="position: relative; width: 320px; height: 320px; '
+            . 'writing-mode: vertical-lr;' . $cbExtraStyle . '">'
+            . '<span id="ap" style="position: absolute;' . $spanStyle . '">x</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        return [$ap->geometry->x, $ap->geometry->y];
+    }
+
+    /**
+     * Block axis (physical X) over-constrained with `auto` margins →
+     * §10.6.4 EVEN split. left:40 right:120 width:80 → slack 80 → x = 60.
+     */
+    public function testVerticalCbBlockAxisEvenSplit(): void
+    {
+        [$x] = $this->verticalAbsposGeo(
+            '',
+            'left: 40px; right: 120px; width: 80px; height: 80px; top: auto; bottom: auto; margin: auto',
+        );
+        // 40 + (320 - 40 - 120 - 80)/2 = 40 + 40 = 80.
+        self::assertEqualsWithDelta(80.0, $x, 0.01);
+    }
+
+    /**
+     * Block axis over-constrained with NON-auto margins → honour the
+     * start inset (`left`), ignore `right`. x = 40.
+     */
+    public function testVerticalCbBlockAxisOverconstrainedHonoursStart(): void
+    {
+        [$x] = $this->verticalAbsposGeo(
+            '',
+            'left: 40px; right: 120px; width: 80px; height: 80px; top: auto; bottom: auto',
+        );
+        self::assertEqualsWithDelta(40.0, $x, 0.01);
+    }
+
+    /**
+     * Inline axis (physical Y) over-constrained with `auto` margins →
+     * §10.3.7 even split (positive slack). top:40 bottom:120 height:80 →
+     * slack 80 → y = 80.
+     */
+    public function testVerticalCbInlineAxisEvenSplit(): void
+    {
+        [, $y] = $this->verticalAbsposGeo(
+            '',
+            'top: 40px; bottom: 120px; height: 80px; width: 80px; left: auto; right: auto; margin: auto',
+        );
+        self::assertEqualsWithDelta(80.0, $y, 0.01);
+    }
+
+    /**
+     * Inline axis over-constrained, NEGATIVE slack, `direction: rtl` →
+     * the slack lands on margin-top (inline-start is `bottom` for rtl),
+     * so the box overflows past the top. top:0 bottom:0 height:400 →
+     * slack -80 → y = -80.
+     */
+    public function testVerticalCbInlineAxisRtlNegativeSlack(): void
+    {
+        [, $y] = $this->verticalAbsposGeo(
+            ' direction: rtl;',
+            'top: 0; bottom: 0; height: 400px; width: 80px; left: auto; right: auto; margin: auto',
+        );
+        self::assertEqualsWithDelta(-80.0, $y, 0.01);
+    }
+
     public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
     {
         // Regression guard: when the parent uses `box-sizing: border-box`,
