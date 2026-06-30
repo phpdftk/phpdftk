@@ -216,6 +216,20 @@ final class BoxGenerator
             $values->set('display', new Keyword('block'));
             $display = 'block';
         }
+        // Foreign-content roots (`<svg>` / `<math>`) are replaced
+        // atomic-inline boxes routed to the dedicated foreign painters.
+        // The UA sheet's `svg, math { display: inline-block }` matches the
+        // unprefixed form by tag name; the prefixed XHTML form
+        // (`<svg:svg>`, localName `"svg:svg"`) misses that selector and
+        // would fall back to generic inline flow. Force any inline-level
+        // foreign root to `inline-block` so it generates an
+        // `AtomicInlineBox`.
+        if ($this->isForeignContentRoot($element)
+            && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
+        ) {
+            $values->set('display', new Keyword('inline-block'));
+            $display = 'inline-block';
+        }
         // CSS Containment 2 §4 — `content-visibility: hidden`
         // suppresses box generation just like `display: none` for
         // static print. (`auto` is a runtime-visibility optimisation
@@ -1620,18 +1634,31 @@ final class BoxGenerator
      */
     private function isForeignContentRoot(Element $element): bool
     {
+        return self::foreignContentKind($element) !== null;
+    }
+
+    /**
+     * Classify an element as a foreign-content root: `'svg'`, `'math'`,
+     * or `null`. Handles both the standard namespaced form (`<svg>` in
+     * the SVG namespace) AND the prefixed XHTML form (`<svg:svg>` /
+     * `<math:math>`), which the HTML parser leaves as a plain element
+     * with `localName` like `"svg:svg"` and the HTML namespace — the
+     * prefix then identifies the foreign content.
+     */
+    public static function foreignContentKind(Element $element): ?string
+    {
         $tag = strtolower($element->localName);
-        if ($tag !== 'math' && $tag !== 'svg') {
-            return false;
-        }
-        // Belt-and-braces: confirm the namespace too so an HTML
-        // element with `localName="math"` (which can happen in
-        // some XML fragments) doesn't escape the blockification.
+        $colon = strrpos($tag, ':');
+        $prefixed = $colon !== false;
+        $local = $prefixed ? substr($tag, $colon + 1) : $tag;
         $ns = $element->namespaceUri();
-        if ($tag === 'math') {
-            return $ns === \Phpdftk\Mathml\Parser::MATHML_NS;
+        if ($local === 'math' && ($prefixed || $ns === \Phpdftk\Mathml\Parser::MATHML_NS)) {
+            return 'math';
         }
-        return $ns === \Phpdftk\Svg\Parser::SVG_NS;
+        if ($local === 'svg' && ($prefixed || $ns === \Phpdftk\Svg\Parser::SVG_NS)) {
+            return 'svg';
+        }
+        return null;
     }
 
     /**

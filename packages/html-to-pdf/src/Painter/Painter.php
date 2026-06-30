@@ -1229,15 +1229,12 @@ final class Painter
         // AtomicInlineBox path historically only knew about `<img>`.
         // Detect each foreign namespace and route to the dedicated
         // painter before the img-src lookup.
-        if ($element->namespaceUri() === \Phpdftk\Svg\Parser::SVG_NS
-            && strtolower($element->localName) === 'svg'
-        ) {
+        $foreignKind = \Phpdftk\HtmlToPdf\Box\BoxGenerator::foreignContentKind($element);
+        if ($foreignKind === 'svg') {
             $this->paintInlineSvg($element, $box, $stream);
             return;
         }
-        if ($element->namespaceUri() === \Phpdftk\Mathml\Parser::MATHML_NS
-            && strtolower($element->localName) === 'math'
-        ) {
+        if ($foreignKind === 'math') {
             $this->paintInlineMath($element, $box, $stream);
             return;
         }
