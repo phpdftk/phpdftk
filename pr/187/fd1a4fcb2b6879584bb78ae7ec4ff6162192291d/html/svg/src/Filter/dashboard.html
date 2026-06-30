@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/svg/src/Filter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">svg</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Filter</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">25</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="FeConvolveMatrix.php.html#21"><circle cx="702.9" cy="86.0" r="20.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix — Coverage: 89.3% | Lines: 28 | Complexity: 20</title></circle></a>
+ <a href="FeColorMatrix.php.html#17"><circle cx="666.3" cy="191.6" r="16.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix — Coverage: 84.2% | Lines: 19 | Complexity: 12</title></circle></a>
+ <a href="FeFunc.php.html#22"><circle cx="628.4" cy="178.4" r="16.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeFunc — Coverage: 78.9% | Lines: 19 | Complexity: 13</title></circle></a>
+ <a href="FeDropShadow.php.html#15"><circle cx="684.0" cy="218.0" r="14.6" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow — Coverage: 86.7% | Lines: 15 | Complexity: 10</title></circle></a>
+ <a href="FeTurbulence.php.html#19"><circle cx="780.0" cy="204.8" r="14.1" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence — Coverage: 100.0% | Lines: 14 | Complexity: 11</title></circle></a>
+ <a href="FeSpecularLighting.php.html#17"><circle cx="240.0" cy="231.2" r="13.1" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting — Coverage: 25.0% | Lines: 12 | Complexity: 9</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#20"><circle cx="321.8" cy="244.4" r="12.5" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeDiffuseLighting — Coverage: 36.4% | Lines: 11 | Complexity: 8</title></circle></a>
+ <a href="FeGaussianBlur.php.html#16"><circle cx="708.0" cy="257.6" r="12.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="FeMorphology.php.html#15"><circle cx="708.0" cy="257.6" r="12.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="FeSpotLight.php.html#19"><circle cx="564.0" cy="218.0" r="12.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeSpotLight — Coverage: 70.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="FilterPrimitive.php.html#35"><circle cx="780.0" cy="218.0" r="12.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive — Coverage: 100.0% | Lines: 10 | Complexity: 10</title></circle></a>
+ <a href="FeBlend.php.html#17"><circle cx="780.0" cy="297.2" r="11.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="FeComposite.php.html#17"><circle cx="700.0" cy="244.4" r="11.3" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeComposite — Coverage: 88.9% | Lines: 9 | Complexity: 8</title></circle></a>
+ <a href="FeDisplacementMap.php.html#17"><circle cx="780.0" cy="257.6" r="10.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap — Coverage: 100.0% | Lines: 7 | Complexity: 7</title></circle></a>
+ <a href="FeFlood.php.html#12"><circle cx="780.0" cy="297.2" r="9.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="FeImage.php.html#13"><circle cx="636.0" cy="297.2" r="8.5" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeImage — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="FePointLight.php.html#16"><circle cx="780.0" cy="297.2" r="7.6" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="FeDistantLight.php.html#17"><circle cx="780.0" cy="310.4" r="6.5" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="FeOffset.php.html#13"><circle cx="780.0" cy="310.4" r="6.5" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="FeMergeNode.php.html#14"><circle cx="780.0" cy="323.6" r="5.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeComponentTransfer.php.html#13"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComponentTransfer — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncA.php.html#7"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncA — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncB.php.html#7"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncB — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncG.php.html#7"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncG — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncR.php.html#7"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncR — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeMerge.php.html#20"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMerge — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeTile.php.html#14"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTile — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="FeSpecularLighting.php.html#17">Phpdftk\Svg\Filter\FeSpecularLighting</a></td><td class="text-right">43.17</td><td class="text-right">25.0%</td></tr>
+  <tr><td><a href="FeDiffuseLighting.php.html#20">Phpdftk\Svg\Filter\FeDiffuseLighting</a></td><td class="text-right">24.49</td><td class="text-right">36.4%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#21">Phpdftk\Svg\Filter\FeConvolveMatrix</a></td><td class="text-right">20.49</td><td class="text-right">89.3%</td></tr>
+  <tr><td><a href="FeFunc.php.html#22">Phpdftk\Svg\Filter\FeFunc</a></td><td class="text-right">14.58</td><td class="text-right">78.9%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#19">Phpdftk\Svg\Filter\FeSpotLight</a></td><td class="text-right">12.70</td><td class="text-right">70.0%</td></tr>
+  <tr><td><a href="FeColorMatrix.php.html#17">Phpdftk\Svg\Filter\FeColorMatrix</a></td><td class="text-right">12.57</td><td class="text-right">84.2%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#19">Phpdftk\Svg\Filter\FeTurbulence</a></td><td class="text-right">11</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#15">Phpdftk\Svg\Filter\FeDropShadow</a></td><td class="text-right">10.24</td><td class="text-right">86.7%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#35">Phpdftk\Svg\Filter\FilterPrimitive</a></td><td class="text-right">10</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#17">Phpdftk\Svg\Filter\FeComposite</a></td><td class="text-right">8.09</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="FeGaussianBlur.php.html#16">Phpdftk\Svg\Filter\FeGaussianBlur</a></td><td class="text-right">7.05</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="FeMorphology.php.html#15">Phpdftk\Svg\Filter\FeMorphology</a></td><td class="text-right">7.05</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#17">Phpdftk\Svg\Filter\FeDisplacementMap</a></td><td class="text-right">7</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeImage.php.html#13">Phpdftk\Svg\Filter\FeImage</a></td><td class="text-right">4.13</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="FeBlend.php.html#17">Phpdftk\Svg\Filter\FeBlend</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFlood.php.html#12">Phpdftk\Svg\Filter\FeFlood</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FePointLight.php.html#16">Phpdftk\Svg\Filter\FePointLight</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDistantLight.php.html#17">Phpdftk\Svg\Filter\FeDistantLight</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeOffset.php.html#13">Phpdftk\Svg\Filter\FeOffset</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMergeNode.php.html#14">Phpdftk\Svg\Filter\FeMergeNode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComponentTransfer.php.html#13">Phpdftk\Svg\Filter\FeComponentTransfer</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncA.php.html#7">Phpdftk\Svg\Filter\FeFuncA</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncB.php.html#7">Phpdftk\Svg\Filter\FeFuncB</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncG.php.html#7">Phpdftk\Svg\Filter\FeFuncG</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncR.php.html#7">Phpdftk\Svg\Filter\FeFuncR</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMerge.php.html#20">Phpdftk\Svg\Filter\FeMerge</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTile.php.html#14">Phpdftk\Svg\Filter\FeTile</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">4</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">6</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">8</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="FeColorMatrix.php.html#44"><circle cx="636.0" cy="143.8" r="20.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix::values — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#46"><circle cx="636.0" cy="143.8" r="20.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::kernelMatrix — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="FeFunc.php.html#36"><circle cx="636.0" cy="143.8" r="20.0" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeFunc::tableValues — Coverage: 80.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="FeColorMatrix.php.html#24"><circle cx="690.0" cy="102.5" r="17.9" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeColorMatrix::type — Coverage: 87.5% | Lines: 8 | Complexity: 6</title></circle></a>
+ <a href="FeBlend.php.html#24"><circle cx="780.0" cy="267.5" r="16.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::mode — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#31"><circle cx="677.1" cy="185.0" r="16.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::order — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#46"><circle cx="60.0" cy="185.0" r="16.7" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::kernelUnitLength — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeDropShadow.php.html#35"><circle cx="677.1" cy="185.0" r="16.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow::stdDeviation — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeGaussianBlur.php.html#28"><circle cx="677.1" cy="185.0" r="16.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeGaussianBlur::stdDeviation — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeMorphology.php.html#31"><circle cx="677.1" cy="185.0" r="16.7" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeMorphology::radius — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeSpecularLighting.php.html#47"><circle cx="60.0" cy="185.0" r="16.7" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::kernelUnitLength — Coverage: 0.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeTurbulence.php.html#29"><circle cx="780.0" cy="185.0" r="16.7" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::baseFrequency — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="FeDropShadow.php.html#52"><circle cx="600.0" cy="267.5" r="12.6" class="bubble-warning"><title>Phpdftk\Svg\Filter\FeDropShadow::floodOpacity — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="FeFlood.php.html#29"><circle cx="780.0" cy="267.5" r="12.6" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::floodOpacity — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="FeFunc.php.html#24"><circle cx="780.0" cy="226.2" r="12.6" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::type — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="FeComposite.php.html#24"><circle cx="780.0" cy="267.5" r="11.0" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::operator — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#63"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::divisor — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#74"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::targetX — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#80"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::targetY — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#86"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::edgeMode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeDisplacementMap.php.html#44"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::channel — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeGaussianBlur.php.html#45"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur::edgeMode — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeImage.php.html#20"><circle cx="780.0" cy="308.8" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::href — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="FeMorphology.php.html#22"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology::operator — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeSpotLight.php.html#61"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::limitingConeAngle — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeTurbulence.php.html#51"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::stitchTiles — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeTurbulence.php.html#57"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::type — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FilterPrimitive.php.html#37"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::x — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FilterPrimitive.php.html#43"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::y — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FilterPrimitive.php.html#49"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::width — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FilterPrimitive.php.html#55"><circle cx="780.0" cy="267.5" r="8.9" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::height — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="FeBlend.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeBlend.php.html#35"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeBlend::in2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeColorMatrix.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeColorMatrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComponentTransfer.php.html#15"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComponentTransfer::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#31"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeComposite::in2 — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#36"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k1 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#41"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#46"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k3 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeComposite.php.html#51"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeComposite::k4 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#23"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#69"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::bias — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeConvolveMatrix.php.html#92"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeConvolveMatrix::preserveAlpha — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#22"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#27"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::lightingColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#32"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::surfaceScale — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDiffuseLighting.php.html#37"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDiffuseLighting::diffuseConstant — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDisplacementMap.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDisplacementMap.php.html#24"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::in2 — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDisplacementMap.php.html#29"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::scale — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDisplacementMap.php.html#34"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::xChannelSelector — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDisplacementMap.php.html#39"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDisplacementMap::yChannelSelector — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDistantLight.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDistantLight.php.html#24"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::azimuth — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDistantLight.php.html#29"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDistantLight::elevation — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDropShadow.php.html#17"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDropShadow.php.html#22"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::dx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDropShadow.php.html#27"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::dy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeDropShadow.php.html#47"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeDropShadow::floodColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFlood.php.html#14"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFlood.php.html#24"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFlood::floodColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFunc.php.html#53"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::slope — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFunc.php.html#58"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::intercept — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFunc.php.html#63"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeFunc::amplitude — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFunc.php.html#68"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFunc::exponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFunc.php.html#73"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeFunc::offset — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncA.php.html#9"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncA::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncB.php.html#9"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncB::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncG.php.html#9"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncG::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeFuncR.php.html#9"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeFuncR::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeGaussianBlur.php.html#18"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeGaussianBlur::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeImage.php.html#15"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeImage.php.html#26"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeImage::preserveAspectRatio — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeImage.php.html#36"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeImage::crossOrigin — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeMerge.php.html#22"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMerge::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeMergeNode.php.html#16"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeMergeNode.php.html#21"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMergeNode::in — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeMorphology.php.html#17"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeMorphology::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeOffset.php.html#15"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeOffset.php.html#20"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::dx — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeOffset.php.html#25"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeOffset::dy — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FePointLight.php.html#18"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FePointLight.php.html#23"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FePointLight.php.html#28"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::y — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FePointLight.php.html#33"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FePointLight::z — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpecularLighting.php.html#19"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpecularLighting.php.html#24"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::lightingColor — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpecularLighting.php.html#29"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpecularLighting::surfaceScale — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpecularLighting.php.html#34"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::specularConstant — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpecularLighting.php.html#39"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpecularLighting::specularExponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#21"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#26"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::x — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#31"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::y — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#36"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::z — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#41"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtX — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#46"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtY — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#51"><circle cx="60.0" cy="308.8" r="6.3" class="bubble-danger"><title>Phpdftk\Svg\Filter\FeSpotLight::pointsAtZ — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeSpotLight.php.html#56"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeSpotLight::specularExponent — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeTile.php.html#16"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTile::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeTurbulence.php.html#21"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeTurbulence.php.html#41"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::numOctaves — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FeTurbulence.php.html#46"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FeTurbulence::seed — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FilterPrimitive.php.html#66"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::in — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FilterPrimitive.php.html#76"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Svg\Filter\FilterPrimitive::result — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="FeDiffuseLighting.php.html#46">Phpdftk\Svg\Filter\FeDiffuseLighting::kernelUnitLength</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#47">Phpdftk\Svg\Filter\FeSpecularLighting::kernelUnitLength</a></td><td class="text-right">20</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeColorMatrix.php.html#24">Phpdftk\Svg\Filter\FeColorMatrix::type</a></td><td class="text-right">6.07</td><td class="text-right">87.5%</td></tr>
+  <tr><td><a href="FeColorMatrix.php.html#44">Phpdftk\Svg\Filter\FeColorMatrix::values</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#46">Phpdftk\Svg\Filter\FeConvolveMatrix::kernelMatrix</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#36">Phpdftk\Svg\Filter\FeFunc::tableValues</a></td><td class="text-right">5.20</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#31">Phpdftk\Svg\Filter\FeConvolveMatrix::order</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#35">Phpdftk\Svg\Filter\FeDropShadow::stdDeviation</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="FeGaussianBlur.php.html#28">Phpdftk\Svg\Filter\FeGaussianBlur::stdDeviation</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="FeMorphology.php.html#31">Phpdftk\Svg\Filter\FeMorphology::radius</a></td><td class="text-right">4.05</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#29">Phpdftk\Svg\Filter\FeTurbulence::baseFrequency</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#24">Phpdftk\Svg\Filter\FeFunc::type</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#52">Phpdftk\Svg\Filter\FeDropShadow::floodOpacity</a></td><td class="text-right">2.06</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="FeBlend.php.html#24">Phpdftk\Svg\Filter\FeBlend::mode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#24">Phpdftk\Svg\Filter\FeComposite::operator</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#31">Phpdftk\Svg\Filter\FeComposite::in2</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#63">Phpdftk\Svg\Filter\FeConvolveMatrix::divisor</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#74">Phpdftk\Svg\Filter\FeConvolveMatrix::targetX</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#80">Phpdftk\Svg\Filter\FeConvolveMatrix::targetY</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#86">Phpdftk\Svg\Filter\FeConvolveMatrix::edgeMode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#44">Phpdftk\Svg\Filter\FeDisplacementMap::channel</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFlood.php.html#29">Phpdftk\Svg\Filter\FeFlood::floodOpacity</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#63">Phpdftk\Svg\Filter\FeFunc::amplitude</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#73">Phpdftk\Svg\Filter\FeFunc::offset</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeGaussianBlur.php.html#45">Phpdftk\Svg\Filter\FeGaussianBlur::edgeMode</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeImage.php.html#36">Phpdftk\Svg\Filter\FeImage::crossOrigin</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeMorphology.php.html#22">Phpdftk\Svg\Filter\FeMorphology::operator</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#24">Phpdftk\Svg\Filter\FeSpecularLighting::lightingColor</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#29">Phpdftk\Svg\Filter\FeSpecularLighting::surfaceScale</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#31">Phpdftk\Svg\Filter\FeSpotLight::y</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#46">Phpdftk\Svg\Filter\FeSpotLight::pointsAtY</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#51">Phpdftk\Svg\Filter\FeSpotLight::pointsAtZ</a></td><td class="text-right">2</td><td class="text-right">0.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#61">Phpdftk\Svg\Filter\FeSpotLight::limitingConeAngle</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#51">Phpdftk\Svg\Filter\FeTurbulence::stitchTiles</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#57">Phpdftk\Svg\Filter\FeTurbulence::type</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#37">Phpdftk\Svg\Filter\FilterPrimitive::x</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#43">Phpdftk\Svg\Filter\FilterPrimitive::y</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#49">Phpdftk\Svg\Filter\FilterPrimitive::width</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#55">Phpdftk\Svg\Filter\FilterPrimitive::height</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeBlend.php.html#19">Phpdftk\Svg\Filter\FeBlend::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeBlend.php.html#35">Phpdftk\Svg\Filter\FeBlend::in2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeColorMatrix.php.html#19">Phpdftk\Svg\Filter\FeColorMatrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComponentTransfer.php.html#15">Phpdftk\Svg\Filter\FeComponentTransfer::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#19">Phpdftk\Svg\Filter\FeComposite::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#36">Phpdftk\Svg\Filter\FeComposite::k1</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#41">Phpdftk\Svg\Filter\FeComposite::k2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#46">Phpdftk\Svg\Filter\FeComposite::k3</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeComposite.php.html#51">Phpdftk\Svg\Filter\FeComposite::k4</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#23">Phpdftk\Svg\Filter\FeConvolveMatrix::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#69">Phpdftk\Svg\Filter\FeConvolveMatrix::bias</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeConvolveMatrix.php.html#92">Phpdftk\Svg\Filter\FeConvolveMatrix::preserveAlpha</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDiffuseLighting.php.html#22">Phpdftk\Svg\Filter\FeDiffuseLighting::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDiffuseLighting.php.html#27">Phpdftk\Svg\Filter\FeDiffuseLighting::lightingColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDiffuseLighting.php.html#32">Phpdftk\Svg\Filter\FeDiffuseLighting::surfaceScale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDiffuseLighting.php.html#37">Phpdftk\Svg\Filter\FeDiffuseLighting::diffuseConstant</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#19">Phpdftk\Svg\Filter\FeDisplacementMap::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#24">Phpdftk\Svg\Filter\FeDisplacementMap::in2</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#29">Phpdftk\Svg\Filter\FeDisplacementMap::scale</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#34">Phpdftk\Svg\Filter\FeDisplacementMap::xChannelSelector</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDisplacementMap.php.html#39">Phpdftk\Svg\Filter\FeDisplacementMap::yChannelSelector</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDistantLight.php.html#19">Phpdftk\Svg\Filter\FeDistantLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDistantLight.php.html#24">Phpdftk\Svg\Filter\FeDistantLight::azimuth</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDistantLight.php.html#29">Phpdftk\Svg\Filter\FeDistantLight::elevation</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#17">Phpdftk\Svg\Filter\FeDropShadow::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#22">Phpdftk\Svg\Filter\FeDropShadow::dx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#27">Phpdftk\Svg\Filter\FeDropShadow::dy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeDropShadow.php.html#47">Phpdftk\Svg\Filter\FeDropShadow::floodColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFlood.php.html#14">Phpdftk\Svg\Filter\FeFlood::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFlood.php.html#24">Phpdftk\Svg\Filter\FeFlood::floodColor</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#53">Phpdftk\Svg\Filter\FeFunc::slope</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#58">Phpdftk\Svg\Filter\FeFunc::intercept</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFunc.php.html#68">Phpdftk\Svg\Filter\FeFunc::exponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncA.php.html#9">Phpdftk\Svg\Filter\FeFuncA::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncB.php.html#9">Phpdftk\Svg\Filter\FeFuncB::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncG.php.html#9">Phpdftk\Svg\Filter\FeFuncG::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeFuncR.php.html#9">Phpdftk\Svg\Filter\FeFuncR::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeGaussianBlur.php.html#18">Phpdftk\Svg\Filter\FeGaussianBlur::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeImage.php.html#15">Phpdftk\Svg\Filter\FeImage::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeImage.php.html#20">Phpdftk\Svg\Filter\FeImage::href</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeImage.php.html#26">Phpdftk\Svg\Filter\FeImage::preserveAspectRatio</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMerge.php.html#22">Phpdftk\Svg\Filter\FeMerge::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMergeNode.php.html#16">Phpdftk\Svg\Filter\FeMergeNode::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMergeNode.php.html#21">Phpdftk\Svg\Filter\FeMergeNode::in</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeMorphology.php.html#17">Phpdftk\Svg\Filter\FeMorphology::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeOffset.php.html#15">Phpdftk\Svg\Filter\FeOffset::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeOffset.php.html#20">Phpdftk\Svg\Filter\FeOffset::dx</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeOffset.php.html#25">Phpdftk\Svg\Filter\FeOffset::dy</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FePointLight.php.html#18">Phpdftk\Svg\Filter\FePointLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FePointLight.php.html#23">Phpdftk\Svg\Filter\FePointLight::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FePointLight.php.html#28">Phpdftk\Svg\Filter\FePointLight::y</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FePointLight.php.html#33">Phpdftk\Svg\Filter\FePointLight::z</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#19">Phpdftk\Svg\Filter\FeSpecularLighting::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#34">Phpdftk\Svg\Filter\FeSpecularLighting::specularConstant</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpecularLighting.php.html#39">Phpdftk\Svg\Filter\FeSpecularLighting::specularExponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#21">Phpdftk\Svg\Filter\FeSpotLight::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#26">Phpdftk\Svg\Filter\FeSpotLight::x</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#36">Phpdftk\Svg\Filter\FeSpotLight::z</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#41">Phpdftk\Svg\Filter\FeSpotLight::pointsAtX</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeSpotLight.php.html#56">Phpdftk\Svg\Filter\FeSpotLight::specularExponent</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTile.php.html#16">Phpdftk\Svg\Filter\FeTile::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#21">Phpdftk\Svg\Filter\FeTurbulence::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#41">Phpdftk\Svg\Filter\FeTurbulence::numOctaves</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FeTurbulence.php.html#46">Phpdftk\Svg\Filter\FeTurbulence::seed</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#66">Phpdftk\Svg\Filter\FilterPrimitive::in</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="FilterPrimitive.php.html#76">Phpdftk\Svg\Filter\FilterPrimitive::result</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Tue Jun 30 3:38:44 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>

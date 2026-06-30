@@ -1,0 +1,10 @@
+{
+    "coverage": 86.1,
+    "statements": 47319,
+    "covered_statements": 40741,
+    "methods": 4348,
+    "covered_methods": 2956,
+    "commit": "fd1a4fcb2b6879584bb78ae7ec4ff6162192291d",
+    "ref": "refs\/pull\/187\/merge",
+    "timestamp": "2026-06-30T03:39:18+00:00"
+}

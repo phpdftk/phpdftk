@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /home/runner/work/phpdftk/phpdftk/packages/pdf/core/src/File</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../../../../_css/bootstrap.min.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/style.css?v=14.2.2" rel="stylesheet" type="text/css">
+  <link href="../../../../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../../../../index.html">/home/runner/work/phpdftk/phpdftk/packages</a></li>
+         <li class="breadcrumb-item"><a href="../../../index.html">pdf</a></li>
+         <li class="breadcrumb-item"><a href="../../index.html">core</a></li>
+         <li class="breadcrumb-item"><a href="../index.html">src</a></li>
+         <li class="breadcrumb-item"><a href="index.html">File</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Classes</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">200</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="PdfFileWriter.php.html#44"><circle cx="708.9" cy="104.2" r="20.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter — Coverage: 90.1% | Lines: 577 | Complexity: 149</title></circle></a>
+ <a href="PdfHydrator.php.html#29"><circle cx="606.4" cy="137.2" r="17.1" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfHydrator — Coverage: 75.9% | Lines: 423 | Complexity: 129</title></circle></a>
+ <a href="IncrementalWriter.php.html#38"><circle cx="719.5" cy="208.1" r="13.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter — Coverage: 91.6% | Lines: 250 | Complexity: 86</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#16"><circle cx="780.0" cy="308.8" r="6.3" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver — Coverage: 100.0% | Lines: 57 | Complexity: 25</title></circle></a>
+ <a href="BitWriter.php.html#13"><circle cx="752.3" cy="333.5" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter — Coverage: 96.2% | Lines: 26 | Complexity: 10</title></circle></a>
+ <a href="TrailerDictionary.php.html#24"><circle cx="780.0" cy="340.1" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\TrailerDictionary — Coverage: 100.0% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="CrossReferenceTable.php.html#22"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CrossReferenceTable — Coverage: 100.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="DeprecatedFeatureException.php.html#15"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\DeprecatedFeatureException — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="VersionRequirementException.php.html#13"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementException — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="CeilingVersionException.php.html#14"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CeilingVersionException — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="ObjectRegistry.php.html#17"><circle cx="780.0" cy="345.1" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\ObjectRegistry — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Class</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="PdfHydrator.php.html#29">Phpdftk\Pdf\Core\File\PdfHydrator</a></td><td class="text-right">362.32</td><td class="text-right">75.9%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#44">Phpdftk\Pdf\Core\File\PdfFileWriter</a></td><td class="text-right">170.40</td><td class="text-right">90.1%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#38">Phpdftk\Pdf\Core\File\IncrementalWriter</a></td><td class="text-right">90.38</td><td class="text-right">91.6%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#16">Phpdftk\Pdf\Core\File\VersionRequirementResolver</a></td><td class="text-right">25</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BitWriter.php.html#13">Phpdftk\Pdf\Core\File\BitWriter</a></td><td class="text-right">10</td><td class="text-right">96.2%</td></tr>
+  <tr><td><a href="TrailerDictionary.php.html#24">Phpdftk\Pdf\Core\File\TrailerDictionary</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceTable.php.html#22">Phpdftk\Pdf\Core\File\CrossReferenceTable</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRegistry.php.html#17">Phpdftk\Pdf\Core\File\ObjectRegistry</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DeprecatedFeatureException.php.html#15">Phpdftk\Pdf\Core\File\DeprecatedFeatureException</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CeilingVersionException.php.html#14">Phpdftk\Pdf\Core\File\CeilingVersionException</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementException.php.html#13">Phpdftk\Pdf\Core\File\VersionRequirementException</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <div class="row dashboard-row">
+    <div class="col-md-6">
+     <h3>Methods</h3>
+     <p class="text-muted small">Bubble size = executable lines. Hover for details, click to navigate.</p>
+     <div class="file-coverage-chart">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--phpunit-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--phpunit-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--phpunit-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--bs-emphasis-color); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--bs-border-color); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--bs-border-color); stroke-width: 1; }
+  .chart-label { fill: var(--bs-body-color); font-size: 11px; font-family: var(--bs-font-sans-serif, sans-serif); }
+  .chart-title { fill: var(--bs-body-color); font-size: 12px; font-family: var(--bs-font-sans-serif, sans-serif); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="PdfFileWriter.php.html#597"><circle cx="747.8" cy="198.2" r="20.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::generateLinearized — Coverage: 95.5% | Lines: 179 | Complexity: 23</title></circle></a>
+ <a href="PdfHydrator.php.html#406"><circle cx="433.7" cy="125.6" r="18.8" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfHydrator::getOverrides — Coverage: 51.9% | Lines: 158 | Complexity: 34</title></circle></a>
+ <a href="PdfFileWriter.php.html#333"><circle cx="752.9" cy="72.8" r="17.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::generate — Coverage: 96.2% | Lines: 133 | Complexity: 42</title></circle></a>
+ <a href="PdfHydrator.php.html#576"><circle cx="780.0" cy="310.4" r="16.8" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::registerDefaults — Coverage: 100.0% | Lines: 126 | Complexity: 6</title></circle></a>
+ <a href="IncrementalWriter.php.html#239"><circle cx="749.2" cy="99.2" r="16.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::generate — Coverage: 95.7% | Lines: 117 | Complexity: 38</title></circle></a>
+ <a href="PdfFileWriter.php.html#1090"><circle cx="592.2" cy="303.8" r="10.1" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::applySignature — Coverage: 73.9% | Lines: 46 | Complexity: 7</title></circle></a>
+ <a href="PdfHydrator.php.html#241"><circle cx="436.4" cy="112.4" r="9.9" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfHydrator::extractConstructorArg — Coverage: 52.3% | Lines: 44 | Complexity: 36</title></circle></a>
+ <a href="IncrementalWriter.php.html#447"><circle cx="582.0" cy="270.8" r="9.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::checkVersionRequirements — Coverage: 72.5% | Lines: 40 | Complexity: 12</title></circle></a>
+ <a href="PdfFileWriter.php.html#1248"><circle cx="466.2" cy="257.6" r="9.3" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::applyCeilingStripping — Coverage: 56.4% | Lines: 39 | Complexity: 14</title></circle></a>
+ <a href="PdfFileWriter.php.html#1167"><circle cx="565.9" cy="270.8" r="9.1" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::checkVersionRequirements — Coverage: 70.3% | Lines: 37 | Complexity: 12</title></circle></a>
+ <a href="IncrementalWriter.php.html#103"><circle cx="726.7" cy="310.4" r="7.8" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::fromReader — Coverage: 92.6% | Lines: 27 | Complexity: 6</title></circle></a>
+ <a href="IncrementalWriter.php.html#527"><circle cx="780.0" cy="290.6" r="7.6" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::buildIncrementalXref — Coverage: 100.0% | Lines: 26 | Complexity: 9</title></circle></a>
+ <a href="PdfHydrator.php.html#100"><circle cx="780.0" cy="264.2" r="7.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::hydrate — Coverage: 100.0% | Lines: 25 | Complexity: 13</title></circle></a>
+ <a href="PdfHydrator.php.html#193"><circle cx="664.8" cy="284.0" r="7.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfHydrator::construct — Coverage: 84.0% | Lines: 25 | Complexity: 10</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#57"><circle cx="780.0" cy="297.2" r="6.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver::getEffectiveRequirement — Coverage: 100.0% | Lines: 19 | Complexity: 8</title></circle></a>
+ <a href="PdfHydrator.php.html#363"><circle cx="780.0" cy="297.2" r="6.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::getKeyMap — Coverage: 100.0% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="PdfHydrator.php.html#311"><circle cx="735.0" cy="270.8" r="6.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::coerce — Coverage: 93.8% | Lines: 16 | Complexity: 12</title></circle></a>
+ <a href="PdfFileWriter.php.html#977"><circle cx="780.0" cy="343.4" r="5.6" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::buildMinimalHintStream — Coverage: 100.0% | Lines: 14 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#244"><circle cx="780.0" cy="343.4" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setSigner — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#278"><circle cx="780.0" cy="343.4" r="5.4" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setTimestamper — Coverage: 100.0% | Lines: 13 | Complexity: 1</title></circle></a>
+ <a href="TrailerDictionary.php.html#38"><circle cx="780.0" cy="317.0" r="5.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\TrailerDictionary::toPdf — Coverage: 100.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#30"><circle cx="780.0" cy="310.4" r="5.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver::getClassRequirement — Coverage: 100.0% | Lines: 12 | Complexity: 6</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#95"><circle cx="780.0" cy="317.0" r="5.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver::getDeprecation — Coverage: 100.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="PdfFileWriter.php.html#924"><circle cx="780.0" cy="343.4" r="5.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::emitPaddedLinearizationDict — Coverage: 100.0% | Lines: 11 | Complexity: 1</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#125"><circle cx="780.0" cy="317.0" r="5.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver::stripIncompatibleProperties — Coverage: 100.0% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="BitWriter.php.html#26"><circle cx="708.0" cy="323.6" r="4.7" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter::writeBits — Coverage: 90.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="DeprecatedFeatureException.php.html#17"><circle cx="780.0" cy="336.8" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\DeprecatedFeatureException::__construct — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="IncrementalWriter.php.html#576"><circle cx="620.0" cy="330.2" r="4.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::findStartxrefOffset — Coverage: 77.8% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="PdfFileWriter.php.html#1025"><circle cx="700.0" cy="330.2" r="4.5" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::writeTo — Coverage: 88.9% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="PdfFileWriter.php.html#1054"><circle cx="780.0" cy="317.0" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::applyStreamCompression — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="PdfFileWriter.php.html#1313"><circle cx="780.0" cy="330.2" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::applyVersionRequirement — Coverage: 100.0% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="VersionRequirementException.php.html#15"><circle cx="780.0" cy="343.4" r="4.5" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementException::__construct — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#107"><circle cx="780.0" cy="330.2" r="4.2" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setEncryption — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="CeilingVersionException.php.html#16"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CeilingVersionException::__construct — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceTable.php.html#49"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CrossReferenceTable::build — Coverage: 100.0% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="PdfFileWriter.php.html#73"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::__construct — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="PdfFileWriter.php.html#957"><circle cx="677.1" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::patchHintArray — Coverage: 85.7% | Lines: 7 | Complexity: 2</title></circle></a>
+ <a href="BitWriter.php.html#68"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter::getData — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="IncrementalWriter.php.html#196"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::addModifiedObject — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="IncrementalWriter.php.html#225"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::addNewObject — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#1230"><circle cx="660.0" cy="317.0" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::enforceRemoval — Coverage: 83.3% | Lines: 6 | Complexity: 5</title></circle></a>
+ <a href="BitWriter.php.html#57"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter::alignToByte — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="ObjectRegistry.php.html#26"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\ObjectRegistry::register — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#943"><circle cx="636.0" cy="336.8" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::patchPaddedNumber — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="PdfHydrator.php.html#162"><circle cx="780.0" cy="323.6" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::resolveClass — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="BitWriter.php.html#48"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter::writeUint32 — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#68"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::__construct — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#508"><circle cx="600.0" cy="323.6" r="4.0" class="bubble-warning"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::enforceRemoval — Coverage: 75.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="PdfFileWriter.php.html#176"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setCeilingVersion — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="PdfFileWriter.php.html#189"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setCatalog — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#201"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setInfo — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="PdfHydrator.php.html#181"><circle cx="780.0" cy="330.2" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::resolveActionClass — Coverage: 100.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="IncrementalWriter.php.html#212"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::deleteObject — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="PdfFileWriter.php.html#141"><circle cx="780.0" cy="336.8" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setVersion — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="PdfFileWriter.php.html#219"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::register — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="VersionRequirementResolver.php.html#151"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\VersionRequirementResolver::clearCache — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#1044"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::save — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="BitWriter.php.html#81"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\BitWriter::getBitPosition — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceTable.php.html#30"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CrossReferenceTable::add — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CrossReferenceTable.php.html#40"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\CrossReferenceTable::getEntries — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#92"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::setEncryption — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#152"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::getPdfVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#164"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::wasVersionBumped — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#169"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::setStrictVersionMode — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#174"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::setDeprecationHandler — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#179"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::setStrictDeprecation — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#185"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::getVersionWarnings — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="IncrementalWriter.php.html#439"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\IncrementalWriter::save — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ObjectRegistry.php.html#40"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\ObjectRegistry::getAll — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ObjectRegistry.php.html#48"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\ObjectRegistry::getSize — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#93"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setCompressStreams — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#126"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::getRegistry — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#131"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::getVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#136"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::getPdfVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#148"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setStrictVersionMode — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#153"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setDeprecationHandler — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#158"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setStrictDeprecation — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#164"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::getVersionWarnings — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#211"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::getInfo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#307"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::setTsaClient — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#1005"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::buildSubsectionXref — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfFileWriter.php.html#1013"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfFileWriter::toBytes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfHydrator.php.html#65"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::registerType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfHydrator.php.html#75"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::registerSubtype — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="PdfHydrator.php.html#85"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\PdfHydrator::registerActionType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="TrailerDictionary.php.html#33"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Phpdftk\Pdf\Core\File\TrailerDictionary::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+    </div>
+    <div class="col-md-6 dashboard-column">
+     <h3>&nbsp;</h3>
+     <p class="text-muted small">Sorted by descending CRAP (Change Risk Anti-Patterns) index.</p>
+     <div class="scrollbox">
+<table class="table">
+ <thead>
+  <tr>
+   <th>Method</th>
+   <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+   <th class="text-right">Coverage</th>
+  </tr>
+ </thead>
+ <tbody>
+  <tr><td><a href="PdfHydrator.php.html#241">Phpdftk\Pdf\Core\File\PdfHydrator::extractConstructorArg</a></td><td class="text-right">176.90</td><td class="text-right">52.3%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#406">Phpdftk\Pdf\Core\File\PdfHydrator::getOverrides</a></td><td class="text-right">162.66</td><td class="text-right">51.9%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#333">Phpdftk\Pdf\Core\File\PdfFileWriter::generate</a></td><td class="text-right">42</td><td class="text-right">96.2%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#239">Phpdftk\Pdf\Core\File\IncrementalWriter::generate</a></td><td class="text-right">38</td><td class="text-right">95.7%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1248">Phpdftk\Pdf\Core\File\PdfFileWriter::applyCeilingStripping</a></td><td class="text-right">30.23</td><td class="text-right">56.4%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#597">Phpdftk\Pdf\Core\File\PdfFileWriter::generateLinearized</a></td><td class="text-right">23</td><td class="text-right">95.5%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1167">Phpdftk\Pdf\Core\File\PdfFileWriter::checkVersionRequirements</a></td><td class="text-right">15.78</td><td class="text-right">70.3%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#447">Phpdftk\Pdf\Core\File\IncrementalWriter::checkVersionRequirements</a></td><td class="text-right">14.99</td><td class="text-right">72.5%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#100">Phpdftk\Pdf\Core\File\PdfHydrator::hydrate</a></td><td class="text-right">13</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#311">Phpdftk\Pdf\Core\File\PdfHydrator::coerce</a></td><td class="text-right">12.04</td><td class="text-right">93.8%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#193">Phpdftk\Pdf\Core\File\PdfHydrator::construct</a></td><td class="text-right">10.41</td><td class="text-right">84.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#527">Phpdftk\Pdf\Core\File\IncrementalWriter::buildIncrementalXref</a></td><td class="text-right">9</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#363">Phpdftk\Pdf\Core\File\PdfHydrator::getKeyMap</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#57">Phpdftk\Pdf\Core\File\VersionRequirementResolver::getEffectiveRequirement</a></td><td class="text-right">8</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1090">Phpdftk\Pdf\Core\File\PdfFileWriter::applySignature</a></td><td class="text-right">7.87</td><td class="text-right">73.9%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#103">Phpdftk\Pdf\Core\File\IncrementalWriter::fromReader</a></td><td class="text-right">6.01</td><td class="text-right">92.6%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#576">Phpdftk\Pdf\Core\File\PdfHydrator::registerDefaults</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#30">Phpdftk\Pdf\Core\File\VersionRequirementResolver::getClassRequirement</a></td><td class="text-right">6</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1230">Phpdftk\Pdf\Core\File\PdfFileWriter::enforceRemoval</a></td><td class="text-right">5.12</td><td class="text-right">83.3%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1054">Phpdftk\Pdf\Core\File\PdfFileWriter::applyStreamCompression</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TrailerDictionary.php.html#38">Phpdftk\Pdf\Core\File\TrailerDictionary::toPdf</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#95">Phpdftk\Pdf\Core\File\VersionRequirementResolver::getDeprecation</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#125">Phpdftk\Pdf\Core\File\VersionRequirementResolver::stripIncompatibleProperties</a></td><td class="text-right">5</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#508">Phpdftk\Pdf\Core\File\IncrementalWriter::enforceRemoval</a></td><td class="text-right">4.25</td><td class="text-right">75.0%</td></tr>
+  <tr><td><a href="BitWriter.php.html#26">Phpdftk\Pdf\Core\File\BitWriter::writeBits</a></td><td class="text-right">4.02</td><td class="text-right">90.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#162">Phpdftk\Pdf\Core\File\PdfHydrator::resolveClass</a></td><td class="text-right">4</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#576">Phpdftk\Pdf\Core\File\IncrementalWriter::findStartxrefOffset</a></td><td class="text-right">3.10</td><td class="text-right">77.8%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1025">Phpdftk\Pdf\Core\File\PdfFileWriter::writeTo</a></td><td class="text-right">3.01</td><td class="text-right">88.9%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#73">Phpdftk\Pdf\Core\File\PdfFileWriter::__construct</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#107">Phpdftk\Pdf\Core\File\PdfFileWriter::setEncryption</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1313">Phpdftk\Pdf\Core\File\PdfFileWriter::applyVersionRequirement</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#181">Phpdftk\Pdf\Core\File\PdfHydrator::resolveActionClass</a></td><td class="text-right">3</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#943">Phpdftk\Pdf\Core\File\PdfFileWriter::patchPaddedNumber</a></td><td class="text-right">2.03</td><td class="text-right">80.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#957">Phpdftk\Pdf\Core\File\PdfFileWriter::patchHintArray</a></td><td class="text-right">2.01</td><td class="text-right">85.7%</td></tr>
+  <tr><td><a href="BitWriter.php.html#57">Phpdftk\Pdf\Core\File\BitWriter::alignToByte</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BitWriter.php.html#68">Phpdftk\Pdf\Core\File\BitWriter::getData</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceTable.php.html#49">Phpdftk\Pdf\Core\File\CrossReferenceTable::build</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="DeprecatedFeatureException.php.html#17">Phpdftk\Pdf\Core\File\DeprecatedFeatureException::__construct</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#196">Phpdftk\Pdf\Core\File\IncrementalWriter::addModifiedObject</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#212">Phpdftk\Pdf\Core\File\IncrementalWriter::deleteObject</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#141">Phpdftk\Pdf\Core\File\PdfFileWriter::setVersion</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#176">Phpdftk\Pdf\Core\File\PdfFileWriter::setCeilingVersion</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#201">Phpdftk\Pdf\Core\File\PdfFileWriter::setInfo</a></td><td class="text-right">2</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BitWriter.php.html#48">Phpdftk\Pdf\Core\File\BitWriter::writeUint32</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="BitWriter.php.html#81">Phpdftk\Pdf\Core\File\BitWriter::getBitPosition</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CeilingVersionException.php.html#16">Phpdftk\Pdf\Core\File\CeilingVersionException::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceTable.php.html#30">Phpdftk\Pdf\Core\File\CrossReferenceTable::add</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="CrossReferenceTable.php.html#40">Phpdftk\Pdf\Core\File\CrossReferenceTable::getEntries</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#68">Phpdftk\Pdf\Core\File\IncrementalWriter::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#92">Phpdftk\Pdf\Core\File\IncrementalWriter::setEncryption</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#152">Phpdftk\Pdf\Core\File\IncrementalWriter::getPdfVersion</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#164">Phpdftk\Pdf\Core\File\IncrementalWriter::wasVersionBumped</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#169">Phpdftk\Pdf\Core\File\IncrementalWriter::setStrictVersionMode</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#174">Phpdftk\Pdf\Core\File\IncrementalWriter::setDeprecationHandler</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#179">Phpdftk\Pdf\Core\File\IncrementalWriter::setStrictDeprecation</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#185">Phpdftk\Pdf\Core\File\IncrementalWriter::getVersionWarnings</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#225">Phpdftk\Pdf\Core\File\IncrementalWriter::addNewObject</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="IncrementalWriter.php.html#439">Phpdftk\Pdf\Core\File\IncrementalWriter::save</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRegistry.php.html#26">Phpdftk\Pdf\Core\File\ObjectRegistry::register</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRegistry.php.html#40">Phpdftk\Pdf\Core\File\ObjectRegistry::getAll</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="ObjectRegistry.php.html#48">Phpdftk\Pdf\Core\File\ObjectRegistry::getSize</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#93">Phpdftk\Pdf\Core\File\PdfFileWriter::setCompressStreams</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#126">Phpdftk\Pdf\Core\File\PdfFileWriter::getRegistry</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#131">Phpdftk\Pdf\Core\File\PdfFileWriter::getVersion</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#136">Phpdftk\Pdf\Core\File\PdfFileWriter::getPdfVersion</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#148">Phpdftk\Pdf\Core\File\PdfFileWriter::setStrictVersionMode</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#153">Phpdftk\Pdf\Core\File\PdfFileWriter::setDeprecationHandler</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#158">Phpdftk\Pdf\Core\File\PdfFileWriter::setStrictDeprecation</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#164">Phpdftk\Pdf\Core\File\PdfFileWriter::getVersionWarnings</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#189">Phpdftk\Pdf\Core\File\PdfFileWriter::setCatalog</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#211">Phpdftk\Pdf\Core\File\PdfFileWriter::getInfo</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#219">Phpdftk\Pdf\Core\File\PdfFileWriter::register</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#244">Phpdftk\Pdf\Core\File\PdfFileWriter::setSigner</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#278">Phpdftk\Pdf\Core\File\PdfFileWriter::setTimestamper</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#307">Phpdftk\Pdf\Core\File\PdfFileWriter::setTsaClient</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#924">Phpdftk\Pdf\Core\File\PdfFileWriter::emitPaddedLinearizationDict</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#977">Phpdftk\Pdf\Core\File\PdfFileWriter::buildMinimalHintStream</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1005">Phpdftk\Pdf\Core\File\PdfFileWriter::buildSubsectionXref</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1013">Phpdftk\Pdf\Core\File\PdfFileWriter::toBytes</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfFileWriter.php.html#1044">Phpdftk\Pdf\Core\File\PdfFileWriter::save</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#65">Phpdftk\Pdf\Core\File\PdfHydrator::registerType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#75">Phpdftk\Pdf\Core\File\PdfHydrator::registerSubtype</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="PdfHydrator.php.html#85">Phpdftk\Pdf\Core\File\PdfHydrator::registerActionType</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="TrailerDictionary.php.html#33">Phpdftk\Pdf\Core\File\TrailerDictionary::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementException.php.html#15">Phpdftk\Pdf\Core\File\VersionRequirementException::__construct</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+  <tr><td><a href="VersionRequirementResolver.php.html#151">Phpdftk\Pdf\Core\File\VersionRequirementResolver::clearCache</a></td><td class="text-right">1</td><td class="text-right">100.0%</td></tr>
+ </tbody>
+</table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.2.2</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.22</a> and <a href="https://phpunit.de/">PHPUnit 13.2.0</a> at Tue Jun 30 3:38:44 UTC 2026.</small>
+    </p>
+   </footer>
+  </div>
+ </body>
+</html>
