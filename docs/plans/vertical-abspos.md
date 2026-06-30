@@ -38,20 +38,47 @@ position. In a vertical CB:
   (ref y=212), but the stacker uses `originY` (CB content top, y=65).
 
 This is the vertical analogue of the horizontal inline-abspos static
-position fix (done — last line top), but along BOTH vertical axes, and
-it depends on the vertical inline layout (currently a "Phase-4 scaffold"
-in `InlineLayout` — glyphs lay out horizontally with a paint-time
-rotation; column/inline offsets are approximate). Getting exact column
-positions likely requires real vertical inline layout first.
+position fix (done — last line top), but along BOTH vertical axes.
 
-### Approach sketch
+### Root blocker (investigated 2026-06-29): no vertical column geometry
 
-- Teach `stackChildrenListVertical` (and the inline-formatting-context
-  path for a vertical CB) to record the abspos box's static position
-  from the preceding inline content's last column (block axis) + inline
-  offset within it (inline axis), mirroring `inlineStaticPositionY`.
-- Likely needs the vertical inline layout to produce accurate per-column
-  cross positions first.
+The static position cannot be *read* from anywhere, because the vertical
+inline layout does not break content into positioned columns:
+
+- A vertical-mode CB with inline filler + an abspos span has the
+  structure `AnonymousBlockBox(vertical) → [InlineBox(filler),
+  BlockBox(abspos)]` and is laid out by `stackChildrenListVertical`
+  (the abspos blockifies, so `allInlineLevel` is false).
+- The `InlineBox` filler reports a block extent of the FULL CB width
+  (e.g. 320), not the sum of the columns it actually occupies, and
+  exposes NO per-column `lineBoxes` to locate the span's column.
+- So the abspos static block-X = `cursorX` AFTER the filler (=320, past
+  the CB) instead of the column it sits on (ref x=80 = column 2); the
+  static inline-Y = `originY` (CB top) instead of the inline offset
+  within that column.
+
+There is no analytic shortcut: deriving "the span is on column 2 at
+inline offset N" requires shaping the filler and breaking it into
+columns by the inline (block-axis) extent — i.e. doing the vertical
+inline layout. The current `InlineLayout` vertical path is a paint-time
+rotation scaffold (`applyVerticalLineShift`), not a real column layout.
+
+### Real prerequisite: vertical inline column layout
+
+Before the static position can land, `InlineLayout` needs to lay inline
+content out into real columns for vertical writing modes:
+- shape runs, break into columns by the container's inline (block-axis)
+  extent, position each column along the block axis (left→right for
+  vlr, right→left for vrl), and expose their geometry as `lineBoxes`
+  (or an equivalent) with usable block + inline coordinates;
+- size the `InlineBox` block extent to the columns actually used, not
+  the full CB.
+
+Then mirror `inlineStaticPositionY` for vertical: record the abspos
+box's static position from the preceding content's last column (block
+axis) + its inline offset within that column (inline axis). This is the
+core of CSS Writing Modes Phase 4 vertical inline layout — a large
+foundational effort, not an incremental fix.
 
 ### Other known gaps
 
