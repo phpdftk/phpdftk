@@ -9,7 +9,46 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
   (−26 are `clip-path/animations/*`, JS-driven; correct under the settler)
 
-## Next concrete target — namespaced `<svg:svg>` foreign content (~44 fixtures)
+## CSS2 (working in bucket order) — status
+
+Densest CSS2 near-miss families and their nature (after sampling):
+- `positioning/absolute-replaced-width` (40), `normal-flow/inline-replaced-width`, `floats-clear/float-replaced-width`, `positioning/absolute-replaced-height` — ALL the **replaced-element (SVG) sizing** area (see below). ~60+ CSS2 fixtures, deep.
+- `backgrounds/background` (37) — heterogeneous background paint.
+- `backgrounds/background-position-applies-to` (22) — table-display internals.
+- `borders/border-{top,bottom}-width` (38) — edge-case length values (tiny/huge/inch).
+- `margin-padding-clear/padding-{top,bottom}` (37) — mostly pass; failures are edge cases.
+- `floats-clear/floats` (24) — inline reflow around floats.
+- `tables/*` — real table layout (fixed-table-layout, collapsing-border).
+
+**Done in CSS2 this loop:** `clip` (+43, visufx), single-value `background-position` (+33). The remaining top CSS2 clusters need real feature work, not near-miss cleanup.
+
+## Deep area: replaced-element (SVG) sizing + prefixed foreign content
+
+The biggest CSS2 cluster (`absolute-replaced-width` 40) + the inline/float
+replaced-width clusters (~60+ total) all hinge on TWO gaps:
+
+1. **Prefixed foreign content not normalized.** `<svg:svg>` keeps
+   localName `"svg:svg"` (HTML ns), so NO CSS selector matches it — not
+   the UA `svg{display:inline-block}` rule, not author `svg{height:100px}`,
+   and `applyPresentationalAttributes` doesn't map svg width/height attrs.
+   The box ends up 0×0 and renders empty. PARTIAL fix shipped
+   (`de80ad18e`: foreign-root gate recognition + forced inline-block) —
+   makes it render IF sized, but selectors/CSS still don't match.
+   **Complete fix = DOM normalization:** rebuild `<svg:svg>`/`<svg:rect>`
+   subtrees as `<svg>`/`<rect>` in SVG_NS (prefix stripped) BEFORE box-gen,
+   so selectors + UA sheet + attrs all apply. `Node::replaceChild` exists,
+   so a recursive subtree rebuild in a Renderer pre-pass is feasible.
+2. **SVG replaced-element intrinsic/default sizing.** An SVG with no
+   intrinsic width/ratio + `width:auto` should default to 300×150 (CSS
+   Images 4 §8 / CSS2 §10.3.2 last-resort), with CSS/attr overrides and
+   ratio transfer. Today the SVG atomic box isn't sized from this path.
+   `applyPresentationalAttributes` handles img/embed/iframe/video — extend
+   to svg (width/height attrs) + add the 300×150 default + ratio.
+
+Land (1)+(2) together → unlocks the ~60 replaced-width/height fixtures.
+The committed `de80ad18e` is a correct prerequisite (WPT-neutral alone).
+
+## (earlier) Next concrete target — namespaced `<svg:svg>` foreign content (~44 fixtures)
 
 **Root cause (confirmed):** XHTML-style fixtures (DOCTYPE XHTML, `<html
 xmlns>`) use `<svg:svg>` / `<svg:rect>` with an `xmlns:svg` prefix. Parsed
