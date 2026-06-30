@@ -2750,7 +2750,18 @@ final class Painter
         // to the cascaded fill color so the bold outline doesn't bleed in a
         // different hue. Always re-emit the Tr so a non-bold fragment that
         // follows a bold one resets to fill-only.
-        if ($fragment->isBold) {
+        if ($color->a <= 0.0) {
+            // CSS Color 4 — fully-transparent text (`color: transparent`,
+            // alpha 0) paints no marks. `setFillColorRGB` drops alpha, so a
+            // transparent colour reaches here as opaque black (rgb 0,0,0)
+            // and would fill the glyphs solid. Switch to PDF text rendering
+            // mode 3 (invisible): the glyphs still emit — so the text stays
+            // extractable and contributes to the tagged-PDF structure — but
+            // they leave no visible ink, matching how browsers print
+            // transparent text. This is an extremely common WPT idiom
+            // (Ahem "filler" text under `color: transparent`).
+            $stream->setTextRenderingMode(3);
+        } elseif ($fragment->isBold) {
             $stream->setStrokeColorRGB($color->r, $color->g, $color->b);
             $stream->setLineWidth($shapedRun->fontSizePt * 0.04);
             $stream->setTextRenderingMode(2);

@@ -3351,6 +3351,75 @@ final class PainterTest extends TestCase
     }
 
     /**
+     * CSS Color 4 — `color: transparent` (alpha 0) text must paint no
+     * marks. `setFillColorRGB` drops alpha, so a transparent colour
+     * would otherwise reach the glyph fill as opaque black (rgb 0,0,0)
+     * and render solid. The painter switches to PDF text rendering mode
+     * 3 (invisible) instead, leaving the glyphs emitted (extractable /
+     * tagged) but inkless.
+     */
+    public function testTransparentTextUsesInvisibleRenderingMode(): void
+    {
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="color: transparent">' . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, p { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $ops = $stream->getOperators();
+        $bytes = (string) array_reduce($ops, static fn($a, $o) => $a . $o . "\n", '');
+        // Invisible text-rendering mode is set.
+        self::assertStringContainsString('3 Tr', $bytes, 'transparent text uses Tr mode 3 (invisible)');
+        // The glyph run is STILL emitted (Tj) — invisible, not skipped —
+        // so the text stays extractable for tagged-PDF / selection.
+        self::assertContains('Tj', $this->operatorTokens($ops), 'glyphs still emitted under invisible mode');
+    }
+
+    /**
+     * Regression guard for the transparent-text suppression: opaque text
+     * must NOT use the invisible rendering mode — it paints normally
+     * (fill mode 0, with its fill colour emitted).
+     */
+    public function testOpaqueTextDoesNotUseInvisibleRenderingMode(): void
+    {
+        $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $otd = (new \Phpdftk\FontParser\OpenTypeParser($fontPath))->parse();
+
+        $doc = $this->html->parseDocument(
+            '<html><body><p style="color: black">' . "\u{1820}" . '</p></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, p { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $otd);
+        $this->layout->layout($root, $ctx);
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $registered = $writer->addOpenTypeFont($otd, [], $page);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, $registered))->paint($root, $stream);
+
+        $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
+        self::assertStringNotContainsString('3 Tr', $bytes, 'opaque text must not be invisible');
+        self::assertContains('Tj', $this->operatorTokens($stream->getOperators()), 'opaque text emits glyphs');
+    }
+
+    /**
      * Pull the last whitespace-separated token out of each operator line —
      * that's the PDF operator code (e.g. `re`, `f`, `rg`).
      *
