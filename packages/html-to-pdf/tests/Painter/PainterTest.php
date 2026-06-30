@@ -3420,6 +3420,45 @@ final class PainterTest extends TestCase
     }
 
     /**
+     * CSS 2.1 §11.1.2 — `clip: rect(...)` on an absolutely-positioned box
+     * emits a PDF clip path (`W`) around its paint.
+     */
+    public function testAbsposClipRectEmitsClipPath(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="position: absolute; width: 100px; height: 100px; '
+            . 'background: green; clip: rect(0, 50px, 50px, 0)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertContains('W', $this->operatorTokens($stream->getOperators()), 'abspos clip emits clip path');
+    }
+
+    /**
+     * Negative: `clip` only applies to absolutely-positioned boxes — a
+     * static box with `clip: rect(...)` must NOT emit a clip path.
+     */
+    public function testClipIgnoredOnStaticBox(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green; '
+            . 'clip: rect(0, 50px, 50px, 0)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertNotContains('W', $this->operatorTokens($stream->getOperators()), 'static clip is a no-op');
+    }
+
+    /**
      * Pull the last whitespace-separated token out of each operator line —
      * that's the PDF operator code (e.g. `re`, `f`, `rg`).
      *

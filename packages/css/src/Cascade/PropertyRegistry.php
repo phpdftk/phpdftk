@@ -353,6 +353,12 @@ final class PropertyRegistry
         // ELLIPSIS.
         $r->register($initial('text-overflow', new Keyword('clip')));
 
+        // CSS 2.1 §11.1.2 `clip` — clips an absolutely-positioned element
+        // (and its descendants) to a `rect(top, right, bottom, left)`
+        // region relative to its border box. Deprecated in favour of
+        // `clip-path`, but still widely tested. Not inherited.
+        $r->register($initial('clip', new Keyword('auto')));
+
         // CSS Tables 3 §10. Phase-1 doesn't act on these values yet
         // (cells always paint their own borders, no spacing), but
         // registering them prevents author CSS from being dropped at

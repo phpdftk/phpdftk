@@ -828,6 +828,18 @@ final class Painter
         // the transform list exceeds 90°.
         $hidden = $this->isVisibilityHidden($box)
             || $this->isBackfaceHidden($box);
+        // CSS 2.1 §11.1.2 `clip` — clip an abspos element (its own paint AND
+        // descendants) to `rect(top, right, bottom, left)` of its border box.
+        // Pushed before any drawing so the rect can crop the box itself, and
+        // popped after the children loop.
+        $clipRect = $this->resolveClipRect($box);
+        if ($clipRect !== null) {
+            $stream->saveGraphicsState();
+            $clipPdfY = $this->pageHeight - $clipRect['y'] - $clipRect['h'];
+            $stream->rectangle($clipRect['x'], $clipPdfY, $clipRect['w'], $clipRect['h']);
+            $stream->clip();
+            $stream->endPath();
+        }
         if (!$hidden) {
             // CSS Fragmentation 4 §5.5: `box-decoration-break: clone`
             // makes each fragment paint full decorations as if it were
@@ -877,6 +889,9 @@ final class Painter
             $this->paintBox($child, $stream);
         }
         if ($overflowClip) {
+            $stream->restoreGraphicsState();
+        }
+        if ($clipRect !== null) {
             $stream->restoreGraphicsState();
         }
         if ($hasTransform) {
@@ -1622,6 +1637,77 @@ final class Painter
         $stream->rectangle($rectX, $pdfY, $rectWidth, $rectHeight);
         $stream->clip();
         $stream->endPath();
+    }
+
+    /**
+     * CSS 2.1 §11.1.2 `clip: rect(top, right, bottom, left)` — resolve the
+     * clipping rectangle (physical layout coords, y-down) for an
+     * absolutely-positioned box, or `null` when `clip` is `auto`, the box
+     * is not absolutely positioned, or the value isn't a `rect()`.
+     * `top`/`left` offset from the border box's top/left edge; `right`/
+     * `bottom` are measured from those same edges; `auto` means the
+     * corresponding border edge.
+     *
+     * @return array{x: float, y: float, w: float, h: float}|null
+     */
+    private function resolveClipRect(Box $box): ?array
+    {
+        $clip = $box->style->get('clip');
+        if (!($clip instanceof \Phpdftk\Css\Value\CssFunction)
+            || strtolower($clip->name) !== 'rect'
+            || count($clip->arguments) !== 4
+        ) {
+            return null;
+        }
+        $position = $box->style->get('position');
+        if (!($position instanceof Keyword)) {
+            return null;
+        }
+        $pos = strtolower($position->name);
+        if ($pos !== 'absolute' && $pos !== 'fixed') {
+            return null;
+        }
+        $g = $box->geometry;
+        $borderBoxX = $g->x - $g->paddingLeft - $g->borderLeft;
+        $borderBoxY = $g->y - $g->paddingTop - $g->borderTop;
+        $borderBoxW = $g->borderLeft + $g->paddingLeft + $g->width
+            + $g->paddingRight + $g->borderRight;
+        $borderBoxH = $g->borderTop + $g->paddingTop + $g->height
+            + $g->paddingBottom + $g->borderBottom;
+        // rect(top, right, bottom, left); `auto` → border edge.
+        [$topV, $rightV, $bottomV, $leftV] = $clip->arguments;
+        $top = $this->clipEdgePx($topV, 0.0);
+        $right = $this->clipEdgePx($rightV, $borderBoxW);
+        $bottom = $this->clipEdgePx($bottomV, $borderBoxH);
+        $left = $this->clipEdgePx($leftV, 0.0);
+        $x = $borderBoxX + $left;
+        $y = $borderBoxY + $top;
+        return [
+            'x' => $x,
+            'y' => $y,
+            'w' => max(0.0, ($borderBoxX + $right) - $x),
+            'h' => max(0.0, ($borderBoxY + $bottom) - $y),
+        ];
+    }
+
+    /**
+     * One `clip` rect edge → px. `auto` returns `$autoValue` (the border
+     * edge); a `<length>` / `0` returns its value.
+     */
+    private function clipEdgePx(\Phpdftk\Css\Value\Value $value, float $autoValue): float
+    {
+        if ($value instanceof Keyword && strtolower($value->name) === 'auto') {
+            return $autoValue;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return (float) $value->value;
+        }
+        return $autoValue;
     }
 
     /**
