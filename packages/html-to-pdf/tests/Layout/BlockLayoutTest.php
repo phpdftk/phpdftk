@@ -1358,7 +1358,7 @@ final class BlockLayoutTest extends TestCase
         // With first row's first cell rowspan="2", the second row's
         // ONLY declared cell sits in column 1 (not column 0).
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<tr><td rowspan="2" style="height: 20px">x</td>'
                 . '<td style="height: 30px">a</td></tr>'
                 . '<tr><td class="r2c2" style="height: 30px">b</td></tr>'
@@ -1395,7 +1395,7 @@ final class BlockLayoutTest extends TestCase
         // Regression — tables without rowspan still position cells
         // sequentially in document order, one per column.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<tr><td class="a">a</td><td class="b">b</td></tr>'
                 . '</table></body></html>',
             'td { padding: 0 }',
@@ -1540,7 +1540,7 @@ final class BlockLayoutTest extends TestCase
         // (Equal coincidence here; we verify the explicit width
         // controls the FIRST column.)
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col width="200">'
                 . '<tr><td class="a">a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
@@ -1563,7 +1563,7 @@ final class BlockLayoutTest extends TestCase
     {
         // Explicit 100 + 100 → other column gets 600 - 200 = 400.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col width="100">'
                 . '<col width="100">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
@@ -1586,7 +1586,7 @@ final class BlockLayoutTest extends TestCase
     {
         // `<col span="2" width="150">` applies 150 to columns 0 and 1.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col span="2" width="150">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
@@ -1609,7 +1609,7 @@ final class BlockLayoutTest extends TestCase
         // `<colgroup>` wraps two `<col>` declarations — both should
         // apply.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<colgroup><col width="80"><col width="120"></colgroup>'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
@@ -1632,7 +1632,7 @@ final class BlockLayoutTest extends TestCase
         // Regression: without any `<col>`, each column gets an equal
         // share of the row width.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
             'td { padding: 0 }',
@@ -1653,7 +1653,7 @@ final class BlockLayoutTest extends TestCase
     {
         // Non-numeric `width` attribute should leave the column as auto.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col width="auto">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
@@ -1674,7 +1674,7 @@ final class BlockLayoutTest extends TestCase
         // Percentage widths are Phase 2; verified ignored for now so
         // the % col falls back to the auto share.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col width="50%">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
@@ -1695,7 +1695,7 @@ final class BlockLayoutTest extends TestCase
         // Two cols with width 400 each on a 600-wide table → explicit
         // sum 800 > 600. Third (auto) column gets 0.
         $box = $this->buildTreeWithUa(
-            '<html><body><table>'
+            '<html><body><table style="width: 600px">'
                 . '<col width="400">'
                 . '<col width="400">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
@@ -4623,11 +4623,13 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $span->geometry->width, 0.001);
     }
 
-    public function testTableAutoWidthScalesColumnsToContentRatio(): void
+    public function testTableAutoWidthUsesColumnContentWidths(): void
     {
-        // Positive: two cells with intrinsic widths 50, 150 → column
-        // widths scale to fill 600pt total in the 1:3 ratio. Cell
-        // B's X position = column A's resolved width = 150.
+        // CSS 2.1 §17.5.2 — an auto-width table shrink-to-fits to its
+        // columns' content rather than scaling to fill the container.
+        // Two cells with intrinsic widths 50, 150 → columns stay at
+        // 50 / 150, table content = 200 (well under the 600 available).
+        // Cell B at x = column A's width = 50 (NOT a fill-scaled 150).
         $box = $this->buildTree(
             '<html><body><table>'
             . '<tr><td class="a" style="width: 50px"></td>'
@@ -4640,16 +4642,16 @@ final class BlockLayoutTest extends TestCase
         );
         $this->layout->layout($box, $this->defaultCtx);
         $cells = $this->collectCellsByClass($box);
-        // Cells keep their declared widths; column widths drive the
-        // X positions. Cell B at x = column A's resolved width.
-        self::assertEqualsWithDelta(150.0, $cells['b']->geometry->x, 0.001);
+        self::assertEqualsWithDelta(50.0, $cells['b']->geometry->x, 0.001);
     }
 
-    public function testTableAutoWidthShrinksWhenCellsExceedTableWidth(): void
+    public function testTableAutoWidthOverflowsWhenContentExceedsAvailable(): void
     {
-        // Positive (shrink direction): two cells with widths 500
-        // and 400 in a 600pt table → columns scale by 600/900 =
-        // 0.667 → 333, 267. Cell B's x = 333.
+        // CSS 2.1 §17.5.2 — the used width is
+        // `max(min-content, min(available, max-content))`. Two cells with
+        // explicit widths 500 + 400 give a min-content of 900 > the 600
+        // available, so the table overflows to 900 (it never shrinks below
+        // min-content). Columns stay at 500 / 400 → cell B's x = 500.
         $box = $this->buildTree(
             '<html><body><table>'
             . '<tr><td class="a" style="width: 500px"></td>'
@@ -4662,7 +4664,7 @@ final class BlockLayoutTest extends TestCase
         );
         $this->layout->layout($box, $this->defaultCtx);
         $cells = $this->collectCellsByClass($box);
-        self::assertEqualsWithDelta(333.333, $cells['b']->geometry->x, 0.5);
+        self::assertEqualsWithDelta(500.0, $cells['b']->geometry->x, 0.5);
     }
 
     public function testTableAutoWidthAllEmptyCellsFallsBackToEqualShare(): void
@@ -4687,6 +4689,69 @@ final class BlockLayoutTest extends TestCase
         // Positions: a at 0, b at 200, c at 400.
         self::assertSame(200.0, $cells['b']->geometry->x);
         self::assertSame(400.0, $cells['c']->geometry->x);
+    }
+
+    public function testTableAutoWidthShrinkWrapsBelowContainer(): void
+    {
+        // CSS 2.1 §17.5.2 — an auto-width table with content far narrower
+        // than its container shrink-wraps to the content, not the 600pt CB.
+        // Two cells 40 + 60 → table content width = 100.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 40px"></td>'
+            . '<td class="b" style="width: 60px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        self::assertEqualsWithDelta(100.0, $table->geometry->width, 0.5);
+    }
+
+    public function testTableAutoWidthColumnIncludesCellPadding(): void
+    {
+        // The column width is the cell's *border-box* content: a 50-wide
+        // cell with 10px horizontal padding occupies a 70-wide column, so
+        // the shrink-wrapped table is 40 + 70 = 110 (NOT 90). Regression
+        // guard for the shared border-box cell-contribution helper.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 40px"></td>'
+            . '<td class="b" style="width: 50px; padding-left: 10px; padding-right: 10px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; padding: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        self::assertEqualsWithDelta(110.0, $table->geometry->width, 0.5);
+    }
+
+    public function testTableAutoWidthMarginAutoCentres(): void
+    {
+        // CSS 2.1 §17.5.2 + §10.3.3 — once the auto table's used width is
+        // computed it is a resolved width, so `margin: 0 auto` centres it.
+        // 100-wide content in a 600pt CB → left margin (600−100)/2 = 250.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 100px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; margin: 0 auto; }
+             tr { display: table-row; }
+             td { display: table-cell; padding: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        self::assertEqualsWithDelta(250.0, $table->geometry->x, 0.5);
     }
 
     public function testTableExplicitColWidthBypassesAutoMeasurement(): void
@@ -4715,10 +4780,11 @@ final class BlockLayoutTest extends TestCase
 
     public function testTableColspanCellDistributesMaxContentEquallyAcrossColumns(): void
     {
-        // Positive: a colspan="2" cell with width 200 contributes
-        // 100 of max-content to each of the 2 spanned columns. The
-        // third column has its own 50-wide cell. Sum 100+100+50 =
-        // 250 scaled to 600 → 240+240+120. Last cell at x = 480.
+        // A colspan="2" cell with width 200 contributes 100 of
+        // max-content to each of the 2 spanned columns. The third column
+        // has its own 50-wide cell. Under shrink-to-fit the table stays at
+        // its content sum 100+100+50 = 250 (no scaling to fill 600), so
+        // the last cell sits at x = 100+100 = 200.
         $box = $this->buildTree(
             '<html><body><table>'
             . '<tr><td class="span" colspan="2" style="width: 200px"></td>'
@@ -4731,7 +4797,7 @@ final class BlockLayoutTest extends TestCase
         );
         $this->layout->layout($box, $this->defaultCtx);
         $cells = $this->collectCellsByClass($box);
-        self::assertEqualsWithDelta(480.0, $cells['last']->geometry->x, 0.5);
+        self::assertEqualsWithDelta(200.0, $cells['last']->geometry->x, 0.5);
     }
 
     public function testTableMixedAutoAndExplicitColWidthsKeepsExplicit(): void
