@@ -2734,7 +2734,17 @@ final class Painter
         // anchor here matches that placement.
         $wm = WritingMode::fromStyle($box->style);
         if ($wm->isVertical()) {
-            $columnX = $box->geometry->x + $fragment->x + $offsetX;
+            // The 90°-clockwise rotation maps the glyph's ascent to
+            // +deviceX (physical right / line-over) and its descent to
+            // -deviceX (physical left / line-under) for BOTH vertical-lr
+            // and vertical-rl. The alphabetic drawing baseline therefore
+            // sits a `descent` in from the column's line-under (left)
+            // edge, centred inside the column's cross-size (its line box
+            // extent) with symmetric half-leading — so the em box lands
+            // centred in the column rather than flush to the left edge.
+            $descent = (abs($font->descent) / max(1, $font->unitsPerEm)) * $shapedRun->fontSizePt;
+            $halfLeading = max(0.0, ($line->height - ($ascent + $descent)) / 2.0);
+            $columnX = $box->geometry->x + $fragment->x + $offsetX + $halfLeading + $descent;
             $columnTopLayoutY = $box->geometry->y + $line->y + $offsetY;
             $columnTopPdfY = $this->pageHeight - $columnTopLayoutY;
             $stream->setTextMatrix(0.0, -1.0, 1.0, 0.0, $columnX, $columnTopPdfY);
