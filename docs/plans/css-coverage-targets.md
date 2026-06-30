@@ -17,6 +17,31 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
   `height:0` honoured). The −4 are float-context artifacts in a path that
   doesn't model floats. See `border-{top,bottom}-width-*` cluster.
 
+## NEXT HIGH-VALUE LEVER — table shrink-to-fit auto width
+
+**Confirmed root cause (2026-06-30).** An auto-width `<table>` fills its
+containing block instead of shrink-wrapping to content. Minimal repro
+(`table{border;padding} td{padding}` 2 cells of "A"/"B") renders table
+`w=584` (full body width), cells `w=272` each, vs expected ~30px cells /
+~240px table. Code: `BlockLayout::layoutTableRow` line ~408 sets row
+`geo->width = containingBlockWidth`; `resolveColumnWidthGrid` then divides
+the FULL available width across columns (`resolveAutoColumnContentWidths`
+already measures per-column max-content but the slack is spread to fill).
+
+**Cross-cluster lever.** Fixes a chunk of the `tables` bucket (141 fails,
+62%) AND float fixtures whose REFERENCES use shrink-wrapped tables — e.g.
+`floats-clear/floats-014`/`015` (ref = 2×2 `<table>` of swatches; our
+test-side float layout is fine, the ref table renders ~2× too wide).
+Codex flagged this ("some floats refs use tables/images").
+
+**Fix shape (design-doc-first; 225 table fixtures pass today — verify each).**
+For a table with no specified width: table width = min(available,
+Σ column max-content + border-spacing + borders), set the table box +
+row width to that shrink-to-fit value instead of `containingBlockWidth`,
+then distribute. Tables with explicit `width` keep current behaviour.
+Risk: regresses fixtures relying on fill behaviour; WPT-verify the
+`tables` bucket before/after, one commit.
+
 ## CSS2 (working in bucket order) — status
 
 Densest CSS2 near-miss families and their nature (after sampling):
