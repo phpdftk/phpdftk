@@ -3,7 +3,7 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, +121 net)
+## Landed this loop (branch `css-coverage-push`, ~+163 net)
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
@@ -16,31 +16,22 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
   Now folds both axes' inset into the geometry (box-sizing-aware, explicit
   `height:0` honoured). The −4 are float-context artifacts in a path that
   doesn't model floats. See `border-{top,bottom}-width-*` cluster.
+- **table shrink-to-fit auto width (CSS 2.1 §17.5.2)** — **+42 net**
+  (CSS2 tables +19, margin-padding-clear +5, floats-clear +2,
+  normal-flow +1; css-tables +14, css-flexbox +1), zero regressions across
+  17 dirs. Auto block tables now shrink-wrap (real `measureTableMinMax`
+  intrinsic routed through the existing shrink-to-fit path), box-sizing /
+  cell-padding / margin:auto handled. Design + codex review:
+  `docs/plans/table-shrink-to-fit.md`. v1 gaps: border-spacing, caption
+  CAPMIN, percentage columns, and inline-table (an AtomicInlineBox — the
+  atomic path's separate gap).
 
-## NEXT HIGH-VALUE LEVER — table shrink-to-fit auto width
+## ✅ LANDED — table shrink-to-fit auto width
 
-**Confirmed root cause (2026-06-30).** An auto-width `<table>` fills its
-containing block instead of shrink-wrapping to content. Minimal repro
-(`table{border;padding} td{padding}` 2 cells of "A"/"B") renders table
-`w=584` (full body width), cells `w=272` each, vs expected ~30px cells /
-~240px table. Code: `BlockLayout::layoutTableRow` line ~408 sets row
-`geo->width = containingBlockWidth`; `resolveColumnWidthGrid` then divides
-the FULL available width across columns (`resolveAutoColumnContentWidths`
-already measures per-column max-content but the slack is spread to fill).
-
-**Cross-cluster lever.** Fixes a chunk of the `tables` bucket (141 fails,
-62%) AND float fixtures whose REFERENCES use shrink-wrapped tables — e.g.
-`floats-clear/floats-014`/`015` (ref = 2×2 `<table>` of swatches; our
-test-side float layout is fine, the ref table renders ~2× too wide).
-Codex flagged this ("some floats refs use tables/images").
-
-**Fix shape (design-doc-first; 225 table fixtures pass today — verify each).**
-For a table with no specified width: table width = min(available,
-Σ column max-content + border-spacing + borders), set the table box +
-row width to that shrink-to-fit value instead of `containingBlockWidth`,
-then distribute. Tables with explicit `width` keep current behaviour.
-Risk: regresses fixtures relying on fill behaviour; WPT-verify the
-`tables` bucket before/after, one commit.
+Shipped (commit `0e512cc04`): +42 net, zero regressions. See the
+"Landed this loop" list above and `docs/plans/table-shrink-to-fit.md`.
+Follow-ups left: border-spacing layout, caption CAPMIN, percentage
+columns, and inline-table (AtomicInlineBox path — still collapses).
 
 ## CSS2 (working in bucket order) — status
 

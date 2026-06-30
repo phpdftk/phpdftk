@@ -1,7 +1,10 @@
 # Table shrink-to-fit auto width — design
 
-Status: draft (design-doc-first, pre-implementation). 2026-06-30.
-Branch: `css-coverage-push`.
+Status: **IMPLEMENTED** (commit `0e512cc04`, branch `css-coverage-push`).
+2026-06-30. WPT settler-off: +42 net across 17 dirs (CSS2 tables +19,
+margin-padding-clear +5, floats-clear +2, normal-flow +1; css-tables +14,
+css-flexbox +1), zero regressions. Follow-ups: border-spacing layout,
+caption CAPMIN, percentage columns, inline-table (AtomicInlineBox path).
 
 ## Problem
 
