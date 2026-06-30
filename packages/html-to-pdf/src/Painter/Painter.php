@@ -840,6 +840,9 @@ final class Painter
             $stream->clip();
             $stream->endPath();
         }
+        // CSS Masking 1 §6 `clip-path: <basic-shape>` — clip to a shape
+        // resolved against the border box, wrapping the box + descendants.
+        $clipPathApplied = $this->applyClipPath($box, $stream);
         if (!$hidden) {
             // CSS Fragmentation 4 §5.5: `box-decoration-break: clone`
             // makes each fragment paint full decorations as if it were
@@ -889,6 +892,9 @@ final class Painter
             $this->paintBox($child, $stream);
         }
         if ($overflowClip) {
+            $stream->restoreGraphicsState();
+        }
+        if ($clipPathApplied) {
             $stream->restoreGraphicsState();
         }
         if ($clipRect !== null) {
@@ -1688,6 +1694,187 @@ final class Painter
             'w' => max(0.0, ($borderBoxX + $right) - $x),
             'h' => max(0.0, ($borderBoxY + $bottom) - $y),
         ];
+    }
+
+    /**
+     * CSS Masking 1 §6 — apply a `clip-path: <basic-shape>` to the box by
+     * pushing a PDF clip path for the shape, resolved against the BORDER
+     * box. Returns true when a clip was pushed (caller restores after the
+     * children loop). Supports inset / circle / ellipse / polygon; the
+     * `<geometry-box>` form and `url()` references are not handled.
+     */
+    private function applyClipPath(Box $box, ContentStream $stream): bool
+    {
+        $shape = $box->style->get('clip-path');
+        $g = $box->geometry;
+        $bx = $g->x - $g->paddingLeft - $g->borderLeft;
+        $by = $g->y - $g->paddingTop - $g->borderTop;
+        $bw = $g->borderLeft + $g->paddingLeft + $g->width + $g->paddingRight + $g->borderRight;
+        $bh = $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom;
+        if ($bw <= 0.0 || $bh <= 0.0) {
+            return false;
+        }
+        $ph = $this->pageHeight;
+        if ($shape instanceof \Phpdftk\Css\Value\InsetShape) {
+            $ins = $shape->insets;
+            // 1–4 values: top, right, bottom, left (CSS shorthand expansion).
+            $n = count($ins);
+            $top = $this->shapeLengthPercent($ins[0], $bh);
+            $right = $this->shapeLengthPercent($ins[$n >= 2 ? 1 : 0], $bw);
+            $bottom = $this->shapeLengthPercent($ins[$n >= 3 ? 2 : 0], $bh);
+            $left = $this->shapeLengthPercent($ins[$n >= 4 ? 3 : ($n >= 2 ? 1 : 0)], $bw);
+            $x = $bx + $left;
+            $w = max(0.0, $bw - $left - $right);
+            $h = max(0.0, $bh - $top - $bottom);
+            $stream->saveGraphicsState();
+            $stream->rectangle($x, $ph - ($by + $top) - $h, $w, $h);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\CircleShape) {
+            $cx = $bx + $this->positionComponent($shape->centerX, $bw);
+            $cy = $by + $this->positionComponent($shape->centerY, $bh);
+            $r = $this->circleRadius($shape->radius, $cx - $bx, $cy - $by, $bw, $bh);
+            $stream->saveGraphicsState();
+            $this->emitEllipsePath($stream, $cx, $ph - $cy, $r, $r);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\EllipseShape) {
+            $cx = $bx + $this->positionComponent($shape->centerX, $bw);
+            $cy = $by + $this->positionComponent($shape->centerY, $bh);
+            $rx = $this->ellipseRadius($shape->radiusX, $cx - $bx, $bw, $bw);
+            $ry = $this->ellipseRadius($shape->radiusY, $cy - $by, $bh, $bh);
+            $stream->saveGraphicsState();
+            $this->emitEllipsePath($stream, $cx, $ph - $cy, $rx, $ry);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\PolygonShape) {
+            if (count($shape->vertices) < 3) {
+                return false;
+            }
+            $stream->saveGraphicsState();
+            foreach ($shape->vertices as $i => [$vx, $vy]) {
+                $px = $bx + $this->shapeLengthPercent($vx, $bw);
+                $py = $ph - ($by + $this->shapeLengthPercent($vy, $bh));
+                if ($i === 0) {
+                    $stream->moveTo($px, $py);
+                } else {
+                    $stream->lineTo($px, $py);
+                }
+            }
+            $stream->closePath();
+            if (strtolower($shape->fillRule) === 'evenodd') {
+                $stream->clipEvenOdd();
+            } else {
+                $stream->clip();
+            }
+            $stream->endPath();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * `<length-percentage>` from a basic-shape's generic `Value` slot →
+     * px against `$basis`; non-length/percentage values resolve to 0.
+     */
+    private function shapeLengthPercent(\Phpdftk\Css\Value\Value $value, float $basis): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length
+            || $value instanceof \Phpdftk\Css\Value\Percentage
+        ) {
+            return $this->lengthOrPercentageToFloat($value, $basis);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Approximate an ellipse (radii rx, ry) centred at (cx, cy) with four
+     * cubic Béziers and append it as the current path.
+     */
+    private function emitEllipsePath(ContentStream $stream, float $cx, float $cy, float $rx, float $ry): void
+    {
+        $kx = $rx * 0.5522847498307933;
+        $ky = $ry * 0.5522847498307933;
+        $stream->moveTo($cx + $rx, $cy);
+        $stream->curveTo($cx + $rx, $cy + $ky, $cx + $kx, $cy + $ry, $cx, $cy + $ry);
+        $stream->curveTo($cx - $kx, $cy + $ry, $cx - $rx, $cy + $ky, $cx - $rx, $cy);
+        $stream->curveTo($cx - $rx, $cy - $ky, $cx - $kx, $cy - $ry, $cx, $cy - $ry);
+        $stream->curveTo($cx + $kx, $cy - $ry, $cx + $rx, $cy - $ky, $cx + $rx, $cy);
+    }
+
+    /**
+     * Resolve a `<position>` component (clip-path center). `null` →
+     * centre (50%); keywords map to 0 / 50% / 100% of `$basis`.
+     */
+    private function positionComponent(?\Phpdftk\Css\Value\Value $value, float $basis): float
+    {
+        if ($value === null) {
+            return $basis * 0.5;
+        }
+        if ($value instanceof Keyword) {
+            return match (strtolower($value->name)) {
+                'left', 'top' => 0.0,
+                'right', 'bottom' => $basis,
+                default => $basis * 0.5,
+            };
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length
+            || $value instanceof \Phpdftk\Css\Value\Percentage
+        ) {
+            return $this->lengthOrPercentageToFloat($value, $basis);
+        }
+        return $basis * 0.5;
+    }
+
+    /**
+     * CSS Shapes 1 — resolve a `circle()` radius. `null` / keyword
+     * default `closest-side`; percentage against `sqrt(W²+H²)/√2`.
+     */
+    private function circleRadius(?\Phpdftk\Css\Value\Value $value, float $cx, float $cy, float $w, float $h): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * (sqrt($w * $w + $h * $h) / M_SQRT2);
+        }
+        $kw = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        $sides = [$cx, $w - $cx, $cy, $h - $cy];
+        $corners = [
+            hypot($cx, $cy), hypot($w - $cx, $cy),
+            hypot($cx, $h - $cy), hypot($w - $cx, $h - $cy),
+        ];
+        return match ($kw) {
+            'farthest-side' => max($sides),
+            'closest-corner' => min($corners),
+            'farthest-corner' => max($corners),
+            default => min($sides), // closest-side
+        };
+    }
+
+    /**
+     * Resolve one `ellipse()` radius (`rx` or `ry`). `null` / keyword
+     * default `closest-side`; percentage against `$pctBasis`; `$center`
+     * is the centre offset along this axis, `$extent` the box extent.
+     */
+    private function ellipseRadius(?\Phpdftk\Css\Value\Value $value, float $center, float $extent, float $pctBasis): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $pctBasis;
+        }
+        $kw = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        return $kw === 'farthest-side'
+            ? max($center, $extent - $center)
+            : min($center, $extent - $center);
     }
 
     /**

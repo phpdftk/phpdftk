@@ -3440,6 +3440,45 @@ final class PainterTest extends TestCase
     }
 
     /**
+     * CSS Masking 1 §6 — `clip-path: <basic-shape>` emits a clip path.
+     * Polygon uses straight segments; circle/ellipse/inset are covered by
+     * the rendered-output WPT suite.
+     */
+    public function testClipPathPolygonEmitsClipPath(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green; '
+            . 'clip-path: polygon(0 0, 100px 0, 50px 100px)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        $ops = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $ops, 'clip-path emits a clip path');
+        self::assertContains('l', $ops, 'polygon emits line segments');
+    }
+
+    /**
+     * `clip-path: none` (the initial value) emits no clip path.
+     */
+    public function testClipPathNoneEmitsNoClip(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertNotContains('W', $this->operatorTokens($stream->getOperators()), 'no clip-path → no clip');
+    }
+
+    /**
      * Negative: `clip` only applies to absolutely-positioned boxes — a
      * static box with `clip: rect(...)` must NOT emit a clip path.
      */
