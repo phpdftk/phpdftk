@@ -3970,19 +3970,29 @@ final class Painter
             // Two-value form: first is x, second is y.
             $xItem = $items[0] ?? null;
             $yItem = $items[1] ?? null;
+            // CSS Backgrounds 3 §3.6 — when the author specifies exactly
+            // ONE value (e.g. `background-position: 25%` or `-0px`), the
+            // second value is `center` (50%), not the unspecified initial
+            // `0%`. An EMPTY list (count 0) is the unspecified initial and
+            // keeps `0% 0%`; a single keyword is handled above.
+            $singleValue = count($items) === 1;
             $xAxis = $this->axisOffsetFromValue($xItem, isHorizontal: true);
-            $yAxis = $this->axisOffsetFromValue($yItem, isHorizontal: false);
             if ($xAxis['percent'] !== null) {
                 $xPercent = $xAxis['percent'];
             }
             if ($xAxis['length'] !== null) {
                 $xLength = $xAxis['length'];
             }
-            if ($yAxis['percent'] !== null) {
-                $yPercent = $yAxis['percent'];
-            }
-            if ($yAxis['length'] !== null) {
-                $yLength = $yAxis['length'];
+            if ($singleValue) {
+                $yPercent = 0.5;
+            } else {
+                $yAxis = $this->axisOffsetFromValue($yItem, isHorizontal: false);
+                if ($yAxis['percent'] !== null) {
+                    $yPercent = $yAxis['percent'];
+                }
+                if ($yAxis['length'] !== null) {
+                    $yLength = $yAxis['length'];
+                }
             }
         }
         $offsetX = $xLength ?? ($boxWidth - $imageWidth) * $xPercent;
