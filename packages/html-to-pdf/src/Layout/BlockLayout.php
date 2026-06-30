@@ -6711,7 +6711,60 @@ final class BlockLayout
             $height,
         );
         $parent->lineBoxes = $lines;
+        // CSS 2.1 §9.4.3 — `position: relative` on an INLINE-LEVEL atomic
+        // box (replaced `<img>`, `display: inline-block`). InlineLayout
+        // commits each atomic's geometry at its *static* flow position
+        // and never consults `position`, so the offset is otherwise
+        // dropped. Mirror the block path: resolve the offset against the
+        // inline containing block and shift the box + its subtree. The
+        // committed position carries no relative term, so this applies
+        // exactly once.
+        $this->applyRelativeOffsetsToInlineAtomics($parent, $childContext);
         return $height;
+    }
+
+    /**
+     * Walk a block's inline-level descendants and apply
+     * `position: relative` / `sticky` offsets to atomic inline boxes.
+     * Recurses through non-atomic `InlineBox` wrappers (e.g. `<span>`)
+     * to reach nested atomics, but never descends into an atomic's own
+     * subtree — {@see shiftSubtree} already moves an atomic's
+     * descendants with it.
+     */
+    private function applyRelativeOffsetsToInlineAtomics(Box $box, LayoutContext $context): void
+    {
+        foreach ($box->children as $child) {
+            if ($child instanceof AtomicInlineBox) {
+                $this->applyInlineRelativeOffset($child, $context);
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                $this->applyRelativeOffsetsToInlineAtomics($child, $context);
+            }
+        }
+    }
+
+    /**
+     * Apply the resolved `position: relative` / `sticky` shift to a
+     * single atomic inline box (no-op for any other `position`). Reuses
+     * {@see resolveRelativeOffsets} so `right`/`bottom`, left/top
+     * precedence, percentage resolution and sticky fallback all match
+     * the block-level relative path.
+     */
+    private function applyInlineRelativeOffset(Box $box, LayoutContext $context): void
+    {
+        $position = $box->style->get('position');
+        if (!($position instanceof Keyword)) {
+            return;
+        }
+        $name = strtolower($position->name);
+        if ($name !== 'relative' && $name !== 'sticky') {
+            return;
+        }
+        [$dx, $dy] = $this->resolveRelativeOffsets($box->style, $context);
+        if ($dx !== 0.0 || $dy !== 0.0) {
+            $this->shiftSubtree($box, $dy, $dx);
+        }
     }
 
     /**

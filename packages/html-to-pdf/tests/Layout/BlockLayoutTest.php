@@ -2543,6 +2543,117 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(80.0, $child->geometry->y);
     }
 
+    // ------------------------------------------------------------
+    // CSS 2.1 §9.4.3 — `position: relative` on INLINE-LEVEL atomic
+    // boxes (replaced `<img>`, `display: inline-block`). InlineLayout
+    // commits the atomic at its static flow position; the relative
+    // post-pass in `layoutInlineChildren` applies the offset.
+    // ------------------------------------------------------------
+
+    /**
+     * Negative: a `display: inline-block` atomic with no positioning
+     * must stay at its static flow position.
+     */
+    public function testStaticInlineBlockAtomicNotShifted(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="ib" style="display: inline-block; width: 30px; height: 30px"></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($ib);
+        $parent = $this->find($box, 'body');
+        self::assertNotNull($parent);
+        // Static: first atomic sits at the inline container's content x.
+        self::assertSame($parent->geometry->x, $ib->geometry->x, 'static inline-block keeps flow x');
+    }
+
+    /**
+     * Negative: `position: relative` with all-`auto` offsets is a no-op
+     * (mirrors {@see testRelativeWithNoOffsetsIsNoOp} for blocks).
+     */
+    public function testRelativeInlineBlockWithAutoOffsetsNotShifted(): void
+    {
+        $staticX = $this->inlineAtomicX('display: inline-block; width: 30px; height: 30px');
+        $relX = $this->inlineAtomicX('display: inline-block; width: 30px; height: 30px; position: relative');
+        self::assertSame($staticX, $relX, 'auto offsets do not shift the atomic');
+    }
+
+    /**
+     * Positive: `top` / `left` shift an inline-block atomic (and its
+     * subtree) by the resolved offset.
+     */
+    public function testRelativeInlineBlockTopLeftShifts(): void
+    {
+        [$sx, $sy] = $this->inlineAtomicXY('display: inline-block; width: 30px; height: 30px');
+        [$rx, $ry] = $this->inlineAtomicXY(
+            'display: inline-block; width: 30px; height: 30px; position: relative; top: 10px; left: 20px',
+        );
+        self::assertSame($sx + 20.0, $rx, 'left: 20px shifts atomic right');
+        self::assertSame($sy + 10.0, $ry, 'top: 10px shifts atomic down');
+    }
+
+    /**
+     * Positive (negative-direction edge): `right` / `bottom` shift the
+     * atomic the opposite way.
+     */
+    public function testRelativeInlineBlockRightBottomShiftsNegatively(): void
+    {
+        [$sx, $sy] = $this->inlineAtomicXY('display: inline-block; width: 30px; height: 30px');
+        [$rx, $ry] = $this->inlineAtomicXY(
+            'display: inline-block; width: 30px; height: 30px; position: relative; right: 15px; bottom: 8px',
+        );
+        self::assertSame($sx - 15.0, $rx, 'right: 15px shifts atomic left');
+        self::assertSame($sy - 8.0, $ry, 'bottom: 8px shifts atomic up');
+    }
+
+    /**
+     * Negative: shifting one relatively-positioned atomic must not move
+     * a static sibling atomic on the same line.
+     */
+    public function testRelativeInlineBlockDoesNotShiftStaticSibling(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="a" style="display: inline-block; width: 30px; height: 30px; position: relative; left: 100px"></div>'
+                . '<div id="b" style="display: inline-block; width: 30px; height: 30px"></div>'
+                . '</body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        $parent = $this->find($box, 'body');
+        self::assertNotNull($parent);
+        // Sibling b keeps its static x (just after a's static box at 30).
+        self::assertSame($parent->geometry->x + 30.0, $b->geometry->x, 'static sibling unaffected by a relative shift');
+        // a moved right by 100 from its own static origin.
+        self::assertSame($parent->geometry->x + 100.0, $a->geometry->x, 'relative atomic shifted by left');
+    }
+
+    private function inlineAtomicX(string $style): float
+    {
+        return $this->inlineAtomicXY($style)[0];
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function inlineAtomicXY(string $style): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="ib" style="' . $style . '"></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($ib);
+        return [$ib->geometry->x, $ib->geometry->y];
+    }
+
     public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
     {
         // Regression guard: when the parent uses `box-sizing: border-box`,
