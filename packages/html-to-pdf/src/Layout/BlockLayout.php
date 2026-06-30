@@ -2126,6 +2126,18 @@ final class BlockLayout
         float $originY,
         float $cursorY,
     ): array {
+        // CSS Writing Modes 4 §7.1 / CSS Position 3 §4.2 — when the
+        // containing block is in a vertical writing mode the §10.3.7
+        // (inline-axis: static position + direction-based over-constraint
+        // tie-break) and §10.6.4 (block-axis: even split) algorithms run
+        // on the SWAPPED physical axes: the inline algorithm on physical
+        // Y (top/bottom/height) and the block algorithm on physical X
+        // (left/right/width). The horizontal-tb path below is left
+        // byte-identical.
+        $cbWm = $childContext->parentWritingMode;
+        if ($cbWm !== null && $cbWm->isVertical()) {
+            return $this->resolveAbsoluteOffsetsVertical($child, $childContext, $originX, $originY, $cursorY);
+        }
         $style = $child->style;
         $cbWidth = $childContext->containingBlockWidth;
         $cbHeight = $childContext->containingBlockHeight;
@@ -2231,6 +2243,103 @@ final class BlockLayout
             }
             $dx = $leftPx + $resolvedMarginLeft;
         }
+        return [$dx, $dy];
+    }
+
+    /**
+     * Vertical-writing-mode containing block variant of
+     * {@see resolveAbsoluteOffsets}. The §10.3.7 inline algorithm (with
+     * static position + `direction` over-constraint tie-break) runs on
+     * the physical Y axis (top / bottom / height) and the §10.6.4 block
+     * algorithm (even split, no direction) runs on the physical X axis
+     * (left / right / width) — the mirror of the horizontal-tb mapping.
+     * `vertical-lr` vs `vertical-rl` does not change the block-axis even
+     * split (it is symmetric); the inline-axis tie-break uses the
+     * containing block's `direction` (inline-start = top for ltr, bottom
+     * for rtl), read off the child which inherits it.
+     *
+     * @return array{0:float, 1:float} `[dx, dy]`
+     */
+    private function resolveAbsoluteOffsetsVertical(
+        Box $child,
+        LayoutContext $childContext,
+        float $originX,
+        float $originY,
+        float $cursorY,
+    ): array {
+        $style = $child->style;
+        $cbWidth = $childContext->containingBlockWidth;
+        $cbHeight = $childContext->containingBlockHeight;
+        $top = $style->get('top');
+        $bottom = $style->get('bottom');
+        $left = $style->get('left');
+        $right = $style->get('right');
+        $geo = $child->geometry;
+
+        // --- Block axis = physical X (left / right / width), §10.6.4
+        //     even split. Mirrors the horizontal-tb `dy` branch. ---
+        $dx = 0.0;
+        if (!$this->isAuto($left)) {
+            $dx = $this->resolveLength($left, $cbWidth);
+        } elseif (!$this->isAuto($right)) {
+            $dx = $cbWidth - $this->resolveLength($right, $cbWidth) - $child->geometry->outerWidth();
+        }
+        $widthStyleValue = $style->get('width');
+        $widthKw = $this->sizingKeywordName($widthStyleValue);
+        $widthIsDefinite = !$this->isAuto($widthStyleValue)
+            && ($widthKw === null || $widthKw !== 'stretch');
+        if (!$this->isAuto($left)
+            && !$this->isAuto($right)
+            && $widthIsDefinite
+            && $this->isAuto($style->get('margin-left'))
+            && $this->isAuto($style->get('margin-right'))
+        ) {
+            $leftPx = $this->resolveLength($left, $cbWidth);
+            $rightPx = $this->resolveLength($right, $cbWidth);
+            $outerW = $geo->borderLeft + $geo->paddingLeft + $geo->width
+                + $geo->paddingRight + $geo->borderRight;
+            $slackW = $cbWidth - $leftPx - $rightPx - $outerW;
+            $dx = $leftPx + ($slackW / 2.0);
+        }
+
+        // --- Inline axis = physical Y (top / bottom / height), §10.3.7
+        //     with direction over-constraint tie-break. Mirrors the
+        //     horizontal-tb `dx` branch. ---
+        $dy = 0.0;
+        if (!$this->isAuto($top)) {
+            $dy = $this->resolveLength($top, $cbHeight);
+        } elseif (!$this->isAuto($bottom)) {
+            $dy = $cbHeight - $this->resolveLength($bottom, $cbHeight) - $child->geometry->outerHeight();
+        }
+        $heightStyleValue = $style->get('height');
+        $heightKw = $this->sizingKeywordName($heightStyleValue);
+        $heightIsDefinite = !$this->isHeightAutoLike($heightStyleValue)
+            || ($heightKw !== null && $heightKw !== 'stretch');
+        if (!$this->isAuto($top)
+            && !$this->isAuto($bottom)
+            && $heightIsDefinite
+            && $this->isAuto($style->get('margin-top'))
+            && $this->isAuto($style->get('margin-bottom'))
+        ) {
+            $topPx = $this->resolveLength($top, $cbHeight);
+            $bottomPx = $this->resolveLength($bottom, $cbHeight);
+            $outerH = $geo->borderTop + $geo->paddingTop + $geo->height
+                + $geo->paddingBottom + $geo->borderBottom;
+            $slackH = $cbHeight - $topPx - $bottomPx - $outerH;
+            if ($slackH >= 0.0) {
+                $resolvedMarginTop = $slackH / 2.0;
+            } else {
+                // Over-constrained: honour the inline-start inset, zero
+                // its margin. Inline-start is `top` for ltr, `bottom`
+                // for rtl — so rtl pushes the slack onto margin-top.
+                $directionValue = $style->get('direction');
+                $isRtl = $directionValue instanceof Keyword
+                    && strtolower($directionValue->name) === 'rtl';
+                $resolvedMarginTop = $isRtl ? $slackH : 0.0;
+            }
+            $dy = $topPx + $resolvedMarginTop;
+        }
+
         return [$dx, $dy];
     }
 
@@ -6218,6 +6327,11 @@ final class BlockLayout
         $hasPrev = false;
         $pageHeight = $childContext->containingBlockHeight;
         $total = 0.0;
+        // Track the last in-flow child so an out-of-flow box can recover
+        // its inline static position from the preceding inline content
+        // (CSS 2.1 §10.6.4 — an inline-level abspos box's static position
+        // is the line it would sit on, not the bottom of the block).
+        $prevInFlowChild = null;
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
             // CSS 2.1 §9.6 — `position: absolute` (and `fixed`, which
@@ -6250,7 +6364,17 @@ final class BlockLayout
                 $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
                     || !$this->isAuto($absStyle->get('right'));
                 $absOriginX = ($pa !== null && $hasLeftAnchor) ? $pa->originX : $originX;
-                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $cursorY;
+                // Static-Y origin: the positioned-ancestor edge when the
+                // box has a top/bottom anchor, otherwise the in-flow
+                // static position. For an inline-level abspos that follows
+                // inline content (the `text<span style=position:absolute>`
+                // pattern), that static position is the TOP of the last
+                // line of that content — not `$cursorY` (the bottom of the
+                // whole inline formatting context).
+                $staticY = $hasTopAnchor
+                    ? $cursorY
+                    : ($this->inlineStaticPositionY($prevInFlowChild) ?? $cursorY);
+                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $staticY;
                 // CSS 2.1 §10.3.7 / §10.6.4 — when both opposing edge
                 // anchors are set (left+right or top+bottom) AND the
                 // corresponding size property is `auto`, the size is
@@ -6367,8 +6491,28 @@ final class BlockLayout
             }
             $prevBottomMargin = $child->geometry->marginBottom;
             $hasPrev = true;
+            $prevInFlowChild = $child;
         }
         return $total;
+    }
+
+    /**
+     * CSS 2.1 §10.6.4 / §9.4.2 — the static position of an inline-level
+     * out-of-flow box is the position it would occupy as a static inline
+     * box at its source location: ON the line of the preceding inline
+     * content, not below all of it. When the immediately-preceding
+     * in-flow sibling established an inline formatting context, return
+     * the block-start of its LAST line box; otherwise return `null` so
+     * the caller falls back to the post-content cursor (the correct
+     * static position for an abspos that follows block-level content).
+     */
+    private function inlineStaticPositionY(?Box $prevInFlowChild): ?float
+    {
+        if ($prevInFlowChild === null || $prevInFlowChild->lineBoxes === []) {
+            return null;
+        }
+        $lastLine = $prevInFlowChild->lineBoxes[count($prevInFlowChild->lineBoxes) - 1];
+        return $prevInFlowChild->geometry->y + $lastLine->y;
     }
 
     /**
@@ -6711,7 +6855,60 @@ final class BlockLayout
             $height,
         );
         $parent->lineBoxes = $lines;
+        // CSS 2.1 §9.4.3 — `position: relative` on an INLINE-LEVEL atomic
+        // box (replaced `<img>`, `display: inline-block`). InlineLayout
+        // commits each atomic's geometry at its *static* flow position
+        // and never consults `position`, so the offset is otherwise
+        // dropped. Mirror the block path: resolve the offset against the
+        // inline containing block and shift the box + its subtree. The
+        // committed position carries no relative term, so this applies
+        // exactly once.
+        $this->applyRelativeOffsetsToInlineAtomics($parent, $childContext);
         return $height;
+    }
+
+    /**
+     * Walk a block's inline-level descendants and apply
+     * `position: relative` / `sticky` offsets to atomic inline boxes.
+     * Recurses through non-atomic `InlineBox` wrappers (e.g. `<span>`)
+     * to reach nested atomics, but never descends into an atomic's own
+     * subtree — {@see shiftSubtree} already moves an atomic's
+     * descendants with it.
+     */
+    private function applyRelativeOffsetsToInlineAtomics(Box $box, LayoutContext $context): void
+    {
+        foreach ($box->children as $child) {
+            if ($child instanceof AtomicInlineBox) {
+                $this->applyInlineRelativeOffset($child, $context);
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                $this->applyRelativeOffsetsToInlineAtomics($child, $context);
+            }
+        }
+    }
+
+    /**
+     * Apply the resolved `position: relative` / `sticky` shift to a
+     * single atomic inline box (no-op for any other `position`). Reuses
+     * {@see resolveRelativeOffsets} so `right`/`bottom`, left/top
+     * precedence, percentage resolution and sticky fallback all match
+     * the block-level relative path.
+     */
+    private function applyInlineRelativeOffset(Box $box, LayoutContext $context): void
+    {
+        $position = $box->style->get('position');
+        if (!($position instanceof Keyword)) {
+            return;
+        }
+        $name = strtolower($position->name);
+        if ($name !== 'relative' && $name !== 'sticky') {
+            return;
+        }
+        [$dx, $dy] = $this->resolveRelativeOffsets($box->style, $context);
+        if ($dx !== 0.0 || $dy !== 0.0) {
+            $this->shiftSubtree($box, $dy, $dx);
+        }
     }
 
     /**

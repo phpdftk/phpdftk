@@ -100,6 +100,7 @@ final class InlineLayout
         }
         $shapingCtx = new ShapingContext($font, $fontSize, features: $this->resolveOpenTypeFeatures($parent));
         $lineHeight = $this->resolveLineHeight($parent, $fontSize);
+        $lineHeightMultiplier = $this->lineHeightMultiplier($parent);
         $whiteSpace = $this->whiteSpaceKeyword($parent);
         // CSS Text 3 §4 — wrap permission table:
         //   normal / pre-wrap / pre-line / break-spaces → allow soft wrap
@@ -198,7 +199,7 @@ final class InlineLayout
                         ? $bounds['left'] + $textIndent
                         : end($currentFragments)->x + end($currentFragments)->width;
                 }
-                $effective = $this->lineHeightFor($currentFragments, $lineHeight);
+                $effective = $this->lineHeightFor($currentFragments, $lineHeight, $lineHeightMultiplier);
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
@@ -305,7 +306,7 @@ final class InlineLayout
             $currentX += $width;
             $atLineStart = false;
             if ($isMandatory) {
-                $effective = $this->lineHeightFor($currentFragments, $lineHeight);
+                $effective = $this->lineHeightFor($currentFragments, $lineHeight, $lineHeightMultiplier);
                 $lines[] = new LineBox($y, $effective, $currentFragments);
                 $y += $effective;
                 $currentFragments = [];
@@ -317,7 +318,7 @@ final class InlineLayout
             }
         }
         if ($currentFragments !== []) {
-            $effective = $this->lineHeightFor($currentFragments, $lineHeight);
+            $effective = $this->lineHeightFor($currentFragments, $lineHeight, $lineHeightMultiplier);
             $lines[] = new LineBox($y, $effective, $currentFragments);
             $y += $effective;
         }
@@ -905,6 +906,39 @@ final class InlineLayout
     }
 
     /**
+     * The per-font-size multiplier for a `line-height` that scales with
+     * each inline box's own font size — `normal` (1.2) and `<number>`
+     * (the number) — or `null` when the value is an absolute `<length>`
+     * (or `<percentage>`, which CSS computes to an absolute length).
+     *
+     * A larger inline child grows the line box by `childFontSize ×
+     * multiplier` for the scalable forms; for the absolute forms the
+     * authored length applies regardless of font size, so the line box
+     * does not scale up with a larger child.
+     */
+    private function lineHeightMultiplier(Box $parent): ?float
+    {
+        $value = $parent->style->get('line-height');
+        if ($value instanceof \Phpdftk\Css\Value\Keyword
+            && strtolower($value->name) === 'normal'
+        ) {
+            return 1.2;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number
+            || $value instanceof \Phpdftk\Css\Value\Integer
+        ) {
+            return $value->value;
+        }
+        // Absent / unrecognised → treat as the initial `normal`.
+        if (!($value instanceof Length)
+            && !($value instanceof \Phpdftk\Css\Value\Percentage)
+        ) {
+            return 1.2;
+        }
+        return null;
+    }
+
+    /**
      * Resolve the parent's `text-indent` CSS value against the available
      * width. Length resolves directly; Percentage resolves against the
      * block's content width per CSS Text 3 §3.1; everything else falls to 0.
@@ -1289,17 +1323,34 @@ final class InlineLayout
      * inline heights it contains. Use the parent's resolved line-height as
      * the baseline, then grow if a fragment carries a larger font.
      *
+     * A fragment with a larger font than the parent contributes its own
+     * line height. For a scalable `line-height` (`normal` / `<number>`,
+     * which inherit per-font-size) that contribution is `fragmentFontSize
+     * × $multiplier`; for an absolute `<length>` / `<percentage>`
+     * (`$multiplier === null`) the authored line-height applies regardless
+     * of font size, so the line box does not grow with a larger child.
+     *
+     * The old code used a hardcoded `max($parentLineHeight, maxFontSize ×
+     * 1.2)`, which ignored any explicit `line-height` below `normal`:
+     * `font: 80px/1` resolves the parent line-height to 80, yet
+     * `max(80, 80 × 1.2)` forced the line box to 96.
+     *
      * @param list<InlineFragment> $fragments
      */
-    private function lineHeightFor(array $fragments, float $parentLineHeight): float
+    private function lineHeightFor(array $fragments, float $parentLineHeight, ?float $multiplier): float
     {
+        if ($multiplier === null) {
+            // Absolute line-height: the used value is the authored length
+            // for every inline box on the line, independent of font size.
+            return $parentLineHeight;
+        }
         $maxFontSize = 0.0;
         foreach ($fragments as $f) {
             if ($f->shapedRun->fontSizePt > $maxFontSize) {
                 $maxFontSize = $f->shapedRun->fontSizePt;
             }
         }
-        return max($parentLineHeight, $maxFontSize * 1.2);
+        return max($parentLineHeight, $maxFontSize * $multiplier);
     }
 
     /**

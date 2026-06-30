@@ -2543,6 +2543,314 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(80.0, $child->geometry->y);
     }
 
+    // ------------------------------------------------------------
+    // CSS 2.1 §9.4.3 — `position: relative` on INLINE-LEVEL atomic
+    // boxes (replaced `<img>`, `display: inline-block`). InlineLayout
+    // commits the atomic at its static flow position; the relative
+    // post-pass in `layoutInlineChildren` applies the offset.
+    // ------------------------------------------------------------
+
+    /**
+     * Negative: a `display: inline-block` atomic with no positioning
+     * must stay at its static flow position.
+     */
+    public function testStaticInlineBlockAtomicNotShifted(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="ib" style="display: inline-block; width: 30px; height: 30px"></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($ib);
+        $parent = $this->find($box, 'body');
+        self::assertNotNull($parent);
+        // Static: first atomic sits at the inline container's content x.
+        self::assertSame($parent->geometry->x, $ib->geometry->x, 'static inline-block keeps flow x');
+    }
+
+    /**
+     * Negative: `position: relative` with all-`auto` offsets is a no-op
+     * (mirrors {@see testRelativeWithNoOffsetsIsNoOp} for blocks).
+     */
+    public function testRelativeInlineBlockWithAutoOffsetsNotShifted(): void
+    {
+        $staticX = $this->inlineAtomicX('display: inline-block; width: 30px; height: 30px');
+        $relX = $this->inlineAtomicX('display: inline-block; width: 30px; height: 30px; position: relative');
+        self::assertSame($staticX, $relX, 'auto offsets do not shift the atomic');
+    }
+
+    /**
+     * Positive: `top` / `left` shift an inline-block atomic (and its
+     * subtree) by the resolved offset.
+     */
+    public function testRelativeInlineBlockTopLeftShifts(): void
+    {
+        [$sx, $sy] = $this->inlineAtomicXY('display: inline-block; width: 30px; height: 30px');
+        [$rx, $ry] = $this->inlineAtomicXY(
+            'display: inline-block; width: 30px; height: 30px; position: relative; top: 10px; left: 20px',
+        );
+        self::assertSame($sx + 20.0, $rx, 'left: 20px shifts atomic right');
+        self::assertSame($sy + 10.0, $ry, 'top: 10px shifts atomic down');
+    }
+
+    /**
+     * Positive (negative-direction edge): `right` / `bottom` shift the
+     * atomic the opposite way.
+     */
+    public function testRelativeInlineBlockRightBottomShiftsNegatively(): void
+    {
+        [$sx, $sy] = $this->inlineAtomicXY('display: inline-block; width: 30px; height: 30px');
+        [$rx, $ry] = $this->inlineAtomicXY(
+            'display: inline-block; width: 30px; height: 30px; position: relative; right: 15px; bottom: 8px',
+        );
+        self::assertSame($sx - 15.0, $rx, 'right: 15px shifts atomic left');
+        self::assertSame($sy - 8.0, $ry, 'bottom: 8px shifts atomic up');
+    }
+
+    /**
+     * Negative: shifting one relatively-positioned atomic must not move
+     * a static sibling atomic on the same line.
+     */
+    public function testRelativeInlineBlockDoesNotShiftStaticSibling(): void
+    {
+        $box = $this->buildTree(
+            '<html><body>'
+                . '<div id="a" style="display: inline-block; width: 30px; height: 30px; position: relative; left: 100px"></div>'
+                . '<div id="b" style="display: inline-block; width: 30px; height: 30px"></div>'
+                . '</body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        $parent = $this->find($box, 'body');
+        self::assertNotNull($parent);
+        // Sibling b keeps its static x (just after a's static box at 30).
+        self::assertSame($parent->geometry->x + 30.0, $b->geometry->x, 'static sibling unaffected by a relative shift');
+        // a moved right by 100 from its own static origin.
+        self::assertSame($parent->geometry->x + 100.0, $a->geometry->x, 'relative atomic shifted by left');
+    }
+
+    private function inlineAtomicX(string $style): float
+    {
+        return $this->inlineAtomicXY($style)[0];
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function inlineAtomicXY(string $style): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="ib" style="' . $style . '"></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($ib);
+        return [$ib->geometry->x, $ib->geometry->y];
+    }
+
+    // ------------------------------------------------------------
+    // CSS2 §10.8 / CSS Inline 3 — line-box height honours the used
+    // `line-height` (no hardcoded 1.2 floor) and an inline-level
+    // abspos box takes its static position from the line it sits on.
+    // ------------------------------------------------------------
+
+    private function mongolianContext(): LayoutContext
+    {
+        $path = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($path)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser($path))->parse();
+        return new LayoutContext(
+            containingBlockWidth: 600.0,
+            containingBlockHeight: 800.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new \Phpdftk\Css\Cascade\LengthContext(),
+            defaultFont: $font,
+        );
+    }
+
+    private function firstLineHeight(string $pStyle): float
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="' . $pStyle . '">' . "\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        self::assertNotEmpty($p->lineBoxes, 'paragraph should produce a line box');
+        return $p->lineBoxes[0]->height;
+    }
+
+    /**
+     * Positive: an explicit `line-height: 1` (e.g. `font: 80px/1`) must
+     * NOT be inflated to 1.2× — the old hardcoded `max(lh, fontSize ×
+     * 1.2)` forced an 80px line to 96.
+     */
+    public function testExplicitLineHeightOneNotInflated(): void
+    {
+        self::assertEqualsWithDelta(80.0, $this->firstLineHeight('font-size: 80px; line-height: 1'), 0.01);
+    }
+
+    /**
+     * Negative: `line-height: normal` keeps the 1.2 default leading.
+     */
+    public function testNormalLineHeightUsesDefaultLeading(): void
+    {
+        self::assertEqualsWithDelta(96.0, $this->firstLineHeight('font-size: 80px; line-height: normal'), 0.01);
+    }
+
+    /**
+     * Positive: a `<number>` line-height scales per font size, so a
+     * larger inline child grows the line box (`max(parentLH, childFont ×
+     * number)`).
+     */
+    public function testNumberLineHeightGrowsWithLargerChildFont(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="font-size: 16px; line-height: 1">'
+            . "\u{1820}" . '<span style="font-size: 40px">' . "\u{1820}" . '</span></p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        // line-height:1 × the 40px child = 40 (beats the 16px parent line).
+        self::assertEqualsWithDelta(40.0, $p->lineBoxes[0]->height, 0.01);
+    }
+
+    /**
+     * Negative (codex-flagged edge): an absolute `<length>` line-height
+     * does NOT scale with a larger child font — the authored length
+     * applies to every inline box on the line.
+     */
+    public function testFixedLengthLineHeightNotScaledByLargerChild(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="font-size: 16px; line-height: 30px">'
+            . "\u{1820}" . '<span style="font-size: 30px">' . "\u{1820}" . '</span></p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        // Fixed 30px line-height — NOT 30 × (30/16) = 56.25.
+        self::assertEqualsWithDelta(30.0, $p->lineBoxes[0]->height, 0.01);
+    }
+
+    /**
+     * Positive: an inline-level `position: absolute` box with `top:
+     * auto` takes its static Y from the line of the preceding inline
+     * content — ON that line, not below the whole inline block.
+     */
+    public function testInlineAbsposStaticPositionSitsOnPrecedingLine(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="position: relative; width: 600px; font-size: 40px">'
+            . "\u{1820}\u{1820}"
+            . '<span id="ap" style="position: absolute; left: 5px">' . "\u{1820}" . '</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $cb = $this->findById($box, 'cb');
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($cb);
+        self::assertNotNull($ap);
+        // The abspos sits ON the single line of preceding text (its top),
+        // i.e. at the containing block's content top — NOT one line-height
+        // below it.
+        self::assertEqualsWithDelta($cb->geometry->y, $ap->geometry->y, 0.5, 'inline abspos sits on the content line');
+    }
+
+    // ------------------------------------------------------------
+    // CSS Writing Modes 4 §7.1 — abspos in a vertical-mode CB runs the
+    // §10.3.7 inline algorithm on physical Y and the §10.6.4 block
+    // algorithm on physical X (axes swapped vs horizontal-tb).
+    // ------------------------------------------------------------
+
+    /**
+     * @return array{0: float, 1: float} the abspos span's [x, y]
+     */
+    private function verticalAbsposGeo(string $cbExtraStyle, string $spanStyle): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="position: relative; width: 320px; height: 320px; '
+            . 'writing-mode: vertical-lr;' . $cbExtraStyle . '">'
+            . '<span id="ap" style="position: absolute;' . $spanStyle . '">x</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        return [$ap->geometry->x, $ap->geometry->y];
+    }
+
+    /**
+     * Block axis (physical X) over-constrained with `auto` margins →
+     * §10.6.4 EVEN split. left:40 right:120 width:80 → slack 80 → x = 60.
+     */
+    public function testVerticalCbBlockAxisEvenSplit(): void
+    {
+        [$x] = $this->verticalAbsposGeo(
+            '',
+            'left: 40px; right: 120px; width: 80px; height: 80px; top: auto; bottom: auto; margin: auto',
+        );
+        // 40 + (320 - 40 - 120 - 80)/2 = 40 + 40 = 80.
+        self::assertEqualsWithDelta(80.0, $x, 0.01);
+    }
+
+    /**
+     * Block axis over-constrained with NON-auto margins → honour the
+     * start inset (`left`), ignore `right`. x = 40.
+     */
+    public function testVerticalCbBlockAxisOverconstrainedHonoursStart(): void
+    {
+        [$x] = $this->verticalAbsposGeo(
+            '',
+            'left: 40px; right: 120px; width: 80px; height: 80px; top: auto; bottom: auto',
+        );
+        self::assertEqualsWithDelta(40.0, $x, 0.01);
+    }
+
+    /**
+     * Inline axis (physical Y) over-constrained with `auto` margins →
+     * §10.3.7 even split (positive slack). top:40 bottom:120 height:80 →
+     * slack 80 → y = 80.
+     */
+    public function testVerticalCbInlineAxisEvenSplit(): void
+    {
+        [, $y] = $this->verticalAbsposGeo(
+            '',
+            'top: 40px; bottom: 120px; height: 80px; width: 80px; left: auto; right: auto; margin: auto',
+        );
+        self::assertEqualsWithDelta(80.0, $y, 0.01);
+    }
+
+    /**
+     * Inline axis over-constrained, NEGATIVE slack, `direction: rtl` →
+     * the slack lands on margin-top (inline-start is `bottom` for rtl),
+     * so the box overflows past the top. top:0 bottom:0 height:400 →
+     * slack -80 → y = -80.
+     */
+    public function testVerticalCbInlineAxisRtlNegativeSlack(): void
+    {
+        [, $y] = $this->verticalAbsposGeo(
+            ' direction: rtl;',
+            'top: 0; bottom: 0; height: 400px; width: 80px; left: auto; right: auto; margin: auto',
+        );
+        self::assertEqualsWithDelta(-80.0, $y, 0.01);
+    }
+
     public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
     {
         // Regression guard: when the parent uses `box-sizing: border-box`,
