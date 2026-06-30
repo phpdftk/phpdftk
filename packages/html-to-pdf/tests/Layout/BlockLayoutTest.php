@@ -2654,6 +2654,123 @@ final class BlockLayoutTest extends TestCase
         return [$ib->geometry->x, $ib->geometry->y];
     }
 
+    // ------------------------------------------------------------
+    // CSS2 §10.8 / CSS Inline 3 — line-box height honours the used
+    // `line-height` (no hardcoded 1.2 floor) and an inline-level
+    // abspos box takes its static position from the line it sits on.
+    // ------------------------------------------------------------
+
+    private function mongolianContext(): LayoutContext
+    {
+        $path = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
+        if (!is_file($path)) {
+            self::markTestSkipped('Mongolian fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser($path))->parse();
+        return new LayoutContext(
+            containingBlockWidth: 600.0,
+            containingBlockHeight: 800.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new \Phpdftk\Css\Cascade\LengthContext(),
+            defaultFont: $font,
+        );
+    }
+
+    private function firstLineHeight(string $pStyle): float
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="' . $pStyle . '">' . "\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        self::assertNotEmpty($p->lineBoxes, 'paragraph should produce a line box');
+        return $p->lineBoxes[0]->height;
+    }
+
+    /**
+     * Positive: an explicit `line-height: 1` (e.g. `font: 80px/1`) must
+     * NOT be inflated to 1.2× — the old hardcoded `max(lh, fontSize ×
+     * 1.2)` forced an 80px line to 96.
+     */
+    public function testExplicitLineHeightOneNotInflated(): void
+    {
+        self::assertEqualsWithDelta(80.0, $this->firstLineHeight('font-size: 80px; line-height: 1'), 0.01);
+    }
+
+    /**
+     * Negative: `line-height: normal` keeps the 1.2 default leading.
+     */
+    public function testNormalLineHeightUsesDefaultLeading(): void
+    {
+        self::assertEqualsWithDelta(96.0, $this->firstLineHeight('font-size: 80px; line-height: normal'), 0.01);
+    }
+
+    /**
+     * Positive: a `<number>` line-height scales per font size, so a
+     * larger inline child grows the line box (`max(parentLH, childFont ×
+     * number)`).
+     */
+    public function testNumberLineHeightGrowsWithLargerChildFont(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="font-size: 16px; line-height: 1">'
+            . "\u{1820}" . '<span style="font-size: 40px">' . "\u{1820}" . '</span></p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        // line-height:1 × the 40px child = 40 (beats the 16px parent line).
+        self::assertEqualsWithDelta(40.0, $p->lineBoxes[0]->height, 0.01);
+    }
+
+    /**
+     * Negative (codex-flagged edge): an absolute `<length>` line-height
+     * does NOT scale with a larger child font — the authored length
+     * applies to every inline box on the line.
+     */
+    public function testFixedLengthLineHeightNotScaledByLargerChild(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p" style="font-size: 16px; line-height: 30px">'
+            . "\u{1820}" . '<span style="font-size: 30px">' . "\u{1820}" . '</span></p></body></html>',
+            'html, body, p { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        // Fixed 30px line-height — NOT 30 × (30/16) = 56.25.
+        self::assertEqualsWithDelta(30.0, $p->lineBoxes[0]->height, 0.01);
+    }
+
+    /**
+     * Positive: an inline-level `position: absolute` box with `top:
+     * auto` takes its static Y from the line of the preceding inline
+     * content — ON that line, not below the whole inline block.
+     */
+    public function testInlineAbsposStaticPositionSitsOnPrecedingLine(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="position: relative; width: 600px; font-size: 40px">'
+            . "\u{1820}\u{1820}"
+            . '<span id="ap" style="position: absolute; left: 5px">' . "\u{1820}" . '</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $cb = $this->findById($box, 'cb');
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($cb);
+        self::assertNotNull($ap);
+        // The abspos sits ON the single line of preceding text (its top),
+        // i.e. at the containing block's content top — NOT one line-height
+        // below it.
+        self::assertEqualsWithDelta($cb->geometry->y, $ap->geometry->y, 0.5, 'inline abspos sits on the content line');
+    }
+
     public function testRelativePercentageOnBorderBoxSubtractsInsets(): void
     {
         // Regression guard: when the parent uses `box-sizing: border-box`,

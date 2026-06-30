@@ -6218,6 +6218,11 @@ final class BlockLayout
         $hasPrev = false;
         $pageHeight = $childContext->containingBlockHeight;
         $total = 0.0;
+        // Track the last in-flow child so an out-of-flow box can recover
+        // its inline static position from the preceding inline content
+        // (CSS 2.1 §10.6.4 — an inline-level abspos box's static position
+        // is the line it would sit on, not the bottom of the block).
+        $prevInFlowChild = null;
         foreach ($children as $child) {
             $this->cascade->resolveLengths($child->style, $childContext->lengthContext);
             // CSS 2.1 §9.6 — `position: absolute` (and `fixed`, which
@@ -6250,7 +6255,17 @@ final class BlockLayout
                 $hasLeftAnchor = !$this->isAuto($absStyle->get('left'))
                     || !$this->isAuto($absStyle->get('right'));
                 $absOriginX = ($pa !== null && $hasLeftAnchor) ? $pa->originX : $originX;
-                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $cursorY;
+                // Static-Y origin: the positioned-ancestor edge when the
+                // box has a top/bottom anchor, otherwise the in-flow
+                // static position. For an inline-level abspos that follows
+                // inline content (the `text<span style=position:absolute>`
+                // pattern), that static position is the TOP of the last
+                // line of that content — not `$cursorY` (the bottom of the
+                // whole inline formatting context).
+                $staticY = $hasTopAnchor
+                    ? $cursorY
+                    : ($this->inlineStaticPositionY($prevInFlowChild) ?? $cursorY);
+                $absOriginY = ($pa !== null && $hasTopAnchor) ? $pa->originY : $staticY;
                 // CSS 2.1 §10.3.7 / §10.6.4 — when both opposing edge
                 // anchors are set (left+right or top+bottom) AND the
                 // corresponding size property is `auto`, the size is
@@ -6367,8 +6382,28 @@ final class BlockLayout
             }
             $prevBottomMargin = $child->geometry->marginBottom;
             $hasPrev = true;
+            $prevInFlowChild = $child;
         }
         return $total;
+    }
+
+    /**
+     * CSS 2.1 §10.6.4 / §9.4.2 — the static position of an inline-level
+     * out-of-flow box is the position it would occupy as a static inline
+     * box at its source location: ON the line of the preceding inline
+     * content, not below all of it. When the immediately-preceding
+     * in-flow sibling established an inline formatting context, return
+     * the block-start of its LAST line box; otherwise return `null` so
+     * the caller falls back to the post-content cursor (the correct
+     * static position for an abspos that follows block-level content).
+     */
+    private function inlineStaticPositionY(?Box $prevInFlowChild): ?float
+    {
+        if ($prevInFlowChild === null || $prevInFlowChild->lineBoxes === []) {
+            return null;
+        }
+        $lastLine = $prevInFlowChild->lineBoxes[count($prevInFlowChild->lineBoxes) - 1];
+        return $prevInFlowChild->geometry->y + $lastLine->y;
     }
 
     /**
