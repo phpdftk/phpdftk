@@ -3,11 +3,19 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, +83 net)
+## Landed this loop (branch `css-coverage-push`, +121 net)
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
   (−26 are `clip-path/animations/*`, JS-driven; correct under the settler)
+- inline-block border/padding in the no-font atomic path
+  (`layoutAtomicOnly`) — **+38 net** (borders +32, positioning +4,
+  tables +6, floats-clear −4). The fallback ignored border/padding, so an
+  empty inline-block sized by a thick `border-{top,bottom}-width` (the
+  CSS2 border-width tests) squared to its width and painted no border.
+  Now folds both axes' inset into the geometry (box-sizing-aware, explicit
+  `height:0` honoured). The −4 are float-context artifacts in a path that
+  doesn't model floats. See `border-{top,bottom}-width-*` cluster.
 
 ## CSS2 (working in bucket order) — status
 
