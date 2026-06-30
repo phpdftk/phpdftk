@@ -105,3 +105,11 @@ implementing a cluster — content-visibility (JS) and clip-001 /
 clip-path-animations (JS) were false-passes that a correct static fix
 flips. A spec-correct fix can be WPT-neutral or net-negative settler-off
 when the cluster needs the DOM settler.
+
+## Tried + reverted (don't re-attempt naively)
+
+- **grid row-axis content sizing** (the `if (!$isColumnAxis) continue;` gap in `resolveGridContentSizedTracks`). Implemented row-height measurement via a trial `layoutBox` at the resolved column width. Result: **net −11** (1 fixed, 12 regressed) — ALL activity was in `grid-lanes` (masonry, the experimental path aliased to grid): 1 fixed, 11 regressed (baseline/track-sizing), + 1 subgrid-baseline regression. **Zero effect on real (non-masonry) grids** — their content-sized rows already size via the post-layout content-height override, so row-axis measurement is redundant for them and only perturbs masonry/baseline. Codex's ~345-reachable estimate was a file-content grep, not fix-ability. To revisit: scope OUT `grid-lanes`/subgrid, and first find real-grid fixtures that actually need it (the corpus may have few).
+- **content-visibility:hidden paint-skip** — already handled at box-gen (suppresses box generation); the cluster is 27/32 JS-driven anyway.
+
+## Meta (3 consecutive net-negative/inert attempts this session)
+content-visibility (JS), §10.3.8 replaced (4-part tar pit, inline-abspos extraction), grid-row (masonry-only, net −11). Strong signal: the remaining CSS clusters are interconnected deep features where naive changes regress neighbors (masonry, flex alignment, baseline). The productive path is FRESH, single-feature sessions with characterization tests FIRST (codex's advice), not tail-of-session grinding.
