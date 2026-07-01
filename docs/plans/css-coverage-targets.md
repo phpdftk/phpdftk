@@ -3,7 +3,15 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+243 net)
+## Landed this loop (branch `css-coverage-push`, ~+252 net)
+
+- **CSS-wide keyword distribution across shorthands** — **+9 net**
+  (borders +4, CSS2/backgrounds +1+4). `border: inherit` / `background:
+  inherit` etc. now fan the keyword out to every longhand (CSS Cascade 5
+  §3.2) instead of the component parser dropping it. Covers border family,
+  margin, padding, outline, background, list-style.
+
+### earlier this loop
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
