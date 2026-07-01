@@ -47,6 +47,20 @@ final class ShorthandExpander
     public function expand(string $property, Value $value): array
     {
         $name = strtolower($property);
+        // CSS Cascade 5 §3.2 — a CSS-wide keyword (`inherit` / `initial` /
+        // `unset` / `revert` / `revert-layer`) on a shorthand sets EVERY
+        // one of its longhands to that keyword. The component-parsing
+        // expanders below would otherwise find no width/style/colour etc.
+        // and drop the declaration (e.g. `border: inherit` losing the
+        // border entirely). Distribute the keyword to the longhands; fall
+        // through for shorthands not in the map so their own handling (or
+        // the cascade's direct application) is preserved.
+        if ($this->isCssWideKeyword($value)) {
+            $longhands = $this->shorthandLonghands($name);
+            if ($longhands !== []) {
+                return array_fill_keys($longhands, $value);
+            }
+        }
         return match ($name) {
             'margin' => $this->expandFourSided('margin', $value, ['top', 'right', 'bottom', 'left']),
             'padding' => $this->expandFourSided('padding', $value, ['top', 'right', 'bottom', 'left']),
@@ -127,6 +141,46 @@ final class ShorthandExpander
             'font-synthesis' => $this->expandFontSynthesis($value),
             'font-variant' => $this->expandFontVariant($value),
             default => [$property => $value],
+        };
+    }
+
+    private function isCssWideKeyword(Value $value): bool
+    {
+        return $value instanceof Keyword
+            && in_array(
+                strtolower($value->name),
+                ['inherit', 'initial', 'unset', 'revert', 'revert-layer'],
+                true,
+            );
+    }
+
+    /**
+     * Longhand property names a shorthand expands to, for distributing a
+     * CSS-wide keyword. Only the shorthands where component-parsing would
+     * otherwise drop the keyword need be listed; anything absent falls
+     * through to the per-property expander.
+     *
+     * @return list<string>
+     */
+    private function shorthandLonghands(string $name): array
+    {
+        $sides = ['top', 'right', 'bottom', 'left'];
+        return match ($name) {
+            'border' => [
+                'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+                'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+                'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+            ],
+            'border-top', 'border-right', 'border-bottom', 'border-left' => [
+                "$name-width", "$name-style", "$name-color",
+            ],
+            'border-width' => array_map(static fn($s) => "border-$s-width", $sides),
+            'border-style' => array_map(static fn($s) => "border-$s-style", $sides),
+            'border-color' => array_map(static fn($s) => "border-$s-color", $sides),
+            'margin' => array_map(static fn($s) => "margin-$s", $sides),
+            'padding' => array_map(static fn($s) => "padding-$s", $sides),
+            'outline' => ['outline-width', 'outline-style', 'outline-color'],
+            default => [],
         };
     }
 
