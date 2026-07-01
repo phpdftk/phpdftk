@@ -568,11 +568,24 @@ final class BoxGenerator
     private function containsInFlowBlockLevel(array $children): bool
     {
         foreach ($children as $c) {
-            if (!$this->isInlineLevel($c) && !$this->isOutOfFlow($c->style)) {
+            if (!$this->isInlineLevel($c) && !$this->isAbsolutelyPositioned($c->style)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * `position: absolute | fixed` only — NOT floats. A floated block child
+     * still interacts with the inline box's layout in ways our flex /
+     * multicol paths depend on, so it keeps triggering blockification;
+     * only genuinely out-of-flow (abs-pos) children are skipped.
+     */
+    private function isAbsolutelyPositioned(CascadedValues $values): bool
+    {
+        $position = $values->get('position');
+        return $position instanceof Keyword
+            && in_array(strtolower($position->name), ['absolute', 'fixed'], true);
     }
 
     /**
