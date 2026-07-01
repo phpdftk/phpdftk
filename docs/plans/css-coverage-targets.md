@@ -3,8 +3,12 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+340 net)
+## Landed this loop (branch `css-coverage-push`, ~+364 net)
 
+- **`<video poster>` object-fit rendering** — **+24 net** (css-images
+  273→297). The last 18 object-fit-svg fails were the `*-p` variants using
+  `<video poster="x.svg">`; painting the poster frame (from the `poster`
+  attr) through the img path completed object-fit-*-svg at **120/120**.
 - **floated / block replaced-element rendering** — **~+80 net**
   (css-images +72, css-backgrounds +9, CSS2/positioning +9, css-grid ±0,
   css-writing-modes −10 follow-up). `paintImage` only rendered
