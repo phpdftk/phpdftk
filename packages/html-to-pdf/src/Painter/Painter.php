@@ -1254,12 +1254,13 @@ final class Painter
         // `<embed>` / `<object>` is blockified out of the inline flow into
         // a BlockBox but must still paint its image (the css-images
         // object-fit / object-position clusters float their replaced
-        // elements). Restricted to floats: a `position: absolute` / grid
-        // replaced BlockBox reaches paint through a different geometry path
-        // whose vertical-writing-mode / grid positioning isn't correct yet,
-        // so painting it there regresses rather than helps.
+        // elements). Restricted to horizontal-flow floats: a `position:
+        // absolute` / grid replaced BlockBox — or a float in a VERTICAL
+        // writing mode — reaches paint through a geometry path whose
+        // positioning isn't correct yet, so painting it there regresses.
         $isFloatedReplaced = $box instanceof \Phpdftk\HtmlToPdf\Box\BlockBox
-            && $this->isFloated($box);
+            && $this->isFloated($box)
+            && !WritingMode::fromStyle($box->style)->isVertical();
         if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)
             && !$isFloatedReplaced
         ) {
