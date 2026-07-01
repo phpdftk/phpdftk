@@ -3,8 +3,19 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+252 net)
+## Landed this loop (branch `css-coverage-push`, ~+340 net)
 
+- **floated / block replaced-element rendering** — **~+80 net**
+  (css-images +72, css-backgrounds +9, CSS2/positioning +9, css-grid ±0,
+  css-writing-modes −10 follow-up). `paintImage` only rendered
+  `AtomicInlineBox`, so a FLOATED `<img>`/`<embed>`/`<object>` (blockified
+  into a BlockBox) painted nothing — the css-images `object-fit-*-svg`
+  (120) / `object-position` clusters float their replaced elements. Now
+  paints floated replaced BlockBoxes (gated OUT of vertical WM + abspos/grid
+  paths whose positioning isn't correct); added `<embed src>` / `<object
+  data>` to the img SVG/raster path. Remaining: object-fit contain/cover/
+  fill MATH for the last ~18 object-fit-svg, and embed/object WM
+  positioning (−10 writing-modes).
 - **CSS-wide keyword distribution across shorthands** — **+9 net**
   (borders +4, CSS2/backgrounds +1+4). `border: inherit` / `background:
   inherit` etc. now fan the keyword out to every longhand (CSS Cascade 5
