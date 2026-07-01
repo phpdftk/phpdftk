@@ -180,6 +180,12 @@ final class ShorthandExpander
             'margin' => array_map(static fn($s) => "margin-$s", $sides),
             'padding' => array_map(static fn($s) => "padding-$s", $sides),
             'outline' => ['outline-width', 'outline-style', 'outline-color'],
+            'background' => [
+                'background-image', 'background-position', 'background-size',
+                'background-repeat', 'background-origin', 'background-clip',
+                'background-attachment', 'background-color',
+            ],
+            'list-style' => ['list-style-type', 'list-style-position', 'list-style-image'],
             default => [],
         };
     }

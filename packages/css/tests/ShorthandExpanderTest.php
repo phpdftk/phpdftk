@@ -63,6 +63,19 @@ final class ShorthandExpanderTest extends TestCase
         }
     }
 
+    public function testBackgroundInheritDistributesToLonghands(): void
+    {
+        // `background: inherit` copies the parent's (non-inherited)
+        // background across all its longhands — including
+        // background-color, which the component parser otherwise leaves
+        // at its transparent initial.
+        $out = $this->expander->expand('background', $this->value('inherit'));
+        foreach (['background-image', 'background-position', 'background-color', 'background-repeat'] as $longhand) {
+            self::assertArrayHasKey($longhand, $out);
+            self::assertSame('inherit', strtolower($out[$longhand]->name));
+        }
+    }
+
     public function testBorderSideInitialDistributesToItsLonghands(): void
     {
         $out = $this->expander->expand('border-top', $this->value('initial'));
