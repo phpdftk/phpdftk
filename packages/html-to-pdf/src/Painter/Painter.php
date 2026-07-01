@@ -1287,11 +1287,18 @@ final class Painter
             $this->paintInlineMath($element, $box, $stream);
             return;
         }
+        // `<img src>`, `<embed src>`, `<object data>` and a `<video>`'s
+        // `poster` frame all render an external image resource through the
+        // same SVG / raster paint path (object-fit / object-position aware).
         $tag = strtolower($element->localName);
-        if ($tag !== 'img' && $tag !== 'embed' && $tag !== 'object') {
+        if ($tag !== 'img' && $tag !== 'embed' && $tag !== 'object' && $tag !== 'video') {
             return;
         }
-        $src = $element->getAttribute($tag === 'object' ? 'data' : 'src');
+        $src = $element->getAttribute(match ($tag) {
+            'object' => 'data',
+            'video' => 'poster',
+            default => 'src',
+        });
         if ($src === null) {
             return;
         }
