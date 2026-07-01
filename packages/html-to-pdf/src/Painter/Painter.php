@@ -1242,7 +1242,16 @@ final class Painter
      */
     private function paintImage(Box $box, ContentStream $stream): void
     {
-        if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)) {
+        // Replaced elements render whether they are atomic-inline
+        // (`display: inline-block`) OR block-level — a FLOATED or
+        // `display: block` `<img>` / `<embed>` / `<object>` (blockified out
+        // of the inline flow) becomes a BlockBox but must still paint its
+        // image. Accept both box types (not TextBox / InlineBox etc.); the
+        // foreign-content + tag checks below gate to actual replaced
+        // elements, so a plain block box falls straight through.
+        if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)
+            && !($box instanceof \Phpdftk\HtmlToPdf\Box\BlockBox)
+        ) {
             return;
         }
         if ($this->writer === null || $this->page === null) {
@@ -1266,10 +1275,11 @@ final class Painter
             $this->paintInlineMath($element, $box, $stream);
             return;
         }
-        if (strtolower($element->localName) !== 'img') {
+        $tag = strtolower($element->localName);
+        if ($tag !== 'img' && $tag !== 'embed' && $tag !== 'object') {
             return;
         }
-        $src = $element->getAttribute('src');
+        $src = $element->getAttribute($tag === 'object' ? 'data' : 'src');
         if ($src === null) {
             return;
         }
@@ -5417,7 +5427,7 @@ final class Painter
      */
     private function paintInlineMath(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
     ): void {
         $geo = $box->geometry;
@@ -5535,7 +5545,7 @@ final class Painter
      * @return array{0: float, 1: float}
      */
     private function resolveInlineAbsoluteOrigin(
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         float $defaultX,
         float $defaultY,
     ): array {
@@ -5588,7 +5598,7 @@ final class Painter
      */
     private function paintImgSvg(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
         string $src,
     ): void {
@@ -5648,7 +5658,7 @@ final class Painter
 
     private function paintInlineSvg(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
     ): void {
         $geo = $box->geometry;

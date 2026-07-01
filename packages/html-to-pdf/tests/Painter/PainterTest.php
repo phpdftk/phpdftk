@@ -2953,6 +2953,42 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString('0 0 0 rg', $bytes, 'no spurious black border stroke');
     }
 
+    public function testFloatedReplacedElementRendersItsImage(): void
+    {
+        // A FLOATED (or block-level) `<img>` is blockified out of the
+        // inline flow into a BlockBox; it must still paint its image.
+        // Previously paintImage bailed on any non-AtomicInlineBox, so a
+        // floated `<img>` rendered nothing (regression across css-images'
+        // object-fit / object-position clusters, which float their
+        // replaced elements).
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+            . '<rect width="100%" height="100%" fill="lime"/></svg>';
+        $dataUri = 'data:image/svg+xml,' . rawurlencode($svg);
+        $doc = $this->html->parseDocument(
+            '<html><body><img src="' . $dataUri . '"></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             img { display: inline-block; float: left; width: 40px; height: 40px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(pageHeight: 792.0, page: $page, writer: $writer))
+            ->paint($root, $stream);
+
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('0 1 0 rg', $bytes, 'floated img SVG lime fill emitted');
+    }
+
     public function testSvgDataUriBackgroundEmitsSvgPaintOperators(): void
     {
         // Lime-filled SVG passed as a data: URI background. The painter
