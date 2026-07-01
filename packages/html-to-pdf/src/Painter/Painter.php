@@ -1240,17 +1240,28 @@ final class Painter
      * box's geometry. No-op when the writer or page is not wired in, or
      * when the src isn't a `data:image/png|jpeg` URL we can paint.
      */
+    private function isFloated(Box $box): bool
+    {
+        $float = $box->style->get('float');
+        return $float instanceof \Phpdftk\Css\Value\Keyword
+            && in_array(strtolower($float->name), ['left', 'right', 'inline-start', 'inline-end'], true);
+    }
+
     private function paintImage(Box $box, ContentStream $stream): void
     {
         // Replaced elements render whether they are atomic-inline
-        // (`display: inline-block`) OR block-level — a FLOATED or
-        // `display: block` `<img>` / `<embed>` / `<object>` (blockified out
-        // of the inline flow) becomes a BlockBox but must still paint its
-        // image. Accept both box types (not TextBox / InlineBox etc.); the
-        // foreign-content + tag checks below gate to actual replaced
-        // elements, so a plain block box falls straight through.
+        // (`display: inline-block`) OR a FLOAT — a floated `<img>` /
+        // `<embed>` / `<object>` is blockified out of the inline flow into
+        // a BlockBox but must still paint its image (the css-images
+        // object-fit / object-position clusters float their replaced
+        // elements). Restricted to floats: a `position: absolute` / grid
+        // replaced BlockBox reaches paint through a different geometry path
+        // whose vertical-writing-mode / grid positioning isn't correct yet,
+        // so painting it there regresses rather than helps.
+        $isFloatedReplaced = $box instanceof \Phpdftk\HtmlToPdf\Box\BlockBox
+            && $this->isFloated($box);
         if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)
-            && !($box instanceof \Phpdftk\HtmlToPdf\Box\BlockBox)
+            && !$isFloatedReplaced
         ) {
             return;
         }
