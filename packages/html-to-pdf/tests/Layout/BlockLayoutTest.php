@@ -50,6 +50,29 @@ final class BlockLayoutTest extends TestCase
         return $box;
     }
 
+    public function testAbsposChildOfInlineBlockLaysOutAgainstIt(): void
+    {
+        // CSS 2.1 §10.1 — a `position: relative` inline-block is the
+        // containing block for its abs-pos descendants, which must lay out
+        // (and paint) even though the inline-block isn't blockified. An
+        // `inset: 0` child stretches to fill the inline-block's 100×100
+        // padding box.
+        $box = $this->buildTree(
+            '<html><body><span id="ib"><span id="ap"></span></span></body></html>',
+            'html, body { display: block; }
+             #ib { display: inline-block; position: relative; width: 100px; height: 100px; }
+             #ap { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        // Stretched to the container's padding box (0,0)–(100,100).
+        self::assertEqualsWithDelta(0.0, $ap->geometry->x, 0.5);
+        self::assertEqualsWithDelta(0.0, $ap->geometry->y, 0.5);
+        self::assertEqualsWithDelta(100.0, $ap->geometry->width, 0.5);
+        self::assertEqualsWithDelta(100.0, $ap->geometry->height, 0.5);
+    }
+
     public function testPageBreakBeforeAdvancesToNextPage(): void
     {
         // First block has no explicit height so it'll collapse to 0; the
