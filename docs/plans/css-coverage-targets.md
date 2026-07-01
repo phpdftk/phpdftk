@@ -3,7 +3,7 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+163 net)
+## Landed this loop (branch `css-coverage-push`, ~+198 net)
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
@@ -25,13 +25,25 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
   `docs/plans/table-shrink-to-fit.md`. v1 gaps: border-spacing, caption
   CAPMIN, percentage columns, and inline-table (an AtomicInlineBox — the
   atomic path's separate gap).
+- **table extra-height distribution (CSS 2.1 §17.5.3)** — **+29 net**
+  (backgrounds +28, css-tables +1, box-display +1, normal-flow −1
+  unattributable). A table taller than its rows distributes the surplus so
+  cell bg/border fill the box. Definite `<length>` heights only.
 
-## ✅ LANDED — table shrink-to-fit auto width
+## ✅ LANDED — table shrink-to-fit auto width + extra-height distribution
 
-Shipped (commit `0e512cc04`): +42 net, zero regressions. See the
-"Landed this loop" list above and `docs/plans/table-shrink-to-fit.md`.
-Follow-ups left: border-spacing layout, caption CAPMIN, percentage
-columns, and inline-table (AtomicInlineBox path — still collapses).
+- shrink-to-fit (commit `0e512cc04`): +42 net, zero regressions.
+- extra-height distribution CSS 2.1 §17.5.3 (commit `ad44df2a1`): +29 net
+  (backgrounds +28 — the `background` shorthand cluster's refs use
+  `<table height>`; css-tables +1, box-display +1, normal-flow −1
+  unattributable). Table taller than its rows distributes the surplus so
+  cell bg/border fill the box. Definite `<length>` heights only (percentage
+  deferred).
+
+See `docs/plans/table-shrink-to-fit.md`. Follow-ups: border-spacing layout,
+caption CAPMIN, percentage columns + percentage table height, and
+**inline-table** (AtomicInlineBox — investigated, block-promotion makes any
+fix net-zero; needs true inline-level FC layout — see memory).
 
 ## CSS2 (working in bucket order) — status
 
