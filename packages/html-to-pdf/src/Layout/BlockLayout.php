@@ -6903,6 +6903,13 @@ final class BlockLayout
         // committed position carries no relative term, so this applies
         // exactly once.
         $this->applyRelativeOffsetsToInlineAtomics($parent, $childContext);
+        // CSS 2.1 §10.1 — an `inline-block` that is a positioned containing
+        // block (e.g. `position: relative`) hosts its abs-pos descendants,
+        // but InlineLayout treats the atomic as opaque and never lays them
+        // out. Do it here relative to the atomic's padding box so they size
+        // + paint (a `position:relative` inline-block with an `inset:0`
+        // absolutely-positioned child renders that child).
+        $this->layoutAbsposInInlineAtomics($parent, $childContext);
         return $height;
     }
 
@@ -6934,6 +6941,63 @@ final class BlockLayout
      * precedence, percentage resolution and sticky fallback all match
      * the block-level relative path.
      */
+    /**
+     * Walk inline-level descendants and lay out the abs-pos children of
+     * any positioned `AtomicInlineBox` (inline-block) relative to it.
+     * Mirrors {@see applyRelativeOffsetsToInlineAtomics}'s traversal.
+     */
+    private function layoutAbsposInInlineAtomics(Box $box, LayoutContext $context): void
+    {
+        foreach ($box->children as $child) {
+            if ($child instanceof AtomicInlineBox) {
+                $this->layoutAtomicAbsposChildren($child, $context);
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                $this->layoutAbsposInInlineAtomics($child, $context);
+            }
+        }
+    }
+
+    /**
+     * Lay out the direct abs-pos (`position: absolute|fixed`) children of a
+     * positioned inline-block, using its padding box as the containing
+     * block (CSS 2.1 §10.1 / §10.6.4). No-op when the atomic isn't a
+     * positioned containing block or has no abs-pos children.
+     */
+    private function layoutAtomicAbsposChildren(AtomicInlineBox $atomic, LayoutContext $context): void
+    {
+        $position = $atomic->style->get('position');
+        if (!($position instanceof Keyword)
+            || !in_array(strtolower($position->name), ['relative', 'absolute', 'fixed', 'sticky'], true)
+        ) {
+            return;
+        }
+        $g = $atomic->geometry;
+        $cbWidth = $g->paddingLeft + $g->width + $g->paddingRight;
+        $cbHeight = $g->paddingTop + $g->height + $g->paddingBottom;
+        $originX = $g->x - $g->paddingLeft;
+        $originY = $g->y - $g->paddingTop;
+        $absCtx = $context
+            ->withContainingBlock($cbWidth, $cbHeight)
+            ->withOrigin($originX, $originY);
+        foreach ($atomic->children as $child) {
+            $childPos = $child->style->get('position');
+            if (!($childPos instanceof Keyword)
+                || !in_array(strtolower($childPos->name), ['absolute', 'fixed'], true)
+            ) {
+                continue;
+            }
+            $this->cascade->resolveLengths($child->style, $absCtx->lengthContext);
+            $this->applyAbsoluteCornerAnchorSize($child, $absCtx);
+            $this->layoutBox($child, $absCtx);
+            [$dx, $dy] = $this->resolveAbsoluteOffsets($child, $absCtx, $originX, $originY, $originY);
+            if ($dx !== 0.0 || $dy !== 0.0) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+        }
+    }
+
     private function applyInlineRelativeOffset(Box $box, LayoutContext $context): void
     {
         $position = $box->style->get('position');

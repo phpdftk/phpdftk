@@ -488,8 +488,11 @@ final class BoxGenerator
         // The original element's cascade rides on the
         // AnonymousBlockBox so `position: relative` on the inline
         // still affects the block half per spec.
+        $splitsAroundBlock = $box instanceof AtomicInlineBox
+            ? $this->containsInFlowBlockLevel($rawChildren)
+            : $this->containsBlockLevel($rawChildren);
         if (($box instanceof InlineBox || $box instanceof AtomicInlineBox)
-            && $this->containsBlockLevel($rawChildren)
+            && $splitsAroundBlock
         ) {
             $promoted = new AnonymousBlockBox($element, $values);
             $inlineGroup = [];
@@ -555,6 +558,17 @@ final class BoxGenerator
     {
         foreach ($children as $c) {
             if (!$this->isInlineLevel($c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** @param list<Box> $children */
+    private function containsInFlowBlockLevel(array $children): bool
+    {
+        foreach ($children as $c) {
+            if (!$this->isInlineLevel($c) && !$this->isOutOfFlow($c->style)) {
                 return true;
             }
         }
