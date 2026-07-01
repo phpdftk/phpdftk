@@ -3,7 +3,7 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+241 net)
+## Landed this loop (branch `css-coverage-push`, ~+243 net)
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
@@ -35,6 +35,13 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
   the px-only attribute parser) AND `layoutAtomicOnly` resolves a
   percentage width against the IFC available width (was Length-only → 0 →
   invisible). Recurring CSS2 ref pattern (`<img width="100%" height="N">`).
+- **propagated root-background positioning** — **+2 net** (background-root
+  -002/-016). A propagated root bg-image now anchors at the source
+  element's padding box (was the page corner) and tiles across the whole
+  canvas (was confined to the positioning area). Root propagation was
+  already implemented (17/28 background-root pass); remaining fails are JS
+  (101/102/103) + box-model border/margin-frame edge cases — not
+  propagation bugs.
 
 ## ✅ LANDED — table shrink-to-fit auto width + extra-height distribution
 
