@@ -4754,6 +4754,68 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(250.0, $table->geometry->x, 0.5);
     }
 
+    public function testTableExplicitHeightFillsSingleRow(): void
+    {
+        // CSS 2.1 §17.5.3 — a table taller than its content distributes
+        // the surplus over its rows, so the single row + its cell grow to
+        // fill the 150px table (not just the ~text content height).
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 60px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; height: 150px; }
+             tr { display: table-row; }
+             td { display: table-cell; padding: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(150.0, $cells['a']->geometry->height, 0.5);
+    }
+
+    public function testTableExplicitHeightDistributesAcrossRows(): void
+    {
+        // Two empty rows in a 200px table → each grows to ~100px and the
+        // second row is shifted down past the first.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 40px"></td></tr>'
+            . '<tr><td class="b" style="width: 40px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; height: 200px; }
+             tr { display: table-row; }
+             td { display: table-cell; padding: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(100.0, $cells['a']->geometry->height, 1.0);
+        self::assertEqualsWithDelta(100.0, $cells['b']->geometry->height, 1.0);
+        // Second row's cell sits below the first (~row 1 height).
+        self::assertGreaterThan(
+            $cells['a']->geometry->y + 90.0,
+            $cells['b']->geometry->y,
+        );
+    }
+
+    public function testTableExplicitHeightNoOpWhenContentTaller(): void
+    {
+        // A table height smaller than its content must NOT shrink the
+        // rows — the cell keeps its 80px content height.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="a" style="width: 40px; height: 80px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; height: 10px; }
+             tr { display: table-row; }
+             td { display: table-cell; padding: 0; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(80.0, $cells['a']->geometry->height, 0.5);
+    }
+
     public function testTableExplicitColWidthBypassesAutoMeasurement(): void
     {
         // Negative: a `<col width="100">` declaration preempts the

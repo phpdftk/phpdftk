@@ -349,6 +349,10 @@ final class BlockLayout
                 // every row they span. Done after rows are positioned
                 // so we know each row's height.
                 $this->finalizeRowspanHeights();
+                // CSS 2.1 §17.5.3 — a table taller than its rows'
+                // content distributes the extra height over the rows, so
+                // cell backgrounds/borders fill the specified table box.
+                $height = $this->distributeTableExtraHeight($box, $height);
                 // CSS Tables 3 §11.2 `border-collapse: collapse` — Phase-1
                 // simplification: suppress every cell's right + bottom
                 // border edges except the last column / last row, so
@@ -7698,6 +7702,94 @@ final class BlockLayout
      * their natural Y slots so the spanning cell just visually
      * stretches downward.
      */
+    /**
+     * CSS 2.1 §17.5.3 — when a table's specified height exceeds the sum
+     * of its rows' content heights, the surplus is distributed over the
+     * rows (here proportionally to their current heights, evenly when all
+     * are zero). Each row grows, is shifted down past the grown rows above
+     * it, and its cells stretch to fill (honouring `vertical-align` for
+     * the added slack) so cell backgrounds/borders fill the table box.
+     *
+     * A no-op unless the table has a definite `height` larger than its
+     * content. Returns the (possibly larger) height for the caller.
+     *
+     * v1 gaps: border-spacing rows aren't grown; rowspan cells already
+     * finalized aren't re-extended (rare combined with an explicit table
+     * height).
+     */
+    private function distributeTableExtraHeight(
+        \Phpdftk\HtmlToPdf\Box\TableBox $table,
+        float $contentHeight,
+    ): float {
+        // v1: only a definite `<length>` table height distributes. A
+        // percentage height needs a definite containing-block height that
+        // is usually absent here; resolving it against the viewport would
+        // wrongly inflate the table, so it's deferred.
+        $heightVal = $table->style->get('height');
+        if (!($heightVal instanceof Length) || $heightVal->value <= 0.0) {
+            return $contentHeight;
+        }
+        $explicit = $heightVal->value;
+        $geo = $table->geometry;
+        // Under border-box the specified height includes the table's own
+        // border+padding; the rows fill the remaining content area.
+        $targetRows = $explicit;
+        if ($this->isBorderBoxSizing($table->style)) {
+            $targetRows = $explicit
+                - $geo->borderTop - $geo->borderBottom
+                - $geo->paddingTop - $geo->paddingBottom;
+        }
+        $rows = $this->collectTableRows($table);
+        if ($rows === []) {
+            return $contentHeight;
+        }
+        $current = 0.0;
+        foreach ($rows as $row) {
+            $current += $row->geometry->height;
+        }
+        $slack = $targetRows - $current;
+        if ($slack <= 0.001) {
+            return $contentHeight;
+        }
+        $rowCount = count($rows);
+        $accShift = 0.0;
+        foreach ($rows as $row) {
+            $rowH = $row->geometry->height;
+            $share = $current > 0.0
+                ? $slack * ($rowH / $current)
+                : $slack / $rowCount;
+            if ($accShift > 0.001) {
+                $this->shiftSubtree($row, $accShift);
+            }
+            $row->geometry->height = $rowH + $share;
+            foreach ($row->children as $cell) {
+                if (!($cell instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox)) {
+                    continue;
+                }
+                $cell->geometry->height += $share;
+                // Honour vertical-align for the newly-added slack (the
+                // initial per-row stretch already placed content for the
+                // pre-distribution height).
+                $valign = $cell->style->get('vertical-align');
+                $vshift = 0.0;
+                if ($valign instanceof Keyword) {
+                    $vshift = match (strtolower($valign->name)) {
+                        'middle' => $share / 2.0,
+                        'bottom', 'baseline' => $share,
+                        default => 0.0,
+                    };
+                }
+                if ($vshift > 0.001) {
+                    foreach ($cell->children as $child) {
+                        $this->shiftSubtree($child, $vshift);
+                    }
+                }
+            }
+            $accShift += $share;
+        }
+        return max($contentHeight, $targetRows);
+    }
+
     private function finalizeRowspanHeights(): void
     {
         $grid = $this->currentTableCellGrid;
