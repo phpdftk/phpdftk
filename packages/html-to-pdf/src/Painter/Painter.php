@@ -329,6 +329,13 @@ final class Painter
             $sizeValue = $source->style->get('background-size');
             $positionValue = $source->style->get('background-position');
             $repeatValue = $source->style->get('background-repeat');
+            // CSS 2.1 §14.2 / Backgrounds 3 §3.11.2 — a propagated root
+            // background PAINTS over the whole canvas but is POSITIONED /
+            // tiled as if painted for the source element's own box (its
+            // padding box, the default `background-origin`). So the image
+            // anchors at the element's margin offset, not the page corner
+            // (e.g. `repeat-x top left` on an `html` with `margin: 1in`
+            // puts the stripe 1in down, not at y=0).
             $this->paintBackgroundImage(
                 $bgImage,
                 $stream,
@@ -339,6 +346,7 @@ final class Painter
                 $sizeValue,
                 $positionValue,
                 $repeatValue,
+                $this->propagatedOriginRect($source),
             );
         }
         if ($hasGradient) {
@@ -347,6 +355,26 @@ final class Painter
         if ($hasRadial) {
             $this->paintRadialGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
         }
+    }
+
+    /**
+     * The background positioning area for a propagated root/body
+     * background: the source element's padding box (the default
+     * `background-origin`), in layout-Y coordinates. `paintBackgroundImage`
+     * anchors `background-position` / tiling to this rect while painting
+     * over the whole canvas.
+     *
+     * @return array{x: float, top: float, width: float, height: float}
+     */
+    private function propagatedOriginRect(Box $source): array
+    {
+        $g = $source->geometry;
+        return [
+            'x' => $g->x - $g->paddingLeft,
+            'top' => $g->y - $g->paddingTop,
+            'width' => $g->paddingLeft + $g->width + $g->paddingRight,
+            'height' => $g->paddingTop + $g->height + $g->paddingBottom,
+        ];
     }
 
     private function boxHasPaintableBackground(Box $box): bool
@@ -3944,30 +3972,36 @@ final class Painter
         // widths until the leftmost / topmost tile sits at or before
         // the origin box (NOT the clip box — tiles anchor against
         // `background-origin`). With `no-repeat`, no shift happens.
+        // Tile iteration bounds. A repeating axis tiles across the whole
+        // PAINT/clip rect (which for a propagated root background is the
+        // entire canvas, larger than the positioning area), anchored to
+        // the origin rect. A non-repeating axis paints a single tile
+        // within the origin rect. For a normal box clip == origin, so
+        // these reduce to the origin bounds (no behaviour change).
         $startX = $paint['offsetX'];
+        $farX = $originWidth;
         if ($repeat['x']) {
-            while ($startX > 0.0) {
+            $farX = $x + $width - $originX;
+            while ($originX + $startX > $x) {
                 $startX -= $tileW;
             }
         }
         $startY = $paint['offsetY'];
+        $farY = $originHeight;
         if ($repeat['y']) {
-            while ($startY > 0.0) {
+            $farY = $top + $height - $originTop;
+            while ($originTop + $startY > $top) {
                 $startY -= $tileH;
             }
         }
-        // Tile iteration bounds: extend until the tile passes the
-        // origin rect's far edge. Tiles anchored inside the origin
-        // rect may still spill into the clip rect (when clip > origin)
-        // — that's the spec semantic.
         $originBottomLayoutY = $originTop + $originHeight;
         $originPdfBottom = $this->pageHeight - $originBottomLayoutY;
         $maxTiles = 4096;
         $tileCount = 0;
         $offsetY = $startY;
-        while ($offsetY < $originHeight) {
+        while ($offsetY < $farY) {
             $offsetX = $startX;
-            while ($offsetX < $originWidth) {
+            while ($offsetX < $farX) {
                 if ($tileCount >= $maxTiles) {
                     break 2;
                 }

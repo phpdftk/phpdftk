@@ -3128,6 +3128,54 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString('100 100 re', $rects[0], 'not body-sized');
     }
 
+    public function testPropagatedRootBackgroundAnchorsToElementPaddingBox(): void
+    {
+        // CSS 2.1 §14.2 — a propagated root background PAINTS over the
+        // whole canvas but is POSITIONED / tiled as if painted for the
+        // element's own box (its padding box, the default
+        // background-origin). So a `repeat-x` image on an `html` with a
+        // margin tiles from the margin offset, not the page corner. Lock
+        // the positioning-origin computation.
+        $doc = $this->html->parseDocument('<html><body></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             html { margin: 40px; padding: 10px; background-color: green; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+        $html = $this->findByTag($root, 'html');
+        self::assertNotNull($html);
+        $rect = (new \ReflectionMethod(Painter::class, 'propagatedOriginRect'))
+            ->invoke(new Painter(792.0), $html);
+        // Padding-box top-left sits at the 40px margin (border 0); the box
+        // spans its padding + content.
+        self::assertEqualsWithDelta(40.0, $rect['x'], 0.5);
+        self::assertEqualsWithDelta(40.0, $rect['top'], 0.5);
+        self::assertGreaterThan(0.0, $rect['width']);
+    }
+
+    private function findByTag(
+        \Phpdftk\HtmlToPdf\Box\Box $root,
+        string $tag,
+    ): ?\Phpdftk\HtmlToPdf\Box\Box {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && strtolower($node->element->localName) === $tag) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
+    }
+
     public function testBodyOverflowPropagatesAndSuppressesBodyClip(): void
     {
         // CSS Overflow 3 §3.3 — when the root's overflow is `visible`
