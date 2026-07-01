@@ -3384,6 +3384,8 @@ final class Painter
                     }
                 } elseif ($layer instanceof \Phpdftk\Css\Value\RadialGradient) {
                     $this->paintRadialGradient($layer, $stream, $x, $top, $width, $height);
+                } elseif (($imgColor = $this->imageFunctionColor($layer)) !== null) {
+                    $this->paintColorImage($stream, $imgColor, $sizeValue, $positionValue, $repeatValue, $x, $top, $width, $height, $originRect);
                 }
             }
         }
@@ -3420,10 +3422,76 @@ final class Painter
         if ($value instanceof \Phpdftk\Css\Value\Url
             || $value instanceof \Phpdftk\Css\Value\LinearGradient
             || $value instanceof \Phpdftk\Css\Value\RadialGradient
+            || $this->imageFunctionColor($value) !== null
         ) {
             return [$value];
         }
         return [];
+    }
+
+    private function imageFunctionColor(mixed $value): ?Color
+    {
+        if (!($value instanceof \Phpdftk\Css\Value\CssFunction)
+            || strtolower($value->name) !== 'image'
+        ) {
+            return null;
+        }
+        foreach ($value->arguments as $arg) {
+            if ($arg instanceof \Phpdftk\Css\Value\Url) {
+                return null;
+            }
+            if ($arg instanceof Color) {
+                return $arg;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param array{x: float, top: float, width: float, height: float} $originRect
+     */
+    private function paintColorImage(
+        ContentStream $stream,
+        Color $color,
+        ?\Phpdftk\Css\Value\Value $sizeValue,
+        ?\Phpdftk\Css\Value\Value $positionValue,
+        ?\Phpdftk\Css\Value\Value $repeatValue,
+        float $x,
+        float $top,
+        float $width,
+        float $height,
+        array $originRect,
+    ): void {
+        if ($color->a <= 0.0) {
+            return;
+        }
+        $ow = $originRect['width'];
+        $oh = $originRect['height'];
+        $size = $this->resolveBackgroundSize($sizeValue, '', $ow, $oh);
+        $tw = $size['w'];
+        $th = $size['h'];
+        if ($tw <= 0.0 || $th <= 0.0) {
+            return;
+        }
+        if ($positionValue !== null) {
+            $pos = $this->resolveBackgroundPosition($positionValue, $tw, $th, $ow, $oh);
+            $offX = $pos['offsetX'];
+            $offY = $pos['offsetY'];
+        } else {
+            $offX = $size['offsetX'];
+            $offY = $size['offsetY'];
+        }
+        $repeat = $this->repeatAxes($repeatValue);
+        $rx = $repeat['x'] ? $x : $originRect['x'] + $offX;
+        $rw = $repeat['x'] ? $width : $tw;
+        $ry = $repeat['y'] ? $top : $originRect['top'] + $offY;
+        $rh = $repeat['y'] ? $height : $th;
+        $stream->saveGraphicsState();
+        $stream->rectangle($x, $this->pageHeight - $top - $height, $width, $height);
+        $stream->clip();
+        $stream->endPath();
+        $this->emitRect($stream, $rx, $ry, $rw, $rh, fill: $color);
+        $stream->restoreGraphicsState();
     }
 
     /**
