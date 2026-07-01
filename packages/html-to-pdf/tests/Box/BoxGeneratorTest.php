@@ -187,6 +187,29 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(60.0, $heightValue->value);
     }
 
+    public function testImgPercentageWidthAttributeMapsToPercentage(): void
+    {
+        // <img width="100%"> maps to a CSS percentage (browsers' legacy
+        // HTML dimension handling), not intrinsic size or a px length. The
+        // explicit px height stays a Length and isn't overridden.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            img { display: inline-block; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><p><img src="x.png" width="100%" height="15"></p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        $widthValue = $img->style->get('width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Percentage::class, $widthValue);
+        self::assertSame(100.0, $widthValue->value);
+        $heightValue = $img->style->get('height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $heightValue);
+        self::assertSame(15.0, $heightValue->value);
+    }
+
     public function testImgAttributesDoNotOverrideAuthorCss(): void
     {
         // Author CSS wins over presentational attributes — author width

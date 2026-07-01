@@ -103,6 +103,26 @@ final class InlineLayoutTest extends TestCase
         self::assertEqualsWithDelta(40.0 * 96.0 / 72.0, $atom->geometry->height, 0.001);
     }
 
+    public function testNoFontPercentageWidthAtomicResolvesAgainstAvailable(): void
+    {
+        // `<img width="100%">` in the no-font atomic fallback must resolve
+        // its percentage against the IFC available width instead of
+        // collapsing to 0 and painting nothing (a recurring CSS2 reference
+        // pattern: `<img width="100%" height="N">`).
+        $box = $this->buildTree(
+            '<html><body><div class="host"><img src="x.png" width="100%" height="20"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .host { display: block; width: 150px; }'
+            . ' img { display: inline-block; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        self::assertEqualsWithDelta(150.0, $img->geometry->width, 0.5);
+        self::assertEqualsWithDelta(20.0, $img->geometry->height, 0.5);
+    }
+
     public function testNoFontInlineBlockBorderGrowsHeightAndOffsetsContent(): void
     {
         // CSS2 border-{top,bottom}-width tests: an empty inline-block sized

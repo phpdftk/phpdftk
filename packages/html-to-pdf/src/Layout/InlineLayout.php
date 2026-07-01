@@ -414,9 +414,18 @@ final class InlineLayout
                 continue;
             }
             $widthValue = $child->style->get('width');
-            $width = $widthValue instanceof Length && $widthValue->value > 0.0
-                ? $widthValue->value
-                : 0.0;
+            // A percentage width (e.g. `<img width="100%">`) resolves
+            // against the inline-formatting-context's available width —
+            // the same basis the shaped path uses. Without this a
+            // percentage-sized replaced element collapses to 0 in the
+            // no-font fallback and paints nothing.
+            $width = match (true) {
+                $widthValue instanceof Length && $widthValue->value > 0.0
+                    => $widthValue->value,
+                $widthValue instanceof \Phpdftk\Css\Value\Percentage && $widthValue->value > 0.0
+                    => $this->currentAvailableWidth * ($widthValue->value / 100.0),
+                default => 0.0,
+            };
             if ($width <= 0.0) {
                 // Atomic-content painters have their own intrinsic-
                 // size fallbacks (svg attrs / viewBox; math defaults).

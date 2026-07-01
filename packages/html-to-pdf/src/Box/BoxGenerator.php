@@ -1838,6 +1838,15 @@ final class BoxGenerator
                 if ($raw === null) {
                     continue;
                 }
+                // HTML 5 §2.4.4.4 dimension values allow a trailing `%`;
+                // browsers map `<img width="100%">` to a CSS percentage on
+                // the replaced box (resolved against its containing block at
+                // layout time), not the intrinsic size.
+                $pct = $this->parseHtmlPercentage($raw);
+                if ($pct !== null) {
+                    $values->set($attr, new \Phpdftk\Css\Value\Percentage($pct));
+                    continue;
+                }
                 $px = $this->parseHtmlLength($raw);
                 if ($px !== null) {
                     $values->set($attr, new \Phpdftk\Css\Value\Length($px, \Phpdftk\Css\Value\LengthUnit::Px));
@@ -2218,6 +2227,22 @@ final class BoxGenerator
      * leaves the value at whatever the cascade said). Everything else is
      * rejected.
      */
+    /**
+     * HTML 5 §2.4.4.4 — a dimension attribute value ending in `%` is a
+     * percentage. Returns the numeric percentage (e.g. `100` for
+     * `"100%"`), or null when the value isn't a percentage form. Callers
+     * that only accept absolute pixel sizes (e.g. a `<canvas>` bitmap)
+     * skip this and use {@see parseHtmlLength}.
+     */
+    private function parseHtmlPercentage(string $raw): ?float
+    {
+        $raw = trim($raw);
+        if (preg_match('/^(\d+(?:\.\d+)?)%$/', $raw, $m) === 1) {
+            return (float) $m[1];
+        }
+        return null;
+    }
+
     private function parseHtmlLength(string $raw): ?float
     {
         $raw = trim($raw);
