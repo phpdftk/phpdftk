@@ -3,7 +3,7 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+198 net)
+## Landed this loop (branch `css-coverage-push`, ~+241 net)
 - `clip` property (CSS 2.1 §11.1.2) — **+43**
 - single-value `background-position` centres the missing axis — **+33**
 - `clip-path` basic shapes (inset/circle/ellipse/polygon) — **+39 / +13 net**
@@ -29,6 +29,12 @@ Current: **67.77%** (14,415 / 21,270, settler-off).
   (backgrounds +28, css-tables +1, box-display +1, normal-flow −1
   unattributable). A table taller than its rows distributes the surplus so
   cell bg/border fill the box. Definite `<length>` heights only.
+- **replaced-element percentage width (`<img width="100%">`)** — **+43 net**
+  (backgrounds +15, normal-flow +14, borders +12, positioning +2), zero
+  regressions. `width="N%"` now maps to a CSS Percentage (was dropped by
+  the px-only attribute parser) AND `layoutAtomicOnly` resolves a
+  percentage width against the IFC available width (was Length-only → 0 →
+  invisible). Recurring CSS2 ref pattern (`<img width="100%" height="N">`).
 
 ## ✅ LANDED — table shrink-to-fit auto width + extra-height distribution
 
