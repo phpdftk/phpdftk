@@ -2208,11 +2208,14 @@ final class BlockLayout
         // that exclude margin distribution.
         $heightIsDefinite = !$this->isHeightAutoLike($heightStyleValue)
             || ($heightKw !== null && $heightKw !== 'stretch');
+        // Only margin-TOP-auto changes the box's top edge here: a lone
+        // margin-bottom:auto leaves the top at `top + margin-top`, which the
+        // plain `top` branch above already produced. margin-top:auto (with
+        // or without margin-bottom:auto) makes the top depend on the slack.
         if (!$this->isAuto($top)
             && !$this->isAuto($bottom)
             && $heightIsDefinite
             && $this->isAuto($marginTopValue)
-            && $this->isAuto($marginBottomValue)
         ) {
             $topPx = $this->resolveLength($top, $cbHeight);
             $bottomPx = $this->resolveLength($bottom, $cbHeight);
@@ -2226,7 +2229,13 @@ final class BlockLayout
                 + $geo->height
                 + $geo->paddingBottom + $geo->borderBottom;
             $slackH = $cbHeight - $topPx - $bottomPx - $outerH;
-            $dy = $originY + $topPx + ($slackH / 2.0) - $cursorY;
+            // CSS 2.1 §10.6.5 — distribute the slack to the auto margin(s):
+            // both auto → equal halves; a single auto margin absorbs all
+            // the slack (the other margin keeps its resolved value).
+            $marginTop = $this->isAuto($marginBottomValue)
+                ? $slackH / 2.0
+                : $slackH - $geo->marginBottom;
+            $dy = $originY + $topPx + $marginTop - $cursorY;
         }
 
         $dx = 0.0;

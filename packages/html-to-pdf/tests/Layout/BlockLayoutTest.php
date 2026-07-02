@@ -50,6 +50,29 @@ final class BlockLayoutTest extends TestCase
         return $box;
     }
 
+    public function testAbsposAutoMarginTopAbsorbsVerticalSlack(): void
+    {
+        // CSS 2.1 §10.6.5 — over-constrained abs-pos (top, bottom, height
+        // all set) with margin-top:auto and a fixed margin-bottom: the auto
+        // margin-top absorbs the remaining slack.
+        // slack = 300 - 50(top) - 50(bottom) - 100(height) = 100;
+        // margin-top = slack - margin-bottom(50) = 50; box top = 50+50 = 100.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="ap"></div></div></body></html>',
+            'html, body { display: block; }
+             #cb { position: relative; height: 300px; width: 300px; }
+             #ap { position: absolute; top: 50px; bottom: 50px; height: 100px;
+                   margin-top: auto; margin-bottom: 50px; width: 100%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($cb);
+        self::assertNotNull($ap);
+        // Box top sits 100px below the containing block's content top.
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $ap->geometry->y, 0.5);
+    }
+
     public function testOutOfFlowFirstChildDoesNotCollapseParentMargin(): void
     {
         // CSS 2.1 §8.3.1 — an out-of-flow (abs-pos) child's margins never
