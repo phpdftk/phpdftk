@@ -1300,8 +1300,14 @@ final class BlockLayout
             && $geo->paddingBottom === 0.0
             && $geo->borderBottom === 0.0
         ) {
+            // CSS 2.1 §8.3.1 — as for the top edge, an out-of-flow last
+            // child's margin never collapses through the parent (and must
+            // not shrink the parent's auto height).
             $last = $box->children[count($box->children) - 1];
-            if ($last instanceof BlockBox && $last->geometry->marginBottom > 0.0) {
+            if ($last instanceof BlockBox
+                && !$this->isOutOfFlow($last)
+                && $last->geometry->marginBottom > 0.0
+            ) {
                 $childBottomMargin = $last->geometry->marginBottom;
                 $extra = max(0.0, $childBottomMargin - $geo->marginBottom);
                 if ($extra > 0.0) {
