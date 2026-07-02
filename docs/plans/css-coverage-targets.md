@@ -3,7 +3,22 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+364 net)
+## Landed this loop (branch `css-coverage-push`, ~+391 net)
+
+- **out-of-flow first-child margin-collapse** — **+20 net** (CSS2/
+  positioning +17, margin-padding-clear +3, zero regressions). Parent-child
+  top-margin collapse took `children[0]` unconditionally; an abs-pos first
+  child's margin-top wrongly collapsed through the parent (CSS 2.1 §8.3.1),
+  doubling a negative margin and shoving in-flow siblings off-page. Won the
+  `top-*` unit reftests. AGGRESSIVE version (substitute first IN-FLOW child +
+  skip out-of-flow in sibling cascade) regressed css-grid −36 — the minimal
+  `!isOutOfFlow(first)` guard is the safe fix.
+- **abspos content inside an inline-block + image(<color>)** — **+7 net**
+  (css-images +6 (image-color 6/7), positioning +1, backgrounds +1, multicol
+  −1). A positioned inline-block now hosts + paints its abs-pos descendants
+  (`layoutAbsposInInlineAtomics`), skips blockification for abspos (not
+  float) children, and `image(<color>)` incl. currentcolor + layered.
+
 
 - **`<video poster>` object-fit rendering** — **+24 net** (css-images
   273→297). The last 18 object-fit-svg fails were the `*-p` variants using
