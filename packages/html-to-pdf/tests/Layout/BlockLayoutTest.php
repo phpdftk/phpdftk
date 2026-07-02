@@ -50,6 +50,30 @@ final class BlockLayoutTest extends TestCase
         return $box;
     }
 
+    public function testOutOfFlowFirstChildDoesNotCollapseParentMargin(): void
+    {
+        // CSS 2.1 §8.3.1 — an out-of-flow (abs-pos) child's margins never
+        // collapse. A parent whose FIRST child is absolutely positioned
+        // must not collapse that child's margin-top through itself (doing
+        // so doubled the parent's negative margin and shoved the in-flow
+        // sibling off-page — the `top-*` positioning reftests).
+        $box = $this->buildTree(
+            '<html><body><div id="p"><div id="ap"></div><div id="c"></div></div></body></html>',
+            'html, body { display: block; }
+             div { position: relative; }
+             #p { margin-top: -96px; }
+             #ap { position: absolute; margin-top: 96px; height: 96px; width: 100%; }
+             #c { border-bottom: 96px solid black; top: 96px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->findById($box, 'c');
+        self::assertNotNull($c);
+        // #p sits at margin-top -96; #c (top: 96px relative) shifts back to
+        // y=0. If the abs-pos child's margin had collapsed through #p, #c
+        // would land near y=-96 (off-page).
+        self::assertEqualsWithDelta(0.0, $c->geometry->y, 0.5);
+    }
+
     public function testAbsposChildOfInlineBlockLaysOutAgainstIt(): void
     {
         // CSS 2.1 §10.1 — a `position: relative` inline-block is the

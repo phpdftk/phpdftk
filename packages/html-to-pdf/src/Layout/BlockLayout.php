@@ -1083,8 +1083,16 @@ final class BlockLayout
             && $geo->paddingTop === 0.0
             && $geo->borderTop === 0.0
         ) {
+            // CSS 2.1 §8.3.1 — an out-of-flow (abs-pos / float) child's
+            // margins never collapse. Using an out-of-flow first child as
+            // the collapse source doubles the parent's negative margin and
+            // pushes the whole subtree off-page (the `top-*` positioning
+            // reftests), so don't collapse through it.
             $first = $box->children[0];
-            if ($first instanceof BlockBox && $first->geometry->marginTop > 0.0) {
+            if ($first instanceof BlockBox
+                && !$this->isOutOfFlow($first)
+                && $first->geometry->marginTop > 0.0
+            ) {
                 $childTopMargin = $first->geometry->marginTop;
                 $this->shiftSubtree($first, -$childTopMargin);
                 // Cascade the shift across all siblings so spacing between
