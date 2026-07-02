@@ -3384,8 +3384,11 @@ final class Painter
                     }
                 } elseif ($layer instanceof \Phpdftk\Css\Value\RadialGradient) {
                     $this->paintRadialGradient($layer, $stream, $x, $top, $width, $height);
-                } elseif (($imgColor = $this->imageFunctionColor($layer)) !== null) {
-                    $this->paintColorImage($stream, $imgColor, $sizeValue, $positionValue, $repeatValue, $x, $top, $width, $height, $originRect);
+                } elseif (($imgArg = $this->imageFunctionColorArg($layer)) !== null) {
+                    $imgColor = $this->resolveColorWithCurrentColor($imgArg, $box);
+                    if ($imgColor instanceof Color) {
+                        $this->paintColorImage($stream, $imgColor, $sizeValue, $positionValue, $repeatValue, $x, $top, $width, $height, $originRect);
+                    }
                 }
             }
         }
@@ -3401,7 +3404,7 @@ final class Painter
      * is expanded. `none` keywords and other unsupported entries
      * are skipped.
      *
-     * @return list<\Phpdftk\Css\Value\Url|\Phpdftk\Css\Value\LinearGradient|\Phpdftk\Css\Value\RadialGradient>
+     * @return list<\Phpdftk\Css\Value\Url|\Phpdftk\Css\Value\LinearGradient|\Phpdftk\Css\Value\RadialGradient|\Phpdftk\Css\Value\CssFunction>
      */
     private function extractBackgroundLayers(mixed $value): array
     {
@@ -3413,6 +3416,8 @@ final class Painter
                 if ($v instanceof \Phpdftk\Css\Value\Url
                     || $v instanceof \Phpdftk\Css\Value\LinearGradient
                     || $v instanceof \Phpdftk\Css\Value\RadialGradient
+                    || ($v instanceof \Phpdftk\Css\Value\CssFunction
+                        && $this->imageFunctionColorArg($v) !== null)
                 ) {
                     $layers[] = $v;
                 }
@@ -3422,14 +3427,15 @@ final class Painter
         if ($value instanceof \Phpdftk\Css\Value\Url
             || $value instanceof \Phpdftk\Css\Value\LinearGradient
             || $value instanceof \Phpdftk\Css\Value\RadialGradient
-            || $this->imageFunctionColor($value) !== null
+            || ($value instanceof \Phpdftk\Css\Value\CssFunction
+                && $this->imageFunctionColorArg($value) !== null)
         ) {
             return [$value];
         }
         return [];
     }
 
-    private function imageFunctionColor(mixed $value): ?Color
+    private function imageFunctionColorArg(mixed $value): ?\Phpdftk\Css\Value\Value
     {
         if (!($value instanceof \Phpdftk\Css\Value\CssFunction)
             || strtolower($value->name) !== 'image'
@@ -3438,9 +3444,14 @@ final class Painter
         }
         foreach ($value->arguments as $arg) {
             if ($arg instanceof \Phpdftk\Css\Value\Url) {
-                return null;
+                return null; // url-primary image() — not a solid colour.
             }
             if ($arg instanceof Color) {
+                return $arg;
+            }
+            // `image(currentcolor)` resolves against the element's `color`
+            // at paint time (via resolveColorWithCurrentColor).
+            if ($arg instanceof Keyword && strtolower($arg->name) === 'currentcolor') {
                 return $arg;
             }
         }

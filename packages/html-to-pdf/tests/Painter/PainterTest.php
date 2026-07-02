@@ -3021,6 +3021,37 @@ final class PainterTest extends TestCase
         self::assertStringContainsString('0 1 0 rg', $writer->toBytes(), 'video poster SVG lime fill emitted');
     }
 
+    public function testImageColorFunctionCurrentColorBackground(): void
+    {
+        // CSS Images 4 §4 — `background-image: image(currentcolor)` is a
+        // solid image of the element's `color`. With `color: lime` the
+        // background fills with lime (0 1 0 rg), not the red fallback.
+        $doc = $this->html->parseDocument(
+            '<html><body><div id="d"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             #d { display: block; width: 50px; height: 50px;
+                  color: lime; background-color: red;
+                  background-image: image(currentcolor); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(pageHeight: 792.0, page: $page, writer: $writer))
+            ->paint($root, $stream);
+
+        self::assertStringContainsString('0 1 0 rg', $writer->toBytes(), 'image(currentcolor) resolved to lime');
+    }
+
     public function testSvgDataUriBackgroundEmitsSvgPaintOperators(): void
     {
         // Lime-filled SVG passed as a data: URI background. The painter
