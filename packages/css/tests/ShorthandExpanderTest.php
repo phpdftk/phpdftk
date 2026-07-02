@@ -45,6 +45,47 @@ final class ShorthandExpanderTest extends TestCase
         }
     }
 
+    public function testBorderInheritDistributesToAllLonghands(): void
+    {
+        // CSS Cascade 5 §3.2 — a CSS-wide keyword on the `border`
+        // shorthand sets every longhand to that keyword (previously the
+        // component parser found no width/style/colour and dropped it,
+        // so `border: inherit` lost the border entirely).
+        $out = $this->expander->expand('border', $this->value('inherit'));
+        foreach ([
+            'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+            'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+            'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+        ] as $longhand) {
+            self::assertArrayHasKey($longhand, $out);
+            self::assertInstanceOf(Keyword::class, $out[$longhand]);
+            self::assertSame('inherit', strtolower($out[$longhand]->name));
+        }
+    }
+
+    public function testBackgroundInheritDistributesToLonghands(): void
+    {
+        // `background: inherit` copies the parent's (non-inherited)
+        // background across all its longhands — including
+        // background-color, which the component parser otherwise leaves
+        // at its transparent initial.
+        $out = $this->expander->expand('background', $this->value('inherit'));
+        foreach (['background-image', 'background-position', 'background-color', 'background-repeat'] as $longhand) {
+            self::assertArrayHasKey($longhand, $out);
+            self::assertSame('inherit', strtolower($out[$longhand]->name));
+        }
+    }
+
+    public function testBorderSideInitialDistributesToItsLonghands(): void
+    {
+        $out = $this->expander->expand('border-top', $this->value('initial'));
+        self::assertSame(['border-top-width', 'border-top-style', 'border-top-color'], array_keys($out));
+        foreach ($out as $value) {
+            self::assertInstanceOf(Keyword::class, $value);
+            self::assertSame('initial', strtolower($value->name));
+        }
+    }
+
     public function testMarginTwoValuesExpands(): void
     {
         $out = $this->expander->expand('margin', $this->value('10px 5px'));

@@ -98,6 +98,25 @@ final class InlineSvgAdapterTest extends TestCase
         self::assertInstanceOf(SvgDocument::class, $doc);
     }
 
+    public function testAdaptsPrefixedSvgSvg(): void
+    {
+        // XHTML-style `<svg:svg>` left as a plain HTML element (localName
+        // "svg:svg", HTML namespace) by the HTML parser must still adapt.
+        $svg = new HtmlElement($this->doc, 'svg:svg', HtmlDocument::HTML_NS);
+        $rect = new HtmlElement($this->doc, 'svg:rect', HtmlDocument::HTML_NS);
+        $rect->setAttribute('width', '50');
+        $rect->setAttribute('height', '40');
+        $rect->setAttribute('fill', 'blue');
+        $svg->appendChild($rect);
+
+        $doc = $this->adapter->adapt($svg);
+
+        self::assertInstanceOf(SvgDocument::class, $doc);
+        $children = $doc->children;
+        self::assertCount(1, $children);
+        self::assertInstanceOf(Rect::class, $children[0]);
+    }
+
     public function testAdaptsSvgWithSingleRectChild(): void
     {
         $svg = $this->newSvgElement('svg');

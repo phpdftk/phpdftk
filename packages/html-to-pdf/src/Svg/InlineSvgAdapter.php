@@ -44,16 +44,19 @@ final class InlineSvgAdapter
      */
     public function adapt(HtmlElement $element): SvgDocument
     {
-        if (strtolower($element->localName) !== 'svg') {
+        // Accept both `<svg>` in the SVG namespace and the prefixed XHTML
+        // form `<svg:svg>` (left as a plain HTML element by the HTML
+        // parser). The serializer below re-namespaces the subtree before
+        // the SVG parser sees it.
+        $tag = strtolower($element->localName);
+        $colon = strrpos($tag, ':');
+        $local = $colon !== false ? substr($tag, $colon + 1) : $tag;
+        $isSvgNs = $element->namespaceUri() === SvgParser::SVG_NS;
+        if ($local !== 'svg' || (!$isSvgNs && $colon === false)) {
             throw new \InvalidArgumentException(sprintf(
-                'InlineSvgAdapter expects an <svg> element, got <%s>.',
+                'InlineSvgAdapter expects an <svg> element in the SVG namespace '
+                . '(or the prefixed <svg:svg> form), got <%s> in namespace %s.',
                 $element->localName,
-            ));
-        }
-        if ($element->namespaceUri() !== SvgParser::SVG_NS) {
-            throw new \InvalidArgumentException(sprintf(
-                'InlineSvgAdapter expects namespace %s, got %s.',
-                SvgParser::SVG_NS,
                 $element->namespaceUri() ?? '(null)',
             ));
         }

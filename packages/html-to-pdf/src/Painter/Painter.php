@@ -329,6 +329,13 @@ final class Painter
             $sizeValue = $source->style->get('background-size');
             $positionValue = $source->style->get('background-position');
             $repeatValue = $source->style->get('background-repeat');
+            // CSS 2.1 §14.2 / Backgrounds 3 §3.11.2 — a propagated root
+            // background PAINTS over the whole canvas but is POSITIONED /
+            // tiled as if painted for the source element's own box (its
+            // padding box, the default `background-origin`). So the image
+            // anchors at the element's margin offset, not the page corner
+            // (e.g. `repeat-x top left` on an `html` with `margin: 1in`
+            // puts the stripe 1in down, not at y=0).
             $this->paintBackgroundImage(
                 $bgImage,
                 $stream,
@@ -339,6 +346,7 @@ final class Painter
                 $sizeValue,
                 $positionValue,
                 $repeatValue,
+                $this->propagatedOriginRect($source),
             );
         }
         if ($hasGradient) {
@@ -347,6 +355,26 @@ final class Painter
         if ($hasRadial) {
             $this->paintRadialGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
         }
+    }
+
+    /**
+     * The background positioning area for a propagated root/body
+     * background: the source element's padding box (the default
+     * `background-origin`), in layout-Y coordinates. `paintBackgroundImage`
+     * anchors `background-position` / tiling to this rect while painting
+     * over the whole canvas.
+     *
+     * @return array{x: float, top: float, width: float, height: float}
+     */
+    private function propagatedOriginRect(Box $source): array
+    {
+        $g = $source->geometry;
+        return [
+            'x' => $g->x - $g->paddingLeft,
+            'top' => $g->y - $g->paddingTop,
+            'width' => $g->paddingLeft + $g->width + $g->paddingRight,
+            'height' => $g->paddingTop + $g->height + $g->paddingBottom,
+        ];
     }
 
     private function boxHasPaintableBackground(Box $box): bool
@@ -828,6 +856,21 @@ final class Painter
         // the transform list exceeds 90°.
         $hidden = $this->isVisibilityHidden($box)
             || $this->isBackfaceHidden($box);
+        // CSS 2.1 §11.1.2 `clip` — clip an abspos element (its own paint AND
+        // descendants) to `rect(top, right, bottom, left)` of its border box.
+        // Pushed before any drawing so the rect can crop the box itself, and
+        // popped after the children loop.
+        $clipRect = $this->resolveClipRect($box);
+        if ($clipRect !== null) {
+            $stream->saveGraphicsState();
+            $clipPdfY = $this->pageHeight - $clipRect['y'] - $clipRect['h'];
+            $stream->rectangle($clipRect['x'], $clipPdfY, $clipRect['w'], $clipRect['h']);
+            $stream->clip();
+            $stream->endPath();
+        }
+        // CSS Masking 1 §6 `clip-path: <basic-shape>` — clip to a shape
+        // resolved against the border box, wrapping the box + descendants.
+        $clipPathApplied = $this->applyClipPath($box, $stream);
         if (!$hidden) {
             // CSS Fragmentation 4 §5.5: `box-decoration-break: clone`
             // makes each fragment paint full decorations as if it were
@@ -877,6 +920,12 @@ final class Painter
             $this->paintBox($child, $stream);
         }
         if ($overflowClip) {
+            $stream->restoreGraphicsState();
+        }
+        if ($clipPathApplied) {
+            $stream->restoreGraphicsState();
+        }
+        if ($clipRect !== null) {
             $stream->restoreGraphicsState();
         }
         if ($hasTransform) {
@@ -1191,9 +1240,30 @@ final class Painter
      * box's geometry. No-op when the writer or page is not wired in, or
      * when the src isn't a `data:image/png|jpeg` URL we can paint.
      */
+    private function isFloated(Box $box): bool
+    {
+        $float = $box->style->get('float');
+        return $float instanceof \Phpdftk\Css\Value\Keyword
+            && in_array(strtolower($float->name), ['left', 'right', 'inline-start', 'inline-end'], true);
+    }
+
     private function paintImage(Box $box, ContentStream $stream): void
     {
-        if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)) {
+        // Replaced elements render whether they are atomic-inline
+        // (`display: inline-block`) OR a FLOAT — a floated `<img>` /
+        // `<embed>` / `<object>` is blockified out of the inline flow into
+        // a BlockBox but must still paint its image (the css-images
+        // object-fit / object-position clusters float their replaced
+        // elements). Restricted to horizontal-flow floats: a `position:
+        // absolute` / grid replaced BlockBox — or a float in a VERTICAL
+        // writing mode — reaches paint through a geometry path whose
+        // positioning isn't correct yet, so painting it there regresses.
+        $isFloatedReplaced = $box instanceof \Phpdftk\HtmlToPdf\Box\BlockBox
+            && $this->isFloated($box)
+            && !WritingMode::fromStyle($box->style)->isVertical();
+        if (!($box instanceof \Phpdftk\HtmlToPdf\Box\AtomicInlineBox)
+            && !$isFloatedReplaced
+        ) {
             return;
         }
         if ($this->writer === null || $this->page === null) {
@@ -1208,22 +1278,27 @@ final class Painter
         // AtomicInlineBox path historically only knew about `<img>`.
         // Detect each foreign namespace and route to the dedicated
         // painter before the img-src lookup.
-        if ($element->namespaceUri() === \Phpdftk\Svg\Parser::SVG_NS
-            && strtolower($element->localName) === 'svg'
-        ) {
+        $foreignKind = \Phpdftk\HtmlToPdf\Box\BoxGenerator::foreignContentKind($element);
+        if ($foreignKind === 'svg') {
             $this->paintInlineSvg($element, $box, $stream);
             return;
         }
-        if ($element->namespaceUri() === \Phpdftk\Mathml\Parser::MATHML_NS
-            && strtolower($element->localName) === 'math'
-        ) {
+        if ($foreignKind === 'math') {
             $this->paintInlineMath($element, $box, $stream);
             return;
         }
-        if (strtolower($element->localName) !== 'img') {
+        // `<img src>`, `<embed src>`, `<object data>` and a `<video>`'s
+        // `poster` frame all render an external image resource through the
+        // same SVG / raster paint path (object-fit / object-position aware).
+        $tag = strtolower($element->localName);
+        if ($tag !== 'img' && $tag !== 'embed' && $tag !== 'object' && $tag !== 'video') {
             return;
         }
-        $src = $element->getAttribute('src');
+        $src = $element->getAttribute(match ($tag) {
+            'object' => 'data',
+            'video' => 'poster',
+            default => 'src',
+        });
         if ($src === null) {
             return;
         }
@@ -1622,6 +1697,258 @@ final class Painter
         $stream->rectangle($rectX, $pdfY, $rectWidth, $rectHeight);
         $stream->clip();
         $stream->endPath();
+    }
+
+    /**
+     * CSS 2.1 §11.1.2 `clip: rect(top, right, bottom, left)` — resolve the
+     * clipping rectangle (physical layout coords, y-down) for an
+     * absolutely-positioned box, or `null` when `clip` is `auto`, the box
+     * is not absolutely positioned, or the value isn't a `rect()`.
+     * `top`/`left` offset from the border box's top/left edge; `right`/
+     * `bottom` are measured from those same edges; `auto` means the
+     * corresponding border edge.
+     *
+     * @return array{x: float, y: float, w: float, h: float}|null
+     */
+    private function resolveClipRect(Box $box): ?array
+    {
+        $clip = $box->style->get('clip');
+        if (!($clip instanceof \Phpdftk\Css\Value\CssFunction)
+            || strtolower($clip->name) !== 'rect'
+            || count($clip->arguments) !== 4
+        ) {
+            return null;
+        }
+        $position = $box->style->get('position');
+        if (!($position instanceof Keyword)) {
+            return null;
+        }
+        $pos = strtolower($position->name);
+        if ($pos !== 'absolute' && $pos !== 'fixed') {
+            return null;
+        }
+        $g = $box->geometry;
+        $borderBoxX = $g->x - $g->paddingLeft - $g->borderLeft;
+        $borderBoxY = $g->y - $g->paddingTop - $g->borderTop;
+        $borderBoxW = $g->borderLeft + $g->paddingLeft + $g->width
+            + $g->paddingRight + $g->borderRight;
+        $borderBoxH = $g->borderTop + $g->paddingTop + $g->height
+            + $g->paddingBottom + $g->borderBottom;
+        // rect(top, right, bottom, left); `auto` → border edge.
+        [$topV, $rightV, $bottomV, $leftV] = $clip->arguments;
+        $top = $this->clipEdgePx($topV, 0.0);
+        $right = $this->clipEdgePx($rightV, $borderBoxW);
+        $bottom = $this->clipEdgePx($bottomV, $borderBoxH);
+        $left = $this->clipEdgePx($leftV, 0.0);
+        $x = $borderBoxX + $left;
+        $y = $borderBoxY + $top;
+        return [
+            'x' => $x,
+            'y' => $y,
+            'w' => max(0.0, ($borderBoxX + $right) - $x),
+            'h' => max(0.0, ($borderBoxY + $bottom) - $y),
+        ];
+    }
+
+    /**
+     * CSS Masking 1 §6 — apply a `clip-path: <basic-shape>` to the box by
+     * pushing a PDF clip path for the shape, resolved against the BORDER
+     * box. Returns true when a clip was pushed (caller restores after the
+     * children loop). Supports inset / circle / ellipse / polygon; the
+     * `<geometry-box>` form and `url()` references are not handled.
+     */
+    private function applyClipPath(Box $box, ContentStream $stream): bool
+    {
+        $shape = $box->style->get('clip-path');
+        $g = $box->geometry;
+        $bx = $g->x - $g->paddingLeft - $g->borderLeft;
+        $by = $g->y - $g->paddingTop - $g->borderTop;
+        $bw = $g->borderLeft + $g->paddingLeft + $g->width + $g->paddingRight + $g->borderRight;
+        $bh = $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom;
+        if ($bw <= 0.0 || $bh <= 0.0) {
+            return false;
+        }
+        $ph = $this->pageHeight;
+        if ($shape instanceof \Phpdftk\Css\Value\InsetShape) {
+            $ins = $shape->insets;
+            // 1–4 values: top, right, bottom, left (CSS shorthand expansion).
+            $n = count($ins);
+            $top = $this->shapeLengthPercent($ins[0], $bh);
+            $right = $this->shapeLengthPercent($ins[$n >= 2 ? 1 : 0], $bw);
+            $bottom = $this->shapeLengthPercent($ins[$n >= 3 ? 2 : 0], $bh);
+            $left = $this->shapeLengthPercent($ins[$n >= 4 ? 3 : ($n >= 2 ? 1 : 0)], $bw);
+            $x = $bx + $left;
+            $w = max(0.0, $bw - $left - $right);
+            $h = max(0.0, $bh - $top - $bottom);
+            $stream->saveGraphicsState();
+            $stream->rectangle($x, $ph - ($by + $top) - $h, $w, $h);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\CircleShape) {
+            $cx = $bx + $this->positionComponent($shape->centerX, $bw);
+            $cy = $by + $this->positionComponent($shape->centerY, $bh);
+            $r = $this->circleRadius($shape->radius, $cx - $bx, $cy - $by, $bw, $bh);
+            $stream->saveGraphicsState();
+            $this->emitEllipsePath($stream, $cx, $ph - $cy, $r, $r);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\EllipseShape) {
+            $cx = $bx + $this->positionComponent($shape->centerX, $bw);
+            $cy = $by + $this->positionComponent($shape->centerY, $bh);
+            $rx = $this->ellipseRadius($shape->radiusX, $cx - $bx, $bw, $bw);
+            $ry = $this->ellipseRadius($shape->radiusY, $cy - $by, $bh, $bh);
+            $stream->saveGraphicsState();
+            $this->emitEllipsePath($stream, $cx, $ph - $cy, $rx, $ry);
+            $stream->clip();
+            $stream->endPath();
+            return true;
+        }
+        if ($shape instanceof \Phpdftk\Css\Value\PolygonShape) {
+            if (count($shape->vertices) < 3) {
+                return false;
+            }
+            $stream->saveGraphicsState();
+            foreach ($shape->vertices as $i => [$vx, $vy]) {
+                $px = $bx + $this->shapeLengthPercent($vx, $bw);
+                $py = $ph - ($by + $this->shapeLengthPercent($vy, $bh));
+                if ($i === 0) {
+                    $stream->moveTo($px, $py);
+                } else {
+                    $stream->lineTo($px, $py);
+                }
+            }
+            $stream->closePath();
+            if (strtolower($shape->fillRule) === 'evenodd') {
+                $stream->clipEvenOdd();
+            } else {
+                $stream->clip();
+            }
+            $stream->endPath();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * `<length-percentage>` from a basic-shape's generic `Value` slot →
+     * px against `$basis`; non-length/percentage values resolve to 0.
+     */
+    private function shapeLengthPercent(\Phpdftk\Css\Value\Value $value, float $basis): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length
+            || $value instanceof \Phpdftk\Css\Value\Percentage
+        ) {
+            return $this->lengthOrPercentageToFloat($value, $basis);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Approximate an ellipse (radii rx, ry) centred at (cx, cy) with four
+     * cubic Béziers and append it as the current path.
+     */
+    private function emitEllipsePath(ContentStream $stream, float $cx, float $cy, float $rx, float $ry): void
+    {
+        $kx = $rx * 0.5522847498307933;
+        $ky = $ry * 0.5522847498307933;
+        $stream->moveTo($cx + $rx, $cy);
+        $stream->curveTo($cx + $rx, $cy + $ky, $cx + $kx, $cy + $ry, $cx, $cy + $ry);
+        $stream->curveTo($cx - $kx, $cy + $ry, $cx - $rx, $cy + $ky, $cx - $rx, $cy);
+        $stream->curveTo($cx - $rx, $cy - $ky, $cx - $kx, $cy - $ry, $cx, $cy - $ry);
+        $stream->curveTo($cx + $kx, $cy - $ry, $cx + $rx, $cy - $ky, $cx + $rx, $cy);
+    }
+
+    /**
+     * Resolve a `<position>` component (clip-path center). `null` →
+     * centre (50%); keywords map to 0 / 50% / 100% of `$basis`.
+     */
+    private function positionComponent(?\Phpdftk\Css\Value\Value $value, float $basis): float
+    {
+        if ($value === null) {
+            return $basis * 0.5;
+        }
+        if ($value instanceof Keyword) {
+            return match (strtolower($value->name)) {
+                'left', 'top' => 0.0,
+                'right', 'bottom' => $basis,
+                default => $basis * 0.5,
+            };
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length
+            || $value instanceof \Phpdftk\Css\Value\Percentage
+        ) {
+            return $this->lengthOrPercentageToFloat($value, $basis);
+        }
+        return $basis * 0.5;
+    }
+
+    /**
+     * CSS Shapes 1 — resolve a `circle()` radius. `null` / keyword
+     * default `closest-side`; percentage against `sqrt(W²+H²)/√2`.
+     */
+    private function circleRadius(?\Phpdftk\Css\Value\Value $value, float $cx, float $cy, float $w, float $h): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * (sqrt($w * $w + $h * $h) / M_SQRT2);
+        }
+        $kw = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        $sides = [$cx, $w - $cx, $cy, $h - $cy];
+        $corners = [
+            hypot($cx, $cy), hypot($w - $cx, $cy),
+            hypot($cx, $h - $cy), hypot($w - $cx, $h - $cy),
+        ];
+        return match ($kw) {
+            'farthest-side' => max($sides),
+            'closest-corner' => min($corners),
+            'farthest-corner' => max($corners),
+            default => min($sides), // closest-side
+        };
+    }
+
+    /**
+     * Resolve one `ellipse()` radius (`rx` or `ry`). `null` / keyword
+     * default `closest-side`; percentage against `$pctBasis`; `$center`
+     * is the centre offset along this axis, `$extent` the box extent.
+     */
+    private function ellipseRadius(?\Phpdftk\Css\Value\Value $value, float $center, float $extent, float $pctBasis): float
+    {
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
+            return $value->value / 100.0 * $pctBasis;
+        }
+        $kw = $value instanceof Keyword ? strtolower($value->name) : 'closest-side';
+        return $kw === 'farthest-side'
+            ? max($center, $extent - $center)
+            : min($center, $extent - $center);
+    }
+
+    /**
+     * One `clip` rect edge → px. `auto` returns `$autoValue` (the border
+     * edge); a `<length>` / `0` returns its value.
+     */
+    private function clipEdgePx(\Phpdftk\Css\Value\Value $value, float $autoValue): float
+    {
+        if ($value instanceof Keyword && strtolower($value->name) === 'auto') {
+            return $autoValue;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Length) {
+            return $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return (float) $value->value;
+        }
+        return $autoValue;
     }
 
     /**
@@ -3057,6 +3384,11 @@ final class Painter
                     }
                 } elseif ($layer instanceof \Phpdftk\Css\Value\RadialGradient) {
                     $this->paintRadialGradient($layer, $stream, $x, $top, $width, $height);
+                } elseif (($imgArg = $this->imageFunctionColorArg($layer)) !== null) {
+                    $imgColor = $this->resolveColorWithCurrentColor($imgArg, $box);
+                    if ($imgColor instanceof Color) {
+                        $this->paintColorImage($stream, $imgColor, $sizeValue, $positionValue, $repeatValue, $x, $top, $width, $height, $originRect);
+                    }
                 }
             }
         }
@@ -3072,7 +3404,7 @@ final class Painter
      * is expanded. `none` keywords and other unsupported entries
      * are skipped.
      *
-     * @return list<\Phpdftk\Css\Value\Url|\Phpdftk\Css\Value\LinearGradient|\Phpdftk\Css\Value\RadialGradient>
+     * @return list<\Phpdftk\Css\Value\Url|\Phpdftk\Css\Value\LinearGradient|\Phpdftk\Css\Value\RadialGradient|\Phpdftk\Css\Value\CssFunction>
      */
     private function extractBackgroundLayers(mixed $value): array
     {
@@ -3084,6 +3416,8 @@ final class Painter
                 if ($v instanceof \Phpdftk\Css\Value\Url
                     || $v instanceof \Phpdftk\Css\Value\LinearGradient
                     || $v instanceof \Phpdftk\Css\Value\RadialGradient
+                    || ($v instanceof \Phpdftk\Css\Value\CssFunction
+                        && $this->imageFunctionColorArg($v) !== null)
                 ) {
                     $layers[] = $v;
                 }
@@ -3093,10 +3427,82 @@ final class Painter
         if ($value instanceof \Phpdftk\Css\Value\Url
             || $value instanceof \Phpdftk\Css\Value\LinearGradient
             || $value instanceof \Phpdftk\Css\Value\RadialGradient
+            || ($value instanceof \Phpdftk\Css\Value\CssFunction
+                && $this->imageFunctionColorArg($value) !== null)
         ) {
             return [$value];
         }
         return [];
+    }
+
+    private function imageFunctionColorArg(mixed $value): ?\Phpdftk\Css\Value\Value
+    {
+        if (!($value instanceof \Phpdftk\Css\Value\CssFunction)
+            || strtolower($value->name) !== 'image'
+        ) {
+            return null;
+        }
+        foreach ($value->arguments as $arg) {
+            if ($arg instanceof \Phpdftk\Css\Value\Url) {
+                return null; // url-primary image() — not a solid colour.
+            }
+            if ($arg instanceof Color) {
+                return $arg;
+            }
+            // `image(currentcolor)` resolves against the element's `color`
+            // at paint time (via resolveColorWithCurrentColor).
+            if ($arg instanceof Keyword && strtolower($arg->name) === 'currentcolor') {
+                return $arg;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param array{x: float, top: float, width: float, height: float} $originRect
+     */
+    private function paintColorImage(
+        ContentStream $stream,
+        Color $color,
+        ?\Phpdftk\Css\Value\Value $sizeValue,
+        ?\Phpdftk\Css\Value\Value $positionValue,
+        ?\Phpdftk\Css\Value\Value $repeatValue,
+        float $x,
+        float $top,
+        float $width,
+        float $height,
+        array $originRect,
+    ): void {
+        if ($color->a <= 0.0) {
+            return;
+        }
+        $ow = $originRect['width'];
+        $oh = $originRect['height'];
+        $size = $this->resolveBackgroundSize($sizeValue, '', $ow, $oh);
+        $tw = $size['w'];
+        $th = $size['h'];
+        if ($tw <= 0.0 || $th <= 0.0) {
+            return;
+        }
+        if ($positionValue !== null) {
+            $pos = $this->resolveBackgroundPosition($positionValue, $tw, $th, $ow, $oh);
+            $offX = $pos['offsetX'];
+            $offY = $pos['offsetY'];
+        } else {
+            $offX = $size['offsetX'];
+            $offY = $size['offsetY'];
+        }
+        $repeat = $this->repeatAxes($repeatValue);
+        $rx = $repeat['x'] ? $x : $originRect['x'] + $offX;
+        $rw = $repeat['x'] ? $width : $tw;
+        $ry = $repeat['y'] ? $top : $originRect['top'] + $offY;
+        $rh = $repeat['y'] ? $height : $th;
+        $stream->saveGraphicsState();
+        $stream->rectangle($x, $this->pageHeight - $top - $height, $width, $height);
+        $stream->clip();
+        $stream->endPath();
+        $this->emitRect($stream, $rx, $ry, $rw, $rh, fill: $color);
+        $stream->restoreGraphicsState();
     }
 
     /**
@@ -3674,30 +4080,36 @@ final class Painter
         // widths until the leftmost / topmost tile sits at or before
         // the origin box (NOT the clip box — tiles anchor against
         // `background-origin`). With `no-repeat`, no shift happens.
+        // Tile iteration bounds. A repeating axis tiles across the whole
+        // PAINT/clip rect (which for a propagated root background is the
+        // entire canvas, larger than the positioning area), anchored to
+        // the origin rect. A non-repeating axis paints a single tile
+        // within the origin rect. For a normal box clip == origin, so
+        // these reduce to the origin bounds (no behaviour change).
         $startX = $paint['offsetX'];
+        $farX = $originWidth;
         if ($repeat['x']) {
-            while ($startX > 0.0) {
+            $farX = $x + $width - $originX;
+            while ($originX + $startX > $x) {
                 $startX -= $tileW;
             }
         }
         $startY = $paint['offsetY'];
+        $farY = $originHeight;
         if ($repeat['y']) {
-            while ($startY > 0.0) {
+            $farY = $top + $height - $originTop;
+            while ($originTop + $startY > $top) {
                 $startY -= $tileH;
             }
         }
-        // Tile iteration bounds: extend until the tile passes the
-        // origin rect's far edge. Tiles anchored inside the origin
-        // rect may still spill into the clip rect (when clip > origin)
-        // — that's the spec semantic.
         $originBottomLayoutY = $originTop + $originHeight;
         $originPdfBottom = $this->pageHeight - $originBottomLayoutY;
         $maxTiles = 4096;
         $tileCount = 0;
         $offsetY = $startY;
-        while ($offsetY < $originHeight) {
+        while ($offsetY < $farY) {
             $offsetX = $startX;
-            while ($offsetX < $originWidth) {
+            while ($offsetX < $farX) {
                 if ($tileCount >= $maxTiles) {
                     break 2;
                 }
@@ -3884,19 +4296,29 @@ final class Painter
             // Two-value form: first is x, second is y.
             $xItem = $items[0] ?? null;
             $yItem = $items[1] ?? null;
+            // CSS Backgrounds 3 §3.6 — when the author specifies exactly
+            // ONE value (e.g. `background-position: 25%` or `-0px`), the
+            // second value is `center` (50%), not the unspecified initial
+            // `0%`. An EMPTY list (count 0) is the unspecified initial and
+            // keeps `0% 0%`; a single keyword is handled above.
+            $singleValue = count($items) === 1;
             $xAxis = $this->axisOffsetFromValue($xItem, isHorizontal: true);
-            $yAxis = $this->axisOffsetFromValue($yItem, isHorizontal: false);
             if ($xAxis['percent'] !== null) {
                 $xPercent = $xAxis['percent'];
             }
             if ($xAxis['length'] !== null) {
                 $xLength = $xAxis['length'];
             }
-            if ($yAxis['percent'] !== null) {
-                $yPercent = $yAxis['percent'];
-            }
-            if ($yAxis['length'] !== null) {
-                $yLength = $yAxis['length'];
+            if ($singleValue) {
+                $yPercent = 0.5;
+            } else {
+                $yAxis = $this->axisOffsetFromValue($yItem, isHorizontal: false);
+                if ($yAxis['percent'] !== null) {
+                    $yPercent = $yAxis['percent'];
+                }
+                if ($yAxis['length'] !== null) {
+                    $yLength = $yAxis['length'];
+                }
             }
         }
         $offsetX = $xLength ?? ($boxWidth - $imageWidth) * $xPercent;
@@ -5103,7 +5525,7 @@ final class Painter
      */
     private function paintInlineMath(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
     ): void {
         $geo = $box->geometry;
@@ -5221,7 +5643,7 @@ final class Painter
      * @return array{0: float, 1: float}
      */
     private function resolveInlineAbsoluteOrigin(
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         float $defaultX,
         float $defaultY,
     ): array {
@@ -5274,7 +5696,7 @@ final class Painter
      */
     private function paintImgSvg(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
         string $src,
     ): void {
@@ -5334,7 +5756,7 @@ final class Painter
 
     private function paintInlineSvg(
         \Phpdftk\Html\Dom\Element $element,
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
         ContentStream $stream,
     ): void {
         $geo = $box->geometry;

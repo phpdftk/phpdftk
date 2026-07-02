@@ -216,6 +216,20 @@ final class BoxGenerator
             $values->set('display', new Keyword('block'));
             $display = 'block';
         }
+        // Foreign-content roots (`<svg>` / `<math>`) are replaced
+        // atomic-inline boxes routed to the dedicated foreign painters.
+        // The UA sheet's `svg, math { display: inline-block }` matches the
+        // unprefixed form by tag name; the prefixed XHTML form
+        // (`<svg:svg>`, localName `"svg:svg"`) misses that selector and
+        // would fall back to generic inline flow. Force any inline-level
+        // foreign root to `inline-block` so it generates an
+        // `AtomicInlineBox`.
+        if ($this->isForeignContentRoot($element)
+            && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
+        ) {
+            $values->set('display', new Keyword('inline-block'));
+            $display = 'inline-block';
+        }
         // CSS Containment 2 §4 — `content-visibility: hidden`
         // suppresses box generation just like `display: none` for
         // static print. (`auto` is a runtime-visibility optimisation
@@ -474,8 +488,11 @@ final class BoxGenerator
         // The original element's cascade rides on the
         // AnonymousBlockBox so `position: relative` on the inline
         // still affects the block half per spec.
+        $splitsAroundBlock = $box instanceof AtomicInlineBox
+            ? $this->containsInFlowBlockLevel($rawChildren)
+            : $this->containsBlockLevel($rawChildren);
         if (($box instanceof InlineBox || $box instanceof AtomicInlineBox)
-            && $this->containsBlockLevel($rawChildren)
+            && $splitsAroundBlock
         ) {
             $promoted = new AnonymousBlockBox($element, $values);
             $inlineGroup = [];
@@ -545,6 +562,30 @@ final class BoxGenerator
             }
         }
         return false;
+    }
+
+    /** @param list<Box> $children */
+    private function containsInFlowBlockLevel(array $children): bool
+    {
+        foreach ($children as $c) {
+            if (!$this->isInlineLevel($c) && !$this->isAbsolutelyPositioned($c->style)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * `position: absolute | fixed` only — NOT floats. A floated block child
+     * still interacts with the inline box's layout in ways our flex /
+     * multicol paths depend on, so it keeps triggering blockification;
+     * only genuinely out-of-flow (abs-pos) children are skipped.
+     */
+    private function isAbsolutelyPositioned(CascadedValues $values): bool
+    {
+        $position = $values->get('position');
+        return $position instanceof Keyword
+            && in_array(strtolower($position->name), ['absolute', 'fixed'], true);
     }
 
     /**
@@ -1620,18 +1661,31 @@ final class BoxGenerator
      */
     private function isForeignContentRoot(Element $element): bool
     {
+        return self::foreignContentKind($element) !== null;
+    }
+
+    /**
+     * Classify an element as a foreign-content root: `'svg'`, `'math'`,
+     * or `null`. Handles both the standard namespaced form (`<svg>` in
+     * the SVG namespace) AND the prefixed XHTML form (`<svg:svg>` /
+     * `<math:math>`), which the HTML parser leaves as a plain element
+     * with `localName` like `"svg:svg"` and the HTML namespace — the
+     * prefix then identifies the foreign content.
+     */
+    public static function foreignContentKind(Element $element): ?string
+    {
         $tag = strtolower($element->localName);
-        if ($tag !== 'math' && $tag !== 'svg') {
-            return false;
-        }
-        // Belt-and-braces: confirm the namespace too so an HTML
-        // element with `localName="math"` (which can happen in
-        // some XML fragments) doesn't escape the blockification.
+        $colon = strrpos($tag, ':');
+        $prefixed = $colon !== false;
+        $local = $prefixed ? substr($tag, $colon + 1) : $tag;
         $ns = $element->namespaceUri();
-        if ($tag === 'math') {
-            return $ns === \Phpdftk\Mathml\Parser::MATHML_NS;
+        if ($local === 'math' && ($prefixed || $ns === \Phpdftk\Mathml\Parser::MATHML_NS)) {
+            return 'math';
         }
-        return $ns === \Phpdftk\Svg\Parser::SVG_NS;
+        if ($local === 'svg' && ($prefixed || $ns === \Phpdftk\Svg\Parser::SVG_NS)) {
+            return 'svg';
+        }
+        return null;
     }
 
     /**
@@ -1809,6 +1863,15 @@ final class BoxGenerator
                 }
                 $raw = $element->getAttribute($attr);
                 if ($raw === null) {
+                    continue;
+                }
+                // HTML 5 §2.4.4.4 dimension values allow a trailing `%`;
+                // browsers map `<img width="100%">` to a CSS percentage on
+                // the replaced box (resolved against its containing block at
+                // layout time), not the intrinsic size.
+                $pct = $this->parseHtmlPercentage($raw);
+                if ($pct !== null) {
+                    $values->set($attr, new \Phpdftk\Css\Value\Percentage($pct));
                     continue;
                 }
                 $px = $this->parseHtmlLength($raw);
@@ -2191,6 +2254,22 @@ final class BoxGenerator
      * leaves the value at whatever the cascade said). Everything else is
      * rejected.
      */
+    /**
+     * HTML 5 §2.4.4.4 — a dimension attribute value ending in `%` is a
+     * percentage. Returns the numeric percentage (e.g. `100` for
+     * `"100%"`), or null when the value isn't a percentage form. Callers
+     * that only accept absolute pixel sizes (e.g. a `<canvas>` bitmap)
+     * skip this and use {@see parseHtmlLength}.
+     */
+    private function parseHtmlPercentage(string $raw): ?float
+    {
+        $raw = trim($raw);
+        if (preg_match('/^(\d+(?:\.\d+)?)%$/', $raw, $m) === 1) {
+            return (float) $m[1];
+        }
+        return null;
+    }
+
     private function parseHtmlLength(string $raw): ?float
     {
         $raw = trim($raw);

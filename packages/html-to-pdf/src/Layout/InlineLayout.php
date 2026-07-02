@@ -409,14 +409,29 @@ final class InlineLayout
     {
         $currentX = 0.0;
         $maxHeight = 0.0;
+        // Line-box tracking: atomics flow left-to-right and wrap to a new
+        // line when the next one won't fit in the IFC available width
+        // (CSS 2.1 §9.4.2). `$lineTop` is the current line's top offset
+        // from the parent's content top; `$lineHeight` its tallest box.
+        $lineTop = 0.0;
+        $lineHeight = 0.0;
         foreach ($parent->children as $child) {
             if (!($child instanceof AtomicInlineBox)) {
                 continue;
             }
             $widthValue = $child->style->get('width');
-            $width = $widthValue instanceof Length && $widthValue->value > 0.0
-                ? $widthValue->value
-                : 0.0;
+            // A percentage width (e.g. `<img width="100%">`) resolves
+            // against the inline-formatting-context's available width —
+            // the same basis the shaped path uses. Without this a
+            // percentage-sized replaced element collapses to 0 in the
+            // no-font fallback and paints nothing.
+            $width = match (true) {
+                $widthValue instanceof Length && $widthValue->value > 0.0
+                    => $widthValue->value,
+                $widthValue instanceof \Phpdftk\Css\Value\Percentage && $widthValue->value > 0.0
+                    => $this->currentAvailableWidth * ($widthValue->value / 100.0),
+                default => 0.0,
+            };
             if ($width <= 0.0) {
                 // Atomic-content painters have their own intrinsic-
                 // size fallbacks (svg attrs / viewBox; math defaults).
@@ -424,22 +439,91 @@ final class InlineLayout
                 // so the painter's fallback chain still runs.
                 continue;
             }
+            // Border + padding insets. This fallback historically ignored
+            // borders entirely, so an inline-block sized partly by its
+            // border/padding (e.g. the CSS2 `border-{top,bottom}-width`
+            // tests, or a square with a uniform border) collapsed to its
+            // content box and painted no border. Fold both axes' insets
+            // into the box: grow the height/advance by the inset and offset
+            // the content box so the border box's top-left edge stays at
+            // the box origin. Both axes are handled symmetrically so a
+            // uniformly-bordered inline-block keeps a centred content box.
+            $padTop = self::atomicLength($child->style->get('padding-top'));
+            $padBottom = self::atomicLength($child->style->get('padding-bottom'));
+            $padLeft = self::atomicLength($child->style->get('padding-left'));
+            $padRight = self::atomicLength($child->style->get('padding-right'));
+            $borderTop = self::atomicBorderWidth($child->style, 'top');
+            $borderBottom = self::atomicBorderWidth($child->style, 'bottom');
+            $borderLeft = self::atomicBorderWidth($child->style, 'left');
+            $borderRight = self::atomicBorderWidth($child->style, 'right');
+            $verticalInset = $padTop + $padBottom + $borderTop + $borderBottom;
+            $horizontalInset = $padLeft + $padRight + $borderLeft + $borderRight;
+            // CSS Sizing 3 §6.2 — under `box-sizing: border-box` the
+            // declared width/height already includes the inset, so the
+            // content box shrinks; otherwise the inset grows the outer box.
+            $borderBox = self::atomicIsBorderBoxSizing($child->style);
+            $contentWidth = $borderBox ? max(0.0, $width - $horizontalInset) : $width;
+            $outerWidth = $contentWidth + $horizontalInset;
             $heightValue = $child->style->get('height');
-            $height = $heightValue instanceof Length && $heightValue->value > 0.0
-                ? $heightValue->value
-                : $width;
+            // A unitless `0` cascades as Integer, not Length, but is still
+            // an explicit length (the only valid unitless one).
+            $declaredHeight = match (true) {
+                $heightValue instanceof Length => $heightValue->value,
+                $heightValue instanceof \Phpdftk\Css\Value\Integer => (float) $heightValue->value,
+                default => null,
+            };
+            if ($declaredHeight !== null) {
+                // Explicit height (including `0`) is authoritative.
+                $declaredHeight = max(0.0, $declaredHeight);
+                $contentHeight = $borderBox
+                    ? max(0.0, $declaredHeight - $verticalInset)
+                    : $declaredHeight;
+            } else {
+                // Auto height with no measurable content (no shaping font):
+                // square the OUTER box to its width — the historical
+                // contract the shaped path also follows — but never below
+                // the inset, since a border box can't be shorter than its
+                // own border + padding (the CSS2 border-width tests).
+                $contentHeight = max(0.0, max($outerWidth, $verticalInset) - $verticalInset);
+            }
             // CSS Sizing 3 §5.2 — replaced min/max-width / -height clamps
             // (incl. min/max-content transferred through the intrinsic
             // ratio). Without this `max-width: min-content` on a sized
             // <canvas>/<img> is ignored.
-            [$width, $height] = $this->clampAtomicReplaced($child->style, $width, $height);
-            $child->geometry->x = $parent->geometry->x + $currentX;
-            $child->geometry->y = $parent->geometry->y;
-            $child->geometry->width = $width;
-            $child->geometry->height = $height;
-            $currentX += $width;
-            if ($height > $maxHeight) {
-                $maxHeight = $height;
+            [$contentWidth, $contentHeight] = $this->clampAtomicReplaced($child->style, $contentWidth, $contentHeight);
+            $outerWidth = $contentWidth + $horizontalInset;
+            $outerHeight = $contentHeight + $verticalInset;
+            // CSS 2.1 §9.4.2 — wrap to a new line when the current line
+            // already holds content and this box would overflow the IFC
+            // available width. (A single box wider than the line still
+            // gets its own line rather than an infinite loop.)
+            if ($currentX > 0.0
+                && $currentX + $outerWidth > $this->currentAvailableWidth + 0.01
+            ) {
+                $lineTop += $lineHeight;
+                $currentX = 0.0;
+                $lineHeight = 0.0;
+            }
+            // Offset the content box by the top-left inset so the border
+            // box's top-left edge stays at the box origin.
+            $child->geometry->x = $parent->geometry->x + $currentX + $borderLeft + $padLeft;
+            $child->geometry->y = $parent->geometry->y + $lineTop + $borderTop + $padTop;
+            $child->geometry->width = $contentWidth;
+            $child->geometry->height = $contentHeight;
+            $child->geometry->paddingTop = $padTop;
+            $child->geometry->paddingBottom = $padBottom;
+            $child->geometry->paddingLeft = $padLeft;
+            $child->geometry->paddingRight = $padRight;
+            $child->geometry->borderTop = $borderTop;
+            $child->geometry->borderBottom = $borderBottom;
+            $child->geometry->borderLeft = $borderLeft;
+            $child->geometry->borderRight = $borderRight;
+            $currentX += $outerWidth;
+            if ($outerHeight > $lineHeight) {
+                $lineHeight = $outerHeight;
+            }
+            if ($lineTop + $lineHeight > $maxHeight) {
+                $maxHeight = $lineTop + $lineHeight;
             }
         }
         return [[], $maxHeight];

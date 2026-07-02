@@ -103,6 +103,140 @@ final class InlineLayoutTest extends TestCase
         self::assertEqualsWithDelta(40.0 * 96.0 / 72.0, $atom->geometry->height, 0.001);
     }
 
+    public function testNoFontPercentageWidthAtomicResolvesAgainstAvailable(): void
+    {
+        // `<img width="100%">` in the no-font atomic fallback must resolve
+        // its percentage against the IFC available width instead of
+        // collapsing to 0 and painting nothing (a recurring CSS2 reference
+        // pattern: `<img width="100%" height="N">`).
+        $box = $this->buildTree(
+            '<html><body><div class="host"><img src="x.png" width="100%" height="20"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .host { display: block; width: 150px; }'
+            . ' img { display: inline-block; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        self::assertEqualsWithDelta(150.0, $img->geometry->width, 0.5);
+        self::assertEqualsWithDelta(20.0, $img->geometry->height, 0.5);
+    }
+
+    public function testNoFontAtomicsWrapToNextLineWhenOverflowing(): void
+    {
+        // CSS 2.1 §9.4.2 — atomic inline boxes (here inline-blocks) that
+        // don't fit on the current line wrap to the next one. Two 70%-wide
+        // boxes in a 150px host: the second (105px) can't sit beside the
+        // first, so it drops to y=40 at x=0.
+        $box = $this->buildTree(
+            '<html><body><div class="host"><span class="a"></span><span class="b"></span></div></body></html>',
+            'html, body { display: block; }'
+            . ' .host { display: block; width: 150px; }'
+            . ' .a, .b { display: inline-block; width: 70%; height: 40px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $a = $this->findByClass($box, 'a');
+        $b = $this->findByClass($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta(0.0, $a->geometry->x, 0.5);
+        self::assertEqualsWithDelta(0.0, $a->geometry->y, 0.5);
+        // Second box wrapped: back to x=0, one line down.
+        self::assertEqualsWithDelta(0.0, $b->geometry->x, 0.5);
+        self::assertEqualsWithDelta(40.0, $b->geometry->y, 0.5);
+    }
+
+    public function testNoFontInlineBlockBorderGrowsHeightAndOffsetsContent(): void
+    {
+        // CSS2 border-{top,bottom}-width tests: an empty inline-block sized
+        // only by a thick top border must be at least as tall as the
+        // border and must carry the border geometry so the painter draws
+        // it. The atomic-only fallback previously ignored borders entirely
+        // (squared the content to the width, left borderTop at 0).
+        $box = $this->buildTree(
+            '<html><body><div class="atom"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .atom { display: inline-block; width: 20px;'
+            . ' border-top-style: solid; border-top-width: 80px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $atom = $this->find($box, 'div');
+        self::assertNotNull($atom);
+        self::assertEqualsWithDelta(80.0, $atom->geometry->borderTop, 0.001);
+        // Empty content + 80px top border → content height 0, border box 80.
+        self::assertEqualsWithDelta(0.0, $atom->geometry->height, 0.001);
+        // Content box offset down by the top border so the border box's
+        // top edge stays at the parent origin (y = 0).
+        self::assertEqualsWithDelta(80.0, $atom->geometry->y, 0.001);
+    }
+
+    public function testNoFontInlineBlockExplicitZeroHeightBeatsSquare(): void
+    {
+        // `height: 0` is explicit (content height 0); the outer box is just
+        // the border, NOT squared up to the width. Regression guard for the
+        // `> 0.0` check that used to treat zero as auto.
+        $box = $this->buildTree(
+            '<html><body><div class="atom"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .atom { display: inline-block; width: 96px; height: 0;'
+            . ' border-top-style: solid; border-top-width: 1px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $atom = $this->find($box, 'div');
+        self::assertNotNull($atom);
+        self::assertEqualsWithDelta(0.0, $atom->geometry->height, 0.001);
+        self::assertEqualsWithDelta(1.0, $atom->geometry->borderTop, 0.001);
+    }
+
+    public function testNoFontInlineBlockBorderBoxShrinksContent(): void
+    {
+        // Under box-sizing: border-box the declared width/height is the
+        // border box; the content box shrinks by the border + padding.
+        $box = $this->buildTree(
+            '<html><body><div class="atom"></div></body></html>',
+            'html, body { display: block; }'
+            . ' .atom { display: inline-block; box-sizing: border-box;'
+            . ' width: 100px; height: 100px;'
+            . ' border-style: solid; border-width: 10px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $atom = $this->find($box, 'div');
+        self::assertNotNull($atom);
+        // 100px border box − 2×10px border = 80px content box on each axis.
+        self::assertEqualsWithDelta(80.0, $atom->geometry->width, 0.001);
+        self::assertEqualsWithDelta(80.0, $atom->geometry->height, 0.001);
+        self::assertEqualsWithDelta(10.0, $atom->geometry->borderLeft, 0.001);
+    }
+
+    public function testNoFontBorderedInlineBlockAdvancesSiblingByOuterWidth(): void
+    {
+        // A bordered inline-block advances the next atomic sibling by its
+        // OUTER width (content + horizontal border + padding), not just the
+        // content width — the sibling must clear the first box's border.
+        $box = $this->buildTree(
+            '<html><body><div class="a"></div><div class="b"></div></body></html>',
+            'html, body { display: block; }'
+            . ' div { display: inline-block; width: 30px; height: 30px; }'
+            . ' .a { border-style: solid; border-width: 10px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $a = $this->findByClass($box, 'a');
+        $b = $this->findByClass($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        // .a outer width = 30 content + 2×10 border = 50. Its content box
+        // starts at x = 10 (left border). .b's content box starts after
+        // .a's full outer extent: 0 + 50 = 50.
+        self::assertEqualsWithDelta(10.0, $a->geometry->x, 0.001);
+        self::assertEqualsWithDelta(50.0, $b->geometry->x, 0.001);
+    }
+
     public function testSingleLineProducesOneLineBox(): void
     {
         $this->skipIfNoFont();
@@ -1743,6 +1877,23 @@ final class InlineLayoutTest extends TestCase
         while ($stack !== []) {
             $node = array_shift($stack);
             if ($node->element !== null && $node->element->localName === $tag) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
+    }
+
+    private function findByClass(Box $root, string $class): ?Box
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null
+                && $node->element->getAttribute('class') === $class
+            ) {
                 return $node;
             }
             foreach ($node->children as $c) {

@@ -2953,6 +2953,105 @@ final class PainterTest extends TestCase
         self::assertStringNotContainsString('0 0 0 rg', $bytes, 'no spurious black border stroke');
     }
 
+    public function testFloatedReplacedElementRendersItsImage(): void
+    {
+        // A FLOATED (or block-level) `<img>` is blockified out of the
+        // inline flow into a BlockBox; it must still paint its image.
+        // Previously paintImage bailed on any non-AtomicInlineBox, so a
+        // floated `<img>` rendered nothing (regression across css-images'
+        // object-fit / object-position clusters, which float their
+        // replaced elements).
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+            . '<rect width="100%" height="100%" fill="lime"/></svg>';
+        $dataUri = 'data:image/svg+xml,' . rawurlencode($svg);
+        $doc = $this->html->parseDocument(
+            '<html><body><img src="' . $dataUri . '"></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             img { display: inline-block; float: left; width: 40px; height: 40px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(pageHeight: 792.0, page: $page, writer: $writer))
+            ->paint($root, $stream);
+
+        $bytes = $writer->toBytes();
+        self::assertStringContainsString('0 1 0 rg', $bytes, 'floated img SVG lime fill emitted');
+    }
+
+    public function testVideoPosterImageRenders(): void
+    {
+        // CSS Images 3 — a `<video>`'s `poster` frame is a replaced image
+        // and renders (with object-fit) like `<img>`. The image comes from
+        // the `poster` attribute, not `src`.
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+            . '<rect width="100%" height="100%" fill="lime"/></svg>';
+        $dataUri = 'data:image/svg+xml,' . rawurlencode($svg);
+        $doc = $this->html->parseDocument(
+            '<html><body><video poster="' . $dataUri . '"></video></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             video { display: inline-block; width: 40px; height: 30px; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(pageHeight: 792.0, page: $page, writer: $writer))
+            ->paint($root, $stream);
+
+        self::assertStringContainsString('0 1 0 rg', $writer->toBytes(), 'video poster SVG lime fill emitted');
+    }
+
+    public function testImageColorFunctionCurrentColorBackground(): void
+    {
+        // CSS Images 4 §4 — `background-image: image(currentcolor)` is a
+        // solid image of the element's `color`. With `color: lime` the
+        // background fills with lime (0 1 0 rg), not the red fallback.
+        $doc = $this->html->parseDocument(
+            '<html><body><div id="d"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             #d { display: block; width: 50px; height: 50px;
+                  color: lime; background-color: red;
+                  background-image: image(currentcolor); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(pageHeight: 792.0, page: $page, writer: $writer))
+            ->paint($root, $stream);
+
+        self::assertStringContainsString('0 1 0 rg', $writer->toBytes(), 'image(currentcolor) resolved to lime');
+    }
+
     public function testSvgDataUriBackgroundEmitsSvgPaintOperators(): void
     {
         // Lime-filled SVG passed as a data: URI background. The painter
@@ -3126,6 +3225,54 @@ final class PainterTest extends TestCase
         // not passed; pageHeight is 792 here.
         self::assertStringContainsString(' 792 re', $rects[0], 'canvas rect uses pageHeight not bodyHeight');
         self::assertStringNotContainsString('100 100 re', $rects[0], 'not body-sized');
+    }
+
+    public function testPropagatedRootBackgroundAnchorsToElementPaddingBox(): void
+    {
+        // CSS 2.1 §14.2 — a propagated root background PAINTS over the
+        // whole canvas but is POSITIONED / tiled as if painted for the
+        // element's own box (its padding box, the default
+        // background-origin). So a `repeat-x` image on an `html` with a
+        // margin tiles from the margin offset, not the page corner. Lock
+        // the positioning-origin computation.
+        $doc = $this->html->parseDocument('<html><body></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; }
+             html { margin: 40px; padding: 10px; background-color: green; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext()),
+        );
+        $html = $this->findByTag($root, 'html');
+        self::assertNotNull($html);
+        $rect = (new \ReflectionMethod(Painter::class, 'propagatedOriginRect'))
+            ->invoke(new Painter(792.0), $html);
+        // Padding-box top-left sits at the 40px margin (border 0); the box
+        // spans its padding + content.
+        self::assertEqualsWithDelta(40.0, $rect['x'], 0.5);
+        self::assertEqualsWithDelta(40.0, $rect['top'], 0.5);
+        self::assertGreaterThan(0.0, $rect['width']);
+    }
+
+    private function findByTag(
+        \Phpdftk\HtmlToPdf\Box\Box $root,
+        string $tag,
+    ): ?\Phpdftk\HtmlToPdf\Box\Box {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && strtolower($node->element->localName) === $tag) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
     }
 
     public function testBodyOverflowPropagatesAndSuppressesBodyClip(): void
@@ -3417,6 +3564,84 @@ final class PainterTest extends TestCase
         $bytes = (string) array_reduce($stream->getOperators(), static fn($a, $o) => $a . $o . "\n", '');
         self::assertStringNotContainsString('3 Tr', $bytes, 'opaque text must not be invisible');
         self::assertContains('Tj', $this->operatorTokens($stream->getOperators()), 'opaque text emits glyphs');
+    }
+
+    /**
+     * CSS 2.1 §11.1.2 — `clip: rect(...)` on an absolutely-positioned box
+     * emits a PDF clip path (`W`) around its paint.
+     */
+    public function testAbsposClipRectEmitsClipPath(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="position: absolute; width: 100px; height: 100px; '
+            . 'background: green; clip: rect(0, 50px, 50px, 0)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertContains('W', $this->operatorTokens($stream->getOperators()), 'abspos clip emits clip path');
+    }
+
+    /**
+     * CSS Masking 1 §6 — `clip-path: <basic-shape>` emits a clip path.
+     * Polygon uses straight segments; circle/ellipse/inset are covered by
+     * the rendered-output WPT suite.
+     */
+    public function testClipPathPolygonEmitsClipPath(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green; '
+            . 'clip-path: polygon(0 0, 100px 0, 50px 100px)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        $ops = $this->operatorTokens($stream->getOperators());
+        self::assertContains('W', $ops, 'clip-path emits a clip path');
+        self::assertContains('l', $ops, 'polygon emits line segments');
+    }
+
+    /**
+     * `clip-path: none` (the initial value) emits no clip path.
+     */
+    public function testClipPathNoneEmitsNoClip(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertNotContains('W', $this->operatorTokens($stream->getOperators()), 'no clip-path → no clip');
+    }
+
+    /**
+     * Negative: `clip` only applies to absolutely-positioned boxes — a
+     * static box with `clip: rect(...)` must NOT emit a clip path.
+     */
+    public function testClipIgnoredOnStaticBox(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div style="width: 100px; height: 100px; background: green; '
+            . 'clip: rect(0, 50px, 50px, 0)"></div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        self::assertNotContains('W', $this->operatorTokens($stream->getOperators()), 'static clip is a no-op');
     }
 
     /**
