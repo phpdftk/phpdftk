@@ -3,7 +3,19 @@
 Live target list for the push toward >90% CSS WPT. Updated 2026-06-30.
 Current: **67.77%** (14,415 / 21,270, settler-off).
 
-## Landed this loop (branch `css-coverage-push`, ~+391 net)
+## Landed this loop (branch `css-coverage-push`, ~+413 net)
+
+- **inline-atomic line wrapping (no-font path)** — **+20 net** (CSS2/
+  positioning +10, css-flexbox +9, css-tables +2, css-backgrounds −1).
+  `layoutAtomicOnly` laid inline-blocks/replaced boxes left-to-right and
+  never wrapped; now tracks a line box and wraps on overflow (CSS 2.1
+  §9.4.2). Also fixed the reference side of the abspos-height cluster.
+- **abspos margin-top:auto vertical slack (§10.6.5)** — **+2 net**
+  (CSS2/positioning; absolute-non-replaced-{,max-}height margin-top:auto).
+  Over-constrained abspos now lets an auto margin-top absorb the slack.
+- **out-of-flow last-child bottom-margin collapse** — WPT-neutral defensive
+  fix (symmetric to the top-edge one).
+
 
 - **out-of-flow first-child margin-collapse** — **+20 net** (CSS2/
   positioning +17, margin-padding-clear +3, zero regressions). Parent-child
