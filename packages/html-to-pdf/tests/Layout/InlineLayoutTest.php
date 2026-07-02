@@ -123,6 +123,31 @@ final class InlineLayoutTest extends TestCase
         self::assertEqualsWithDelta(20.0, $img->geometry->height, 0.5);
     }
 
+    public function testNoFontAtomicsWrapToNextLineWhenOverflowing(): void
+    {
+        // CSS 2.1 §9.4.2 — atomic inline boxes (here inline-blocks) that
+        // don't fit on the current line wrap to the next one. Two 70%-wide
+        // boxes in a 150px host: the second (105px) can't sit beside the
+        // first, so it drops to y=40 at x=0.
+        $box = $this->buildTree(
+            '<html><body><div class="host"><span class="a"></span><span class="b"></span></div></body></html>',
+            'html, body { display: block; }'
+            . ' .host { display: block; width: 150px; }'
+            . ' .a, .b { display: inline-block; width: 70%; height: 40px; }',
+        );
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: null);
+        $this->layout->layout($box, $ctx);
+        $a = $this->findByClass($box, 'a');
+        $b = $this->findByClass($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta(0.0, $a->geometry->x, 0.5);
+        self::assertEqualsWithDelta(0.0, $a->geometry->y, 0.5);
+        // Second box wrapped: back to x=0, one line down.
+        self::assertEqualsWithDelta(0.0, $b->geometry->x, 0.5);
+        self::assertEqualsWithDelta(40.0, $b->geometry->y, 0.5);
+    }
+
     public function testNoFontInlineBlockBorderGrowsHeightAndOffsetsContent(): void
     {
         // CSS2 border-{top,bottom}-width tests: an empty inline-block sized

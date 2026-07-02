@@ -409,6 +409,12 @@ final class InlineLayout
     {
         $currentX = 0.0;
         $maxHeight = 0.0;
+        // Line-box tracking: atomics flow left-to-right and wrap to a new
+        // line when the next one won't fit in the IFC available width
+        // (CSS 2.1 §9.4.2). `$lineTop` is the current line's top offset
+        // from the parent's content top; `$lineHeight` its tallest box.
+        $lineTop = 0.0;
+        $lineHeight = 0.0;
         foreach ($parent->children as $child) {
             if (!($child instanceof AtomicInlineBox)) {
                 continue;
@@ -487,10 +493,21 @@ final class InlineLayout
             [$contentWidth, $contentHeight] = $this->clampAtomicReplaced($child->style, $contentWidth, $contentHeight);
             $outerWidth = $contentWidth + $horizontalInset;
             $outerHeight = $contentHeight + $verticalInset;
+            // CSS 2.1 §9.4.2 — wrap to a new line when the current line
+            // already holds content and this box would overflow the IFC
+            // available width. (A single box wider than the line still
+            // gets its own line rather than an infinite loop.)
+            if ($currentX > 0.0
+                && $currentX + $outerWidth > $this->currentAvailableWidth + 0.01
+            ) {
+                $lineTop += $lineHeight;
+                $currentX = 0.0;
+                $lineHeight = 0.0;
+            }
             // Offset the content box by the top-left inset so the border
             // box's top-left edge stays at the box origin.
             $child->geometry->x = $parent->geometry->x + $currentX + $borderLeft + $padLeft;
-            $child->geometry->y = $parent->geometry->y + $borderTop + $padTop;
+            $child->geometry->y = $parent->geometry->y + $lineTop + $borderTop + $padTop;
             $child->geometry->width = $contentWidth;
             $child->geometry->height = $contentHeight;
             $child->geometry->paddingTop = $padTop;
@@ -502,8 +519,11 @@ final class InlineLayout
             $child->geometry->borderLeft = $borderLeft;
             $child->geometry->borderRight = $borderRight;
             $currentX += $outerWidth;
-            if ($outerHeight > $maxHeight) {
-                $maxHeight = $outerHeight;
+            if ($outerHeight > $lineHeight) {
+                $lineHeight = $outerHeight;
+            }
+            if ($lineTop + $lineHeight > $maxHeight) {
+                $maxHeight = $lineTop + $lineHeight;
             }
         }
         return [[], $maxHeight];
