@@ -1260,8 +1260,16 @@ final class Painter
             return false;
         }
         $g = $box->geometry;
-        $top = $g->y;
-        $bottom = $g->y + $g->outerHeight();
+        // A NEGATIVE margin makes `outerHeight()` smaller than the box's
+        // own height — and can make it negative outright, which inverted
+        // this interval and reported the box as entirely above the page.
+        // A `margin-top: -70px` box 16px tall has an outer height of -54,
+        // so `bottom` landed above `top` and the box was culled from the
+        // content stream altogether. Normalise the interval so the test
+        // asks about the range the box actually occupies.
+        $extent = $g->outerHeight();
+        $top = min($g->y, $g->y + $extent);
+        $bottom = max($g->y, $g->y + $extent);
         // Outline boxes / anonymous boxes can carry zero geometry; never
         // skip them — descendants may still be in range.
         if ($bottom === $top) {
