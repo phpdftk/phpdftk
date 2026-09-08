@@ -826,6 +826,11 @@ final class PropertyRegistry
         $r->register($initial('stroke-miterlimit', new Number(4.0), true));
         $r->register($initial('stroke-dasharray', new Keyword('none'), true));
         $r->register($initial('stroke-dashoffset', new Length(0.0, LengthUnit::Px), true));
+        // SVG 2 §13.7 — gradient stop presentation attributes that
+        // double as CSS properties. Non-inherited: a stop reads its
+        // own declaration only.
+        $r->register($initial('stop-color', new Color(0.0, 0.0, 0.0, 1.0)));
+        $r->register($initial('stop-opacity', new Number(1.0)));
         // SVG 2 §17 — colour interpolation / rendering hints.
         $r->register($initial('color-interpolation', new Keyword('sRGB'), true));
         $r->register($initial('color-interpolation-filters', new Keyword('linearRGB'), true));

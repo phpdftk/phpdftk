@@ -543,7 +543,7 @@ final class Translator
         ) {
             return null;
         }
-        $raw = $element->getAttribute('mask');
+        $raw = $element->maskValue();
         if ($raw === null) {
             return null;
         }
@@ -551,7 +551,7 @@ final class Translator
         if ($trimmed === 'none') {
             return null;
         }
-        if (preg_match('/^url\(\s*#([^)\s]+)\s*\)/i', $trimmed, $m) !== 1) {
+        if (preg_match('/^url\(\s*[\x22\x27]?#([^)\s\x22\x27]+)[\x22\x27]?\s*\)/i', $trimmed, $m) !== 1) {
             return null;
         }
         $referent = $this->document->findById($m[1]);
@@ -681,7 +681,7 @@ final class Translator
         if ($this->document === null) {
             return null;
         }
-        $raw = $element->getAttribute('clip-path');
+        $raw = $element->clipPathValue();
         if ($raw === null) {
             return null;
         }
@@ -689,7 +689,7 @@ final class Translator
         if ($trimmed === 'none') {
             return null;
         }
-        if (preg_match('/^url\(\s*#([^)\s]+)\s*\)/i', $trimmed, $m) !== 1) {
+        if (preg_match('/^url\(\s*[\x22\x27]?#([^)\s\x22\x27]+)[\x22\x27]?\s*\)/i', $trimmed, $m) !== 1) {
             return null;
         }
         $referent = $this->document->findById($m[1]);

@@ -88,4 +88,18 @@ final class PaintTest extends TestCase
     {
         self::assertNull(Paint::parse('definitely-not-a-paint'));
     }
+
+    /**
+     * The CSS serialiser writes `url("#id")` with quotes, so a paint
+     * reaching an SVG element through the cascade arrives quoted. Both
+     * forms must resolve to the same reference.
+     */
+    public function testQuotedUrlReferenceParses(): void
+    {
+        foreach (['url(#g)', 'url("#g")', "url('#g')", 'url( "#g" )'] as $raw) {
+            $paint = Paint::parse($raw);
+            self::assertInstanceOf(Url::class, $paint, $raw);
+            self::assertSame('g', $paint->id, $raw);
+        }
+    }
 }

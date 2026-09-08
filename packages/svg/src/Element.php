@@ -146,6 +146,25 @@ abstract class Element extends Node
     }
 
     /**
+     * The `clip-path` presentation attribute or CSS property
+     * (CSS Masking 1 §4). Raw string — the translator resolves the
+     * `url(#id)` reference against the document.
+     */
+    public function clipPathValue(): ?string
+    {
+        return $this->presentationOrStyle('clip-path');
+    }
+
+    /**
+     * The `mask` presentation attribute or CSS property
+     * (CSS Masking 1 §7). Raw string, resolved by the translator.
+     */
+    public function maskValue(): ?string
+    {
+        return $this->presentationOrStyle('mask');
+    }
+
+    /**
      * The `transform-box` presentation attribute / CSS property
      * (CSS Transforms 1 §7), lowercased. Null when absent, which is
      * NOT the same as the initial `view-box`: this renderer keeps a

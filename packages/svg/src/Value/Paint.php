@@ -44,7 +44,7 @@ abstract class Paint
         // `url(#id) [fallback]` — the fallback is itself a paint, but
         // restricted by SVG 2 to `none | <color>`. We re-enter parse()
         // on the tail and reject anything that comes back as a Url.
-        if (preg_match('/^url\(\s*#([^)\s]+)\s*\)\s*(.*)$/i', $trimmed, $m) === 1) {
+        if (preg_match('/^url\(\s*[\x22\x27]?#([^)\s\x22\x27]+)[\x22\x27]?\s*\)\s*(.*)$/i', $trimmed, $m) === 1) {
             $fallback = trim($m[2]);
             $fallbackPaint = $fallback === '' ? null : self::parse($fallback);
             if ($fallbackPaint instanceof Url) {

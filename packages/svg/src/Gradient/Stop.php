@@ -47,7 +47,7 @@ final class Stop extends Element
 
     public function stopColor(): ?ColorInterface
     {
-        $raw = $this->getAttribute('stop-color');
+        $raw = $this->presentationOrStyle('stop-color');
         if ($raw === null) {
             return null;
         }
@@ -56,7 +56,7 @@ final class Stop extends Element
 
     public function stopOpacity(): ?float
     {
-        $raw = $this->getAttribute('stop-opacity');
+        $raw = $this->presentationOrStyle('stop-opacity');
         if ($raw === null) {
             return null;
         }

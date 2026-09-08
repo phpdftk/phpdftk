@@ -1916,6 +1916,11 @@ final class BoxGenerator
         'transform',
         'transform-origin',
         'transform-box',
+        'clip-path',
+        'mask',
+        'stop-color',
+        'stop-opacity',
+        'text-shadow',
     ];
 
     /**

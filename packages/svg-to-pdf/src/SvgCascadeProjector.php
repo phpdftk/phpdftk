@@ -63,6 +63,11 @@ final class SvgCascadeProjector
         'font-size',
         'font-weight',
         'font-style',
+        'clip-path',
+        'mask',
+        'stop-color',
+        'stop-opacity',
+        'text-shadow',
     ];
 
     public function __construct(
