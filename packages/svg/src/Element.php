@@ -110,15 +110,16 @@ abstract class Element extends Node
     }
 
     /**
-     * Parse the `transform` attribute per SVG 2 §8.4. Returns null when the
-     * attribute is absent, empty, or malformed — SVG 2's "invalid →
-     * ignored" semantics. Callers that want a hard error should call
-     * `Transform::parse()` directly.
+     * Parse the `transform` attribute per SVG 2 §8.4, or the CSS
+     * `transform` property of the same name when no attribute is
+     * present. Returns null when both are absent, empty, `none`, or
+     * malformed — SVG 2's "invalid → ignored" semantics. Callers that
+     * want a hard error should call `Transform::parse()` directly.
      */
     public function transform(): ?Transform
     {
-        $raw = $this->attributes['transform'] ?? null;
-        if ($raw === null || trim($raw) === '') {
+        $raw = $this->presentationOrStyle('transform');
+        if ($raw === null || trim($raw) === '' || strtolower(trim($raw)) === 'none') {
             return null;
         }
         try {
@@ -142,6 +143,23 @@ abstract class Element extends Node
             return null;
         }
         return $raw;
+    }
+
+    /**
+     * The `transform-box` presentation attribute / CSS property
+     * (CSS Transforms 1 §7), lowercased. Null when absent, which is
+     * NOT the same as the initial `view-box`: this renderer keeps a
+     * separate no-value path so SVG's historical `transform-origin`
+     * reference-box behaviour stays intact when nothing asks for a
+     * specific box.
+     */
+    public function transformBox(): ?string
+    {
+        $raw = $this->presentationOrStyle('transform-box');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return strtolower(trim($raw));
     }
 
     /**

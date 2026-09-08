@@ -358,26 +358,72 @@ final class Translator
     private function transformMatrixFor(Element $element, Transform $transform): array
     {
         $raw = $element->transformOrigin();
-        if ($raw === null) {
+        $boxKeyword = $element->transformBox();
+        if ($raw === null && $boxKeyword === null) {
             return $transform->toMatrix();
+        }
+        $box = $this->referenceBox($element, $boxKeyword);
+        if ($box === null) {
+            return $transform->toMatrix();
+        }
+        if ($raw === null) {
+            // An explicit `transform-box` with no `transform-origin`
+            // pivots on the reference box's own origin: SVG elements
+            // have no CSS layout box, so their used initial
+            // `transform-origin` is `0 0` rather than `50% 50%`.
+            return $transform->toMatrixAbout($box[0], $box[1]);
         }
         $origin = TransformOrigin::parse($raw);
         if ($origin === null) {
-            return $transform->toMatrix();
+            return $boxKeyword === null
+                ? $transform->toMatrix()
+                : $transform->toMatrixAbout($box[0], $box[1]);
+        }
+        [$ox, $oy] = $origin->resolve(
+            $box[0],
+            $box[1],
+            $box[2],
+            $box[3],
+        );
+        return $transform->toMatrixAbout($ox, $oy);
+    }
+
+    /**
+     * The reference box `transform-origin` resolves against
+     * (CSS Transforms 1 §7), as `[x, y, width, height]` in user units.
+     *
+     * `view-box` is the nearest SVG viewport; `fill-box` is the object
+     * bounding box; `stroke-box` is that box grown by half the stroke
+     * on each side. For SVG elements — which have no CSS layout box —
+     * `content-box` behaves as `fill-box` and `border-box` as
+     * `stroke-box`.
+     *
+     * A null `$keyword` means no `transform-box` was specified, which
+     * takes the initial value, `view-box`.
+     *
+     * @return array{float, float, float, float}|null
+     */
+    private function referenceBox(Element $element, ?string $keyword): ?array
+    {
+        if ($keyword === null || $keyword === 'view-box') {
+            $viewport = $this->currentViewport();
+            return [0.0, 0.0, $viewport['w'], $viewport['h']];
         }
         $bbox = BoundingBox::compute($element);
         if ($bbox === null) {
-            // Percentages and keywords have no reference box to resolve
-            // against; the initial `0 0` is the honest fallback.
-            return $transform->toMatrix();
+            return null;
         }
-        [$ox, $oy] = $origin->resolve(
-            $bbox['minX'],
-            $bbox['minY'],
-            $bbox['width'],
-            $bbox['height'],
-        );
-        return $transform->toMatrixAbout($ox, $oy);
+        $box = [$bbox['minX'], $bbox['minY'], $bbox['width'], $bbox['height']];
+        if ($keyword === 'stroke-box' || $keyword === 'border-box') {
+            $half = ($element->strokeWidth() ?? 1.0) / 2.0;
+            $box = [
+                $box[0] - $half,
+                $box[1] - $half,
+                $box[2] + $half * 2.0,
+                $box[3] + $half * 2.0,
+            ];
+        }
+        return $box;
     }
 
     /**

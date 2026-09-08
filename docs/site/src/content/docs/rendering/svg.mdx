@@ -55,12 +55,24 @@ attribute accessor does not carry, so their numeric part is used as-is.
 `transform-origin` (`Value\TransformOrigin`) pivots an element's
 `transform`. SVG elements have no associated CSS layout box, so unlike
 CSS boxes their initial `transform-origin` is `0 0` rather than
-`50% 50%` — an untouched element rotates about its user-space origin.
-Percentages and position keywords resolve against the element's object
-bounding box, including that box's own offset, while lengths are plain
-user-space coordinates. Declarations that do not match the CSS
-Transforms 1 §6 grammar — a second component naming an axis already
-taken, such as `left left` or `top 100%` — are dropped whole, back to
-the `0 0` initial.
+`50% 50%` — an untouched element rotates about its reference box's
+origin, not its centre. Percentages resolve against that box's size,
+lengths offset from its origin, and position keywords name its edges.
+Declarations that do not match the CSS Transforms 1 §6 grammar — a
+second component naming an axis already taken, such as `left left` or
+`top 100%` — are dropped whole, back to the `0 0` initial.
+
+`transform-box` (CSS Transforms 1 §7) chooses that reference box:
+`view-box` (the initial) is the nearest SVG viewport, `fill-box` the
+object bounding box, and `stroke-box` that box grown by half the stroke.
+SVG elements have no CSS layout box, so `content-box` resolves as
+`fill-box` and `border-box` as `stroke-box`.
+
+For an inline `<svg>` in an HTML document, document stylesheet rules
+reach SVG elements too: the subtree generates no boxes of its own, so
+the box generator projects the cascaded value of the SVG-relevant
+properties onto each descendant before the subtree is handed to the
+renderer. An element's own presentation attribute always wins over the
+projected value.
 
 The translator that emits PDF from the parsed tree ships as [`phpdftk/svg-to-pdf`](/rendering/svg-to-pdf/) — currently at **95.40%** in-scope WPT pass on the SVG corpus.

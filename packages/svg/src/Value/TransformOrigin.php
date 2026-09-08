@@ -5,29 +5,22 @@ declare(strict_types=1);
 namespace Phpdftk\Svg\Value;
 
 /**
- * The `transform-origin` presentation attribute for SVG elements
- * (CSS Transforms 1 §6).
+ * The `transform-origin` presentation attribute / CSS property for SVG
+ * elements (CSS Transforms 1 §6).
  *
- * SVG elements have no associated CSS layout box, which changes two
- * things relative to the CSS box case:
+ * SVG elements have no associated CSS layout box, so their used initial
+ * `transform-origin` is `0 0` rather than the `50% 50%` that applies to
+ * CSS boxes — an element with no `transform-origin` pivots on its
+ * reference box's origin instead of its centre.
  *
- *  - the initial value is `0 0`, not `50% 50%` — an element with no
- *    `transform-origin` rotates about its user-space origin;
- *  - percentages and position keywords resolve against the element's
- *    OBJECT BOUNDING BOX, offset by that box's own position, while
- *    lengths are plain user-space coordinates that are NOT offset by
- *    the bounding box.
+ * Everything here is an offset from that reference box: percentages
+ * resolve against its size, lengths are a plain offset from its origin,
+ * and position keywords name its edges. WHICH box that is comes from
+ * `transform-box` (CSS Transforms 1 §7) and is the caller's business —
+ * this class only resolves against the rectangle it is handed.
  *
- * That asymmetry is not an implementation shortcut — it is what the
- * WPT suite asserts on both sides. `svg-origin-length-003` puts a rect
- * at `x="100"` with `transform-origin="100px 0"` and expects the pivot
- * at 100 (its assert reads "should translate the origin by (100,0)"),
- * whereas `svg-origin-relative-length-020` puts a rect at `x="75"
- * y="75"` with `transform-origin="0% 0%"` and expects the pivot at
- * (75,75) ("'0% 0%' is relative to the bounding box of the object").
- *
- * Only the first two components are meaningful here; a third (Z)
- * component parses and is ignored, as this renderer is 2D.
+ * Only the first two components are meaningful; a third (Z) component
+ * is validated and dropped, as this renderer is 2D.
  */
 final class TransformOrigin
 {
@@ -192,9 +185,7 @@ final class TransformOrigin
         if ($c['keyword'] === 'center') {
             return $origin + $extent / 2.0;
         }
-        // Percentages are bounding-box relative (and so carry the box's
-        // own offset); lengths are absolute user-space coordinates.
-        return $c['percent'] ? $origin + $c['value'] / 100.0 * $extent : $c['value'];
+        return $origin + ($c['percent'] ? $c['value'] / 100.0 * $extent : $c['value']);
     }
 
     /**

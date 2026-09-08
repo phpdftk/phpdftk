@@ -327,6 +327,9 @@ final class BoxGenerator
         // would fall back to generic inline flow. Force any inline-level
         // foreign root to `inline-block` so it generates an
         // `AtomicInlineBox`.
+        if (self::foreignContentKind($element) === 'svg') {
+            $this->projectCssOntoSvgSubtree($element, $sheets, $values);
+        }
         if ($this->isForeignContentRoot($element)
             && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
         ) {
@@ -1877,6 +1880,96 @@ final class BoxGenerator
             'grid' => new GridBox($element, $values),
             default => new BlockBox($element, $values),
         };
+    }
+
+    /**
+     * Properties projected from the HTML cascade onto inline-SVG
+     * descendants. Deliberately an allowlist: an inline `<svg>` is
+     * painted atomically from a serialised copy of its subtree, so
+     * anything written here is the ONLY route by which a document
+     * stylesheet reaches those elements — but writing the full
+     * computed set would also stamp every CSS initial onto them and
+     * shift paint behaviour for properties the SVG renderer reads
+     * opportunistically.
+     *
+     * Mirrors `SvgCascadeProjector::PROJECTED` (which does the same
+     * job for `<style>` blocks INSIDE a standalone SVG document);
+     * extend both together.
+     */
+    private const array SVG_PROJECTED = [
+        'fill',
+        'stroke',
+        'fill-rule',
+        'stroke-width',
+        'stroke-linecap',
+        'stroke-linejoin',
+        'stroke-miterlimit',
+        'stroke-dasharray',
+        'stroke-dashoffset',
+        'fill-opacity',
+        'stroke-opacity',
+        'opacity',
+        'font-family',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'transform',
+        'transform-origin',
+        'transform-box',
+    ];
+
+    /**
+     * Project the document cascade onto an inline `<svg>` subtree.
+     *
+     * The subtree never generates boxes of its own — the painter
+     * serialises it and hands it to the SVG renderer, which reads
+     * presentation attributes and inline `style`. A document
+     * stylesheet rule like `rect { transform-box: fill-box }` would
+     * otherwise never reach the element it names. Writing the
+     * cascaded value into `style` puts it on the one path the SVG
+     * side already reads.
+     *
+     * Author intent on the element itself wins: an element carrying
+     * its own presentation attribute for a property is left alone,
+     * matching `SvgCascadeProjector`.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    private function projectCssOntoSvgSubtree(
+        Element $root,
+        array $sheets,
+        CascadedValues $rootValues,
+    ): void {
+        foreach ($root->children() as $child) {
+            $values = $this->cascade->computeFor($sheets, $child, $rootValues);
+            $declarations = [];
+            foreach (self::SVG_PROJECTED as $property) {
+                if ($child->getAttribute($property) !== null) {
+                    continue;
+                }
+                if (!$values->has($property)) {
+                    continue;
+                }
+                $value = $values->get($property);
+                if ($value === null) {
+                    continue;
+                }
+                $declarations[] = $property . ': ' . $value->toCss();
+            }
+            if ($declarations !== []) {
+                $existing = $child->getAttribute('style');
+                $projection = implode('; ', $declarations);
+                $child->setAttribute(
+                    'style',
+                    $existing === null || $existing === ''
+                        ? $projection
+                        // The element's own inline style comes LAST so it
+                        // still wins over the projected cascade.
+                        : $projection . '; ' . $existing,
+                );
+            }
+            $this->projectCssOntoSvgSubtree($child, $sheets, $values);
+        }
     }
 
     /**

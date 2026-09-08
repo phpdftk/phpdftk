@@ -36,22 +36,22 @@ final class TransformOriginTest extends TestCase
         $this->assertResolves('50% 50%', [150.0, 150.0]);
     }
 
-    public function testLengthsAreAbsoluteUserSpaceCoordinates(): void
+    public function testLengthsOffsetFromTheReferenceBoxOrigin(): void
     {
-        $this->assertResolves('100px 0', [100.0, 0.0]);
-        $this->assertResolves('50 50', [50.0, 50.0]);
+        $this->assertResolves('100px 0', [175.0, 75.0]);
+        $this->assertResolves('50 50', [125.0, 125.0]);
     }
 
     public function testAbsoluteUnitsConvertToUserUnits(): void
     {
-        $this->assertResolves('2cm 0', [75.5905511811, 0.0]);
-        $this->assertResolves('1in 0', [96.0, 0.0]);
-        $this->assertResolves('72pt 0', [96.0, 0.0]);
+        $this->assertResolves('2cm 0', [150.5905511811, 75.0]);
+        $this->assertResolves('1in 0', [171.0, 75.0]);
+        $this->assertResolves('72pt 0', [171.0, 75.0]);
     }
 
     public function testSingleComponentLeavesTheOtherAxisAtCenter(): void
     {
-        $this->assertResolves('75', [75.0, 150.0]);
+        $this->assertResolves('75', [150.0, 150.0]);
         $this->assertResolves('center', [150.0, 150.0]);
         $this->assertResolves('top', [150.0, 75.0]);
     }
@@ -93,6 +93,6 @@ final class TransformOriginTest extends TestCase
     {
         // The Z offset parses (so the declaration stays valid) but this
         // renderer is 2D and drops it.
-        $this->assertResolves('0 0 10px', [0.0, 0.0]);
+        $this->assertResolves('0 0 10px', [75.0, 75.0]);
     }
 }

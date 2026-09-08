@@ -866,6 +866,10 @@ final class PropertyRegistry
         $r->register($initial('translate', new Keyword('none')));
         $r->register($initial('rotate', new Keyword('none')));
         $r->register($initial('scale', new Keyword('none')));
+        // CSS Transforms 1 §7 — `transform-box` names the reference
+        // box `transform-origin` and percentage transform values
+        // resolve against. Non-inherited; initial `view-box`.
+        $r->register($initial('transform-box', new Keyword('view-box')));
         $r->register($initial('transform-origin', new ValueList(
             [new Percentage(50.0), new Percentage(50.0)],
             ListSeparator::Space,
