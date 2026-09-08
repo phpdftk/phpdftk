@@ -6978,6 +6978,60 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(80.0, $cells['b']->geometry->x, 0.001);
     }
 
+    public function testBareTableCellsWrapInAnonymousRow(): void
+    {
+        // CSS 2.1 §17.2.1 — two `display: table-cell` divs sitting
+        // directly under a `display: table` (no row) get swept into a
+        // single anonymous table-row, so they lay out side by side on
+        // the same row instead of stacking as bare blocks.
+        $box = $this->buildTree(
+            '<html><body><div id="t">'
+            . '<div id="a" style="display: table-cell; width: 40px; height: 30px;"></div>'
+            . '<div id="b" style="display: table-cell; width: 50px; height: 30px;"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; } #t { display: table; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        // Same row → same top; second cell sits to the right of the first.
+        self::assertEqualsWithDelta($a->geometry->y, $b->geometry->y, 0.5);
+        self::assertGreaterThan($a->geometry->x, $b->geometry->x);
+        // Exactly one anonymous row wraps both cells.
+        $rows = $this->collectByType($box, \Phpdftk\HtmlToPdf\Box\TableRowBox::class);
+        self::assertCount(1, $rows);
+        self::assertCount(2, array_values(array_filter(
+            $rows[0]->children,
+            static fn($c): bool => $c instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox,
+        )));
+    }
+
+    public function testTbodyBlockStaysTransparentNoDoubleWrap(): void
+    {
+        // Regression: our UA sheet renders `<tbody>` as `display: block`
+        // and relies on the layout walking through it to find the rows.
+        // The §17.2.1 anonymous-row fixup must NOT wrap that block (it
+        // already contains rows), or the real rows get buried in a
+        // synthesised row+cell and the grid collapses.
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+            . '<tr><td class="a">x</td><td class="b">y</td></tr>'
+            . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $rows = $this->collectByType($box, \Phpdftk\HtmlToPdf\Box\TableRowBox::class);
+        // Exactly the one real <tr> — no anonymous row wrapping the tbody.
+        self::assertCount(1, $rows);
+        $cells = $this->collectCellsByClass($box);
+        self::assertArrayHasKey('a', $cells);
+        self::assertArrayHasKey('b', $cells);
+        // Cells sit side by side on the row.
+        self::assertGreaterThan($cells['a']->geometry->x, $cells['b']->geometry->x);
+    }
+
     public function testInlineBlockMarginsSpaceAtomicItems(): void
     {
         // CSS 2.2 §10.8 — an inline-block's horizontal margins add to the
@@ -10329,6 +10383,29 @@ final class BlockLayoutTest extends TestCase
         $box = $this->generator->generate($doc, $sheets);
         self::assertNotNull($box);
         return $box;
+    }
+
+    /**
+     * Collect every box in the subtree that is an instance of the given
+     * class, in breadth-first order.
+     *
+     * @param  class-string $type
+     * @return list<Box>
+     */
+    private function collectByType(Box $root, string $type): array
+    {
+        $out = [];
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof $type) {
+                $out[] = $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return $out;
     }
 
     private function findById(Box $root, string $id): ?Box

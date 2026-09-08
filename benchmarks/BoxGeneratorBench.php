@@ -45,6 +45,9 @@ class BoxGeneratorBench
             img {
                 display: inline-block;
             }
+            table { display: table; }
+            tr { display: table-row; }
+            td { display: table-cell; }
         CSS;
     }
 
@@ -66,11 +69,41 @@ class BoxGeneratorBench
         $this->run($html);
     }
 
+    public function benchTableGrid(): void
+    {
+        // Exercises the CSS 2.1 §17.2.1 anonymous table-object fixup:
+        // rows lacking cells / cells lacking rows synthesise anonymous
+        // wrappers on the box-generation hot path.
+        $html = $this->tableGrid(100);
+        $this->run($html);
+    }
+
     private function run(string $html): void
     {
         $doc = $this->htmlParser->parseDocument($html);
         $sheet = $this->cssParser->parseStylesheet($this->uaCss, Origin::UserAgent);
         $this->generator->generate($doc, [$sheet]);
+    }
+
+    private function tableGrid(int $tables): string
+    {
+        // Each table has bare `display: table-cell` divs directly under
+        // a `display: table` — no `<tr>` — so its cells are swept into a
+        // synthesised anonymous table-row by the §17.2.1 fixup.
+        $body = '';
+        for ($i = 0; $i < $tables; $i++) {
+            $body .= sprintf(
+                '<div style="display: table">'
+                . '<div style="display: table-cell">A%d</div>'
+                . '<div style="display: table-cell">B%d</div>'
+                . '<div style="display: table-cell">C%d</div>'
+                . '</div>',
+                $i,
+                $i,
+                $i,
+            );
+        }
+        return '<!DOCTYPE html><html><body>' . $body . '</body></html>';
     }
 
     private function blogPost(int $sections): string

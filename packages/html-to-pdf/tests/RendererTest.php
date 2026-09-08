@@ -361,6 +361,24 @@ final class RendererTest extends TestCase
         self::assertFalse($result->hasErrors());
     }
 
+    public function testAnonymousTableRowFixupProducesValidPdf(): void
+    {
+        // CSS 2.1 §17.2.1 — bare `display: table-cell` divs directly
+        // under a `display: table` get wrapped in an anonymous row so
+        // they lay out as a proper grid. Render the repaired structure
+        // to a real PDF.
+        $result = (new Renderer())->render(
+            '<html><body><div style="display:table">'
+            . '<div style="display:table-cell;width:60px;height:40px;background:green">a</div>'
+            . '<div style="display:table-cell;width:60px;height:40px;background:navy">b</div>'
+            . '</div></body></html>',
+        );
+        $bytes = $result->writer->toBytes();
+        self::assertStringStartsWith('%PDF-', $bytes);
+        self::assertStringContainsString('%%EOF', $bytes);
+        self::assertFalse($result->hasErrors());
+    }
+
     public function testPercentHeightInAutoAncestorProducesValidPdf(): void
     {
         // A `display: table; height: 100%` inside an auto body sizes to

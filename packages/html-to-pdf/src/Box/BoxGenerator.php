@@ -653,6 +653,23 @@ final class BoxGenerator
             $rawChildren = $this->stripWhitespaceTextChildren($rawChildren, $values);
         }
 
+        // CSS 2.1 §17.2.1 — anonymous table-object generation. When a
+        // `table` / `table-row-group` box has bare `table-cell` (or
+        // other non-row) children, or a `table-row` box has non-cell
+        // children, browsers synthesise the missing anonymous rows /
+        // cells so the table grid stays well-formed. Without this, a
+        // `<div style="display:table"><div style="display:table-cell">`
+        // pair falls through `collectTableRows` (which only finds
+        // TableRowBox nodes) and the cells stack as bare blocks with
+        // zero width. Runs on the just-assembled child list so the
+        // downstream anonymous-block / inline-split passes see the
+        // repaired structure.
+        if ($box instanceof TableBox || $this->isTableRowGroupBox($box)) {
+            $rawChildren = $this->wrapBareTableCellsInRows($rawChildren, $values);
+        } elseif ($box instanceof TableRowBox) {
+            $rawChildren = $this->wrapBareTableRowChildrenInCells($rawChildren, $values);
+        }
+
         // CSS 2.1 §9.2.1.1 — when an inline box has a block-level
         // descendant, the inline box splits around the block. The
         // block sits between two anonymous inline halves, all
@@ -1864,6 +1881,176 @@ final class BoxGenerator
             $out[] = $child;
         }
         return $out;
+    }
+
+    /**
+     * True when `$box` is a table row-group (row-group / header-group /
+     * footer-group). These currently generate a `BlockBox` (no dedicated
+     * class) so we classify them by their resolved `display`.
+     */
+    private function isTableRowGroupBox(Box $box): bool
+    {
+        if (!$box instanceof BlockBox) {
+            return false;
+        }
+        return in_array(
+            $this->displayKeyword($box->style),
+            ['table-row-group', 'table-header-group', 'table-footer-group'],
+            true,
+        );
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 rule 3 — group consecutive misparented children
+     * of a `table` / row-group (anything that is not a proper table
+     * child: rows, row-groups, columns, column-groups, captions) into
+     * anonymous `table-row` boxes. Collapsible whitespace between
+     * proper table children is dropped rather than forced into a row.
+     *
+     * @param  list<Box> $rawChildren
+     * @return list<Box>
+     */
+    private function wrapBareTableCellsInRows(array $rawChildren, CascadedValues $values): array
+    {
+        $out = [];
+        /** @var list<Box> $pending */
+        $pending = [];
+        foreach ($rawChildren as $child) {
+            if ($this->isProperTableChild($child)) {
+                if ($pending !== []) {
+                    $out[] = $this->makeAnonymousTableRow($pending, $values);
+                    $pending = [];
+                }
+                $out[] = $child;
+                continue;
+            }
+            // Collapsible whitespace between table-level items is not a
+            // cell — drop it instead of manufacturing an empty row.
+            if ($child instanceof TextBox
+                && preg_match('/^[\s\x{200B}]*$/u', $child->text) === 1
+            ) {
+                continue;
+            }
+            $pending[] = $child;
+        }
+        if ($pending !== []) {
+            $out[] = $this->makeAnonymousTableRow($pending, $values);
+        }
+        return $out;
+    }
+
+    /**
+     * Build an anonymous `table-row` wrapping `$pending`. Non-cell
+     * content inside the synthesised row still needs an anonymous cell
+     * wrapper (rule 3 chains row → cell).
+     *
+     * @param list<Box> $pending
+     */
+    private function makeAnonymousTableRow(array $pending, CascadedValues $values): TableRowBox
+    {
+        $anon = new TableRowBox(null, $this->cascade->anonymousFromParent($values));
+        foreach ($this->wrapBareTableRowChildrenInCells($pending, $values) as $c) {
+            $anon->addChild($c);
+        }
+        return $anon;
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 rule 3 — wrap runs of non-cell children of a
+     * `table-row` in anonymous `table-cell` boxes. Cells pass through
+     * untouched; collapsible whitespace between cells is dropped.
+     *
+     * @param  list<Box> $rawChildren
+     * @return list<Box>
+     */
+    private function wrapBareTableRowChildrenInCells(array $rawChildren, CascadedValues $values): array
+    {
+        $out = [];
+        /** @var list<Box> $pending */
+        $pending = [];
+        foreach ($rawChildren as $child) {
+            if ($child instanceof TableCellBox) {
+                if ($pending !== []) {
+                    $out[] = $this->makeAnonymousTableCell($pending, $values);
+                    $pending = [];
+                }
+                $out[] = $child;
+                continue;
+            }
+            if ($child instanceof TextBox
+                && preg_match('/^[\s\x{200B}]*$/u', $child->text) === 1
+            ) {
+                continue;
+            }
+            $pending[] = $child;
+        }
+        if ($pending !== []) {
+            $out[] = $this->makeAnonymousTableCell($pending, $values);
+        }
+        return $out;
+    }
+
+    /**
+     * Build an anonymous `table-cell` wrapping the run `$pending`.
+     *
+     * @param list<Box> $pending
+     */
+    private function makeAnonymousTableCell(array $pending, CascadedValues $values): TableCellBox
+    {
+        $anon = new TableCellBox(null, $this->cascade->anonymousFromParent($values));
+        foreach ($pending as $c) {
+            $anon->addChild($c);
+        }
+        return $anon;
+    }
+
+    /**
+     * True when `$box` is a proper child of a table / row-group per
+     * CSS 2.1 §17.2.1: a row, a row-group, a column(-group), or a
+     * caption. Such children pass through the anonymous-row fixup
+     * untouched; bare cells and arbitrary flow content get wrapped.
+     *
+     * Our renderer models table row-groups (`<tbody>` / `<thead>` /
+     * `<tfoot>`) as plain `BlockBox`es with `display: block` (see the
+     * UA sheet) and relies on {@see BlockLayout::collectTableRows}
+     * walking through them transparently. To stay consistent, any box
+     * that directly contains a `table-row` is treated as a row-group
+     * boundary here too — otherwise the fixup would bury the real rows
+     * inside a synthesised row+cell and break every `<table><tbody>`.
+     */
+    private function isProperTableChild(Box $box): bool
+    {
+        return $box instanceof TableRowBox
+            || $box instanceof TableColumnBox
+            || $this->isTableRowGroupBox($box)
+            || $this->isTableCaptionBox($box)
+            || $this->containsTableRow($box);
+    }
+
+    /**
+     * True when `$box` is a `<caption>` (or `display: table-caption`).
+     * Captions sit above / below the table grid (CSS 2.1 §17.4.1) and
+     * must not be swept into an anonymous row.
+     */
+    private function isTableCaptionBox(Box $box): bool
+    {
+        if ($box->element !== null
+            && strtolower($box->element->localName) === 'caption'
+        ) {
+            return true;
+        }
+        return $this->displayKeyword($box->style) === 'table-caption';
+    }
+
+    /** True when any direct child of `$box` is a table row. */
+    private function containsTableRow(Box $box): bool
+    {
+        foreach ($box->children as $c) {
+            if ($c instanceof TableRowBox) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function makeBox(Element $element, CascadedValues $values, string $display): Box
