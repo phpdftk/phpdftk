@@ -3791,6 +3791,45 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $line->fragments[0]->x);
     }
 
+    public function testIntrinsicMeasurementResolvesRelativeFontSizes(): void
+    {
+        // Intrinsic measurement can run BEFORE a box's own `resolveLengths`
+        // pass, so the cascaded `font-size` may still be author-declared.
+        // Taking it verbatim measured `2em` as TWO PIXELS, collapsing every
+        // table inside an em- or percentage-sized ancestor to a sliver.
+        // `2em`, `200%` and `32px` must all measure identically against a
+        // 16px parent.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $widths = [];
+        foreach (['32px', '2em', '200%'] as $size) {
+            $box = $this->buildTree(
+                '<html><body style="font-size: 16px"><div style="font-size: ' . $size . '">'
+                    . '<table><tr><td>Row 1, Col 1</td><td>Row 1, Col 2</td></tr></table>'
+                    . '</div></body></html>',
+                'html, body, div { display: block; } table { display: table; } '
+                    . 'tr { display: table-row; } td { display: table-cell; } '
+                    . '* { font-family: noto; }',
+            );
+            $this->layout->layout($box, new LayoutContext(
+                600.0,
+                800.0,
+                0.0,
+                0.0,
+                new LengthContext(),
+                fontResolver: new FontResolver(['noto' => $font], null),
+            ));
+            $table = $this->find($box, 'table');
+            self::assertNotNull($table, $size);
+            $widths[$size] = $table->geometry->width;
+        }
+        self::assertEqualsWithDelta($widths['32px'], $widths['2em'], 0.5, '2em vs 32px');
+        self::assertEqualsWithDelta($widths['32px'], $widths['200%'], 0.5, '200% vs 32px');
+        // And the collapsed-to-2px bug would leave it far below this.
+        self::assertGreaterThan(100.0, $widths['2em']);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,

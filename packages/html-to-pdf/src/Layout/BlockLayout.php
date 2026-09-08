@@ -4987,12 +4987,33 @@ final class BlockLayout
             ];
         }
         $fontSizeValue = $box->style->get('font-size');
-        // An explicit `font-size` Length is used verbatim — including 0, whose
-        // intrinsic text contribution is 0 (CSS Sizing 3 §5). The 12px
-        // fallback is only for a non-Length (unresolved) font-size.
-        $fontSize = $fontSizeValue instanceof Length
-            ? max(0.0, $fontSizeValue->value)
-            : 12.0;
+        // An absolute `font-size` Length is used verbatim — including 0, whose
+        // intrinsic text contribution is 0 (CSS Sizing 3 §5).
+        //
+        // A RELATIVE one (`em` / `%` / `rem` / `ex` / …) must be resolved
+        // first. Intrinsic measurement can run before the box's own
+        // `resolveLengths` pass — the same ordering the `min-width` floor
+        // in `cellColumnContribution` already guards against — so the
+        // cascaded value may still be author-declared. Taking `2em`
+        // verbatim measured the text at TWO PIXELS, which collapsed every
+        // table inside an em- or percentage-sized ancestor to a sliver and
+        // wrapped its cells to one character per line.
+        //
+        // `em` in a font-size declaration resolves against the PARENT's
+        // font size, which is what `parentFontSize` carries.
+        $fontSize = 12.0;
+        if ($fontSizeValue instanceof Percentage) {
+            // A percentage font-size is also relative to the parent's.
+            $fontSize = max(0.0, $context->lengthContext->parentFontSize * $fontSizeValue->value / 100.0);
+        } elseif ($fontSizeValue instanceof Length) {
+            $lengthCtx = $context->lengthContext;
+            $fontSize = $fontSizeValue->unit === \Phpdftk\Css\Value\LengthUnit::Px
+                ? max(0.0, $fontSizeValue->value)
+                : max(0.0, \Phpdftk\Css\Cascade\LengthResolver::toPx(
+                    $fontSizeValue,
+                    $lengthCtx->withCurrentFontSize($lengthCtx->parentFontSize),
+                ));
+        }
         $ctx = new \Phpdftk\Text\ShapingContext($font, $fontSize);
         $shaper = new \Phpdftk\Text\Shaper();
         // CSS Text 3 §9 / §10 — `word-spacing` and `letter-spacing` add
