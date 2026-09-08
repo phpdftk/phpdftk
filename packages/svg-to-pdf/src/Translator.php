@@ -56,6 +56,8 @@ use Phpdftk\Svg\Shape\Rect;
 use Phpdftk\Svg\SvgDocument;
 use Phpdftk\Svg\Text as TextNode;
 use Phpdftk\Svg\Text\TextElement;
+use Phpdftk\Svg\Value\Transform;
+use Phpdftk\Svg\Value\TransformOrigin;
 use Phpdftk\Svg\Value\Paint;
 use Phpdftk\Svg\Value\Color as SvgColor;
 use Phpdftk\Svg\Value\Paint\CurrentColor;
@@ -344,6 +346,41 @@ final class Translator
     }
 
     /**
+     * The affine matrix for an element's `transform`, pivoted about its
+     * `transform-origin` (CSS Transforms 1 §6).
+     *
+     * SVG elements have no associated CSS layout box, so the initial
+     * `transform-origin` is `0 0` — the plain `transform` matrix — and
+     * only an explicit value costs a bounding-box computation.
+     *
+     * @return array{float, float, float, float, float, float}
+     */
+    private function transformMatrixFor(Element $element, Transform $transform): array
+    {
+        $raw = $element->transformOrigin();
+        if ($raw === null) {
+            return $transform->toMatrix();
+        }
+        $origin = TransformOrigin::parse($raw);
+        if ($origin === null) {
+            return $transform->toMatrix();
+        }
+        $bbox = BoundingBox::compute($element);
+        if ($bbox === null) {
+            // Percentages and keywords have no reference box to resolve
+            // against; the initial `0 0` is the honest fallback.
+            return $transform->toMatrix();
+        }
+        [$ox, $oy] = $origin->resolve(
+            $bbox['minX'],
+            $bbox['minY'],
+            $bbox['width'],
+            $bbox['height'],
+        );
+        return $transform->toMatrixAbout($ox, $oy);
+    }
+
+    /**
      * `preserveAspectRatio` align keyword → `[xRatio, yRatio]` leftover
      * fractions, in SVG y-down space (`yMin` → 0, `yMid` → 0.5,
      * `yMax` → 1). Defaults to `xMidYMid`.
@@ -389,7 +426,7 @@ final class Translator
 
         $stream->saveGraphicsState();
         if ($transform !== null) {
-            $matrix = $transform->toMatrix();
+            $matrix = $this->transformMatrixFor($element, $transform);
             $stream->concatMatrix(
                 $matrix[0],
                 $matrix[1],

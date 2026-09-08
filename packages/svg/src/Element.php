@@ -66,10 +66,15 @@ abstract class Element extends Node
     }
 
     /**
-     * Read an SVG length attribute as a float, falling back to 0 when the
-     * attribute is absent OR doesn't start with a parseable number — per
-     * SVG 2's "invalid value → initial value" rule for `<length>`. Unit
-     * suffixes (`px`, `pt`, `mm`, `%`, …) are tolerated and ignored.
+     * Read an SVG length attribute as a float in user units, falling back
+     * to 0 when the attribute is absent OR doesn't start with a parseable
+     * number — per SVG 2's "invalid value → initial value" rule for
+     * `<length>`.
+     *
+     * Absolute unit suffixes are CONVERTED (CSS Values 4 §6.2, 96dpi):
+     * `2cm` is 75.59 user units, not 2. Relative units (`%`, `em`, `ex`,
+     * `ch`, `rem`) need viewport or font context this accessor doesn't
+     * have, so their numeric part is returned unscaled as before.
      */
     protected function parseLengthOrZero(string $attr): float
     {
@@ -77,10 +82,31 @@ abstract class Element extends Node
         if ($raw === null) {
             return 0.0;
         }
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
+        if (preg_match(
+            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*([a-zA-Z]*)/',
+            $raw,
+            $m,
+        ) !== 1) {
             return 0.0;
         }
-        return (float) $m[1];
+        return (float) $m[1] * self::absoluteUnitScale($m[2]);
+    }
+
+    /**
+     * Scale factor from an absolute CSS unit to user units (px), per CSS
+     * Values 4 §6.2. Unknown, empty, and relative units scale by 1.
+     */
+    protected static function absoluteUnitScale(string $unit): float
+    {
+        return match (strtolower($unit)) {
+            'cm' => 96.0 / 2.54,
+            'mm' => 96.0 / 25.4,
+            'q' => 96.0 / 101.6,
+            'in' => 96.0,
+            'pt' => 96.0 / 72.0,
+            'pc' => 16.0,
+            default => 1.0,
+        };
     }
 
     /**
@@ -100,6 +126,22 @@ abstract class Element extends Node
         } catch (\InvalidArgumentException) {
             return null;
         }
+    }
+
+    /**
+     * The raw `transform-origin` presentation attribute (or the `style`
+     * declaration of the same name) per CSS Transforms 1 §6. Null when
+     * absent or empty — SVG elements have no associated CSS layout box,
+     * so their initial `transform-origin` is `0 0` rather than the
+     * `50% 50%` that applies to CSS boxes.
+     */
+    public function transformOrigin(): ?string
+    {
+        $raw = $this->presentationOrStyle('transform-origin');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return $raw;
     }
 
     /**

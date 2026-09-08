@@ -104,7 +104,7 @@ final class ParserTest extends TestCase
         self::assertSame(0.0, $rect->y());
     }
 
-    public function testRectStripsUnitFromLength(): void
+    public function testRectConvertsAbsoluteUnitsToUserUnits(): void
     {
         $doc = $this->parser->parse(
             '<svg xmlns="http://www.w3.org/2000/svg"><rect width="30px" height="40mm"/></svg>',
@@ -112,7 +112,8 @@ final class ParserTest extends TestCase
         $rect = $doc->children[0];
         self::assertInstanceOf(Rect::class, $rect);
         self::assertSame(30.0, $rect->width());
-        self::assertSame(40.0, $rect->height());
+        // 40mm at 96dpi (CSS Values 4 §6.2), not a bare 40.
+        self::assertEqualsWithDelta(151.181102362, $rect->height(), 1.0e-6);
     }
 
     public function testRectInvalidLengthFallsBackToZero(): void
@@ -433,7 +434,7 @@ final class ParserTest extends TestCase
         self::assertSame(0.0, $line->y2());
     }
 
-    public function testLineStripsUnitsFromCoords(): void
+    public function testLineConvertsAbsoluteUnitsButLeavesContextualOnesUnscaled(): void
     {
         $doc = $this->parser->parse(
             '<svg xmlns="http://www.w3.org/2000/svg"><line x1="10px" y1="20mm" x2="30em" y2="40%"/></svg>',
@@ -441,7 +442,9 @@ final class ParserTest extends TestCase
         $line = $doc->children[0];
         self::assertInstanceOf(Line::class, $line);
         self::assertSame(10.0, $line->x1());
-        self::assertSame(20.0, $line->y1());
+        self::assertEqualsWithDelta(75.590551181, $line->y1(), 1.0e-6);
+        // `em` and `%` need font / viewport context this accessor does
+        // not carry, so their numeric part is used as-is.
         self::assertSame(30.0, $line->x2());
         self::assertSame(40.0, $line->y2());
     }

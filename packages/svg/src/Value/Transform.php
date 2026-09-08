@@ -81,6 +81,25 @@ final class Transform
     }
 
     /**
+     * Compose the function list about a pivot point, i.e.
+     * `translate(ox, oy) · M · translate(-ox, -oy)`. This is how
+     * `transform-origin` applies to a `transform` (CSS Transforms 1 §6).
+     *
+     * @return array{float, float, float, float, float, float}
+     */
+    public function toMatrixAbout(float $ox, float $oy): array
+    {
+        $m = $this->toMatrix();
+        if ($ox === 0.0 && $oy === 0.0) {
+            return $m;
+        }
+        return self::multiply(
+            self::multiply([1.0, 0.0, 0.0, 1.0, $ox, $oy], $m),
+            [1.0, 0.0, 0.0, 1.0, -$ox, -$oy],
+        );
+    }
+
+    /**
      * @param list<float> $args
      */
     private static function makeFunction(string $name, array $args): TransformFunction

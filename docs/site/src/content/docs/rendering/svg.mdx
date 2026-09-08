@@ -44,4 +44,23 @@ A `SecurityTest` suite covers these properties — regressions break CI before t
 
 The parser is **feature-complete** for the v1 element set: secure XML loader, `SvgDocument` (with `findById` id→element index), `Group`, all five basic shapes, the `transform` attribute (`Value\Transform`), `<path>` with the full SVG 2 §9.3.9 `d`-grammar, SVG 2 §13 presentation / paint accessors, `<text>`/`<tspan>` + CSS Fonts 4 font accessors, `<defs>`/`<symbol>`/`<use>` with intra-document href resolution, `<clipPath>`/`<mask>`/`<image>`, gradients with cycle-safe href chaining, and the optional `Css\CssBridge` for `<style>` + presentation-attribute cascade resolution (requires `phpdftk/css`).
 
+### Coordinates and units
+
+Length attributes carry absolute CSS units, which resolve to user units
+at 96dpi (CSS Values 4 §6.2): `width="2cm"` is 75.59 user units, and
+`in`, `mm`, `pt`, `pc`, `Q` and `px` resolve likewise. Percentages and
+font-relative units (`em`, `ex`) need viewport or font context the
+attribute accessor does not carry, so their numeric part is used as-is.
+
+`transform-origin` (`Value\TransformOrigin`) pivots an element's
+`transform`. SVG elements have no associated CSS layout box, so unlike
+CSS boxes their initial `transform-origin` is `0 0` rather than
+`50% 50%` — an untouched element rotates about its user-space origin.
+Percentages and position keywords resolve against the element's object
+bounding box, including that box's own offset, while lengths are plain
+user-space coordinates. Declarations that do not match the CSS
+Transforms 1 §6 grammar — a second component naming an axis already
+taken, such as `left left` or `top 100%` — are dropped whole, back to
+the `0 0` initial.
+
 The translator that emits PDF from the parsed tree ships as [`phpdftk/svg-to-pdf`](/rendering/svg-to-pdf/) — currently at **95.40%** in-scope WPT pass on the SVG corpus.

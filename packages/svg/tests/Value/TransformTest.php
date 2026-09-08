@@ -213,4 +213,23 @@ final class TransformTest extends TestCase
         $m = new Matrix(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);
         self::assertSame([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], $m->toMatrix());
     }
+
+    public function testToMatrixAboutPivotsTheComposedMatrix(): void
+    {
+        // rotate(90) about (75,75) maps the 150x150 square at the origin
+        // onto itself: (x,y) -> (150-y, x).
+        $m = Transform::parse('rotate(90)')->toMatrixAbout(75.0, 75.0);
+        [$x, $y] = [
+            $m[0] * 0.0 + $m[2] * 150.0 + $m[4],
+            $m[1] * 0.0 + $m[3] * 150.0 + $m[5],
+        ];
+        self::assertEqualsWithDelta(0.0, $x, 1.0e-9);
+        self::assertEqualsWithDelta(0.0, $y, 1.0e-9);
+    }
+
+    public function testToMatrixAboutTheOriginIsTheUnpivotedMatrix(): void
+    {
+        $t = Transform::parse('rotate(30) translate(5 7)');
+        self::assertSame($t->toMatrix(), $t->toMatrixAbout(0.0, 0.0));
+    }
 }
