@@ -433,8 +433,9 @@ final readonly class RendererOptions
             /* HTML 5 §4.12.3: `<template>` content is inert and never
                renders directly. */
             template { display: none; }
-            menu { display: block; padding-left: 24pt; }
-            ul, ol { display: block; padding-left: 24pt; }
+            /* HTML §15.3.7 — list indentation is 40px, not 24pt (32px). */
+            menu { display: block; padding-left: 40px; }
+            ul, ol { display: block; padding-left: 40px; }
             li { display: list-item; }
             span, a, b, i, em, strong, code, small, big, sub, sup, label, mark,
             del, ins, q, abbr, cite, var, kbd, samp, time, output {
@@ -542,7 +543,10 @@ final readonly class RendererOptions
 
             /* Block-level wrappers. */
             blockquote { margin: 1em 40px; }
-            hr { display: block; border-top: 1px solid; margin: 0.5em 0; }
+            /* HTML §15.3.5 — an `<hr>` is a zero-height box with a 1px
+               INSET border on all four sides (which is what gives the
+               familiar two-tone rule), not a single top border. */
+            hr { display: block; color: gray; border: 1px inset; margin: 0.5em auto; overflow: hidden; }
 
             /* Anchors. */
             a { color: #0033cc; text-decoration: underline; }
