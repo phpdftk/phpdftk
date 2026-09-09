@@ -467,9 +467,17 @@ final readonly class RendererOptions
                 padding: 2pt 8pt;
                 border-radius: 3pt;
             }
-            table { display: table; }
+            /* HTML §15.3.8 (Tables) — the UA defaults are
+               `border-spacing: 2px` on the table and `padding: 1px` on
+               cells. The `cellspacing` / `cellpadding` presentational
+               attributes override them (mapped in BoxGenerator). A
+               larger cell padding here silently offset every `<td>` by
+               ~3px against an equivalent `display: table-cell` box,
+               which is exactly what the CSS2 anonymous-table reftests
+               overlay to detect. */
+            table { display: table; border-spacing: 2px; }
             tr { display: table-row; }
-            td, th { display: table-cell; padding: 2pt; vertical-align: top; }
+            td, th { display: table-cell; padding: 1px; vertical-align: top; }
             th { font-weight: bold; text-align: center; }
             thead, tbody, tfoot, caption { display: block; }
             /* HTML 5 §4.9.1-3 — `<col>` / `<colgroup>` are layout-only

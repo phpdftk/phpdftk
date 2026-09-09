@@ -2394,6 +2394,29 @@ final class BoxGenerator
     }
 
     /**
+     * The `cellpadding` of the nearest ancestor `<table>`, in px, or null
+     * when there is none (or its value is not a valid HTML dimension).
+     *
+     * `cellpadding` is declared on the table but applies to its cells, so
+     * the cell has to look upwards for it. Stops at the first table so a
+     * nested table's own `cellpadding` wins for its own cells.
+     *
+     * Null means the attribute is absent, in which case the UA sheet's
+     * 1px default stands.
+     */
+    private function cellPaddingFromAncestorTable(Element $cell): ?float
+    {
+        for ($node = $cell->parentElement; $node !== null; $node = $node->parentElement) {
+            if (strtolower($node->localName) !== 'table') {
+                continue;
+            }
+            $raw = $node->getAttribute('cellpadding');
+            return $raw === null ? null : $this->parseHtmlLength($raw);
+        }
+        return null;
+    }
+
+    /**
      * Pre-CSS HTML attributes that map to CSS properties — `<img width>`,
      * `<img height>`, `<font color>` etc. Per HTML 5 §15.3, these
      * "presentational attributes" map into the user-agent style sheet at
@@ -2408,6 +2431,44 @@ final class BoxGenerator
         // below reads width/height.
         $this->resolveAttrFunctions($element, $values);
         $tag = strtolower($element->localName);
+        // HTML §15.3.8 — the table presentational attributes map onto CSS:
+        // `cellspacing` on the table becomes `border-spacing`, and
+        // `cellpadding` becomes the `padding` of every cell it contains.
+        // Both are "presentational hints", so author CSS still wins; a
+        // value that fails the HTML dimension rules is ignored.
+        if ($tag === 'table') {
+            // `border-spacing` INHERITS, so it is present in every
+            // element's cascade map and `has()` cannot say whether this
+            // table declared it. The attribute therefore wins outright
+            // here — unlike `cellpadding` below, where the non-inherited
+            // `padding` lets author CSS be detected and preferred. The
+            // 2px HTML default stays in the UA sheet.
+            $spacing = $this->parseHtmlLength($element->getAttribute('cellspacing') ?? '');
+            if ($spacing !== null) {
+                $values->set('border-spacing', new \Phpdftk\Css\Value\Length(
+                    $spacing,
+                    \Phpdftk\Css\Value\LengthUnit::Px,
+                ));
+            }
+        }
+        if ($tag === 'td' || $tag === 'th') {
+            // Same caveat as `cellspacing`: the UA sheet's own
+            // `padding: 1px` is indistinguishable from an author
+            // declaration once the cascade has run, so an explicit
+            // `cellpadding` overrides outright. Only the attribute is
+            // handled here — the 1px default belongs to the UA sheet,
+            // where a stylesheet that opts out of UA rules does not
+            // inherit it.
+            $padding = $this->cellPaddingFromAncestorTable($element);
+            if ($padding !== null) {
+                foreach (['padding-top', 'padding-right', 'padding-bottom', 'padding-left'] as $side) {
+                    $values->set($side, new \Phpdftk\Css\Value\Length(
+                        $padding,
+                        \Phpdftk\Css\Value\LengthUnit::Px,
+                    ));
+                }
+            }
+        }
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
             foreach (['width', 'height'] as $attr) {
                 if ($values->has($attr) && !$this->isAutoLength($values->get($attr))) {

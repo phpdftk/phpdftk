@@ -2925,7 +2925,7 @@ final class BlockLayoutTest extends TestCase
                 . '<td style="height: 30px">a</td></tr>'
                 . '<tr><td style="height: 40px">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -2961,7 +2961,7 @@ final class BlockLayoutTest extends TestCase
                 . '<td style="height: 30px">a</td></tr>'
                 . '<tr><td class="r2c2" style="height: 30px">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -2996,7 +2996,7 @@ final class BlockLayoutTest extends TestCase
             '<html><body><table style="width: 600px">'
                 . '<tr><td class="a">a</td><td class="b">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -3032,7 +3032,7 @@ final class BlockLayoutTest extends TestCase
                 . '<td style="height: 30px">a</td></tr>'
                 . '<tr><td class="r2c1" style="height: 30px">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -3067,7 +3067,7 @@ final class BlockLayoutTest extends TestCase
                 . '<tr><td rowspan="1" style="height: 20px">x</td></tr>'
                 . '<tr><td class="r2c1" style="height: 30px">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -3104,7 +3104,7 @@ final class BlockLayoutTest extends TestCase
                 . '<td class="r1" style="height: 30px">a</td></tr>'
                 . '<tr><td class="r2" style="height: 40px">b</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -3142,7 +3142,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col width="200">'
                 . '<tr><td class="a">a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3166,7 +3166,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col width="100">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3188,7 +3188,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col span="2" width="150">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3211,7 +3211,7 @@ final class BlockLayoutTest extends TestCase
                 . '<colgroup><col width="80"><col width="120"></colgroup>'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3233,7 +3233,7 @@ final class BlockLayoutTest extends TestCase
             '<html><body><table style="width: 600px">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3255,7 +3255,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col width="auto">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3276,7 +3276,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col width="50%">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3298,7 +3298,7 @@ final class BlockLayoutTest extends TestCase
                 . '<col width="400">'
                 . '<tr><td>a</td><td>b</td><td>c</td></tr>'
                 . '</table></body></html>',
-            'td { padding: 0 }',
+            'table { border-spacing: 0 } td { padding: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $tr = $this->find($box, 'tr');
@@ -3399,7 +3399,9 @@ final class BlockLayoutTest extends TestCase
             '<html><body><table>'
                 . '<tr><td style="height: 40px">x</td></tr>'
                 . '</table></body></html>',
-            '',
+            // The HTML default `border-spacing: 2px` would offset the
+            // first row; this test is about caption offset only.
+            'table { border-spacing: 0 }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $table = $this->find($box, 'table');
@@ -3828,6 +3830,44 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($widths['32px'], $widths['200%'], 0.5, '200% vs 32px');
         // And the collapsed-to-2px bug would leave it far below this.
         self::assertGreaterThan(100.0, $widths['2em']);
+    }
+
+    public function testCellpaddingAndCellspacingAttributesMapToCss(): void
+    {
+        // HTML §15.3.8 — `cellpadding` becomes the cells' `padding` and
+        // `cellspacing` becomes the table's `border-spacing`. The 1px /
+        // 2px HTML defaults live in the UA stylesheet; only the attribute
+        // mapping is a presentational hint, and it overrides outright
+        // because `border-spacing` INHERITS (so it is present on every
+        // element) and the UA `padding` is indistinguishable from an
+        // author declaration once the cascade has run.
+        $box = $this->buildTree(
+            '<html><body><table cellpadding="7" cellspacing="5">'
+                . '<tr><td>x</td></tr></table></body></html>',
+            'html, body { display: block; } table { display: table; } '
+                . 'tr { display: table-row; } td { display: table-cell; }',
+        );
+        $cell = $this->find($box, 'td');
+        self::assertNotNull($cell);
+        self::assertSame(7.0, $cell->style->get('padding-top')?->value);
+        self::assertSame(7.0, $cell->style->get('padding-left')?->value);
+        $table = $this->find($box, 'table');
+        self::assertNotNull($table);
+        self::assertSame(5.0, $table->style->get('border-spacing')?->value);
+    }
+
+    public function testTableWithoutCellAttributesIsUnchanged(): void
+    {
+        // No attributes -> the hint must not fire, leaving whatever the
+        // stylesheet in force declares (here: nothing).
+        $box = $this->buildTree(
+            '<html><body><table><tr><td>x</td></tr></table></body></html>',
+            'html, body { display: block; } table { display: table; } '
+                . 'tr { display: table-row; } td { display: table-cell; }',
+        );
+        $cell = $this->find($box, 'td');
+        self::assertNotNull($cell);
+        self::assertSame(0.0, $cell->style->get('padding-top')?->value);
     }
 
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
