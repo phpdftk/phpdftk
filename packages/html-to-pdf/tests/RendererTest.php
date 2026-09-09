@@ -4623,15 +4623,24 @@ final class RendererTest extends TestCase
         self::assertNotNull($h2);
         self::assertNotNull($h3);
 
-        $h1Size = $cascade->computeFor([$sheet], $h1)->get('font-size');
-        $h2Size = $cascade->computeFor([$sheet], $h2)->get('font-size');
-        $h3Size = $cascade->computeFor([$sheet], $h3)->get('font-size');
-        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h1Size);
-        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h2Size);
-        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h3Size);
-        self::assertSame(32.0, $h1Size->value);
-        self::assertSame(24.0, $h2Size->value);
-        self::assertSame(19.0, $h3Size->value);
+        // HTML §15.3.6 declares these in `em`, so the cascaded value is
+        // relative and only becomes px once resolved against a context.
+        // Resolve against the 16px initial to pin the used sizes.
+        $resolve = static function (\Phpdftk\Css\Cascade\CascadedValues $values) use ($cascade): float {
+            $cascade->resolveLengths($values, new \Phpdftk\Css\Cascade\LengthContext());
+            $size = $values->get('font-size');
+            self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $size);
+            return $size->value;
+        };
+        $h1Size = $resolve($cascade->computeFor([$sheet], $h1));
+        $h2Size = $resolve($cascade->computeFor([$sheet], $h2));
+        $h3Size = $resolve($cascade->computeFor([$sheet], $h3));
+        self::assertEqualsWithDelta(32.0, $h1Size, 0.01);
+        self::assertEqualsWithDelta(24.0, $h2Size, 0.01);
+        self::assertEqualsWithDelta(18.72, $h3Size, 0.01);
+        // The point of the test: they stay distinct and ordered.
+        self::assertGreaterThan($h2Size, $h1Size);
+        self::assertGreaterThan($h3Size, $h2Size);
     }
 
     public function testOpacityEmitsGsOperator(): void

@@ -509,16 +509,20 @@ final readonly class RendererOptions
                script-less, so the children render as inline content. */
             noscript { display: inline; }
 
-            /* Headings — sizes / margins per browsers' html.css. */
-            h1 { font-size: 32px; font-weight: bold; margin: 21px 0; }
-            h2 { font-size: 24px; font-weight: bold; margin: 19px 0; }
-            h3 { font-size: 19px; font-weight: bold; margin: 19px 0; }
-            h4 { font-size: 16px; font-weight: bold; margin: 21px 0; }
-            h5 { font-size: 13px; font-weight: bold; margin: 22px 0; }
-            h6 { font-size: 11px; font-weight: bold; margin: 25px 0; }
+            /* Headings — HTML §15.3.6. The sizes and margins are `em`,
+               not px: a heading's font-size is relative to its parent's
+               and its margins to its OWN font-size, so both scale with
+               the document. Hard-coded px matched a 16px base and
+               silently stopped scaling for anything else. */
+            h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
+            h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+            h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+            h4 { font-weight: bold; margin: 1.33em 0; }
+            h5 { font-size: 0.83em; font-weight: bold; margin: 1.67em 0; }
+            h6 { font-size: 0.67em; font-weight: bold; margin: 2.33em 0; }
 
             /* Paragraph and inline emphasis. */
-            p { margin: 16px 0; }
+            p { margin: 1em 0; }
             b, strong { font-weight: bold; }
             i, em, cite, var, dfn { font-style: italic; }
             small { font-size: 0.83em; }
@@ -528,17 +532,17 @@ final readonly class RendererOptions
 
             /* Code & preformatted. */
             code, kbd, samp, tt { font-family: monospace; }
-            pre { font-family: monospace; margin: 16px 0; white-space: pre; }
+            pre { font-family: monospace; margin: 1em 0; white-space: pre; }
 
             /* Lists. */
-            ul, ol { margin: 16px 0; }
+            ul, ol { margin: 1em 0; }
             ol { list-style-type: decimal; }
             ul ul, ol ul { list-style-type: circle; }
             ul ul ul, ol ul ul { list-style-type: square; }
 
             /* Block-level wrappers. */
-            blockquote { margin: 16px 40px; }
-            hr { display: block; border-top: 1px solid; margin: 8px 0; }
+            blockquote { margin: 1em 40px; }
+            hr { display: block; border-top: 1px solid; margin: 0.5em 0; }
 
             /* Anchors. */
             a { color: #0033cc; text-decoration: underline; }
@@ -569,12 +573,12 @@ final readonly class RendererOptions
             :where([dir="auto"]) { unicode-bidi: plaintext; }
 
             /* Definition lists. */
-            dl { margin: 16px 0; }
+            dl { margin: 1em 0; }
             dt { font-weight: bold; }
             dd { margin-left: 40px; }
 
             /* Figure / figcaption. */
-            figure { margin: 16px 40px; }
+            figure { margin: 1em 40px; }
             figcaption { font-size: 0.9em; }
 
             /* Details / summary (HTML 5 §4.11.1). Closed by default —
