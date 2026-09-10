@@ -583,7 +583,9 @@ final readonly class RendererOptions
 
             /* Figure / figcaption. */
             figure { margin: 1em 40px; }
-            figcaption { font-size: 0.9em; }
+            /* No UA font-size on figcaption — HTML §15.3.9 gives it
+               `display: block` only, so it inherits its parent's size. */
+            figcaption { display: block; }
 
             /* Details / summary (HTML 5 §4.11.1). Closed by default —
                only the summary renders — until the [open] attribute
@@ -632,8 +634,10 @@ final readonly class RendererOptions
                group with a thin border + small inset padding.
                Legend positioning over the top border is Phase 2;
                Phase 1 renders legend as a regular block child. */
-            fieldset { border: 1px solid #888; padding: 6pt 9pt 8pt; margin: 0 2pt; }
-            legend { display: block; padding: 0 2pt; }
+            /* HTML §15.3.8 — fieldset padding is em-relative and its
+               inline margin 2px; legend takes 2px of inline padding. */
+            fieldset { border: 1px solid #888; padding: 0.35em 0.75em 0.625em; margin: 0 2px; }
+            legend { display: block; padding: 0 2px; }
 
             /* HTML 5 §4.12.5 — `<canvas>` is a script-driven raster
                surface. With no scripting it renders its fallback
