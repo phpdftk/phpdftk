@@ -3929,6 +3929,54 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(50.0, $img->geometry->height, 0.5);
     }
 
+    public function testFlexedMainSizeTransfersThroughTheRatioToTheCross(): void
+    {
+        // CSS Sizing 4 §4.1 — flexing changes an item's MAIN size, and a
+        // box with an aspect ratio whose cross size is not an author
+        // constraint follows it. A 100x100 image grown to 200px wide
+        // stayed 100px tall, so the ratio stopped holding the moment the
+        // item flexed.
+        $image = imagecreatetruecolor(100, 100);
+        self::assertNotFalse($image);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        $src = 'data:image/png;base64,' . base64_encode($png);
+
+        $box = $this->buildTree(
+            '<html><body><div id="f"><img src="' . $src . '" style="flex: 1 0 auto"></div>'
+                . '</body></html>',
+            'html, body { display: block; } #f { display: flex; width: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        self::assertEqualsWithDelta(200.0, $img->geometry->width, 0.5);
+        self::assertEqualsWithDelta(200.0, $img->geometry->height, 0.5);
+    }
+
+    public function testAuthorCrossSizeSurvivesTheFlexedRatioTransfer(): void
+    {
+        // The transfer must rewrite only a DERIVED cross size. An author
+        // height is a real constraint and the ratio does not override it.
+        $image = imagecreatetruecolor(100, 100);
+        self::assertNotFalse($image);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        $src = 'data:image/png;base64,' . base64_encode($png);
+
+        $box = $this->buildTree(
+            '<html><body><div id="f"><img src="' . $src . '" style="flex: 1 0 auto; height: 40px">'
+                . '</div></body></html>',
+            'html, body { display: block; } #f { display: flex; width: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        self::assertEqualsWithDelta(40.0, $img->geometry->height, 0.5);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,

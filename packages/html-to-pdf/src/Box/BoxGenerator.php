@@ -2448,6 +2448,20 @@ final class BoxGenerator
     }
 
     /**
+     * Marks which of a replaced element's width / height this generator
+     * DERIVED from the natural size rather than the author declaring it.
+     *
+     * The natural size is baked into the cascade here, so by layout time
+     * an author `height: 100px` and a ratio-derived one are the same
+     * `Length`. Anything that later re-sizes the box — flexing, in
+     * particular — needs to know which axis it may rewrite through the
+     * aspect ratio and which is a real author constraint.
+     *
+     * Values: `both`, `width`, `height`.
+     */
+    public const string REPLACED_DERIVED_SIZE = '--phpdftk-replaced-derived-size';
+
+    /**
      * Pre-CSS HTML attributes that map to CSS properties — `<img width>`,
      * `<img height>`, `<font color>` etc. Per HTML 5 §15.3, these
      * "presentational attributes" map into the user-agent style sheet at
@@ -2588,6 +2602,13 @@ final class BoxGenerator
                                 : $this->constrainReplacedNaturalSize((float) $nw, (float) $nh, $values);
                             $values->set('width', new \Phpdftk\Css\Value\Length($uw, \Phpdftk\Css\Value\LengthUnit::Px));
                             $values->set('height', new \Phpdftk\Css\Value\Length($uh, \Phpdftk\Css\Value\LengthUnit::Px));
+                            // Both axes came from the natural size, so
+                            // neither is an author constraint: a later
+                            // ratio transfer may rewrite either.
+                            $values->set(
+                                self::REPLACED_DERIVED_SIZE,
+                                new \Phpdftk\Css\Value\Keyword('both'),
+                            );
                         } elseif ($wUnset && $hValue instanceof \Phpdftk\Css\Value\Length && $nh > 0) {
                             // Under `box-sizing: border-box`, the declared
                             // height includes the padding/border vertical
@@ -2614,6 +2635,12 @@ final class BoxGenerator
                                     \Phpdftk\Css\Value\LengthUnit::Px,
                                 ),
                             );
+                            // The author declared the HEIGHT; this width is
+                            // ratio-derived.
+                            $values->set(
+                                self::REPLACED_DERIVED_SIZE,
+                                new \Phpdftk\Css\Value\Keyword('width'),
+                            );
                         } elseif ($hUnset && $wValue instanceof \Phpdftk\Css\Value\Length && $nw > 0) {
                             [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
                             $declaredW = $this->clampDeclaredReplacedSize(
@@ -2633,6 +2660,12 @@ final class BoxGenerator
                                     $declaredH,
                                     \Phpdftk\Css\Value\LengthUnit::Px,
                                 ),
+                            );
+                            // The author declared the WIDTH; this height is
+                            // ratio-derived.
+                            $values->set(
+                                self::REPLACED_DERIVED_SIZE,
+                                new \Phpdftk\Css\Value\Keyword('height'),
                             );
                         }
                     }

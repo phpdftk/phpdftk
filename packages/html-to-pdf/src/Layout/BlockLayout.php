@@ -3366,6 +3366,13 @@ final class BlockLayout
                     } else {
                         $children[$i]->geometry->width = max(0.0, $children[$i]->geometry->width + $delta);
                     }
+                    // CSS Sizing 4 §4.1 — flexing changes the item's MAIN
+                    // size, and an item with an aspect ratio whose cross
+                    // size is `auto` derives that cross size from the new
+                    // main size. Without this a 100x100 image grown to
+                    // 200px wide stayed 100px tall, so the ratio silently
+                    // stopped holding the moment an item flexed.
+                    $this->transferFlexedMainToCross($children[$i], $isColumn);
                     $itemMains[$i] = $isColumn
                         ? $children[$i]->geometry->outerHeight()
                         : $children[$i]->geometry->outerWidth();
@@ -8210,6 +8217,64 @@ final class BlockLayout
             }
         }
         return false;
+    }
+
+    /**
+     * CSS Sizing 4 §4.1 — after a flex item's main size changes, an
+     * `auto` cross size on a box with an aspect ratio follows it.
+     *
+     * Only an AUTO cross size may be rewritten: an author length or
+     * percentage on the cross axis wins over the ratio. The result is
+     * clamped by the cross axis' own length min/max so the ratio cannot
+     * push the item past an explicit bound.
+     */
+    private function transferFlexedMainToCross(Box $child, bool $isColumn): void
+    {
+        $ratio = $this->resolveAspectRatio($child->style);
+        if ($ratio === null || $ratio <= 0.0) {
+            return;
+        }
+        $geo = $child->geometry;
+        $crossProperty = $isColumn ? 'width' : 'height';
+        if (!$this->crossSizeIsRatioDerived($child, $crossProperty)) {
+            return;
+        }
+        $cross = $isColumn ? $geo->height * $ratio : $geo->width / $ratio;
+        $min = $child->style->get($isColumn ? 'min-width' : 'min-height');
+        $max = $child->style->get($isColumn ? 'max-width' : 'max-height');
+        if ($max instanceof Length) {
+            $cross = min($cross, $max->value);
+        }
+        if ($min instanceof Length) {
+            $cross = max($cross, $min->value);
+        }
+        if ($isColumn) {
+            $geo->width = max(0.0, $cross);
+        } else {
+            $geo->height = max(0.0, $cross);
+        }
+    }
+
+    /**
+     * Whether a box's cross-axis size may be rewritten by an aspect-ratio
+     * transfer — i.e. the author left it `auto`, or BoxGenerator derived
+     * it from a replaced element's natural size.
+     *
+     * The second case needs the marker: the natural size is baked into
+     * the cascade as a plain `Length`, so by layout time it is
+     * indistinguishable from an author declaration.
+     */
+    private function crossSizeIsRatioDerived(Box $box, string $crossProperty): bool
+    {
+        if ($this->isAuto($box->style->get($crossProperty)) || !$box->style->has($crossProperty)) {
+            return true;
+        }
+        $derived = $box->style->get(\Phpdftk\HtmlToPdf\Box\BoxGenerator::REPLACED_DERIVED_SIZE);
+        if (!$derived instanceof Keyword) {
+            return false;
+        }
+        $name = strtolower($derived->name);
+        return $name === 'both' || $name === $crossProperty;
     }
 
     /**
