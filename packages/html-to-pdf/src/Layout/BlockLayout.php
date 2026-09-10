@@ -3614,6 +3614,35 @@ final class BlockLayout
                                         $childLayoutContexts[$i],
                                         definiteContentHeightOverride: $stretchedContentHeight,
                                     );
+                                } elseif (
+                                    !($child instanceof \Phpdftk\HtmlToPdf\Box\FlexBox)
+                                    && $stretchedContentHeight > 0.0
+                                    && isset($childLayoutContexts[$i])
+                                    && $this->subtreeHasPercentageHeight($child)
+                                ) {
+                                    // CSS Flexbox 1 "definite sizes" — the same
+                                    // rule for a PLAIN BLOCK item: its stretched
+                                    // cross size is definite, so a descendant's
+                                    // `height: %` resolves against it. The first
+                                    // pass sized those descendants against an
+                                    // indefinite height and collapsed them to
+                                    // zero. Re-run the subtree with the height
+                                    // definite, then restore the stretched height
+                                    // (the re-run recomputes it from content).
+                                    //
+                                    // Gated on the subtree actually containing a
+                                    // percentage height so the common case pays
+                                    // nothing for a second pass.
+                                    // `flexItemDefiniteBlockSize` is the hook
+                                    // `layoutBlock` already reads (and clears)
+                                    // to treat a flexed size as an author
+                                    // height; an auto-height box otherwise
+                                    // forces its own CB-height definiteness to
+                                    // false and the stretch is lost on the way
+                                    // down.
+                                    $this->flexItemDefiniteBlockSize = $stretchedContentHeight;
+                                    $this->layoutBlock($child, $childLayoutContexts[$i]);
+                                    $childGeo->height = $stretchedContentHeight;
                                 }
                             }
                         }
@@ -8161,6 +8190,26 @@ final class BlockLayout
         foreach ($box->children as $child) {
             $this->shiftSubtree($child, $dy, $dx);
         }
+    }
+
+    /**
+     * Whether any in-flow descendant declares a percentage `height`.
+     *
+     * Used to decide whether a cross-stretched flex item is worth a
+     * second layout pass: only a subtree with a percentage height can
+     * observe that the stretched size became definite.
+     */
+    private function subtreeHasPercentageHeight(Box $box): bool
+    {
+        foreach ($box->children as $child) {
+            if ($child->style->get('height') instanceof Percentage) {
+                return true;
+            }
+            if ($this->subtreeHasPercentageHeight($child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

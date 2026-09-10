@@ -3870,6 +3870,38 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(0.0, $cell->style->get('padding-top')?->value);
     }
 
+    public function testStretchedBlockFlexItemIsDefiniteForPercentageHeights(): void
+    {
+        // CSS Flexbox 1 (definite sizes) — a flex item stretched in the
+        // cross axis has a DEFINITE cross size, so a descendant's
+        // `height: %` resolves against it. The engine did this only for
+        // row-direction flex-container items; a plain block item lost the
+        // stretch on the way down and its percentage-height descendants
+        // collapsed to zero.
+        $box = $this->buildTree(
+            '<html><body><div id="outer"><div id="middle"><div id="inner"></div>'
+                . '</div></div></body></html>',
+            'html, body, div { display: block; }
+             #outer { display: flex; height: 160px; width: 300px; }
+             #inner { width: 200px; height: 100%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $stack = [$box];
+        $found = null;
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node->element?->getAttribute('id') === 'inner') {
+                $found = $node;
+                break;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($found);
+        self::assertEqualsWithDelta(160.0, $found->geometry->height, 0.5);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,
