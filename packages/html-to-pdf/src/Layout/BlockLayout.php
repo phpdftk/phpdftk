@@ -8365,18 +8365,25 @@ final class BlockLayout
         );
         $geo->width = $fullWidth;
 
-        $lines = $box->lineBoxes;
-        if ($count < 2 || $lines === []) {
-            return $height;
-        }
         // An over-constrained container (huge gap, or more columns than fit)
         // can compute a zero column measure, and a non-positive width makes
         // the inline pass return no lines at all — the text would silently
         // vanish. Fall back to a single full-width column instead.
+        //
+        // This has to be tested BEFORE the empty-`$lines` bail below: a
+        // zero column measure is precisely what empties `$lines`, so the
+        // bail would swallow the very case this recovers, leaving the
+        // container with no content and zero height (CSS Multicol 1 §3.4
+        // — content overflows an over-constrained container, it does not
+        // disappear).
         if ($columnWidth <= 0.0) {
             $geo->width = $fullWidth;
             $box->multiColumn = null;
             return $this->layoutInlineChildren($box, $childContext);
+        }
+        $lines = $box->lineBoxes;
+        if ($count < 2 || $lines === []) {
+            return $height;
         }
 
         $columns = $this->balanceLinesIntoColumns($lines, $count);
