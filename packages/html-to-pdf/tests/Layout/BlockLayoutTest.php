@@ -3902,6 +3902,33 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(160.0, $found->geometry->height, 0.5);
     }
 
+    public function testReplacedRatioTransfersTheUsedWidthNotTheDeclaredOne(): void
+    {
+        // CSS 2.1 §10.4 — an intrinsic ratio transfers the USED size,
+        // which is the declared one AFTER the min/max constraint
+        // violation is resolved. Deriving from the raw declared value
+        // made `width: 0; min-width: 100px` on a 300x150 image compute a
+        // zero height, so the image vanished instead of rendering 100x50.
+        $image = imagecreatetruecolor(300, 150);
+        self::assertNotFalse($image);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        $src = 'data:image/png;base64,' . base64_encode($png);
+
+        $box = $this->buildTree(
+            '<html><body><img id="i" src="' . $src . '" style="width: 0px; min-width: 100px"></body></html>',
+            'html, body { display: block; } img { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        // `min-width` floors the used width at layout time; the ratio must
+        // have transferred THAT width, not the declared zero.
+        self::assertEqualsWithDelta(100.0, $img->geometry->width, 0.5);
+        self::assertEqualsWithDelta(50.0, $img->geometry->height, 0.5);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,

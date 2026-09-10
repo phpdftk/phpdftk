@@ -2394,6 +2394,37 @@ final class BoxGenerator
     }
 
     /**
+     * Clamp a replaced element's DECLARED size by its length `min-*` /
+     * `max-*` before the intrinsic ratio transfers it to the other axis.
+     *
+     * CSS 2.1 §10.4 — the ratio transfers the USED size, which is the
+     * declared one after the min/max constraint violation is resolved.
+     * Deriving from the raw declared value instead makes
+     * `width: 0; min-width: 100px` on a 300x150 image compute a zero
+     * height, so the image vanishes rather than rendering 100x50.
+     *
+     * Percentages and keywords are left alone: they have no basis here
+     * and are resolved by the layout-time replaced clamp.
+     */
+    private function clampDeclaredReplacedSize(
+        float $declared,
+        CascadedValues $values,
+        string $minProperty,
+        string $maxProperty,
+    ): float {
+        $max = $values->get($maxProperty);
+        if ($max instanceof \Phpdftk\Css\Value\Length) {
+            $declared = min($declared, $max->value);
+        }
+        $min = $values->get($minProperty);
+        if ($min instanceof \Phpdftk\Css\Value\Length) {
+            // The minimum wins over the maximum (§10.4).
+            $declared = max($declared, $min->value);
+        }
+        return max(0.0, $declared);
+    }
+
+    /**
      * The `cellpadding` of the nearest ancestor `<table>`, in px, or null
      * when there is none (or its value is not a valid HTML dimension).
      *
@@ -2565,7 +2596,12 @@ final class BoxGenerator
                             // declared width that produces the right
                             // content-width-to-content-height ratio.
                             [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
-                            $declaredH = $hValue->value;
+                            $declaredH = $this->clampDeclaredReplacedSize(
+                                $hValue->value,
+                                $values,
+                                'min-height',
+                                'max-height',
+                            );
                             $contentH = $borderBox ? max(0.0, $declaredH - $vInset) : $declaredH;
                             $contentW = $authorRatioWH !== null
                                 ? $contentH * $authorRatioWH
@@ -2580,7 +2616,12 @@ final class BoxGenerator
                             );
                         } elseif ($hUnset && $wValue instanceof \Phpdftk\Css\Value\Length && $nw > 0) {
                             [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
-                            $declaredW = $wValue->value;
+                            $declaredW = $this->clampDeclaredReplacedSize(
+                                $wValue->value,
+                                $values,
+                                'min-width',
+                                'max-width',
+                            );
                             $contentW = $borderBox ? max(0.0, $declaredW - $hInset) : $declaredW;
                             $contentH = $authorRatioWH !== null
                                 ? $contentW / $authorRatioWH
