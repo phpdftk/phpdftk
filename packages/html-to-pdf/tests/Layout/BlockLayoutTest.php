@@ -4008,6 +4008,35 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(160.0, $inner->geometry->height, 0.5);
     }
 
+    public function testAuthorAutoBeatsTheWidthHeightPresentationalHint(): void
+    {
+        // HTML width/height attributes are presentational HINTS, so author
+        // CSS wins — including an explicit `auto`. Treating `auto` as
+        // "unspecified" let the attribute overwrite it, pinning both axes
+        // and defeating the intrinsic ratio. That breaks the commonest
+        // responsive-image pattern there is: width/height attributes plus
+        // `img { height: auto }`.
+        $image = imagecreatetruecolor(200, 100);
+        self::assertNotFalse($image);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        $src = 'data:image/png;base64,' . base64_encode($png);
+
+        $box = $this->buildTree(
+            '<html><body><img width="200" height="100" src="' . $src . '" '
+                . 'style="width: 100px; height: auto"></body></html>',
+            'html, body { display: block; } img { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $img = $this->find($box, 'img');
+        self::assertNotNull($img);
+        // `height: auto` must defer to the 2:1 ratio against the 100px
+        // width, not be replaced by the attribute's 100.
+        self::assertEqualsWithDelta(100.0, $img->geometry->width, 0.5);
+        self::assertEqualsWithDelta(50.0, $img->geometry->height, 0.5);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,

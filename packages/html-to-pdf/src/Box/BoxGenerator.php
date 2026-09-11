@@ -2516,8 +2516,15 @@ final class BoxGenerator
         }
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
             foreach (['width', 'height'] as $attr) {
-                if ($values->has($attr) && !$this->isAutoLength($values->get($attr))) {
-                    continue; // author CSS wins
+                // Author CSS wins over a presentational hint — INCLUDING an
+                // explicit `auto`. Treating `auto` as "unspecified" let the
+                // attribute overwrite it, which breaks the single commonest
+                // image reset there is (`img { height: auto }` alongside
+                // `width`/`height` attributes): the declared `auto` is what
+                // asks for the intrinsic ratio to size the other axis, and
+                // silently replacing it with the attribute pins both axes.
+                if ($values->has($attr)) {
+                    continue;
                 }
                 $raw = $element->getAttribute($attr);
                 if ($raw === null) {
