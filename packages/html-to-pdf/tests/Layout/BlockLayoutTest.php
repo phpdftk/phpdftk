@@ -3977,6 +3977,37 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(40.0, $img->geometry->height, 0.5);
     }
 
+    public function testFlexedColumnMainSizeIsDefiniteForPercentageHeights(): void
+    {
+        // CSS Flexbox 1 §9.8 — a column item's main size is DEFINITE once
+        // resolved, so its percentage-height descendants resolve against
+        // it. The pre-layout path only covered items that can neither grow
+        // nor shrink; an item that actually flexed (`flex: 1`) had its
+        // descendants sized against an indefinite height and collapsed.
+        $box = $this->buildTree(
+            '<html><body><div id="o"><div id="m"><div id="i"></div></div></div></body></html>',
+            'html, body, div { display: block; }
+             #o { display: flex; flex-direction: column; height: 160px; width: 200px; }
+             #m { flex: 1.0; }
+             #i { width: 200px; height: 100%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $inner = null;
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node->element?->getAttribute('id') === 'i') {
+                $inner = $node;
+                break;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertNotNull($inner);
+        self::assertEqualsWithDelta(160.0, $inner->geometry->height, 0.5);
+    }
+
     public function testVerticalTextAlignCentersAgainstInlineHeight(): void
     {
         // CSS Writing Modes 4 §3 — `text-align` aligns along the INLINE axis,

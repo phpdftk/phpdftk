@@ -3373,6 +3373,25 @@ final class BlockLayout
                     // 200px wide stayed 100px tall, so the ratio silently
                     // stopped holding the moment an item flexed.
                     $this->transferFlexedMainToCross($children[$i], $isColumn);
+                    // CSS Flexbox 1 §9.8 — once the main size is resolved it
+                    // is DEFINITE, so a COLUMN item's percentage-height
+                    // descendants resolve against it. The pre-layout path
+                    // above only covers items that can neither grow nor
+                    // shrink (whose basis is known up front); an item that
+                    // actually flexed had its descendants sized against an
+                    // indefinite height and collapsed them. Re-run the
+                    // subtree with the resolved height, then restore it.
+                    if ($isColumn
+                        && !($children[$i] instanceof \Phpdftk\HtmlToPdf\Box\FlexBox)
+                        && $children[$i]->geometry->height > 0.0
+                        && isset($childLayoutContexts[$i])
+                        && $this->subtreeHasPercentageHeight($children[$i])
+                    ) {
+                        $resolvedMain = $children[$i]->geometry->height;
+                        $this->flexItemDefiniteBlockSize = $resolvedMain;
+                        $this->layoutBlock($children[$i], $childLayoutContexts[$i]);
+                        $children[$i]->geometry->height = $resolvedMain;
+                    }
                     $itemMains[$i] = $isColumn
                         ? $children[$i]->geometry->outerHeight()
                         : $children[$i]->geometry->outerWidth();
