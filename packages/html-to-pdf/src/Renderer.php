@@ -172,7 +172,15 @@ final class Renderer
         // metrics (CSS Values 4 §6.1.1). When no default font is
         // wired in, the LengthContext's 0.5em fallback applies.
         $defaultFont = $this->options->defaultFont;
-        $lengthContext = new LengthContext();
+        // CSS Values 4 §6.2 — `vw` / `vh` resolve against the VIEWPORT,
+        // which for paged output is the page box. LengthContext's own
+        // defaults (816x1056) are the DEVICE-pixel equivalents of a
+        // US-Letter page, but layout runs in CSS px where that page is
+        // 612x792 — so every viewport unit resolved a third too large.
+        $lengthContext = new LengthContext(
+            viewportWidth: $pageWidth,
+            viewportHeight: $pageHeight,
+        );
         if ($defaultFont !== null && $defaultFont->unitsPerEm > 0) {
             $upem = (float) $defaultFont->unitsPerEm;
             $xHeightRatio = $defaultFont->xHeight > 0

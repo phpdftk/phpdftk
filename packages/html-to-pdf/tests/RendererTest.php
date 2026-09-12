@@ -4643,6 +4643,27 @@ final class RendererTest extends TestCase
         self::assertGreaterThan($h3Size, $h2Size);
     }
 
+    public function testViewportUnitsResolveAgainstTheCssPageNotDevicePixels(): void
+    {
+        // CSS Values 4 §6.2 — `vw` / `vh` resolve against the viewport,
+        // which for paged output is the page box: 612x792 CSS px for the
+        // default US-Letter page. LengthContext's own defaults are
+        // 816x1056, the DEVICE-pixel equivalents, and nothing overrode
+        // them — so every viewport unit came out 4/3 too large.
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body style="margin:0">'
+                . '<div style="width:50vw;height:50vh;background:#008000"></div>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The filled rect is emitted as `x y w h re`; 50vw/50vh of
+        // 612x792 is 306x396, not the 408x528 the device-pixel
+        // defaults produced.
+        self::assertMatchesRegularExpression('~\b306(\.\d+)?\s+396(\.\d+)?\s+re~', $bytes);
+    }
+
     public function testOpacityEmitsGsOperator(): void
     {
         // opacity < 1 registers an ExtGState on the page and the painter
