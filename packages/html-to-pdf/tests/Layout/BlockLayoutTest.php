@@ -11047,4 +11047,116 @@ final class BlockLayoutTest extends TestCase
         // explicit max-width of 100 wins.
         self::assertEqualsWithDelta(100.0, $t->geometry->width, 0.5);
     }
+
+    /** Shared anchor scaffold: a 100x60 anchor at (50, 40) inside a 300x300 CB. */
+    private function anchorTree(string $targetCss): Box
+    {
+        return $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a { position: absolute; left: 50px; top: 40px;
+                  width: 100px; height: 60px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a; ' . $targetCss . ' }',
+        );
+    }
+
+    public function testAnchorFunctionResolvesInsetsAgainstTheAnchorEdges(): void
+    {
+        // CSS Anchor Positioning 1 §6 — `anchor(<side>)` places the inset
+        // at that edge of the anchor's border box, measured in the
+        // containing block the box is positioned in.
+        $box = $this->anchorTree('top: anchor(bottom); left: anchor(right); width: 20px; height: 20px;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // Anchor bottom = 40 + 60; anchor right = 50 + 100.
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $t->geometry->y, 0.5);
+        self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
+    }
+
+    public function testAnchorSizeFunctionSizesFromTheAnchor(): void
+    {
+        // CSS Anchor Positioning 1 §7.
+        $box = $this->anchorTree('top: 0; left: 0; width: anchor-size(width); height: anchor-size(height);');
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta(100.0, $t->geometry->width, 0.5);
+        self::assertEqualsWithDelta(60.0, $t->geometry->height, 0.5);
+    }
+
+    public function testPositionAreaPlacesTheBoxInItsRegionOfTheAnchorGrid(): void
+    {
+        // CSS Anchor Positioning 1 §3.3 — the anchor's border box cuts the
+        // containing block into a 3x3 grid. `bottom right` is the region
+        // below and to the right of it: x [150, 300], y [100, 300]. With
+        // both self-alignments `stretch` the box fills that region.
+        $box = $this->anchorTree(
+            'position-area: bottom right; align-self: stretch;'
+            . ' justify-self: stretch; inset: 0;',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $t->geometry->y, 0.5);
+        self::assertEqualsWithDelta(150.0, $t->geometry->width, 0.5);
+        self::assertEqualsWithDelta(200.0, $t->geometry->height, 0.5);
+    }
+
+    public function testPositionAreaIsNotReappliedWhenTheBoxIsLaidOutTwice(): void
+    {
+        // The rewritten insets add the region offset to the authored
+        // value, so a second layout pass over the same tree must not
+        // offset again. Abs-pos boxes really are laid out more than once
+        // (multicol balancing bisects on height, tables run two passes),
+        // and a doubled offset pushed the box a whole region off.
+        $box = $this->anchorTree(
+            'position-area: bottom right; align-self: stretch;'
+            . ' justify-self: stretch; inset: 0;',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $first = $this->findById($box, 't');
+        self::assertNotNull($first);
+        $x = $first->geometry->x;
+        $y = $first->geometry->y;
+        $this->layout->layout($box, $this->defaultCtx);
+        $second = $this->findById($box, 't');
+        self::assertNotNull($second);
+        self::assertEqualsWithDelta($x, $second->geometry->x, 0.5);
+        self::assertEqualsWithDelta($y, $second->geometry->y, 0.5);
+    }
+
+    public function testAnchorReferenceTakesThePrecedingDeclarationOfTheName(): void
+    {
+        // CSS Anchor Positioning 1 §3.1 — only an element BEFORE the
+        // positioned box is an acceptable anchor, so the second `--dup`
+        // (which follows the target) must not win. Without the tree-order
+        // filter a last-wins registry pointed every anchored box in a
+        // document at the final declaration of the name.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a1"></div><div id="t"></div>'
+            . '<div id="a2"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a1 { position: absolute; left: 10px; top: 0; width: 20px; height: 10px;
+                   anchor-name: --dup; }
+             #a2 { position: absolute; left: 200px; top: 0; width: 20px; height: 10px;
+                   anchor-name: --dup; }
+             #t { position: absolute; position-anchor: --dup; top: 0;
+                  left: anchor(right); width: 5px; height: 5px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // #a1's right edge (10 + 20), not #a2's (200 + 20).
+        self::assertEqualsWithDelta($cb->geometry->x + 30.0, $t->geometry->x, 0.5);
+    }
 }

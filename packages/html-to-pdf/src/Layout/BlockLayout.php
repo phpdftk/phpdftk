@@ -127,6 +127,31 @@ final class BlockLayout
      */
     private array $tableIntrinsicMemo = [];
 
+    /**
+     * CSS Anchor Positioning 1 §3.1 — registry of the boxes that
+     * declare an `anchor-name`, keyed by that name. Built in tree
+     * order at the start of {@see layout()} so an `anchor()` /
+     * `anchor-size()` reference can find its target without a second
+     * traversal; the stored Box is live, so the geometry read back at
+     * resolution time is whatever layout has committed by then.
+     * Last-in-tree-order wins, matching the spec's choice of anchor
+     * element when a name is declared more than once.
+     *
+     * @var array<string, list<Box>>
+     */
+    private array $anchorBoxes = [];
+
+    /**
+     * Tree-order rank of every box, keyed by `spl_object_id`. CSS Anchor
+     * Positioning 1 §3.1 only accepts an anchor that comes BEFORE the
+     * positioned box, which is what keeps four sibling containers that
+     * each declare the same `anchor-name` from all resolving to the last
+     * one in the document.
+     *
+     * @var array<int, int>
+     */
+    private array $boxOrder = [];
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -162,6 +187,12 @@ final class BlockLayout
     public function layout(Box $root, LayoutContext $context): float
     {
         $this->tableIntrinsicMemo = [];
+        // CSS Anchor Positioning 1 §3.1 — index every `anchor-name`
+        // before layout so an abs-pos box can resolve `anchor()` the
+        // moment it is positioned.
+        $this->anchorBoxes = [];
+        $this->boxOrder = [];
+        $this->collectAnchorBoxes($root, 0);
         // CSS Values 4 §6.1 — `rem` resolves against the DOCUMENT ROOT's
         // font-size. Nothing ever set `LengthContext::$rootFontSize`, so
         // every `rem` in the document resolved against the initial 16px
@@ -2523,6 +2554,487 @@ final class BlockLayout
     }
 
     /**
+     * The `position-area` keywords as lowercase strings, or an empty
+     * list when the property is absent, `none`, or malformed.
+     *
+     * @return list<string>
+     */
+    private function positionAreaKeywords(?\Phpdftk\Css\Value\Value $area): array
+    {
+        $keywords = [];
+        if ($area instanceof Keyword) {
+            $keywords[] = strtolower($area->name);
+        } elseif ($area instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($area->values as $part) {
+                if ($part instanceof Keyword) {
+                    $keywords[] = strtolower($part->name);
+                }
+            }
+        }
+        if ($keywords === [] || in_array('none', $keywords, true)) {
+            return [];
+        }
+        return $keywords;
+    }
+
+    /**
+     * Map the `position-area` keywords onto the band range each axis
+     * occupies in the 3x3 grid, as `[x, y]` pairs of `[first, last]`
+     * band indices (0 = before the anchor, 1 = the anchor's own band,
+     * 2 = after it). Axis-bearing keywords (`left`, `y-start`, ...) claim
+     * their own axis first; the axis-agnostic ones (`start`, `center`,
+     * `span-all`, ...) then fill whatever axis is left, block axis
+     * before inline — so `span-all top` puts the span on X even though
+     * it is written first. An axis no keyword reached spans all three
+     * bands, which is what a single-keyword `position-area` means.
+     *
+     * `self-` variants and the logical `block-` / `inline-` forms
+     * collapse onto the physical axes under the horizontal-tb writing
+     * mode this machinery is scoped to.
+     *
+     * @param list<string> $keywords
+     * @return array{0: array{0:int,1:int}, 1: array{0:int,1:int}}
+     */
+    private function positionAreaBands(array $keywords): array
+    {
+        $axes = ['x' => null, 'y' => null];
+        $generic = [];
+        foreach ($keywords as $keyword) {
+            $span = str_starts_with($keyword, 'span-');
+            $bare = str_replace('self-', '', $span ? substr($keyword, 5) : $keyword);
+            [$axis, $band] = match ($bare) {
+                'left' => ['x', 0],
+                'right' => ['x', 2],
+                'top' => ['y', 0],
+                'bottom' => ['y', 2],
+                'x-start', 'inline-start' => ['x', 0],
+                'x-end', 'inline-end' => ['x', 2],
+                'y-start', 'block-start' => ['y', 0],
+                'y-end', 'block-end' => ['y', 2],
+                'start' => [null, 0],
+                'end' => [null, 2],
+                'center' => [null, 1],
+                'all' => [null, 3],
+                default => [null, -1],
+            };
+            if ($band < 0) {
+                continue;
+            }
+            // `span-<side>` grows the single band toward the anchor's
+            // own band; `span-all` already covers the whole axis.
+            $range = match (true) {
+                $band === 3 => [0, 2],
+                $span && $band === 0 => [0, 1],
+                $span && $band === 2 => [1, 2],
+                default => [$band, $band],
+            };
+            if ($axis === null) {
+                $generic[] = $range;
+            } else {
+                $axes[$axis] = $range;
+            }
+        }
+        foreach ($generic as $range) {
+            if ($axes['y'] === null) {
+                $axes['y'] = $range;
+            } elseif ($axes['x'] === null) {
+                $axes['x'] = $range;
+            }
+        }
+        return [$axes['x'] ?? [0, 2], $axes['y'] ?? [0, 2]];
+    }
+
+    /**
+     * The used self-alignment for one axis of a `position-area` box.
+     * An explicit `align-self` / `justify-self` wins; otherwise CSS
+     * Anchor Positioning 1 §3.3's default applies, which aligns the box
+     * toward the anchor — to the region's end when the region sits
+     * entirely before the anchor, to its start when entirely after, and
+     * centred when the region includes the anchor's own band.
+     *
+     * @param array{0:int,1:int} $bands
+     */
+    private function positionAreaAlignment(?\Phpdftk\Css\Value\Value $value, array $bands): string
+    {
+        if ($value instanceof Keyword) {
+            $named = match (strtolower($value->name)) {
+                'stretch' => 'stretch',
+                'start', 'flex-start', 'self-start' => 'start',
+                'end', 'flex-end', 'self-end' => 'end',
+                'center', 'anchor-center' => 'center',
+                default => null,
+            };
+            if ($named !== null) {
+                return $named;
+            }
+        }
+        if ($bands[1] === 0) {
+            return 'end';
+        }
+        if ($bands[0] === 2) {
+            return 'start';
+        }
+        return 'center';
+    }
+
+    /**
+     * Rewrite one axis' pair of inset properties so the box lands in the
+     * `position-area` region. Insets are measured from the region's
+     * edges (CSS Anchor Positioning 1 §3.3 makes the region the box's
+     * containing block), so an authored inset becomes the region offset
+     * plus the authored amount; `auto` contributes nothing.
+     *
+     * `stretch` pins both edges, letting the §10.3.7 / §10.6.4 corner-
+     * anchor rules fill the region. `start` / `end` pin one edge and
+     * free the other so the box keeps its own size. `center` pins both
+     * and centres between them via the auto-margin rule, which needs a
+     * definite size — so an `auto` size becomes `fit-content`.
+     *
+     * An `anchor()` inset is left untouched: it resolves against the
+     * original containing block a moment later, and overrides the
+     * region edge on its axis.
+     */
+    private function applyPositionAreaAxis(
+        CascadedValues $style,
+        string $startProperty,
+        string $endProperty,
+        string $sizeProperty,
+        float $startOffset,
+        float $endOffset,
+        float $regionSize,
+        string $alignment,
+    ): void {
+        $startValue = $style->get($startProperty);
+        $endValue = $style->get($endProperty);
+        $startIsAnchor = $startValue instanceof \Phpdftk\Css\Value\AnchorFunction;
+        $endIsAnchor = $endValue instanceof \Phpdftk\Css\Value\AnchorFunction;
+        $pinStart = $alignment !== 'end';
+        $pinEnd = $alignment !== 'start';
+        if (!$startIsAnchor) {
+            if ($pinStart) {
+                $declared = $this->isAuto($startValue)
+                    ? 0.0
+                    : $this->resolveLength($startValue, $regionSize);
+                $style->set($startProperty, new Length(
+                    $startOffset + $declared,
+                    \Phpdftk\Css\Value\LengthUnit::Px,
+                ));
+            } else {
+                $style->set($startProperty, new Keyword('auto'));
+            }
+        }
+        if (!$endIsAnchor) {
+            if ($pinEnd) {
+                $declared = $this->isAuto($endValue)
+                    ? 0.0
+                    : $this->resolveLength($endValue, $regionSize);
+                $style->set($endProperty, new Length(
+                    $endOffset + $declared,
+                    \Phpdftk\Css\Value\LengthUnit::Px,
+                ));
+            } else {
+                $style->set($endProperty, new Keyword('auto'));
+            }
+        }
+        if ($alignment !== 'center') {
+            return;
+        }
+        // Centring runs through the §10.3.7 auto-margin split, which
+        // only engages for a definite size flanked by two auto margins.
+        if ($this->isAuto($style->get($sizeProperty))) {
+            $style->set($sizeProperty, new Keyword('fit-content'));
+        }
+        $marginStart = $startProperty === 'left' ? 'margin-left' : 'margin-top';
+        $marginEnd = $endProperty === 'right' ? 'margin-right' : 'margin-bottom';
+        // Only synthesise the auto margins the split needs. An authored
+        // non-zero margin is part of the box's margin box and has to
+        // survive — overwriting it would silently drop `margin: 2px` on a
+        // centred anchored box.
+        foreach ([$marginStart, $marginEnd] as $marginProperty) {
+            $margin = $style->get($marginProperty);
+            if ($this->isAuto($margin) || $this->resolveLength($margin, $regionSize) === 0.0) {
+                $style->set($marginProperty, new Keyword('auto'));
+            }
+        }
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §3.3 — resolve `position-area` into plain
+     * insets on `$child`.
+     *
+     * The anchor's border box splits the containing block into a 3x3
+     * grid; the keywords pick a rectangular span of it, and the box is
+     * placed in that region according to its self-alignment. A box with
+     * no resolvable default anchor keeps its ordinary insets — the area
+     * simply does not apply.
+     */
+    private function applyPositionArea(Box $child, LayoutContext $context): void
+    {
+        $style = $child->style;
+        $keywords = $this->positionAreaKeywords($style->get('position-area'));
+        if ($keywords === []) {
+            return;
+        }
+        $rect = $this->anchorBorderBox(null, $child);
+        if ($rect === null) {
+            return;
+        }
+        [$anchorLeft, $anchorTop, $anchorWidth, $anchorHeight] = $rect;
+        $positioned = $context->positionedAncestor;
+        $cbLeft = $positioned !== null ? $positioned->originX : $context->originX;
+        $cbTop = $positioned !== null ? $positioned->originY : $context->originY;
+        $cbRight = $cbLeft + $context->containingBlockWidth;
+        $cbBottom = $cbTop + $context->containingBlockHeight;
+        // An anchor that overhangs the containing block would otherwise
+        // produce inverted bands; clamping keeps every region non-empty
+        // and ordered.
+        $xEdges = [
+            $cbLeft,
+            min(max($anchorLeft, $cbLeft), $cbRight),
+            min(max($anchorLeft + $anchorWidth, $cbLeft), $cbRight),
+            $cbRight,
+        ];
+        $yEdges = [
+            $cbTop,
+            min(max($anchorTop, $cbTop), $cbBottom),
+            min(max($anchorTop + $anchorHeight, $cbTop), $cbBottom),
+            $cbBottom,
+        ];
+        [$xBands, $yBands] = $this->positionAreaBands($keywords);
+        $regionLeft = $xEdges[$xBands[0]];
+        $regionRight = $xEdges[$xBands[1] + 1];
+        $regionTop = $yEdges[$yBands[0]];
+        $regionBottom = $yEdges[$yBands[1] + 1];
+        $this->applyPositionAreaAxis(
+            $style,
+            'left',
+            'right',
+            'width',
+            $regionLeft - $cbLeft,
+            $cbRight - $regionRight,
+            $regionRight - $regionLeft,
+            $this->positionAreaAlignment($style->get('justify-self'), $xBands),
+        );
+        $this->applyPositionAreaAxis(
+            $style,
+            'top',
+            'bottom',
+            'height',
+            $regionTop - $cbTop,
+            $cbBottom - $regionBottom,
+            $regionBottom - $regionTop,
+            $this->positionAreaAlignment($style->get('align-self'), $yBands),
+        );
+        // The rewritten insets ADD the region offset to whatever the
+        // author declared, so running this twice would offset twice.
+        // Abs-pos boxes do get laid out more than once (multicol
+        // balancing bisects on height, table layout runs two passes, a
+        // flex container measures before it places), so retire the
+        // property now that it has been folded into the insets — the
+        // same self-guarding shape `applyAbsoluteCornerAnchorSize` gets
+        // for free from only firing on `auto`.
+        $style->set('position-area', new Keyword('none'));
+    }
+
+    /**
+     * Walk the box tree recording every `anchor-name` declaration.
+     * `anchor-name` accepts a comma-separated list of dashed idents,
+     * so a ValueList registers the box under each of its names.
+     */
+    private function collectAnchorBoxes(Box $box, int $order): int
+    {
+        $this->boxOrder[spl_object_id($box)] = $order++;
+        $name = $box->style->get('anchor-name');
+        if ($name instanceof Keyword) {
+            if (str_starts_with($name->name, '--')) {
+                $this->anchorBoxes[$name->name][] = $box;
+            }
+        } elseif ($name instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($name->values as $part) {
+                if ($part instanceof Keyword && str_starts_with($part->name, '--')) {
+                    $this->anchorBoxes[$part->name][] = $box;
+                }
+            }
+        }
+        foreach ($box->children as $child) {
+            $order = $this->collectAnchorBoxes($child, $order);
+        }
+        return $order;
+    }
+
+    /**
+     * The border-box rectangle of the anchor `$name` refers to, as
+     * `[left, top, width, height]` in layout space. `$name` is null for
+     * the implicit reference form (`anchor(bottom)`), which consults
+     * `$target`'s own `position-anchor`. Returns null when the name
+     * resolves to nothing that precedes `$target` — the caller then
+     * applies the function's fallback.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float}|null
+     */
+    private function anchorBorderBox(?string $name, Box $target): ?array
+    {
+        if ($name === null) {
+            $implicit = $target->style->get('position-anchor');
+            if ($implicit instanceof Keyword && str_starts_with($implicit->name, '--')) {
+                $name = $implicit->name;
+            }
+        }
+        if ($name === null) {
+            return null;
+        }
+        $candidates = $this->anchorBoxes[$name] ?? [];
+        $targetOrder = $this->boxOrder[spl_object_id($target)] ?? PHP_INT_MAX;
+        $box = null;
+        foreach ($candidates as $candidate) {
+            $order = $this->boxOrder[spl_object_id($candidate)] ?? PHP_INT_MAX;
+            if ($order < $targetOrder) {
+                // Later-but-still-preceding declarations win, matching
+                // the spec's "last element in tree order" choice.
+                $box = $candidate;
+            }
+        }
+        if ($box === null) {
+            return null;
+        }
+        $g = $box->geometry;
+        return [
+            $g->x - $g->paddingLeft - $g->borderLeft,
+            $g->y - $g->paddingTop - $g->borderTop,
+            $g->borderLeft + $g->paddingLeft + $g->width + $g->paddingRight + $g->borderRight,
+            $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom,
+        ];
+    }
+
+    /**
+     * Resolve an `<anchor-side>` to an absolute coordinate along the
+     * inset property's axis, given the anchor's extent on that axis.
+     * CSS Anchor Positioning 1 §6: physical sides only apply on their
+     * own axis; `start` / `end` follow the containing block's inline
+     * direction; `inside` / `outside` are relative to the side the
+     * inset property itself names. Returns null for a side that does
+     * not apply to `$prop`'s axis, which makes the reference invalid.
+     */
+    private function anchorSidePosition(
+        \Phpdftk\Css\Value\Value $side,
+        string $prop,
+        float $start,
+        float $end,
+        bool $rtl,
+    ): ?float {
+        if ($side instanceof Percentage) {
+            return $start + ($end - $start) * ($side->value / 100.0);
+        }
+        if (!$side instanceof Keyword) {
+            return null;
+        }
+        $horizontal = $prop === 'left' || $prop === 'right';
+        $atStartSide = $prop === 'left' || $prop === 'top';
+        return match (strtolower($side->name)) {
+            'left' => $horizontal ? $start : null,
+            'right' => $horizontal ? $end : null,
+            'top' => $horizontal ? null : $start,
+            'bottom' => $horizontal ? null : $end,
+            'center' => ($start + $end) / 2.0,
+            'start', 'self-start' => ($horizontal && $rtl) ? $end : $start,
+            'end', 'self-end' => ($horizontal && $rtl) ? $start : $end,
+            'inside' => $atStartSide ? $start : $end,
+            'outside' => $atStartSide ? $end : $start,
+            default => null,
+        };
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §6 / §7 — substitute `anchor()` and
+     * `anchor-size()` references on an absolutely-positioned box with
+     * the pixel lengths they resolve to, so the ordinary §10.3.7 /
+     * §10.6.4 inset and sizing machinery consumes them unchanged.
+     *
+     * An inset resolves relative to the corresponding edge of the
+     * containing block (the positioned ancestor's padding box, which
+     * `$context` carries as its `positionedAncestor` record), matching
+     * how `left` / `top` / `right` / `bottom` are measured. A reference
+     * that cannot be resolved falls back to the function's own fallback
+     * value, or to `auto` when it declared none.
+     *
+     * Runs before the box is laid out, so an `anchor-size()` width is
+     * in place by the time the box measures itself.
+     */
+    private function resolveAnchorReferences(Box $child, LayoutContext $context): void
+    {
+        // CSS Anchor Positioning 1 §3.3 — `position-area` reduces the
+        // box's containing block to one region of the 3x3 grid the
+        // anchor carves out of it. Fold that down to ordinary insets
+        // FIRST, so an `anchor()` inset (resolved below against the
+        // original containing block, which is what the spec's
+        // inset-modified containing block works out to) overrides the
+        // region edge on its own axis.
+        $this->applyPositionArea($child, $context);
+        $style = $child->style;
+        $pa = $context->positionedAncestor;
+        $cbLeft = $pa !== null ? $pa->originX : $context->originX;
+        $cbTop = $pa !== null ? $pa->originY : $context->originY;
+        $cbRight = $cbLeft + $context->containingBlockWidth;
+        $cbBottom = $cbTop + $context->containingBlockHeight;
+        $direction = $style->get('direction');
+        $rtl = $direction instanceof Keyword && strtolower($direction->name) === 'rtl';
+        foreach (['left', 'right', 'top', 'bottom'] as $prop) {
+            $value = $style->get($prop);
+            if (!$value instanceof \Phpdftk\Css\Value\AnchorFunction) {
+                continue;
+            }
+            $rect = $this->anchorBorderBox($value->anchorName, $child);
+            $resolved = null;
+            if ($rect !== null) {
+                [$anchorLeft, $anchorTop, $anchorWidth, $anchorHeight] = $rect;
+                $horizontal = $prop === 'left' || $prop === 'right';
+                $start = $horizontal ? $anchorLeft : $anchorTop;
+                $end = $start + ($horizontal ? $anchorWidth : $anchorHeight);
+                $position = $this->anchorSidePosition($value->side, $prop, $start, $end, $rtl);
+                if ($position !== null) {
+                    $resolved = match ($prop) {
+                        'left' => $position - $cbLeft,
+                        'top' => $position - $cbTop,
+                        'right' => $cbRight - $position,
+                        default => $cbBottom - $position,
+                    };
+                }
+            }
+            if ($resolved !== null) {
+                $style->set($prop, new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px));
+            } else {
+                $style->set($prop, $value->fallback ?? new Keyword('auto'));
+            }
+        }
+        foreach (['width', 'height', 'min-width', 'min-height', 'max-width', 'max-height'] as $prop) {
+            $value = $style->get($prop);
+            if (!$value instanceof \Phpdftk\Css\Value\AnchorSizeFunction) {
+                continue;
+            }
+            $rect = $this->anchorBorderBox($value->anchorName, $child);
+            if ($rect === null) {
+                $style->set($prop, $value->fallback ?? new Keyword('auto'));
+                continue;
+            }
+            [, , $anchorWidth, $anchorHeight] = $rect;
+            $isWidthProperty = str_contains($prop, 'width');
+            $dimension = $value->dimension instanceof Keyword
+                ? strtolower($value->dimension->name)
+                : '';
+            // Logical dimensions collapse onto the physical ones under
+            // the horizontal-tb writing mode the anchor machinery is
+            // scoped to; an omitted dimension means "the axis of the
+            // property this is used on" (CSS Anchor Positioning 1 §7).
+            $size = match ($dimension) {
+                'width', 'inline', 'self-inline' => $anchorWidth,
+                'height', 'block', 'self-block' => $anchorHeight,
+                default => $isWidthProperty ? $anchorWidth : $anchorHeight,
+            };
+            $style->set($prop, new Length($size, \Phpdftk\Css\Value\LengthUnit::Px));
+        }
+    }
+
+    /**
      * Apply CSS 2.1 §10.3.7 (width) and §10.6.4 (height) corner-anchor
      * resolution to an absolutely-positioned box. When both opposing
      * edge anchors are set AND the corresponding size is `auto`, the
@@ -2539,6 +3051,10 @@ final class BlockLayout
      */
     private function applyAbsoluteCornerAnchorSize(Box $child, LayoutContext $childContext): void
     {
+        // CSS Anchor Positioning 1 §6 / §7 — fold any `anchor()` /
+        // `anchor-size()` reference down to a pixel length first, so
+        // the §10.3.7 corner-anchor rules below see ordinary insets.
+        $this->resolveAnchorReferences($child, $childContext);
         $style = $child->style;
         $cbWidth = $childContext->containingBlockWidth;
         $cbHeight = $childContext->containingBlockHeight;
