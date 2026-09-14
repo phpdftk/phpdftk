@@ -8922,6 +8922,20 @@ final class BlockLayout
         $segments = $this->splitByColumnSpan($box->children);
         if (count($segments) > 1) {
             $cursorY = $geo->y;
+            // CSS Multi-column 1 §3.3 + §6.2 — a container with a DEFINITE
+            // height is a fragmentainer of that height, so each columnar run
+            // between spanners consumes at most the space still left in it.
+            // Content taller than that overflows into further columns rather
+            // than stretching the run: without the cap, a `height: 300%`
+            // child pushed the spanner its full 600px down instead of
+            // leaving it at the container's 200px edge.
+            $fragmentainerHeight = $this->resolveExplicitHeightOrNull(
+                $box->style,
+                $childContext->containingBlockHeight,
+            );
+            $fragmentainerBottom = $fragmentainerHeight !== null && $fragmentainerHeight > 0.0
+                ? $geo->y + $fragmentainerHeight
+                : null;
             foreach ($segments as $segment) {
                 if ($segment['span']) {
                     // Single column-span: all child — lay out full-width.
@@ -8932,7 +8946,7 @@ final class BlockLayout
                     $h = $this->layoutBox($spanChild, $spanCtx);
                     $cursorY += $h;
                 } else {
-                    $cursorY += $this->layoutColumnarRun(
+                    $runHeight = $this->layoutColumnarRun(
                         $box,
                         $segment['children'],
                         $childContext,
@@ -8941,6 +8955,10 @@ final class BlockLayout
                         $count,
                         $cursorY,
                     );
+                    if ($fragmentainerBottom !== null) {
+                        $runHeight = min($runHeight, max(0.0, $fragmentainerBottom - $cursorY));
+                    }
+                    $cursorY += $runHeight;
                 }
             }
             return $cursorY - $geo->y;

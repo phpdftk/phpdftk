@@ -11132,6 +11132,46 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($y, $second->geometry->y, 0.5);
     }
 
+    public function testColumnarRunIsCappedAtTheFragmentainerHeight(): void
+    {
+        // CSS Multi-column 1 §3.3 + §6.2 — a multicol container with a
+        // DEFINITE height is a fragmentainer of that height, so the
+        // columnar run before a `column-span: all` spanner consumes at
+        // most the space left in it. A child taller than the container
+        // overflows into further columns; it must not stretch the run and
+        // push the spanner down with it.
+        $box = $this->buildTree(
+            '<html><body><article><div id="tall"></div><div id="span"></div>'
+            . '</article></body></html>',
+            'html, body, article, div { display: block; }
+             article { column-count: 2; width: 400px; height: 200px; }
+             #tall { height: 600px; }
+             #span { column-span: all; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $article = $this->findFirstByTagName($box, 'article');
+        $span = $this->findById($box, 'span');
+        self::assertNotNull($article);
+        self::assertNotNull($span);
+        // The spanner sits at the container's 200px edge, not 600px down.
+        self::assertEqualsWithDelta($article->geometry->y + 200.0, $span->geometry->y, 0.5);
+    }
+
+    private function findFirstByTagName(Box $root, string $tag): ?Box
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && strtolower($node->element->tagName) === $tag) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
+    }
+
     public function testVerticalInlineContextWrapsAgainstTheBlockSizeNotTheWidth(): void
     {
         // CSS Writing Modes 4 §3 — in a vertical writing mode the INLINE
