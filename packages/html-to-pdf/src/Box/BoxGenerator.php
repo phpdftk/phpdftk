@@ -2057,13 +2057,21 @@ final class BoxGenerator
     {
         return match ($display) {
             'inline' => new InlineBox($element, $values),
-            'inline-block', 'inline-table', 'inline-flex', 'inline-grid'
+            'inline-block', 'inline-table', 'inline-grid'
                 => new AtomicInlineBox($element, $values),
             'table' => new TableBox($element, $values),
             'table-row' => new TableRowBox($element, $values),
             'table-cell' => new TableCellBox($element, $values),
             'table-column', 'table-column-group' => new TableColumnBox($element, $values),
-            'flex' => new FlexBox($element, $values),
+            // CSS Display 3 §2.6 — `inline-flex` differs from `flex` only in
+            // its OUTER display type: both establish a flex formatting
+            // context for their children. Routing it to AtomicInlineBox
+            // meant the flex algorithm never ran; worse, since flex items
+            // are blockified, the §9.2.1.1 inline-splits-around-block pass
+            // below then promoted the atomic to an anonymous BLOCK, so the
+            // items stacked vertically. Shrink-to-fit sizing for the inline
+            // outer type is handled by `flexContainerNeedsShrinkToFit`.
+            'flex', 'inline-flex' => new FlexBox($element, $values),
             'grid' => new GridBox($element, $values),
             default => new BlockBox($element, $values),
         };

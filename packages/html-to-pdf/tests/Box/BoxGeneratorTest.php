@@ -13,6 +13,7 @@ use Phpdftk\HtmlToPdf\Box\AnonymousBlockBox;
 use Phpdftk\HtmlToPdf\Box\AtomicInlineBox;
 use Phpdftk\HtmlToPdf\Box\BlockBox;
 use Phpdftk\HtmlToPdf\Box\BoxGenerator;
+use Phpdftk\HtmlToPdf\Box\FlexBox;
 use Phpdftk\HtmlToPdf\Box\InlineBox;
 use Phpdftk\HtmlToPdf\Box\TextBox;
 use Phpdftk\Html\Parser as HtmlParser;
@@ -1867,5 +1868,30 @@ final class BoxGeneratorTest extends TestCase
         $svg = $this->findFirstByTag($box, 'svg');
         self::assertNotNull($svg);
         self::assertNotInstanceOf(BlockBox::class, $svg);
+    }
+
+    public function testInlineFlexEstablishesAFlexFormattingContext(): void
+    {
+        // CSS Display 3 §2.6 — `inline-flex` and `flex` differ only in
+        // their OUTER display type; both format their children as flex
+        // items. Routing it to AtomicInlineBox meant flex layout never
+        // ran, and because flex items are blockified the §9.2.1.1
+        // inline-splits-around-block pass then promoted the atomic to an
+        // anonymous BLOCK, stacking the items vertically.
+        $sheet = $this->css->parseStylesheet(
+            'div { display: inline-flex }',
+            Origin::Author,
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><span>a</span><span>b</span></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $div = $this->findFirstByTag($box, 'div');
+        self::assertInstanceOf(FlexBox::class, $div);
+        // The outer display type is preserved on the cascade so
+        // `flexContainerNeedsShrinkToFit` can still see it.
+        $display = $div->style->get('display');
+        self::assertInstanceOf(Keyword::class, $display);
+        self::assertSame('inline-flex', $display->name);
     }
 }
