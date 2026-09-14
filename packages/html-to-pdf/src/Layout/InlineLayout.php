@@ -59,6 +59,14 @@ final class InlineLayout
     private float $currentAvailableWidth = 0.0;
 
     /**
+     * CSS Writing Modes 4 §3 — the measure lines WRAP against, when that
+     * differs from the physical width. Null in a horizontal writing mode
+     * (and in a vertical one whose block size is indefinite), which keeps
+     * every horizontal path byte-identical.
+     */
+    private ?float $currentWrapMeasure = null;
+
+    /**
      * The containing block's content height and whether it is definite,
      * threaded from the block layout so an atomic replaced element can
      * resolve a percentage `height` / `max-height` / `min-height` and,
@@ -88,6 +96,7 @@ final class InlineLayout
         $this->currentAvailableWidth = $availableWidth;
         $this->currentCbHeight = $context->containingBlockHeight;
         $this->currentCbHeightDefinite = $context->inFlowHeightDefinite;
+        $this->currentWrapMeasure = $this->verticalInlineMeasure($parent);
         if ($availableWidth <= 0.0) {
             return [[], 0.0];
         }
@@ -666,7 +675,8 @@ final class InlineLayout
             // available width. (A single box wider than the line still
             // gets its own line rather than an infinite loop.)
             if ($currentX > 0.0
-                && $currentX + $outerAdvance > $this->currentAvailableWidth + 0.01
+                && $currentX + $outerAdvance
+                    > ($this->currentWrapMeasure ?? $this->currentAvailableWidth) + 0.01
             ) {
                 $lineTop += $lineHeight;
                 $currentX = 0.0;
@@ -736,6 +746,37 @@ final class InlineLayout
     }
 
     /**
+     * CSS Writing Modes 4 §3 — the container's INLINE size, when it is not
+     * the physical width. In a vertical writing mode the inline axis runs
+     * vertically, so lines must wrap against the container's block size
+     * (its physical height) and only then be transposed onto the vertical
+     * axis by {@see applyVerticalLineShift}. Wrapping against the physical
+     * width and transposing afterwards breaks lines on the wrong axis.
+     *
+     * The geometry height is not committed yet while the inline pass runs,
+     * so this reads the cascaded `height`, which the cascade has already
+     * resolved to px. Returns null for a horizontal container, and for a
+     * vertical one whose block size is indefinite: the used height of
+     * those is only settled AFTER inline layout, so wrapping against it
+     * would be a sizing cycle. Those keep the physical-width measure.
+     */
+    private function verticalInlineMeasure(Box $parent): ?float
+    {
+        if (!WritingMode::fromStyle($parent->style)->isVertical()) {
+            return null;
+        }
+        $height = $parent->style->get('height');
+        if ($height instanceof Length && $height->value > 0.0) {
+            return $height->value;
+        }
+        // A §7.3 orthogonal-flow fallback (take the inline size from the
+        // nearest definite ancestor block size) was measured here and
+        // scored EXACTLY the same as this narrower gate, so it is left out:
+        // it widens the blast radius for no gain.
+        return null;
+    }
+
+    /**
      * Resolve the left and right inset of a line at relative-Y `$y`
      * against the active {@see FloatContext}. Returns offsets relative
      * to the parent's content-edge X — so `left` is the line's start X
@@ -759,6 +800,14 @@ final class InlineLayout
      */
     private function lineBounds(Box $parent, float $availableWidth, LayoutContext $context, float $relY, float $lineHeight = 0.0): array
     {
+        // A vertical IFC wraps against the block size, and FloatContext is
+        // physically horizontal — it samples a Y band and returns left/right
+        // X, so feeding it this measure would compare different axes. Until
+        // exclusions are logical, a vertical IFC simply takes the full
+        // measure with no float narrowing.
+        if ($this->currentWrapMeasure !== null) {
+            return ['left' => 0.0, 'right' => $this->currentWrapMeasure];
+        }
         $floatCtx = $context->floatContext;
         if ($floatCtx === null) {
             return ['left' => 0.0, 'right' => $availableWidth];
@@ -1019,13 +1068,9 @@ final class InlineLayout
         // was handed. (Increment 1 transposes the resulting inline offset onto
         // the vertical axis downstream in `applyVerticalLineShift`.)
         $wm = WritingMode::fromStyle($parent->style);
-        // The container's geometry height isn't committed yet during inline
-        // layout, but its cascaded `height` is already px-resolved in style
-        // (like `resolveTextIndent` reads). Use it as the vertical inline size.
-        $parentHeight = $parent->style->get('height');
-        $inlineExtent = $wm->isVertical() && $parentHeight instanceof Length && $parentHeight->value > 0.0
-            ? $parentHeight->value
-            : $availableWidth;
+        // Same measure the fitter wrapped against, so alignment slack is
+        // computed on the inline axis in both writing modes.
+        $inlineExtent = $this->currentWrapMeasure ?? $availableWidth;
         // CSS Text 3 §7.2: `justify-all` is `justify` for every line
         // including the trailing one. Normalise to `justify` for the
         // body lines and force the last-line alignment to `justify`
@@ -1072,11 +1117,13 @@ final class InlineLayout
             // under the float.
             //
             // The fitter's bound is only comparable when it was measured in
-            // the same axis alignment uses. A vertical IFC still wraps
-            // against the physical width while `$inlineExtent` is the
-            // styled height, so its bound belongs to the other axis and is
-            // ignored until the two agree.
-            $lineExtent = !$wm->isVertical() && $line->availableRight !== null
+            // the same axis alignment uses. That now holds for a vertical
+            // IFC too whenever the fitter had a definite block size to wrap
+            // against (`currentWrapMeasure`); a vertical container with an
+            // indefinite block size still wraps against the physical width,
+            // so its bound belongs to the other axis and is ignored.
+            $axesAgree = !$wm->isVertical() || $this->currentWrapMeasure !== null;
+            $lineExtent = $axesAgree && $line->availableRight !== null
                 ? $line->availableRight
                 : $inlineExtent;
             $slack = $lineExtent - $used;

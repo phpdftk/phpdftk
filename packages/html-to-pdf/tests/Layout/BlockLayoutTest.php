@@ -11132,6 +11132,40 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($y, $second->geometry->y, 0.5);
     }
 
+    public function testVerticalInlineContextWrapsAgainstTheBlockSizeNotTheWidth(): void
+    {
+        // CSS Writing Modes 4 §3 — in a vertical writing mode the INLINE
+        // axis runs vertically, so lines wrap against the container's block
+        // size (its physical height) and are transposed onto the vertical
+        // axis afterwards. The fitter used to measure against the physical
+        // WIDTH and transpose after, i.e. it broke lines on the wrong axis:
+        // with a 500px-wide, 100px-tall container all three 40px items sat
+        // on one line. Against the 100px inline measure only two fit.
+        $box = $this->buildTree(
+            '<html><body><div id="v"><span class="i"></span><span class="i"></span>'
+            . '<span class="i"></span></div></body></html>',
+            'html, body, div { display: block; }
+             #v { writing-mode: vertical-rl; width: 500px; height: 100px; }
+             .i { display: inline-block; width: 40px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $items = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && $node->element->getAttribute('class') === 'i') {
+                $items[] = $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertCount(3, $items);
+        // First two share a line; the third is pushed onto the next one.
+        self::assertEqualsWithDelta($items[0]->geometry->y, $items[1]->geometry->y, 0.5);
+        self::assertGreaterThan($items[0]->geometry->y + 0.5, $items[2]->geometry->y);
+    }
+
     public function testAnchorReferenceTakesThePrecedingDeclarationOfTheName(): void
     {
         // CSS Anchor Positioning 1 §3.1 — only an element BEFORE the
