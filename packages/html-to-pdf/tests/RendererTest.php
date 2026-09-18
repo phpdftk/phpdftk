@@ -27,6 +27,48 @@ final class RendererTest extends TestCase
         self::assertFalse($result->hasErrors());
     }
 
+    public function testFontSubsetSeesCharacterReferences(): void
+    {
+        // The subset scan ran `strip_tags()` over the RAW source, which
+        // leaves character references intact: `&gt;` contributed `&`,
+        // `g`, `t`, `;` and never `>`. A codepoint missing from the
+        // subset does not fall back to notdef — it paints whatever glyph
+        // occupies that slot, and the slot differs between documents, so
+        // two renderings of the same text disagreed.
+        $collect = new \ReflectionMethod(Renderer::class, 'collectCodepoints');
+        $renderer = new Renderer();
+        $entities = $collect->invoke(
+            $renderer,
+            '<html><body><p>&gt;&lt;&amp;&#x05D0;&#x202D;</p></body></html>',
+        );
+        foreach ([
+            0x003E => '&gt;',
+            0x003C => '&lt;',
+            0x0026 => '&amp;',
+            0x05D0 => '&#x05D0; (Hebrew alef)',
+            0x202D => '&#x202D; (LRO)',
+        ] as $cp => $label) {
+            self::assertContains($cp, $entities, "subset must include $label");
+        }
+
+        // And a document that spells the same characters literally must
+        // produce the same set — that equality is the whole point. (`<`
+        // is left out of this half: written literally it still opens a
+        // tag as far as `strip_tags()` is concerned, which is a limit of
+        // the scan, not of the decoding.)
+        $viaEntities = $collect->invoke(
+            $renderer,
+            '<html><body><p>&gt;&amp;&#x05D0;&#x202D;</p></body></html>',
+        );
+        $viaLiterals = $collect->invoke(
+            $renderer,
+            "<html><body><p>>&\u{05D0}\u{202D}</p></body></html>",
+        );
+        sort($viaEntities);
+        sort($viaLiterals);
+        self::assertSame($viaLiterals, $viaEntities);
+    }
+
     public function testUnresolvableMaskImageProducesValidPdf(): void
     {
         // CSS Masking 1 §4 — an element with an unresolvable `mask-image:

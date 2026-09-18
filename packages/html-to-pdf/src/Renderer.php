@@ -1314,7 +1314,20 @@ final class Renderer
      */
     private function collectCodepoints(string $html): array
     {
-        $stripped = strip_tags($html);
+        // `strip_tags()` leaves CHARACTER REFERENCES untouched: the
+        // source `&gt;` contributes `&`, `g`, `t`, `;` to the scan and
+        // never `>`. Every entity-written character was therefore absent
+        // from the subset — and an absent codepoint does not fall back to
+        // notdef, it paints whatever glyph happens to occupy that subset
+        // slot. `&gt;` came out as a letter, and the letter DIFFERED
+        // between two documents whose subsets were packed differently,
+        // which is what made the bidi reftests (written almost entirely
+        // in `&#x05D0;`-style references) compare unequal. Decode first.
+        $stripped = html_entity_decode(
+            strip_tags($html),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+        );
         $seen = [];
         // Always include the characters that may be needed for counter-style
         // list markers (decimal / alpha / roman) and basic punctuation —
