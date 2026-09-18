@@ -553,6 +553,109 @@ final class InlineLayoutTest extends TestCase
         self::assertGreaterThan(2, count($c->lineBoxes), 'webkit-line-clamp inert without legacy -webkit-box');
     }
 
+    public function testLineClampCountsLinesOfBlockDescendants(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — the clamp budget is spent across the WHOLE
+        // formatting context rooted at the clamp container. With two block
+        // children the lines live on the children, not on the container, so
+        // a per-block clamp would never fire and all of them would render.
+        $text = str_repeat("\u{1820} ", 40);
+        $css = 'html, body { display: block; } '
+            . '.c { display: block; width: 100px; } '
+            . '.a, .b { display: block; }';
+        $html = '<html><body><div class="c">'
+            . '<div class="a">' . $text . '</div>'
+            . '<div class="b">' . $text . '</div>'
+            . '</div></body></html>';
+
+        $unclamped = $this->buildTree($html, $css);
+        $this->layout->layout($unclamped, $this->defaultContext());
+        $ua = $this->findByClass($unclamped, 'a');
+        $ub = $this->findByClass($unclamped, 'b');
+        self::assertNotNull($ua);
+        self::assertNotNull($ub);
+        self::assertGreaterThan(3, count($ua->lineBoxes) + count($ub->lineBoxes));
+
+        $clamped = $this->buildTree($html, $css . ' .c { line-clamp: 3; }');
+        $this->layout->layout($clamped, $this->defaultContext());
+        $a = $this->findByClass($clamped, 'a');
+        $b = $this->findByClass($clamped, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertSame(
+            3,
+            count($a->lineBoxes) + count($b->lineBoxes),
+            'the clamp budget is shared by every line host in the subtree',
+        );
+        self::assertNotSame([], $a->lineBoxes, 'the first host keeps the lines before the clamp point');
+    }
+
+    public function testLineClampSkipsDescendantsWithTheirOwnFormattingContext(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — a descendant that establishes an independent
+        // formatting context (here `overflow: hidden`) is monolithic: its
+        // lines are NOT counted and it is not clamped.
+        $text = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><div class="c">'
+                . '<div class="a">' . $text . '</div>'
+                . '<div class="b">' . $text . '</div>'
+                . '</div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 100px; line-clamp: 2; } '
+                . '.a { display: block; overflow: hidden; } '
+                . '.b { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $a = $this->findByClass($box, 'a');
+        $b = $this->findByClass($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertGreaterThan(2, count($a->lineBoxes), 'a scrollable descendant is not clamped');
+        self::assertSame(2, count($b->lineBoxes), 'the budget is spent entirely on the same-BFC host');
+    }
+
+    public function testLineClampIsInertOnAWebkitBoxWithoutVerticalOrient(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 Appendix A — `display: -webkit-box` is a block
+        // container only under `-webkit-box-orient: vertical`. Without it
+        // the box stays a legacy flex container and `line-clamp` does not
+        // apply at all, not even the modern longhand.
+        $text = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><div class="c"><div class="a">' . $text . '</div></div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: -webkit-box; width: 100px; line-clamp: 2; } '
+                . '.a { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $a = $this->findByClass($box, 'a');
+        self::assertNotNull($a);
+        self::assertGreaterThan(2, count($a->lineBoxes));
+    }
+
+    public function testLineClampKeepsADefiniteHeightOnTheClampedDescendant(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — clamping discards the surplus LINES; it does
+        // not resize a descendant the author gave a definite block size.
+        $text = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><div class="c"><div class="a">' . $text . '</div></div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 100px; line-clamp: 1; } '
+                . '.a { display: block; height: 90px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $a = $this->findByClass($box, 'a');
+        self::assertNotNull($a);
+        self::assertCount(1, $a->lineBoxes);
+        self::assertEqualsWithDelta(90.0, $a->geometry->height, 0.001);
+    }
+
     public function testTallInlineBlockGrowsLineBoxHeight(): void
     {
         $this->skipIfNoFont();

@@ -241,6 +241,151 @@ final class BlockLayout
     }
 
     /**
+     * The effective `line-clamp` count on a block container, or null when
+     * the box does not clamp. The standard `line-clamp: <integer>` applies
+     * to any block container; the legacy `-webkit-line-clamp` only takes
+     * effect under the `display: -webkit-box` / `-webkit-box-orient:
+     * vertical` pairing (CSS Overflow 4 Appendix A).
+     */
+    private function effectiveLineClamp(Box $box): ?int
+    {
+        $modernValue = $box->style->get('line-clamp');
+        $legacyValue = $box->style->get('-webkit-line-clamp');
+        $modernSet = $modernValue instanceof \Phpdftk\Css\Value\Integer && $modernValue->value > 0;
+        $legacySet = $legacyValue instanceof \Phpdftk\Css\Value\Integer && $legacyValue->value > 0;
+        if (!$modernSet && !$legacySet) {
+            return null;
+        }
+        // CSS Overflow 4 §6 — `line-clamp` only applies to block
+        // containers. A multi-column container is excluded explicitly:
+        // `continue: collapse` (the longhand `line-clamp` sets) degrades
+        // to `auto` there, so the clamp is inert.
+        if ($this->isMultiColumnContainer($box)) {
+            return null;
+        }
+        $display = $box->style->get('display');
+        $name = $display instanceof Keyword ? strtolower($display->name) : '';
+        $isLegacyBox = $name === '-webkit-box' || $name === '-webkit-inline-box';
+        if ($isLegacyBox) {
+            // `display: -webkit-box` is a block container only under
+            // `-webkit-box-orient: vertical` (CSS Overflow 4 Appendix A);
+            // without it the box stays a legacy flex container and NEITHER
+            // the modern nor the legacy property clamps.
+            $orient = $box->style->get('-webkit-box-orient');
+            if (!($orient instanceof Keyword)
+                || !in_array(strtolower($orient->name), ['vertical', 'block-axis'], true)
+            ) {
+                return null;
+            }
+        }
+        if ($modernSet) {
+            /** @var \Phpdftk\Css\Value\Integer $modernValue */
+            return $modernValue->value;
+        }
+        // The legacy `-webkit-line-clamp` additionally requires the legacy
+        // `-webkit-box` display; WPT asserts it is otherwise inert.
+        if (!$isLegacyBox) {
+            return null;
+        }
+        /** @var \Phpdftk\Css\Value\Integer $legacyValue */
+        return $legacyValue->value;
+    }
+
+    /**
+     * CSS Overflow 4 §6 — spend a clamp container's line budget across the
+     * line hosts of its formatting context, in document order.
+     *
+     * The host holding the `$max`-th line keeps only the lines up to the
+     * clamp point and receives the block ellipsis; every later host is
+     * emptied. Returns the clamp point in page coordinates (the bottom edge
+     * of the last retained line) so the caller can shrink the container to
+     * it, or null when the subtree never exceeds the budget.
+     */
+    private function applyLineClampSubtree(Box $container, int $max, LayoutContext $context): ?float
+    {
+        $hosts = [];
+        $this->collectLineClampHosts($container, $hosts);
+        $total = 0;
+        foreach ($hosts as $host) {
+            $total += count($host->lineBoxes);
+        }
+        if ($total <= $max) {
+            return null;
+        }
+        $seen = 0;
+        $clampY = null;
+        foreach ($hosts as $host) {
+            if ($clampY !== null) {
+                // Past the clamp point: the host's content is not rendered.
+                $host->lineBoxes = [];
+                $host->geometry->height = 0.0;
+                continue;
+            }
+            $count = count($host->lineBoxes);
+            if ($seen + $count < $max) {
+                $seen += $count;
+                continue;
+            }
+            $height = $this->inlineLayout->clampHostLines($host, $max - $seen, $context);
+            $last = $host->lineBoxes === []
+                ? null
+                : $host->lineBoxes[count($host->lineBoxes) - 1];
+            // A clamped descendant with a definite block size keeps it: the
+            // clamp discards the surplus LINES, it does not resize the box
+            // the author sized. Only an auto-height host shrinks to the
+            // retained lines, and then the clamp point is that line's bottom
+            // edge rather than the host's (padding-inflated) border box.
+            if ($this->isAuto($host->style->get('height'))) {
+                $host->geometry->height = $height;
+                $clampY = $host->geometry->y
+                    + ($last !== null ? $last->y + $last->height : 0.0);
+            } else {
+                $g = $host->geometry;
+                $clampY = $g->y + $g->height
+                    + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+            }
+        }
+
+        return $clampY;
+    }
+
+    /**
+     * Collect the line hosts of `$container`'s formatting context in
+     * document order: the in-flow block-level descendants that carry their
+     * own `lineBoxes`.
+     *
+     * Out-of-flow boxes and floats are skipped — their lines belong to a
+     * different formatting context and do not count toward the clamp (CSS
+     * Overflow 4 §6). So are boxes that establish an independent formatting
+     * context, which are monolithic with respect to the clamp.
+     *
+     * @param list<Box> $out
+     */
+    private function collectLineClampHosts(Box $container, array &$out): void
+    {
+        foreach ($container->children as $child) {
+            // A descendant that establishes an independent formatting
+            // context (float, out-of-flow, `overflow` != `visible`,
+            // `flow-root`, an inline-level atomic, …) is monolithic with
+            // respect to the clamp: its lines belong to another formatting
+            // context and never count toward the budget.
+            if ($this->establishesBlockFormattingContext($child)) {
+                continue;
+            }
+            if ($child->lineBoxes !== []) {
+                $out[] = $child;
+                continue;
+            }
+            if (!$child instanceof BlockBox
+                && !$child instanceof \Phpdftk\HtmlToPdf\Box\AnonymousBlockBox
+            ) {
+                continue;
+            }
+            $this->collectLineClampHosts($child, $out);
+        }
+    }
+
+    /**
      * CSS Inline 3 §6.4 — propagation tree walk for `text-box-trim`.
      * For each block container with a non-`none` `text-box-trim`,
      * locate the first / last "line host" (the deepest in-flow
@@ -1365,6 +1510,24 @@ final class BlockLayout
             // collapse, and break-inside avoidance all run through one
             // codepath — same one `layoutMultiColumn` reuses per segment.
             $childTotal = $this->stackChildrenList($box->children, $childContext, $geo->x, $geo->y, $style);
+        }
+        // CSS Overflow 4 §6 — `line-clamp` counts the line boxes of the
+        // clamp container's WHOLE formatting context, not just the ones the
+        // container's own inline children produced. When the container holds
+        // block-level children (an element child, or the anonymous wrappers
+        // CSS Display 3 §3.4 synthesises around interleaved text), the lines
+        // live on descendants and the single-block clamp in InlineLayout
+        // never fires. Walk the subtree in document order, spend the line
+        // budget across the hosts, ellipsise the host that straddles the
+        // clamp point, and drop everything after it.
+        if ($box->lineBoxes === []) {
+            $clampCount = $this->effectiveLineClamp($box);
+            if ($clampCount !== null) {
+                $clampY = $this->applyLineClampSubtree($box, $clampCount, $childContext);
+                if ($clampY !== null) {
+                    $childTotal = max(0.0, $clampY - $geo->y);
+                }
+            }
         }
         // Skipped for anonymous wrappers: a block-in-inline split box is not
         // an author-declared containing block, and re-aligning its contents

@@ -923,6 +923,76 @@ final class InlineLayout
     }
 
     /**
+     * CSS Overflow 4 §6 — truncate an already-laid-out line host to its
+     * first `$keep` line boxes and force the block ellipsis onto the last
+     * retained one.
+     *
+     * The single-block clamp in {@see layout()} only sees the lines one box
+     * produced for itself. `line-clamp` counts the lines of the clamp
+     * container's whole formatting context, so the block-level pass in
+     * {@see BlockLayout} walks the subtree and calls back in here for the
+     * host that straddles the clamp point. The ellipsis is forced even when
+     * `count($lines) === $keep`: the caller only reaches this host because
+     * more lines follow it, which is exactly the condition the block
+     * ellipsis marks.
+     *
+     * Returns the block-axis extent of the retained lines in the host's own
+     * coordinate space (0 when every line was dropped).
+     */
+    public function clampHostLines(Box $host, int $keep, LayoutContext $context): float
+    {
+        if ($keep <= 0) {
+            $host->lineBoxes = [];
+
+            return 0.0;
+        }
+        $lines = $host->lineBoxes;
+        if ($lines === []) {
+            return 0.0;
+        }
+        $this->currentFontResolver = $context->fontResolver;
+        $match = $this->resolveBoxFont($host, $context->defaultFont);
+        $font = $match['font'];
+        if ($font === null) {
+            // No shapeable font — drop the surplus lines without an
+            // ellipsis rather than leaving the overflow visible.
+            $host->lineBoxes = array_slice($lines, 0, $keep);
+
+            return $this->lineExtent($host->lineBoxes);
+        }
+        $shapingCtx = new ShapingContext(
+            $font,
+            $this->dominantFontSize($host, $context),
+            features: $this->resolveOpenTypeFeatures($host),
+        );
+        [$kept, $height] = $this->applyLineClamp(
+            $lines,
+            $keep,
+            $host->geometry->width,
+            $shapingCtx,
+            $this->resolveLetterSpacing($host),
+        );
+        $host->lineBoxes = $kept;
+
+        return $height;
+    }
+
+    /**
+     * Block-axis extent of a line list (the bottom edge of its last line).
+     *
+     * @param list<LineBox> $lines
+     */
+    private function lineExtent(array $lines): float
+    {
+        $height = 0.0;
+        foreach ($lines as $line) {
+            $height = max($height, $line->y + $line->height);
+        }
+
+        return $height;
+    }
+
+    /**
      * The effective `line-clamp` count for a block, or null when the block is
      * not clamped. The standard `line-clamp: <integer>` applies to any block;
      * the legacy `-webkit-line-clamp: <integer>` only takes effect under the
