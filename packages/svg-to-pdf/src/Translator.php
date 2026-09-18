@@ -101,6 +101,34 @@ final class Translator
     private const float KAPPA = 0.5522847498;
 
     /**
+     * Longest `<pattern href>` template chain the translator follows
+     * before giving up. SVG 2 places no explicit cap; this one exists
+     * purely so a pathological document can't make resolution quadratic.
+     */
+    private const int MAX_PATTERN_TEMPLATE_DEPTH = 16;
+
+    /**
+     * SVG 2 §13.3 — the `<pattern>` attributes a referencing pattern
+     * inherits from its `href` template when it does not specify them
+     * itself. `href` / `xlink:href` are deliberately absent: the chain
+     * is already walked, and copying them onto the merged result would
+     * make it self-referential.
+     *
+     * @var list<string>
+     */
+    private const array PATTERN_INHERITED_ATTRIBUTES = [
+        'x',
+        'y',
+        'width',
+        'height',
+        'patternUnits',
+        'patternContentUnits',
+        'patternTransform',
+        'viewBox',
+        'preserveAspectRatio',
+    ];
+
+    /**
      * Optional `phpdftk/resource-loader` for `http(s)://` `<image>`
      * hrefs. When `null` (the default — preserves existing call-
      * site behaviour), network hrefs drop silently per the SVG 2
@@ -2317,7 +2345,79 @@ final class Translator
             return null;
         }
         $target = $this->document->findById($paint->id);
-        return $target instanceof Pattern ? $target : null;
+        return $target instanceof Pattern ? $this->resolvePatternTemplate($target) : null;
+    }
+
+    /**
+     * SVG 2 §13.3 — resolve a `<pattern>`'s template chain.
+     *
+     * A pattern may reference another via `href` (or the legacy
+     * `xlink:href`, which `Pattern::href()` already deprioritises).
+     * Attributes the referencing pattern does not itself specify are
+     * inherited from the referenced one, and a pattern with no element
+     * children of its own paints the referenced pattern's children.
+     * That is what makes
+     *
+     *     <pattern id="Copy" href="#Base"></pattern>
+     *
+     * render exactly like `#Base`.
+     *
+     * Returns `$pattern` unchanged when it has no `href` (the common
+     * case, so the walk costs nothing). Otherwise it returns a synthetic
+     * merged pattern; the merged children keep their ORIGINAL parents so
+     * style inheritance still reads the defining pattern's cascade.
+     *
+     * Cycles (`a -> b -> a`) terminate at the first repeat, so a
+     * malformed document can't spin the renderer.
+     */
+    private function resolvePatternTemplate(Pattern $pattern): Pattern
+    {
+        if ($pattern->href() === null || $this->document === null) {
+            return $pattern;
+        }
+        /** @var list<Pattern> $chain */
+        $chain = [];
+        $seen = [];
+        $current = $pattern;
+        while (count($chain) < self::MAX_PATTERN_TEMPLATE_DEPTH) {
+            $id = spl_object_id($current);
+            if (isset($seen[$id])) {
+                break;
+            }
+            $seen[$id] = true;
+            $chain[] = $current;
+            $href = $current->href();
+            if ($href === null || !str_starts_with($href, '#')) {
+                break;
+            }
+            $next = $this->document->findById(substr($href, 1));
+            if (!$next instanceof Pattern) {
+                break;
+            }
+            $current = $next;
+        }
+        if (count($chain) < 2) {
+            return $pattern;
+        }
+        $merged = new Pattern();
+        // Nearest definition wins: seed from the far end of the chain and
+        // let each closer link overwrite, so the referencing pattern's own
+        // attributes end up on top.
+        foreach (array_reverse($chain) as $link) {
+            foreach (self::PATTERN_INHERITED_ATTRIBUTES as $name) {
+                $value = $link->getAttribute($name);
+                if ($value !== null) {
+                    $merged->setAttribute($name, $value);
+                }
+            }
+        }
+        foreach ($chain as $link) {
+            if (self::hasElementChildren($link)) {
+                $merged->children = $link->children;
+                break;
+            }
+        }
+        return $merged;
     }
 
     /**
@@ -2343,7 +2443,11 @@ final class Translator
     ): void {
         $bbox = BoundingBox::compute($element);
         $tile = $bbox !== null ? $this->resolvePatternTile($pattern, $bbox) : null;
-        $hasContent = $pattern->children !== [];
+        // Whitespace between the tags of an otherwise empty `<pattern>`
+        // parses as a text node, so "has children" has to mean "has
+        // ELEMENT children" - otherwise `<pattern id="x">\n</pattern>`
+        // reads as content-bearing and paints an empty tile.
+        $hasContent = self::hasElementChildren($pattern);
         if ($bbox === null || $tile === null || !$hasContent) {
             // Nothing paintable — drop the current path (avoid a stray
             // fill) but still honour a stroke channel if the shape has one.
@@ -2358,6 +2462,21 @@ final class Translator
         $stream->restoreGraphicsState();
 
         $this->strokeAfterPattern($element, $stream, $stroke);
+    }
+
+    /**
+     * Whether `$element` has at least one child ELEMENT - as opposed to
+     * the whitespace text node that source formatting leaves inside an
+     * empty container.
+     */
+    private static function hasElementChildren(Element $element): bool
+    {
+        foreach ($element->children as $child) {
+            if ($child instanceof Element) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
