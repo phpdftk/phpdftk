@@ -381,6 +381,15 @@ final class Cascade
 
         // 3. Materialise CascadedValues, then apply inheritance.
         $result = new CascadedValues($this->registry);
+        // Cascade rank of each property's winning DECLARATION, keyed by
+        // property name. `CascadedValues` keeps only the value, and by
+        // the time logical properties are resolved below every property
+        // has one (from inheritance or its initial), so `has()` cannot
+        // tell "the author declared padding-left" from "padding-left is
+        // sitting at its initial 0". The ranks let the logical/physical
+        // decision follow the real cascade instead of guessing.
+        /** @var array<string, array{tier: int, specificity: Specificity, order: int}> $winnerRank */
+        $winnerRank = [];
         foreach ($byProperty as $name => $indices) {
             $winner = $this->pickCascadeWinner($name, $indices, $candidates);
             if ($winner === null) {
@@ -393,6 +402,11 @@ final class Cascade
             );
             if ($value !== null) {
                 $result->set($name, $value);
+                $winnerRank[$name] = [
+                    'tier' => $winner['tier'],
+                    'specificity' => $winner['specificity'],
+                    'order' => $winner['order'],
+                ];
             }
         }
         $this->applyInheritance($result, $parentValues);
@@ -419,7 +433,7 @@ final class Cascade
         // logical-property resolution and layout dispatch see the
         // table's effective WM.
         $this->forceTableInternalWritingMode($result, $element, $parentValues);
-        $this->resolveLogicalProperties($result);
+        $this->resolveLogicalProperties($result, $winnerRank);
         return $result;
     }
 
@@ -464,7 +478,47 @@ final class Cascade
      * the common case; the edge case of "set both, expect later
      * wins" lands when we extend the cascade engine itself.
      */
-    private function resolveLogicalProperties(CascadedValues $values): void
+    /**
+     * CSS Logical Properties 1 §2 — a logical longhand and the physical
+     * longhand it maps to are different properties that share one used
+     * value, and the CASCADE decides which declaration supplies it.
+     *
+     * The old test was `!$values->has($physical)`, i.e. "physical always
+     * wins if present". By the time this runs every property is present
+     * (inheritance and initial values have been filled in), so in
+     * practice any UA-sheet physical declaration silently beat an AUTHOR
+     * logical one: `textarea { padding: 2pt 4pt }` in the UA sheet made
+     * an author's `padding-inline-start: 8em` a no-op.
+     *
+     * Compare the two winning declarations by tier (origin x
+     * importance), then specificity, then source order — the same
+     * ranking `pickCascadeWinner()` applies within a single property. A
+     * physical property with no entry in `$winnerRank` was never
+     * declared at all, so the logical one takes it uncontested.
+     *
+     * @param array<string, array{tier: int, specificity: Specificity, order: int}> $winnerRank
+     */
+    private function logicalBeatsPhysical(string $logical, string $physical, array $winnerRank): bool
+    {
+        $logicalRank = $winnerRank[$logical] ?? null;
+        if ($logicalRank === null) {
+            // The logical value came from inheritance / initial rather
+            // than a declaration; it must not overwrite anything.
+            return false;
+        }
+        $physicalRank = $winnerRank[$physical] ?? null;
+        if ($physicalRank === null) {
+            return true;
+        }
+        return (($logicalRank['tier'] <=> $physicalRank['tier'])
+            ?: $logicalRank['specificity']->compare($physicalRank['specificity'])
+            ?: ($logicalRank['order'] <=> $physicalRank['order'])) > 0;
+    }
+
+    /**
+     * @param array<string, array{tier: int, specificity: Specificity, order: int}> $winnerRank
+     */
+    private function resolveLogicalProperties(CascadedValues $values, array $winnerRank = []): void
     {
         $wm = WritingMode::fromStyle($values);
         // 1) sizing: block-size / inline-size → height / width
@@ -477,7 +531,7 @@ final class Cascade
             'max-inline-size' => $wm->isVertical() ? 'max-height' : 'max-width',
         ];
         foreach ($sizingPairs as $logical => $physical) {
-            if ($values->has($logical) && !$values->has($physical)) {
+            if ($values->has($logical) && $this->logicalBeatsPhysical($logical, $physical, $winnerRank)) {
                 $logicalValue = $values->get($logical);
                 if ($logicalValue !== null) {
                     $values->set($physical, $logicalValue);
@@ -506,7 +560,7 @@ final class Cascade
             }
             $physicalEdge = $wm->physicalEdge($logicalEdge);
             $physical = $prefix === '' ? $physicalEdge : $prefix . $physicalEdge;
-            if (!$values->has($physical)) {
+            if ($this->logicalBeatsPhysical($logical, $physical, $winnerRank)) {
                 $logicalValue = $values->get($logical);
                 if ($logicalValue !== null) {
                     $values->set($physical, $logicalValue);
@@ -536,7 +590,7 @@ final class Cascade
             }
             $physicalEdge = $wm->physicalEdge($logicalEdge);
             $physical = 'border-' . $physicalEdge . $suffix;
-            if (!$values->has($physical)) {
+            if ($this->logicalBeatsPhysical($logical, $physical, $winnerRank)) {
                 $logicalValue = $values->get($logical);
                 if ($logicalValue !== null) {
                     $values->set($physical, $logicalValue);

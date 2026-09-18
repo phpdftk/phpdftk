@@ -174,17 +174,47 @@ final class WritingModeTest extends TestCase
         self::assertSame(100.0, $height->value);
     }
 
-    public function testCascadePhysicalWinsWhenBothLogicalAndPhysicalDeclared(): void
+    public function testLogicalAndPhysicalLonghandsResolveBySourceOrder(): void
     {
-        // Precedence rule: when both logical and physical are
-        // declared, the physical entry wins (full per-declaration
-        // ordering across the pair would need engine changes).
-        $sheet = $this->parser->parseStylesheet(
-            'p { margin-top: 20px; margin-block-start: 10px; }',
+        // CSS Logical Properties 1 §2 — a logical longhand and the
+        // physical longhand it maps to are different properties sharing
+        // one used value, and the CASCADE picks between them. With equal
+        // origin and specificity that means the LATER declaration wins,
+        // in whichever order they are written.
+        $laterLogical = $this->cascade->computeFor(
+            [$this->parser->parseStylesheet('p { margin-top: 20px; margin-block-start: 10px; }')],
+            new FakeElement('p'),
+        )->get('margin-top');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $laterLogical);
+        self::assertSame(10.0, $laterLogical->value, 'later logical declaration wins');
+
+        $laterPhysical = $this->cascade->computeFor(
+            [$this->parser->parseStylesheet('p { margin-block-start: 10px; margin-top: 20px; }')],
+            new FakeElement('p'),
+        )->get('margin-top');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $laterPhysical);
+        self::assertSame(20.0, $laterPhysical->value, 'later physical declaration wins');
+    }
+
+    public function testAuthorLogicalLonghandBeatsUserAgentPhysicalOne(): void
+    {
+        // The regression this ordering fix was found through: the UA
+        // sheet gives `<textarea>` a physical `padding`, which used to
+        // veto an author `padding-inline-start` outright — WPT's
+        // textarea-padding-* reftests zero the content box and expect the
+        // padding to be the only thing sizing the control.
+        $ua = $this->parser->parseStylesheet(
+            'textarea { padding: 2px; }',
+            \Phpdftk\Css\Sheet\Origin::UserAgent,
         );
-        $values = $this->cascade->computeFor([$sheet], new FakeElement('p'));
-        $top = $values->get('margin-top');
-        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $top);
-        self::assertSame(20.0, $top->value);
+        $author = $this->parser->parseStylesheet(
+            'textarea { padding-inline-start: 80px; }',
+            \Phpdftk\Css\Sheet\Origin::Author,
+        );
+        $left = $this->cascade
+            ->computeFor([$ua, $author], new FakeElement('textarea'))
+            ->get('padding-left');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $left);
+        self::assertSame(80.0, $left->value);
     }
 }
