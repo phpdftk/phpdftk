@@ -2319,16 +2319,140 @@ final class BlockLayoutTest extends TestCase
         self::assertSame([], $section->multiColumn->runs);
     }
 
-    public function testIndefiniteHeightContainerIsNeverSliced(): void
+    public function testIndefiniteHeightContainerBalancesAndSlices(): void
     {
-        // Without a definite height there is no fragmentainer extent to
-        // slice against, so the container stays on the classic path even
-        // though its child is far taller than a balanced column.
+        // CSS Multi-column 1 §3.3 — with no fragmentainer extent the
+        // balanced height stands on its own: 300px over 3 columns is 100px
+        // per column, and the single unsplittable child is sliced to match.
         $box = $this->buildTree(
             '<html><body><section><div></div></section></body></html>',
             'html, body, section, div { display: block; }
              section { columns: 3; }
              section > div { height: 300px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(1, $section->multiColumn->runs);
+        self::assertEqualsWithDelta(100.0, $section->multiColumn->runs[0]->columnHeight, 0.5);
+        self::assertSame(3, $section->multiColumn->runs[0]->bandCount);
+    }
+
+    public function testAutoFillWithoutAFragmentainerExtentDoesNotFragment(): void
+    {
+        // §3.3 — `column-fill: auto` fills each column to the fragmentainer
+        // extent. With neither `height` nor `max-height` there is no extent
+        // to fill and nothing to break against, so the content stays in one
+        // column (`css/css-multicol/abspos-after-spanner`).
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; column-fill: auto; }
+             section > div { height: 300px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testMaxHeightBoundsAutoFillColumnHeight(): void
+    {
+        // §3.3 — with `height: auto` a definite `max-height` is still the
+        // fragmentainer extent, so `column-fill: auto` fills 200px columns
+        // (`css/css-multicol/multicol-fill-auto-block-children-003`).
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; column-fill: auto; max-height: 200px; }
+             section > div { height: 400px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(1, $section->multiColumn->runs);
+        self::assertEqualsWithDelta(200.0, $section->multiColumn->runs[0]->columnHeight, 0.5);
+        self::assertSame(2, $section->multiColumn->runs[0]->bandCount);
+    }
+
+    public function testRunEndingAtASpannerBalancesEvenUnderColumnFillAuto(): void
+    {
+        // CSS Multi-column 1 §6.2 + csswg-drafts#4689 — the columns of a
+        // run that ends at a spanner always balance, even under
+        // `column-fill: auto` with an unconstrained height
+        // (`css/css-multicol/always-balancing-before-column-span`).
+        $box = $this->buildTree(
+            '<html><body><section><div class="c"></div>'
+            . '<div class="s"></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; column-fill: auto; width: 100px; }
+             section > .c { height: 200px; }
+             section > .s { column-span: all; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(1, $section->multiColumn->runs);
+        self::assertEqualsWithDelta(100.0, $section->multiColumn->runs[0]->columnHeight, 0.5);
+        self::assertSame(2, $section->multiColumn->runs[0]->bandCount);
+    }
+
+    public function testALoneSpannerTakesTheFullContainerWidth(): void
+    {
+        // §6.2 — a container whose only child is a `column-span: all` box
+        // has no columnar content at all; the spanner spans the container
+        // and must not be treated as a column to slice
+        // (`css/css-multicol/intrinsic-size-002`).
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 3; width: 300px; }
+             section > div { column-span: all; height: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+        $spanner = $section->children[0];
+        self::assertEqualsWithDelta(300.0, $spanner->geometry->width, 0.5);
+    }
+
+    public function testASubtreeContainingASpannerIsNotSliced(): void
+    {
+        // §6.2 lets a spanner be a DESCENDANT of the container. We do not
+        // split the intervening ancestors (one geometry per box), so the
+        // ancestor is laid out whole — slicing it would scatter the spanner
+        // across the columns it is supposed to span
+        // (`css/css-multicol/intrinsic-size-003`).
+        $box = $this->buildTree(
+            '<html><body><section><div class="w"><div class="s"></div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 3; width: 300px; }
+             section > .w { height: 300px; }
+             .s { column-span: all; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testColumnsShorterThanALineOfTextAreNotSliced(): void
+    {
+        // The slice is geometric, so a band shorter than a line box would
+        // cut every line in half — worse than the unsliced overflow the
+        // classic path leaves (`css/css-multicol/multicol-width-004`).
+        $box = $this->buildTree(
+            '<html><body><section><div>one line of text</div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 8; width: 800px; }
+             section > div { background: yellow; }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $section = $this->find($box, 'section');
@@ -10635,10 +10759,11 @@ final class BlockLayoutTest extends TestCase
         // a in column 0 of the first run, starting at section top.
         self::assertEqualsWithDelta($section->geometry->x, $a->geometry->x, 0.001);
         self::assertEqualsWithDelta($section->geometry->y, $a->geometry->y, 0.001);
-        // Spanner below the first run's tallest column (a is 50px high
-        // → first columnar segment ends at section.y + 50, since
-        // there's only one child to balance).
-        $expectedSpannerY = $section->geometry->y + 50.0;
+        // Spanner below the first run's columns. CSS Multi-column 1 §6.2
+        // (+ csswg-drafts#4689) balances a run that ends at a spanner, so
+        // `a`'s 50px splits into two 25px columns and the run — hence the
+        // spanner — starts 25px down, not 50px.
+        $expectedSpannerY = $section->geometry->y + 25.0;
         self::assertEqualsWithDelta($expectedSpannerY, $spanner->geometry->y, 0.001);
         // b in column 0 of the second columnar run, below the spanner.
         self::assertEqualsWithDelta($section->geometry->x, $b->geometry->x, 0.001);

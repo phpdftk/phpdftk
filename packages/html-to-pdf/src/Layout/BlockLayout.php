@@ -7781,6 +7781,32 @@ final class BlockLayout
     }
 
     /**
+     * CSS Multi-column 1 §3.3 — the block extent that bounds a
+     * multi-column container's column boxes, or null when it is
+     * indefinite.
+     *
+     * A definite `height` makes the container a fragmentainer of that
+     * height. With `height: auto`, a definite `max-height` bounds the
+     * columns just the same — WPT asserts exactly that
+     * (`multicol-fill-auto-block-children-003`: "max-height on a
+     * multi-column container imposes a constraint on column boxes'
+     * height"; `columnfill-auto-max-height-003`).
+     */
+    private function fragmentainerExtent(CascadedValues $style, float $cbHeight): ?float
+    {
+        $height = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        if ($height !== null) {
+            return $height;
+        }
+        $max = $style->get('max-height');
+        if ($max === null || $this->isAuto($max) || $max instanceof Keyword) {
+            return null;
+        }
+        $resolved = $this->resolveLength($max, $cbHeight);
+        return $resolved > 0.0 ? $resolved : null;
+    }
+
+    /**
      * CSS Sizing 4 §4.1 — a flex or grid CONTAINER with an
      * `aspect-ratio` and an auto block size derives that block size
      * from its definite inline size, exactly as a block container
@@ -9275,7 +9301,7 @@ final class BlockLayout
         // container width between them. Walk the children once and
         // dispatch each segment to the appropriate layout path.
         $segments = $this->splitByColumnSpan($box->children);
-        if (count($segments) > 1) {
+        if ($this->hasSpannerSegment($segments)) {
             $cursorY = $geo->y;
             // CSS Multi-column 1 §3.3 + §6.2 — a container with a DEFINITE
             // height is a fragmentainer of that height, so each columnar run
@@ -9284,14 +9310,14 @@ final class BlockLayout
             // than stretching the run: without the cap, a `height: 300%`
             // child pushed the spanner its full 600px down instead of
             // leaving it at the container's 200px edge.
-            $fragmentainerHeight = $this->resolveExplicitHeightOrNull(
+            $fragmentainerHeight = $this->fragmentainerExtent(
                 $box->style,
                 $childContext->containingBlockHeight,
             );
             $fragmentainerBottom = $fragmentainerHeight !== null && $fragmentainerHeight > 0.0
                 ? $geo->y + $fragmentainerHeight
                 : null;
-            foreach ($segments as $segment) {
+            foreach ($segments as $index => $segment) {
                 if ($segment['span']) {
                     // Single column-span: all child — lay out full-width.
                     $spanChild = $segment['children'][0];
@@ -9316,6 +9342,12 @@ final class BlockLayout
                         $count,
                         $cursorY,
                         columnSpace: $columnSpace,
+                        // CSS Multi-column 1 §6.2 + csswg-drafts#4689 — the
+                        // columns of a run that ENDS AT A SPANNER always
+                        // balance, even under `column-fill: auto` with an
+                        // unconstrained height
+                        // (`always-balancing-before-column-span`).
+                        balanceBeforeSpanner: ($segments[$index + 1]['span'] ?? false) === true,
                     );
                     if ($columnSpace !== null) {
                         $runHeight = min($runHeight, $columnSpace);
@@ -9340,7 +9372,7 @@ final class BlockLayout
             $count,
             $geo->y,
             allowFragment: true,
-            columnSpace: $this->resolveExplicitHeightOrNull(
+            columnSpace: $this->fragmentainerExtent(
                 $box->style,
                 $childContext->containingBlockHeight,
             ),
@@ -9801,6 +9833,46 @@ final class BlockLayout
     }
 
     /**
+     * True when any segment is a `column-span: all` spanner. A container
+     * whose ONLY child is a spanner still needs the spanner path — the
+     * spanner takes the full container width (CSS Multi-column 1 §6.2),
+     * it is not columnar content (`intrinsic-size-002`,
+     * `replaced-content-spanner-auto-width`).
+     *
+     * @param list<array{span: bool, children: list<Box>}> $segments
+     */
+    private function hasSpannerSegment(array $segments): bool
+    {
+        foreach ($segments as $segment) {
+            if ($segment['span']) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True when `column-span: all` appears anywhere in this box's subtree.
+     *
+     * CSS Multi-column 1 §6.2 lets a spanner be a DESCENDANT of the
+     * multi-column container, not just a child, in which case it is pulled
+     * out of its ancestors and the ancestors are split around it. We do
+     * not implement that split (`Box` owns one geometry), so the ancestor
+     * is laid out whole — and slicing it into column bands would scatter
+     * the spanner across the columns it is supposed to span. Leaving such
+     * a subtree on the unsliced path keeps it in one piece.
+     */
+    private function containsColumnSpanAll(Box $box): bool
+    {
+        foreach ($box->children as $child) {
+            if ($this->isColumnSpanAll($child) || $this->containsColumnSpanAll($child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Two-pass columnar layout over a subset of `$box`'s children
      * starting at `$originY`. Returns the total vertical space consumed
      * (max of the column heights) so the caller can advance its cursor
@@ -9825,6 +9897,7 @@ final class BlockLayout
         float $originY,
         bool $allowFragment = false,
         ?float $columnSpace = null,
+        bool $balanceBeforeSpanner = false,
     ): float {
         $geo = $box->geometry;
         if ($children === []) {
@@ -9928,14 +10001,13 @@ final class BlockLayout
             }
         }
 
-        // CSS Multi-column 1 §3.3 — when the run's columns are bounded by
-        // a definite fragmentainer extent, content that a whole-child
+        // CSS Multi-column 1 §3.3 — content that a whole-child
         // redistribution cannot place is SLICED into column bands instead
         // ({@see recordColumnRun}). This is the only path that can put one
         // block into several columns, and — unlike the `$allowFragment`
         // block above — it works per-run, so a container carved up by
         // `column-span: all` gets one slice record per columnar segment.
-        if ($count > 1 && $columnSpace !== null) {
+        if ($count > 1) {
             $sliced = $this->recordColumnRun(
                 $box,
                 $children,
@@ -9945,6 +10017,7 @@ final class BlockLayout
                 $count,
                 $originY,
                 $columnSpace,
+                $balanceBeforeSpanner,
             );
             if ($sliced !== null) {
                 return $sliced;
@@ -10072,9 +10145,14 @@ final class BlockLayout
      *
      * Column height: `column-fill: auto` fills each column to the
      * fragmentainer extent; `balance` (the initial value) equalises the
-     * columns but is still bounded by it — hence `min()`. A run with no
-     * space left still gets 1px columns rather than none, which is what
-     * §3.3's breaking rules require and what
+     * columns, bounded by that extent where there is one — hence `min()`.
+     * `$columnSpace` is null when the container's height is indefinite, in
+     * which case the balanced height stands on its own (§3.3 — an
+     * auto-height container's columns are as tall as balancing makes
+     * them, and `column-fill: auto` degenerates to the same thing because
+     * there is no fragmentainer extent to fill). A run with no space left
+     * still gets 1px columns rather than none, which is what §3.3's
+     * breaking rules require and what
      * `multicol-span-all-children-height-003` asserts.
      *
      * @param list<Box> $children
@@ -10087,7 +10165,8 @@ final class BlockLayout
         float $gap,
         int $count,
         float $originY,
-        float $columnSpace,
+        ?float $columnSpace,
+        bool $balanceBeforeSpanner,
     ): ?float {
         $mc = $box->multiColumn;
         if ($mc === null || $columnWidth <= 0.0 || $childTotal <= 0.0) {
@@ -10095,10 +10174,36 @@ final class BlockLayout
         }
         $fill = $box->style->get('column-fill');
         $isAutoFill = $fill instanceof Keyword && strtolower($fill->name) === 'auto';
-        $columnHeight = $isAutoFill
-            ? $columnSpace
-            : min(ceil($childTotal / $count), $columnSpace);
+        if ($isAutoFill && $balanceBeforeSpanner) {
+            // §6.2 + csswg-drafts#4689 — a run that ends at a spanner
+            // balances regardless of `column-fill`.
+            $isAutoFill = false;
+        }
+        if ($isAutoFill && $columnSpace === null) {
+            // §3.3 — `column-fill: auto` fills each column to the
+            // fragmentainer extent. With no definite extent there is
+            // nothing to fill and nothing to break against, so the content
+            // stays in one column (`columnfill-auto-max-height-003`,
+            // `abspos-after-spanner`).
+            return null;
+        }
+        $balanced = ceil($childTotal / $count);
+        if ($columnSpace === null) {
+            $columnHeight = $balanced;
+        } elseif ($isAutoFill) {
+            $columnHeight = $columnSpace;
+        } else {
+            $columnHeight = min($balanced, $columnSpace);
+        }
         $columnHeight = max(1.0, $columnHeight);
+        // The slice is purely geometric, so a band shorter than a line of
+        // text would cut every line in half — worse than the unsliced
+        // overflow the classic path leaves behind. Browsers break between
+        // lines; until we can, refuse the slice
+        // (`multicol-width-004`: one 19px line balanced into 10px columns).
+        if ($columnHeight + 0.001 < $this->tallestLineBox($children)) {
+            return null;
+        }
         if (!$this->columnRunNeedsSlicing($children, $columnHeight)) {
             return null;
         }
@@ -10112,6 +10217,27 @@ final class BlockLayout
             new ColumnRun($children, $originY, $columnHeight, $bands),
         );
         return $columnHeight;
+    }
+
+    /**
+     * Height of the tallest line box anywhere in `$children`, or 0 when the
+     * run holds no inline content. Bounds how finely the geometric slicer
+     * may cut without bisecting a line.
+     *
+     * @param list<Box> $children
+     */
+    private function tallestLineBox(array $children): float
+    {
+        $tallest = 0.0;
+        foreach ($children as $child) {
+            foreach ($child->lineBoxes as $line) {
+                $tallest = max($tallest, $line->height);
+            }
+            if ($child->children !== []) {
+                $tallest = max($tallest, $this->tallestLineBox($child->children));
+            }
+        }
+        return $tallest;
     }
 
     /**
@@ -10142,6 +10268,8 @@ final class BlockLayout
             if ($this->isIfcFragmentable($child)
                 || $this->isMonolithic($child)
                 || $this->avoidsColumnBreakInside($child)
+                || $child->multiColumn !== null
+                || $this->containsColumnSpanAll($child)
             ) {
                 continue;
             }
