@@ -87,8 +87,96 @@ final class UnderOverAlignmentTest extends TestCase
     }
 
     // -----------------------------------------------------------------
-    // Scripts are centred within the construct.
+    // Every child is centred within the construct.
     // -----------------------------------------------------------------
+
+    public function testWideOverscriptCentresTheNarrowBase(): void
+    {
+        // base 25pt, overscript 75pt -> construct is 75pt wide.
+        // The overscript starts at the construct origin and the
+        // base is inset by (75 - 25) / 2 = 25pt.
+        $rects = $this->rectangles($this->render(
+            '<mover>'
+            . '<mspace height="15px" width="25px" mathbackground="blue"/>'
+            . '<mspace height="15px" width="75px" mathbackground="red"/>'
+            . '</mover>',
+        ));
+        self::assertCount(2, $rects);
+        [$baseX, , $baseW] = $rects[0];
+        [$overX, , $overW] = $rects[1];
+        self::assertEqualsWithDelta(25.0, $baseW, 0.01);
+        self::assertEqualsWithDelta(75.0, $overW, 0.01);
+        self::assertEqualsWithDelta(self::ORIGIN_X + 25.0, $baseX, 0.01);
+        self::assertEqualsWithDelta(self::ORIGIN_X, $overX, 0.01);
+    }
+
+    public function testWideUnderscriptCentresTheNarrowBase(): void
+    {
+        $rects = $this->rectangles($this->render(
+            '<munder>'
+            . '<mspace height="15px" width="25px" mathbackground="blue"/>'
+            . '<mspace height="15px" width="75px" mathbackground="red"/>'
+            . '</munder>',
+        ));
+        self::assertCount(2, $rects);
+        [$baseX] = $rects[0];
+        [$underX] = $rects[1];
+        self::assertEqualsWithDelta(self::ORIGIN_X + 25.0, $baseX, 0.01);
+        self::assertEqualsWithDelta(self::ORIGIN_X, $underX, 0.01);
+    }
+
+    public function testMunderoverCentresBaseAgainstTheWidestScript(): void
+    {
+        // base 50pt, underscript 75pt, overscript 25pt -> the
+        // construct is 75pt wide. Offsets: base (75-50)/2 = 12.5,
+        // underscript 0, overscript (75-25)/2 = 25.
+        // Rectangles come out in paint order: base, over, under.
+        $rects = $this->rectangles($this->render(
+            '<munderover>'
+            . '<mspace height="15px" width="50px" mathbackground="blue"/>'
+            . '<mspace height="15px" width="75px" mathbackground="red"/>'
+            . '<mspace height="15px" width="25px" mathbackground="green"/>'
+            . '</munderover>',
+        ));
+        self::assertCount(3, $rects);
+        [$baseX, , $baseW] = $rects[0];
+        [$overX, , $overW] = $rects[1];
+        [$underX, , $underW] = $rects[2];
+        self::assertEqualsWithDelta(50.0, $baseW, 0.01, 'base width');
+        self::assertEqualsWithDelta(25.0, $overW, 0.01, 'overscript width');
+        self::assertEqualsWithDelta(75.0, $underW, 0.01, 'underscript width');
+        self::assertEqualsWithDelta(self::ORIGIN_X + 12.5, $baseX, 0.01, 'base x');
+        self::assertEqualsWithDelta(self::ORIGIN_X + 25.0, $overX, 0.01, 'overscript x');
+        self::assertEqualsWithDelta(self::ORIGIN_X, $underX, 0.01, 'underscript x');
+    }
+
+    public function testNarrowBaseConstructMatchesItsPaddedEquivalent(): void
+    {
+        // The identity the WPT accent reftests assert: a bare 25pt
+        // base under a 75pt script must land exactly where a base
+        // padded out to 75pt with transparent spacers does.
+        $bare = $this->rectangles($this->render(
+            '<mover>'
+            . '<mspace height="15px" width="25px" mathbackground="blue"/>'
+            . '<mspace height="15px" width="75px" mathbackground="red"/>'
+            . '</mover>',
+        ));
+        $padded = $this->rectangles($this->render(
+            '<mover>'
+            . '<mrow>'
+            . '<mspace height="15px" width="25px"/>'
+            . '<mspace height="15px" width="25px" mathbackground="blue"/>'
+            . '<mspace height="15px" width="25px"/>'
+            . '</mrow>'
+            . '<mspace height="15px" width="75px" mathbackground="red"/>'
+            . '</mover>',
+        ));
+        self::assertSame(count($bare), count($padded));
+        foreach ($bare as $i => $rect) {
+            self::assertEqualsWithDelta($rect[0], $padded[$i][0], 0.01, "rect $i x");
+            self::assertEqualsWithDelta($rect[2], $padded[$i][2], 0.01, "rect $i width");
+        }
+    }
 
     public function testWideBaseKeepsConstructOriginAndCentresScripts(): void
     {
