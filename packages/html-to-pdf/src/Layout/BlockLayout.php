@@ -5159,6 +5159,8 @@ final class BlockLayout
             $context,
             isColumnAxis: true,
             implicitTracksAreIntrinsic: !($style->get('grid-auto-columns') instanceof Length),
+            availableSize: max(0.0, $geo->width),
+            gap: $columnGap,
         );
         $this->resolveGridContentSizedTracks(
             $rowTracks,
@@ -5889,6 +5891,8 @@ final class BlockLayout
         LayoutContext $context,
         bool $isColumnAxis,
         bool $implicitTracksAreIntrinsic = false,
+        float $availableSize = 0.0,
+        float $gap = 0.0,
     ): void {
         // Bail when there are no content-sized tracks to resolve.
         $hasContentTrack = $implicitTracksAreIntrinsic && count($resolved) > count($descriptors);
@@ -5901,6 +5905,8 @@ final class BlockLayout
         if (!$hasContentTrack) {
             return;
         }
+        /** @var array<int, float> $minBase */
+        $minBase = [];
         foreach ($placements as $p) {
             if ($p['row'] < 0 || $p['col'] < 0) {
                 continue;
@@ -5937,6 +5943,14 @@ final class BlockLayout
             }
             $mm = $this->measureMinMaxContent($p['box'], $context);
             $intrinsic = $mm['max'];
+            // §12.4 — remember each track's BASE size (the largest
+            // min-content contribution of the items in it) separately from
+            // the growth limit below, so the §12.5 clamp knows how far the
+            // track may be shrunk back when the max-content sizes overflow.
+            $minShare = $mm['min'] / max(1, count($contentTrackIndices));
+            foreach ($contentTrackIndices as $i) {
+                $minBase[$i] = max($minBase[$i] ?? 0.0, $minShare);
+            }
             // For the simplest "use min-content" track:
             foreach ($contentTrackIndices as $i) {
                 // Implicit tracks have no descriptor; they inherit the
@@ -5966,6 +5980,27 @@ final class BlockLayout
             $current = (float) ($resolved[$i] ?? 0.0);
             if ($current < $floor) {
                 $resolved[$i] = $floor;
+            }
+            $minBase[$i] = max($minBase[$i] ?? 0.0, $floor);
+        }
+        // CSS Grid Layout 2 §12.5 — "maximize tracks" only grows an
+        // intrinsic track towards its max-content growth limit while FREE
+        // SPACE remains. Sizing straight to max-content (which is what the
+        // loop above does) overflows the grid whenever the items are wider
+        // than the container, so pull the intrinsic tracks back towards
+        // their min-content base sizes until the row fits again.
+        if ($availableSize > 0.0 && $minBase !== []) {
+            $overflow = $this->gridTotalExtent($resolved, $gap) - $availableSize;
+            $shrinkable = 0.0;
+            foreach ($minBase as $i => $base) {
+                $shrinkable += max(0.0, ($resolved[$i] ?? 0.0) - $base);
+            }
+            if ($overflow > 0.0 && $shrinkable > 0.0) {
+                $ratio = min(1.0, $overflow / $shrinkable);
+                foreach ($minBase as $i => $base) {
+                    $slack = max(0.0, ($resolved[$i] ?? 0.0) - $base);
+                    $resolved[$i] -= $slack * $ratio;
+                }
             }
         }
     }

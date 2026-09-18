@@ -7726,6 +7726,45 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
     }
 
+    public function testGridIntrinsicColumnsAreClampedToTheAvailableSpace(): void
+    {
+        // Positive (CSS Grid 2 §12.5): "maximize tracks" only grows an
+        // intrinsic track towards its max-content growth limit while free
+        // space remains. Sizing straight to max-content overflowed the grid
+        // whenever the items were wider than the container.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 150px; '
+            . 'grid-template-columns: auto;">'
+            . '<div class="a">'
+            . '<span style="display: inline-block; width: 120px;"></span>'
+            . '<span style="display: inline-block; width: 120px;"></span>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        // max-content is 240 (the two inline-blocks side by side), min-content
+        // 120 (the widest one); the track is pulled back to the 150px the
+        // container actually has.
+        self::assertEqualsWithDelta(150.0, $this->find($box, 'div.a')->geometry->width, 0.001);
+    }
+
+    public function testGridIntrinsicColumnsKeepMaxContentWhenItFits(): void
+    {
+        // Negative: with room to spare the track keeps its max-content size —
+        // the clamp must not shrink a track that already fits.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 300px; '
+            . 'justify-content: start; grid-template-columns: auto;">'
+            . '<div class="a">'
+            . '<span style="display: inline-block; width: 120px;"></span>'
+            . '<span style="display: inline-block; width: 120px;"></span>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(240.0, $this->find($box, 'div.a')->geometry->width, 0.001);
+    }
+
     public function testGridImplicitColumnTracksAreContentSized(): void
     {
         // Positive (CSS Grid 2 §7.4): an IMPLICIT column takes its sizing
