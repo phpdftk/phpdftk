@@ -1206,6 +1206,37 @@ final class InlineLayoutTest extends TestCase
         self::assertCount(1, $first->shapedRun->glyphs);
     }
 
+    public function testCollapsibleWhitespaceCollapsesAcrossInlineBoxBoundaries(): void
+    {
+        $this->skipIfNoFont();
+        // CSS 2.1 §16.6.1 / CSS Text 3 §4.1.1 — collapsible whitespace
+        // collapses over the whole inline formatting context. The
+        // tokeniser bundles a word with its TRAILING space, so the run
+        // `M <span> M</span>` used to survive as two spaces: the first
+        // token is not whitespace-only, so the dedupe pass did not see
+        // that it already ended in one.
+        $letter = "\u{1820}";
+        $widths = [];
+        foreach ([
+            '<p>' . $letter . ' <span> <i>' . $letter . '</i></span></p>',
+            '<p>' . $letter . ' <span><i>' . $letter . '</i></span></p>',
+            '<p>' . $letter . ' <i>' . $letter . '</i></p>',
+        ] as $markup) {
+            $box = $this->buildTree(
+                '<html><body>' . $markup . '</body></html>',
+                'html, body, p { display: block; } span, i { display: inline; }',
+            );
+            $this->layout->layout($box, $this->defaultContext(400.0));
+            $p = $this->find($box, 'p');
+            self::assertNotNull($p);
+            self::assertCount(1, $p->lineBoxes);
+            $last = $p->lineBoxes[0]->fragments[count($p->lineBoxes[0]->fragments) - 1];
+            $widths[] = $last->x;
+        }
+        self::assertEqualsWithDelta($widths[2], $widths[0], 0.001, 'nested leading space collapses into the preceding one');
+        self::assertEqualsWithDelta($widths[2], $widths[1], 0.001, 'control: no extra whitespace to collapse');
+    }
+
     public function testCenterAlignExcludesTrailingWhitespaceFromSlack(): void
     {
         $this->skipIfNoFont();
@@ -2191,41 +2222,35 @@ final class InlineLayoutTest extends TestCase
         $this->skipIfNoFont();
         // CSS 2.1 §16.6.1 — whitespace collapsing applies across the
         // *whole* inline tree, not per text node. `<span>a </span><span>
-        // b</span>` (with a trailing space on the first span + a
-        // leading space on the second) should render as `a b` with a
-        // single space, not `a  b`. Without the cross-tree dedup, each
-        // TextBox runs preg_replace independently and leaves both
-        // single-space tokens, producing two visible spaces.
-        $box = $this->buildTree(
-            '<html><body><p>'
-            . '<span>' . "\u{1820} " . '</span>'
-            . '<span>' . " \u{1820}" . '</span>'
-            . '</p></body></html>',
-            'html, body, p { display: block; } span { display: inline; }',
+        // b</span>` (trailing space on the first span, leading space on
+        // the second) must render as `a b` with ONE space.
+        //
+        // Measured as an advance, not as a fragment count: the tokeniser
+        // bundles a word with its trailing space, so `a ` is a single
+        // wide fragment and the older "count fragments narrower than
+        // 10px" heuristic reported 1 whitespace fragment whether the
+        // duplicate space had been dropped or not — it passed while two
+        // spaces were still being laid out.
+        $letter = "\u{1820}";
+        $lineEnd = function (string $markup): float {
+            $box = $this->buildTree(
+                '<html><body><p>' . $markup . '</p></body></html>',
+                'html, body, p { display: block; } span { display: inline; }',
+            );
+            $this->layout->layout($box, $this->defaultContext(600.0));
+            $p = $this->find($box, 'p');
+            self::assertNotNull($p);
+            self::assertCount(1, $p->lineBoxes);
+            $frags = $p->lineBoxes[0]->fragments;
+            $last = $frags[count($frags) - 1];
+            return $last->x + $last->width;
+        };
+
+        $split = $lineEnd(
+            '<span>' . $letter . ' </span><span>' . " $letter" . '</span>',
         );
-        $this->layout->layout($box, $this->defaultContext(600.0));
-        $p = $this->find($box, 'p');
-        self::assertNotNull($p);
-        $line = $p->lineBoxes[0];
-        // Count whitespace fragments by inspecting their shapedRun's
-        // source text. Without cross-tree dedup we'd see two whitespace
-        // tokens here; with dedup we see exactly one.
-        $wsCount = 0;
-        foreach ($line->fragments as $f) {
-            $src = '';
-            foreach ($f->shapedRun->glyphs as $g) {
-                $src .= ($g->advanceX > 0) ? '?' : '';
-            }
-            // Use the fragment-width heuristic: a single-space fragment
-            // in Mongolian font has width ≈ the space glyph's advance.
-            // Easier: count fragments whose shapedRun's totalAdvance
-            // matches an ASCII-space shaping (small width, < 10px in
-            // the Mongolian fixture font at default size).
-            if ($f->width > 0.0 && $f->width < 10.0) {
-                $wsCount++;
-            }
-        }
-        self::assertSame(1, $wsCount, 'cross-tree whitespace dedup leaves a single shared space');
+        $single = $lineEnd('<span>' . $letter . ' ' . $letter . '</span>');
+        self::assertEqualsWithDelta($single, $split, 0.001, 'cross-tree whitespace dedup leaves a single shared space');
     }
 
     public function testPreWrapHangsTrailingWhitespaceAtWrap(): void

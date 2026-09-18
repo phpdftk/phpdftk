@@ -1546,17 +1546,26 @@ final class InlineLayout
         // *entire* inline tree, not per text node. The per-TextBox
         // collapse in `walkInline` only sees one node at a time, so
         // `<span>a </span><span> b</span>` arrives here as two
-        // adjacent whitespace tokens. Drop the second of any
-        // consecutive whitespace pair (only when collapsing is on).
+        // adjacent whitespace tokens. Drop any whitespace token whose
+        // predecessor already ENDS in collapsible whitespace (only when
+        // collapsing is on).
+        //
+        // "Ends in whitespace" is not the same as "is whitespace": the
+        // tokeniser bundles a word with its trailing space (UAX #14 puts
+        // the break opportunity AFTER the space), so `X <span> <i>s`
+        // arrives as [`X `, ` `, `s`] — a run this pass used to keep
+        // BOTH spaces of, because the first token isn't whitespace-only.
+        // That put a spurious second space in front of every inline box
+        // whose own content starts with collapsible whitespace.
         if ($collapseInternal) {
             $deduped = [];
-            $prevWasWs = false;
+            $prevEndsInWs = false;
             foreach ($out as $token) {
-                if ($token['isWhitespace'] && $prevWasWs) {
+                if ($token['isWhitespace'] && $prevEndsInWs) {
                     continue;
                 }
                 $deduped[] = $token;
-                $prevWasWs = $token['isWhitespace'];
+                $prevEndsInWs = $token['isWhitespace'] || $token['trailingSpace'] > 0.0;
             }
             $out = $deduped;
         }
