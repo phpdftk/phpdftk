@@ -3142,23 +3142,53 @@ final class Translator
      */
     private function measureWidth(Element $element, MathmlPaintContext $ctx): float
     {
-        // Explicit-dimension primitives win regardless of position.
+        return $this->estimateWidth($element, $ctx->fontSize, $ctx);
+    }
+
+    /**
+     * Width of `$element`'s painted content in pt.
+     *
+     * Three tiers, in order:
+     *
+     *   1. Explicit width on a layout primitive (`<mpadded>` /
+     *      `<mspace>`) — a box of known size that contains no
+     *      glyphs of its own.
+     *   2. Container shapes (the MathmlDocument root, `<mrow>`,
+     *      generic-element wrappers, `<mphantom>`, `<menclose>`,
+     *      `<mstyle>`, `<mpadded>` without an explicit width) sum
+     *      their direct element children. Summing is what the
+     *      painter actually does when it walks those children, and
+     *      it is the only tier that sees a child's explicit
+     *      `<mspace width>` — the textContent fallback below
+     *      measures such a child as the empty string, reporting
+     *      zero for an `<mrow>` built entirely out of spacers.
+     *      Summing element children also skips the whitespace-only
+     *      text nodes the HTML parser keeps between elements,
+     *      which would otherwise inflate the measurement.
+     *   3. Token elements and constructs with their own width logic
+     *      (`<mfrac>`, `<mtable>`, `<msqrt>`, …) fall back to
+     *      measuring their flattened text.
+     */
+    private function estimateWidth(
+        Element $element,
+        float $fontSize,
+        ?MathmlPaintContext $ctx = null,
+    ): float {
+        // Tier 1 — explicit width on a layout primitive wins over
+        // both the child sum and the measured-text fallback.
         if ($element instanceof Mpadded) {
-            $widthPt = $element->widthPt($ctx->fontSize);
+            $widthPt = $element->widthPt($fontSize);
             if ($widthPt !== null) {
                 return $widthPt;
             }
         }
         if ($element instanceof Mspace) {
-            $widthPt = $element->widthPt($ctx->fontSize);
+            $widthPt = $element->widthPt($fontSize);
             if ($widthPt !== null) {
                 return $widthPt;
             }
         }
-        // Container shapes: sum direct element children. This
-        // ignores whitespace-only text nodes the HTML parser
-        // keeps between elements (which would otherwise inflate
-        // estimateWidth's textContent measurement).
+        // Tier 2 — container shapes sum their direct element children.
         if (
             $element instanceof Mrow
             || $element instanceof GenericElement
@@ -3172,35 +3202,13 @@ final class Translator
             $hasChild = false;
             foreach ($this->elementChildren($element) as $child) {
                 $hasChild = true;
-                $total += $this->measureWidth($child, $ctx);
+                $total += $this->estimateWidth($child, $fontSize, $ctx);
             }
             if ($hasChild) {
                 return $total;
             }
         }
-        return $this->estimateWidth($element, $ctx->fontSize, $ctx);
-    }
-
-    private function estimateWidth(
-        Element $element,
-        float $fontSize,
-        ?MathmlPaintContext $ctx = null,
-    ): float {
-        // Explicit width on layout primitives wins over the
-        // measured-text fallback. mpadded / mspace use this to
-        // reserve a box of known size without containing glyphs.
-        if ($element instanceof Mpadded) {
-            $widthPt = $element->widthPt($fontSize);
-            if ($widthPt !== null) {
-                return $widthPt;
-            }
-        }
-        if ($element instanceof Mspace) {
-            $widthPt = $element->widthPt($fontSize);
-            if ($widthPt !== null) {
-                return $widthPt;
-            }
-        }
+        // Tier 3 — measure the flattened text.
         $text = $element->textContent();
         if ($ctx?->mathFont !== null) {
             return $ctx->mathFont->measure($text, $fontSize);
