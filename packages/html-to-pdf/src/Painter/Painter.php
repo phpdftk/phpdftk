@@ -10446,10 +10446,16 @@ final class Painter
             return;
         }
         $baseX = $box->geometry->x;
+        // The run's origin is stored RELATIVE to the container: block
+        // layout can still move a multi-column box after its runs are
+        // recorded (margin collapsing pulls it up by the previous sibling's
+        // bottom margin), and the children move with it, so an absolute
+        // origin would leave the bands clipping empty space.
+        $contentTop = $box->geometry->y + $run->contentOffset;
         // Band i lives at layout-y `contentTop + i·height`; the clip is the
         // DESTINATION band, so it is emitted before the translate and stays
         // at band 0's vertical slot for every column.
-        $clipPdfY = $this->pageHeight - ($run->contentTop + $height);
+        $clipPdfY = $this->pageHeight - ($contentTop + $height);
         for ($i = 0; $i < $run->bandCount; $i++) {
             $colX = $baseX + $i * ($colW + $gap);
             $stream->saveGraphicsState();

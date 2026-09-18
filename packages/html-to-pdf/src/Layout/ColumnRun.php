@@ -17,7 +17,11 @@ use Phpdftk\HtmlToPdf\Box\Box;
  * cannot express that, so the container records a list of these.
  *
  * The run's `$children` were laid out as ONE TALL column starting at
- * layout-Y `$contentTop` at the container's content-left edge. The
+ * `$contentOffset` BELOW the container's content origin, at its
+ * content-left edge. The offset is relative on purpose: block layout can
+ * still move the container after its runs are recorded (margin collapsing
+ * pulls it up by the previous sibling's bottom margin) and the children
+ * move with it, so an absolute origin would desync from the content. The
  * painter slices that tall column into `$bandCount` bands of
  * `$columnHeight`, drawing band `i` clipped to column `i`
  * ({@see \Phpdftk\HtmlToPdf\Painter\Painter::paintColumnRuns}).
@@ -31,7 +35,7 @@ final readonly class ColumnRun
     /** @param list<Box> $children */
     public function __construct(
         public array $children,
-        public float $contentTop,
+        public float $contentOffset,
         public float $columnHeight,
         public int $bandCount,
     ) {}

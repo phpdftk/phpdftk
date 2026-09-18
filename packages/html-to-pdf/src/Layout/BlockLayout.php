@@ -10214,7 +10214,7 @@ final class BlockLayout
         );
         $bands = min($bands, $extentLimit, self::COLUMN_BAND_LIMIT);
         $box->multiColumn = $mc->withRun(
-            new ColumnRun($children, $originY, $columnHeight, $bands),
+            new ColumnRun($children, $originY - $box->geometry->y, $columnHeight, $bands),
         );
         return $columnHeight;
     }

@@ -2528,7 +2528,40 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(50.0, $second->columnHeight, 0.5);
         self::assertSame(4, $second->bandCount);
         // The second run starts below the spanner, not at the container top.
-        self::assertGreaterThan($first->contentTop, $second->contentTop);
+        self::assertEqualsWithDelta(0.0, $first->contentOffset, 0.001);
+        self::assertEqualsWithDelta(150.0, $second->contentOffset, 0.5);
+    }
+
+    public function testColumnRunOriginSurvivesAShiftOfTheContainer(): void
+    {
+        // The run origin is stored RELATIVE to the container because block
+        // layout can still MOVE a multi-column box after its runs are
+        // recorded — here the previous sibling's 40px bottom margin
+        // collapses and pulls the container up. The children move with the
+        // box, so an absolute origin would leave the painter's bands
+        // clipping empty space 40px below the content
+        // (`css/css-multicol/always-balancing-before-column-span` and six
+        // other fixtures were ~16px out for exactly this reason).
+        $box = $this->buildTree(
+            '<html><body><p></p><section><div></div></section></body></html>',
+            'html, body, section, div, p { display: block; }
+             p { margin: 0 0 40px; height: 10px; }
+             section { columns: 2; }
+             section > div { height: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(1, $section->multiColumn->runs);
+        $run = $section->multiColumn->runs[0];
+        // The offset resolves to the children's actual position whatever
+        // the container's final y turned out to be.
+        self::assertEqualsWithDelta(
+            $section->children[0]->geometry->y,
+            $section->geometry->y + $run->contentOffset,
+            0.001,
+        );
     }
 
     public function testColumnHeightWrapMarksGridFragmented(): void
