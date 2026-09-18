@@ -9967,7 +9967,7 @@ final class BlockLayout
                             ruleColor: $mc->ruleColor,
                             fragmented: true,
                             columnHeight: $colHeight,
-                            contentTop: $originY,
+                            contentOffset: $originY - $box->geometry->y,
                             columnWrap: true,
                             contentHeight: $childTotal,
                             rowGap: $rowGap,
@@ -9993,7 +9993,7 @@ final class BlockLayout
                             ruleColor: $mc->ruleColor,
                             fragmented: true,
                             columnHeight: $definiteHeight,
-                            contentTop: $originY,
+                            contentOffset: $originY - $box->geometry->y,
                         );
                     }
                     return $definiteHeight;

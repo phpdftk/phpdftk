@@ -10303,7 +10303,8 @@ final class Painter
     /**
      * CSS Multi-column 1 §3.3 — paint a `column-fill: auto` fragmented
      * container. Its content was laid out in one tall column at the
-     * container's left edge (layout y from `contentTop` down); render it
+     * container's left edge (layout y from the container origin plus
+     * `contentOffset` down); render it
      * once per column, clipping to column `i`'s `columnHeight` band and
      * translating band `i` up into that column. Bands past the content
      * height simply clip to empty.
@@ -10325,6 +10326,9 @@ final class Painter
             return;
         }
         $baseX = $box->geometry->x;
+        // Relative origin — see `paintSlicedColumnRun`: the container can
+        // still be moved after layout recorded the slice.
+        $contentTop = $box->geometry->y + $mc->contentOffset;
         $children = $this->paintOrderChildren($box);
         if ($mc->columnWrap) {
             // CSS Multi-column 2 §3 — `column-wrap: wrap`: slice the tall
@@ -10338,7 +10342,7 @@ final class Painter
                 $col = $i % $mc->columnCount;
                 $row = intdiv($i, $mc->columnCount);
                 $colX = $baseX + $col * ($colW + $gap);
-                $rowTop = $mc->contentTop + $row * ($height + $rowGap);
+                $rowTop = $contentTop + $row * ($height + $rowGap);
                 $stream->saveGraphicsState();
                 $clipPdfY = $this->pageHeight - ($rowTop + $height);
                 $stream->rectangle($colX, $clipPdfY, $colW, $height);
@@ -10360,7 +10364,7 @@ final class Painter
             $stream->saveGraphicsState();
             // Clip to column i's band: layout rect [colX, contentTop, colW,
             // height] → PDF y = pageHeight − (contentTop + height).
-            $clipPdfY = $this->pageHeight - ($mc->contentTop + $height);
+            $clipPdfY = $this->pageHeight - ($contentTop + $height);
             $stream->rectangle($colX, $clipPdfY, $colW, $height);
             $stream->clip();
             $stream->endPath();

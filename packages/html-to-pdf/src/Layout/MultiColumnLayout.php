@@ -30,14 +30,16 @@ final readonly class MultiColumnLayout
          * true the container's content was laid out in a SINGLE tall column
          * (children keep their column-0 positions) and the painter must
          * SLICE it into `columnCount` bands of `columnHeight`, translating
-         * band `i` to column `i`. `contentTop` is the layout-Y of the top of
-         * the tall column (band 0's origin). False (the default) = the
+         * band `i` to column `i`. `contentOffset` is band 0's origin as a
+         * distance BELOW the container's own content origin — relative
+         * because block layout can still move the container after this is
+         * recorded, and the children move with it. False (the default) = the
          * classic balance path, where children were already moved to their
          * columns and paint once.
          */
         public bool $fragmented = false,
         public float $columnHeight = 0.0,
-        public float $contentTop = 0.0,
+        public float $contentOffset = 0.0,
         /**
          * CSS Multi-column 2 §3 — `column-wrap: wrap`. When true the tall
          * content is sliced into bands of `columnHeight` and wrapped into a
@@ -80,7 +82,7 @@ final readonly class MultiColumnLayout
             $this->ruleColor,
             $this->fragmented,
             $this->columnHeight,
-            $this->contentTop,
+            $this->contentOffset,
             $this->columnWrap,
             $this->contentHeight,
             $this->rowGap,

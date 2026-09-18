@@ -2532,6 +2532,32 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(150.0, $second->contentOffset, 0.5);
     }
 
+    public function testFragmentedColumnOriginSurvivesAShiftOfTheContainer(): void
+    {
+        // Same relative-origin contract on the older single-run
+        // `column-fill: auto` path: the container is pulled up by the
+        // previous sibling's collapsed 40px bottom margin after its slice
+        // was recorded, and `contentOffset` still resolves to where the
+        // children actually sit.
+        $box = $this->buildTree(
+            '<html><body><p></p><section><div></div></section></body></html>',
+            'html, body, section, div, p { display: block; }
+             p { margin: 0 0 40px; height: 10px; }
+             section { columns: 2; column-fill: auto; height: 100px; }
+             section > div { height: 300px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertTrue($section->multiColumn->fragmented);
+        self::assertEqualsWithDelta(
+            $section->children[0]->geometry->y,
+            $section->geometry->y + $section->multiColumn->contentOffset,
+            0.001,
+        );
+    }
+
     public function testColumnRunOriginSurvivesAShiftOfTheContainer(): void
     {
         // The run origin is stored RELATIVE to the container because block
