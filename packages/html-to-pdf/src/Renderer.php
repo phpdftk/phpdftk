@@ -12,6 +12,7 @@ use Phpdftk\Css\Sheet\Origin;
 use Phpdftk\Css\Sheet\Stylesheet;
 use Phpdftk\Html\Dom\Document;
 use Phpdftk\Html\Parser as HtmlParser;
+use Phpdftk\Html\Tokenizer\NamedCharacterReferences;
 use Phpdftk\HtmlToPdf\Box\BoxGenerator;
 use Phpdftk\HtmlToPdf\Layout\BlockLayout;
 use Phpdftk\HtmlToPdf\Layout\LayoutContext;
@@ -1372,6 +1373,17 @@ final class Renderer
         // a soft-break opportunity that fonts may or may not support;
         // request the glyph so the subset captures it when present.
         $seen[0x200B] = true;
+        // WHATWG HTML §13.5 — this scan runs over the RAW source, where a
+        // character reference is still the literal text `&nbsp;` /
+        // `&#160;`. Its codepoint therefore never reached the subset, and
+        // the viewer drew the font's `.notdef` box for what the author
+        // wrote as a blank. Resolve every reference in the source and fold
+        // the codepoints it produces in. Purely additive — a false
+        // positive (`&` followed by a word in prose) only widens the
+        // subset by one glyph.
+        foreach (self::characterReferenceCodepoints($stripped) as $cp) {
+            $seen[$cp] = true;
+        }
         $i = 0;
         $bytes = strlen($stripped);
         while ($i < $bytes) {
@@ -1431,6 +1443,64 @@ final class Renderer
             }
         }
         return $count;
+    }
+
+    /**
+     * Every codepoint produced by the character references in `$text`.
+     *
+     * Named references resolve through the tokenizer's generated WHATWG
+     * table (including the historical no-semicolon forms); numeric
+     * references go through the spec's replacement table so `&#128;`
+     * yields U+20AC rather than a C1 control. Unknown names are ignored.
+     *
+     * @return list<int>
+     */
+    private static function characterReferenceCodepoints(string $text): array
+    {
+        if (preg_match_all(
+            '/&(#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);?/',
+            $text,
+            $matches,
+        ) === 0) {
+            return [];
+        }
+        $out = [];
+        foreach ($matches[0] as $index => $whole) {
+            $name = $matches[1][$index];
+            if ($name[0] === '#') {
+                $number = ($name[1] === 'x' || $name[1] === 'X')
+                    ? (int) hexdec(substr($name, 2))
+                    : (int) substr($name, 1);
+                $number = NamedCharacterReferences::NUMERIC_REPLACEMENTS[$number] ?? $number;
+                if ($number > 0 && $number <= 0x10FFFF) {
+                    $out[] = $number;
+                }
+                continue;
+            }
+            // The generated table keys both the `name;` form and the
+            // historical semicolon-less form, so one lookup covers both.
+            $resolved = NamedCharacterReferences::TABLE[$name . ';']
+                ?? NamedCharacterReferences::TABLE[$name]
+                ?? null;
+            // §13.5's longest-match rule lets a reference end without a
+            // semicolon, so `&notit;` is `&not` followed by the text
+            // `it;`. Walk the prefixes down when the whole run names
+            // nothing — only the semicolon-less names key a bare prefix,
+            // so this cannot match a `name;`-only entry by accident.
+            for ($len = strlen($name) - 1; $resolved === null && $len > 0; $len--) {
+                $resolved = NamedCharacterReferences::TABLE[substr($name, 0, $len)] ?? null;
+            }
+            if ($resolved === null) {
+                continue;
+            }
+            foreach (mb_str_split($resolved, 1, 'UTF-8') as $char) {
+                $cp = mb_ord($char, 'UTF-8');
+                if ($cp !== false) {
+                    $out[] = $cp;
+                }
+            }
+        }
+        return $out;
     }
 
     /**

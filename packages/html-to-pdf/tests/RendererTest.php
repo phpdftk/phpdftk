@@ -4481,6 +4481,39 @@ final class RendererTest extends TestCase
         self::assertGreaterThanOrEqual(1, substr_count($bytes, '/Subtype /Type0'));
     }
 
+    public function testCharacterReferencesReachTheFontSubset(): void
+    {
+        // WHATWG HTML §13.5 — the subset collector scans the RAW source,
+        // where `&nbsp;` is still six literal characters. Its codepoint
+        // never reached the subset, so the embedded font had no glyph for
+        // it and viewers drew `.notdef` (a hollow box in most fonts) where
+        // the author asked for a blank. The subset must cover every
+        // codepoint a character reference produces — named, numeric and
+        // hexadecimal alike.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $renderer = new Renderer((new RendererOptions())->withDefaultFont($font));
+        $writer = new PdfWriter(compressStreams: false);
+        $renderer->renderInto(
+            $writer,
+            '<html><body><p>a&nbsp;b&#233;c&#x2020;d</p></body></html>',
+        );
+        $bytes = $writer->toBytes();
+        // The ToUnicode CMap is built from the post-subset Unicode → GID
+        // map, so a codepoint appearing there proves its glyph is in the
+        // embedded subset.
+        foreach (['00A0', '00E9', '2020'] as $codepoint) {
+            self::assertStringContainsStringIgnoringCase(
+                '<' . $codepoint . '>',
+                $bytes,
+                "character reference codepoint U+$codepoint missing from the font subset",
+            );
+        }
+    }
+
     public function testPageMarginBoxesIgnoredWhenNoDefaultFont(): void
     {
         // Without a default font the renderer can't shape margin-box
