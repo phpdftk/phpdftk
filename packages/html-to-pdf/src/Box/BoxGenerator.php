@@ -606,6 +606,17 @@ final class BoxGenerator
         // `content: <string>` only — `attr()`, `counter()`, `open-quote` /
         // `close-quote`, etc. fall through to the `normal` initial.
         $rawChildren = [];
+        // CSS Lists 3 §3.3 — with `list-style-position: inside` the
+        // `::marker` is an INLINE box at the start of the list item's
+        // own content, ahead of `::before`. Materialising it as a text
+        // child is what makes it push the content along and — the part
+        // the painter-only `outside` path can never do — gives an empty
+        // `<li></li>` a line box, so a list of empty items still steps
+        // down one line-height per item instead of collapsing to zero.
+        $insideMarker = $this->insideListMarker($element, $values);
+        if ($insideMarker !== null) {
+            $rawChildren[] = $insideMarker;
+        }
         $before = $this->makePseudoBox($element, $sheets, $values, 'before');
         if ($before !== null) {
             $rawChildren[] = $before;
@@ -1502,6 +1513,47 @@ final class BoxGenerator
                 }
             }
         }
+    }
+
+    /**
+     * Build the inline `::marker` text child for a `display: list-item`
+     * box whose `list-style-position` is `inside`, or null when the box
+     * isn't a list item, the marker is `outside` (the initial value —
+     * {@see \Phpdftk\HtmlToPdf\Painter\Painter::paintListMarker()} draws
+     * that one beside the principal box), or `list-style-type: none`.
+     *
+     * The marker string is the counter text plus the CSS Counter
+     * Styles 3 §3 `.` suffix for the numeric styles, or the literal
+     * bullet glyph for the three geometric ones. A trailing space
+     * separates it from the item's content; being collapsible, it
+     * disappears again when the item is empty.
+     */
+    private function insideListMarker(Element $element, CascadedValues $values): ?TextBox
+    {
+        if ($this->displayKeyword($values) !== 'list-item') {
+            return null;
+        }
+        $position = $values->get('list-style-position');
+        if (!$position instanceof Keyword || strtolower($position->name) !== 'inside') {
+            return null;
+        }
+        $typeValue = $values->get('list-style-type');
+        $type = $typeValue instanceof Keyword ? strtolower($typeValue->name) : 'disc';
+        if ($type === 'none') {
+            return null;
+        }
+        $text = match ($type) {
+            'disc' => "\u{2022}",
+            'circle' => "\u{25E6}",
+            'square' => "\u{25AA}",
+            'disclosure-open' => "\u{25BC}",
+            'disclosure-closed' => "\u{25B6}",
+            default => $this->formatCounter(
+                \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($element),
+                $type,
+            ) . '.',
+        };
+        return new TextBox($element, $values, $text . ' ');
     }
 
     /**

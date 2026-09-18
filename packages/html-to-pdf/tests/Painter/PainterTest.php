@@ -2920,6 +2920,82 @@ final class PainterTest extends TestCase
         return $root;
     }
 
+    public function testInsideMarkerIsNotAlsoPaintedBesideTheBox(): void
+    {
+        // CSS Lists 3 §3.3 — an `inside` marker is inline content that
+        // BoxGenerator materialises; the painter must not draw a second
+        // copy beside the principal box.
+        $doc = $this->html->parseDocument(
+            '<html><body><ul><li>x</li></ul></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, ul { display: block; }
+             ul { padding-left: 24pt; }
+             li { display: list-item; list-style-type: disc;
+                  list-style-position: inside; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $curveCount = count(array_filter($opcodes, static fn($n) => $n === 'c'));
+        self::assertSame(0, $curveCount, 'no painter-side disc for an inside marker');
+    }
+
+    public function testEmptyListItemsWithInsideMarkersStepDownOneLineEach(): void
+    {
+        // An empty `<li></li>` still carries a marker, so it still
+        // generates a line box — three of them must not collapse onto
+        // each other at the same y.
+        $fontPath = __DIR__ . '/../../../wpt-harness/resources/fonts/DejaVuSerif.ttf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('DejaVu TrueType fixture font missing');
+        }
+        $ttf = (new \Phpdftk\FontParser\TrueTypeParser($fontPath))->parse();
+        $doc = $this->html->parseDocument(
+            '<html><body><ol><li></li><li></li><li></li></ol></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, ol { display: block; }
+             ol { padding-left: 24pt; margin: 0; }
+             li { display: list-item; list-style-type: decimal;
+                  list-style-position: inside; margin: 0; padding: 0; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout(
+            $root,
+            new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $ttf),
+        );
+
+        $ys = [];
+        $seen = new \SplObjectStorage();
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_pop($stack);
+            if ($node->element !== null
+                && strtolower($node->element->localName) === 'li'
+                && !$seen->contains($node->element)
+            ) {
+                $seen->attach($node->element);
+                $ys[] = $node->geometry->y;
+            }
+            foreach ($node->children as $c) {
+                array_unshift($stack, $c);
+            }
+        }
+        self::assertCount(3, $ys);
+        self::assertGreaterThan($ys[0], $ys[1], 'second empty item sits below the first');
+        self::assertGreaterThan($ys[1], $ys[2], 'third empty item sits below the second');
+    }
+
     public function testDecimalMarkerEmitsTextWithTrueTypeFont(): void
     {
         // Regression: the counter-marker painter narrowed the parsed face

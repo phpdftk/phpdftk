@@ -4984,6 +4984,14 @@ final class Painter
         if (!$display instanceof Keyword || strtolower($display->name) !== 'list-item') {
             return;
         }
+        // CSS Lists 3 §3.3 — `list-style-position: inside` markers are
+        // INLINE content, not a box painted alongside the principal box.
+        // BoxGenerator materialises those as a text child so they take
+        // part in line layout; painting one here too would double them.
+        $position = $box->style->get('list-style-position');
+        if ($position instanceof Keyword && strtolower($position->name) === 'inside') {
+            return;
+        }
         $typeValue = $box->style->get('list-style-type');
         $type = $typeValue instanceof Keyword ? strtolower($typeValue->name) : 'disc';
         if ($type === 'none') {
@@ -5040,69 +5048,19 @@ final class Painter
     }
 
     /**
-     * Compute the 1-based index of `$box` among its `<li>` siblings by
-     * walking the originating Element's previousSibling chain. Returns
-     * 0 when `$box` isn't bound to a DOM element (e.g. anonymous).
+     * Compute the ordinal `$box`'s `::marker` counts with. Returns 0 when
+     * `$box` isn't bound to a DOM element (e.g. anonymous), which the
+     * caller reads as "no marker". The `<ol start>` / `<ol reversed>` /
+     * `<li value>` arithmetic itself lives in {@see ListItemOrdinal} so
+     * the `inside` marker BoxGenerator materialises as inline content
+     * numbers identically to the `outside` marker painted here.
      */
     private function listItemIndex(Box $box): int
     {
         if ($box->element === null) {
             return 0;
         }
-        $thisLi = $box->element;
-        // HTML 5 §4.4.5.2: `<li value="N">` sets the explicit ordinal — and
-        // also resets the count for following siblings. Walk left-to-right
-        // from the parent's first child until we hit `$thisLi`; bumping on
-        // each `<li>` and snapping to `value` whenever a sibling provides
-        // it.
-        $parent = $thisLi->parentNode;
-        if (!$parent instanceof \Phpdftk\Html\Dom\Element) {
-            return 1;
-        }
-        // HTML 5 §4.4.5.3: `<ol start="N">` sets the starting count.
-        // `<ol reversed>` counts down instead.
-        $start = 1;
-        $reversed = false;
-        if (strtolower($parent->localName) === 'ol') {
-            $rawStart = $parent->getAttribute('start');
-            if ($rawStart !== null && preg_match('/^-?\d+$/', trim($rawStart)) === 1) {
-                $start = (int) trim($rawStart);
-            }
-            $reversed = $parent->getAttribute('reversed') !== null;
-        }
-        if ($reversed) {
-            // Count `<li>` siblings to derive the reversed initial value.
-            $liCount = 0;
-            for ($n = $parent->firstChild; $n !== null; $n = $n->nextSibling) {
-                if ($n instanceof \Phpdftk\Html\Dom\Element
-                    && strtolower($n->localName) === 'li'
-                ) {
-                    $liCount++;
-                }
-            }
-            $count = $start === 1 ? $liCount + 1 : $start + 1;
-            $step = -1;
-        } else {
-            $count = $start - 1;
-            $step = 1;
-        }
-        for ($n = $parent->firstChild; $n !== null; $n = $n->nextSibling) {
-            if (!($n instanceof \Phpdftk\Html\Dom\Element)
-                || strtolower($n->localName) !== 'li'
-            ) {
-                continue;
-            }
-            $raw = $n->getAttribute('value');
-            if ($raw !== null && preg_match('/^-?\d+$/', trim($raw)) === 1) {
-                $count = (int) trim($raw);
-            } else {
-                $count += $step;
-            }
-            if ($n === $thisLi) {
-                return $count;
-            }
-        }
-        return $start;
+        return \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($box->element);
     }
 
     /**

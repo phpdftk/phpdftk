@@ -606,6 +606,116 @@ final class BoxGeneratorTest extends TestCase
         self::assertInstanceOf(AtomicInlineBox::class, $img);
     }
 
+    public function testInsideMarkerBecomesInlineContentOfTheListItem(): void
+    {
+        // CSS Lists 3 §3.3 — `list-style-position: inside` puts the
+        // `::marker` INSIDE the principal box, at the start of its
+        // content, where it takes part in line layout.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, ol { display: block; }
+            li { display: list-item; list-style-position: inside;
+                 list-style-type: decimal; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><ol><li>x</li><li>y</li></ol></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $texts = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof TextBox) {
+                $texts[] = $node->text;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame(['1. ', 'x', '2. ', 'y'], $texts);
+    }
+
+    public function testOutsideMarkerIsNotMaterialisedAsInlineContent(): void
+    {
+        // `outside` is the initial value and stays a painter-side box —
+        // materialising it here would shift every list item's content.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, ol { display: block; }
+            li { display: list-item; list-style-type: decimal; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><ol><li>x</li></ol></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $texts = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof TextBox) {
+                $texts[] = $node->text;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame(['x'], $texts);
+    }
+
+    public function testInsideMarkerIsSuppressedByListStyleTypeNone(): void
+    {
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, ol { display: block; }
+            li { display: list-item; list-style-position: inside;
+                 list-style-type: none; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><ol><li>x</li></ol></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $texts = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof TextBox) {
+                $texts[] = $node->text;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame(['x'], $texts);
+    }
+
+    public function testInsideMarkerHonoursLiValueAndOlStart(): void
+    {
+        // HTML 5 §4.4.5.2/.3 — the inline marker must number identically
+        // to the painted `outside` one; both go through ListItemOrdinal.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, ol { display: block; }
+            li { display: list-item; list-style-position: inside;
+                 list-style-type: decimal; }
+        CSS);
+        $doc = $this->html->parseDocument(
+            '<html><body><ol start="-1"><li></li><li value="-5"></li><li></li></ol></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $texts = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof TextBox) {
+                $texts[] = $node->text;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame(['-1. ', '-5. ', '-4. '], $texts);
+    }
+
     public function testOlTypeAttributeMapsToListStyleType(): void
     {
         $sheet = $this->css->parseStylesheet(<<<CSS
