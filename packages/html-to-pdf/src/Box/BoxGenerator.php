@@ -2522,6 +2522,38 @@ final class BoxGenerator
                 }
             }
         }
+        // SVG 2 §8.2 — `width` / `height` on the outermost `<svg>` are
+        // presentation attributes mapping onto the CSS `width` / `height`
+        // properties, so an inline `<svg width="100" height="60">` is a
+        // 100x60 CSS-px replaced box. Without this the atomic-inline box
+        // lays out at zero size: it neither occupies space in the line nor
+        // gives the painter geometry, and the painter's attribute fallback
+        // then has to guess a size (which it did at 0.75x, shrinking every
+        // inline SVG relative to the HTML around it).
+        //
+        // Presentation attributes sort into the author origin at the very
+        // start, so any real declaration wins — hence the `has()` guard,
+        // matching the `<img>` path below.
+        if (self::foreignContentKind($element) === 'svg') {
+            foreach (['width', 'height'] as $attr) {
+                if ($values->has($attr)) {
+                    continue;
+                }
+                $raw = $element->getAttribute($attr);
+                if ($raw === null) {
+                    continue;
+                }
+                $pct = $this->parseHtmlPercentage($raw);
+                if ($pct !== null) {
+                    $values->set($attr, new \Phpdftk\Css\Value\Percentage($pct));
+                    continue;
+                }
+                $px = $this->parseHtmlLength($raw);
+                if ($px !== null) {
+                    $values->set($attr, new \Phpdftk\Css\Value\Length($px, \Phpdftk\Css\Value\LengthUnit::Px));
+                }
+            }
+        }
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
             foreach (['width', 'height'] as $attr) {
                 // Author CSS wins over a presentational hint — INCLUDING an
