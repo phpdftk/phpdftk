@@ -2255,11 +2255,12 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $section->multiColumn->columnHeight, 0.5);
     }
 
-    public function testColumnFillBalanceDoesNotFragment(): void
+    public function testColumnFillBalanceDoesNotUseTheSingleColumnFragmentFlag(): void
     {
-        // The initial `column-fill: balance` keeps the classic move-and-
-        // paint-once path: the container is NOT marked fragmented, so the
-        // 167-passing balance fixtures are untouched.
+        // The `fragmented` flag describes the `column-fill: auto` single
+        // tall column only. `balance` never sets it — when balance has to
+        // slice, it records a `ColumnRun` instead (see the test below), so
+        // the two paths stay distinguishable in the painter.
         $box = $this->buildTree(
             '<html><body><section><div></div></section></body></html>',
             'html, body, section, div { display: block; }
@@ -2272,8 +2273,138 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($section->multiColumn);
         self::assertFalse(
             $section->multiColumn->fragmented,
-            'default column-fill:balance does not fragment',
+            'default column-fill:balance does not set the single-column flag',
         );
+    }
+
+    public function testBalancedRunSlicesAnUnsplittableOverflowingChild(): void
+    {
+        // CSS Multi-column 1 §3.3 — a definite-height container is a
+        // fragmentainer. `column-fill: balance` equalises the columns
+        // (300px / 3 = 100px) but the bound still applies, and the single
+        // 300px child cannot be redistributed whole, so the run is SLICED
+        // into 3 bands of 100px that the painter draws as 3 columns.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 3; height: 100px; column-gap: 10px; }
+             section > div { height: 300px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(1, $section->multiColumn->runs);
+        $run = $section->multiColumn->runs[0];
+        self::assertEqualsWithDelta(100.0, $run->columnHeight, 0.5);
+        self::assertSame(3, $run->bandCount);
+        self::assertCount(1, $run->children);
+    }
+
+    public function testBalancedRunLeavesFittingChildrenToRedistribution(): void
+    {
+        // Three 30px children balance to one per 30px column, so no child
+        // straddles a column boundary and the classic whole-child
+        // redistribution still owns the layout — no slice record is made.
+        $box = $this->buildTree(
+            '<html><body><section><div></div><div></div><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 3; height: 100px; }
+             section > div { height: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testIndefiniteHeightContainerIsNeverSliced(): void
+    {
+        // Without a definite height there is no fragmentainer extent to
+        // slice against, so the container stays on the classic path even
+        // though its child is far taller than a balanced column.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 3; }
+             section > div { height: 300px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testScrollContainerIsMonolithicAndNotSliced(): void
+    {
+        // CSS Fragmentation 3 §4.1 — a scroll container is MONOLITHIC:
+        // a fragmentation container may not split it. It overflows its
+        // column instead of being sliced across several
+        // (`css/css-multicol/overflow-unsplittable-001`).
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; height: 100px; }
+             section > div { height: 200px; overflow: scroll; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testBreakInsideAvoidChildIsNotSliced(): void
+    {
+        // CSS Fragmentation 4 §4.1 — `break-inside: avoid` forbids
+        // splitting the box between columns, so it stays whole even when
+        // it overflows its column.
+        $box = $this->buildTree(
+            '<html><body><section><div></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; height: 100px; }
+             section > div { height: 200px; break-inside: avoid; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertSame([], $section->multiColumn->runs);
+    }
+
+    public function testSpannerGivesEachColumnarRunItsOwnHeight(): void
+    {
+        // CSS Multi-column 1 §6.2 — `column-span: all` carves the
+        // container into independent columnar runs. This is
+        // `css/css-multicol/multicol-span-all-children-height-002`: a 200px
+        // container, a 200px block, a 50px spanner, a second 200px block.
+        // Run 1 balances to 100px (200 / 2 columns) and needs 2 bands; the
+        // spanner then leaves only 50px, so run 2's columns are 50px tall
+        // and its 200px block needs FOUR bands — two of them overflow
+        // columns, which a single container-wide column height could not
+        // express.
+        $box = $this->buildTree(
+            '<html><body><section><div class="a"></div>'
+            . '<div class="s"></div><div class="b"></div></section></body></html>',
+            'html, body, section, div { display: block; }
+             section { columns: 2; width: 400px; height: 200px; }
+             section > .a, section > .b { height: 200px; }
+             section > .s { column-span: all; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $section = $this->find($box, 'section');
+        self::assertNotNull($section);
+        self::assertNotNull($section->multiColumn);
+        self::assertCount(2, $section->multiColumn->runs);
+        [$first, $second] = $section->multiColumn->runs;
+        self::assertEqualsWithDelta(100.0, $first->columnHeight, 0.5);
+        self::assertSame(2, $first->bandCount);
+        self::assertEqualsWithDelta(50.0, $second->columnHeight, 0.5);
+        self::assertSame(4, $second->bandCount);
+        // The second run starts below the spanner, not at the container top.
+        self::assertGreaterThan($first->contentTop, $second->contentTop);
     }
 
     public function testColumnHeightWrapMarksGridFragmented(): void

@@ -9301,6 +9301,12 @@ final class BlockLayout
                     $h = $this->layoutBox($spanChild, $spanCtx);
                     $cursorY += $h;
                 } else {
+                    // The block space still left in the fragmentainer is
+                    // what bounds THIS run's columns (§3.3). Indefinite
+                    // when the container has no definite height.
+                    $columnSpace = $fragmentainerBottom !== null
+                        ? max(0.0, $fragmentainerBottom - $cursorY)
+                        : null;
                     $runHeight = $this->layoutColumnarRun(
                         $box,
                         $segment['children'],
@@ -9309,9 +9315,10 @@ final class BlockLayout
                         $gap,
                         $count,
                         $cursorY,
+                        columnSpace: $columnSpace,
                     );
-                    if ($fragmentainerBottom !== null) {
-                        $runHeight = min($runHeight, max(0.0, $fragmentainerBottom - $cursorY));
+                    if ($columnSpace !== null) {
+                        $runHeight = min($runHeight, $columnSpace);
                     }
                     $cursorY += $runHeight;
                 }
@@ -9320,7 +9327,10 @@ final class BlockLayout
         }
 
         // No span-all children — fall through to the original two-pass
-        // codepath that operates on `$box->children` directly.
+        // codepath that operates on `$box->children` directly. A definite
+        // container height makes the container a fragmentainer (§3.3), so
+        // it bounds the single run's columns exactly as it bounds each run
+        // of a segmented container.
         return $this->layoutColumnarRun(
             $box,
             $box->children,
@@ -9330,6 +9340,10 @@ final class BlockLayout
             $count,
             $geo->y,
             allowFragment: true,
+            columnSpace: $this->resolveExplicitHeightOrNull(
+                $box->style,
+                $childContext->containingBlockHeight,
+            ),
         );
     }
 
@@ -9691,14 +9705,23 @@ final class BlockLayout
     }
 
     /**
-     * CSS Contain 1 §containment-size — a size-contained box is
-     * MONOLITHIC: a fragmentation container may not split it, so its lines
-     * all stay in one column even when they overflow it.
+     * CSS Fragmentation 3 §4.1 — a MONOLITHIC box is one a fragmentation
+     * container may not split, so its content all stays in one column
+     * even when it overflows.
+     *
+     * Two kinds are recognised here:
+     *  - a size-contained box (CSS Contain 1 §containment-size); and
+     *  - a SCROLL CONTAINER — §4.1 lists "elements with a scrolling
+     *    mechanism" as monolithic, because splitting one would have to
+     *    duplicate its scrollport. `overflow: clip` is not a scrolling
+     *    mechanism, so it stays splittable
+     *    ({@see isScrollContainer} draws the same line).
      */
     private function isMonolithic(Box $box): bool
     {
         return $this->containsSize($box->style, 'block')
-            || $this->containsSize($box->style, 'inline');
+            || $this->containsSize($box->style, 'inline')
+            || $this->isScrollContainer($box->style);
     }
 
     /**
@@ -9784,6 +9807,12 @@ final class BlockLayout
      * past the run. Pulled out of `layoutMultiColumn` so segmented runs
      * (around `column-span: all` spanners) can reuse it.
      *
+     * `$columnSpace` is the DEFINITE block space this run's columns may
+     * occupy (CSS Multi-column 1 §3.3 — the fragmentainer extent still
+     * left at `$originY`), or null when the container's height is
+     * indefinite. It bounds the column height when the run has to be
+     * sliced ({@see recordColumnRun}).
+     *
      * @param list<Box> $children
      */
     private function layoutColumnarRun(
@@ -9795,6 +9824,7 @@ final class BlockLayout
         int $count,
         float $originY,
         bool $allowFragment = false,
+        ?float $columnSpace = null,
     ): float {
         $geo = $box->geometry;
         if ($children === []) {
@@ -9898,6 +9928,29 @@ final class BlockLayout
             }
         }
 
+        // CSS Multi-column 1 §3.3 — when the run's columns are bounded by
+        // a definite fragmentainer extent, content that a whole-child
+        // redistribution cannot place is SLICED into column bands instead
+        // ({@see recordColumnRun}). This is the only path that can put one
+        // block into several columns, and — unlike the `$allowFragment`
+        // block above — it works per-run, so a container carved up by
+        // `column-span: all` gets one slice record per columnar segment.
+        if ($count > 1 && $columnSpace !== null) {
+            $sliced = $this->recordColumnRun(
+                $box,
+                $children,
+                $childTotal,
+                $columnWidth,
+                $gap,
+                $count,
+                $originY,
+                $columnSpace,
+            );
+            if ($sliced !== null) {
+                return $sliced;
+            }
+        }
+
         // CSS Multi-column 1 §3 — the whole-child redistribution below
         // cannot split anything, so a container whose entire content is a
         // single block of text leaves everything in column 0. That is the
@@ -9992,6 +10045,109 @@ final class BlockLayout
             $prevChild = $child;
         }
         return max($columnHeights);
+    }
+
+    /**
+     * Total x-extent, in CSS px, past which a column band cannot show on
+     * any plausible page, so painting it is wasted work. CSS Multi-column
+     * 1 §3.3 creates as many OVERFLOW COLUMNS as the content needs, which
+     * for a degenerate column height (the 1px columns §3.3's breaking
+     * rules mandate when a fragmentainer has no space left) is unbounded.
+     */
+    private const COLUMN_BAND_EXTENT_LIMIT = 4000.0;
+
+    /** Absolute ceiling on painted bands, for a degenerately narrow column. */
+    private const COLUMN_BAND_LIMIT = 512;
+
+    /**
+     * CSS Multi-column 1 §3.3 — record `$children` as a FRAGMENTED
+     * columnar run when the whole-child redistribution cannot represent
+     * it, and return the block size the run occupies. Returns null when
+     * redistribution can cope, leaving the caller on the classic path.
+     *
+     * The children were already stacked as one tall column at `$originY`;
+     * slicing is a PAINT-time operation
+     * ({@see \Phpdftk\HtmlToPdf\Painter\Painter::paintColumnRuns}), so
+     * nothing here moves a box.
+     *
+     * Column height: `column-fill: auto` fills each column to the
+     * fragmentainer extent; `balance` (the initial value) equalises the
+     * columns but is still bounded by it — hence `min()`. A run with no
+     * space left still gets 1px columns rather than none, which is what
+     * §3.3's breaking rules require and what
+     * `multicol-span-all-children-height-003` asserts.
+     *
+     * @param list<Box> $children
+     */
+    private function recordColumnRun(
+        Box $box,
+        array $children,
+        float $childTotal,
+        float $columnWidth,
+        float $gap,
+        int $count,
+        float $originY,
+        float $columnSpace,
+    ): ?float {
+        $mc = $box->multiColumn;
+        if ($mc === null || $columnWidth <= 0.0 || $childTotal <= 0.0) {
+            return null;
+        }
+        $fill = $box->style->get('column-fill');
+        $isAutoFill = $fill instanceof Keyword && strtolower($fill->name) === 'auto';
+        $columnHeight = $isAutoFill
+            ? $columnSpace
+            : min(ceil($childTotal / $count), $columnSpace);
+        $columnHeight = max(1.0, $columnHeight);
+        if (!$this->columnRunNeedsSlicing($children, $columnHeight)) {
+            return null;
+        }
+        $bands = max(1, (int) ceil($childTotal / $columnHeight - 1e-6));
+        $extentLimit = max(
+            1,
+            (int) ceil(self::COLUMN_BAND_EXTENT_LIMIT / max(1.0, $columnWidth + $gap)),
+        );
+        $bands = min($bands, $extentLimit, self::COLUMN_BAND_LIMIT);
+        $box->multiColumn = $mc->withRun(
+            new ColumnRun($children, $originY, $columnHeight, $bands),
+        );
+        return $columnHeight;
+    }
+
+    /**
+     * Whether a columnar run has to be sliced rather than redistributed
+     * whole-child.
+     *
+     * Whole-child redistribution — and its line-box refinements
+     * ({@see fragmentIfcChildIntoColumns}, {@see spillChildLinesAcrossColumns})
+     * — never cuts a line of text in half, so it stays in charge of every
+     * layout it can express. It demonstrably cannot express a child taller
+     * than one column whose content is not line boxes to spill: that child
+     * would sit whole in column 0, overflowing the fragmentainer, where
+     * CSS Multi-column 1 §3.3 fragments it across the columns.
+     *
+     * A monolithic child (CSS Fragmentation 3 §4.1 — size containment) or
+     * one carrying `break-inside: avoid` may NOT be split, so neither
+     * forces the run onto the slicing path; they overflow their column,
+     * which is exactly what the spec asks for.
+     *
+     * @param list<Box> $children
+     */
+    private function columnRunNeedsSlicing(array $children, float $columnHeight): bool
+    {
+        foreach ($children as $child) {
+            if ($child->geometry->outerHeight() <= $columnHeight + 0.001) {
+                continue;
+            }
+            if ($this->isIfcFragmentable($child)
+                || $this->isMonolithic($child)
+                || $this->avoidsColumnBreakInside($child)
+            ) {
+                continue;
+            }
+            return true;
+        }
+        return false;
     }
 
     /**

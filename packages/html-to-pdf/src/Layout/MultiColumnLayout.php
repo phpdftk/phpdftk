@@ -49,5 +49,42 @@ final readonly class MultiColumnLayout
         public bool $columnWrap = false,
         public float $contentHeight = 0.0,
         public float $rowGap = 0.0,
+        /**
+         * CSS Multi-column 1 §3.3 + §6.2 — the container's FRAGMENTED
+         * columnar runs, in document order. `$fragmented` above can only
+         * describe ONE tall column; a container carved up by
+         * `column-span: all` has several independent runs, each with its
+         * own column height, its own top and its own band count, so those
+         * are recorded here instead. Empty on every container that does
+         * not need slicing (the classic balance path) — the painter falls
+         * back to painting children once.
+         *
+         * @var list<ColumnRun>
+         */
+        public array $runs = [],
     ) {}
+
+    /**
+     * Append one fragmented columnar run. `MultiColumnLayout` is readonly
+     * and is built before the runs are known, so layout rebuilds it as
+     * each run resolves.
+     */
+    public function withRun(ColumnRun $run): self
+    {
+        return new self(
+            $this->columnCount,
+            $this->columnWidth,
+            $this->columnGap,
+            $this->ruleWidth,
+            $this->ruleStyle,
+            $this->ruleColor,
+            $this->fragmented,
+            $this->columnHeight,
+            $this->contentTop,
+            $this->columnWrap,
+            $this->contentHeight,
+            $this->rowGap,
+            [...$this->runs, $run],
+        );
+    }
 }

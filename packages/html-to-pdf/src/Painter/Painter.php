@@ -1227,7 +1227,7 @@ final class Painter
             $this->emitOverflowClipPath($stream, $box);
         }
         $mcFragment = $box->multiColumn;
-        if ($mcFragment !== null && $mcFragment->fragmented) {
+        if ($mcFragment !== null && ($mcFragment->fragmented || $mcFragment->runs !== [])) {
             // CSS Multi-column 1 §3.3 — `column-fill: auto`: the content was
             // laid out in one tall column; slice it into columns here.
             $this->paintFragmentedColumns($box, $stream, $mcFragment);
@@ -10310,6 +10310,10 @@ final class Painter
      */
     private function paintFragmentedColumns(Box $box, ContentStream $stream, MultiColumnLayout $mc): void
     {
+        if ($mc->runs !== []) {
+            $this->paintColumnRuns($box, $stream, $mc);
+            return;
+        }
         $colW = $mc->columnWidth;
         $gap = $mc->columnGap;
         $height = $mc->columnHeight;
@@ -10362,6 +10366,96 @@ final class Painter
             $stream->endPath();
             // Translate band i into this column: layout (dx = i·(colW+gap),
             // dy = −i·height) → PDF (dx, +i·height).
+            if ($i > 0) {
+                $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $i * ($colW + $gap), $i * $height);
+            }
+            foreach ($children as $child) {
+                $this->paintBox($child, $stream, $box);
+            }
+            $stream->restoreGraphicsState();
+        }
+    }
+
+    /**
+     * CSS Multi-column 1 §3.3 + §6.2 — paint a container whose content
+     * layout carved into fragmented columnar runs
+     * ({@see \Phpdftk\HtmlToPdf\Layout\ColumnRun}).
+     *
+     * Each run's children were stacked as ONE TALL column; slice that
+     * column into the run's bands here. Children belonging to no run —
+     * `column-span: all` spanners — paint once, unsliced, exactly where
+     * layout put them. A run paints at the position its first child holds
+     * in paint order, so z-index and Appendix E sub-layering still order
+     * the spanners against the runs around them.
+     */
+    private function paintColumnRuns(Box $box, ContentStream $stream, MultiColumnLayout $mc): void
+    {
+        $order = $this->paintOrderChildren($box);
+        /** @var array<int, int> $runOf spl_object_id → run index */
+        $runOf = [];
+        foreach ($mc->runs as $index => $run) {
+            foreach ($run->children as $child) {
+                $runOf[spl_object_id($child)] = $index;
+            }
+        }
+        /** @var array<int, true> $painted */
+        $painted = [];
+        foreach ($order as $child) {
+            $index = $runOf[spl_object_id($child)] ?? null;
+            if ($index === null) {
+                $this->paintBox($child, $stream, $box);
+                continue;
+            }
+            if (isset($painted[$index])) {
+                continue;
+            }
+            $painted[$index] = true;
+            $runChildren = [];
+            foreach ($order as $candidate) {
+                if (($runOf[spl_object_id($candidate)] ?? null) === $index) {
+                    $runChildren[] = $candidate;
+                }
+            }
+            $this->paintSlicedColumnRun($box, $stream, $mc, $mc->runs[$index], $runChildren);
+        }
+    }
+
+    /**
+     * Draw one {@see \Phpdftk\HtmlToPdf\Layout\ColumnRun}: render its tall
+     * column once per band, clipped to that band's destination column and
+     * translated up into it. Mirrors the single-run `column-fill: auto`
+     * slicing in {@see paintFragmentedColumns}, but reads the height and
+     * band count from the run rather than the container.
+     *
+     * @param list<Box> $children
+     */
+    private function paintSlicedColumnRun(
+        Box $box,
+        ContentStream $stream,
+        MultiColumnLayout $mc,
+        \Phpdftk\HtmlToPdf\Layout\ColumnRun $run,
+        array $children,
+    ): void {
+        $colW = $mc->columnWidth;
+        $gap = $mc->columnGap;
+        $height = $run->columnHeight;
+        if ($height <= 0.0 || $colW <= 0.0) {
+            foreach ($children as $child) {
+                $this->paintBox($child, $stream, $box);
+            }
+            return;
+        }
+        $baseX = $box->geometry->x;
+        // Band i lives at layout-y `contentTop + i·height`; the clip is the
+        // DESTINATION band, so it is emitted before the translate and stays
+        // at band 0's vertical slot for every column.
+        $clipPdfY = $this->pageHeight - ($run->contentTop + $height);
+        for ($i = 0; $i < $run->bandCount; $i++) {
+            $colX = $baseX + $i * ($colW + $gap);
+            $stream->saveGraphicsState();
+            $stream->rectangle($colX, $clipPdfY, $colW, $height);
+            $stream->clip();
+            $stream->endPath();
             if ($i > 0) {
                 $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $i * ($colW + $gap), $i * $height);
             }
