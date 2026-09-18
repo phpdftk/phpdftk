@@ -2730,6 +2730,64 @@ final class BoxGenerator
                 $values->set('height', new \Phpdftk\Css\Value\Length(150.0, \Phpdftk\Css\Value\LengthUnit::Px));
             }
         }
+        // HTML §15.3.4 — `hspace` / `vspace` on embedded content map to
+        // the horizontal / vertical margins, and `border` to a solid
+        // border of that pixel width on all four sides. All three are
+        // presentational hints, so an author declaration still wins.
+        if (in_array($tag, ['img', 'object', 'embed', 'iframe', 'applet'], true)) {
+            foreach ([
+                'hspace' => ['margin-left', 'margin-right'],
+                'vspace' => ['margin-top', 'margin-bottom'],
+            ] as $attr => $properties) {
+                $raw = $element->getAttribute($attr);
+                if ($raw === null) {
+                    continue;
+                }
+                // Parsed with the "rules for parsing dimension values",
+                // which accept a trailing `%` — `<img hspace="10%">` is a
+                // percentage margin, not 10px.
+                $pct = $this->parseHtmlPercentage($raw);
+                $len = $pct === null ? $this->parseHtmlLength($raw) : null;
+                if ($pct === null && $len === null) {
+                    continue;
+                }
+                foreach ($properties as $property) {
+                    if ($values->has($property)) {
+                        continue;
+                    }
+                    $values->set($property, $pct !== null
+                        ? new \Phpdftk\Css\Value\Percentage($pct)
+                        : new \Phpdftk\Css\Value\Length((float) $len, \Phpdftk\Css\Value\LengthUnit::Px));
+                }
+            }
+            // `border` is parsed with the rules for parsing NON-NEGATIVE
+            // INTEGERS (which stop at the first non-digit, so `border="50%"`
+            // is 50 pixels) and only takes effect when greater than zero —
+            // `border="0"` leaves the element's own border style alone
+            // rather than forcing `solid` at zero width.
+            $border = $this->parseHtmlNonNegativeInteger($element->getAttribute('border') ?? '');
+            if ($border !== null && $border > 0) {
+                foreach (['top', 'right', 'bottom', 'left'] as $side) {
+                    if (!$values->has("border-$side-width")) {
+                        $values->set("border-$side-width", new \Phpdftk\Css\Value\Length(
+                            (float) $border,
+                            \Phpdftk\Css\Value\LengthUnit::Px,
+                        ));
+                    }
+                    if (!$values->has("border-$side-style")) {
+                        $values->set("border-$side-style", new Keyword('solid'));
+                    }
+                }
+            }
+        }
+        // HTML §15.3.10 — `<td nowrap>` / `<th nowrap>` unconditionally
+        // suppress wrapping in the cell. `white-space` INHERITS, so it is
+        // present in every cascade map and `has()` cannot tell an author
+        // declaration from the inherited default; the attribute therefore
+        // wins outright, same caveat as `cellspacing` above.
+        if (($tag === 'td' || $tag === 'th') && $element->getAttribute('nowrap') !== null) {
+            $values->set('white-space', new Keyword('nowrap'));
+        }
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
             foreach (['width', 'height'] as $attr) {
                 // Author CSS wins over a presentational hint — INCLUDING an
@@ -3351,6 +3409,20 @@ final class BoxGenerator
             return (float) $m[1];
         }
         return null;
+    }
+
+    /**
+     * HTML 5 §2.4.4.2 "rules for parsing non-negative integers" — skip
+     * leading whitespace, then collect a run of ASCII digits. Trailing
+     * junk is IGNORED rather than rejected, which is what makes
+     * `<img border="50%">` a 50-pixel border.
+     */
+    private function parseHtmlNonNegativeInteger(string $raw): ?int
+    {
+        if (preg_match('/^[ \t\n\r\f]*(\d+)/', $raw, $m) !== 1) {
+            return null;
+        }
+        return (int) $m[1];
     }
 
     private function parseHtmlLength(string $raw): ?float

@@ -2952,6 +2952,24 @@ final class BlockLayoutTest extends TestCase
         return $text;
     }
 
+    public function testEmbedHiddenCollapsesToZeroSizeNotDisplayNone(): void
+    {
+        // HTML §15.3.1 — `embed[hidden]` gets `display: inline` with
+        // zero width/height, NOT `display: none`. An author
+        // `embed { display: block }` beats a UA `display` (author origin
+        // outranks UA regardless of specificity) but leaves the zero
+        // size, so the box still collapses to nothing.
+        $box = $this->buildTreeWithUa(
+            '<html><body><embed hidden src="x.png"></body></html>',
+            'embed { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $embed = $this->find($box, 'embed');
+        self::assertNotNull($embed, 'embed[hidden] still generates a box');
+        self::assertSame(0.0, $embed->geometry->width);
+        self::assertSame(0.0, $embed->geometry->height);
+    }
+
     public function testDetailsSummaryCarriesTheDisclosureMarker(): void
     {
         // HTML §15.3.11 — the triangle is the summary's `::marker`,

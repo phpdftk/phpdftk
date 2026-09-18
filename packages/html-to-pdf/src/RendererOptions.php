@@ -430,6 +430,13 @@ final readonly class RendererOptions
                it stays hidden in static print just like the bare form. */
             [hidden] { display: none; }
             [hidden="until-found"] { display: none; }
+            /* HTML §15.3.1 — `<embed hidden>` keeps an INLINE box of
+               zero size instead of `display: none`. The distinction
+               matters because an author `embed { display: block }`
+               overrides a UA `display` (author origin beats UA) but
+               leaves the zero width/height in place, so the plugin
+               area still collapses to nothing. */
+            embed[hidden] { display: inline; height: 0; width: 0; }
             /* HTML 5 §4.12.3: `<template>` content is inert and never
                renders directly. */
             template { display: none; }

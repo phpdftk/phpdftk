@@ -716,6 +716,134 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(['-1. ', '-5. ', '-4. '], $texts);
     }
 
+    public function testImgHspaceVspaceAndBorderAttributes(): void
+    {
+        // HTML §15.3.4 — `hspace` / `vspace` map to the horizontal /
+        // vertical margins (dimension values, so a trailing `%` is a
+        // percentage), and `border` to a solid border of that many
+        // pixels on all four sides.
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<img id=a src="x.png" hspace="10" vspace="4" border="3">'
+            . '<img id=b src="x.png" hspace="10%">'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $imgs = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n->element !== null && strtolower($n->element->localName) === 'img') {
+                $imgs[$n->element->getAttribute('id') ?? ''] = $n;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        $a = $imgs['a'] ?? null;
+        self::assertNotNull($a);
+        foreach (['margin-left' => 10.0, 'margin-right' => 10.0, 'margin-top' => 4.0, 'margin-bottom' => 4.0] as $prop => $want) {
+            $v = $a->style->get($prop);
+            self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $v, $prop);
+            self::assertSame($want, $v->value, $prop);
+        }
+        foreach (['top', 'right', 'bottom', 'left'] as $side) {
+            $w = $a->style->get("border-$side-width");
+            self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $w);
+            self::assertSame(3.0, $w->value);
+            $st = $a->style->get("border-$side-style");
+            self::assertInstanceOf(Keyword::class, $st);
+            self::assertSame('solid', $st->name);
+        }
+        $b = $imgs['b'] ?? null;
+        self::assertNotNull($b);
+        $ml = $b->style->get('margin-left');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Percentage::class, $ml, 'hspace="10%" is a percentage margin');
+        self::assertSame(10.0, $ml->value);
+    }
+
+    public function testImgBorderPercentUsesTheLeadingIntegerAndZeroDrawsNoBorder(): void
+    {
+        // The value is parsed with the rules for parsing NON-NEGATIVE
+        // INTEGERS, which stop at the first non-digit — so `border="50%"`
+        // is 50 pixels, not 50 percent. `border="0%"` is zero, and zero
+        // must not force `solid` onto an otherwise borderless image.
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<img id=a src="x.png" border="0%"><img id=b src="x.png" border="50%">'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $imgs = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n->element !== null && strtolower($n->element->localName) === 'img') {
+                $imgs[$n->element->getAttribute('id') ?? ''] = $n;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        $zero = $imgs['a'] ?? null;
+        self::assertNotNull($zero);
+        $style = $zero->style->get('border-top-style');
+        self::assertTrue(
+            !$style instanceof Keyword || $style->name !== 'solid',
+            'border="0%" must not turn the border solid',
+        );
+        $fifty = $imgs['b'] ?? null;
+        self::assertNotNull($fifty);
+        $w = $fifty->style->get('border-top-width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $w);
+        self::assertSame(50.0, $w->value);
+    }
+
+    public function testTdNowrapAttributeSetsWhiteSpaceNowrap(): void
+    {
+        // HTML §15.3.10 — `<td nowrap>` applies unconditionally, even
+        // when the cell also carries a fixed width.
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; } table { display: table; }
+             tr { display: table-row; } td { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><table><tr><td nowrap style="width:10px">x y</td>'
+            . '<td>x y</td></tr></table></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $cells = [];
+        $seen = new \SplObjectStorage();
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n->element !== null
+                && strtolower($n->element->localName) === 'td'
+                && !$seen->contains($n->element)
+            ) {
+                $seen->attach($n->element);
+                $cells[] = $n;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertCount(2, $cells);
+        $ws = $cells[0]->style->get('white-space');
+        self::assertInstanceOf(Keyword::class, $ws);
+        self::assertSame('nowrap', $ws->name);
+        $plain = $cells[1]->style->get('white-space');
+        self::assertTrue(
+            !$plain instanceof Keyword || $plain->name !== 'nowrap',
+            'a cell without the attribute is unaffected',
+        );
+    }
+
     public function testOlTypeAttributeMapsToListStyleType(): void
     {
         $sheet = $this->css->parseStylesheet(<<<CSS
