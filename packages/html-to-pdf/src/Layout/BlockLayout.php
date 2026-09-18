@@ -11674,11 +11674,18 @@ final class BlockLayout
      * the remaining table width after explicit widths are
      * subtracted.
      *
-     * Multi-column-spanning cells distribute their max-content
-     * equally across the spanned columns as a Phase-2
-     * simplification — the spec prescribes a more involved
-     * distribution that takes the min/max-content envelope of
-     * non-spanning cells into account.
+     * CSS 2.1 §17.5.2.2 orders the passes: cells that span a single
+     * column establish each column's max-content first, and only
+     * then does a spanning cell "widen the columns it spans so that
+     * together they are at least as wide as the cell". A spanning
+     * cell therefore contributes nothing when the columns it covers
+     * already add up to more than it needs — which is the usual
+     * case for a caption-ish `<th colspan="N">` sitting over a row
+     * of much wider data cells. Splitting its max-content equally
+     * and applying each share as a per-column floor instead (the
+     * previous behaviour) inflated any spanned column that had no
+     * cells of its own, most visibly the phantom columns a colspan
+     * larger than the row's cell count brings into existence.
      *
      * When ALL columns have explicit widths, this is a no-op.
      */
@@ -11701,8 +11708,10 @@ final class BlockLayout
         if (!$hasAuto) {
             return;
         }
-        // Per-column max-content accumulation.
+        // Pass 1 — single-column cells set each column's max-content.
         $colMax = array_fill(0, $totalColumns, 0.0);
+        /** @var list<array{col: int, span: int, need: float}> $spanning */
+        $spanning = [];
         $grid = $this->currentTableCellGrid ?? [];
         foreach ($this->resolvedCellReferences as $cellId => $cell) {
             $info = $grid[$cellId] ?? null;
@@ -11713,17 +11722,19 @@ final class BlockLayout
             // containing block, and layoutBlock subtracts the cell's own
             // padding+border from it — so the column must include them.
             $mm = $this->cellColumnContribution($cell, $context);
-            $share = $mm['max'] / max(1, $info['colspan']);
-            for (
+            $span = max(1, $info['colspan']);
+            if ($span === 1) {
                 $c = $info['col'];
-                $c < $info['col'] + $info['colspan'] && $c < $totalColumns;
-                $c++
-            ) {
-                if ($colMax[$c] < $share) {
-                    $colMax[$c] = $share;
+                if ($c < $totalColumns && $colMax[$c] < $mm['max']) {
+                    $colMax[$c] = $mm['max'];
                 }
+                continue;
             }
+            $spanning[] = ['col' => $info['col'], 'span' => $span, 'need' => $mm['max']];
         }
+        // Pass 2 — spanning cells only make up the shortfall between
+        // what they need and what the columns they cover provide.
+        $colMax = $this->widenColumnsForSpanningCells($colMax, $spanning, $totalColumns);
         // CSS Tables 3 §4.4 — a column's used width is at least its declared
         // min-width. Floor auto columns before the zero-content early-return
         // so an empty column with a min-width still sizes.
@@ -11846,13 +11857,90 @@ final class BlockLayout
     }
 
     /**
+     * CSS 2.1 §17.5.2.2 — "for cells spanning more than one column,
+     * widen the columns it spans so that together they are at least
+     * as wide as the cell". A spanning cell therefore contributes
+     * nothing whenever the columns it covers are already wide enough
+     * between them; only the shortfall gets distributed.
+     *
+     * Who absorbs the shortfall follows CSS Tables 3 §7.5.4's order of
+     * preference:
+     *
+     *   - Covered columns that are still at zero take it first, split
+     *     evenly. They originate no cells of their own, so nothing
+     *     else is asking for that width — and when EVERY covered
+     *     column is zero this reduces to `need / span` per column,
+     *     which is what this code did before the "already wide enough"
+     *     guard existed.
+     *   - Otherwise it is spread over the covered columns in
+     *     proportion to the width each has already asked for.
+     *
+     * Getting that order wrong is what makes a spanning cell pour its
+     * width into a column that is already pinned by a single-column
+     * cell: proportional distribution gives a zero-width column a zero
+     * share, so `<td colspan="2" style="width:100px">` over a 5px
+     * column and an empty one would grow the 5px column to 100 and
+     * leave the empty one at nothing.
+     *
+     * Narrower spans are applied first so a wide span sees the
+     * widths the narrower ones have already established.
+     *
+     * @param array<int, float>                             $track    per-column widths, keyed by column index
+     * @param list<array{col: int, span: int, need: float}>  $spanning cells covering more than one column
+     *
+     * @return array<int, float> the widened per-column widths
+     */
+    private function widenColumnsForSpanningCells(array $track, array $spanning, int $totalColumns): array
+    {
+        usort($spanning, static fn(array $a, array $b): int => $a['span'] <=> $b['span']);
+        foreach ($spanning as $cell) {
+            $covered = [];
+            for (
+                $c = $cell['col'];
+                $c < $cell['col'] + $cell['span'] && $c < $totalColumns;
+                $c++
+            ) {
+                $covered[] = $c;
+            }
+            if ($covered === []) {
+                continue;
+            }
+            $sum = 0.0;
+            $empty = [];
+            foreach ($covered as $c) {
+                $sum += $track[$c];
+                if ($track[$c] <= 0.0) {
+                    $empty[] = $c;
+                }
+            }
+            $deficit = $cell['need'] - $sum;
+            if ($deficit <= 0.0) {
+                continue;
+            }
+            if ($empty !== []) {
+                $share = $deficit / count($empty);
+                foreach ($empty as $c) {
+                    $track[$c] += $share;
+                }
+                continue;
+            }
+            foreach ($covered as $c) {
+                $track[$c] += $deficit * ($track[$c] / $sum);
+            }
+        }
+        return $track;
+    }
+
+    /**
      * CSS 2.1 §17.5.2 automatic table-width — intrinsic min/max content
      * width of a table-root, for the shrink-to-fit pass. Builds its own
      * cell grid (pure, no shared-state mutation) so it is correct even
      * when the table is measured as a descendant of another box's
      * intrinsic pass. Per-column min/max accumulate from each anchored
-     * cell's border-box contribution (colspan distributed); an explicit
-     * px column width contributes its width to both min and max.
+     * cell's border-box contribution — see
+     * {@see widenColumnsForSpanningCells} for cells covering more than
+     * one column; an explicit px column width contributes its width to
+     * both min and max.
      *
      * `hasContent` distinguishes a genuinely empty grid (which must keep
      * the legacy fill-the-container behaviour — see
@@ -11886,6 +11974,16 @@ final class BlockLayout
         $colMin = array_fill(0, $totalColumns, 0.0);
         $colMax = array_fill(0, $totalColumns, 0.0);
         $hasContent = false;
+        // CSS 2.1 §17.5.2.2 — single-column cells establish each
+        // column's min / max first; spanning cells then only make up
+        // whatever shortfall is left. Mirrors the used-width pass in
+        // `resolveAutoColumnContentWidths` so the table's intrinsic
+        // size and its column distribution agree about how much room
+        // a spanning cell actually asks for.
+        /** @var list<array{col: int, span: int, need: float}> $spanningMin */
+        $spanningMin = [];
+        /** @var list<array{col: int, span: int, need: float}> $spanningMax */
+        $spanningMax = [];
         foreach ($cellRefs as $cellId => $cell) {
             $info = $grid[$cellId] ?? null;
             if ($info === null) {
@@ -11895,17 +11993,20 @@ final class BlockLayout
             if ($mm['max'] > 0.0) {
                 $hasContent = true;
             }
-            $minShare = $mm['min'] / max(1, $info['colspan']);
-            $maxShare = $mm['max'] / max(1, $info['colspan']);
-            for (
+            $span = max(1, $info['colspan']);
+            if ($span === 1) {
                 $c = $info['col'];
-                $c < $info['col'] + $info['colspan'] && $c < $totalColumns;
-                $c++
-            ) {
-                $colMin[$c] = max($colMin[$c], $minShare);
-                $colMax[$c] = max($colMax[$c], $maxShare);
+                if ($c < $totalColumns) {
+                    $colMin[$c] = max($colMin[$c], $mm['min']);
+                    $colMax[$c] = max($colMax[$c], $mm['max']);
+                }
+                continue;
             }
+            $spanningMin[] = ['col' => $info['col'], 'span' => $span, 'need' => $mm['min']];
+            $spanningMax[] = ['col' => $info['col'], 'span' => $span, 'need' => $mm['max']];
         }
+        $colMin = $this->widenColumnsForSpanningCells($colMin, $spanningMin, $totalColumns);
+        $colMax = $this->widenColumnsForSpanningCells($colMax, $spanningMax, $totalColumns);
         // CSS Tables 3 §4.4 — floor each column by its declared min-width so
         // an auto table shrink-wraps to at least the column min-widths.
         $columnMins = $this->collectColumnMinWidths($table, $totalColumns, $context->lengthContext);

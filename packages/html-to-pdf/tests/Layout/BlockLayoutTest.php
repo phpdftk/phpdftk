@@ -7201,6 +7201,97 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(200.0, $cells['last']->geometry->x, 0.5);
     }
 
+    public function testNarrowSpanningCellDoesNotWidenAlreadyWiderColumns(): void
+    {
+        // CSS 2.1 §17.5.2.2 — a spanning cell only widens the columns
+        // it covers when they are together NARROWER than it needs.
+        // Here the two data columns already provide 100 + 100 = 200,
+        // which covers the 40-wide header, so the header contributes
+        // nothing and the second column stays at 100.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="head" colspan="2" style="width: 40px"></td></tr>'
+            . '<tr><td class="a" style="width: 100px"></td>'
+            . '<td class="b" style="width: 100px"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(100.0, $cells['a']->geometry->width, 0.5);
+        self::assertEqualsWithDelta(100.0, $cells['b']->geometry->x, 0.5);
+        self::assertEqualsWithDelta(100.0, $cells['b']->geometry->width, 0.5);
+    }
+
+    public function testSpanningCellShortfallGoesToTheEmptyCoveredColumn(): void
+    {
+        // CSS Tables 3 §7.5.4 — the shortfall a spanning cell needs is
+        // absorbed by covered columns that are still at zero before any
+        // column that single-column cells have already sized. Column 0
+        // is pinned at 5 by its own cell, so the 100-wide spanning cell
+        // must grow column 1 to 95 rather than stretch column 0.
+        $box = $this->buildTree(
+            '<html><body><table>'
+            . '<tr><td class="span" colspan="2" style="width: 100px"></td></tr>'
+            . '<tr><td class="a" style="width: 5px"></td><td class="b"></td></tr>'
+            . '</table></body></html>',
+            'html, body, tbody { display: block; }
+             table { display: table; }
+             tr { display: table-row; }
+             td { display: table-cell; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cells = $this->collectCellsByClass($box);
+        self::assertEqualsWithDelta(5.0, $cells['a']->geometry->width, 0.5, 'pinned column keeps its width');
+        self::assertEqualsWithDelta(5.0, $cells['b']->geometry->x, 0.5, 'empty column starts after it');
+        self::assertEqualsWithDelta(95.0, $cells['b']->geometry->width, 0.5, 'empty column absorbs the shortfall');
+    }
+
+    public function testColspanBeyondCellCountLeavesPhantomColumnsAtZero(): void
+    {
+        // A colspan larger than any row's cell count brings phantom
+        // columns into existence. They originate no cells of their
+        // own, and the spanning header is narrower than the two real
+        // columns combined, so they must stay zero-width — the two
+        // data cells keep exactly the geometry they have when the
+        // header spans only the columns that exist.
+        $css = 'html, body, tbody { display: block; }
+                table { display: table; }
+                tr { display: table-row; }
+                td { display: table-cell; }';
+        $markup = static fn(int $span): string => '<html><body><table>'
+            . '<tr><td class="head" colspan="' . $span . '" style="width: 40px"></td></tr>'
+            . '<tr><td class="a" style="width: 100px"></td>'
+            . '<td class="b" style="width: 100px"></td></tr>'
+            . '</table></body></html>';
+
+        $exact = $this->buildTree($markup(2), $css);
+        $this->layout->layout($exact, $this->defaultCtx);
+        $exactCells = $this->collectCellsByClass($exact);
+
+        $overspan = $this->buildTree($markup(4), $css);
+        $this->layout->layout($overspan, $this->defaultCtx);
+        $overspanCells = $this->collectCellsByClass($overspan);
+
+        foreach (['a', 'b'] as $name) {
+            self::assertEqualsWithDelta(
+                $exactCells[$name]->geometry->x,
+                $overspanCells[$name]->geometry->x,
+                0.5,
+                "cell $name x",
+            );
+            self::assertEqualsWithDelta(
+                $exactCells[$name]->geometry->width,
+                $overspanCells[$name]->geometry->width,
+                0.5,
+                "cell $name width",
+            );
+        }
+    }
+
     public function testTableMixedAutoAndExplicitColWidthsKeepsExplicit(): void
     {
         // Negative: explicit `<col width>` on col 0 = 80, auto on
