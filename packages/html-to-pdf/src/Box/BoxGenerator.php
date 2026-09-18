@@ -495,6 +495,14 @@ final class BoxGenerator
         // `InlineBox` so the text child flows through inline layout.
         if (strtolower($element->localName) === 'input') {
             $type = strtolower($element->getAttribute('type') ?? 'text');
+            // HTML §15.5.12 — for an `<input>` that is a TEXT ENTRY
+            // WIDGET, the used `line-height` must not be smaller than
+            // the used value of `normal`. A single-line field has no
+            // second line to space away from, so a short line-height
+            // only crops the glyphs; browsers floor it instead.
+            if (in_array($type, ['text', 'search', 'tel', 'url', 'email', 'password'], true)) {
+                $this->floorTextEntryLineHeight($values);
+            }
             // HTML 5 §4.10.5.1.7 — `<input type=hidden>` is never
             // rendered, regardless of the `hidden` attribute on
             // its ancestors.
@@ -3453,6 +3461,36 @@ final class BoxGenerator
             return (float) $m[1];
         }
         return null;
+    }
+
+    /**
+     * HTML §15.5.12 — floor a text-entry widget's `line-height` at the
+     * used value of `normal`, by replacing anything smaller with the
+     * `normal` keyword itself.
+     *
+     * The `normal` multiplier has to agree with
+     * {@see \Phpdftk\HtmlToPdf\Layout\InlineLayout::resolveLineHeight()},
+     * which is where `normal` is actually turned into pixels; comparing
+     * against a different constant here would floor at the wrong place.
+     */
+    private function floorTextEntryLineHeight(CascadedValues $values): void
+    {
+        $fontSizeValue = $values->get('font-size');
+        $fontSize = $fontSizeValue instanceof \Phpdftk\Css\Value\Length
+            ? $fontSizeValue->value
+            : 16.0;
+        $normal = $fontSize * 1.2;
+        $declared = $values->get('line-height');
+        $used = match (true) {
+            $declared instanceof \Phpdftk\Css\Value\Number => $fontSize * $declared->value,
+            $declared instanceof \Phpdftk\Css\Value\Integer => $fontSize * $declared->value,
+            $declared instanceof \Phpdftk\Css\Value\Percentage => $fontSize * ($declared->value / 100.0),
+            $declared instanceof \Phpdftk\Css\Value\Length => $declared->value,
+            default => $normal,
+        };
+        if ($used < $normal) {
+            $values->set('line-height', new Keyword('normal'));
+        }
     }
 
     /**

@@ -2952,6 +2952,58 @@ final class BlockLayoutTest extends TestCase
         return $text;
     }
 
+    public function testTextEntryInputFloorsLineHeightAtNormal(): void
+    {
+        // HTML §15.5.12 — a text entry widget's used `line-height` is at
+        // least the used value of `normal`. A single-line field has no
+        // second line to space away from, so a short line-height would
+        // only crop the glyphs.
+        $short = $this->buildTreeWithUa(
+            '<html><body><input type="text" value="x"'
+            . ' style="font-size:60px;line-height:40px"></body></html>',
+            '',
+        );
+        $normal = $this->buildTreeWithUa(
+            '<html><body><input type="text" value="x"'
+            . ' style="font-size:60px"></body></html>',
+            '',
+        );
+        $this->layout->layout($short, $this->defaultCtx);
+        $this->layout->layout($normal, $this->defaultCtx);
+        $a = $this->find($short, 'input');
+        $b = $this->find($normal, 'input');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        $lhA = $a->style->get('line-height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Keyword::class, $lhA, 'a too-short line-height becomes `normal`');
+        self::assertSame('normal', $lhA->name);
+
+        // Negative: a line-height LARGER than normal is left alone.
+        $tall = $this->buildTreeWithUa(
+            '<html><body><input type="text" value="x"'
+            . ' style="font-size:60px;line-height:200px"></body></html>',
+            '',
+        );
+        $t = $this->find($tall, 'input');
+        self::assertNotNull($t);
+        $lhT = $t->style->get('line-height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $lhT);
+        self::assertSame(200.0, $lhT->value);
+
+        // Negative: the floor is scoped to TEXT ENTRY widgets, so a
+        // button-type input keeps whatever it was given.
+        $button = $this->buildTreeWithUa(
+            '<html><body><input type="button" value="x"'
+            . ' style="font-size:60px;line-height:40px"></body></html>',
+            '',
+        );
+        $btn = $this->find($button, 'input');
+        self::assertNotNull($btn);
+        $lhB = $btn->style->get('line-height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $lhB);
+        self::assertSame(40.0, $lhB->value);
+    }
+
     public function testAudioWithoutControlsIsNotRendered(): void
     {
         // HTML §15.3.1 — `audio:not([controls])` has no rendering; with
