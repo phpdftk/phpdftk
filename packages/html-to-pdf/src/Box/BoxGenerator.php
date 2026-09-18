@@ -2687,6 +2687,35 @@ final class BoxGenerator
                 ));
             }
         }
+        // HTML §15.3.3 — the legacy colour / font presentational hints.
+        // `color` and `font-family` INHERIT, so `has()` is true on every
+        // element and cannot tell an author declaration from an inherited
+        // value; `wasDeclared()` answers the question a hint actually
+        // needs ("did a declaration win this property here?"), which is
+        // what keeps `<font color="x" style="color:fuchsia">` fuchsia.
+        if ($tag === 'font') {
+            $color = $this->parseLegacyColor($element->getAttribute('color') ?? '');
+            if ($color !== null && !$values->wasDeclared('color')) {
+                $values->set('color', $color);
+            }
+            $face = trim($element->getAttribute('face') ?? '');
+            if ($face !== '' && !$values->wasDeclared('font-family')) {
+                $values->set('font-family', new \Phpdftk\Css\Value\StringValue($face));
+            }
+        }
+        // `bgcolor` on `<body>`, `<table>`, `<tr>`, `<td>`, `<th>` and the
+        // legacy `<marquee>` maps to `background-color`; `<body text>` to
+        // `color`.
+        $bgColor = $this->parseLegacyColor($element->getAttribute('bgcolor') ?? '');
+        if ($bgColor !== null && !$values->wasDeclared('background-color')) {
+            $values->set('background-color', $bgColor);
+        }
+        if ($tag === 'body') {
+            $textColor = $this->parseLegacyColor($element->getAttribute('text') ?? '');
+            if ($textColor !== null && !$values->wasDeclared('color')) {
+                $values->set('color', $textColor);
+            }
+        }
         if ($tag === 'table') {
             // HTML §15.3.9 — `<table width>` is a dimension value
             // (percentages allowed) mapped onto `width`, and `<table
@@ -3491,6 +3520,69 @@ final class BoxGenerator
         if ($used < $normal) {
             $values->set('line-height', new Keyword('normal'));
         }
+    }
+
+    /**
+     * HTML 5 §2.4.6 "rules for parsing a legacy colour value". Returns
+     * null only for the two genuine error cases — the empty string and
+     * `transparent` — because the algorithm's tail is total: anything
+     * else is coerced to SOME colour (`color="x"` really is black).
+     */
+    private function parseLegacyColor(string $raw): ?\Phpdftk\Css\Value\Color
+    {
+        $value = trim($raw, " \t\n\r\f");
+        if ($value === '' || strcasecmp($value, 'transparent') === 0) {
+            return null;
+        }
+        $named = \Phpdftk\Css\Value\NamedColors::lookup(strtolower($value));
+        if ($named !== null) {
+            return $named;
+        }
+        // `#rgb` shorthand keeps its own expansion before the generic tail.
+        if (preg_match('/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i', $value, $m) === 1) {
+            return new \Phpdftk\Css\Value\Color(
+                hexdec($m[1] . $m[1]) / 255.0,
+                hexdec($m[2] . $m[2]) / 255.0,
+                hexdec($m[3] . $m[3]) / 255.0,
+                1.0,
+            );
+        }
+        if (strlen($value) > 128) {
+            $value = substr($value, 0, 128);
+        }
+        if (str_starts_with($value, '#')) {
+            $value = substr($value, 1);
+        }
+        // Every non-hex character becomes `0`, then the string is padded
+        // to a multiple of three so it splits into equal R / G / B runs.
+        $value = preg_replace('/[^0-9a-f]/i', '0', $value) ?? '0';
+        if ($value === '') {
+            $value = '0';
+        }
+        while (strlen($value) % 3 !== 0) {
+            $value .= '0';
+        }
+        $componentLength = intdiv(strlen($value), 3);
+        $components = [
+            substr($value, 0, $componentLength),
+            substr($value, $componentLength, $componentLength),
+            substr($value, 2 * $componentLength, $componentLength),
+        ];
+        // Keep at most the leading two significant hex digits of each run.
+        foreach ($components as $i => $component) {
+            if (strlen($component) > 2) {
+                $trimmed = ltrim($component, '0');
+                $component = $trimmed === '' ? '0' : $trimmed;
+                $component = strlen($component) > 2 ? substr($component, 0, 2) : $component;
+            }
+            $components[$i] = str_pad($component, 2, '0', STR_PAD_LEFT);
+        }
+        return new \Phpdftk\Css\Value\Color(
+            hexdec($components[0]) / 255.0,
+            hexdec($components[1]) / 255.0,
+            hexdec($components[2]) / 255.0,
+            1.0,
+        );
     }
 
     /**

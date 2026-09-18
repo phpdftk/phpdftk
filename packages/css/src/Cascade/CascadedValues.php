@@ -24,7 +24,37 @@ final class CascadedValues
     /** @var array<string, Value> */
     private array $customProperties = [];
 
+    /**
+     * Properties that a DECLARATION won the cascade for on this element,
+     * as opposed to arriving from inheritance or the registry's initial
+     * value.
+     *
+     * `has()` cannot answer that question for an INHERITED property —
+     * `color`, `white-space`, `border-spacing` and friends are present in
+     * every element's map no matter what the author wrote — and that is
+     * exactly what a presentational-hint mapping needs to know, since a
+     * hint must lose to any author declaration.
+     *
+     * @var array<string, true>
+     */
+    private array $declared = [];
+
     public function __construct(private readonly PropertyRegistry $registry) {}
+
+    /** Mark `$name` as supplied by a declaration (see {@see wasDeclared()}). */
+    public function markDeclared(string $name): void
+    {
+        $this->declared[$this->normalise($name)] = true;
+    }
+
+    /**
+     * Did a declaration supply this property's value on this element?
+     * False for a value that came from inheritance or the initial value.
+     */
+    public function wasDeclared(string $name): bool
+    {
+        return isset($this->declared[$this->normalise($name)]);
+    }
 
     public function set(string $name, Value $value): void
     {

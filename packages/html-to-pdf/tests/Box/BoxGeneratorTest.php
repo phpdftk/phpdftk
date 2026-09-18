@@ -803,6 +803,79 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(50.0, $w->value);
     }
 
+    public function testLegacyColourPresentationalHints(): void
+    {
+        // HTML §15.3.3 — `<font color>` / `<font face>`, `bgcolor` on any
+        // of the legacy hosts, and `<body text>`. The colour value goes
+        // through HTML §2.4.6's "rules for parsing a legacy colour
+        // value", whose tail is TOTAL: only the empty string and
+        // `transparent` are errors, everything else is coerced (so
+        // `color="x"` really is black).
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body text="blue" bgcolor="yellow">'
+            . '<font id=named color="fuchsia">a</font>'
+            . '<font id=coerced color="x">b</font>'
+            . '<font id=transparent color="transparent">c</font>'
+            . '<font id=empty color="">d</font>'
+            . '<font id=face face="Courier">e</font>'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $byId = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            $id = $n->element?->getAttribute('id');
+            if ($id !== null && $id !== '') {
+                $byId[$id] ??= $n;
+            }
+            if ($n->element !== null && strtolower($n->element->localName) === 'body') {
+                $byId['body'] ??= $n;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        $colorOf = static function (?\Phpdftk\HtmlToPdf\Box\Box $b, string $prop): array {
+            self::assertNotNull($b);
+            $v = $b->style->get($prop);
+            self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $v);
+            return [round($v->r, 3), round($v->g, 3), round($v->b, 3)];
+        };
+        self::assertSame([1.0, 0.0, 1.0], $colorOf($byId['named'] ?? null, 'color'));
+        self::assertSame([0.0, 0.0, 0.0], $colorOf($byId['coerced'] ?? null, 'color'), 'color="x" coerces to black');
+        // `transparent` and `""` are the two error cases: the hint is
+        // dropped and the inherited `<body text>` blue shows through.
+        self::assertSame([0.0, 0.0, 1.0], $colorOf($byId['transparent'] ?? null, 'color'));
+        self::assertSame([0.0, 0.0, 1.0], $colorOf($byId['empty'] ?? null, 'color'));
+        self::assertSame([1.0, 1.0, 0.0], $colorOf($byId['body'] ?? null, 'background-color'));
+        $face = ($byId['face'] ?? null)?->style->get('font-family');
+        self::assertInstanceOf(\Phpdftk\Css\Value\StringValue::class, $face);
+        self::assertSame('Courier', $face->value);
+    }
+
+    public function testAuthorCssBeatsLegacyColourHints(): void
+    {
+        // Negative: `color` INHERITS, so it is present in every cascade
+        // map; the hint has to consult `wasDeclared()` rather than
+        // `has()` or it would stomp the author's declaration.
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body><font color="x" style="color:fuchsia">a</font></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $font = $this->findFirstByTag($box, 'font');
+        self::assertNotNull($font);
+        $c = $font->style->get('color');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Color::class, $c);
+        self::assertSame(1.0, $c->r);
+        self::assertSame(0.0, $c->g);
+        self::assertSame(1.0, $c->b);
+    }
+
     public function testMediaElementsDoNotRenderTheirFallbackContent(): void
     {
         // HTML §4.8.9 / §4.8.10 — the children of `<video>` / `<audio>`

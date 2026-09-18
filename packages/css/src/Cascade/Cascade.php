@@ -402,6 +402,7 @@ final class Cascade
             );
             if ($value !== null) {
                 $result->set($name, $value);
+                $result->markDeclared($name);
                 $winnerRank[$name] = [
                     'tier' => $winner['tier'],
                     'specificity' => $winner['specificity'],
