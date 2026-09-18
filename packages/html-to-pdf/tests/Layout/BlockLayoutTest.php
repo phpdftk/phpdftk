@@ -2747,10 +2747,12 @@ final class BlockLayoutTest extends TestCase
 
     public function testAuthorCssCanForceDetailsAlwaysOpen(): void
     {
-        // Negative test: author overrides the UA `details > * { none }`
-        // rule by explicitly setting `display: block` on the child.
-        // The override should win via higher specificity (or simply
-        // source-order being later).
+        // HTML §15.3.11 + CSS Pseudo 4 §3.6 — a closed `<details>` hides
+        // its content by putting `content-visibility: hidden` on the
+        // `::details-content` pseudo, so the author escape hatch is to
+        // set that pseudo visible. `display` on an individual child no
+        // longer reveals anything: the whole slot is skipped, which is
+        // exactly what WPT's details-pseudo-elements-002 asserts.
         $box = $this->buildTreeWithUa(
             '<html><body>'
                 . '<details>'
@@ -2758,12 +2760,59 @@ final class BlockLayoutTest extends TestCase
                 . '<p class="body" style="height: 50px"></p>'
                 . '</details>'
                 . '</body></html>',
-            'details > p { display: block; }',
+            'details::details-content { content-visibility: visible; }',
         );
         $this->layout->layout($box, $this->defaultCtx);
         $p = $this->find($box, 'p');
         self::assertNotNull($p);
         self::assertSame(50.0, $p->geometry->height, 'author override wins over UA hide');
+    }
+
+    public function testClosedDetailsAlsoHidesBareTextChildren(): void
+    {
+        // The old `details > * { display: none }` approximation only
+        // reached ELEMENT children, so a closed `<details>` leaked its
+        // bare text. Slotting everything into `::details-content` and
+        // hiding that instead covers text nodes too.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details><summary style="height: 20px">S</summary>leaked text</details>'
+                . '</body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $details = $this->find($box, 'details');
+        self::assertNotNull($details);
+        self::assertStringNotContainsString('leaked', $this->collectBoxText($details));
+    }
+
+    public function testDetailsContentPseudoWrapsEverythingButTheFirstSummary(): void
+    {
+        // CSS Pseudo 4 §3.6 — the first `<summary>` stays a child of the
+        // details; every other child (including a SECOND summary) is
+        // slotted into the `::details-content` box.
+        $box = $this->buildTreeWithUa(
+            '<html><body>'
+                . '<details open>'
+                . '<summary style="height: 20px">first</summary>'
+                . '<p style="height: 10px"></p>'
+                . '<summary style="height: 10px">second</summary>'
+                . '</details>'
+                . '</body></html>',
+            'details::details-content { background: red; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $details = $this->find($box, 'details');
+        self::assertNotNull($details);
+        $topLevel = [];
+        foreach ($details->children as $c) {
+            $topLevel[] = $c->element !== null ? strtolower($c->element->localName) : '(anon)';
+        }
+        // summary + the ::details-content slot box (which reuses the
+        // details element as its originating element).
+        self::assertSame(['summary', 'details'], $topLevel);
+        $slot = $details->children[1];
+        self::assertCount(2, $slot->children, 'p + second summary are slotted');
     }
 
     public function testSummaryRendersWhenDetailsIsOpenAndClosed(): void

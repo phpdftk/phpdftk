@@ -602,9 +602,12 @@ final readonly class RendererOptions
                scopes the marker to the FIRST summary of a details (a
                bare `<summary>` outside a details has no marker at all).
 
-               `details > *` / `details[open] > *` stand in for the
-               `::details-content` pseudo-element + `content-visibility`
-               that the spec uses to hide the closed content. */
+               Everything in the details except that first summary is
+               slotted into `::details-content`, whose
+               `content-visibility` is what hides the closed content —
+               so an author can force it visible on a closed details,
+               and `display: contents` on it lets summary and content
+               share a line. */
             details, summary { display: block; }
             details > summary:first-of-type {
                 display: list-item;
@@ -612,9 +615,8 @@ final readonly class RendererOptions
                 list-style: disclosure-closed inside;
             }
             details[open] > summary:first-of-type { list-style-type: disclosure-open; }
-            details > * { display: none; }
-            details > summary { display: block; }
-            details[open] > * { display: block; }
+            details::details-content { display: block; content-visibility: hidden; }
+            details[open]::details-content { content-visibility: visible; }
 
             /* `<q>` inline quotes — wrap content in straight double quotes
                per the open-quote / close-quote Phase-1 simplification. */

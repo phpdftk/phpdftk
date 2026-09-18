@@ -2261,8 +2261,14 @@ final class Cascade
             $last = $compounds[array_key_last($compounds)]->compound;
             foreach ($last->components as $simple) {
                 if ($simple instanceof \Phpdftk\Css\Selector\PseudoElementSelector) {
+                    // CSS Pseudo 4 §2.1 — pseudo-elements CHAIN, and the
+                    // rule targets the LAST one: `p::first-line::before`
+                    // styles the `::before` of the first line, not the
+                    // first line itself. Stopping at the first name made
+                    // `details::details-content::first-letter` style the
+                    // whole `::details-content` box, blowing a 2em
+                    // first-letter rule up over all of its text.
                     $result = strtolower($simple->name);
-                    break;
                 }
             }
         }

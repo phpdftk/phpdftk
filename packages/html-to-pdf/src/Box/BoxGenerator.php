@@ -621,7 +621,60 @@ final class BoxGenerator
         if ($before !== null) {
             $rawChildren[] = $before;
         }
+        // HTML §15.3.11 + CSS Pseudo 4 §3.6 — a `<details>` slots
+        // everything EXCEPT its first `<summary>` into the
+        // `::details-content` pseudo-element. That pseudo is what
+        // authors style to change the disclosure content as a unit, and
+        // what the UA sheet hides with `content-visibility` while the
+        // details is closed. Resolve it up front: when it is hidden
+        // there is no point building (or counter-incrementing) the
+        // slotted children at all.
+        $isDetails = strtolower($element->localName) === 'details';
+        $detailsContentValues = $isDetails
+            ? $this->cascade->computeFor($sheets, $element, $values, 'details-content')
+            : null;
+        $detailsContentDisplay = $detailsContentValues !== null
+            ? $this->displayKeyword($detailsContentValues)
+            : 'block';
+        $detailsContentHidden = false;
+        if ($detailsContentValues !== null) {
+            $dcv = $detailsContentValues->get('content-visibility');
+            $detailsContentHidden = $dcv instanceof Keyword
+                && strtolower($dcv->name) === 'hidden';
+            if ($detailsContentHidden) {
+                // CSS Containment 2 §4 — a `content-visibility: hidden`
+                // box is size-contained and paints no contents, which is
+                // `contain: strict` over a childless box.
+                $detailsContentValues->set('contain', new Keyword('strict'));
+            }
+        }
+        $detailsContentSkipped = $detailsContentHidden || $detailsContentDisplay === 'none';
+        /** @var list<Box> $detailsContentChildren */
+        $detailsContentChildren = [];
+        $detailsSummarySeen = false;
         for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
+            $intoContent = false;
+            if ($isDetails) {
+                if (!$detailsSummarySeen
+                    && $n instanceof Element
+                    && strtolower($n->localName) === 'summary'
+                ) {
+                    $detailsSummarySeen = true;
+                } else {
+                    $intoContent = true;
+                }
+            }
+            if ($intoContent && $detailsContentSkipped) {
+                continue;
+            }
+            // Slotted children inherit through the slot — the flattened
+            // tree puts `::details-content` between `<details>` and its
+            // non-summary children.
+            $host = $intoContent && $detailsContentValues !== null
+                ? $detailsContentValues
+                : $values;
+            /** @var list<Box> $produced */
+            $produced = [];
             if ($n instanceof Element) {
                 // CSS Display 3 §3.2 — `display: contents` makes the
                 // element generate no box of its own; its children
@@ -629,25 +682,47 @@ final class BoxGenerator
                 // element's parent (i.e. the box we're currently
                 // building). Recurse via the helper so nested
                 // `display: contents` chains flatten cleanly.
-                $childCascade = $this->cascade->computeFor($sheets, $n, $values);
-                $this->applyPresentationalAttributes($n, $childCascade, $this->isFlexOrGridContainer($values));
+                $childCascade = $this->cascade->computeFor($sheets, $n, $host);
+                $this->applyPresentationalAttributes($n, $childCascade, $this->isFlexOrGridContainer($host));
                 if ($this->displayKeyword($childCascade) === 'contents') {
-                    foreach ($this->expandDisplayContents($n, $sheets, $values) as $grandchild) {
-                        $rawChildren[] = $grandchild;
+                    foreach ($this->expandDisplayContents($n, $sheets, $host) as $grandchild) {
+                        $produced[] = $grandchild;
                     }
-                    continue;
-                }
-                $child = $this->buildElementBox($n, $sheets, $values);
-                if ($child !== null) {
-                    $rawChildren[] = $child;
+                } else {
+                    $child = $this->buildElementBox($n, $sheets, $host);
+                    if ($child !== null) {
+                        $produced[] = $child;
+                    }
                 }
             } elseif ($n instanceof Text) {
-                if ($n->data === '') {
-                    continue;
+                if ($n->data !== '') {
+                    $produced[] = new TextBox($element, $host, $n->data);
                 }
-                $rawChildren[] = new TextBox($element, $values, $n->data);
             }
             // Comments and other node types are dropped.
+            foreach ($produced as $producedBox) {
+                if ($intoContent) {
+                    $detailsContentChildren[] = $producedBox;
+                } else {
+                    $rawChildren[] = $producedBox;
+                }
+            }
+        }
+        if ($detailsContentValues !== null && $detailsContentDisplay !== 'none') {
+            if ($detailsContentDisplay === 'contents') {
+                // No box for the pseudo; the slotted content flows
+                // straight into the details, which is what makes an
+                // inline `<details>` keep summary + content on one line.
+                foreach ($detailsContentChildren as $slotted) {
+                    $rawChildren[] = $slotted;
+                }
+            } else {
+                $slot = $this->makeBox($element, $detailsContentValues, $detailsContentDisplay);
+                foreach ($detailsContentChildren as $slotted) {
+                    $slot->addChild($slotted);
+                }
+                $rawChildren[] = $slot;
+            }
         }
         $after = $this->makePseudoBox($element, $sheets, $values, 'after');
         if ($after !== null) {

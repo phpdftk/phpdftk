@@ -42,6 +42,25 @@ final class CascadeTest extends TestCase
         self::assertSame(0.0, $color->b);
     }
 
+    public function testChainedPseudoElementTargetsTheLastName(): void
+    {
+        // CSS Pseudo 4 §2.1 — pseudo-elements CHAIN, and the rule targets
+        // the LAST one in the chain. Stopping at the first name made
+        // `details::details-content::first-letter` style the whole
+        // `::details-content` box, so a 2em first-letter rule enlarged
+        // ALL of the disclosure content.
+        $sheet = $this->parser->parseStylesheet(
+            'details::details-content { color: red; }'
+            . 'details::details-content::first-letter { color: lime; }',
+        );
+        $el = new FakeElement('details');
+        $slot = $this->cascade->computeFor([$sheet], $el, null, 'details-content');
+        $color = $slot->get('color');
+        self::assertInstanceOf(Color::class, $color);
+        self::assertSame(1.0, $color->r, '::details-content keeps its own red');
+        self::assertSame(0.0, $color->g, 'the ::first-letter rule must not reach the slot itself');
+    }
+
     public function testSingleRuleApplied(): void
     {
         $sheet = $this->parser->parseStylesheet('p { color: red; }');
