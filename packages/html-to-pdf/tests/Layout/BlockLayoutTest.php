@@ -7441,6 +7441,122 @@ final class BlockLayoutTest extends TestCase
         self::assertSame(150.0, $c->geometry->x);
     }
 
+    public function testGridPercentageTracksResolveAgainstTheContainer(): void
+    {
+        // Positive (CSS Grid 2 §7.2.1): bare `<percentage>` tracks resolve
+        // against the grid container's content size. They used to be dropped
+        // outright, collapsing this two-column grid into one implicit column
+        // and stacking the items instead of placing them side by side.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 500px; '
+            . 'grid-template-columns: 40% 60%; grid-template-rows: 30px;">'
+            . '<div class="a"></div><div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        $b = $this->find($box, 'div.b');
+        self::assertEqualsWithDelta(200.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(200.0, $b->geometry->x, 0.001, 'second column starts after the first');
+        self::assertEqualsWithDelta(300.0, $b->geometry->width, 0.001);
+    }
+
+    public function testGridPercentageRowTrackWithIndefiniteHeightIsContentSized(): void
+    {
+        // Negative (§7.2.1 note): a percentage track against an INDEFINITE
+        // container size behaves as `auto`, so it must fall through to
+        // content sizing rather than resolving to zero.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 100px; grid-template-rows: 50%;">'
+            . '<div class="a"><div style="height: 40px;"></div></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(40.0, $this->find($box, 'div.a')->geometry->height, 0.001);
+    }
+
+    public function testGridImplicitRowsSizeToTheirItemsContent(): void
+    {
+        // Positive (CSS Grid 2 §12.3): with no `grid-template-rows` every
+        // item lands in its own implicit `auto` row, which must be sized to
+        // the item's content height. They used to all collapse to zero and
+        // paint on top of each other at y = 0.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 300px;">'
+            . '<div class="a" style="height: 30px;"></div>'
+            . '<div class="b" style="height: 50px;"></div>'
+            . '<div class="c" style="height: 20px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(0.0, $this->find($box, 'div.a')->geometry->y, 0.001);
+        self::assertEqualsWithDelta(30.0, $this->find($box, 'div.b')->geometry->y, 0.001);
+        self::assertEqualsWithDelta(80.0, $this->find($box, 'div.c')->geometry->y, 0.001);
+        self::assertEqualsWithDelta(100.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
+    }
+
+    public function testGridImplicitColumnTracksAreContentSized(): void
+    {
+        // Positive (CSS Grid 2 §7.4): an IMPLICIT column takes its sizing
+        // function from `grid-auto-columns`, which defaults to `auto` and is
+        // therefore content-sized. Only explicit track descriptors used to be
+        // consulted, so implicit columns stayed 0-wide and their items
+        // collapsed onto the previous column's right edge.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 400px; '
+            . 'grid-template-columns: 50px; grid-template-rows: 30px 30px; '
+            . 'justify-content: start; grid-auto-flow: column;">'
+            . '<div class="a"></div><div class="b"></div>'
+            . '<div class="c"><div style="width: 90px;"></div></div>'
+            . '<div class="d"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->find($box, 'div.c');
+        self::assertEqualsWithDelta(50.0, $c->geometry->x, 0.001, 'starts after the explicit column');
+        self::assertEqualsWithDelta(90.0, $c->geometry->width, 0.001, 'sized to its content');
+    }
+
+    public function testGridImplicitColumnHonoursFixedGridAutoColumns(): void
+    {
+        // Negative: a `<length>` `grid-auto-columns` pins implicit tracks —
+        // content sizing must not override an author-specified size.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 400px; '
+            . 'grid-template-columns: 50px; grid-template-rows: 30px 30px; '
+            . 'grid-auto-columns: 20px; justify-content: start; grid-auto-flow: column;">'
+            . '<div class="a"></div><div class="b"></div>'
+            . '<div class="c"><div style="width: 90px;"></div></div>'
+            . '<div class="d"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(20.0, $this->find($box, 'div.c')->geometry->width, 0.001);
+    }
+
+    public function testGridFixedRowTrackIsNotContentSized(): void
+    {
+        // Negative: a `<length>` row track is NOT intrinsic, so a taller
+        // item overflows it instead of growing it.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; width: 300px; '
+            . 'grid-template-rows: 20px 20px;">'
+            . '<div class="a" style="height: 90px;"></div>'
+            . '<div class="b" style="height: 5px;"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(20.0, $this->find($box, 'div.b')->geometry->y, 0.001);
+        self::assertEqualsWithDelta(40.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
+    }
+
     public function testGridAutoTrackMultiSpanDistributesEqually(): void
     {
         // Negative-ish: a 2-cell-spanning item across two auto

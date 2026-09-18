@@ -5155,6 +5155,7 @@ final class BlockLayout
             $placements,
             $context,
             isColumnAxis: true,
+            implicitTracksAreIntrinsic: !($style->get('grid-auto-columns') instanceof Length),
         );
         $this->resolveGridContentSizedTracks(
             $rowTracks,
@@ -5162,6 +5163,25 @@ final class BlockLayout
             $placements,
             $context,
             isColumnAxis: false,
+        );
+
+        // Pass 2.6: content-size the ROW tracks (CSS Grid Layout 2 §12.3 —
+        // "resolve intrinsic track sizes" in the block axis). The row axis
+        // needs item HEIGHTS, which only exist after a layout, so each item
+        // spanning an intrinsic row is laid out once at its (now final)
+        // column width in a throwaway context and its margin-box height
+        // feeds the track. Without this every `auto` / implicit row stayed
+        // at zero and a grid with no `grid-template-rows` piled every item
+        // on top of the first at y = 0.
+        $this->resolveGridContentSizedRowTracks(
+            $rowTracks,
+            $rowDescriptors,
+            $placements,
+            $context,
+            $columnTracks,
+            $columnGap,
+            $rowGap,
+            implicitRowsAreIntrinsic: !($style->get('grid-auto-rows') instanceof Length),
         );
 
         // Pass 3: lay out each child inside its assigned cell.
@@ -5564,8 +5584,19 @@ final class BlockLayout
                 $out[] = ['type' => $name, 'value' => 0.0];
             }
         }
-        // Other shapes (Percentage, etc.) are skipped at MVP rather
-        // than guessed.
+        // CSS Grid Layout 2 §7.2.1 — a bare `<percentage>` track resolves
+        // against the grid container's content size in that axis. When that
+        // size is INDEFINITE the percentage behaves as `auto` instead
+        // (§7.2.1 note), so the content-sizing pass can fill it in. Before
+        // this, a percentage track was dropped outright, silently collapsing
+        // e.g. `grid-template-columns: 40% 60%` to a single implicit column.
+        if ($value instanceof Percentage) {
+            if ($availableSize > 0.0) {
+                $out[] = ['type' => 'length', 'value' => max(0.0, $value->value / 100.0 * $availableSize)];
+            } else {
+                $out[] = ['type' => 'auto', 'value' => 0.0];
+            }
+        }
     }
 
     private function numericValueOrNull(?\Phpdftk\Css\Value\Value $v): ?float
@@ -5728,9 +5759,10 @@ final class BlockLayout
         array $placements,
         LayoutContext $context,
         bool $isColumnAxis,
+        bool $implicitTracksAreIntrinsic = false,
     ): void {
         // Bail when there are no content-sized tracks to resolve.
-        $hasContentTrack = false;
+        $hasContentTrack = $implicitTracksAreIntrinsic && count($resolved) > count($descriptors);
         foreach ($descriptors as $d) {
             if ($d['type'] === 'auto' || $d['type'] === 'min-content' || $d['type'] === 'max-content') {
                 $hasContentTrack = true;
@@ -5748,8 +5780,14 @@ final class BlockLayout
             $span = $isColumnAxis ? $p['colSpan'] : $p['rowSpan'];
             // Find which spanned tracks are content-sized.
             $contentTrackIndices = [];
-            for ($i = $start; $i < $start + $span && $i < count($descriptors); $i++) {
-                $type = $descriptors[$i]['type'];
+            for ($i = $start; $i < $start + $span && $i < count($resolved); $i++) {
+                // CSS Grid Layout 2 §7.4 — an IMPLICIT track (one past the
+                // explicit template) takes its sizing function from
+                // `grid-auto-columns` / `grid-auto-rows`, which defaults to
+                // `auto` and is therefore content-sized. Only explicit
+                // descriptors were consulted before, so implicit tracks
+                // stayed at zero and their items piled up at the same offset.
+                $type = $descriptors[$i]['type'] ?? ($implicitTracksAreIntrinsic ? 'auto' : 'length');
                 if ($type === 'auto' || $type === 'min-content' || $type === 'max-content') {
                     $contentTrackIndices[] = $i;
                 }
@@ -5772,7 +5810,10 @@ final class BlockLayout
             $intrinsic = $mm['max'];
             // For the simplest "use min-content" track:
             foreach ($contentTrackIndices as $i) {
-                $type = $descriptors[$i]['type'];
+                // Implicit tracks have no descriptor; they inherit the
+                // `grid-auto-*` sizing function, which reaches this loop only
+                // when it is intrinsic (and then behaves as `auto`).
+                $type = $descriptors[$i]['type'] ?? 'auto';
                 $size = $type === 'min-content' ? $mm['min'] : $intrinsic;
                 // Distribute the item's intrinsic size equally
                 // across its content-sized tracks. The track's
@@ -6727,6 +6768,107 @@ final class BlockLayout
             }
         }
         return null;
+    }
+
+    /**
+     * CSS Grid Layout 2 §12.3 — resolve intrinsic ROW track sizes from the
+     * items placed in them. Unlike the column axis (where an item's
+     * min/max-content width can be measured from the box tree), a block-axis
+     * content size only exists after layout, so each contributing item is
+     * laid out once at its final column width in an isolated context and its
+     * margin-box height is fed back into the track.
+     *
+     * Tracks only ever GROW here. A row whose size is already pinned — a
+     * `<length>` / `fr` template track, or the single implicit row that
+     * inherits a declared container height — keeps that size unless an item
+     * genuinely needs more room, so this pass cannot shrink a grid that was
+     * previously laid out correctly.
+     *
+     * @param list<float> $rowTracks Mutated in place.
+     * @param list<array{type: string, value: float, minFloor?: float}> $rowDescriptors
+     * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
+     * @param list<float> $columnTracks
+     */
+    private function resolveGridContentSizedRowTracks(
+        array &$rowTracks,
+        array $rowDescriptors,
+        array $placements,
+        LayoutContext $context,
+        array $columnTracks,
+        float $columnGap,
+        float $rowGap,
+        bool $implicitRowsAreIntrinsic,
+    ): void {
+        $rowCount = count($rowTracks);
+        if ($rowCount === 0 || $placements === []) {
+            return;
+        }
+        /** @var array<int, bool> $intrinsic */
+        $intrinsic = [];
+        $anyIntrinsic = false;
+        for ($i = 0; $i < $rowCount; $i++) {
+            $descriptor = $rowDescriptors[$i] ?? null;
+            $isIntrinsic = $descriptor === null
+                ? $implicitRowsAreIntrinsic
+                : in_array($descriptor['type'], ['auto', 'min-content', 'max-content'], true);
+            $intrinsic[$i] = $isIntrinsic;
+            $anyIntrinsic = $anyIntrinsic || $isIntrinsic;
+        }
+        if (!$anyIntrinsic) {
+            return;
+        }
+        foreach ($placements as $p) {
+            if ($p['row'] < 0 || $p['col'] < 0 || $p['row'] >= $rowCount) {
+                continue;
+            }
+            $spanEnd = min($rowCount, $p['row'] + $p['rowSpan']);
+            $targets = [];
+            $pinned = 0.0;
+            for ($i = $p['row']; $i < $spanEnd; $i++) {
+                if ($intrinsic[$i]) {
+                    $targets[] = $i;
+                } else {
+                    $pinned += $rowTracks[$i];
+                }
+            }
+            if ($targets === []) {
+                continue;
+            }
+            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGap);
+            $itemHeight = $this->measureGridItemOuterHeight($p['box'], $context, $cellWidth);
+            // An item spanning several tracks only has to cover what the
+            // pinned tracks and the gaps between them don't already supply.
+            $pinned += $rowGap * max(0, $spanEnd - $p['row'] - 1);
+            $share = max(0.0, $itemHeight - $pinned) / count($targets);
+            foreach ($targets as $i) {
+                if ($rowTracks[$i] < $share) {
+                    $rowTracks[$i] = $share;
+                }
+            }
+        }
+    }
+
+    /**
+     * Lay a grid item out in an isolated context at `$cellWidth` and report
+     * its margin-box height — the item's block-axis contribution to an
+     * intrinsic row track. The row height is not known yet, so the
+     * containing block is explicitly INDEFINITE in that axis (a `height: %`
+     * on the item therefore behaves as `auto`, per CSS Sizing 3 §5.2), and a
+     * private `FloatContext` keeps the trial from leaking exclusions into
+     * the document-wide one. Pass 3 lays the item out again at its real cell
+     * size, so the geometry left behind here is always overwritten.
+     */
+    private function measureGridItemOuterHeight(Box $box, LayoutContext $context, float $cellWidth): float
+    {
+        $trialCtx = $context
+            ->withContainingBlock($cellWidth, 0.0)
+            ->withContainingBlockHeightDefinite(0.0, false)
+            ->withOrigin(0.0, 0.0)
+            ->withFloatContext(new FloatContext());
+        $this->cascade->resolveLengths($box->style, $this->boxLengthContext($box, $trialCtx));
+        $this->layoutBox($box, $trialCtx);
+
+        return $box->geometry->outerHeight();
     }
 
     /**
