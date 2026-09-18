@@ -11552,6 +11552,80 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($i->lineBoxes[0]->height, $i->geometry->width, 0.001);
     }
 
+    public function testOrthogonalVerticalBlockAutoWidthShrinksToColumnTotal(): void
+    {
+        // CSS Writing Modes 4 §7.1 — `width` is the box's own BLOCK size
+        // whenever the box's writing mode is vertical, so an ORTHOGONAL
+        // block (`vertical-lr` inside `horizontal-tb`) content-sizes it
+        // from its columns too. Only the INLINE-axis half of the rule is
+        // restricted to same-orientation flows. Two lines of text at a
+        // definite 40px inline size produce two columns, so the used width
+        // is the two line heights — not the containing block's 600px.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $root = $this->buildTree(
+            '<html><body><div id="i">AAAA AAAA AAAA</div></body></html>',
+            'html, body, div { display: block; } head { display: none; }
+             #i { writing-mode: vertical-lr; height: 40px;
+                  font-family: noto; font-size: 20px; }',
+        );
+        $this->layout->layout($root, new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        ));
+        $i = $this->findById($root, 'i');
+        self::assertNotNull($i);
+        self::assertGreaterThan(1, count($i->lineBoxes), 'the 40px inline size forces a wrap');
+        $columnTotal = 0.0;
+        foreach ($i->lineBoxes as $line) {
+            $columnTotal += $line->height;
+        }
+        self::assertEqualsWithDelta($columnTotal, $i->geometry->width, 0.001);
+        self::assertLessThan(600.0, $i->geometry->width);
+    }
+
+    public function testVerticalFloatShrinkWrapsInlineSizeToItsLines(): void
+    {
+        // CSS Writing Modes 4 §7.1 — a float has nothing to stretch its
+        // INLINE size into, so `height: auto` shrink-wraps it. The content
+        // of a vertical box that hosts an inline formatting context lives
+        // entirely in its transposed line boxes, which the child-box scan
+        // cannot see: without measuring them the float (and every box that
+        // measures the float) collapsed to a zero inline size and painted
+        // nothing at all.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $root = $this->buildTree(
+            '<html><body><div id="f">AA</div></body></html>',
+            'html, body, div { display: block; } head { display: none; }
+             #f { float: left; writing-mode: vertical-rl;
+                  font-family: noto; font-size: 20px; }',
+        );
+        $this->layout->layout($root, new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        ));
+        $f = $this->findById($root, 'f');
+        self::assertNotNull($f);
+        self::assertNotEmpty($f->lineBoxes);
+        $run = 0.0;
+        foreach ($f->lineBoxes[0]->fragments as $fragment) {
+            $run = max($run, $fragment->blockOffset + $fragment->width);
+        }
+        self::assertGreaterThan(0.0, $run);
+        self::assertEqualsWithDelta($run, $f->geometry->height, 0.001);
+    }
+
     public function testVerticalRlRootAnchorsBlockStartToViewportRightEdge(): void
     {
         // CSS Writing Modes 4 §3.1 — the initial containing block adopts

@@ -1685,14 +1685,21 @@ final class BlockLayout
                 $box,
                 $childContext,
                 $verticalFlow ? $childCbHeight : null,
-                $verticalFlow && $widthAuto,
+                $selfWm->isVertical() && $widthAuto,
             );
             // CSS Writing Modes 4 §7.1 — the value the inline pass returns
             // is the extent consumed along the container's BLOCK axis. In a
-            // vertical flow that axis is physical x, so an `auto` block size
-            // (`width`) takes the column total rather than the containing-
-            // block stretch the pass was seeded with.
-            if ($verticalFlow && $widthAuto && $childTotal > 0.0) {
+            // vertical writing mode that axis is physical x, so an `auto`
+            // block size (`width`) takes the column total rather than the
+            // containing-block stretch the pass was seeded with.
+            //
+            // This is the box's OWN writing mode talking, so it holds for an
+            // ORTHOGONAL flow too: a `vertical-lr` block inside a
+            // `horizontal-tb` container still measures its block size from
+            // its columns. Only the INLINE-axis half of §7.1 (the
+            // stretch-fit above) needs the containing block to share the
+            // box's inline axis — §7.3 governs the orthogonal case there.
+            if ($selfWm->isVertical() && $widthAuto && $childTotal > 0.0) {
                 $geo->width = $childTotal;
             }
         } elseif ($wm->isVertical()) {
@@ -1937,6 +1944,33 @@ final class BlockLayout
                     $h = $child->geometry->outerHeight();
                     if ($h > $maxChildOuterHeight) {
                         $maxChildOuterHeight = $h;
+                    }
+                }
+                // A vertical box hosting an INLINE formatting context has
+                // no child boxes to measure — its content lives in the
+                // transposed line boxes, where `blockOffset` is each
+                // fragment's inline offset down the column and `width` its
+                // inline advance. The max-content inline size is the
+                // furthest any fragment reaches, which is what a float /
+                // abspos / orthogonal box shrink-to-fits to. Without this
+                // the box (and every ancestor measuring it) collapsed to a
+                // zero inline size and painted nothing.
+                foreach ($box->lineBoxes as $line) {
+                    $start = null;
+                    $reach = 0.0;
+                    foreach ($line->fragments as $fragment) {
+                        $start = $start === null
+                            ? $fragment->blockOffset
+                            : min($start, $fragment->blockOffset);
+                        $reach = max($reach, $fragment->blockOffset + $fragment->width);
+                    }
+                    // Measure the RUN, not its position: `blockOffset` also
+                    // carries whatever `text-align` / bidi put in front of
+                    // the line, and folding that into a shrink-to-fit size
+                    // would inflate the box by its own alignment slack.
+                    $extent = $reach - ($start ?? 0.0);
+                    if ($extent > $maxChildOuterHeight) {
+                        $maxChildOuterHeight = $extent;
                     }
                 }
                 $geo->height = $maxChildOuterHeight;
