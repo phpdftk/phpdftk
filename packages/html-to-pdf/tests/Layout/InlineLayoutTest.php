@@ -726,6 +726,38 @@ final class InlineLayoutTest extends TestCase
         );
     }
 
+    public function testLineClampHidesContentAfterTheClampPoint(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — content after the clamp point is discarded,
+        // so a whole box that starts past it paints nothing. An out-of-flow
+        // box is judged by its CONTAINING BLOCK instead: the abspos below
+        // hangs off the clamp container itself, which contains the clamp
+        // point, so it stays visible.
+        $text = str_repeat("\u{1820} ", 40);
+        $box = $this->buildTree(
+            '<html><body><div class="c">'
+                . '<div class="a">' . $text . '</div>'
+                . '<div class="b">' . $text . '</div>'
+                . '<div class="ap"></div>'
+                . '</div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 100px; line-clamp: 2; } '
+                . '.a, .b { display: block; } '
+                . '.ap { display: block; position: absolute; width: 10px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $a = $this->findByClass($box, 'a');
+        $b = $this->findByClass($box, 'b');
+        $ap = $this->findByClass($box, 'ap');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertNotNull($ap);
+        self::assertFalse($a->hiddenByLineClamp, 'the host holding the clamp point stays visible');
+        self::assertTrue($b->hiddenByLineClamp, 'the block after the clamp point is discarded');
+        self::assertFalse($ap->hiddenByLineClamp, 'an abspos whose containing block contains the clamp point is shown');
+    }
+
     public function testTallInlineBlockGrowsLineBoxHeight(): void
     {
         $this->skipIfNoFont();

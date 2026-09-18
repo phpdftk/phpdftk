@@ -1079,6 +1079,12 @@ final class Painter
 
     private function paintBox(Box $box, ContentStream $stream, ?Box $parent = null): void
     {
+        // CSS Overflow 4 §6 — content after a `line-clamp` container's
+        // clamp point is discarded: neither the box nor anything in its
+        // subtree (including out-of-flow descendants) is painted.
+        if ($box->hiddenByLineClamp) {
+            return;
+        }
         // Off-page skip: the box's layout-Y range doesn't overlap this
         // page's range. We still must descend into children for the
         // `<a href>` link-rect collection (which uses the page constant

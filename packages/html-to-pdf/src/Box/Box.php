@@ -52,6 +52,16 @@ abstract class Box
     public ?MultiColumnLayout $multiColumn = null;
 
     /**
+     * Set by {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout} on every box
+     * that falls entirely after a `line-clamp` container's clamp point.
+     * CSS Overflow 4 §6 discards that content: the boxes still exist in
+     * the tree (their geometry is what located the clamp point in the
+     * first place) but nothing about them is painted — not their
+     * background, not their borders, not their out-of-flow descendants.
+     */
+    public bool $hiddenByLineClamp = false;
+
+    /**
      * True when this box is an out-of-flow (abs-pos / fixed) box whose
      * computed `display` was inline-level BEFORE the CSS Display §2.7
      * blockification that rewrites out-of-flow displays to `block` (set by

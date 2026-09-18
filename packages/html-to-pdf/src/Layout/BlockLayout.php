@@ -445,8 +445,54 @@ final class BlockLayout
             // already includes the host's own bottom padding / border.)
             $clampY += $entry['trailing'];
         }
+        if ($clampY !== null) {
+            $this->hideAfterClampPoint($container, $clampY);
+        }
 
         return $clampY;
+    }
+
+    /**
+     * CSS Overflow 4 §6 — discard everything after the clamp point.
+     *
+     * A box whose block-start edge sits at or past `$clampY` contributes
+     * nothing to the rendering: not its background, not its borders, and
+     * not its out-of-flow descendants (an abs-pos box is shown only when
+     * its containing block precedes or contains the clamp point, which for
+     * a statically-positioned one is exactly "its ancestor box starts
+     * before the clamp point"). Marking rather than detaching keeps the
+     * tree intact for the sizing and margin-collapse code that runs after
+     * this pass.
+     */
+    private function hideAfterClampPoint(Box $box, float $clampY): void
+    {
+        foreach ($box->children as $child) {
+            // An out-of-flow box is shown when its CONTAINING BLOCK
+            // precedes or contains the clamp point — not when the box
+            // itself does. `$box` is only recursed into while it still
+            // starts before the clamp point, so every out-of-flow child
+            // reached here has a qualifying containing block and stays
+            // visible however far past the clamp point it was placed. One
+            // whose containing block starts after the clamp point is
+            // hidden with that ancestor's whole subtree instead.
+            if ($this->isOutOfFlow($child)) {
+                continue;
+            }
+            $g = $child->geometry;
+            $top = $g->y - $g->paddingTop - $g->borderTop;
+            $borderBoxHeight = $g->paddingTop + $g->borderTop + $g->height
+                + $g->paddingBottom + $g->borderBottom;
+            // A zero-height box sitting exactly ON the clamp point still
+            // fits before it, so it is kept (and so are the out-of-flow
+            // boxes it is the containing block for).
+            if ($top > $clampY + 0.001
+                || ($top >= $clampY - 0.001 && $borderBoxHeight > 0.001)
+            ) {
+                $child->hiddenByLineClamp = true;
+                continue;
+            }
+            $this->hideAfterClampPoint($child, $clampY);
+        }
     }
 
     /**
