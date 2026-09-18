@@ -57,14 +57,124 @@ final class SvgPresentationalSizeTest extends TestCase
         return null;
     }
 
-    public function testSvgWithoutDimensionAttributesGetsNoLength(): void
+    public function testSvgWithoutDimensionAttributesGetsNoWidthButTheDefaultHeight(): void
     {
-        // The negative case: nothing to map, so the cascade must be left
-        // alone rather than seeded with a made-up size.
+        // Nothing to map on the width axis, so the cascade is left alone
+        // there. The height falls back to the default object size (see
+        // testDimensionlessSvgFallsBackToTheDefaultObjectHeight).
         $svg = $this->svgBox('<svg></svg>');
         self::assertNotNull($svg);
         self::assertNotInstanceOf(Length::class, $svg->style->get('width'));
+    }
+
+    /**
+     * SVG 2 §8.2 / CSS Images 3 §5.2 — a dimensionless `<svg>` is 150px
+     * tall (the default object size), not as tall as its content.
+     */
+    public function testDimensionlessSvgFallsBackToTheDefaultObjectHeight(): void
+    {
+        $svg = $this->svgBox('<svg></svg>');
+        self::assertNotNull($svg);
+        $h = $svg->style->get('height');
+        self::assertInstanceOf(Length::class, $h);
+        self::assertSame(150.0, $h->value);
+    }
+
+    public function testDefaultHeightYieldsToAnAuthorHeight(): void
+    {
+        $svg = $this->svgBox('<svg></svg>', 'svg { height: 40px; }');
+        self::assertNotNull($svg);
+        $h = $svg->style->get('height');
+        self::assertInstanceOf(Length::class, $h);
+        self::assertSame(40.0, $h->value);
+    }
+
+    public function testDefaultHeightYieldsToTheHeightAttribute(): void
+    {
+        $svg = $this->svgBox('<svg height="42"></svg>');
+        self::assertNotNull($svg);
+        $h = $svg->style->get('height');
+        self::assertInstanceOf(Length::class, $h);
+        self::assertSame(42.0, $h->value);
+    }
+
+    /**
+     * A `viewBox` supplies an intrinsic ratio, so the height derives from
+     * the used width instead of the flat default.
+     */
+    public function testViewBoxSuppressesTheDefaultHeight(): void
+    {
+        $svg = $this->svgBox('<svg viewBox="0 0 40 20"></svg>');
+        self::assertNotNull($svg);
         self::assertNotInstanceOf(Length::class, $svg->style->get('height'));
+    }
+
+    /**
+     * CSS Sizing 4 §5.1 — an author ratio makes the height definite from
+     * the width, so the default object size must not pin it.
+     * `<svg style="width:100px;aspect-ratio:auto 1/1">` is a 100x100
+     * square (css-sizing/aspect-ratio/replaced-element-016).
+     */
+    public function testExplicitAspectRatioSuppressesTheDefaultHeight(): void
+    {
+        foreach (['1 / 1', 'auto 1 / 1', '16 / 9'] as $ratio) {
+            $svg = $this->svgBox('<svg></svg>', "svg { width: 100px; aspect-ratio: $ratio; }");
+            self::assertNotNull($svg);
+            self::assertNotInstanceOf(Length::class, $svg->style->get('height'), "aspect-ratio: $ratio");
+        }
+    }
+
+    public function testBareAutoAspectRatioStillGetsTheDefaultHeight(): void
+    {
+        // `auto` is the initial value and supplies no ratio of its own,
+        // so it must not switch the fallback off.
+        $svg = $this->svgBox('<svg></svg>', 'svg { aspect-ratio: auto; }');
+        self::assertNotNull($svg);
+        $h = $svg->style->get('height');
+        self::assertInstanceOf(Length::class, $h);
+        self::assertSame(150.0, $h->value);
+    }
+
+    /**
+     * SVG 2 §8.2 scopes all of this to the OUTERMOST svg. A nested
+     * `<svg>` is an inner viewport the SVG pipeline sizes itself, and
+     * seeding its cascade here changes how it renders (it regressed
+     * `svg/styling/nested-svg-sizing-viewport-units-with-ICB`).
+     */
+    public function testNestedSvgIsLeftAlone(): void
+    {
+        $sheet = $this->css->parseStylesheet('html, body { display: block; } svg { display: inline-block; }');
+        $doc = $this->html->parseDocument(
+            '<html><body><svg width="200" height="100"><svg id="inner" width="5"></svg></svg></body></html>',
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $inner = $this->findById($root, 'inner');
+        self::assertNotNull($inner, 'the generator does walk into the subtree');
+        // ...which is exactly why the guard matters: seeding the inner
+        // viewport's cascade from HTML-side sizing rules changes how the
+        // SVG pipeline sizes it.
+        self::assertNotInstanceOf(Length::class, $inner->style->get('width'));
+        self::assertNotInstanceOf(Length::class, $inner->style->get('height'));
+        $outer = $this->find($root, 'svg');
+        self::assertNotNull($outer);
+        $h = $outer->style->get('height');
+        self::assertInstanceOf(Length::class, $h);
+        self::assertSame(100.0, $h->value);
+    }
+
+    private function findById(Box $root, string $id): ?Box
+    {
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node->element !== null && $node->element->getAttribute('id') === $id) {
+                return $node;
+            }
+            foreach ($node->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        return null;
     }
 
     public function testUnparseableDimensionAttributeIsIgnored(): void
@@ -74,7 +184,10 @@ final class SvgPresentationalSizeTest extends TestCase
         self::assertNotInstanceOf(Length::class, $svg->style->get('width'));
         // `12em` is a valid CSS length but not an HTML dimension value;
         // mapping it as raw px would silently mis-size the box, so the
-        // attribute is dropped rather than guessed at.
+        // attribute is dropped rather than guessed at. The height
+        // attribute being PRESENT still suppresses the default-object
+        // fallback, so the axis stays unresolved rather than snapping to
+        // 150px.
         self::assertNotInstanceOf(Length::class, $svg->style->get('height'));
     }
 

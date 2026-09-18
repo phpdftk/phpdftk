@@ -2173,6 +2173,40 @@ final class BoxGenerator
     }
 
     /**
+     * Whether the cascade carries an `aspect-ratio` with an actual ratio
+     * in it (`1/1`, `auto 1/1`) rather than the bare `auto` initial.
+     *
+     * CSS Sizing 4 §5.1 — such a ratio makes the other axis definite
+     * from the one the author sized, so the default object size must not
+     * step in and pin it. `<svg style="width:100px;aspect-ratio:auto 1/1">`
+     * is a 100x100 square, not 100x150.
+     */
+    private static function hasExplicitAspectRatio(CascadedValues $values): bool
+    {
+        $ratio = $values->get('aspect-ratio');
+        if ($ratio === null) {
+            return false;
+        }
+        return !($ratio instanceof Keyword && strtolower($ratio->name) === 'auto');
+    }
+
+    /**
+     * Whether `$element` sits inside another `<svg>`. SVG 2 §8.2's
+     * sizing rules are about the OUTERMOST svg only - a nested `<svg>`
+     * is an inner viewport sized by the SVG pipeline, not a replaced
+     * box in the HTML flow.
+     */
+    private static function hasSvgAncestor(Element $element): bool
+    {
+        for ($n = $element->parentNode; $n !== null; $n = $n->parentNode) {
+            if ($n instanceof Element && self::foreignContentKind($n) === 'svg') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Root foreign-content elements (`<math>` and `<svg>`) route
      * through dedicated atomic-inline painters that resolve their
      * own positioning via `resolveInlineAbsoluteOrigin`. They must
@@ -2534,7 +2568,7 @@ final class BoxGenerator
         // Presentation attributes sort into the author origin at the very
         // start, so any real declaration wins — hence the `has()` guard,
         // matching the `<img>` path below.
-        if (self::foreignContentKind($element) === 'svg') {
+        if (self::foreignContentKind($element) === 'svg' && !self::hasSvgAncestor($element)) {
             foreach (['width', 'height'] as $attr) {
                 if ($values->has($attr)) {
                     continue;
@@ -2552,6 +2586,21 @@ final class BoxGenerator
                 if ($px !== null) {
                     $values->set($attr, new \Phpdftk\Css\Value\Length($px, \Phpdftk\Css\Value\LengthUnit::Px));
                 }
+            }
+            // SVG 2 §8.2 — the initial value of `height` on the outermost
+            // svg is `auto`, which resolves as `100%`. A percentage height
+            // against an auto-height parent is indefinite, so it falls
+            // back to the default object size's 150px (CSS Images 3 §5.2)
+            // — which is why a dimensionless `<svg>` is 150px tall in
+            // every browser instead of shrinking to its content. A
+            // `viewBox` is excluded: it supplies an intrinsic ratio, and
+            // the height then derives from the used width instead.
+            if (!$values->has('height')
+                && $element->getAttribute('height') === null
+                && $element->getAttribute('viewBox') === null
+                && !self::hasExplicitAspectRatio($values)
+            ) {
+                $values->set('height', new \Phpdftk\Css\Value\Length(150.0, \Phpdftk\Css\Value\LengthUnit::Px));
             }
         }
         if ($tag === 'img' || $tag === 'embed' || $tag === 'iframe' || $tag === 'video') {
