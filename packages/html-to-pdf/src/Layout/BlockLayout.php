@@ -4949,7 +4949,9 @@ final class BlockLayout
 
         if ($box->children === []) {
             $rowExtent = $this->gridTotalExtent($rowTracks, $rowGap);
-            $geo->height = $declaredHeightForFr ?? $rowExtent;
+            $geo->height = $declaredHeightForFr
+                ?? $this->resolveContainIntrinsicHeight($style, $context)
+                ?? $rowExtent;
             $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $rowExtent);
             return $geo->outerHeight();
         }
@@ -5484,7 +5486,11 @@ final class BlockLayout
             }
         }
 
-        $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        // CSS Sizing 4 §6.1 — under size containment the grid container's
+        // block size comes from `contain-intrinsic-size`, NOT from the rows
+        // it happens to contain.
+        $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight)
+            ?? $this->resolveContainIntrinsicHeight($style, $context);
         $rowExtent = $this->gridTotalExtent($rowTracks, $rowGap);
         $geo->height = $declaredHeight ?? $rowExtent;
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $rowExtent);

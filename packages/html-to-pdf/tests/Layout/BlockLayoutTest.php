@@ -7674,6 +7674,37 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(20.0, $a->geometry->height, 0.001, 'content height, not 100');
     }
 
+    public function testGridContainIntrinsicSizeReplacesTrackDerivedHeight(): void
+    {
+        // Positive (CSS Sizing 4 §6.1): under size containment the grid
+        // container's block size comes from `contain-intrinsic-size`, not
+        // from the rows it contains.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'contain: size; contain-intrinsic-size: 111px 222px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(222.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
+    }
+
+    public function testGridWithoutSizeContainmentKeepsTrackDerivedHeight(): void
+    {
+        // Negative: `contain-intrinsic-size` without `contain: size` has no
+        // effect — the rows still determine the container height.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'contain-intrinsic-size: 111px 222px; '
+            . 'grid-template-rows: 40px;">'
+            . '<div class="a"></div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(40.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
+    }
+
     public function testGridImplicitRowsSizeToTheirItemsContent(): void
     {
         // Positive (CSS Grid 2 §12.3): with no `grid-template-rows` every
