@@ -803,6 +803,41 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(50.0, $w->value);
     }
 
+    public function testMediaElementsDoNotRenderTheirFallbackContent(): void
+    {
+        // HTML §4.8.9 / §4.8.10 — the children of `<video>` / `<audio>`
+        // are fallback content for user agents that do NOT support the
+        // element. A user agent that does support them renders the media,
+        // never the children.
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; } video, audio { display: inline-block; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<video><img src="fail.gif"><p>fallback</p></video>'
+            . '<audio controls><img src="fail.gif"></audio>'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $stack = [$box];
+        $found = 0;
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            $tag = $n->element !== null ? strtolower($n->element->localName) : '';
+            if ($tag === 'video' || $tag === 'audio') {
+                $found++;
+                self::assertSame([], $n->children, "$tag renders no fallback content");
+                continue;
+            }
+            self::assertNotSame('img', $tag, 'the fallback <img> generates no box');
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        self::assertSame(2, $found);
+    }
+
     public function testTableWidthAndAlignAttributes(): void
     {
         // HTML §15.3.9 — `<table width>` is a dimension value (so a

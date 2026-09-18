@@ -2952,6 +2952,31 @@ final class BlockLayoutTest extends TestCase
         return $text;
     }
 
+    public function testAudioWithoutControlsIsNotRendered(): void
+    {
+        // HTML §15.3.1 — `audio:not([controls])` has no rendering; with
+        // `controls` it is a replaced inline box.
+        $box = $this->buildTreeWithUa(
+            '<html><body><audio></audio><audio controls></audio></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $audios = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_pop($stack);
+            if ($n->element !== null && strtolower($n->element->localName) === 'audio') {
+                $audios[] = $n;
+            }
+            foreach ($n->children as $c) {
+                array_unshift($stack, $c);
+            }
+        }
+        self::assertCount(1, $audios, 'only the <audio controls> generates a box');
+        self::assertNotNull($audios[0]->element);
+        self::assertNotNull($audios[0]->element->getAttribute('controls'));
+    }
+
     public function testEmbedHiddenCollapsesToZeroSizeNotDisplayNone(): void
     {
         // HTML §15.3.1 — `embed[hidden]` gets `display: inline` with

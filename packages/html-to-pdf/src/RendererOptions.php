@@ -437,6 +437,11 @@ final readonly class RendererOptions
                leaves the zero width/height in place, so the plugin
                area still collapses to nothing. */
             embed[hidden] { display: inline; height: 0; width: 0; }
+            /* HTML §15.3.1 — an `<audio>` with no `controls` has no
+               rendering at all (there is nothing to show without the
+               transport bar). With `controls` it is a replaced inline
+               box like `<video>`. */
+            audio:not([controls]) { display: none; }
             /* HTML 5 §4.12.3: `<template>` content is inert and never
                renders directly. */
             template { display: none; }

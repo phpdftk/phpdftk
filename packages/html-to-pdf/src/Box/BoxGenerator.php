@@ -439,6 +439,20 @@ final class BoxGenerator
             return $hiddenBox;
         }
 
+        // HTML §4.8.9 / §4.8.10 — `<video>` and `<audio>` are REPLACED
+        // elements. Their children are fallback content "for user agents
+        // that do not support the element", so a user agent that DOES
+        // support them never renders those children: the media element
+        // represents its media, not its contents. Return a childless box
+        // (this must precede the `<br>` / replaced shortcuts below, and
+        // it is why `<video><img src=fail.gif></video>` shows nothing).
+        $mediaTag = strtolower($element->localName);
+        if ($mediaTag === 'video' || $mediaTag === 'audio') {
+            $mediaBox = $this->makeBox($element, $values, $display);
+            $mediaBox->wasInlineLevel = $wasInlineLevelOutOfFlow;
+            return $mediaBox;
+        }
+
         // HTML `<br>` produces a sentinel line-break box — a hard break
         // inside the parent inline formatting context that survives
         // whitespace collapsing under `white-space: normal`.
