@@ -11918,6 +11918,17 @@ final class BlockLayout
         // 0.83em` on `<sup>` / `<small>` etc. shapes at the right px size.
         // Block descendants already had this done in `layoutBlock`.
         $this->resolveInlineLengths($parent, $childContext->lengthContext);
+        // CSS 2.1 §9.4.2 / §10.3.9 — an atomic inline-level box
+        // (`display: inline-block`) is opaque to the inline formatting
+        // context, which is exactly why nothing else lays its CONTENTS
+        // out. Size it (and its subtree) up front, at a provisional
+        // origin, so the line breaker has a real inline size to allocate
+        // and the painter has real descendant geometry to draw.
+        $this->layoutInlineAtomicContents($parent, $childContext);
+        // The pre-pass placed each atomic's subtree relative to a
+        // provisional origin; remember where, so the committed inline
+        // position below can translate the subtree into place.
+        $atomicOrigins = $this->snapshotInlineAtomicOrigins($parent);
         [$lines, $height] = $this->inlineLayout->layout(
             $parent,
             $parent->geometry->width,
@@ -11925,6 +11936,7 @@ final class BlockLayout
             $inlineExtent,
             $blockSizeAuto,
         );
+        $this->reflowInlineAtomicSubtrees($atomicOrigins);
         // Pagination breaks lines at real PAGE boundaries, not at the
         // parent's own (possibly small, fixed) block size — passing
         // containingBlockHeight made a short fixed-height block behave like
@@ -11967,6 +11979,131 @@ final class BlockLayout
         // absolutely-positioned child renders that child).
         $this->layoutAbsposInInlineAtomics($parent, $childContext);
         return $height;
+    }
+
+    /**
+     * Lay out the CONTENTS of every atomic inline-level box in `$parent`'s
+     * inline formatting context (CSS 2.1 §9.4.2).
+     *
+     * An `inline-block` / `inline-table` / `inline-grid` is inline-level on
+     * the outside and a block container on the inside. `InlineLayout` only
+     * ever handles the outside — it emits one atomic token per box and
+     * sizes it off the cascade — so nothing was running a formatting
+     * context INSIDE the box. An auto-width `<button>foo</button>` came out
+     * as an empty rounded rectangle and `<span style="display:inline-block">`
+     * collapsed to a dot, because its children kept the (0, 0, 0, 0)
+     * geometry `BoxGenerator` gave them.
+     *
+     * `layoutBlock` already implements the right sizing for these boxes:
+     * {@see blockNeedsShrinkToFit} returns true for `inline-block` /
+     * `inline-table`, so `width: auto` resolves to CSS 2.1 §10.3.9's
+     * `min(max-content, max(min-content, available))` and the block size
+     * falls out of the children. Run it here, at a provisional origin, and
+     * record the used content size for `InlineLayout` to allocate.
+     *
+     * Replaced elements (`<img>`, `<canvas>`, `<svg>`, form controls) are
+     * skipped: their size comes from intrinsic dimensions the painter
+     * resolves, and they have no child boxes to lay out.
+     */
+    private function layoutInlineAtomicContents(Box $parent, LayoutContext $context): void
+    {
+        foreach ($parent->children as $child) {
+            if ($child instanceof AtomicInlineBox) {
+                if (!$this->inlineAtomicNeedsContentLayout($child)) {
+                    continue;
+                }
+                // `layoutBlock`, not `layoutBox`: the latter's tail treats
+                // every atomic inline as a zero-height stub that stretches
+                // to the containing block. The block container layout is
+                // what an `inline-block`'s inside actually is.
+                //
+                // CSS 2.1 §9.4.1 — an inline-block establishes its OWN
+                // block formatting context, so a float inside it must not
+                // register an exclusion in the surrounding context (which
+                // is shared document-wide). Hand it a fresh one.
+                $this->layoutBlock(
+                    $child,
+                    $context->withFloatContext(new FloatContext()),
+                );
+                $child->laidOutContentWidth = $child->geometry->width;
+                $child->laidOutContentHeight = $child->geometry->height;
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                $this->layoutInlineAtomicContents($child, $context);
+            }
+        }
+    }
+
+    /**
+     * Whether an atomic inline box has an inner formatting context worth
+     * running. Replaced elements are sized from intrinsic dimensions, not
+     * from children, and a childless box has nothing to lay out.
+     */
+    private function inlineAtomicNeedsContentLayout(AtomicInlineBox $box): bool
+    {
+        if ($box->children === [] || $this->isReplacedElement($box)) {
+            return false;
+        }
+        // Scoped to `inline-block` for now. `inline-table` / `inline-grid`
+        // also land in `AtomicInlineBox` but need their own formatting
+        // context (table / grid), which `layoutBlock` would not run —
+        // stacking their children as plain blocks would be a different
+        // wrong answer, not a better one.
+        $display = $box->style->get('display');
+        return $display instanceof Keyword
+            && strtolower($display->name) === 'inline-block';
+    }
+
+    /**
+     * Snapshot the provisional position {@see layoutInlineAtomicContents}
+     * laid each atomic's subtree out at, so the subtree can be translated
+     * once the inline formatting context commits the atomic's real inline
+     * position.
+     *
+     * @return list<array{0: AtomicInlineBox, 1: float, 2: float}>
+     */
+    private function snapshotInlineAtomicOrigins(Box $parent): array
+    {
+        $out = [];
+        foreach ($parent->children as $child) {
+            if ($child instanceof AtomicInlineBox) {
+                if ($child->laidOutContentWidth === null) {
+                    continue;
+                }
+                $out[] = [$child, $child->geometry->x, $child->geometry->y];
+                continue;
+            }
+            if ($child instanceof InlineBox) {
+                foreach ($this->snapshotInlineAtomicOrigins($child) as $entry) {
+                    $out[] = $entry;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Translate each pre-laid atomic's DESCENDANTS by the delta between the
+     * provisional origin they were laid out at and the position the inline
+     * formatting context committed the atomic to. The atomic's own
+     * geometry is already final (InlineLayout assigned it directly), so
+     * only the subtree below it moves.
+     *
+     * @param list<array{0: AtomicInlineBox, 1: float, 2: float}> $origins
+     */
+    private function reflowInlineAtomicSubtrees(array $origins): void
+    {
+        foreach ($origins as [$atomic, $x, $y]) {
+            $dx = $atomic->geometry->x - $x;
+            $dy = $atomic->geometry->y - $y;
+            if ($dx === 0.0 && $dy === 0.0) {
+                continue;
+            }
+            foreach ($atomic->children as $child) {
+                $this->shiftSubtree($child, $dy, $dx);
+            }
+        }
     }
 
     /**

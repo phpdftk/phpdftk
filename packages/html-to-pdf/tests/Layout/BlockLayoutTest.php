@@ -12416,4 +12416,159 @@ final class BlockLayoutTest extends TestCase
         // #a1's right edge (10 + 20), not #a2's (200 + 20).
         self::assertEqualsWithDelta($cb->geometry->x + 30.0, $t->geometry->x, 0.5);
     }
+
+    // ------------------------------------------------------------
+    // CSS 2.1 §9.4.2 / §10.3.9 — an atomic inline-level box
+    // (`display: inline-block`) is inline-level outside and a block
+    // container inside. `InlineLayout` only ever handled the outside,
+    // so nothing ran a formatting context INSIDE the box: its children
+    // kept the (0, 0, 0, 0) geometry `BoxGenerator` gave them and an
+    // auto-width inline-block reported content width 0. `<button>foo
+    // </button>` painted as an empty rounded rectangle.
+    // ------------------------------------------------------------
+
+    private function inlineBlockContext(float $cbWidth = 600.0): LayoutContext
+    {
+        $path = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($path)) {
+            self::markTestSkipped('NotoSans fixture font missing');
+        }
+        $font = (new \Phpdftk\FontParser\OpenTypeParser($path))->parse();
+        return new LayoutContext(
+            containingBlockWidth: $cbWidth,
+            containingBlockHeight: 800.0,
+            originX: 0.0,
+            originY: 0.0,
+            lengthContext: new LengthContext(),
+            defaultFont: $font,
+            pageHeight: 800.0,
+        );
+    }
+
+    /**
+     * Negative: a childless inline-block has no inner formatting context
+     * to run, so the pre-layout pass must leave it alone — `InlineLayout`
+     * still owns its cascade-driven sizing (and the painter its intrinsic
+     * fallback for replaced content).
+     */
+    public function testChildlessInlineBlockIsNotPreLaidOut(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p><span id="ib"></span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $ib = $this->findById($box, 'ib');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertNull($ib->laidOutContentWidth);
+    }
+
+    /**
+     * Negative: `inline-table` also lands in `AtomicInlineBox` but needs a
+     * TABLE formatting context, which `layoutBlock` would not run. It must
+     * stay out of the pre-layout pass rather than get its rows stacked as
+     * plain blocks.
+     */
+    public function testInlineTableIsNotPreLaidOut(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p><span id="it">x</span></p></body></html>',
+            'html, body, p { display: block; }
+             #it { display: inline-table; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $it = $this->findById($box, 'it');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $it);
+        self::assertNull($it->laidOutContentWidth);
+    }
+
+    /**
+     * Positive: an inline-block's own inline formatting context runs, so it
+     * reports line boxes of its own. Before, `lineBoxes` stayed empty and
+     * the text was never placed.
+     */
+    public function testInlineBlockContentsAreLaidOut(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p><span id="ib">Hello</span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $ib = $this->findById($box, 'ib');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertNotEmpty($ib->lineBoxes, 'inline-block should host its own line box');
+        self::assertGreaterThan(0.0, $ib->geometry->height);
+    }
+
+    /**
+     * Positive: CSS 2.1 §10.3.9 — `width: auto` on an inline-block is
+     * shrink-to-fit, so it hugs its text instead of filling the 600px
+     * containing block (the old code left it at 0).
+     */
+    public function testInlineBlockShrinkToFitsAroundItsText(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p><span id="ib">Hello</span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $ib = $this->findById($box, 'ib');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertGreaterThan(0.0, $ib->geometry->width);
+        self::assertLessThan(600.0, $ib->geometry->width);
+    }
+
+    /**
+     * Negative boundary: shrink-to-fit is `min(max-content, max(min-content,
+     * available))`, so content wider than the containing block is capped
+     * there and wraps rather than overflowing to its max-content width.
+     */
+    public function testInlineBlockShrinkToFitIsCappedAtTheAvailableWidth(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p><span id="ib">Hello there world wide</span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext(80.0));
+        $ib = $this->findById($box, 'ib');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertLessThanOrEqual(80.0, $ib->geometry->width);
+        self::assertGreaterThan(1, count($ib->lineBoxes), 'capped width should wrap the text');
+    }
+
+    /**
+     * Positive: the pre-layout pass places each atomic's subtree at a
+     * provisional origin, then the inline formatting context commits the
+     * atomic's real inline position — the descendants have to travel with
+     * it. A NESTED inline-block is the observable case: it carries real
+     * geometry, so without the translation it stays behind at the outer
+     * box's provisional origin instead of sitting inside its parent.
+     */
+    public function testInlineBlockSubtreeTravelsToTheCommittedPosition(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p>abc <span id="ib">Q<span id="inner">x</span></span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib, #inner { display: inline-block; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $ib = $this->findById($box, 'ib');
+        $inner = $this->findById($box, 'inner');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $inner);
+        // The outer atomic starts after the "abc " text, so its content box
+        // is well right of the paragraph's content origin.
+        self::assertGreaterThan(0.0, $ib->geometry->x);
+        // The nested atomic sits inside its parent's content box, after the
+        // "Q" that precedes it.
+        self::assertGreaterThan($ib->geometry->x, $inner->geometry->x);
+        self::assertLessThanOrEqual(
+            $ib->geometry->x + $ib->geometry->width + 0.01,
+            $inner->geometry->x + $inner->geometry->width,
+        );
+    }
 }

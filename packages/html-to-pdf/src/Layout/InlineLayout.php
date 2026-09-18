@@ -359,7 +359,21 @@ final class InlineLayout
                 $atomicBorderBottom = self::atomicBorderWidth($atomic->style, 'bottom');
                 $verticalInset = $atomicPadTop + $atomicPadBottom + $atomicBorderTop + $atomicBorderBottom;
                 $atomicBorderBox = $token['atomicBorderBox'] ?? false;
-                if ($declaredHeight > 0.0) {
+                // The pre-layout pass resolved the used insets and the used
+                // content block size (CSS 2.1 §10.6.3 — `height: auto` on a
+                // block container is the distance to its last line box's
+                // bottom). Prefer both over the cascade re-read, which has
+                // no way to know how tall the contents came out.
+                if ($atomic->laidOutContentHeight !== null) {
+                    $atomicPadTop = $atomic->geometry->paddingTop;
+                    $atomicPadBottom = $atomic->geometry->paddingBottom;
+                    $atomicBorderTop = $atomic->geometry->borderTop;
+                    $atomicBorderBottom = $atomic->geometry->borderBottom;
+                    $verticalInset = $atomicPadTop + $atomicPadBottom
+                        + $atomicBorderTop + $atomicBorderBottom;
+                    $atomicContentHeight = $atomic->laidOutContentHeight;
+                    $atomicOuterHeight = $atomicContentHeight + $verticalInset;
+                } elseif ($declaredHeight > 0.0) {
                     if ($atomicBorderBox) {
                         $atomicContentHeight = max(0.0, $declaredHeight - $verticalInset);
                         $atomicOuterHeight = $declaredHeight;
@@ -1735,7 +1749,29 @@ final class InlineLayout
             $atomicMarginTop = self::atomicLength($box->style->get('margin-top'));
             $atomicMarginBottom = self::atomicLength($box->style->get('margin-bottom'));
             $atomicBorderBox = self::atomicIsBorderBoxSizing($box->style);
-            if ($declaredWidth > 0.0) {
+            // CSS 2.1 §9.4.2 — when the box has an inner formatting
+            // context, `BlockLayout::layoutInlineAtomicContents()` has
+            // already laid it out and resolved its used content size
+            // (shrink-to-fit for `width: auto`, §10.3.9). Take that size
+            // and the box-model edges it resolved verbatim: recomputing
+            // them here from the cascade would desynchronise the advance
+            // the line breaker allocates from the geometry the children
+            // were actually laid out in.
+            if ($box->laidOutContentWidth !== null) {
+                $g = $box->geometry;
+                $atomicPadLeft = $g->paddingLeft;
+                $atomicPadRight = $g->paddingRight;
+                $atomicBorderLeft = $g->borderLeft;
+                $atomicBorderRight = $g->borderRight;
+                $atomicMarginLeft = $g->marginLeft;
+                $atomicMarginRight = $g->marginRight;
+                $atomicMarginTop = $g->marginTop;
+                $atomicMarginBottom = $g->marginBottom;
+                $horizontalInset = $atomicPadLeft + $atomicPadRight
+                    + $atomicBorderLeft + $atomicBorderRight;
+                $atomicContentWidth = $box->laidOutContentWidth;
+                $atomicOuterWidth = $atomicContentWidth + $horizontalInset;
+            } elseif ($declaredWidth > 0.0) {
                 if ($atomicBorderBox) {
                     // Declared width is the border-box; content shrinks
                     // by the inset, outer stays at the declared value.
