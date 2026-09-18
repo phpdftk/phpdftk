@@ -306,6 +306,21 @@ final class ShorthandExpanderTest extends TestCase
         self::assertSame('inside', $out['list-style-position']->name);
     }
 
+    public function testListStyleAcceptsAnyCounterStyleName(): void
+    {
+        // CSS Lists 3 §1.4 — the type slot is a `<counter-style-name>`,
+        // an open-ended custom-ident (`@counter-style` names its own).
+        // Matching it against a closed allowlist silently dropped the
+        // value; `disclosure-closed` is the one the UA sheet needs for
+        // `<summary>`.
+        foreach (['disclosure-closed', 'disclosure-open', 'katakana-iroha', 'my-own-style'] as $name) {
+            $out = $this->expander->expand('list-style', $this->value($name . ' inside'));
+            self::assertArrayHasKey('list-style-type', $out, $name);
+            self::assertSame($name, $out['list-style-type']->name);
+            self::assertSame('inside', $out['list-style-position']->name);
+        }
+    }
+
     public function testListStyleWithImage(): void
     {
         $out = $this->expander->expand('list-style', $this->value('url(dot.png) outside circle'));

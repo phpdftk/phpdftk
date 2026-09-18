@@ -587,22 +587,31 @@ final readonly class RendererOptions
                `display: block` only, so it inherits its parent's size. */
             figcaption { display: block; }
 
-            /* Details / summary (HTML 5 §4.11.1). Closed by default —
-               only the summary renders — until the [open] attribute
-               flips the visibility. Print authors who want a permanent
-               open disclosure either set [open] on the tag or override
-               with their own CSS.
+            /* Details / summary — HTML §15.3.11 verbatim. Closed by
+               default (only the summary renders) until the [open]
+               attribute flips the visibility. Print authors who want a
+               permanent open disclosure either set [open] on the tag or
+               override with their own CSS.
 
-               The `▶ ` / `▼ ` triangle markers come from the
-               `summary::before` pseudo-element. Browsers render this
-               as a real `::marker` box, but our pseudo-element pipeline
-               already handles `::before`, so the visual outcome is the
-               same: a triangle prefix on the summary text. Authors
-               can hide it via `summary::before { content: none; }`. */
+               The `▶` / `▼` disclosure triangle is the summary's real
+               `::marker`, produced by `display: list-item` plus the
+               `disclosure-closed` / `disclosure-open` counter styles —
+               NOT a `::before`. That distinction is load-bearing: it is
+               what lets an author hide the triangle the way the spec
+               says to, with `summary { list-style-type: none }`, and it
+               scopes the marker to the FIRST summary of a details (a
+               bare `<summary>` outside a details has no marker at all).
+
+               `details > *` / `details[open] > *` stand in for the
+               `::details-content` pseudo-element + `content-visibility`
+               that the spec uses to hide the closed content. */
             details, summary { display: block; }
-            summary { font-weight: bold; }
-            summary::before { content: "\25B6  "; }
-            details[open] > summary::before { content: "\25BC  "; }
+            details > summary:first-of-type {
+                display: list-item;
+                counter-increment: list-item 0;
+                list-style: disclosure-closed inside;
+            }
+            details[open] > summary:first-of-type { list-style-type: disclosure-open; }
             details > * { display: none; }
             details > summary { display: block; }
             details[open] > * { display: block; }

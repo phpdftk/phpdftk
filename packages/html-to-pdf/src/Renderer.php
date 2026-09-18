@@ -1342,8 +1342,16 @@ final class Renderer
             $seen[$cp] = true;
         }
         // U+2022 BULLET — the `<input type=password>` mask character, and
-        // the default `list-style-type: disc` marker.
+        // the default `list-style-type: disc` marker. The three that
+        // follow are the rest of the CSS Counter Styles 3 §7.2 fixed
+        // marker glyphs an `inside` marker shapes as text: WHITE BULLET
+        // (`circle`), BLACK SMALL SQUARE (`square`), and the two
+        // disclosure triangles the UA sheet gives `<summary>`.
         $seen[0x2022] = true;
+        $seen[0x25E6] = true;
+        $seen[0x25AA] = true;
+        $seen[0x25B6] = true;
+        $seen[0x25BC] = true;
         // U+2026 HORIZONTAL ELLIPSIS — emitted by `text-overflow: ellipsis`
         // and useful punctuation in body text.
         $seen[0x2026] = true;

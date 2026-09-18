@@ -2886,33 +2886,74 @@ final class BlockLayoutTest extends TestCase
         self::assertStringNotContainsString("\u{25B6}", $text, 'right triangle replaced');
     }
 
+    /** Collect every TextBox string beneath `$box`, in tree order. */
+    private function collectBoxText(\Phpdftk\HtmlToPdf\Box\Box $box): string
+    {
+        $text = '';
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TextBox) {
+                $text .= $n->text;
+            }
+            foreach (array_reverse($n->children) as $c) {
+                array_unshift($stack, $c);
+            }
+        }
+        return $text;
+    }
+
+    public function testDetailsSummaryCarriesTheDisclosureMarker(): void
+    {
+        // HTML §15.3.11 — the triangle is the summary's `::marker`,
+        // produced by `display: list-item` + the `disclosure-closed` /
+        // `disclosure-open` counter styles, and it flips with `[open]`.
+        foreach ([['', "\u{25B6}", "\u{25BC}"], [' open', "\u{25BC}", "\u{25B6}"]] as [$attr, $want, $notWant]) {
+            $box = $this->buildTreeWithUa(
+                '<html><body><details' . $attr . '><summary>Heading</summary></details></body></html>',
+                '',
+            );
+            $summary = $this->find($box, 'summary');
+            self::assertNotNull($summary);
+            $text = $this->collectBoxText($summary);
+            self::assertStringContainsString($want, $text, "details$attr marker");
+            self::assertStringNotContainsString($notWant, $text, "details$attr marker");
+            self::assertStringContainsString('Heading', $text);
+        }
+    }
+
     public function testDetailsAuthorCanSuppressMarker(): void
     {
-        // Negative: author CSS `summary::before { content: none }`
-        // suppresses the UA-supplied marker.
+        // Negative: the spec's own opt-out is `list-style-type: none` on
+        // the summary — NOT `summary::before { content: none }`, which
+        // is what our pre-spec approximation used to respond to.
         $box = $this->buildTreeWithUa(
             '<html><body>'
                 . '<details><summary>Heading</summary></details>'
                 . '</body></html>',
-            'summary::before { content: none; }',
+            'summary { list-style-type: none; }',
         );
-        $this->layout->layout($box, $this->defaultCtx);
-        $summary = $this->find($box, 'summary');
-        self::assertNotNull($summary);
-        $text = '';
-        $stack = [$summary];
-        while ($stack !== []) {
-            $n = array_pop($stack);
-            if ($n instanceof \Phpdftk\HtmlToPdf\Box\TextBox) {
-                $text .= $n->text;
-            }
-            foreach ($n->children as $c) {
-                $stack[] = $c;
-            }
-        }
+        $text = $this->collectBoxText($this->find($box, 'summary') ?? $box);
         self::assertStringNotContainsString("\u{25B6}", $text);
         self::assertStringNotContainsString("\u{25BC}", $text);
         self::assertStringContainsString('Heading', $text);
+    }
+
+    public function testSummaryOutsideDetailsHasNoDisclosureMarker(): void
+    {
+        // The UA rule is scoped to `details > summary:first-of-type`, so
+        // a bare `<summary>` — and any summary after the first — is just
+        // a block with no marker.
+        $box = $this->buildTreeWithUa(
+            '<html><body><summary>Bare</summary></body></html>',
+            '',
+        );
+        $summary = $this->find($box, 'summary');
+        self::assertNotNull($summary);
+        $text = $this->collectBoxText($summary);
+        self::assertStringNotContainsString("\u{25B6}", $text);
+        self::assertStringNotContainsString("\u{25BC}", $text);
+        self::assertStringContainsString('Bare', $text);
     }
 
     public function testRowspanCellExtendsAcrossRows(): void

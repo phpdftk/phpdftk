@@ -979,14 +979,6 @@ final class ShorthandExpander
         $image = null;
         $components = $this->toComponents($value);
 
-        $typeKeywords = [
-            'disc', 'circle', 'square', 'decimal', 'decimal-leading-zero',
-            'lower-alpha', 'upper-alpha', 'lower-roman', 'upper-roman',
-            'lower-greek', 'lower-latin', 'upper-latin', 'armenian', 'georgian',
-            'hebrew', 'cjk-decimal', 'simp-chinese-formal', 'simp-chinese-informal',
-            'trad-chinese-formal', 'trad-chinese-informal',
-        ];
-
         foreach ($components as $c) {
             if ($c instanceof \Phpdftk\Css\Value\Url) {
                 $image = $c;
@@ -1008,7 +1000,16 @@ final class ShorthandExpander
                 }
                 continue;
             }
-            if (in_array($lower, $typeKeywords, true)) {
+            // CSS Lists 3 §1.4 — the type slot is a `<counter-style>`,
+            // i.e. a `<counter-style-name>`, i.e. any custom-ident other
+            // than `none`. It is NOT a closed set: `@counter-style` lets
+            // authors name their own, and the predefined set keeps
+            // growing (`disclosure-closed`, the kana and CJK families,
+            // `ethiopic-numeric`, …). Matching against a hard-coded
+            // allowlist silently DROPPED every style outside it — which
+            // is why the UA sheet's `list-style: disclosure-closed
+            // inside` on `<summary>` fell back to a `disc` bullet.
+            if ($type === null) {
                 $type = $c;
             }
         }
