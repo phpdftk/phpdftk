@@ -2665,6 +2665,36 @@ final class BoxGenerator
                 ));
             }
         }
+        if ($tag === 'table') {
+            // HTML §15.3.9 — `<table width>` is a dimension value
+            // (percentages allowed) mapped onto `width`, and `<table
+            // align>` floats the table left / right or centres it with
+            // auto inline margins. The attribute values are matched
+            // ASCII case-insensitively.
+            $rawWidth = $element->getAttribute('width');
+            if ($rawWidth !== null && !$values->has('width')) {
+                $pct = $this->parseHtmlPercentage($rawWidth);
+                $len = $pct === null ? $this->parseHtmlLength($rawWidth) : null;
+                if ($pct !== null) {
+                    $values->set('width', new \Phpdftk\Css\Value\Percentage($pct));
+                } elseif ($len !== null) {
+                    $values->set('width', new \Phpdftk\Css\Value\Length(
+                        $len,
+                        \Phpdftk\Css\Value\LengthUnit::Px,
+                    ));
+                }
+            }
+            $align = strtolower(trim($element->getAttribute('align') ?? ''));
+            if (($align === 'left' || $align === 'right') && !$values->has('float')) {
+                $values->set('float', new Keyword($align));
+            } elseif ($align === 'center' || $align === 'middle') {
+                foreach (['margin-left', 'margin-right'] as $side) {
+                    if (!$values->has($side)) {
+                        $values->set($side, new Keyword('auto'));
+                    }
+                }
+            }
+        }
         if ($tag === 'td' || $tag === 'th') {
             // Same caveat as `cellspacing`: the UA sheet's own
             // `padding: 1px` is indistinguishable from an author

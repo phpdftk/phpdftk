@@ -803,6 +803,86 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame(50.0, $w->value);
     }
 
+    public function testTableWidthAndAlignAttributes(): void
+    {
+        // HTML §15.3.9 — `<table width>` is a dimension value (so a
+        // percentage stays a percentage) and `<table align>` floats the
+        // table or centres it with auto inline margins. The attribute
+        // value is matched ASCII case-insensitively, which is why the
+        // WPT fixture writes `align="LEFT"`.
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; } table { display: table; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<table id=a width="150%" align="LEFT"></table>'
+            . '<table id=b width="220" align="CENTER"></table>'
+            . '<table id=c align="right"></table>'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = [];
+        $stack = [$box];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n->element !== null && strtolower($n->element->localName) === 'table') {
+                $tables[$n->element->getAttribute('id') ?? ''] = $n;
+            }
+            foreach ($n->children as $c) {
+                $stack[] = $c;
+            }
+        }
+        $a = $tables['a'] ?? null;
+        self::assertNotNull($a);
+        $w = $a->style->get('width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Percentage::class, $w);
+        self::assertSame(150.0, $w->value);
+        $float = $a->style->get('float');
+        self::assertInstanceOf(Keyword::class, $float);
+        self::assertSame('left', $float->name);
+
+        $b = $tables['b'] ?? null;
+        self::assertNotNull($b);
+        $bw = $b->style->get('width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $bw);
+        self::assertSame(220.0, $bw->value);
+        foreach (['margin-left', 'margin-right'] as $side) {
+            $m = $b->style->get($side);
+            self::assertInstanceOf(Keyword::class, $m, $side);
+            self::assertSame('auto', $m->name, $side);
+        }
+
+        $c = $tables['c'] ?? null;
+        self::assertNotNull($c);
+        $cf = $c->style->get('float');
+        self::assertInstanceOf(Keyword::class, $cf);
+        self::assertSame('right', $cf->name);
+    }
+
+    public function testAuthorCssBeatsTableWidthAndAlignAttributes(): void
+    {
+        // Negative: these are presentational HINTS, so any author
+        // declaration outranks them.
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; } table { display: table; }
+             table { width: 50px; float: none; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><table width="150%" align="LEFT"></table></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $table = $this->findFirstByTag($box, 'table');
+        self::assertNotNull($table);
+        $w = $table->style->get('width');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $w);
+        self::assertSame(50.0, $w->value);
+        $float = $table->style->get('float');
+        self::assertInstanceOf(Keyword::class, $float);
+        self::assertSame('none', $float->name);
+    }
+
     public function testTdNowrapAttributeSetsWhiteSpaceNowrap(): void
     {
         // HTML §15.3.10 — `<td nowrap>` applies unconditionally, even
