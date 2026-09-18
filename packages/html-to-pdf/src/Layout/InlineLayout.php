@@ -2210,6 +2210,14 @@ final class InlineLayout
                 continue;
             }
             $g = $atomic->geometry;
+            $baselineY = $parent->geometry->y + $lineTop + $lineBaseline + $f->baselineShift;
+            // §10.8.1 — an `inline-block` with in-flow line boxes puts its
+            // OWN last baseline on the line's baseline, so the content-box
+            // top sits exactly that offset above it.
+            if ($atomic->laidOutBaseline !== null) {
+                $g->y = $baselineY - $atomic->laidOutBaseline;
+                continue;
+            }
             // Border-box height from the committed geometry (content +
             // padding + border); the margin box adds the vertical margins.
             $outerHeight = $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom;
@@ -2217,7 +2225,7 @@ final class InlineLayout
             // up past bottom margin and the border box, then back down into the
             // content box's top-left — mirrors the seed formula in the token
             // loop but with the finalized baseline instead of the font ascent.
-            $g->y = $parent->geometry->y + $lineTop + $lineBaseline + $f->baselineShift
+            $g->y = $baselineY
                 - $g->marginBottom - $outerHeight + $g->borderTop + $g->paddingTop;
         }
     }
@@ -2247,6 +2255,26 @@ final class InlineLayout
     }
 
     /**
+     * CSS 2.1 §10.8.1 — the distance from an atomic inline box's MARGIN-box
+     * top edge down to the baseline it aligns on the line with.
+     *
+     * `BlockLayout` records the offset from the content-box top while laying
+     * the box's own formatting context out; this re-bases it onto the margin
+     * box, which is the extent the line box actually reserves. `null` when
+     * the box takes the §10.8.1 fallback (no in-flow line boxes, or
+     * `overflow` other than `visible`) and so aligns its bottom margin edge.
+     */
+    private static function atomicBaselineFromMarginTop(AtomicInlineBox $box): ?float
+    {
+        if ($box->laidOutBaseline === null) {
+            return null;
+        }
+        $g = $box->geometry;
+
+        return $g->marginTop + $g->borderTop + $g->paddingTop + $box->laidOutBaseline;
+    }
+
+    /**
      * A fragment's ascent, descent, and their half-leading-expanded forms:
      * `[ascent, descent, expandedAscent, expandedDescent]`.
      *
@@ -2266,6 +2294,16 @@ final class InlineLayout
             $g = $f->atomicBox->geometry;
             $marginBox = $g->marginTop + $g->borderTop + $g->paddingTop + $g->height
                 + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+            // §10.8.1 again: an `inline-block` WITH in-flow line boxes
+            // aligns its own last baseline with the line's, so only the
+            // part of its margin box above that baseline counts as
+            // ascent — the rest hangs below like a descender.
+            $ascent = self::atomicBaselineFromMarginTop($f->atomicBox);
+            if ($ascent !== null) {
+                $descent = max(0.0, $marginBox - $ascent);
+
+                return [$ascent, $descent, $ascent, $descent];
+            }
 
             return [$marginBox, 0.0, $marginBox, 0.0];
         }

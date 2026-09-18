@@ -30,4 +30,19 @@ final class AtomicInlineBox extends Box
 
     /** Companion block size for {@see $laidOutContentWidth}. */
     public ?float $laidOutContentHeight = null;
+
+    /**
+     * CSS 2.1 §10.8.1 — the box's alphabetic baseline, as an offset down
+     * from its CONTENT-box top edge.
+     *
+     * `null` means the box has no in-flow line box to take a baseline from,
+     * or its `overflow` is not `visible`; §10.8.1 then makes the baseline
+     * the bottom margin edge, which is what `InlineLayout` falls back to.
+     *
+     * Captured during the pre-layout pass rather than derived later: the
+     * inline formatting context overwrites the box's own `geometry->y`
+     * while placing it, so the offset cannot be recovered from geometry
+     * afterwards.
+     */
+    public ?float $laidOutBaseline = null;
 }

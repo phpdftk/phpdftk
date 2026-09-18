@@ -12027,6 +12027,7 @@ final class BlockLayout
                 );
                 $child->laidOutContentWidth = $child->geometry->width;
                 $child->laidOutContentHeight = $child->geometry->height;
+                $child->laidOutBaseline = $this->inlineAtomicBaselineOffset($child);
                 continue;
             }
             if ($child instanceof InlineBox) {
@@ -12053,6 +12054,60 @@ final class BlockLayout
         $display = $box->style->get('display');
         return $display instanceof Keyword
             && strtolower($display->name) === 'inline-block';
+    }
+
+    /**
+     * CSS 2.1 §10.8.1 — an `inline-block`'s baseline, as an offset down from
+     * its content-box top edge.
+     *
+     * > The baseline of an 'inline-block' is the baseline of its last line
+     * > box in the normal flow, unless it has either no in-flow line boxes
+     * > or if its 'overflow' property has a computed value other than
+     * > 'visible', in which case the baseline is the bottom margin edge.
+     *
+     * Returns `null` for both escape hatches; the caller then keeps the
+     * bottom-margin-edge convention.
+     */
+    private function inlineAtomicBaselineOffset(AtomicInlineBox $box): ?float
+    {
+        $overflow = $box->style->get('overflow');
+        if ($overflow instanceof Keyword && strtolower($overflow->name) !== 'visible') {
+            return null;
+        }
+        $absolute = $this->lastInFlowBaselineY($box);
+
+        return $absolute === null ? null : $absolute - $box->geometry->y;
+    }
+
+    /**
+     * The document-space Y of the LAST in-flow line box's baseline inside
+     * `$box`, or `null` when the subtree has none.
+     *
+     * A block container either hosts the inline formatting context itself
+     * (`lineBoxes` populated) or stacks block children, so the search takes
+     * this box's own lines when it has them and otherwise descends into the
+     * last in-flow child that yields a baseline. Floats and out-of-flow
+     * boxes are not "in the normal flow" and are skipped.
+     */
+    private function lastInFlowBaselineY(Box $box): ?float
+    {
+        if ($box->lineBoxes !== []) {
+            $last = $box->lineBoxes[count($box->lineBoxes) - 1];
+
+            return $box->geometry->y + $last->y + $last->baseline;
+        }
+        $found = null;
+        foreach ($box->children as $child) {
+            if ($this->isOutOfFlow($child) || $this->floatSide($child) !== null) {
+                continue;
+            }
+            $candidate = $this->lastInFlowBaselineY($child);
+            if ($candidate !== null) {
+                $found = $candidate;
+            }
+        }
+
+        return $found;
     }
 
     /**

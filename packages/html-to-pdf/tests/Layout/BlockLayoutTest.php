@@ -12418,7 +12418,7 @@ final class BlockLayoutTest extends TestCase
     }
 
     // ------------------------------------------------------------
-    // CSS 2.1 §9.4.2 / §10.3.9 — an atomic inline-level box
+    // CSS 2.1 §9.4.2 / §10.3.9 / §10.8.1 — an atomic inline-level box
     // (`display: inline-block`) is inline-level outside and a block
     // container inside. `InlineLayout` only ever handled the outside,
     // so nothing ran a formatting context INSIDE the box: its children
@@ -12462,6 +12462,7 @@ final class BlockLayoutTest extends TestCase
         $ib = $this->findById($box, 'ib');
         self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
         self::assertNull($ib->laidOutContentWidth);
+        self::assertNull($ib->laidOutBaseline);
     }
 
     /**
@@ -12570,5 +12571,59 @@ final class BlockLayoutTest extends TestCase
             $ib->geometry->x + $ib->geometry->width + 0.01,
             $inner->geometry->x + $inner->geometry->width,
         );
+    }
+
+    /**
+     * Positive: CSS 2.1 §10.8.1 — "the baseline of an 'inline-block' is the
+     * baseline of its last line box in the normal flow", so its text sits on
+     * the same baseline as the text beside it rather than floating a whole
+     * descender above it.
+     */
+    public function testInlineBlockAlignsItsLastLineBaselineWithTheLine(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p">abc <span id="ib">Xy</span> def</p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $p = $this->findById($box, 'p');
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($p);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertNotEmpty($p->lineBoxes);
+        self::assertNotNull($ib->laidOutBaseline);
+        $lineBaselineY = $p->geometry->y + $p->lineBoxes[0]->y + $p->lineBoxes[0]->baseline;
+        self::assertEqualsWithDelta(
+            $lineBaselineY,
+            $ib->geometry->y + $ib->laidOutBaseline,
+            0.01,
+            "an inline-block's own baseline must land on the line's baseline",
+        );
+    }
+
+    /**
+     * Negative: §10.8.1's escape hatch — with `overflow` other than
+     * `visible` the baseline is the BOTTOM MARGIN EDGE, not the last line's
+     * baseline, so the box hangs entirely above the line.
+     */
+    public function testOverflowHiddenInlineBlockAlignsItsBottomMarginEdge(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p">abc <span id="ib">Xy</span> def</p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; overflow: hidden; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $p = $this->findById($box, 'p');
+        $ib = $this->findById($box, 'ib');
+        self::assertNotNull($p);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertNull($ib->laidOutBaseline, 'overflow != visible takes the §10.8.1 fallback');
+        self::assertNotEmpty($p->lineBoxes);
+        $lineBaselineY = $p->geometry->y + $p->lineBoxes[0]->y + $p->lineBoxes[0]->baseline;
+        $g = $ib->geometry;
+        $marginBoxBottom = $g->y + $g->height + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+        self::assertEqualsWithDelta($lineBaselineY, $marginBoxBottom, 0.01);
     }
 }
