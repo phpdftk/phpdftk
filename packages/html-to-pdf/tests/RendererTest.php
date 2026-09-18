@@ -4481,6 +4481,42 @@ final class RendererTest extends TestCase
         self::assertGreaterThanOrEqual(1, substr_count($bytes, '/Subtype /Type0'));
     }
 
+    public function testSidewaysLrRotatesGlyphsCounterClockwise(): void
+    {
+        // CSS Writing Modes 4 §3.1 — `sideways-lr` is the only writing mode
+        // whose inline axis runs BOTTOM-to-TOP. Its glyphs rotate 90°
+        // COUNTER-clockwise (text matrix `0 1 -1 0`) and the run advances up
+        // the page from the container's content bottom; every other vertical
+        // mode rotates clockwise (`0 -1 1 0`) and runs down from the top.
+        // Painting sideways-lr with the clockwise matrix mirrored the whole
+        // inline axis, so an Ahem mosaic came out upside down.
+        $fontPath = __DIR__ . '/../../../tests/fixtures/fonts/NotoSans-Regular.otf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('Latin fixture font missing');
+        }
+        $font = (new OpenTypeParser($fontPath))->parse();
+        $render = function (string $mode) use ($font): string {
+            $writer = new PdfWriter(compressStreams: false);
+            (new Renderer((new RendererOptions())->withDefaultFont($font)))->renderInto(
+                $writer,
+                '<html><body><div style="writing-mode: ' . $mode . '">AB</div></body></html>',
+            );
+            return $writer->toBytes();
+        };
+        $sidewaysLr = $render('sideways-lr');
+        self::assertMatchesRegularExpression('/\b0 1 -1 0 [-0-9.]+ [-0-9.]+ Tm/', $sidewaysLr);
+        self::assertDoesNotMatchRegularExpression('/\b0 -1 1 0 [-0-9.]+ [-0-9.]+ Tm/', $sidewaysLr);
+        // Every other vertical mode keeps the clockwise matrix.
+        foreach (['vertical-rl', 'vertical-lr', 'sideways-rl'] as $mode) {
+            $bytes = $render($mode);
+            self::assertMatchesRegularExpression(
+                '/\b0 -1 1 0 [-0-9.]+ [-0-9.]+ Tm/',
+                $bytes,
+                "$mode must keep the clockwise glyph rotation",
+            );
+        }
+    }
+
     public function testCharacterReferencesReachTheFontSubset(): void
     {
         // WHATWG HTML §13.5 — the subset collector scans the RAW source,

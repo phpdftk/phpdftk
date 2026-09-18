@@ -5761,13 +5761,34 @@ final class Painter
             // centred in the column rather than flush to the left edge.
             $descent = (abs($font->descent) / max(1, $font->unitsPerEm)) * $shapedRun->fontSizePt;
             $halfLeading = max(0.0, ($line->height - ($ascent + $descent)) / 2.0);
-            $columnX = $box->geometry->x + $fragment->x + $offsetX + $halfLeading + $descent;
-            // Increment 2: `blockOffset` places each fragment DOWN the column
-            // by its original inline advance, so multiple fragments in one
-            // source line stack vertically instead of sharing the column top.
-            $columnTopLayoutY = $box->geometry->y + $line->y + $offsetY + $fragment->blockOffset;
-            $columnTopPdfY = $this->pageHeight - $columnTopLayoutY;
-            $stream->setTextMatrix(0.0, -1.0, 1.0, 0.0, $columnX, $columnTopPdfY);
+            if ($wm->mode === WritingMode::SIDEWAYS_LR) {
+                // CSS Writing Modes 4 §3.1 — `sideways-lr` is the one mode
+                // whose inline axis runs BOTTOM-to-TOP. Its glyphs rotate 90°
+                // COUNTER-clockwise, which puts the ascent on -deviceX
+                // (physical left / line-over) and makes the run advance up
+                // the page, starting at the line's inline-start edge: the
+                // container's content BOTTOM, `blockOffset` in.
+                $columnX = $box->geometry->x + $fragment->x + $offsetX + $halfLeading + $ascent;
+                $runStartLayoutY = $box->geometry->y + $box->geometry->height
+                    - $line->y - $fragment->blockOffset + $offsetY;
+                $stream->setTextMatrix(
+                    0.0,
+                    1.0,
+                    -1.0,
+                    0.0,
+                    $columnX,
+                    $this->pageHeight - $runStartLayoutY,
+                );
+            } else {
+                $columnX = $box->geometry->x + $fragment->x + $offsetX + $halfLeading + $descent;
+                // Increment 2: `blockOffset` places each fragment DOWN the
+                // column by its original inline advance, so multiple
+                // fragments in one source line stack vertically instead of
+                // sharing the column top.
+                $columnTopLayoutY = $box->geometry->y + $line->y + $offsetY + $fragment->blockOffset;
+                $columnTopPdfY = $this->pageHeight - $columnTopLayoutY;
+                $stream->setTextMatrix(0.0, -1.0, 1.0, 0.0, $columnX, $columnTopPdfY);
+            }
         } else {
             // Tm reseats the text matrix at each fragment's left baseline,
             // which is simpler than tracking incremental Td offsets between
