@@ -1496,10 +1496,17 @@ final class BlockLayout
         // here would double-shift the abs-pos box. For floats,
         // §9.5.1 says auto margins compute to 0 — let them stay
         // at 0 so the float lands at its containing-block edge.
+        // CSS 2.1 §10.3.9 — for a non-replaced INLINE-BLOCK, `auto` margins
+        // compute to 0; §10.3.3's slack redistribution is a block-level rule.
+        // Nothing could observe this until inline-blocks started laying their
+        // contents out through `layoutBlock`; now a centred `margin: 0 auto`
+        // inline-block would hand the inline formatting context a margin box
+        // the width of the whole containing block and shove it off the line.
         if (!$widthAuto
             && ($marginLeftAuto || $marginRightAuto)
             && !$this->isOutOfFlow($box)
             && $this->floatSide($box) === null
+            && !$box instanceof AtomicInlineBox
         ) {
             $slack = $cbWidth
                 - $geo->width

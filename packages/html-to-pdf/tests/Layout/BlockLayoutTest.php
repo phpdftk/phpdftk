@@ -12603,6 +12603,26 @@ final class BlockLayoutTest extends TestCase
     }
 
     /**
+     * Negative: CSS 2.1 §10.3.9 — `auto` margins on a non-replaced
+     * inline-block compute to 0. §10.3.3's centring slack is a BLOCK-level
+     * rule; applying it here would hand the inline formatting context a
+     * margin box as wide as the containing block.
+     */
+    public function testAutoMarginsOnInlineBlockComputeToZero(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p">abc <span id="ib">x</span></p></body></html>',
+            'html, body, p { display: block; }
+             #ib { display: inline-block; width: 40px; margin: 0 auto; font-size: 20px; }',
+        );
+        $this->layout->layout($box, $this->inlineBlockContext());
+        $ib = $this->findById($box, 'ib');
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\AtomicInlineBox::class, $ib);
+        self::assertSame(0.0, $ib->geometry->marginLeft);
+        self::assertSame(0.0, $ib->geometry->marginRight);
+    }
+
+    /**
      * Negative: §10.8.1's escape hatch — with `overflow` other than
      * `visible` the baseline is the BOTTOM MARGIN EDGE, not the last line's
      * baseline, so the box hangs entirely above the line.
