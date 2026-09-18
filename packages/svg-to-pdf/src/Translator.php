@@ -25,6 +25,8 @@ use Phpdftk\Pdf\Core\PdfReference;
 use Phpdftk\Pdf\Writer\Page;
 use Phpdftk\Pdf\Writer\PdfWriter;
 use Phpdftk\SvgToPdf\Gradient\GradientPainter;
+use Phpdftk\SvgToPdf\Text\DocumentFont;
+use Phpdftk\SvgToPdf\Text\DocumentFontProvider;
 use Phpdftk\SvgToPdf\Text\FontResolver;
 use Phpdftk\Svg\ClipPath;
 use Phpdftk\Svg\Defs;
@@ -139,6 +141,14 @@ final class Translator
      */
     public function __construct(
         private readonly ?ResourceLoader $resourceLoader = null,
+        /**
+         * Optional seam through which an embedding document (HTML, at
+         * present) supplies its own font matching + PDF font handles.
+         * When null - or when it declines a particular request - SVG
+         * text falls back to the built-in standard-14
+         * {@see FontResolver}.
+         */
+        private readonly ?DocumentFontProvider $documentFontProvider = null,
     ) {}
 
     /**
@@ -219,6 +229,7 @@ final class Translator
             $this->document = null;
             $this->gradientPainter = null;
             $this->fontResolver = null;
+            $this->activeFont = null;
             $this->compensateTextFlip = false;
             $this->effectiveViewport = null;
         }
@@ -245,6 +256,13 @@ final class Translator
     private ?array $pendingUseViewport = null;
     private ?GradientPainter $gradientPainter = null;
     private ?FontResolver $fontResolver = null;
+    /**
+     * Font selected for the `<text>` element currently being painted.
+     * Set by {@see paintTextElement} before any `Tj` is emitted and read
+     * by {@see showTextRun} so the shadow, single-run and per-glyph
+     * paths all agree on how to encode the string.
+     */
+    private ?DocumentFont $activeFont = null;
     private bool $compensateTextFlip = false;
     /**
      * Stack of cumulative affine transforms (outer→inner) mapping the CURRENT
@@ -1585,11 +1603,18 @@ final class Translator
             $this->applyFillPaint($fill, $text, $stream);
         }
 
-        $font = $this->fontResolver->resolve(
-            $text->fontFamily(),
-            $text->fontWeight(),
-            $text->fontStyle(),
-        );
+        $families = $text->fontFamily();
+        $weight = $text->fontWeight();
+        $style = $text->fontStyle();
+        // SVG 2 §11.5 delegates font selection to CSS Fonts 4 wholesale,
+        // so `<text>` inside an HTML document must select from the same
+        // face set as the surrounding HTML - `@font-face` families
+        // included. The embedding document offers those through the
+        // provider; only when it has nothing for this family stack do we
+        // fall back to the standard-14 mapping.
+        $document = $this->documentFontProvider?->resolveDocumentFont($families, $weight, $style);
+        $font = $document ?? new DocumentFont($this->fontResolver->resolve($families, $weight, $style));
+        $this->activeFont = $font;
         $size = $text->fontSize() ?? 16.0;
 
         // SVG 2 §11.6 list-valued positioning. `<text x="10 20 30">ABC</text>`
@@ -1625,7 +1650,7 @@ final class Translator
             foreach (array_reverse($shadows) as $shadow) {
                 $stream->saveGraphicsState();
                 $this->setFillColor($stream, $shadow['color']);
-                $stream->beginText()->setFont($font, $size);
+                $stream->beginText()->setFont($font->font, $size);
                 $sx = ($xList[0] ?? 0.0) + $shadow['offsetX'];
                 $sy = ($yList[0] ?? 0.0) + $shadow['offsetY'];
                 if ($this->compensateTextFlip) {
@@ -1633,13 +1658,13 @@ final class Translator
                 } else {
                     $stream->moveTextPosition($sx, $sy);
                 }
-                $stream->showText($content);
+                $this->showTextRun($stream, $content);
                 $stream->endText();
                 $stream->restoreGraphicsState();
             }
         }
 
-        $stream->beginText()->setFont($font, $size);
+        $stream->beginText()->setFont($font->font, $size);
         if (!$perGlyph) {
             $x = $xList[0] ?? 0.0;
             $y = $yList[0] ?? 0.0;
@@ -1653,11 +1678,32 @@ final class Translator
             } else {
                 $stream->moveTextPosition($x, $y);
             }
-            $stream->showText($content);
+            $this->showTextRun($stream, $content);
         } else {
             $this->paintTextPerGlyph($content, $xList, $yList, $dxList, $dyList, $rotateList, $stream);
         }
         $stream->endText();
+    }
+
+    /**
+     * Emit one `Tj` for `$text` against {@see $activeFont}.
+     *
+     * Composite (Type 0 / CID) fonts - the shape every embedded
+     * `@font-face` takes - carry no single-byte text encoder, so
+     * `showText()` would pass UTF-8 bytes straight through and the
+     * viewer would read them as raw CIDs. Those go through
+     * `showUnicodeText()` with the post-subset GID map instead. The
+     * standard-14 Type 1 fonts keep the plain `showText()` path, where
+     * the font handle's encoder does the UTF-8 -> byte translation.
+     */
+    private function showTextRun(ContentStream $stream, string $text): void
+    {
+        $font = $this->activeFont;
+        if ($font !== null && $font->unicodeToGid !== []) {
+            $stream->showUnicodeText($text, $font->unicodeToGid);
+            return;
+        }
+        $stream->showText($text);
     }
 
     /**
@@ -1925,14 +1971,14 @@ final class Translator
             }
 
             $this->emitTextMatrix($stickyX, $stickyY, $stickyRotate, $stream);
-            $stream->showText($char);
+            $this->showTextRun($stream, $char);
             $emitted++;
         }
         if ($emitted < count($chars)) {
             // Remaining glyphs ride the auto-advance from the last
             // positioned glyph — emit them as a single `Tj` so the
             // PDF reader inter-glyph kerning still applies.
-            $stream->showText(implode('', array_slice($chars, $emitted)));
+            $this->showTextRun($stream, implode('', array_slice($chars, $emitted)));
         }
     }
 

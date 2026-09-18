@@ -124,6 +124,15 @@ final class Painter
          * the same way `data:` URLs do.
          */
         private readonly ?HttpResourceLoader $resourceLoader = null,
+        /**
+         * The document's CSS Fonts 4 matcher. Threaded in so embedded
+         * foreign content that does its own text painting - inline
+         * `<svg><text>`, SVG `background-image` - selects from the same
+         * face set as HTML text instead of falling back to its own
+         * standalone font mapping. Null leaves those painters on their
+         * built-in fallbacks.
+         */
+        private readonly ?\Phpdftk\HtmlToPdf\Layout\FontResolver $fontResolver = null,
     ) {}
 
     /**
@@ -9173,9 +9182,32 @@ final class Painter
     {
         if ($this->svgRenderer === null) {
             assert($this->page !== null && $this->writer !== null);
-            $this->svgRenderer = new \Phpdftk\SvgToPdf\SvgRenderer($this->page, $this->writer);
+            $this->svgRenderer = new \Phpdftk\SvgToPdf\SvgRenderer(
+                $this->page,
+                $this->writer,
+                new \Phpdftk\SvgToPdf\Translator(
+                    documentFontProvider: $this->documentFontBridge(),
+                ),
+            );
         }
         return $this->svgRenderer;
+    }
+
+    /**
+     * Build the SVG-side font provider from this page's registered
+     * fonts, or null when the document has no font machinery wired
+     * (standalone / font-less rendering) - SVG text then keeps the
+     * translator's standard-14 fallback.
+     */
+    private function documentFontBridge(): ?\Phpdftk\HtmlToPdf\Svg\DocumentFontBridge
+    {
+        if ($this->fontResolver === null || $this->registeredFonts === []) {
+            return null;
+        }
+        return new \Phpdftk\HtmlToPdf\Svg\DocumentFontBridge(
+            $this->fontResolver,
+            $this->registeredFonts,
+        );
     }
 
     private function inlineSvgAdapter(): \Phpdftk\HtmlToPdf\Svg\InlineSvgAdapter

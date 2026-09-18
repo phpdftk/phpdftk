@@ -413,6 +413,7 @@ final class Renderer
                 fontDataByFamily: $fontMap,
                 pageWidth: $pageWidth,
                 resourceLoader: $this->options->resourceLoader,
+                fontResolver: $fontResolver,
             );
             $painter->paint($root, $stream);
             // Per-page link annotations — emit one /Link per `<a href>` rect
