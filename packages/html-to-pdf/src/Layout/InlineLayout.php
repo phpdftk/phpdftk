@@ -2735,20 +2735,30 @@ final class InlineLayout
                     $shapingCtx->features,
                 );
             }
-            $shaped = $this->shaper->shapeRun($seg['text'], $runCtx);
+            // CSS Text 3 §4.1.1 — a *segment break* (U+000A, and the
+            // U+000D that may precede it) is a control character: in the
+            // preserving white-space modes it forces a line break, and it
+            // is NEVER rendered. UAX-14 already handed us the `Mandatory`
+            // break opportunity, so all that is left is to keep the
+            // codepoint away from the shaper — otherwise the font has no
+            // glyph for it and every preserved line ended in a `.notdef`
+            // box. The break kind and the whitespace flag still come from
+            // the original segment text.
+            $shapeText = strtr($seg['text'], ["\r\n" => '', "\n" => '', "\r" => '']);
+            $shaped = $this->shaper->shapeRun($shapeText, $runCtx);
             if ($letterSpacing !== 0.0 && $shaped->glyphs !== []) {
                 $shaped = $this->applyLetterSpacing($shaped, $letterSpacing);
             }
             if ($wordSpacing !== 0.0 && $shaped->glyphs !== []) {
                 // CSS Text 3 §9: `word-spacing` adds advance only at word-
                 // separator glyphs (U+0020 / U+00A0 at MVP).
-                $shaped = $this->applyWordSpacing($shaped, $seg['text'], $wordSpacing);
+                $shaped = $this->applyWordSpacing($shaped, $shapeText, $wordSpacing);
             }
             $out[] = [
                 'shapedRun' => $shaped,
                 'isWhitespace' => $isWs,
                 'kind' => $seg['kind'],
-                'trailingSpace' => $this->trailingCollapsibleAdvance($shaped, $seg['text'], $isWs),
+                'trailingSpace' => $this->trailingCollapsibleAdvance($shaped, $shapeText, $isWs),
             ];
         }
         return $out;

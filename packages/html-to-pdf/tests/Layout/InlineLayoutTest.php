@@ -1055,6 +1055,37 @@ final class InlineLayoutTest extends TestCase
         self::assertGreaterThan(0.0, $first->width, 'leading spaces preserved as a real fragment');
     }
 
+    public function testPreservedSegmentBreakShapesNoGlyph(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Text 3 §4.1.1 — a preserved segment break forces a line break
+        // and is NEVER rendered. Shaping it produced a `.notdef` box at the
+        // end of every preserved line, so the broken line measured wider
+        // than the identical text without the trailing newline.
+        $withBreak = $this->buildTree(
+            '<html><body><p>' . "\u{1820}\u{1820}\n\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: pre; }',
+        );
+        $this->layout->layout($withBreak, $this->defaultContext(400.0));
+        $a = $this->find($withBreak, 'p');
+        self::assertNotNull($a);
+        self::assertCount(2, $a->lineBoxes, 'the segment break still forces a line break');
+
+        $withoutBreak = $this->buildTree(
+            '<html><body><p>' . "\u{1820}\u{1820}" . '</p></body></html>',
+            'html, body, p { display: block; } p { white-space: pre; }',
+        );
+        $this->layout->layout($withoutBreak, $this->defaultContext(400.0));
+        $b = $this->find($withoutBreak, 'p');
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta(
+            $b->lineBoxes[0]->totalWidth(),
+            $a->lineBoxes[0]->totalWidth(),
+            0.001,
+            'the newline contributes no advance of its own',
+        );
+    }
+
     public function testNormalCollapsesLeadingWhitespace(): void
     {
         $this->skipIfNoFont();
