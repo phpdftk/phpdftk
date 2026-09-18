@@ -67,6 +67,15 @@ final class InlineLayout
     private ?float $currentWrapMeasure = null;
 
     /**
+     * CSS Sizing 4 §6.4 — true when the container's BLOCK size (its
+     * physical width, in a vertical writing mode) is `auto` and will be
+     * set from this pass's column total. The `vrl` / `sideways-rl`
+     * transpose then anchors the columns against that total rather than
+     * against the pre-shrink physical width it was handed.
+     */
+    private bool $currentBlockSizeAuto = false;
+
+    /**
      * The containing block's content height and whether it is definite,
      * threaded from the block layout so an atomic replaced element can
      * resolve a percentage `height` / `max-height` / `min-height` and,
@@ -90,13 +99,19 @@ final class InlineLayout
      *
      * @return array{list<LineBox>, float} (lines, totalHeight)
      */
-    public function layout(Box $parent, float $availableWidth, LayoutContext $context): array
-    {
+    public function layout(
+        Box $parent,
+        float $availableWidth,
+        LayoutContext $context,
+        ?float $inlineExtent = null,
+        bool $blockSizeAuto = false,
+    ): array {
         $this->currentFontResolver = $context->fontResolver;
         $this->currentAvailableWidth = $availableWidth;
         $this->currentCbHeight = $context->containingBlockHeight;
         $this->currentCbHeightDefinite = $context->inFlowHeightDefinite;
-        $this->currentWrapMeasure = $this->verticalInlineMeasure($parent);
+        $this->currentWrapMeasure = $this->verticalInlineMeasure($parent, $inlineExtent);
+        $this->currentBlockSizeAuto = $blockSizeAuto;
         if ($availableWidth <= 0.0) {
             return [[], 0.0];
         }
@@ -503,6 +518,22 @@ final class InlineLayout
         // single-fragment special case is the degenerate blockOffset=x case
         // of this loop.
         $rtl = $wm->blockDirection() === -1;
+        // CSS Sizing 4 §6.4 — the `vrl` / `sideways-rl` columns are
+        // anchored to the container's block-START edge, i.e. the RIGHT
+        // edge of its content box. With an `auto` block size that edge is
+        // not `$availableWidth` (the pre-shrink stretch value handed to
+        // this pass) but the column total the caller is about to adopt as
+        // the used width — anchor against that instead, or the columns
+        // land off the shrunk box.
+        $anchor = $availableWidth;
+        if ($this->currentBlockSizeAuto) {
+            $anchor = 0.0;
+            foreach ($lines as $line) {
+                if ($line->height > 0.0) {
+                    $anchor += $line->height;
+                }
+            }
+        }
         $out = [];
         $cumBlock = 0.0;
         foreach ($lines as $line) {
@@ -517,7 +548,7 @@ final class InlineLayout
             // content edge. `vrl` / `sideways-rl`: block-start = right, so
             // grow leftward (place the column `$cumBlock` in from the right).
             $blockLeft = $rtl
-                ? max(0.0, $availableWidth - $cumBlock - $line->height)
+                ? max(0.0, $anchor - $cumBlock - $line->height)
                 : $cumBlock;
             $newFrags = [];
             foreach ($line->fragments as $f) {
@@ -760,7 +791,7 @@ final class InlineLayout
      * those is only settled AFTER inline layout, so wrapping against it
      * would be a sizing cycle. Those keep the physical-width measure.
      */
-    private function verticalInlineMeasure(Box $parent): ?float
+    private function verticalInlineMeasure(Box $parent, ?float $inlineExtent = null): ?float
     {
         if (!WritingMode::fromStyle($parent->style)->isVertical()) {
             return null;
@@ -768,6 +799,14 @@ final class InlineLayout
         $height = $parent->style->get('height');
         if ($height instanceof Length && $height->value > 0.0) {
             return $height->value;
+        }
+        // CSS Sizing 4 §6.4 — a block-level box in a vertical containing
+        // block STRETCH-fits its inline size (physical height) to that
+        // containing block, so an `auto` height is still a definite
+        // measure to wrap against. BlockLayout resolves the stretch
+        // before this pass runs and threads the used value in here.
+        if ($inlineExtent !== null && $inlineExtent > 0.0) {
+            return $inlineExtent;
         }
         // A §7.3 orthogonal-flow fallback (take the inline size from the
         // nearest definite ancestor block size) was measured here and

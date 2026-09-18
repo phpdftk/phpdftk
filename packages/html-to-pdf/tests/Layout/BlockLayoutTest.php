@@ -11479,6 +11479,104 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($c->geometry->y, $c->children[0]->geometry->y, 0.001);
     }
 
+    public function testVerticalBlockStretchesInlineSizeToContainingBlock(): void
+    {
+        // CSS Writing Modes 4 §7.1 + Sizing 4 §6.4 — in a vertical writing
+        // mode `height` is the INLINE size, so a block-level in-flow child
+        // with `height: auto` STRETCH-fits it to the containing block
+        // exactly as `width: auto` does in a horizontal writing mode.
+        // The container's 100px content height minus the child's 10px top
+        // and bottom borders leaves an 80px content height.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div id="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-rl; width: 200px; height: 100px; }
+             #i { border-top: 10px solid; border-bottom: 10px solid; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $i = $this->findById($root, 'i');
+        self::assertNotNull($i);
+        self::assertEqualsWithDelta(80.0, $i->geometry->height, 0.001);
+    }
+
+    public function testOrthogonalVerticalBlockDoesNotStretchInlineSize(): void
+    {
+        // Guard on the gate: the stretch above applies only when the box
+        // and its containing block share an inline axis. A `vertical-lr`
+        // block inside a `horizontal-tb` container is an ORTHOGONAL flow
+        // (CSS Writing Modes 4 §7.3), which sizes its inline axis by its
+        // own rules — it must NOT swallow the container's height.
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div id="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { width: 200px; height: 100px; }
+             #i { writing-mode: vertical-lr; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $i = $this->findById($root, 'i');
+        self::assertNotNull($i);
+        self::assertEqualsWithDelta(0.0, $i->geometry->height, 0.001);
+    }
+
+    public function testVerticalBlockAutoWidthShrinksToColumnTotal(): void
+    {
+        // CSS Writing Modes 4 §7.1 — `width` is the BLOCK size in a
+        // vertical writing mode, so `width: auto` is content-sized, not
+        // stretched to the containing block. A single line of text
+        // transposes into one column whose cross-size is the line height,
+        // so the box's used width is exactly that.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $root = $this->buildTree(
+            '<html><body><div id="c"><div id="i">A</div></div></body></html>',
+            'html, body, div { display: block; }
+             #c { writing-mode: vertical-lr; width: 400px; height: 200px;
+                  font-family: noto; font-size: 20px; }',
+        );
+        $this->layout->layout($root, new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        ));
+        $i = $this->findById($root, 'i');
+        self::assertNotNull($i);
+        self::assertNotEmpty($i->lineBoxes);
+        // Inline size (physical height) stretched to the container.
+        self::assertEqualsWithDelta(200.0, $i->geometry->height, 0.001);
+        // Block size (physical width) = the single column's cross-size.
+        self::assertGreaterThan(0.0, $i->lineBoxes[0]->height);
+        self::assertEqualsWithDelta($i->lineBoxes[0]->height, $i->geometry->width, 0.001);
+    }
+
+    public function testVerticalRlRootAnchorsBlockStartToViewportRightEdge(): void
+    {
+        // CSS Writing Modes 4 §3.1 — the initial containing block adopts
+        // the root element's principal writing mode. Under `vertical-rl`
+        // the block axis runs right-to-left, so the root's block-START
+        // edge is the ICB's RIGHT edge and the first child box is the
+        // rightmost one.
+        $root = $this->buildTree(
+            '<html><body><div id="a"></div><div id="b"></div></body></html>',
+            'html, body, div { display: block; } head { display: none; }
+             html { writing-mode: vertical-rl; }
+             body { height: 100px; }
+             div { width: 30px; }',
+        );
+        $this->layout->layout($root, $this->defaultCtx);
+        $a = $this->findById($root, 'a');
+        $b = $this->findById($root, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        // 600px-wide viewport: the first child's right edge is flush with
+        // it, the second sits immediately to its left.
+        self::assertEqualsWithDelta(600.0, $a->geometry->x + $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(570.0, $b->geometry->x + $b->geometry->width, 0.001);
+    }
+
     public function testHorizontalTbUnchangedByPhase2(): void
     {
         // Regression guard: the default writing mode still stacks

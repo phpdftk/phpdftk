@@ -232,6 +232,20 @@ final class BlockLayout
             );
         }
         $height = $this->layoutBox($root, $context);
+        // CSS Writing Modes 4 §3.1 — the initial containing block adopts
+        // the root element's principal writing mode. Under `vertical-rl` /
+        // `sideways-rl` the block axis runs right-to-left, so the root's
+        // block-START edge is the ICB's RIGHT edge. `layoutBox` places
+        // every box from its origin rightward (the vertical stacker
+        // re-anchors children afterwards, but nothing re-anchors the root
+        // itself), so shift the whole tree over by the leftover block-axis
+        // slack.
+        if (WritingMode::fromStyle($root->style)->blockDirection() === -1) {
+            $slack = $context->containingBlockWidth - $root->geometry->outerWidth();
+            if ($slack > 0.0) {
+                $this->shiftSubtree($root, 0.0, $slack);
+            }
+        }
         // CSS Inline 3 §6 — `text-box-trim` runs as a post-layout pass:
         // it walks each block container with `text-box-trim != none` and
         // shifts the first / last line of the propagated first-line
@@ -1154,6 +1168,55 @@ final class BlockLayout
         $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
         $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
 
+        // CSS Writing Modes 4 §7.1 — "layout calculation rules that apply
+        // to the horizontal dimension in horizontal writing modes instead
+        // apply to the vertical dimension in vertical writing modes". So in
+        // a vertical writing mode `height` is the INLINE size and `width`
+        // the BLOCK size, and the CSS 2.1 §10.3.3 / Sizing 4 §6.4 pair
+        // swaps with them: a block-level box in normal flow STRETCH-fits
+        // its inline size to the containing block and CONTENT-sizes its
+        // block size.
+        //
+        // The swap is gated on the box AND its containing block both being
+        // vertical: an orthogonal flow (a vertical box inside a horizontal
+        // container, or vice versa) is §7.3's own algorithm and is left on
+        // the existing code path. §3.1 makes the initial containing block
+        // adopt the root element's principal writing mode, so at the root
+        // (where no parent writing mode was recorded) the root's own mode
+        // is also the containing block's.
+        $selfWm = WritingMode::fromStyle($style);
+        $verticalFlow = $selfWm->isVertical()
+            && ($context->parentWritingMode?->isVertical() ?? true);
+        $heightValueForFlow = $style->get('height');
+        $verticalInlineStretch = null;
+        if ($verticalFlow
+            && $this->heightAppliesToDisplay($style)
+            && $this->isHeightAutoLike($heightValueForFlow)
+            && !$this->isOutOfFlow($box)
+            && $this->floatSide($box) === null
+            && $context->containingBlockHeight > 0.0
+            // Stretch-fit needs a DEFINITE measure to stretch into. This
+            // engine lays out in one pass, so a containing block whose own
+            // inline size is still content-derived (an auto-`width`
+            // vertical float, an orthogonal box mid-§7.3) is still carrying
+            // its grandparent's height here — stretching into that inflates
+            // the child to the viewport.
+            && $context->containingBlockHeightDefinite
+        ) {
+            $verticalInlineStretch = max(
+                0.0,
+                $context->containingBlockHeight
+                    - $geo->marginTop - $geo->marginBottom
+                    - $geo->borderTop - $geo->borderBottom
+                    - $geo->paddingTop - $geo->paddingBottom,
+            );
+            // Commit it now: the inline pass, the positioned-ancestor
+            // rectangle and the vertical child stacker all read the
+            // container's inline extent while children lay out, and the
+            // auto-height resolution further down re-affirms the value.
+            $geo->height = $verticalInlineStretch;
+        }
+
         // Resolve content width: `auto` fills the containing block minus
         // margins / borders / padding. CSS Sizing 3 §6.2: with
         // `box-sizing: border-box`, the declared `width` includes
@@ -1498,6 +1561,13 @@ final class BlockLayout
                 );
             }
             $childCbHeight = $resolvedHeight;
+        } elseif ($verticalInlineStretch !== null && $context->containingBlockHeightDefinite) {
+            // CSS Writing Modes 4 §7.1 + Sizing 4 §6.4 — the stretch-fit
+            // inline size of a vertical box is a used length as definite
+            // as the containing block it stretched into, so descendants'
+            // `height: %` resolve against it.
+            $childCbHeight = $verticalInlineStretch;
+            $heightExplicit = true;
         } else {
             // CSS Sizing 4 §4.1 — a block size DERIVED from
             // `aspect-ratio` against a definite inline size is itself
@@ -1606,12 +1676,25 @@ final class BlockLayout
         // subtree's root. Multi-col / inline-only children fall back
         // to the horizontal codepath for now — vertical multi-col is
         // §7.3.4 and vertical inline formatting is Phase 4.
-        $wm = WritingMode::fromStyle($style);
+        $wm = $selfWm;
         $childTotal = 0.0;
         if ($box->children !== [] && $this->isMultiColumnContainer($box)) {
             $childTotal = $this->layoutMultiColumn($box, $childContext);
         } elseif ($box->children !== [] && $this->allInlineLevel($box->children)) {
-            $childTotal = $this->layoutInlineChildren($box, $childContext);
+            $childTotal = $this->layoutInlineChildren(
+                $box,
+                $childContext,
+                $verticalFlow ? $childCbHeight : null,
+                $verticalFlow && $widthAuto,
+            );
+            // CSS Writing Modes 4 §7.1 — the value the inline pass returns
+            // is the extent consumed along the container's BLOCK axis. In a
+            // vertical flow that axis is physical x, so an `auto` block size
+            // (`width`) takes the column total rather than the containing-
+            // block stretch the pass was seeded with.
+            if ($verticalFlow && $widthAuto && $childTotal > 0.0) {
+                $geo->width = $childTotal;
+            }
         } elseif ($wm->isVertical()) {
             $childTotal = $this->stackChildrenListVertical(
                 $box->children,
@@ -1830,6 +1913,12 @@ final class BlockLayout
             $containedHeight = $this->resolveContainIntrinsicHeight($style, $context);
             if ($containedHeight !== null) {
                 $geo->height = $containedHeight;
+            } elseif ($verticalInlineStretch !== null) {
+                // CSS Writing Modes 4 §7.1 + Sizing 4 §6.4 — `height` is
+                // the INLINE size here and an in-flow block-level box
+                // stretch-fits it to the containing block, exactly as
+                // `width: auto` does in a horizontal writing mode.
+                $geo->height = $verticalInlineStretch;
             } elseif ($wm->isVertical()) {
                 // CSS Writing Modes 4 §3 + Sizing 4 §6.4 — `height`
                 // is the INLINE-axis dimension in vertical modes.
@@ -11321,8 +11410,12 @@ final class BlockLayout
      * orphans/widows aware. Without this, viewers would render the
      * straddling line cut horizontally through the glyph mid-stroke.
      */
-    private function layoutInlineChildren(Box $parent, LayoutContext $childContext): float
-    {
+    private function layoutInlineChildren(
+        Box $parent,
+        LayoutContext $childContext,
+        ?float $inlineExtent = null,
+        bool $blockSizeAuto = false,
+    ): float {
         // Resolve every inline descendant's cascaded lengths so `font-size:
         // 0.83em` on `<sup>` / `<small>` etc. shapes at the right px size.
         // Block descendants already had this done in `layoutBlock`.
@@ -11331,6 +11424,8 @@ final class BlockLayout
             $parent,
             $parent->geometry->width,
             $childContext,
+            $inlineExtent,
+            $blockSizeAuto,
         );
         // Pagination breaks lines at real PAGE boundaries, not at the
         // parent's own (possibly small, fixed) block size — passing
@@ -11338,12 +11433,24 @@ final class BlockLayout
         // a page fragmentainer and shoved overflowing lines down by the box
         // height. For full-page bodies pageHeight == containingBlockHeight,
         // so the paginated case is unchanged.
-        $height = $this->avoidLineSplitsAcrossPages(
-            $lines,
-            $parent,
-            $childContext->pageHeight,
-            $height,
-        );
+        // CSS Writing Modes 4 §7.1 — the pagination fixup walks the lines
+        // along physical Y and re-derives the block extent from the LAST
+        // line's `y + height`. In a vertical writing mode the lines have
+        // already been transposed into parallel columns that all share
+        // `y = 0` and run along physical X, so that walk both mis-reads
+        // the consumed extent (it reports one column's cross-size instead
+        // of the column total) and would shift columns for a page break
+        // that does not lie on this axis. Vertical fragmentation is §7.4
+        // and is not implemented; skip the fixup rather than corrupt the
+        // transpose.
+        if (!WritingMode::fromStyle($parent->style)->isVertical()) {
+            $height = $this->avoidLineSplitsAcrossPages(
+                $lines,
+                $parent,
+                $childContext->pageHeight,
+                $height,
+            );
+        }
         $parent->lineBoxes = $lines;
         // CSS 2.1 §9.4.3 — `position: relative` on an INLINE-LEVEL atomic
         // box (replaced `<img>`, `display: inline-block`). InlineLayout
