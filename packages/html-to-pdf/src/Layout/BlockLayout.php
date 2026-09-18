@@ -5310,19 +5310,64 @@ final class BlockLayout
             //   `center` — centered
             //   `stretch` — fill the cell
             //   `baseline` — deferred to the row-baseline pass below
-            $justify = $this->gridSelfKeyword($p['box'], 'justify-self');
-            $alignS = $this->gridSelfKeyword($p['box'], 'align-self');
+            $justify = $this->gridSelfKeyword($p['box'], $style, 'justify-self');
+            $alignS = $this->gridSelfKeyword($p['box'], $style, 'align-self');
             $isBaseline = $this->gridItemIsBaseline($p['box'], $style);
-            $isStretchX = $justify === 'stretch';
+            // CSS Grid Layout 2 §10.1 — an `auto` margin in an axis absorbs
+            // that axis' free space BEFORE alignment, which also opts the
+            // item out of `stretch` in that axis (CSS Box Alignment 3 §4.2):
+            // a stretched item has no free space left for the margin to take.
+            $autoMarginLeft = $this->isAuto($p['box']->style->get('margin-left'));
+            $autoMarginRight = $this->isAuto($p['box']->style->get('margin-right'));
+            $autoMarginTop = $this->isAuto($p['box']->style->get('margin-top'));
+            $autoMarginBottom = $this->isAuto($p['box']->style->get('margin-bottom'));
+            // CSS Grid Layout 2 §9 — an absolutely-positioned child of a
+            // grid container is NOT a grid item. Its grid area only supplies
+            // the containing block; the box itself is sized by the
+            // out-of-flow rules (shrink-to-fit while both insets are `auto`),
+            // so the grid must never stretch it to fill the area.
+            $isOutOfFlow = $this->isOutOfFlow($p['box']);
+            $isStretchX = $justify === 'stretch'
+                && !$isOutOfFlow
+                && !$autoMarginLeft
+                && !$autoMarginRight;
             // A baseline item is not stretched — it keeps its natural block
             // size so its baseline can be aligned.
-            $isStretchY = $alignS === 'stretch' && !$isBaseline;
+            $isStretchY = $alignS === 'stretch'
+                && !$isBaseline
+                && !$isOutOfFlow
+                && !$autoMarginTop
+                && !$autoMarginBottom;
 
             $childCtx = $context
                 ->withContainingBlock($cellWidth, $cellHeight)
                 ->withOrigin($cellX, $cellY);
             $this->cascade->resolveLengths($p['box']->style, $this->boxLengthContext($p['box'], $childCtx));
-            $this->layoutBox($p['box'], $childCtx);
+            // CSS Grid Layout 2 §6.6 — a grid item whose inline-axis
+            // self-alignment is NOT `stretch` uses its FIT-CONTENT inline
+            // size, not the grid area's full width. Laying such an item out
+            // against the full area width made it fill the cell, leaving the
+            // alignment pass below with zero slack — `justify-self: center` /
+            // `end` on an auto-width item silently behaved like `start`.
+            // The fit-content substitution is inline-axis reasoning applied
+            // to the PHYSICAL width, so it is only valid while both the grid
+            // and the item are in a horizontal writing mode. A vertical item
+            // (or container) keeps the pre-existing behaviour until grid
+            // grows real logical-axis handling.
+            $gridAxesArePhysical = !WritingMode::fromStyle($style)->isVertical()
+                && !WritingMode::fromStyle($p['box']->style)->isVertical();
+            $layoutCtx = $childCtx;
+            if (!$isStretchX
+                && !$isOutOfFlow
+                && $gridAxesArePhysical
+                && $this->isAuto($p['box']->style->get('width'))
+            ) {
+                $fitOuter = $this->gridItemFitContentOuterWidth($p['box'], $childCtx, $cellWidth);
+                if (abs($fitOuter - $cellWidth) > 0.001) {
+                    $layoutCtx = $childCtx->withContainingBlock($fitOuter, $cellHeight);
+                }
+            }
+            $this->layoutBox($p['box'], $layoutCtx);
 
             $childGeo = $p['box']->geometry;
             $childOuterWidth = $childGeo->outerWidth();
@@ -5380,11 +5425,21 @@ final class BlockLayout
             // shift `geometry->x` / `geometry->y` accordingly.
             if (!$isStretchX) {
                 $slackX = $cellWidth - $childOuterWidth;
-                $shiftX = match ($justify) {
-                    'end' => $slackX,
-                    'center' => $slackX / 2,
-                    default => 0.0, // 'start' or unknown
-                };
+                // §10.1 — auto margins eat the free space first and only
+                // what they leave behind is available to `justify-self`.
+                // With both margins auto the item ends up centred; with one,
+                // it is pushed away from that edge.
+                if ($autoMarginLeft || $autoMarginRight) {
+                    $shiftX = $autoMarginLeft
+                        ? ($autoMarginRight ? max(0.0, $slackX) / 2 : max(0.0, $slackX))
+                        : 0.0;
+                } else {
+                    $shiftX = match ($justify) {
+                        'end' => $slackX,
+                        'center' => $slackX / 2,
+                        default => 0.0, // 'start' or unknown
+                    };
+                }
                 if ($shiftX !== 0.0) {
                     $this->shiftSubtree($p['box'], 0.0, $shiftX);
                 }
@@ -5401,11 +5456,17 @@ final class BlockLayout
                     // `start` / `end` / `center` (and a baseline item with no
                     // reliable baseline, which keeps `start`).
                     $slackY = $cellHeight - $childOuterHeight;
-                    $shiftY = match ($alignS) {
-                        'end' => $slackY,
-                        'center' => $slackY / 2,
-                        default => 0.0,
-                    };
+                    if ($autoMarginTop || $autoMarginBottom) {
+                        $shiftY = $autoMarginTop
+                            ? ($autoMarginBottom ? max(0.0, $slackY) / 2 : max(0.0, $slackY))
+                            : 0.0;
+                    } else {
+                        $shiftY = match ($alignS) {
+                            'end' => $slackY,
+                            'center' => $slackY / 2,
+                            default => 0.0,
+                        };
+                    }
                     if ($shiftY !== 0.0) {
                         $this->shiftSubtree($p['box'], $shiftY, 0.0);
                     }
@@ -7046,6 +7107,40 @@ final class BlockLayout
     }
 
     /**
+     * CSS Grid Layout 2 §6.6 — the inline size a NON-stretched grid item
+     * lays out at: its fit-content size,
+     * `min(max-content, max(min-content, available))`, where `available`
+     * is the grid area minus the item's own inline margins, borders and
+     * padding.
+     *
+     * Returned as a MARGIN-BOX width so the caller can hand it straight to
+     * `LayoutContext::withContainingBlock()` — a `width: auto` block then
+     * resolves its content width back to exactly the fit-content size.
+     * `auto` margins contribute zero here; they absorb free space during
+     * alignment rather than reserving it during sizing.
+     */
+    private function gridItemFitContentOuterWidth(Box $box, LayoutContext $context, float $areaWidth): float
+    {
+        $style = $box->style;
+        $marginLeft = $this->isAuto($style->get('margin-left'))
+            ? 0.0
+            : $this->resolveLength($style->get('margin-left'), $areaWidth);
+        $marginRight = $this->isAuto($style->get('margin-right'))
+            ? 0.0
+            : $this->resolveLength($style->get('margin-right'), $areaWidth);
+        $surround = $marginLeft
+            + $marginRight
+            + $this->resolveBorderWidth($style, 'left')
+            + $this->resolveBorderWidth($style, 'right')
+            + $this->resolveLength($style->get('padding-left'), $areaWidth)
+            + $this->resolveLength($style->get('padding-right'), $areaWidth);
+        $available = max(0.0, $areaWidth - $surround);
+        $mm = $this->measureMinMaxContent($box, $context);
+        $fit = min($mm['max'], max($mm['min'], $available));
+        return max(0.0, $fit) + $surround;
+    }
+
+    /**
      * Resolve a `justify-self` / `align-self` keyword on a grid item.
      * `auto` resolves to `stretch` (the Grid spec default); unknown
      * keywords fall through to `stretch` too rather than dropping
@@ -7053,20 +7148,32 @@ final class BlockLayout
      * pass through; baseline and `*-self: <other>` keywords aren't
      * modelled at MVP and resolve to `stretch`.
      */
-    private function gridSelfKeyword(Box $box, string $property): string
+    private function gridSelfKeyword(Box $box, CascadedValues $containerStyle, string $property): string
     {
-        $value = $box->style->get($property);
-        if (!$value instanceof Keyword) {
-            return 'stretch';
+        [$name] = $this->flexAlignValue($box->style, $property);
+        if ($name === 'auto' || $name === 'normal') {
+            // CSS Box Alignment 3 §6.2 — `justify-self: auto` computes to the
+            // parent's `justify-items`, `align-self: auto` to its
+            // `align-items`. Without this the container-level default was
+            // ignored outright and every item fell through to `stretch`.
+            [$fallback] = $this->flexAlignValue(
+                $containerStyle,
+                $property === 'justify-self' ? 'justify-items' : 'align-items',
+            );
+            // `legacy` is the initial `justify-items` value. It only carries
+            // a `left` / `right` / `center` meaning when a `legacy`
+            // declaration was inherited, which this engine doesn't model, so
+            // it behaves as `normal` — i.e. no override.
+            if ($fallback !== 'auto' && $fallback !== 'legacy') {
+                $name = $fallback;
+            }
         }
-        $name = strtolower($value->name);
         // `flex-start` / `flex-end` alias for compatibility with
         // flex shorthand authors mixing the two layout modes.
         return match ($name) {
             'start', 'flex-start', 'self-start' => 'start',
             'end', 'flex-end', 'self-end' => 'end',
             'center' => 'center',
-            'stretch' => 'stretch',
             default => 'stretch',
         };
     }

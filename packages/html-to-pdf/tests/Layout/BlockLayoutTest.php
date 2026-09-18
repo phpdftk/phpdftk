@@ -6473,6 +6473,83 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(120.0, $a->geometry->width, 0.001);
     }
 
+    public function testGridNonStretchItemIsFitContentSized(): void
+    {
+        // Positive (CSS Grid 2 §6.6): an auto-width item whose inline-axis
+        // self-alignment is NOT `stretch` lays out at its fit-content size,
+        // then centres in the leftover slack. Previously it filled the whole
+        // 200px track, leaving `justify-self: center` with no slack to use.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: center;">'
+            . '<div class="inner" style="width: 60px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001, 'fit-content width');
+        self::assertEqualsWithDelta(70.0, $a->geometry->x, 0.001, 'centred in the 200px track');
+    }
+
+    public function testGridNonStretchItemKeepsExplicitWidth(): void
+    {
+        // Negative: an EXPLICIT width is not replaced by the fit-content
+        // size — the fit-content path is gated on `width: auto`.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: end; width: 50px;">'
+            . '<div class="inner" style="width: 60px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(50.0, $a->geometry->width, 0.001, 'declared width wins');
+        self::assertEqualsWithDelta(150.0, $a->geometry->x, 0.001, 'end-aligned in the track');
+    }
+
+    public function testGridNonStretchItemNeverShrinksBelowMinContent(): void
+    {
+        // Negative: fit-content is `min(max-content, max(min-content,
+        // available))` — an item whose content cannot fit the track
+        // overflows it rather than being squeezed to the track width.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: center;">'
+            . '<div class="inner" style="width: 300px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(300.0, $a->geometry->width, 0.001, 'min-content floor');
+    }
+
+    public function testGridNonStretchItemFitAccountsForOwnPadding(): void
+    {
+        // Negative: the item's own border / padding is reserved OUTSIDE the
+        // fit-content content width, so the margin box (not the content box)
+        // is what gets aligned in the track.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: end; padding: 0 20px;">'
+            . '<div class="inner" style="width: 60px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001, 'content width is fit-content');
+        // Margin box = 60 + 40 = 100; end-aligned leaves 100px of slack, and
+        // geometry->x is the CONTENT-box left (slack + left padding).
+        self::assertEqualsWithDelta(120.0, $a->geometry->x, 0.001, 'margin box end-aligned');
+    }
+
     public function testGridFrZeroCountTrackDropped(): void
     {
         // Negative: `0fr` has zero share — it gets zero width when
@@ -7505,6 +7582,96 @@ final class BlockLayoutTest extends TestCase
         );
         $this->layout->layout($box, $this->defaultCtx);
         self::assertEqualsWithDelta(40.0, $this->find($box, 'div.a')->geometry->height, 0.001);
+    }
+
+    public function testGridAutoMarginAbsorbsInlineFreeSpace(): void
+    {
+        // Positive (CSS Grid 2 §10.1): `margin-left: auto` on an auto-width
+        // item opts it out of `stretch` and pushes it to the track's end.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="margin-left: auto;">'
+            . '<div class="inner" style="width: 60px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001, 'not stretched');
+        self::assertEqualsWithDelta(140.0, $a->geometry->x, 0.001, 'pushed to the end');
+    }
+
+    public function testGridItemWithoutAutoMarginStillStretches(): void
+    {
+        // Negative: the opt-out is specific to `auto` margins — a fixed
+        // margin leaves the item stretched across the rest of the track.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="margin-left: 20px;">'
+            . '<div class="inner" style="width: 60px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(180.0, $a->geometry->width, 0.001, 'stretched into the remainder');
+    }
+
+    public function testGridJustifyItemsAppliesToItemsWithAutoJustifySelf(): void
+    {
+        // Positive (CSS Box Alignment 3 §6.2): `justify-self: auto` (the
+        // initial value) computes to the container's `justify-items`.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'justify-items: center; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a"><div class="inner" style="width: 60px;"></div></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001);
+        self::assertEqualsWithDelta(70.0, $a->geometry->x, 0.001);
+    }
+
+    public function testGridJustifySelfOverridesContainerJustifyItems(): void
+    {
+        // Negative: an explicit `justify-self` is NOT `auto`, so the
+        // container-level default must not override it.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'justify-items: center; '
+            . 'grid-template-columns: 200px; grid-template-rows: 40px;">'
+            . '<div class="a" style="justify-self: end;">'
+            . '<div class="inner" style="width: 60px;"></div></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(140.0, $this->find($box, 'div.a')->geometry->x, 0.001);
+    }
+
+    public function testGridAbsolutelyPositionedChildIsNotStretched(): void
+    {
+        // Negative (CSS Grid 2 §9): an absolutely-positioned child of a grid
+        // container is NOT a grid item. Its grid area is only the containing
+        // block — the box keeps its out-of-flow shrink-to-fit size and must
+        // not be stretched to fill the area the way an in-flow item is.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; position: relative; '
+            . 'grid-template-columns: 200px; grid-template-rows: 100px;">'
+            . '<div class="a" style="position: absolute;">'
+            . '<div style="width: 60px; height: 20px;"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->find($box, 'div.a');
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.001, 'shrink-to-fit, not 200');
+        self::assertEqualsWithDelta(20.0, $a->geometry->height, 0.001, 'content height, not 100');
     }
 
     public function testGridImplicitRowsSizeToTheirItemsContent(): void
