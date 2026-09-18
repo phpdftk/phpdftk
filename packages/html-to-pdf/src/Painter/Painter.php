@@ -5120,8 +5120,13 @@ final class Painter
         if (!$font instanceof WriterFont) {
             return;
         }
+        // CSS Lists 3 §3.2 — a counter marker is ordinary shaped text, so
+        // ANY parsed face will do. `ShapingContext` takes the `FontFaceData`
+        // base type; narrowing to `OpenTypeData` (the CFF flavour) silently
+        // dropped every numbered marker whenever the default face was a
+        // TrueType/`glyf` font — i.e. for DejaVu, Ahem and most web fonts.
         $otd = $font->getParsedData();
-        if (!$otd instanceof \Phpdftk\FontParser\OpenTypeData) {
+        if (!$otd instanceof \Phpdftk\FontParser\FontFaceData) {
             return;
         }
         $shaper = new \Phpdftk\Text\Shaper();

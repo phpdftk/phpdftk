@@ -2920,6 +2920,47 @@ final class PainterTest extends TestCase
         return $root;
     }
 
+    public function testDecimalMarkerEmitsTextWithTrueTypeFont(): void
+    {
+        // Regression: the counter-marker painter narrowed the parsed face
+        // to `OpenTypeData` (the CFF flavour), so EVERY numbered marker
+        // silently vanished whenever the default font was a TrueType
+        // (`glyf`) face — which is the common case.
+        $fontPath = __DIR__ . '/../../../wpt-harness/resources/fonts/DejaVuSerif.ttf';
+        if (!is_file($fontPath)) {
+            self::markTestSkipped('DejaVu TrueType fixture font missing');
+        }
+        $ttf = (new \Phpdftk\FontParser\TrueTypeParser($fontPath))->parse();
+
+        // Empty `<li>`s so the ONLY text the painter can emit is the
+        // three markers — a Tj count driven by list content would pass
+        // even with the markers dropped.
+        $doc = $this->html->parseDocument(
+            '<html><body><ol><li></li><li></li><li></li></ol></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, ol { display: block; }
+             ol { padding-left: 24pt; }
+             li { display: list-item; list-style-type: decimal; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $ctx = new LayoutContext(600, 800, 0, 0, new LengthContext(), defaultFont: $ttf);
+        $this->layout->layout($root, $ctx);
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $codepoints = array_merge(range(ord('0'), ord('9')), [ord('.')]);
+        $registered = $writer->addCompositeFont($ttf, $codepoints, $page);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0, $registered);
+        $painter->paint($root, $stream);
+
+        $opcodes = $this->operatorTokens($stream->getOperators());
+        $tjCount = count(array_filter($opcodes, static fn($n) => $n === 'Tj'));
+        self::assertSame(3, $tjCount, 'one Tj per decimal marker');
+    }
+
     public function testDecimalMarkerEmitsText(): void
     {
         $fontPath = __DIR__ . '/../../../../tests/fixtures/fonts/NotoSansMongolian-Regular.otf';
