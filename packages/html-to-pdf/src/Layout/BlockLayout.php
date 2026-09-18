@@ -250,45 +250,140 @@ final class BlockLayout
     private function effectiveLineClamp(Box $box): ?int
     {
         $modernValue = $box->style->get('line-clamp');
-        $legacyValue = $box->style->get('-webkit-line-clamp');
-        $modernSet = $modernValue instanceof \Phpdftk\Css\Value\Integer && $modernValue->value > 0;
-        $legacySet = $legacyValue instanceof \Phpdftk\Css\Value\Integer && $legacyValue->value > 0;
-        if (!$modernSet && !$legacySet) {
-            return null;
-        }
-        // CSS Overflow 4 §6 — `line-clamp` only applies to block
-        // containers. A multi-column container is excluded explicitly:
-        // `continue: collapse` (the longhand `line-clamp` sets) degrades
-        // to `auto` there, so the clamp is inert.
-        if ($this->isMultiColumnContainer($box)) {
-            return null;
-        }
-        $display = $box->style->get('display');
-        $name = $display instanceof Keyword ? strtolower($display->name) : '';
-        $isLegacyBox = $name === '-webkit-box' || $name === '-webkit-inline-box';
-        if ($isLegacyBox) {
-            // `display: -webkit-box` is a block container only under
-            // `-webkit-box-orient: vertical` (CSS Overflow 4 Appendix A);
-            // without it the box stays a legacy flex container and NEITHER
-            // the modern nor the legacy property clamps.
-            $orient = $box->style->get('-webkit-box-orient');
-            if (!($orient instanceof Keyword)
-                || !in_array(strtolower($orient->name), ['vertical', 'block-axis'], true)
-            ) {
-                return null;
-            }
-        }
-        if ($modernSet) {
-            /** @var \Phpdftk\Css\Value\Integer $modernValue */
-            return $modernValue->value;
+        if ($modernValue instanceof \Phpdftk\Css\Value\Integer && $modernValue->value > 0) {
+            return $this->lineClampApplies($box) ? $modernValue->value : null;
         }
         // The legacy `-webkit-line-clamp` additionally requires the legacy
         // `-webkit-box` display; WPT asserts it is otherwise inert.
-        if (!$isLegacyBox) {
+        $legacyValue = $box->style->get('-webkit-line-clamp');
+        if (!($legacyValue instanceof \Phpdftk\Css\Value\Integer) || $legacyValue->value <= 0) {
             return null;
         }
-        /** @var \Phpdftk\Css\Value\Integer $legacyValue */
-        return $legacyValue->value;
+
+        return $this->isLegacyWebkitBox($box) && $this->lineClampApplies($box)
+            ? $legacyValue->value
+            : null;
+    }
+
+    /**
+     * Whether a clamp declared on `$box` takes effect at all.
+     *
+     * CSS Overflow 4 §6 — `line-clamp` only applies to block containers.
+     * A multi-column container is excluded explicitly (the `continue:
+     * collapse` longhand degrades to `auto` there), and `display:
+     * -webkit-box` is a block container only under `-webkit-box-orient:
+     * vertical` (Appendix A) — without the orient the box stays a legacy
+     * flex container and NEITHER the modern nor the legacy property clamps.
+     */
+    private function lineClampApplies(Box $box): bool
+    {
+        if ($this->isMultiColumnContainer($box)) {
+            return false;
+        }
+        if (!$this->isLegacyWebkitBox($box)) {
+            return true;
+        }
+        $orient = $box->style->get('-webkit-box-orient');
+
+        return $orient instanceof Keyword
+            && in_array(strtolower($orient->name), ['vertical', 'block-axis'], true);
+    }
+
+    /**
+     * Whether `$box` is a clamp container at all — an effective
+     * `line-clamp: <integer>` or `line-clamp: auto` that applies.
+     */
+    private function hasLineClamp(Box $box): bool
+    {
+        if ($this->effectiveLineClamp($box) !== null) {
+            return true;
+        }
+        $clamp = $box->style->get('line-clamp');
+
+        return $clamp instanceof Keyword
+            && strtolower($clamp->name) === 'auto'
+            && $this->lineClampApplies($box);
+    }
+
+    /** `display: -webkit-box` / `-webkit-inline-box` (the legacy flexbox). */
+    private function isLegacyWebkitBox(Box $box): bool
+    {
+        $display = $box->style->get('display');
+        if (!($display instanceof Keyword)) {
+            return false;
+        }
+        $name = strtolower($display->name);
+
+        return $name === '-webkit-box' || $name === '-webkit-inline-box';
+    }
+
+    /**
+     * CSS Overflow 4 §6 — resolve `line-clamp: auto` to the number of lines
+     * that fit inside the clamp container's used block size.
+     *
+     * The block size is the container's definite `height` capped by its
+     * `max-height`; with neither the clamp has no limit and never fires. A
+     * line counts as fitting when its bottom edge PLUS the block-end
+     * borders / padding of every descendant box it sits inside still lands
+     * within the limit — the closing edges of those boxes have to be drawn
+     * too. Returns null when every line fits (no clamp) or when not even
+     * the first one does (nothing sensible to retain).
+     */
+    private function autoLineClampCount(Box $box, LayoutContext $context, BoxGeometry $geo): ?int
+    {
+        $clamp = $box->style->get('line-clamp');
+        if (!($clamp instanceof Keyword) || strtolower($clamp->name) !== 'auto') {
+            return null;
+        }
+        $limit = null;
+        $maxHeight = $box->style->get('max-height');
+        if (!($maxHeight instanceof Keyword)) {
+            $resolved = $this->resolveLengthAgainstHeight(
+                $maxHeight,
+                $context->containingBlockHeight,
+                $context->containingBlockHeightDefinite,
+            );
+            if ($resolved >= 0.0) {
+                $limit = $resolved;
+            }
+        }
+        $height = $box->style->get('height');
+        if ($height instanceof Length) {
+            $limit = $limit === null ? $height->value : min($limit, $height->value);
+        }
+        if ($limit === null) {
+            return null;
+        }
+        if ($this->isBorderBoxSizing($box->style)) {
+            $limit = max(
+                0.0,
+                $limit - $geo->borderTop - $geo->borderBottom
+                    - $geo->paddingTop - $geo->paddingBottom,
+            );
+        }
+        $bottom = $geo->y + $limit;
+        $hosts = [];
+        $this->collectLineClampHosts($box, $hosts);
+        $fitting = 0;
+        $total = 0;
+        $stop = false;
+        foreach ($hosts as $host) {
+            foreach ($host['box']->lineBoxes as $line) {
+                ++$total;
+                if ($stop) {
+                    continue;
+                }
+                $lineBottom = $host['box']->geometry->y + $line->y + $line->height
+                    + $host['trailing'];
+                if ($lineBottom > $bottom + 0.001) {
+                    $stop = true;
+                    continue;
+                }
+                ++$fitting;
+            }
+        }
+
+        return $fitting > 0 && $fitting < $total ? $fitting : null;
     }
 
     /**
@@ -306,15 +401,16 @@ final class BlockLayout
         $hosts = [];
         $this->collectLineClampHosts($container, $hosts);
         $total = 0;
-        foreach ($hosts as $host) {
-            $total += count($host->lineBoxes);
+        foreach ($hosts as $entry) {
+            $total += count($entry['box']->lineBoxes);
         }
         if ($total <= $max) {
             return null;
         }
         $seen = 0;
         $clampY = null;
-        foreach ($hosts as $host) {
+        foreach ($hosts as $entry) {
+            $host = $entry['box'];
             if ($clampY !== null) {
                 // Past the clamp point: the host's content is not rendered.
                 $host->lineBoxes = [];
@@ -340,10 +436,14 @@ final class BlockLayout
                 $clampY = $host->geometry->y
                     + ($last !== null ? $last->y + $last->height : 0.0);
             } else {
-                $g = $host->geometry;
-                $clampY = $g->y + $g->height
-                    + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+                $clampY = $host->geometry->y + $host->geometry->height
+                    + $host->geometry->marginBottom;
             }
+            // The clamp point also has to leave room for the block-end
+            // borders / padding of the host and of every box it sits
+            // inside — those closing edges are still drawn. (`trailing`
+            // already includes the host's own bottom padding / border.)
+            $clampY += $entry['trailing'];
         }
 
         return $clampY;
@@ -359,10 +459,26 @@ final class BlockLayout
      * Overflow 4 §6). So are boxes that establish an independent formatting
      * context, which are monolithic with respect to the clamp.
      *
-     * @param list<Box> $out
+     * `trailing` accumulates the block-end borders / padding between the
+     * host and the clamp container, which `line-clamp: auto` has to fit
+     * inside the container's block size alongside the line itself.
+     *
+     * @param list<array{box: Box, trailing: float}> $out
      */
-    private function collectLineClampHosts(Box $container, array &$out): void
-    {
+    private function collectLineClampHosts(
+        Box $container,
+        array &$out,
+        float $fixed = 0.0,
+        float $marginRun = 0.0,
+    ): void {
+        if ($container->lineBoxes !== []) {
+            // The clamp container hosts the inline formatting context
+            // itself — it is its own and only line host, and nothing sits
+            // between its last line and its own content edge.
+            $out[] = ['box' => $container, 'trailing' => $fixed];
+
+            return;
+        }
         foreach ($container->children as $child) {
             // A descendant that establishes an independent formatting
             // context (float, out-of-flow, `overflow` != `visible`,
@@ -372,8 +488,15 @@ final class BlockLayout
             if ($this->establishesBlockFormattingContext($child)) {
                 continue;
             }
+            // CSS 2.1 §8.3.1 — the child's bottom margin collapses with
+            // the open run of its ancestors' bottom margins unless a
+            // bottom border / padding separates them, so the run takes a
+            // max() while borders and padding sum.
+            $g = $child->geometry;
+            $edges = $g->paddingBottom + $g->borderBottom;
+            $childMargin = max($marginRun, $g->marginBottom);
             if ($child->lineBoxes !== []) {
-                $out[] = $child;
+                $out[] = ['box' => $child, 'trailing' => $fixed + $childMargin + $edges];
                 continue;
             }
             if (!$child instanceof BlockBox
@@ -381,7 +504,11 @@ final class BlockLayout
             ) {
                 continue;
             }
-            $this->collectLineClampHosts($child, $out);
+            if ($edges > 0.0) {
+                $this->collectLineClampHosts($child, $out, $fixed + $childMargin + $edges, 0.0);
+            } else {
+                $this->collectLineClampHosts($child, $out, $fixed, $childMargin);
+            }
         }
     }
 
@@ -1520,8 +1647,14 @@ final class BlockLayout
         // never fires. Walk the subtree in document order, spend the line
         // budget across the hosts, ellipsise the host that straddles the
         // clamp point, and drop everything after it.
-        if ($box->lineBoxes === []) {
+        if ($this->lineClampApplies($box)) {
             $clampCount = $this->effectiveLineClamp($box);
+            // `line-clamp: auto` puts the clamp point at the container's
+            // used block size instead of a line count: the last line that
+            // fits entirely inside it (leaving room for the block-end
+            // borders / padding of the descendants it sits in) is retained,
+            // and the container shrinks to that line.
+            $clampCount ??= $this->autoLineClampCount($box, $context, $geo);
             if ($clampCount !== null) {
                 $clampY = $this->applyLineClampSubtree($box, $clampCount, $childContext);
                 if ($clampY !== null) {
@@ -1563,6 +1696,15 @@ final class BlockLayout
             && $geo->paddingTop === 0.0
             && $geo->borderTop === 0.0
             && !$this->establishesBlockFormattingContext($box)
+            // CSS Overflow 4 §6 — a clamp container is a block container
+            // that establishes an INDEPENDENT formatting context (every WPT
+            // reference spells the unclamped equivalent `display:
+            // flow-root`), so its first child's top margin does not
+            // collapse through it. Checked here rather than in
+            // `establishesBlockFormattingContext()` because the broader
+            // predicate also re-homes floats and abs-pos descendants, which
+            // measurably regresses the clamp fixtures that use them.
+            && !$this->hasLineClamp($box)
         ) {
             // CSS 2.1 §8.3.1 — an out-of-flow (abs-pos / float) child's
             // margins never collapse. Using an out-of-flow first child as
@@ -1840,6 +1982,10 @@ final class BlockLayout
             && $geo->paddingBottom === 0.0
             && $geo->borderBottom === 0.0
             && !$this->establishesBlockFormattingContext($box)
+            // CSS Overflow 4 §6 — a clamp container establishes an
+            // independent formatting context, so its last child's bottom
+            // margin stays inside it (see the top-edge guard above).
+            && !$this->hasLineClamp($box)
         ) {
             // CSS 2.1 §8.3.1 — as for the top edge, an out-of-flow last
             // child's margin never collapses through the parent (and must

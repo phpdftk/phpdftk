@@ -656,6 +656,76 @@ final class InlineLayoutTest extends TestCase
         self::assertEqualsWithDelta(90.0, $a->geometry->height, 0.001);
     }
 
+    public function testAutoLineClampClampsAtTheUsedBlockSize(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — `line-clamp: auto` puts the clamp point at
+        // the container's used block size: the last line that fits inside
+        // it is retained and the container shrinks to that line.
+        $text = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body><div class="c">' . $text . '</div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 100px; line-clamp: auto; '
+                . 'max-height: 60px; line-height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $c = $this->findByClass($box, 'c');
+        self::assertNotNull($c);
+        self::assertSame(3, count($c->lineBoxes), '60px / 20px line-height = 3 lines');
+        self::assertLessThanOrEqual(60.001, $c->geometry->height);
+    }
+
+    public function testAutoLineClampCountsADescendantsBlockEndEdges(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — a line only fits when its bottom edge PLUS
+        // the block-end borders / padding of the boxes it sits inside still
+        // lands inside the container's block size; those closing edges get
+        // drawn too. Here the inner box's 10px bottom padding costs the
+        // third line its place.
+        $text = str_repeat("\u{1820} ", 60);
+        $box = $this->buildTree(
+            '<html><body><div class="c"><div class="a">' . $text . '</div></div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 100px; line-clamp: auto; '
+                . 'max-height: 60px; line-height: 20px; } '
+                . '.a { display: block; padding-bottom: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $a = $this->findByClass($box, 'a');
+        self::assertNotNull($a);
+        self::assertSame(2, count($a->lineBoxes));
+    }
+
+    public function testLineClampContainerDoesNotCollapseItsChildMargins(): void
+    {
+        $this->skipIfNoFont();
+        // CSS Overflow 4 §6 — a clamp container establishes an independent
+        // formatting context, so its first child's top margin and its last
+        // child's bottom margin stay inside it instead of collapsing
+        // through.
+        $text = str_repeat("\u{1820} ", 10);
+        $box = $this->buildTree(
+            '<html><body><div class="c"><div class="a">' . $text . '</div></div></body></html>',
+            'html, body { display: block; } '
+                . '.c { display: block; width: 400px; line-clamp: 4; } '
+                . '.a { display: block; margin: 17px 0; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $c = $this->findByClass($box, 'c');
+        $a = $this->findByClass($box, 'a');
+        self::assertNotNull($c);
+        self::assertNotNull($a);
+        self::assertEqualsWithDelta(17.0, $a->geometry->y - $c->geometry->y, 0.001);
+        self::assertEqualsWithDelta(
+            $a->geometry->height + 34.0,
+            $c->geometry->height,
+            0.001,
+            'both child margins stay inside the clamp container',
+        );
+    }
+
     public function testTallInlineBlockGrowsLineBoxHeight(): void
     {
         $this->skipIfNoFont();
