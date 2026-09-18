@@ -4886,7 +4886,8 @@ final class BlockLayout
         // Compute the explicit-height-for-fr early so it's available
         // both for auto-fill row track resolution and the later fr
         // pass.
-        $declaredHeightForFr = $this->resolveExplicitHeightOrNull($style, $cbHeight)
+        $explicitContainerHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        $declaredHeightForFr = $explicitContainerHeight
             ?? $this->ratioDerivedContainerHeight($style, $geo);
         $columnDescriptors = $this->parseGridTrackList(
             $style->get('grid-template-columns'),
@@ -5184,11 +5185,72 @@ final class BlockLayout
             implicitRowsAreIntrinsic: !($style->get('grid-auto-rows') instanceof Length),
         );
 
+        // Pass 2.7: CSS Box Alignment 3 §5 / CSS Grid Layout 2 §12.9 —
+        // `justify-content` / `align-content` distribute the grid
+        // container's LEFTOVER space (content box minus the track extent)
+        // around and between the tracks. Expressed as a start offset plus
+        // an addition to every inter-track gap, which is exactly how the
+        // `space-*` distributions decompose. The block axis only has
+        // leftover space to distribute when the container's height is
+        // definite; an auto-height grid is always exactly its tracks tall.
+        $columnGapUsed = $columnGap;
+        $rowGapUsed = $rowGap;
+        $contentOffsetX = 0.0;
+        $contentOffsetY = 0.0;
+        $justifyContent = $this->gridContentAlignKeyword($style, 'justify-content');
+        $alignContent = $this->gridContentAlignKeyword($style, 'align-content');
+        // §12.9 step "stretch auto tracks" runs BEFORE the positional
+        // distribution: `normal` / `stretch` hand the free space to the
+        // `auto`-max tracks, after which there is nothing left to offset.
+        if ($justifyContent === 'normal' || $justifyContent === 'stretch') {
+            $columnTracks = $this->gridStretchAutoTracks(
+                $columnTracks,
+                $columnDescriptors,
+                !($style->get('grid-auto-columns') instanceof Length),
+                max(0.0, $geo->width) - $this->gridTotalExtent($columnTracks, $columnGap),
+            );
+        }
+        // CSS Sizing 4 §4.1 — a ratio-derived block size never shrinks
+        // below the box's content-based minimum, so the alignment
+        // container for the block axis is the LARGER of the ratio height
+        // and the track extent. Only an explicitly declared height can
+        // be smaller than the content (and overflow it).
+        $alignContainerHeight = $explicitContainerHeight
+            ?? ($declaredHeightForFr === null
+                ? null
+                : max($declaredHeightForFr, $this->gridTotalExtent($rowTracks, $rowGap)));
+        if ($alignContainerHeight !== null
+            && ($alignContent === 'normal' || $alignContent === 'stretch')
+        ) {
+            $rowTracks = $this->gridStretchAutoTracks(
+                $rowTracks,
+                $rowDescriptors,
+                !($style->get('grid-auto-rows') instanceof Length),
+                $alignContainerHeight - $this->gridTotalExtent($rowTracks, $rowGap),
+            );
+        }
+        [$contentOffsetX, $extraColumnGap] = $this->gridContentDistribution(
+            $justifyContent,
+            count($columnTracks),
+            max(0.0, $geo->width) - $this->gridTotalExtent($columnTracks, $columnGap),
+        );
+        $columnGapUsed += $extraColumnGap;
+        if ($alignContainerHeight !== null) {
+            [$contentOffsetY, $extraRowGap] = $this->gridContentDistribution(
+                $alignContent,
+                count($rowTracks),
+                $alignContainerHeight - $this->gridTotalExtent($rowTracks, $rowGap),
+            );
+            $rowGapUsed += $extraRowGap;
+        }
+        $contentX = $geo->x + $contentOffsetX;
+        $contentY = $geo->y + $contentOffsetY;
+
         // Pass 3: lay out each child inside its assigned cell.
         // Track-prefix sums let us cheaply compute (x, y, width,
         // height) per cell range.
-        $colOffsets = $this->gridTrackOffsets($columnTracks, $columnGap);
-        $rowOffsets = $this->gridTrackOffsets($rowTracks, $rowGap);
+        $colOffsets = $this->gridTrackOffsets($columnTracks, $columnGapUsed);
+        $rowOffsets = $this->gridTrackOffsets($rowTracks, $rowGapUsed);
 
         // CSS Gaps 1 — record the gap centre-lines and grid track-area
         // bounds so the painter can draw `column-rule` / `row-rule`
@@ -5208,16 +5270,16 @@ final class BlockLayout
             $rowCount = count($rowTracks);
             $box->columnGapCenters = [];
             for ($i = 0; $i < $colCount - 1; $i++) {
-                $box->columnGapCenters[] = $geo->x + $colOffsets[$i] + $columnTracks[$i] + $columnGap / 2.0;
+                $box->columnGapCenters[] = $contentX + $colOffsets[$i] + $columnTracks[$i] + $columnGapUsed / 2.0;
             }
             $box->rowGapCenters = [];
             for ($i = 0; $i < $rowCount - 1; $i++) {
-                $box->rowGapCenters[] = $geo->y + $rowOffsets[$i] + $rowTracks[$i] + $rowGap / 2.0;
+                $box->rowGapCenters[] = $contentY + $rowOffsets[$i] + $rowTracks[$i] + $rowGapUsed / 2.0;
             }
-            $box->gridContentLeft = $geo->x + $colOffsets[0];
-            $box->gridContentRight = $geo->x + $colOffsets[$colCount];
-            $box->gridContentTop = $geo->y + $rowOffsets[0];
-            $box->gridContentBottom = $geo->y + $rowOffsets[$rowCount];
+            $box->gridContentLeft = $contentX + $colOffsets[0];
+            $box->gridContentRight = $contentX + $colOffsets[$colCount];
+            $box->gridContentTop = $contentY + $rowOffsets[0];
+            $box->gridContentBottom = $contentY + $rowOffsets[$rowCount];
         }
 
         // CSS Box Alignment 3 §9 — grid items with `align-self: baseline`
@@ -5235,10 +5297,10 @@ final class BlockLayout
             if ($p['row'] >= count($rowTracks) || $p['col'] >= count($columnTracks)) {
                 continue;
             }
-            $cellX = $geo->x + $colOffsets[$p['col']];
-            $cellY = $geo->y + $rowOffsets[$p['row']];
-            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGap);
-            $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowGap);
+            $cellX = $contentX + $colOffsets[$p['col']];
+            $cellY = $contentY + $rowOffsets[$p['row']];
+            $cellWidth = $this->gridSpanExtent($columnTracks, $p['col'], $p['colSpan'], $columnGapUsed);
+            $cellHeight = $this->gridSpanExtent($rowTracks, $p['row'], $p['rowSpan'], $rowGapUsed);
 
             // CSS Box Alignment 3 §6.2 — `justify-self` (inline axis)
             // and `align-self` (block axis). `auto` → `stretch` for
@@ -6768,6 +6830,118 @@ final class BlockLayout
             }
         }
         return null;
+    }
+
+    /**
+     * The used `justify-content` / `align-content` keyword for a grid
+     * container, normalised for CSS Box Alignment 3 §5.
+     *
+     * CSS Box Alignment's initial value for both properties is `normal`,
+     * which on a grid container behaves as `stretch`. This engine's property
+     * registry instead stores a flex-era `flex-start` initial for
+     * `justify-content`, so an undeclared `justify-content` arrives here as
+     * `flex-start`. No fixture in the css-grid corpus declares `flex-start`
+     * explicitly (it is a flex-relative keyword), so mapping it back to
+     * `normal` restores the spec default without mis-reading author intent.
+     */
+    private function gridContentAlignKeyword(CascadedValues $style, string $property): string
+    {
+        [$keyword] = $this->flexAlignValue($style, $property);
+        if ($keyword === 'auto' || ($property === 'justify-content' && $keyword === 'flex-start')) {
+            return 'normal';
+        }
+
+        return $keyword;
+    }
+
+    /**
+     * CSS Grid Layout 2 §12.9 — `justify-content` / `align-content` of
+     * `normal` or `stretch` expand every track whose MAX track sizing
+     * function is `auto` by an equal share of the container's remaining
+     * positive free space. `min-content` / `max-content` / `<length>` / `fr`
+     * tracks are not expanded (`fr` already consumed the free space during
+     * track sizing).
+     *
+     * @param list<float> $tracks
+     * @param list<array{type: string, value: float, minFloor?: float}> $descriptors
+     * @return list<float>
+     */
+    private function gridStretchAutoTracks(
+        array $tracks,
+        array $descriptors,
+        bool $implicitTracksAreAuto,
+        float $free,
+    ): array {
+        if ($free <= 0.0) {
+            return $tracks;
+        }
+        $targets = [];
+        foreach ($tracks as $i => $_) {
+            $descriptor = $descriptors[$i] ?? null;
+            $isAuto = $descriptor === null ? $implicitTracksAreAuto : $descriptor['type'] === 'auto';
+            if ($isAuto) {
+                $targets[] = $i;
+            }
+        }
+        if ($targets === []) {
+            return $tracks;
+        }
+        $share = $free / count($targets);
+        foreach ($targets as $i) {
+            $tracks[$i] += $share;
+        }
+
+        return array_values($tracks);
+    }
+
+    /**
+     * CSS Box Alignment 3 §5 — turn an already-normalised grid
+     * `justify-content` / `align-content` keyword into `[start offset,
+     * extra gap between every pair of tracks]`. Every content-distribution
+     * and content-position value decomposes into exactly those two numbers,
+     * so the caller can keep using prefix sums over the track list.
+     *
+     * `normal` / `stretch` return `[0, 0]`: they grow the `auto` tracks
+     * rather than moving them ({@see gridStretchAutoTracks}). §5.3's
+     * fallback alignments apply when the free space is negative
+     * (`space-between` → `start`, `space-around` / `space-evenly` →
+     * `center`).
+     *
+     * @return array{float, float}
+     */
+    private function gridContentDistribution(
+        string $keyword,
+        int $trackCount,
+        float $free,
+    ): array {
+        if ($trackCount <= 0 || $free === 0.0) {
+            return [0.0, 0.0];
+        }
+        $keyword = match ($keyword) {
+            'start', 'flex-start', 'self-start', 'left', 'normal', 'stretch' => 'start',
+            'end', 'flex-end', 'self-end', 'right' => 'end',
+            default => $keyword,
+        };
+        if ($free < 0.0) {
+            // §5.4 — `space-between` falls back to `start`, and
+            // `space-around` / `space-evenly` to *safe* `center`, which with
+            // overflowing content is itself `start` (§5.3). An explicit
+            // `center` keeps the default `unsafe` behaviour and still
+            // centres, overflowing both edges.
+            $keyword = match ($keyword) {
+                'space-between', 'space-around', 'space-evenly' => 'start',
+                default => $keyword,
+            };
+        }
+
+        return match ($keyword) {
+            'end' => [$free, 0.0],
+            'center' => [$free / 2.0, 0.0],
+            'space-between' => $trackCount > 1 ? [0.0, $free / ($trackCount - 1)] : [0.0, 0.0],
+            'space-around' => [$free / (2.0 * $trackCount), $free / $trackCount],
+            'space-evenly' => [$free / ($trackCount + 1), $free / ($trackCount + 1)],
+            default => [0.0, 0.0],
+        };
     }
 
     /**

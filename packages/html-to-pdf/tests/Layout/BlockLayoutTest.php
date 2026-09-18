@@ -7420,9 +7420,11 @@ final class BlockLayoutTest extends TestCase
 
     public function testGridAutoTrackBetweenFixedTracks(): void
     {
-        // Positive: `100px auto 100px` → middle track sizes to its
-        // item's max-content (50px), so the third track starts at
-        // x = 100 + 50 = 150.
+        // Positive: `100px auto 100px` → the middle track sizes to its
+        // item's max-content (50px) and then, under the default
+        // `justify-content: normal` (= `stretch`, CSS Grid 2 §12.9),
+        // absorbs the container's remaining 350px of free space. The third
+        // track therefore starts at x = 100 + 400 = 500.
         $box = $this->buildTree(
             '<html><body><div class="grid" style="display: grid; '
             . 'grid-template-columns: 100px auto 100px; '
@@ -7438,7 +7440,34 @@ final class BlockLayoutTest extends TestCase
         $c = $this->find($box, 'div.c');
         self::assertSame(100.0, $b->geometry->x);
         self::assertEqualsWithDelta(50.0, $b->geometry->width, 0.001);
-        self::assertSame(150.0, $c->geometry->x);
+        self::assertSame(500.0, $c->geometry->x);
+    }
+
+    public function testGridAutoTrackDoesNotStretchUnderExplicitJustifyContent(): void
+    {
+        // Negative: an explicit `justify-content` other than `normal` /
+        // `stretch` leaves the `auto` track at its content size — the free
+        // space is spent on positioning the track group instead. With
+        // `end` the 250px of used tracks sit flush against the 600px
+        // container's right edge, so the third track starts at
+        // 600 − 100 = 500 and the middle one at 600 − 200 = 400.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'justify-content: end; '
+            . 'grid-template-columns: 100px auto 100px; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a"></div>'
+            . '<div class="b" style="width: 50px;"></div>'
+            . '<div class="c"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $b = $this->find($box, 'div.b');
+        $c = $this->find($box, 'div.c');
+        self::assertEqualsWithDelta(50.0, $b->geometry->width, 0.001, 'auto track keeps content size');
+        self::assertEqualsWithDelta(450.0, $b->geometry->x, 0.001);
+        self::assertEqualsWithDelta(500.0, $c->geometry->x, 0.001);
     }
 
     public function testGridPercentageTracksResolveAgainstTheContainer(): void
@@ -7555,6 +7584,44 @@ final class BlockLayoutTest extends TestCase
         $this->layout->layout($box, $this->defaultCtx);
         self::assertEqualsWithDelta(20.0, $this->find($box, 'div.b')->geometry->y, 0.001);
         self::assertEqualsWithDelta(40.0, $this->find($box, 'div.grid')->geometry->height, 0.001);
+    }
+
+    public function testGridContentDistributionSpaceBetweenSpreadsTracks(): void
+    {
+        // Positive (CSS Box Alignment 3 §5.4): `justify-content:
+        // space-between` puts all 400px of free space in the single gap
+        // between the two 100px tracks.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'justify-content: space-between; '
+            . 'grid-template-columns: 100px 100px; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a"></div><div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(0.0, $this->find($box, 'div.a')->geometry->x, 0.001);
+        self::assertEqualsWithDelta(500.0, $this->find($box, 'div.b')->geometry->x, 0.001);
+    }
+
+    public function testGridContentDistributionFallsBackToStartWhenOverflowing(): void
+    {
+        // Negative (§5.4): with NEGATIVE free space `space-around` falls
+        // back to `safe center`, which for overflowing content is `start` —
+        // the tracks must not be pulled left off the container.
+        $box = $this->buildTree(
+            '<html><body><div class="grid" style="display: grid; '
+            . 'width: 100px; justify-content: space-around; '
+            . 'grid-template-columns: 200px 200px; '
+            . 'grid-template-rows: 30px;">'
+            . '<div class="a"></div><div class="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        self::assertEqualsWithDelta(0.0, $this->find($box, 'div.a')->geometry->x, 0.001);
+        self::assertEqualsWithDelta(200.0, $this->find($box, 'div.b')->geometry->x, 0.001);
     }
 
     public function testGridAutoTrackMultiSpanDistributesEqually(): void
