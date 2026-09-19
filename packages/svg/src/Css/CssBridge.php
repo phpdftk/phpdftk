@@ -6,6 +6,7 @@ namespace Phpdftk\Svg\Css;
 
 use Phpdftk\Css\Cascade\Cascade;
 use Phpdftk\Css\Cascade\CascadedValues;
+use Phpdftk\Css\Cascade\PropertyRegistry;
 use Phpdftk\Css\Parser as CssParser;
 use Phpdftk\Css\Selector\SelectorParser;
 use Phpdftk\Css\Sheet\Declaration;
@@ -57,11 +58,29 @@ final class CssBridge
         'color', 'display', 'visibility',
     ];
 
+    /**
+     * The cascade the bridge resolves through.
+     *
+     * NOT `new Cascade()`: that builds a BARE `PropertyRegistry`, which
+     * is empty. The registry is what tells `Cascade::applyInheritance`
+     * which properties inherit and what each one's initial value is, so
+     * a cascade over an empty registry resolves every element in
+     * isolation and NOTHING inherits — a standalone
+     * `<svg><g fill="green"><rect/></g></svg>` gave its `<rect>` no
+     * `fill` at all and the painter fell back to black.
+     *
+     * `PropertyRegistry::default()` is a static call, which PHP does not
+     * accept as a parameter default, so the fallback lives in the body.
+     */
+    private readonly Cascade $cascade;
+
     public function __construct(
-        private readonly Cascade $cascade = new Cascade(),
+        ?Cascade $cascade = null,
         private readonly CssParser $cssParser = new CssParser(),
         private readonly ValueParser $valueParser = new ValueParser(),
-    ) {}
+    ) {
+        $this->cascade = $cascade ?? new Cascade(PropertyRegistry::default());
+    }
 
     /**
      * Compute the cascade for `$element`. `$parentValues` is the

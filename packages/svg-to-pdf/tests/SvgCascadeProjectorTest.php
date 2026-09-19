@@ -121,4 +121,72 @@ final class SvgCascadeProjectorTest extends TestCase
         // here. We assert no exception.
         self::assertTrue(true);
     }
+
+    /**
+     * CSS Cascade 5 §7 / SVG 2 §6.7 — `fill` is an INHERITED property,
+     * so a value set on a `<g>` (here as a presentation attribute) must
+     * reach a `<rect>` child that sets none of its own.
+     *
+     * The projector's cascade previously ran on an EMPTY
+     * `PropertyRegistry` (`new Cascade()` builds one), which knows no
+     * property as inheriting — so `applyInheritance` copied nothing and
+     * every descendant fell back to the painter's black default.
+     */
+    public function testInheritedFillReachesDescendantOfGroup(): void
+    {
+        $svg = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g fill="green"><rect x="0" y="0" width="10" height="10"/></g>'
+            . '</svg>';
+        $doc = (new Parser())->parse($svg);
+        (new SvgCascadeProjector())->project($doc);
+
+        $rect = $doc->findByTag('rect')[0] ?? null;
+        self::assertInstanceOf(Rect::class, $rect);
+        self::assertStringContainsString(
+            '#008000',
+            strtolower($rect->getAttribute('style') ?? ''),
+            'fill="green" on the <g> did not inherit to the <rect>',
+        );
+    }
+
+    /**
+     * Inheritance runs through a `<style>` rule on the ancestor too, and
+     * through more than one level of nesting.
+     */
+    public function testInheritedFillFromStyleRuleReachesGrandchild(): void
+    {
+        $svg = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">'
+            . '<style>#outer { fill: green }</style>'
+            . '<g id="outer"><g><rect x="0" y="0" width="10" height="10"/></g></g>'
+            . '</svg>';
+        $doc = (new Parser())->parse($svg);
+        (new SvgCascadeProjector())->project($doc);
+
+        $rect = $doc->findByTag('rect')[0] ?? null;
+        self::assertInstanceOf(Rect::class, $rect);
+        self::assertStringContainsString(
+            '#008000',
+            strtolower($rect->getAttribute('style') ?? ''),
+            'fill from #outer did not inherit down two levels',
+        );
+    }
+
+    /**
+     * A NON-inherited property must NOT leak to descendants: `opacity`
+     * on the group applies to the group as a whole, and re-applying it
+     * per child would square the transparency.
+     */
+    public function testNonInheritedOpacityDoesNotReachDescendant(): void
+    {
+        $svg = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g opacity="0.5"><rect x="0" y="0" width="10" height="10"/></g>'
+            . '</svg>';
+        $doc = (new Parser())->parse($svg);
+        (new SvgCascadeProjector())->project($doc);
+
+        $rect = $doc->findByTag('rect')[0] ?? null;
+        self::assertInstanceOf(Rect::class, $rect);
+        $style = strtolower($rect->getAttribute('style') ?? '');
+        self::assertStringNotContainsString('opacity: 0.5', $style);
+    }
 }
