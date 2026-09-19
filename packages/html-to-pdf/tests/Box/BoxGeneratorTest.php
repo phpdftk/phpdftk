@@ -2320,4 +2320,207 @@ final class BoxGeneratorTest extends TestCase
         self::assertInstanceOf(Keyword::class, $display);
         self::assertSame('inline-flex', $display->name);
     }
+
+    /**
+     * CSS 2.1 §17.2.1 "generate missing parents" — a bare
+     * `display: table-cell` inside a plain block gets BOTH an anonymous
+     * `table-row` and the anonymous `table` that row requires.
+     */
+    public function testBareTableCellInBlockGetsAnonymousTableAndRow(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><div class="c">a</div><div class="c">b</div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables, 'exactly one anonymous table is synthesised');
+        $table = $tables[0];
+        self::assertNull($table->element, 'the synthesised table is anonymous');
+        $display = $table->style->get('display');
+        self::assertInstanceOf(Keyword::class, $display);
+        self::assertSame('table', $display->name);
+        self::assertCount(1, $table->children);
+        $row = $table->children[0];
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\TableRowBox::class, $row);
+        self::assertNull($row->element);
+        self::assertCount(2, $row->children, 'both cells land in the one anonymous row');
+        foreach ($row->children as $cell) {
+            self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\TableCellBox::class, $cell);
+        }
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 — a misparented `table-row` needs only the table;
+     * it must not be buried in an extra anonymous cell.
+     */
+    public function testBareTableRowInBlockGetsAnonymousTableOnly(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: table-row; }
+             .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><div class="r"><div class="c">a</div></div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables);
+        self::assertCount(1, $tables[0]->children);
+        $row = $tables[0]->children[0];
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\TableRowBox::class, $row);
+        self::assertNotNull($row->element, 'the authored row is reused, not re-wrapped');
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 — the run stops at a non-table sibling, so a block
+     * between two cell groups divides them into two separate tables.
+     */
+    public function testBlockSiblingDividesMisparentedCellsIntoTwoTables(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; } .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><div class="c">a</div><p>x</p>'
+            . '<div class="c">b</div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(2, $tables, 'the intervening block splits the run');
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 "remove irrelevant boxes" — whitespace-only text
+     * between two internal table boxes is dropped, so it neither breaks
+     * the run nor leaves a stray text box behind.
+     */
+    public function testWhitespaceBetweenMisparentedCellsDoesNotSplitTheTable(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            "<html><body><div><div class=\"c\">a</div>\n  <div class=\"c\">b</div></div></body></html>",
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables);
+        self::assertCount(1, $tables[0]->children);
+        self::assertCount(2, $tables[0]->children[0]->children);
+    }
+
+    /**
+     * Regression guard for the `<tbody>` trap: the UA sheet gives
+     * `<tbody>` `display: block`, so a naive "rows in a non-table parent
+     * are misparented" test would bury a second anonymous table inside
+     * every real `<table>`.
+     */
+    public function testRealTableWithTbodyGrowsNoAnonymousTable(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body { display: block; } table { display: table; }
+             thead, tbody, tfoot { display: block; }
+             tr { display: table-row; } td { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><table><tbody><tr><td>a</td></tr></tbody></table></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables, 'only the authored <table> exists');
+        self::assertNotNull($tables[0]->element);
+    }
+
+    /**
+     * A `table-cell` directly inside a real `<table>` still takes the
+     * pre-existing "generate missing children" path (one anonymous row),
+     * not a second nested table.
+     */
+    public function testBareCellInsideRealTableStillGetsOneAnonymousRow(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .t { display: table; }
+             .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="t"><div class="c">a</div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables);
+        self::assertNotNull($tables[0]->element);
+        self::assertCount(1, $tables[0]->children);
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\TableRowBox::class, $tables[0]->children[0]);
+    }
+
+    /**
+     * A misparented row group brings its own anonymous table, and the
+     * rows inside it are left alone.
+     */
+    public function testMisparentedRowGroupGetsAnonymousTable(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .g { display: table-row-group; }
+             .r { display: table-row; } .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><div class="g"><div class="r">'
+            . '<div class="c">a</div></div></div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $tables = $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class);
+        self::assertCount(1, $tables);
+        self::assertNull($tables[0]->element);
+        $group = $tables[0]->children[0];
+        self::assertSame('table-row-group', strtolower(
+            ($group->style->get('display') instanceof Keyword)
+                ? $group->style->get('display')->name
+                : '',
+        ));
+        self::assertInstanceOf(\Phpdftk\HtmlToPdf\Box\TableRowBox::class, $group->children[0]);
+    }
+
+    /** A document with no internal table boxes grows no anonymous table. */
+    public function testPlainBlockContentGrowsNoAnonymousTable(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body><div><p>a</p><span>b</span></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$this->uaSheet()]);
+        self::assertNotNull($box);
+        self::assertCount(0, $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class));
+    }
+
+    /**
+     * Collect every box of `$class` in the tree, in document order.
+     *
+     * @template T of \Phpdftk\HtmlToPdf\Box\Box
+     * @param  class-string<T> $class
+     * @return list<T>
+     */
+    private function collect(\Phpdftk\HtmlToPdf\Box\Box $root, string $class): array
+    {
+        $out = [];
+        $stack = [$root];
+        while ($stack !== []) {
+            $n = array_shift($stack);
+            if ($n instanceof $class) {
+                $out[] = $n;
+            }
+            foreach (array_reverse($n->children) as $c) {
+                array_unshift($stack, $c);
+            }
+        }
+        return $out;
+    }
 }

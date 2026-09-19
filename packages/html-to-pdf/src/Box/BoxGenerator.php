@@ -772,10 +772,21 @@ final class BoxGenerator
         // zero width. Runs on the just-assembled child list so the
         // downstream anonymous-block / inline-split passes see the
         // repaired structure.
-        if ($box instanceof TableBox || $this->isTableRowGroupBox($box)) {
+        if ($box instanceof TableBox || $this->actsAsTableRowGroup($box)) {
             $rawChildren = $this->wrapBareTableCellsInRows($rawChildren, $values);
         } elseif ($box instanceof TableRowBox) {
             $rawChildren = $this->wrapBareTableRowChildrenInCells($rawChildren, $values);
+        } elseif (!$box instanceof TableColumnBox) {
+            // CSS 2.1 §17.2.1 "generate missing parents" — an internal
+            // table box (cell / row / row-group / column(-group) /
+            // caption) whose parent is NOT the table object it requires
+            // gets an anonymous `table` synthesised around it and every
+            // consecutive sibling that also needs one. Without this a
+            // bare `<span style="display: table-cell">` inside a plain
+            // `<div>` laid out as a naked block: no column widths, no
+            // row, no grid — which is exactly what the whole
+            // `table-anonymous-objects` infer-* family checks.
+            $rawChildren = $this->wrapMisparentedTableBoxesInTables($rawChildren, $values);
         }
 
         // CSS 2.1 §9.2.1.1 — when an inline box has a block-level
@@ -2047,6 +2058,158 @@ final class BoxGenerator
             ['table-row-group', 'table-header-group', 'table-footer-group'],
             true,
         );
+    }
+
+    /**
+     * True when `$box` behaves as a table row group for the purposes of
+     * CSS 2.1 §17.2.1 fixup.
+     *
+     * {@see isTableRowGroupBox} keys off the resolved `display`, which is
+     * enough for `display: table-row-group` authored in CSS. It is NOT
+     * enough for `<tbody>` / `<thead>` / `<tfoot>`: the UA sheet in
+     * {@see \Phpdftk\HtmlToPdf\RendererOptions} maps those to
+     * `display: block` (BlockLayout's `collectTableRows` walks through
+     * them transparently instead). They must still be recognised here —
+     * otherwise the "generate missing parents" pass would decide their
+     * `<tr>` children are misparented and bury a second, anonymous table
+     * inside every real `<table>`.
+     */
+    private function actsAsTableRowGroup(Box $box): bool
+    {
+        if ($this->isTableRowGroupBox($box)) {
+            return true;
+        }
+        $local = $box->element !== null ? strtolower($box->element->localName) : '';
+        return ($local === 'tbody' || $local === 'thead' || $local === 'tfoot')
+            && $this->displayKeyword($box->style) === 'block';
+    }
+
+    /**
+     * CSS 2.1 §17.2.1 "generate missing parents" — wrap each run of
+     * consecutive internal-table children of a NON-table parent in an
+     * anonymous `table` box.
+     *
+     * Per spec the run is "C and all consecutive siblings of C that are
+     * proper table children"; whitespace-only anonymous inlines sitting
+     * between two internal table boxes are removed first ("remove
+     * irrelevant boxes"), so they neither break a run nor survive into
+     * the output. Whitespace that turns out NOT to be between two
+     * internal boxes is handed back untouched.
+     *
+     * Bare `table-cell` children of the synthesised table are handed to
+     * {@see wrapBareTableCellsInRows}, which supplies the anonymous
+     * `table-row` the spec's first missing-parent clause asks for.
+     *
+     * @param  list<Box> $rawChildren
+     * @return list<Box>
+     */
+    private function wrapMisparentedTableBoxesInTables(array $rawChildren, CascadedValues $values): array
+    {
+        if (!$this->containsMisparentedTableBox($rawChildren)) {
+            return $rawChildren;
+        }
+        $out = [];
+        /** @var list<Box> $run */
+        $run = [];
+        /** @var list<Box> $held */
+        $held = [];
+        foreach ($rawChildren as $child) {
+            if ($this->needsAnonymousTableParent($child)) {
+                $run[] = $child;
+                // Whitespace between two internal table boxes is dropped.
+                $held = [];
+                continue;
+            }
+            if ($run !== [] && $this->isCollapsibleWhitespaceBox($child)) {
+                $held[] = $child;
+                continue;
+            }
+            if ($run !== []) {
+                $out[] = $this->makeAnonymousTable($run, $values);
+                $run = [];
+            }
+            foreach ($held as $h) {
+                $out[] = $h;
+            }
+            $held = [];
+            $out[] = $child;
+        }
+        if ($run !== []) {
+            $out[] = $this->makeAnonymousTable($run, $values);
+        }
+        foreach ($held as $h) {
+            $out[] = $h;
+        }
+        return $out;
+    }
+
+    /** @param list<Box> $children */
+    private function containsMisparentedTableBox(array $children): bool
+    {
+        foreach ($children as $c) {
+            if ($this->needsAnonymousTableParent($c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True when `$box` is an internal table box that cannot live under
+     * the parent currently being assembled and therefore needs an
+     * anonymous `table` synthesised for it (CSS 2.1 §17.2.1).
+     *
+     * A `table-column` is only misparented when its parent is neither a
+     * `table-column-group` nor a table; since this test only runs for
+     * non-table parents, every internal box reaching it is misparented —
+     * except a column inside a column group, which our box tree models as
+     * a `TableColumnBox` parent and which short-circuits before the call.
+     *
+     * The `table-caption` arm insists on a `BlockBox`, and that guard is
+     * load-bearing: a {@see TextBox} carries its PARENT element's
+     * cascade, so `display` read off a text box inside a caption reports
+     * `table-caption` and the caption's own text would be torn out into
+     * an anonymous table of its own.
+     */
+    private function needsAnonymousTableParent(Box $box): bool
+    {
+        return $box instanceof TableCellBox
+            || $box instanceof TableRowBox
+            || $box instanceof TableColumnBox
+            || $this->isTableRowGroupBox($box)
+            || ($box instanceof BlockBox
+                && $this->displayKeyword($box->style) === 'table-caption');
+    }
+
+    /** True when `$box` is a text box holding nothing but collapsible whitespace. */
+    private function isCollapsibleWhitespaceBox(Box $box): bool
+    {
+        return $box instanceof TextBox
+            && preg_match('/^[\s\x{200B}]*$/u', $box->text) === 1;
+    }
+
+    /**
+     * Build the anonymous `table` box demanded by CSS 2.1 §17.2.1.
+     *
+     * The box is anonymous, so it takes the inherited properties of its
+     * parent and the initial value of everything else — `border-spacing`
+     * included, which is why a synthesised table never inherits the UA
+     * sheet's `2px` (that lives on the `table` element selector, not on
+     * an ancestor). `display` is NOT inherited, so it has to be stamped
+     * explicitly: several layout paths read the keyword rather than the
+     * box class (e.g. BlockLayout's `stackIsTableBody`).
+     *
+     * @param list<Box> $run
+     */
+    private function makeAnonymousTable(array $run, CascadedValues $values): TableBox
+    {
+        $anonValues = $this->cascade->anonymousFromParent($values);
+        $anonValues->set('display', new Keyword('table'));
+        $anon = new TableBox(null, $anonValues);
+        foreach ($this->wrapBareTableCellsInRows($run, $anonValues) as $c) {
+            $anon->addChild($c);
+        }
+        return $anon;
     }
 
     /**
