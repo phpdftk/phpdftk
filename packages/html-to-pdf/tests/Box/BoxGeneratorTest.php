@@ -2606,6 +2606,215 @@ final class BoxGeneratorTest extends TestCase
     }
 
     /**
+     * CSS 2.1 §9.2.3 — a `display: run-in` box followed by a block box
+     * becomes that block's first inline child.
+     */
+    public function testRunInRunsIntoTheFollowingBlock(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head</div><div id="t">tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        // The run-in no longer generates a sibling box.
+        self::assertCount(1, $body->children, 'run-in left the sibling list');
+        $target = $body->children[0];
+        self::assertInstanceOf(BlockBox::class, $target);
+        self::assertCount(2, $target->children);
+        $run = $target->children[0];
+        self::assertInstanceOf(InlineBox::class, $run, 'run-in became an inline box');
+        self::assertSame('r', $run->element?->getAttribute('class'));
+        self::assertSame(
+            'inline',
+            ($run->style->get('display') instanceof Keyword)
+                ? strtolower($run->style->get('display')->name)
+                : null,
+        );
+    }
+
+    /**
+     * Collapsible whitespace between the run-in and its block doesn't
+     * break the association (CSS 2.1 §9.2.3).
+     */
+    public function testRunInSkipsCollapsibleWhitespaceSibling(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head</div>   <div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(1, $this->collect($body, InlineBox::class));
+    }
+
+    /**
+     * `white-space: pre` makes the space between rendered content, so the
+     * run-in has something after it and stays a block.
+     */
+    public function testRunInStaysBlockWhenPreservedWhitespaceFollows(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } body { white-space: pre; }'
+            . ' .r { display: run-in; white-space: normal; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head</div> <div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(0, $this->collect($body, InlineBox::class));
+    }
+
+    /** A run-in containing a block box becomes a block box itself. */
+    public function testRunInContainingABlockStaysBlock(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head<p>x</p></div><div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(2, $body->children, 'run-in kept its own box');
+        self::assertSame(
+            'block',
+            strtolower($body->children[0]->style->get('display')->name ?? ''),
+        );
+    }
+
+    /** A run-in followed by another run-in has no block to join. */
+    public function testRunInFollowedByRunInStaysBlock(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">a</div><div class="r">b</div><div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        // The first stays a block, the second runs into the trailing block.
+        self::assertCount(2, $body->children);
+        self::assertInstanceOf(BlockBox::class, $body->children[0]);
+        self::assertCount(1, $this->collect($body, InlineBox::class));
+    }
+
+    /** An inline-level sibling is not a block box — no run-in. */
+    public function testRunInBeforeInlineSiblingStaysBlock(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } span { display: inline; }'
+            . ' .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">a</div><span>b</span><div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertInstanceOf(BlockBox::class, $body->children[0]);
+        self::assertSame(
+            'block',
+            strtolower($body->children[0]->style->get('display')->name ?? ''),
+        );
+    }
+
+    /** An out-of-flow sibling between run-in and block is skipped. */
+    public function testRunInSkipsFloatedSibling(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: run-in; }'
+            . ' .f { float: left; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">a</div><div class="f"></div><div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(1, $this->collect($body, InlineBox::class));
+    }
+
+    /**
+     * A run-in joining a block whose own children are block-level gets an
+     * anonymous block of its own — the §3.4 all-inline / all-block
+     * invariant must survive the insertion.
+     */
+    public function testRunInIntoBlockContainerGetsAnonymousWrapper(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head</div><div id="t"><p>tail</p></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        $target = $body->children[0];
+        self::assertCount(2, $target->children);
+        self::assertInstanceOf(AnonymousBlockBox::class, $target->children[0]);
+        self::assertInstanceOf(InlineBox::class, $target->children[0]->children[0]);
+    }
+
+    /** A run-in with nothing after it is just a block. */
+    public function testTrailingRunInStaysBlock(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div>head</div><div class="r">tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(2, $body->children);
+        self::assertCount(0, $this->collect($body, InlineBox::class));
+    }
+
+    /** An out-of-flow run-in blockifies (CSS Display 3 §2.7). */
+    public function testOutOfFlowRunInBlockifies(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }'
+            . ' .r { display: run-in; position: absolute; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="r">head</div><div>tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        self::assertCount(2, $body->children);
+        self::assertSame(
+            'block',
+            strtolower($body->children[0]->style->get('display')->name ?? ''),
+        );
+    }
+
+    /**
      * Collect every box of `$class` in the tree, in document order.
      *
      * @template T of \Phpdftk\HtmlToPdf\Box\Box

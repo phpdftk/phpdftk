@@ -355,7 +355,7 @@ final class BoxGenerator
         $parentDisplay = $parentValues !== null ? $this->displayKeyword($parentValues) : null;
         if (($parentDisplay === 'flex' || $parentDisplay === 'inline-flex')
             && !$this->isForeignContentRoot($element)
-            && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
+            && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table', 'run-in'], true)
         ) {
             $blockified = match ($display) {
                 'inline-flex' => 'flex',
@@ -801,6 +801,11 @@ final class BoxGenerator
             $rawChildren = $this->wrapMisparentedTableBoxesInTables($rawChildren, $values);
         }
 
+        // CSS 2.1 §9.2.3 / CSS Display 3 §2.3 — `display: run-in`. Runs on
+        // the assembled sibling list because the decision is a function of
+        // what FOLLOWS the run-in box, which only this level can see.
+        $rawChildren = $this->applyRunIn($rawChildren);
+
         // CSS 2.1 §9.2.1.1 — when an inline box has a block-level
         // descendant, the inline box splits around the block. The
         // block sits between two anonymous inline halves, all
@@ -879,6 +884,168 @@ final class BoxGenerator
         }
         $this->flushInlineGroup($box, $values, $inlineGroup);
         return $box;
+    }
+
+    /**
+     * CSS 2.1 §9.2.3 / CSS Display 3 §2.3 — resolve every `display: run-in`
+     * box in a just-assembled sibling list.
+     *
+     * A run-in box is inline-level content that "runs into" the block box
+     * that follows it, becoming that block's first inline child. It falls
+     * back to being a block box when it can't:
+     *
+     *  - it contains an in-flow block-level box of its own, or
+     *  - nothing suitable follows it (end of the list, an inline-level
+     *    sibling, a table / inline-table / inline-block, or another run-in).
+     *
+     * Collapsible whitespace and out-of-flow siblings (floats, abs-pos)
+     * between the run-in and its target are skipped — they don't break the
+     * association. `display: none` siblings never generated a box, so they
+     * are skipped for free.
+     *
+     * @param  list<Box> $rawChildren
+     * @return list<Box>
+     */
+    private function applyRunIn(array $rawChildren): array
+    {
+        $seen = false;
+        foreach ($rawChildren as $candidate) {
+            if ($this->isRunInBox($candidate)) {
+                $seen = true;
+                break;
+            }
+        }
+        if (!$seen) {
+            return $rawChildren;
+        }
+
+        $out = [];
+        $count = count($rawChildren);
+        for ($i = 0; $i < $count; $i++) {
+            $child = $rawChildren[$i];
+            if (!$this->isRunInBox($child)) {
+                $out[] = $child;
+                continue;
+            }
+            $target = $this->runInTarget($rawChildren, $i);
+            if ($target === null) {
+                // "Otherwise, the run-in box becomes a block box."
+                $child->style->set('display', new Keyword('block'));
+                $out[] = $child;
+                continue;
+            }
+            // "…the run-in box becomes the first inline box of the block
+            // box." The element's own cascade rides along, so `font-weight`
+            // / colour / `line-height` on the run-in still apply; only the
+            // outer display type changes.
+            $child->style->set('display', new Keyword('inline'));
+            $inline = new InlineBox($child->element, $child->style);
+            foreach ($child->children as $grandchild) {
+                $inline->addChild($grandchild);
+            }
+            $this->prependInlineChild($target, $inline);
+        }
+        return $out;
+    }
+
+    /**
+     * `true` when `$box` is the principal box generated for an element
+     * whose computed display is `run-in`.
+     *
+     * The `BlockBox` test is load-bearing, not decoration: anonymous
+     * wrappers and `TextBox` children carry their PARENT's element and
+     * cascade, so a looser check would see the run-in's own text node as a
+     * second run-in and rewrite the cascade out from under it.
+     */
+    private function isRunInBox(Box $box): bool
+    {
+        return $box instanceof BlockBox
+            && $box->element !== null
+            && $this->displayKeyword($box->style) === 'run-in';
+    }
+
+    /**
+     * The block box a run-in at `$index` runs into, or `null` when it has to
+     * stay a block. See {@see self::applyRunIn} for the rule set.
+     *
+     * @param list<Box> $children
+     */
+    private function runInTarget(array $children, int $index): ?Box
+    {
+        // "If the run-in box contains a block box, the run-in box becomes a
+        // block box." Out-of-flow descendants don't count: they're not part
+        // of the run-in's own inline content.
+        foreach ($children[$index]->children as $grandchild) {
+            if (!$this->isInlineLevel($grandchild)
+                && !$this->isOutOfFlow($grandchild->style)
+            ) {
+                return null;
+            }
+        }
+        $count = count($children);
+        for ($j = $index + 1; $j < $count; $j++) {
+            $candidate = $children[$j];
+            if ($this->isCollapsibleWhitespaceBox($candidate)) {
+                // Only whitespace that actually collapses away is
+                // "nothing between". Under `white-space: pre` the space
+                // between the run-in and the block is rendered content, so
+                // the run-in has something after it and stays a block
+                // (`run-in-basic-014`).
+                if ($this->onlyCollapsibleWhitespace([$candidate], $candidate->style)) {
+                    continue;
+                }
+                return null;
+            }
+            if ($this->isOutOfFlow($candidate->style)) {
+                continue;
+            }
+            // A following run-in is not a block box yet — the run-in
+            // before it therefore has nothing to run into and blocks out.
+            if ($this->isRunInBox($candidate)) {
+                return null;
+            }
+            if (!$candidate instanceof BlockBox) {
+                return null;
+            }
+            return in_array(
+                $this->displayKeyword($candidate->style),
+                ['block', 'flow-root', 'list-item'],
+                true,
+            ) ? $candidate : null;
+        }
+        return null;
+    }
+
+    /**
+     * Insert `$inline` as the first inline-level child of `$target`.
+     *
+     * `$target` was fully built (its own anonymous-block grouping already
+     * ran), so when its first child is an anonymous block wrapping an
+     * inline run the new box belongs INSIDE that wrapper — prepending at
+     * the outer level would re-mix block and inline siblings that the
+     * §3.4 pass had already separated.
+     */
+    private function prependInlineChild(Box $target, InlineBox $inline): void
+    {
+        $first = $target->children[0] ?? null;
+        if ($first instanceof AnonymousBlockBox) {
+            array_unshift($first->children, $inline);
+            return;
+        }
+        // A target whose children are block-level has no inline formatting
+        // context to join: the run-in needs its own anonymous block ahead
+        // of them, or the §3.4 invariant (a block container's children are
+        // all-inline or all-block) breaks (`run-in-basic-005`).
+        if ($this->containsBlockLevel($target->children)) {
+            $anon = new AnonymousBlockBox(
+                null,
+                $this->cascade->anonymousFromParent($target->style),
+            );
+            $anon->addChild($inline);
+            array_unshift($target->children, $anon);
+            return;
+        }
+        array_unshift($target->children, $inline);
     }
 
     /**
@@ -2421,6 +2588,10 @@ final class BoxGenerator
     private const OUT_OF_FLOW_BLOCKIFIED = [
         'inline' => 'block',
         'inline-block' => 'block',
+        // CSS Display 3 §2.7 — `run-in` is an inline-level outer
+        // display type, so an out-of-flow run-in blockifies and never
+        // runs into anything.
+        'run-in' => 'block',
         'inline-flex' => 'flex',
         'inline-grid' => 'grid',
         'inline-table' => 'table',
