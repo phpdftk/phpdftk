@@ -200,6 +200,27 @@ final class BlockLayout
      */
     private array $invalidAnchorReference = [];
 
+    /**
+     * Out-of-flow boxes whose self-alignment is `anchor-center` on at
+     * least one axis, paired with the inset-modified containing block
+     * they were placed in. CSS Anchor Positioning 1 §5 centres the box
+     * on the ANCHOR's centre, which needs the box's used size — so like
+     * `position-visibility` the decision waits for layout to finish.
+     *
+     * @var list<array{box: Box, inline: bool, block: bool, safeInline: bool, safeBlock: bool, imcb: array{0:float,1:float,2:float,3:float}}>
+     */
+    private array $anchorCenterBoxes = [];
+
+    /**
+     * `spl_object_id` of every box `position-area` has been folded into.
+     * The fold already centres such a box on its anchor through the
+     * region it built, so the §5 post-pass must leave it alone — and the
+     * property itself is retired by the fold, so it cannot be re-read.
+     *
+     * @var array<int, true>
+     */
+    private array $positionAreaBoxes = [];
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -244,6 +265,8 @@ final class BlockLayout
         $this->boxOrder = [];
         $this->boxParents = [];
         $this->positionVisibilityBoxes = [];
+        $this->anchorCenterBoxes = [];
+        $this->positionAreaBoxes = [];
         $this->invalidAnchorReference = [];
         $this->collectAnchorBoxes($root, 0);
         // CSS Values 4 §6.1 — `rem` resolves against the DOCUMENT ROOT's
@@ -304,6 +327,11 @@ final class BlockLayout
         // shifts the first / last line of the propagated first-line
         // host (CSS Inline 3 §6.4), blocked by empty block boxes.
         $this->applyTextBoxTrimTree($root);
+        // CSS Anchor Positioning 1 §5 — `anchor-center` needs the box's
+        // used size, so it runs as a post-layout pass. It has to land
+        // before `position-visibility`, which tests where the box ended
+        // up.
+        $this->applyAnchorCenter();
         // CSS Anchor Positioning 1 §10 — `position-visibility` can only be
         // decided once every geometry it compares is final, so it runs as a
         // post-layout pass over the boxes recorded while they were placed.
@@ -3525,6 +3553,7 @@ final class BlockLayout
         // same self-guarding shape `applyAbsoluteCornerAnchorSize` gets
         // for free from only firing on `auto`.
         $style->set('position-area', new Keyword('none'));
+        $this->positionAreaBoxes[spl_object_id($child)] = true;
     }
 
     /**
@@ -4294,6 +4323,7 @@ final class BlockLayout
             $style->set('height', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
         }
         $this->recordPositionVisibility($child, $childContext);
+        $this->recordAnchorCenter($child, $childContext);
     }
 
     /**
@@ -4311,29 +4341,130 @@ final class BlockLayout
         if ($modes === []) {
             return;
         }
+        $this->positionVisibilityBoxes[] = [
+            'box' => $child,
+            'modes' => $modes,
+            'imcb' => $this->insetModifiedContainingBlock($child, $context),
+        ];
+    }
+
+    /**
+     * CSS Position 3 §2.1 — the inset-modified containing block: the
+     * containing block shrunk by the box's own used insets. An `auto`
+     * inset contributes nothing, leaving that edge where it was.
+     * Returned as `[left, top, right, bottom]`.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    private function insetModifiedContainingBlock(Box $child, LayoutContext $context): array
+    {
         $pa = $context->positionedAncestor;
         $cbLeft = $pa !== null ? $pa->originX : $context->originX;
         $cbTop = $pa !== null ? $pa->originY : $context->originY;
         $cbWidth = $context->containingBlockWidth;
         $cbHeight = $context->containingBlockHeight;
         $style = $child->style;
-        // CSS Position 3 §2.1 — the inset-modified containing block is the
-        // containing block shrunk by the box's own insets. An `auto` inset
-        // contributes nothing, leaving that edge at the containing block.
         $inset = function (string $prop, float $basis) use ($style): float {
             $value = $style->get($prop);
             return $this->isAuto($value) ? 0.0 : $this->resolveLength($value, $basis);
         };
-        $this->positionVisibilityBoxes[] = [
-            'box' => $child,
-            'modes' => $modes,
-            'imcb' => [
-                $cbLeft + $inset('left', $cbWidth),
-                $cbTop + $inset('top', $cbHeight),
-                $cbLeft + $cbWidth - $inset('right', $cbWidth),
-                $cbTop + $cbHeight - $inset('bottom', $cbHeight),
-            ],
+        return [
+            $cbLeft + $inset('left', $cbWidth),
+            $cbTop + $inset('top', $cbHeight),
+            $cbLeft + $cbWidth - $inset('right', $cbWidth),
+            $cbTop + $cbHeight - $inset('bottom', $cbHeight),
         ];
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §5 — note an out-of-flow box that asks to
+     * be centred on its anchor with `align-self` / `justify-self:
+     * anchor-center`, together with the inset-modified containing block
+     * it must stay inside.
+     *
+     * A box `position-area` already folded is skipped: the fold builds a
+     * region that is symmetric about the anchor's centre and centres the
+     * box in it, which is the same placement by another route.
+     */
+    private function recordAnchorCenter(Box $child, LayoutContext $context): void
+    {
+        if (isset($this->positionAreaBoxes[spl_object_id($child)])) {
+            return;
+        }
+        $justify = $this->selfAlignmentKeywords($child->style->get('justify-self'));
+        $align = $this->selfAlignmentKeywords($child->style->get('align-self'));
+        $inline = in_array('anchor-center', $justify, true);
+        $block = in_array('anchor-center', $align, true);
+        if (!$inline && !$block) {
+            return;
+        }
+        $this->anchorCenterBoxes[] = [
+            'box' => $child,
+            'inline' => $inline,
+            'block' => $block,
+            // CSS Align 3 §5.1 — `anchor-center` keeps the box inside the
+            // inset-modified containing block unless `unsafe` says
+            // otherwise.
+            'safeInline' => !in_array('unsafe', $justify, true),
+            'safeBlock' => !in_array('unsafe', $align, true),
+            'imcb' => $this->insetModifiedContainingBlock($child, $context),
+        ];
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §5 — line each recorded box's centre up
+     * with its anchor's centre on the requested axes, then (unless the
+     * author asked for `unsafe`) shift it back inside the inset-modified
+     * containing block. The shift is absolute, so running twice over a
+     * box that was laid out more than once is a no-op.
+     */
+    private function applyAnchorCenter(): void
+    {
+        foreach ($this->anchorCenterBoxes as $record) {
+            $box = $record['box'];
+            $rect = $this->anchorBorderBox(null, $box);
+            if ($rect === null) {
+                continue;
+            }
+            [$anchorLeft, $anchorTop, $anchorWidth, $anchorHeight] = $rect;
+            $g = $box->geometry;
+            $deltaX = 0.0;
+            $deltaY = 0.0;
+            if ($record['inline']) {
+                $size = $g->outerWidth();
+                $current = $g->x - $g->paddingLeft - $g->borderLeft - $g->marginLeft;
+                $target = $anchorLeft + $anchorWidth / 2.0 - $size / 2.0;
+                if ($record['safeInline']) {
+                    $target = $this->clampIntoRange($target, $size, $record['imcb'][0], $record['imcb'][2]);
+                }
+                $deltaX = $target - $current;
+            }
+            if ($record['block']) {
+                $size = $g->outerHeight();
+                $current = $g->y - $g->paddingTop - $g->borderTop - $g->marginTop;
+                $target = $anchorTop + $anchorHeight / 2.0 - $size / 2.0;
+                if ($record['safeBlock']) {
+                    $target = $this->clampIntoRange($target, $size, $record['imcb'][1], $record['imcb'][3]);
+                }
+                $deltaY = $target - $current;
+            }
+            if ($deltaX !== 0.0 || $deltaY !== 0.0) {
+                $this->shiftSubtree($box, $deltaY, $deltaX);
+            }
+        }
+    }
+
+    /**
+     * Slide a `$size`-long span starting at `$start` back inside
+     * `[$min, $max]`, pulling the END edge in first so the START edge
+     * wins when the span is longer than the range.
+     */
+    private function clampIntoRange(float $start, float $size, float $min, float $max): float
+    {
+        if ($start + $size > $max) {
+            $start = $max - $size;
+        }
+        return max($start, $min);
     }
 
     /**

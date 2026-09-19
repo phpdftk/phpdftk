@@ -12901,6 +12901,64 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y + 160.0, $t->geometry->y, 0.5);
     }
 
+    public function testAnchorCenterSelfAlignmentCentresOnTheAnchor(): void
+    {
+        // CSS Anchor Positioning 1 §5 — `anchor-center` lines the box's
+        // centre up with the ANCHOR's centre, independently of
+        // `position-area`. Anchor [50, 40, 100x60] has centre (100, 70),
+        // so a 20x20 box lands at (90, 60).
+        $box = $this->anchorTree('inset: 0; place-self: anchor-center; width: 20px; height: 20px;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 90.0, $t->geometry->x, 0.5);
+        self::assertEqualsWithDelta($cb->geometry->y + 60.0, $t->geometry->y, 0.5);
+    }
+
+    /** Anchor-center scaffold with the anchor pinned to the containing block's corner. */
+    private function cornerAnchorTree(string $targetCss): Box
+    {
+        return $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a { position: absolute; left: 0; top: 0;
+                  width: 20px; height: 20px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a; inset: 0;
+                  width: 100px; height: 20px; ' . $targetCss . ' }',
+        );
+    }
+
+    public function testSafeAnchorCenterStaysInsideTheContainingBlock(): void
+    {
+        // CSS Align 3 §5.1 — the default overflow behaviour keeps the box
+        // inside its inset-modified containing block. The anchor's centre
+        // is at x = 10, so centring a 100px box would put it at -40; safe
+        // alignment slides it back to the containing block's edge.
+        $box = $this->cornerAnchorTree('justify-self: anchor-center;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x, $t->geometry->x, 0.5);
+    }
+
+    public function testUnsafeAnchorCenterIsAllowedToOverflow(): void
+    {
+        // `unsafe` opts out of that adjustment, so the box stays centred
+        // on the anchor and hangs off the containing block's start edge.
+        $box = $this->cornerAnchorTree('justify-self: unsafe anchor-center;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x - 40.0, $t->geometry->x, 0.5);
+    }
+
     public function testPositionAreaBoxIsNotOffsetFromItsStaticPosition(): void
     {
         // CSS 2.1 §10.3.7 uses the static position only when BOTH insets
