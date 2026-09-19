@@ -76,6 +76,17 @@ abstract class Box
      */
     public bool $wasInlineLevel = false;
 
+    /**
+     * Set by {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout} on an
+     * out-of-flow box that CSS Anchor Positioning 1 §10
+     * (`position-visibility`) makes *strongly hidden*. A strongly hidden
+     * box is skipped by the painter along with its whole subtree —
+     * including descendants that set `visibility: visible` and
+     * out-of-flow descendants that escape it — which is what separates
+     * it from ordinary `visibility: hidden`.
+     */
+    public bool $hiddenByPositionVisibility = false;
+
     public function __construct(
         public readonly ?Element $element,
         public readonly CascadedValues $style,

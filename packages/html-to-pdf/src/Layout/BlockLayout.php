@@ -160,6 +160,36 @@ final class BlockLayout
      */
     private array $boxOrder = [];
 
+    /**
+     * Parent of every box, keyed by `spl_object_id`. Built alongside
+     * {@see $boxOrder}; CSS Anchor Positioning 1 §10's `anchors-visible`
+     * has to know whether any ANCESTOR of the anchor hides it, and `Box`
+     * itself deliberately carries no upward link.
+     *
+     * @var array<int, Box>
+     */
+    private array $boxParents = [];
+
+    /**
+     * Out-of-flow boxes with a non-`always` `position-visibility`, in the
+     * order they were positioned, each paired with the inset-modified
+     * containing block they were placed in. Resolved by
+     * {@see applyPositionVisibility} once layout has committed every
+     * geometry the overflow test reads.
+     *
+     * @var list<array{box: Box, modes: list<string>, imcb: array{0:float,1:float,2:float,3:float}}>
+     */
+    private array $positionVisibilityBoxes = [];
+
+    /**
+     * `spl_object_id` of every box that named an `anchor()` /
+     * `anchor-size()` target which did not resolve. CSS Anchor
+     * Positioning 1 §10's `anchors-valid` hides exactly those.
+     *
+     * @var array<int, true>
+     */
+    private array $invalidAnchorReference = [];
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -201,6 +231,9 @@ final class BlockLayout
         $this->anchorBoxes = [];
         $this->anchorElements = [];
         $this->boxOrder = [];
+        $this->boxParents = [];
+        $this->positionVisibilityBoxes = [];
+        $this->invalidAnchorReference = [];
         $this->collectAnchorBoxes($root, 0);
         // CSS Values 4 §6.1 — `rem` resolves against the DOCUMENT ROOT's
         // font-size. Nothing ever set `LengthContext::$rootFontSize`, so
@@ -260,6 +293,10 @@ final class BlockLayout
         // shifts the first / last line of the propagated first-line
         // host (CSS Inline 3 §6.4), blocked by empty block boxes.
         $this->applyTextBoxTrimTree($root);
+        // CSS Anchor Positioning 1 §10 — `position-visibility` can only be
+        // decided once every geometry it compares is final, so it runs as a
+        // post-layout pass over the boxes recorded while they were placed.
+        $this->applyPositionVisibility();
         return $height;
     }
 
@@ -3431,6 +3468,7 @@ final class BlockLayout
             }
         }
         foreach ($box->children as $child) {
+            $this->boxParents[spl_object_id($child)] = $box;
             $order = $this->collectAnchorBoxes($child, $order);
         }
         return $order;
@@ -3466,16 +3504,12 @@ final class BlockLayout
     }
 
     /**
-     * The border-box rectangle of the anchor `$name` refers to, as
-     * `[left, top, width, height]` in layout space. `$name` is null for
-     * the implicit reference form (`anchor(bottom)`), which consults
-     * `$target`'s own `position-anchor`. Returns null when the name
-     * resolves to nothing that precedes `$target` — the caller then
-     * applies the function's fallback.
-     *
-     * @return array{0: float, 1: float, 2: float, 3: float}|null
+     * The box the anchor reference `$name` resolves to, or null when
+     * nothing that precedes `$target` in tree order declares it. `$name`
+     * is null for the implicit form (`anchor(bottom)`), which consults
+     * `$target`'s own `position-anchor`.
      */
-    private function anchorBorderBox(?string $name, Box $target): ?array
+    private function anchorBoxFor(?string $name, Box $target): ?Box
     {
         if ($name === null) {
             $implicit = $target->style->get('position-anchor');
@@ -3497,6 +3531,22 @@ final class BlockLayout
                 $box = $candidate;
             }
         }
+        return $box;
+    }
+
+    /**
+     * The border-box rectangle of the anchor `$name` refers to, as
+     * `[left, top, width, height]` in layout space. `$name` is null for
+     * the implicit reference form (`anchor(bottom)`), which consults
+     * `$target`'s own `position-anchor`. Returns null when the name
+     * resolves to nothing that precedes `$target` — the caller then
+     * applies the function's fallback.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float}|null
+     */
+    private function anchorBorderBox(?string $name, Box $target): ?array
+    {
+        $box = $this->anchorBoxFor($name, $target);
         if ($box === null) {
             return null;
         }
@@ -3606,6 +3656,11 @@ final class BlockLayout
             if ($resolved !== null) {
                 $style->set($prop, new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px));
             } else {
+                // CSS Anchor Positioning 1 §6.1 — a reference that names
+                // nothing, or names a side off the property's own axis,
+                // is an *invalid anchor function*. Record it so
+                // `position-visibility: anchors-valid` can act on it.
+                $this->invalidAnchorReference[spl_object_id($child)] = true;
                 $style->set($prop, $value->fallback ?? new Keyword('auto'));
             }
         }
@@ -3616,6 +3671,7 @@ final class BlockLayout
             }
             $rect = $this->anchorBorderBox($value->anchorName, $child);
             if ($rect === null) {
+                $this->invalidAnchorReference[spl_object_id($child)] = true;
                 $style->set($prop, $value->fallback ?? new Keyword('auto'));
                 continue;
             }
@@ -3725,6 +3781,164 @@ final class BlockLayout
             }
             $style->set('height', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
         }
+        $this->recordPositionVisibility($child, $childContext);
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §10 — note an out-of-flow box that opts
+     * into `position-visibility`, together with the inset-modified
+     * containing block it is being placed in. The overflow test can only
+     * run once the box has a size and a position, so the decision is
+     * deferred to {@see applyPositionVisibility}; the IMCB is captured
+     * here because this is the only point at which both the containing
+     * block and the box's *used* insets are known together.
+     */
+    private function recordPositionVisibility(Box $child, LayoutContext $context): void
+    {
+        $modes = $this->positionVisibilityModes($child->style->get('position-visibility'));
+        if ($modes === []) {
+            return;
+        }
+        $pa = $context->positionedAncestor;
+        $cbLeft = $pa !== null ? $pa->originX : $context->originX;
+        $cbTop = $pa !== null ? $pa->originY : $context->originY;
+        $cbWidth = $context->containingBlockWidth;
+        $cbHeight = $context->containingBlockHeight;
+        $style = $child->style;
+        // CSS Position 3 §2.1 — the inset-modified containing block is the
+        // containing block shrunk by the box's own insets. An `auto` inset
+        // contributes nothing, leaving that edge at the containing block.
+        $inset = function (string $prop, float $basis) use ($style): float {
+            $value = $style->get($prop);
+            return $this->isAuto($value) ? 0.0 : $this->resolveLength($value, $basis);
+        };
+        $this->positionVisibilityBoxes[] = [
+            'box' => $child,
+            'modes' => $modes,
+            'imcb' => [
+                $cbLeft + $inset('left', $cbWidth),
+                $cbTop + $inset('top', $cbHeight),
+                $cbLeft + $cbWidth - $inset('right', $cbWidth),
+                $cbTop + $cbHeight - $inset('bottom', $cbHeight),
+            ],
+        ];
+    }
+
+    /**
+     * The `position-visibility` keywords in effect on a box, lowercased.
+     * `always` (the initial value) yields an empty list — nothing to do.
+     *
+     * @return list<string>
+     */
+    private function positionVisibilityModes(?\Phpdftk\Css\Value\Value $value): array
+    {
+        $modes = [];
+        if ($value instanceof Keyword) {
+            $modes[] = strtolower($value->name);
+        } elseif ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            foreach ($value->values as $part) {
+                if ($part instanceof Keyword) {
+                    $modes[] = strtolower($part->name);
+                }
+            }
+        }
+        return array_values(array_filter(
+            $modes,
+            static fn(string $mode): bool => in_array(
+                $mode,
+                ['anchors-valid', 'anchors-visible', 'no-overflow'],
+                true,
+            ),
+        ));
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §10 — decide `position-visibility` for
+     * every box that opted in, now that layout has committed the
+     * geometry the tests read. Boxes are visited in the order they were
+     * positioned, which is tree order, so an `anchors-visible` box whose
+     * anchor was itself strongly hidden sees that decision already made.
+     */
+    private function applyPositionVisibility(): void
+    {
+        foreach ($this->positionVisibilityBoxes as $record) {
+            $box = $record['box'];
+            foreach ($record['modes'] as $mode) {
+                $hidden = match ($mode) {
+                    'no-overflow' => $this->overflowsInsetModifiedCb($box, $record['imcb']),
+                    'anchors-visible' => !$this->anchorIsVisible($box),
+                    'anchors-valid' => isset($this->invalidAnchorReference[spl_object_id($box)]),
+                    default => false,
+                };
+                if ($hidden) {
+                    $box->hiddenByPositionVisibility = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether `$box`'s margin box sticks out of the inset-modified
+     * containing block `$imcb` (`[left, top, right, bottom]`) on any
+     * side. A half-pixel slack keeps a box that exactly fills its IMCB
+     * from being hidden by accumulated rounding.
+     *
+     * @param array{0:float,1:float,2:float,3:float} $imcb
+     */
+    private function overflowsInsetModifiedCb(Box $box, array $imcb): bool
+    {
+        $g = $box->geometry;
+        $left = $g->x - $g->paddingLeft - $g->borderLeft - $g->marginLeft;
+        $top = $g->y - $g->paddingTop - $g->borderTop - $g->marginTop;
+        $right = $left + $g->outerWidth();
+        $bottom = $top + $g->outerHeight();
+        $slack = 0.5;
+        return $left < $imcb[0] - $slack
+            || $top < $imcb[1] - $slack
+            || $right > $imcb[2] + $slack
+            || $bottom > $imcb[3] + $slack;
+    }
+
+    /**
+     * Whether `$box`'s default anchor is visible, for
+     * `position-visibility: anchors-visible`. A box with no default
+     * anchor has nothing to be hidden by, so it counts as visible.
+     *
+     * Scoped to the reasons that survive a static render: the anchor (or
+     * an ancestor) declaring `visibility: hidden` / `collapse` or
+     * `content-visibility: hidden`, and an anchor that is itself already
+     * strongly hidden — which is what chains the hiding down a run of
+     * anchors. Clipping by a scroll container is a scroll-position
+     * question and is left to the scroll work.
+     */
+    private function anchorIsVisible(Box $box): bool
+    {
+        $anchor = $this->anchorBoxFor(null, $box);
+        if ($anchor === null) {
+            return true;
+        }
+        for ($node = $anchor; $node !== null; $node = $this->boxParents[spl_object_id($node)] ?? null) {
+            if ($node->hiddenByPositionVisibility) {
+                return false;
+            }
+            $visibility = $node->style->get('visibility');
+            if ($visibility instanceof Keyword
+                && in_array(strtolower($visibility->name), ['hidden', 'collapse'], true)
+            ) {
+                return false;
+            }
+            if ($node === $anchor) {
+                continue;
+            }
+            $contentVisibility = $node->style->get('content-visibility');
+            if ($contentVisibility instanceof Keyword
+                && strtolower($contentVisibility->name) === 'hidden'
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

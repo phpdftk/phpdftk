@@ -12768,6 +12768,91 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
     }
 
+    public function testPositionVisibilityNoOverflowHidesABoxThatLeavesItsImcb(): void
+    {
+        // CSS Anchor Positioning 1 §10 — `no-overflow` strongly hides a
+        // box that overflows its inset-modified containing block. `top:
+        // 40px` shrinks the 300px-tall IMCB to 260px; a 400px box does
+        // not fit.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #t { position: absolute; top: 40px; left: 0;
+                  width: 100px; height: 400px;
+                  position-visibility: no-overflow; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertTrue($t->hiddenByPositionVisibility);
+    }
+
+    public function testPositionVisibilityNoOverflowKeepsABoxThatFits(): void
+    {
+        // The same box shortened to fit the IMCB exactly stays visible —
+        // filling the containing block is not overflowing it.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #t { position: absolute; top: 40px; left: 0;
+                  width: 100px; height: 260px;
+                  position-visibility: no-overflow; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertFalse($t->hiddenByPositionVisibility);
+    }
+
+    public function testPositionVisibilityAnchorsVisibleFollowsAnAncestorOfTheAnchor(): void
+    {
+        // CSS Anchor Positioning 1 §10 — `anchors-visible` hides the box
+        // when its default anchor is invisible, which includes a
+        // `visibility: hidden` inherited from an ancestor of the anchor.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="wrap"><div id="a"></div></div>'
+            . '<div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #wrap { visibility: hidden; }
+             #a { width: 100px; height: 60px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a; top: 0; left: 0;
+                  width: 10px; height: 10px;
+                  position-visibility: anchors-visible; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertTrue($t->hiddenByPositionVisibility);
+    }
+
+    public function testPositionVisibilityAnchorsValidHidesAnUnresolvableReference(): void
+    {
+        // CSS Anchor Positioning 1 §10 — `anchors-valid` hides the box
+        // when any anchor reference on it is an invalid anchor function.
+        // The sibling naming a real anchor stays visible.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div>'
+            . '<div id="good"></div><div id="bad"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a { width: 100px; height: 60px; anchor-name: --a; }
+             #good, #bad { position: absolute; width: 10px; height: 10px;
+                           position-visibility: anchors-valid; }
+             #good { top: anchor(--a bottom); }
+             #bad { top: anchor(--nope bottom); }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $good = $this->findById($box, 'good');
+        $bad = $this->findById($box, 'bad');
+        self::assertNotNull($good);
+        self::assertNotNull($bad);
+        self::assertFalse($good->hiddenByPositionVisibility);
+        self::assertTrue($bad->hiddenByPositionVisibility);
+    }
+
     public function testColumnarRunIsCappedAtTheFragmentainerHeight(): void
     {
         // CSS Multi-column 1 §3.3 + §6.2 — a multicol container with a
