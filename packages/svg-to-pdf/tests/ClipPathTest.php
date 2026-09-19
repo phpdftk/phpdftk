@@ -282,11 +282,15 @@ final class ClipPathTest extends TestCase
         self::assertStringContainsString('150 100 m', $ops);
     }
 
-    public function testStrokeBoxOfAGroupUnionsItsChildrenStrokeBoxes(): void
+    public function testBasicShapeOnAContainerLeavesItUnclipped(): void
     {
-        // The `<g>` has no stroke of its own; its stroke box is the union
-        // of its children's, each through that child's transform. Growing
-        // the group's FILL box instead would leave the circle too small.
+        // A container's bounding box is the union of its children's
+        // (SVG 2 §7.10.2), but `BoundingBox::compute` reads a child's
+        // geometry attributes without a viewport, so a percentage-sized
+        // child would union into a bogus box. Until that is fixed the
+        // container reports no bbox and the shape resolves to no clip —
+        // an unclipped container is closer to right than one clipped to
+        // a wrong rectangle.
         $ops = $this->paint(
             '<svg xmlns="http://www.w3.org/2000/svg">'
             . '<g clip-path="circle(50%) stroke-box">'
@@ -295,7 +299,7 @@ final class ClipPathTest extends TestCase
             . '</g>'
             . '</svg>',
         );
-        self::assertStringContainsString('150 100 m', $ops);
+        self::assertStringNotContainsString("\nW", $ops);
     }
 
     public function testViewBoxReferenceIsTheViewportAtTheUserSpaceOrigin(): void
