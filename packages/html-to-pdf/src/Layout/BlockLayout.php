@@ -4391,6 +4391,21 @@ final class BlockLayout
         } else {
             $lines = [array_keys($itemMains)];
         }
+        // CSS Flexbox 1 §5.1 + §9.3 — `row-reverse` / `column-reverse` flip
+        // the MAIN axis, not the line-collection order: items are still
+        // collected into lines in document order (§9.3 step 5), and only
+        // their placement within a line runs main-end to main-start.
+        //
+        // The `*-reverse` handling above reverses the whole child list, which
+        // gets the within-line order right but also walks the lines
+        // backwards, so `row-reverse wrap` on four items put items 4,3 on the
+        // FIRST line and 2,1 on the second where the reference has 2,1 then
+        // 4,3. Undoing the line order restores §9.3's document-order
+        // collection while keeping the reversed within-line order
+        // (WPT flexbox-writing-mode-001 containers 3/4 and 7/8).
+        if ($reverseDirection && count($lines) > 1) {
+            $lines = array_values(array_reverse($lines));
+        }
 
         // If the container's main size is still auto (single-line
         // column with no declared height), shrink-to-fit around items.
@@ -4540,6 +4555,24 @@ final class BlockLayout
 
         // `wrap-reverse` reverses the cross-axis order of lines.
         if ($wrap === 'wrap-reverse') {
+            $lines = array_reverse($lines, true);
+            $lineCrosses = array_reverse($lineCrosses, true);
+            $lineSlacks = array_reverse($lineSlacks, true);
+        }
+
+        // CSS Flexbox 1 §5.2 — a COLUMN container's cross axis IS the
+        // inline axis, so `direction: rtl` moves cross-start to the right
+        // edge and lines stack right-to-left. The placement loop below
+        // always advances the cross cursor from the container's left edge,
+        // so reversing the line order puts the first line at the right.
+        // Without this an RTL `column` container stacked its lines
+        // left-to-right; with `wrap-reverse` the two reversals cancel,
+        // which is what `flexbox_rtl-order` asserts.
+        $containerDirection = $style->get('direction');
+        if ($isColumn
+            && $containerDirection instanceof Keyword
+            && strtolower($containerDirection->name) === 'rtl'
+        ) {
             $lines = array_reverse($lines, true);
             $lineCrosses = array_reverse($lineCrosses, true);
             $lineSlacks = array_reverse($lineSlacks, true);

@@ -224,6 +224,126 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $it->geometry->width, 1.0);
     }
 
+    public function testReverseDirectionCollectsLinesInDocumentOrder(): void
+    {
+        // CSS Flexbox 1 §9.3 step 5 — items are collected into lines in
+        // DOCUMENT order; `row-reverse` only flips placement WITHIN a line.
+        // Reversing the whole child list (how `*-reverse` is implemented)
+        // also walked the lines backwards, so `row-reverse wrap` put items
+        // 4 and 3 on the FIRST line and 2 and 1 on the second.
+        // Expected: line 1 = [2, 1] left-to-right, line 2 = [4, 3].
+        // (WPT flexbox-writing-mode-001.)
+        $box = $this->buildTree(
+            '<html><body><div id="f">'
+                . '<div id="i1"></div><div id="i2"></div>'
+                . '<div id="i3"></div><div id="i4"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-flow: row-reverse wrap;
+                  width: 40px; height: 30px; }
+             #f > div { width: 20px; height: 15px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->findById($box, 'f');
+        self::assertNotNull($f);
+        $pos = [];
+        foreach (['i1', 'i2', 'i3', 'i4'] as $id) {
+            $item = $this->findById($box, $id);
+            self::assertNotNull($item);
+            $pos[$id] = [
+                $item->geometry->x - $f->geometry->x,
+                $item->geometry->y - $f->geometry->y,
+            ];
+        }
+        self::assertEqualsWithDelta(20.0, $pos['i1'][0], 0.5);
+        self::assertEqualsWithDelta(0.0, $pos['i1'][1], 0.5);
+        self::assertEqualsWithDelta(0.0, $pos['i2'][0], 0.5);
+        self::assertEqualsWithDelta(0.0, $pos['i2'][1], 0.5);
+        self::assertEqualsWithDelta(20.0, $pos['i3'][0], 0.5);
+        self::assertEqualsWithDelta(15.0, $pos['i3'][1], 0.5);
+        self::assertEqualsWithDelta(0.0, $pos['i4'][0], 0.5);
+        self::assertEqualsWithDelta(15.0, $pos['i4'][1], 0.5);
+    }
+
+    public function testRtlColumnContainerStacksLinesRightToLeft(): void
+    {
+        // CSS Flexbox 1 §5.2 — a COLUMN container's cross axis is the
+        // INLINE axis, so `direction: rtl` puts cross-start at the right
+        // edge: the first flex line sits on the RIGHT and later lines march
+        // leftwards. The line-placement loop always advanced from the left,
+        // so an RTL column stacked its lines backwards.
+        // (WPT flexbox_rtl-order, where this cancels `wrap-reverse`.)
+        $box = $this->buildTree(
+            '<html><body><div id="f">'
+                . '<div id="i1"></div><div id="i2"></div>'
+                . '<div id="i3"></div><div id="i4"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-flow: column wrap; direction: rtl;
+                  width: 40px; height: 30px; }
+             #f > div { width: 20px; height: 15px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->findById($box, 'f');
+        $i1 = $this->findById($box, 'i1');
+        $i3 = $this->findById($box, 'i3');
+        self::assertNotNull($f);
+        self::assertNotNull($i1);
+        self::assertNotNull($i3);
+        // Line 0 = items 1 and 2 at the RIGHT; line 1 = items 3 and 4 left.
+        self::assertEqualsWithDelta(20.0, $i1->geometry->x - $f->geometry->x, 0.5);
+        self::assertEqualsWithDelta(0.0, $i3->geometry->x - $f->geometry->x, 0.5);
+    }
+
+    public function testLtrColumnContainerStacksLinesLeftToRight(): void
+    {
+        // Guard: the default `direction: ltr` keeps cross-start at the left.
+        $box = $this->buildTree(
+            '<html><body><div id="f">'
+                . '<div id="i1"></div><div id="i2"></div>'
+                . '<div id="i3"></div><div id="i4"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-flow: column wrap;
+                  width: 40px; height: 30px; }
+             #f > div { width: 20px; height: 15px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->findById($box, 'f');
+        $i1 = $this->findById($box, 'i1');
+        $i3 = $this->findById($box, 'i3');
+        self::assertNotNull($f);
+        self::assertNotNull($i1);
+        self::assertNotNull($i3);
+        self::assertEqualsWithDelta(0.0, $i1->geometry->x - $f->geometry->x, 0.5);
+        self::assertEqualsWithDelta(20.0, $i3->geometry->x - $f->geometry->x, 0.5);
+    }
+
+    public function testForwardDirectionLineCollectionIsUnchanged(): void
+    {
+        // Guard: plain `row wrap` must keep items 1,2 on the first line.
+        $box = $this->buildTree(
+            '<html><body><div id="f">'
+                . '<div id="i1"></div><div id="i2"></div>'
+                . '<div id="i3"></div><div id="i4"></div>'
+                . '</div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-flow: row wrap; width: 40px; height: 30px; }
+             #f > div { width: 20px; height: 15px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->findById($box, 'f');
+        $i1 = $this->findById($box, 'i1');
+        $i4 = $this->findById($box, 'i4');
+        self::assertNotNull($f);
+        self::assertNotNull($i1);
+        self::assertNotNull($i4);
+        self::assertEqualsWithDelta(0.0, $i1->geometry->x - $f->geometry->x, 0.5);
+        self::assertEqualsWithDelta(0.0, $i1->geometry->y - $f->geometry->y, 0.5);
+        self::assertEqualsWithDelta(20.0, $i4->geometry->x - $f->geometry->x, 0.5);
+        self::assertEqualsWithDelta(15.0, $i4->geometry->y - $f->geometry->y, 0.5);
+    }
+
     public function testGridInIndefiniteColumnFlexContainerIgnoresPercentHeight(): void
     {
         // CSS 2.1 §10.5 — `height: %` against an INDEFINITE containing
