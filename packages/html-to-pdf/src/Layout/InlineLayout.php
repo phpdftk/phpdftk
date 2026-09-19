@@ -839,19 +839,18 @@ final class InlineLayout
      * float overlapping the line, `left` rises; with a right float,
      * `right` falls.
      *
-     * CSS 2.1 §9.5 — a line box next to a float is shortened by the
-     * MOST-constrained intrusion over the line's full height, not just at
-     * its top edge. `$lineHeight` (the block's strut line-height, a lower
-     * bound on the actual line height) defines the vertical band; the float
-     * context is sampled at several points across `[relY, relY+lineHeight]`
-     * and the tightest left/right kept, so a float — or a CSS Shapes 1
-     * contour whose widest point sits below the line top — still narrows the
-     * line. With `$lineHeight` 0 (the default) this degrades to the old
-     * single-point sample at the top edge.
+     * CSS 2.1 §9.5 / CSS Shapes 1 §1.2 — a line box next to a float is
+     * shortened by the MOST-constrained intrusion over the line's full block
+     * extent, not just at its top edge. `$bandHeight` defines that extent and
+     * {@see FloatContext::leftEdgeInBand} takes the true extremum over it —
+     * analytic for `inset()` and `polygon()`, and for `circle()` / `ellipse()`
+     * the value at whichever band endpoint (or the vertical centre, when the
+     * band straddles it) intrudes furthest. A `$bandHeight` of 0 (the default)
+     * degrades to a single-point query at the top edge.
      *
      * @return array{left: float, right: float}
      */
-    private function lineBounds(Box $parent, float $availableWidth, LayoutContext $context, float $relY, float $lineHeight = 0.0): array
+    private function lineBounds(Box $parent, float $availableWidth, LayoutContext $context, float $relY, float $bandHeight = 0.0): array
     {
         // A vertical IFC wraps against the block size, and FloatContext is
         // physically horizontal — it samples a Y band and returns left/right
@@ -866,17 +865,10 @@ final class InlineLayout
             return ['left' => 0.0, 'right' => $availableWidth];
         }
         $parentX = $parent->geometry->x;
-        $parentY = $parent->geometry->y;
-        $absTop = $parentY + $relY;
-        $band = max(0.0, $lineHeight);
-        $samples = $band > 0.0 ? 5 : 1;
-        $maxLeft = $parentX;
-        $minRight = $parentX + $availableWidth;
-        for ($i = 0; $i < $samples; $i++) {
-            $y = $samples > 1 ? $absTop + $band * ($i / ($samples - 1)) : $absTop;
-            $maxLeft = max($maxLeft, $floatCtx->leftEdgeAt($y, $parentX));
-            $minRight = min($minRight, $floatCtx->rightEdgeAt($y, $parentX + $availableWidth));
-        }
+        $absTop = $parent->geometry->y + $relY;
+        $absBottom = $absTop + max(0.0, $bandHeight);
+        $maxLeft = $floatCtx->leftEdgeInBand($absTop, $absBottom, $parentX);
+        $minRight = $floatCtx->rightEdgeInBand($absTop, $absBottom, $parentX + $availableWidth);
         return [
             'left' => max(0.0, $maxLeft - $parentX),
             'right' => max(0.0, $minRight - $parentX),

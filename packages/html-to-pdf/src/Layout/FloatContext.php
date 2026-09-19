@@ -16,6 +16,13 @@ namespace Phpdftk\HtmlToPdf\Layout;
  */
 final class FloatContext
 {
+    /**
+     * Tolerance (CSS px) for band / extent comparisons, and the amount a
+     * non-degenerate line band is shrunk by before the contour is
+     * evaluated — see {@see bandLocalRange}.
+     */
+    private const EPS = 0.001;
+
     /** @var list<FloatItem> */
     private array $items = [];
 
@@ -234,19 +241,39 @@ final class FloatContext
      */
     public function leftEdgeAt(float $y, float $containingLeft, bool $ignoreShape = false): float
     {
+        return $this->leftEdgeInBand($y, $y, $containingLeft, $ignoreShape);
+    }
+
+    /**
+     * Right edge of the left floats' exclusion contour over the block-axis
+     * band `[$bandTop, $bandBottom]` — the X where a LINE BOX of that
+     * vertical extent must start.
+     *
+     * CSS Shapes 1 §1.2 defines the float area per LINE BOX, not per scan
+     * line: the line is shortened by the float's MAXIMUM intrusion anywhere
+     * over the line's own block extent. Evaluating the contour at the line's
+     * top edge alone — or at a handful of sample points across the band —
+     * under- or over-states a curved or sloped contour by a fraction of a
+     * line, which is precisely the residual the `shape-outside` reftests
+     * measure. This takes the true extremum instead: analytic for `inset()`
+     * and `polygon()`, and for `circle()` / `ellipse()` the value at
+     * whichever of the band's endpoints (or the vertical centre, when the
+     * band straddles it) intrudes furthest.
+     */
+    public function leftEdgeInBand(
+        float $bandTop,
+        float $bandBottom,
+        float $containingLeft,
+        bool $ignoreShape = false,
+    ): float {
         $edge = $containingLeft;
         foreach ($this->items as $item) {
-            if ($item->side !== 'left') {
+            if ($item->side !== 'left' || $this->hasEmptyFloatArea($item, $ignoreShape)) {
                 continue;
             }
-            if ($this->hasEmptyFloatArea($item, $ignoreShape)) {
-                continue;
-            }
-            if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {
-                $rightEdge = $this->itemRightEdgeAt($item, $y, $ignoreShape);
-                if ($rightEdge > $edge) {
-                    $edge = $rightEdge;
-                }
+            $rightEdge = $this->itemRightEdgeInBand($item, $bandTop, $bandBottom, $ignoreShape);
+            if ($rightEdge !== null && $rightEdge > $edge) {
+                $edge = $rightEdge;
             }
         }
         return $edge;
@@ -266,50 +293,139 @@ final class FloatContext
     }
 
     /**
-     * Right edge of a left-float's exclusion region at `$y`. When the
-     * item carries a `shape` (CSS Shapes 1 §3) the edge tracks the
-     * shape's contour; otherwise it's the bounding rect's right edge.
+     * Right edge of a left-float's exclusion region over the band, or null
+     * when the band never touches the float's area. When the item carries a
+     * `shape` (CSS Shapes 1 §3) the edge tracks the shape's contour;
+     * otherwise it's the bounding rect's right edge.
      */
-    private function itemRightEdgeAt(FloatItem $item, float $y, bool $ignoreShape = false): float
-    {
+    private function itemRightEdgeInBand(
+        FloatItem $item,
+        float $bandTop,
+        float $bandBottom,
+        bool $ignoreShape,
+    ): ?float {
+        $range = $this->bandLocalRange($item, $bandTop, $bandBottom);
+        if ($range === null) {
+            return null;
+        }
         if ($ignoreShape || $item->shape === null) {
             return $item->left + $item->width;
+        }
+        $local = $this->shapeRightEdgeInBand($item, $range[0], $range[1]);
+        if ($local === null) {
+            return null;
         }
         // CSS Shapes 1 §1.1 — the float area is CLIPPED to the float's
         // margin box, so a shape larger than the float itself (say a
         // `circle(150px)` on a 50x50 float) cannot push content past
         // the float's own outer edge.
         return min(
-            $item->left + $this->shapeRightEdgeLocal($item, $y),
+            $item->left + $local,
             $item->marginBoxLeft() + $item->marginBoxWidth(),
         );
     }
 
-    /**
-     * Left edge of a right-float's exclusion region at `$y`.
-     */
-    private function itemLeftEdgeAt(FloatItem $item, float $y, bool $ignoreShape = false): float
-    {
+    /** Left edge of a right-float's exclusion region over the band. */
+    private function itemLeftEdgeInBand(
+        FloatItem $item,
+        float $bandTop,
+        float $bandBottom,
+        bool $ignoreShape,
+    ): ?float {
+        $range = $this->bandLocalRange($item, $bandTop, $bandBottom);
+        if ($range === null) {
+            return null;
+        }
         if ($ignoreShape || $item->shape === null) {
             return $item->left;
         }
+        $local = $this->shapeLeftEdgeInBand($item, $range[0], $range[1]);
+        if ($local === null) {
+            return null;
+        }
         // §1.1 clip, mirrored for a right float.
-        return max(
-            $item->left + $this->shapeLeftEdgeLocal($item, $y),
-            $item->marginBoxLeft(),
-        );
+        return max($item->left + $local, $item->marginBoxLeft());
     }
 
     /**
-     * Right edge of the shape (in item-local coords) at `$y`. For a
-     * left-float, this is the X past which inline content can flow.
-     * Returns `width` (full bounding-rect edge) when the shape doesn't
-     * intersect this Y, so the float still pushes text down past its
-     * bottom edge as in the rect case.
+     * Intersect the line band `[$bandTop, $bandBottom]` with `$item`'s own
+     * vertical extent and return the item-LOCAL `[lo, hi]` the contour
+     * should be evaluated over — or null when the band misses the item.
+     *
+     * The band is treated as OPEN: a float whose bottom edge lands exactly
+     * on a line's top (or whose top edge lands exactly on its bottom) does
+     * not shorten that line, and a self-intersecting `polygon()`'s
+     * single-point spike at a shared line boundary stops leaking into the
+     * line below it. A degenerate (zero-height) band keeps the old
+     * single-point semantics.
+     *
+     * @return array{float, float}|null
      */
-    private function shapeRightEdgeLocal(FloatItem $item, float $y): float
+    private function bandLocalRange(FloatItem $item, float $bandTop, float $bandBottom): ?array
     {
-        $yLocal = $y - $item->top;
+        if ($bandBottom > $bandTop + 2.0 * self::EPS) {
+            $bandTop += self::EPS;
+            $bandBottom -= self::EPS;
+        }
+        $lo = max($bandTop, $item->top - self::EPS);
+        $hi = min($bandBottom, $item->top + $item->height - self::EPS);
+        if ($lo > $hi) {
+            return null;
+        }
+        return [$lo - $item->top, $hi - $item->top];
+    }
+
+    /**
+     * Furthest-right point of the shape (item-local coords) anywhere in the
+     * local band `[$lo, $hi]`. Null means the shape encloses no area over
+     * that band, so the float does not shorten the line at all — distinct
+     * from "the contour sits at x = 0", which would still pin the line to
+     * the float's own left edge.
+     */
+    private function shapeRightEdgeInBand(FloatItem $item, float $lo, float $hi): ?float
+    {
+        $shape = $item->shape;
+        $kind = $shape['kind'] ?? null;
+        if ($kind === 'circle' || $kind === 'ellipse') {
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            $ry = (float) ($shape[$kind === 'circle' ? 'r' : 'ry'] ?? 0.0);
+            // A circle / ellipse is widest at its vertical centre and
+            // narrows monotonically away from it, so the extremum over the
+            // band is at `cy` when the band straddles it and at the nearer
+            // endpoint otherwise.
+            return $this->shapeRightEdgeLocalAt($item, max($lo, min($hi, $cy)));
+        }
+        if ($kind === 'polygon') {
+            /** @var list<array{float, float}> $vertices */
+            $vertices = $shape['vertices'] ?? [];
+            return $this->polygonEdgesInBand($vertices, $lo, $hi, max: true);
+        }
+        return $item->width;
+    }
+
+    /** Mirror of {@see shapeRightEdgeInBand} for a right float. */
+    private function shapeLeftEdgeInBand(FloatItem $item, float $lo, float $hi): ?float
+    {
+        $shape = $item->shape;
+        $kind = $shape['kind'] ?? null;
+        if ($kind === 'circle' || $kind === 'ellipse') {
+            $cy = (float) ($shape['cy'] ?? 0.0);
+            return $this->shapeLeftEdgeLocalAt($item, max($lo, min($hi, $cy)));
+        }
+        if ($kind === 'polygon') {
+            /** @var list<array{float, float}> $vertices */
+            $vertices = $shape['vertices'] ?? [];
+            return $this->polygonEdgesInBand($vertices, $lo, $hi, max: false);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Right edge of the shape (item-local coords) at a single local `$y`,
+     * or null when the shape has no area there.
+     */
+    private function shapeRightEdgeLocalAt(FloatItem $item, float $yLocal): ?float
+    {
         $shape = $item->shape;
         if ($shape === null) {
             return $item->width;
@@ -321,10 +437,9 @@ final class FloatContext
             $r = (float) ($shape['r'] ?? 0.0);
             $dy = $yLocal - $cy;
             if (abs($dy) > $r) {
-                return 0.0;
+                return null;
             }
-            $dx = sqrt(max(0.0, $r * $r - $dy * $dy));
-            return $cx + $dx;
+            return $cx + sqrt(max(0.0, $r * $r - $dy * $dy));
         }
         if ($kind === 'ellipse') {
             $cx = (float) ($shape['cx'] ?? 0.0);
@@ -336,29 +451,22 @@ final class FloatContext
             }
             $dy = $yLocal - $cy;
             if (abs($dy) > $ry) {
-                return 0.0;
+                return null;
             }
             // x = rx · sqrt(1 - (dy/ry)²)
-            $factor = sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
-            $dx = $rx * $factor;
-            return $cx + $dx;
+            return $cx + $rx * sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
         }
         if ($kind === 'polygon') {
             /** @var list<array{float, float}> $vertices */
             $vertices = $shape['vertices'] ?? [];
-            $maxX = $this->polygonEdgesAt($vertices, $yLocal, max: true);
-            return $maxX ?? 0.0;
+            return $this->polygonEdgesAt($vertices, $yLocal, max: true);
         }
         return $item->width;
     }
 
-    /**
-     * Left edge of the shape (in item-local coords) at `$y`, used by
-     * right-floats. Returns 0 when the shape doesn't intersect this Y.
-     */
-    private function shapeLeftEdgeLocal(FloatItem $item, float $y): float
+    /** Mirror of {@see shapeRightEdgeLocalAt} for a right float. */
+    private function shapeLeftEdgeLocalAt(FloatItem $item, float $yLocal): ?float
     {
-        $yLocal = $y - $item->top;
         $shape = $item->shape;
         if ($shape === null) {
             return 0.0;
@@ -370,10 +478,9 @@ final class FloatContext
             $r = (float) ($shape['r'] ?? 0.0);
             $dy = $yLocal - $cy;
             if (abs($dy) > $r) {
-                return $item->width;
+                return null;
             }
-            $dx = sqrt(max(0.0, $r * $r - $dy * $dy));
-            return $cx - $dx;
+            return $cx - sqrt(max(0.0, $r * $r - $dy * $dy));
         }
         if ($kind === 'ellipse') {
             $cx = (float) ($shape['cx'] ?? 0.0);
@@ -385,19 +492,52 @@ final class FloatContext
             }
             $dy = $yLocal - $cy;
             if (abs($dy) > $ry) {
-                return $item->width;
+                return null;
             }
-            $factor = sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
-            $dx = $rx * $factor;
-            return $cx - $dx;
+            return $cx - $rx * sqrt(max(0.0, 1.0 - ($dy * $dy) / ($ry * $ry)));
         }
         if ($kind === 'polygon') {
             /** @var list<array{float, float}> $vertices */
             $vertices = $shape['vertices'] ?? [];
-            $minX = $this->polygonEdgesAt($vertices, $yLocal, max: false);
-            return $minX ?? $item->width;
+            return $this->polygonEdgesAt($vertices, $yLocal, max: false);
         }
         return 0.0;
+    }
+
+    /**
+     * Extremum of a polygon's right-most (or left-most) crossing over the
+     * local band `[$lo, $hi]`.
+     *
+     * Between two consecutive vertex ordinates the set of edges crossing a
+     * scan line is fixed and each crossing is LINEAR in y, so the band's
+     * right-most crossing is a max of linear functions — convex, hence
+     * maximised at a sub-interval endpoint. Evaluating at the band's own
+     * ends plus every vertex ordinate strictly inside it is therefore exact,
+     * not a sample. (The left-most crossing is the mirror: a min of linear
+     * functions is concave and minimised at the same points.)
+     *
+     * @param list<array{float, float}> $vertices
+     */
+    private function polygonEdgesInBand(array $vertices, float $lo, float $hi, bool $max): ?float
+    {
+        $ys = [$lo, $hi];
+        foreach ($vertices as $vertex) {
+            $vy = $vertex[1];
+            if ($vy > $lo && $vy < $hi) {
+                $ys[] = $vy;
+            }
+        }
+        $best = null;
+        foreach ($ys as $y) {
+            $x = $this->polygonEdgesAt($vertices, $y, $max);
+            if ($x === null) {
+                continue;
+            }
+            if ($best === null || ($max && $x > $best) || (!$max && $x < $best)) {
+                $best = $x;
+            }
+        }
+        return $best;
     }
 
     /**
@@ -450,19 +590,24 @@ final class FloatContext
      */
     public function rightEdgeAt(float $y, float $containingRight, bool $ignoreShape = false): float
     {
+        return $this->rightEdgeInBand($y, $y, $containingRight, $ignoreShape);
+    }
+
+    /** Symmetric to {@see leftEdgeInBand} for right floats. */
+    public function rightEdgeInBand(
+        float $bandTop,
+        float $bandBottom,
+        float $containingRight,
+        bool $ignoreShape = false,
+    ): float {
         $edge = $containingRight;
         foreach ($this->items as $item) {
-            if ($item->side !== 'right') {
+            if ($item->side !== 'right' || $this->hasEmptyFloatArea($item, $ignoreShape)) {
                 continue;
             }
-            if ($this->hasEmptyFloatArea($item, $ignoreShape)) {
-                continue;
-            }
-            if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {
-                $leftEdge = $this->itemLeftEdgeAt($item, $y, $ignoreShape);
-                if ($leftEdge < $edge) {
-                    $edge = $leftEdge;
-                }
+            $leftEdge = $this->itemLeftEdgeInBand($item, $bandTop, $bandBottom, $ignoreShape);
+            if ($leftEdge !== null && $leftEdge < $edge) {
+                $edge = $leftEdge;
             }
         }
         return $edge;
