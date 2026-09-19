@@ -2160,6 +2160,16 @@ final class ValueParser
                 }
                 return new CalcFunc($func, $args);
             }
+            // CSS Anchor Positioning 1 §6 / §7 — `anchor()` and
+            // `anchor-size()` are <length> producers, so they are valid
+            // calc() operands. They resolve later (they need the anchor's
+            // geometry), so keep them as leaves for layout to substitute.
+            if ($name === 'anchor' || $name === 'anchor-size') {
+                $anchor = $name === 'anchor'
+                    ? $this->parseAnchorFunction($inner)
+                    : $this->parseAnchorSizeFunction($inner);
+                return $anchor === null ? null : new CalcLeaf($anchor);
+            }
             return null;
         }
         // Single primitive value.

@@ -3743,64 +3743,225 @@ final class BlockLayout
         $rtl = $direction instanceof Keyword && strtolower($direction->name) === 'rtl';
         foreach (['left', 'right', 'top', 'bottom'] as $prop) {
             $value = $style->get($prop);
-            if (!$value instanceof \Phpdftk\Css\Value\AnchorFunction) {
+            $resolve = fn(\Phpdftk\Css\Value\AnchorFunction $fn): ?float
+                => $this->resolveAnchorInset(
+                    $fn,
+                    $child,
+                    $prop,
+                    $cbLeft,
+                    $cbTop,
+                    $cbRight,
+                    $cbBottom,
+                    $rtl,
+                );
+            if ($value instanceof \Phpdftk\Css\Value\AnchorFunction) {
+                $resolved = $resolve($value);
+                if ($resolved !== null) {
+                    $style->set($prop, new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px));
+                } else {
+                    // CSS Anchor Positioning 1 §6.1 — a reference that
+                    // names nothing, or names a side off the property's
+                    // own axis, is an *invalid anchor function*. Record it
+                    // so `position-visibility: anchors-valid` can act.
+                    $this->invalidAnchorReference[spl_object_id($child)] = true;
+                    $style->set($prop, $value->fallback ?? new Keyword('auto'));
+                }
                 continue;
             }
-            $rect = $this->anchorBorderBox($value->anchorName, $child);
-            $resolved = null;
-            if ($rect !== null) {
-                [$anchorLeft, $anchorTop, $anchorWidth, $anchorHeight] = $rect;
-                $horizontal = $prop === 'left' || $prop === 'right';
-                $start = $horizontal ? $anchorLeft : $anchorTop;
-                $end = $start + ($horizontal ? $anchorWidth : $anchorHeight);
-                $position = $this->anchorSidePosition($value->side, $prop, $start, $end, $rtl);
-                if ($position !== null) {
-                    $resolved = match ($prop) {
-                        'left' => $position - $cbLeft,
-                        'top' => $position - $cbTop,
-                        'right' => $cbRight - $position,
-                        default => $cbBottom - $position,
-                    };
-                }
-            }
-            if ($resolved !== null) {
-                $style->set($prop, new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px));
-            } else {
-                // CSS Anchor Positioning 1 §6.1 — a reference that names
-                // nothing, or names a side off the property's own axis,
-                // is an *invalid anchor function*. Record it so
-                // `position-visibility: anchors-valid` can act on it.
-                $this->invalidAnchorReference[spl_object_id($child)] = true;
-                $style->set($prop, $value->fallback ?? new Keyword('auto'));
+            if ($value instanceof \Phpdftk\Css\Value\Calc) {
+                $this->substituteAnchorCalc($style, $prop, $value, $child, $resolve);
             }
         }
         foreach (['width', 'height', 'min-width', 'min-height', 'max-width', 'max-height'] as $prop) {
             $value = $style->get($prop);
-            if (!$value instanceof \Phpdftk\Css\Value\AnchorSizeFunction) {
-                continue;
-            }
-            $rect = $this->anchorBorderBox($value->anchorName, $child);
-            if ($rect === null) {
-                $this->invalidAnchorReference[spl_object_id($child)] = true;
-                $style->set($prop, $value->fallback ?? new Keyword('auto'));
-                continue;
-            }
-            [, , $anchorWidth, $anchorHeight] = $rect;
             $isWidthProperty = str_contains($prop, 'width');
-            $dimension = $value->dimension instanceof Keyword
-                ? strtolower($value->dimension->name)
-                : '';
-            // Logical dimensions collapse onto the physical ones under
-            // the horizontal-tb writing mode the anchor machinery is
-            // scoped to; an omitted dimension means "the axis of the
-            // property this is used on" (CSS Anchor Positioning 1 §7).
-            $size = match ($dimension) {
-                'width', 'inline', 'self-inline' => $anchorWidth,
-                'height', 'block', 'self-block' => $anchorHeight,
-                default => $isWidthProperty ? $anchorWidth : $anchorHeight,
-            };
-            $style->set($prop, new Length($size, \Phpdftk\Css\Value\LengthUnit::Px));
+            $resolve = fn(\Phpdftk\Css\Value\AnchorSizeFunction $fn): ?float
+                => $this->resolveAnchorSize($fn, $child, $isWidthProperty);
+            if ($value instanceof \Phpdftk\Css\Value\AnchorSizeFunction) {
+                $resolved = $resolve($value);
+                if ($resolved === null) {
+                    $this->invalidAnchorReference[spl_object_id($child)] = true;
+                    $style->set($prop, $value->fallback ?? new Keyword('auto'));
+                    continue;
+                }
+                $style->set($prop, new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px));
+                continue;
+            }
+            if ($value instanceof \Phpdftk\Css\Value\Calc) {
+                $this->substituteAnchorCalc($style, $prop, $value, $child, $resolve);
+            }
         }
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §6 — the inset `$prop` would take, in px
+     * measured from its own edge of the containing block, for the
+     * `anchor()` reference `$fn`. Null when the reference names nothing
+     * that precedes `$child`, or names a side off `$prop`'s axis.
+     */
+    private function resolveAnchorInset(
+        \Phpdftk\Css\Value\AnchorFunction $fn,
+        Box $child,
+        string $prop,
+        float $cbLeft,
+        float $cbTop,
+        float $cbRight,
+        float $cbBottom,
+        bool $rtl,
+    ): ?float {
+        $rect = $this->anchorBorderBox($fn->anchorName, $child);
+        if ($rect === null) {
+            return null;
+        }
+        [$anchorLeft, $anchorTop, $anchorWidth, $anchorHeight] = $rect;
+        $horizontal = $prop === 'left' || $prop === 'right';
+        $start = $horizontal ? $anchorLeft : $anchorTop;
+        $end = $start + ($horizontal ? $anchorWidth : $anchorHeight);
+        $position = $this->anchorSidePosition($fn->side, $prop, $start, $end, $rtl);
+        if ($position === null) {
+            return null;
+        }
+        return match ($prop) {
+            'left' => $position - $cbLeft,
+            'top' => $position - $cbTop,
+            'right' => $cbRight - $position,
+            default => $cbBottom - $position,
+        };
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §7 — the px extent an `anchor-size()`
+     * reference resolves to. An omitted dimension means "the axis of the
+     * property this is used on"; the logical dimensions collapse onto
+     * the physical ones under the horizontal-tb writing mode this
+     * machinery is scoped to.
+     */
+    private function resolveAnchorSize(
+        \Phpdftk\Css\Value\AnchorSizeFunction $fn,
+        Box $child,
+        bool $isWidthProperty,
+    ): ?float {
+        $rect = $this->anchorBorderBox($fn->anchorName, $child);
+        if ($rect === null) {
+            return null;
+        }
+        [, , $anchorWidth, $anchorHeight] = $rect;
+        $dimension = $fn->dimension instanceof Keyword
+            ? strtolower($fn->dimension->name)
+            : '';
+        return match ($dimension) {
+            'width', 'inline', 'self-inline' => $anchorWidth,
+            'height', 'block', 'self-block' => $anchorHeight,
+            default => $isWidthProperty ? $anchorWidth : $anchorHeight,
+        };
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §6 / §7 — `anchor()` and `anchor-size()`
+     * are `<length>` producers, so they are legal calc() operands:
+     * `top: calc(anchor(bottom) + 5px)` and `width: min(anchor-size(width),
+     * 100px)` both have to work. Rewrite every anchor leaf of `$calc` to
+     * the pixel length it resolves to and store the result on `$prop`.
+     *
+     * A leaf that does not resolve contributes its own fallback; with no
+     * fallback the whole declaration is invalid at computed-value time
+     * (CSS Values 4 §11), which for an inset or a size means `auto`.
+     *
+     * @param callable(\Phpdftk\Css\Value\AnchorFunction|\Phpdftk\Css\Value\AnchorSizeFunction): ?float $resolve
+     */
+    private function substituteAnchorCalc(
+        CascadedValues $style,
+        string $prop,
+        \Phpdftk\Css\Value\Calc $calc,
+        Box $child,
+        callable $resolve,
+    ): void {
+        if (!$this->calcContainsAnchor($calc->expression)) {
+            return;
+        }
+        $substituted = $this->substituteAnchorExpression($calc->expression, $resolve, $child);
+        if ($substituted === null) {
+            $style->set($prop, new Keyword('auto'));
+            return;
+        }
+        $style->set($prop, new \Phpdftk\Css\Value\Calc($substituted));
+    }
+
+    /** Whether a calc() tree mentions `anchor()` / `anchor-size()` at all. */
+    private function calcContainsAnchor(\Phpdftk\Css\Value\CalcExpression $expr): bool
+    {
+        if ($expr instanceof \Phpdftk\Css\Value\CalcLeaf) {
+            return $expr->value instanceof \Phpdftk\Css\Value\AnchorFunction
+                || $expr->value instanceof \Phpdftk\Css\Value\AnchorSizeFunction;
+        }
+        if ($expr instanceof \Phpdftk\Css\Value\CalcBinary) {
+            return $this->calcContainsAnchor($expr->left)
+                || $this->calcContainsAnchor($expr->right);
+        }
+        if ($expr instanceof \Phpdftk\Css\Value\CalcFunc) {
+            foreach ($expr->args as $arg) {
+                if ($this->calcContainsAnchor($arg)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Rewrite the anchor leaves of one calc() sub-tree. Null propagates
+     * "invalid at computed-value time" up to the caller.
+     *
+     * @param callable(\Phpdftk\Css\Value\AnchorFunction|\Phpdftk\Css\Value\AnchorSizeFunction): ?float $resolve
+     */
+    private function substituteAnchorExpression(
+        \Phpdftk\Css\Value\CalcExpression $expr,
+        callable $resolve,
+        Box $child,
+    ): ?\Phpdftk\Css\Value\CalcExpression {
+        if ($expr instanceof \Phpdftk\Css\Value\CalcLeaf) {
+            $value = $expr->value;
+            $isAnchor = $value instanceof \Phpdftk\Css\Value\AnchorFunction
+                || $value instanceof \Phpdftk\Css\Value\AnchorSizeFunction;
+            if (!$isAnchor) {
+                return $expr;
+            }
+            $resolved = $resolve($value);
+            if ($resolved !== null) {
+                return new \Phpdftk\Css\Value\CalcLeaf(
+                    new Length($resolved, \Phpdftk\Css\Value\LengthUnit::Px),
+                );
+            }
+            $this->invalidAnchorReference[spl_object_id($child)] = true;
+            $fallback = $value->fallback;
+            if ($fallback instanceof Length || $fallback instanceof Percentage) {
+                return new \Phpdftk\Css\Value\CalcLeaf($fallback);
+            }
+            if ($fallback instanceof \Phpdftk\Css\Value\Calc) {
+                return $fallback->expression;
+            }
+            return null;
+        }
+        if ($expr instanceof \Phpdftk\Css\Value\CalcBinary) {
+            $left = $this->substituteAnchorExpression($expr->left, $resolve, $child);
+            $right = $this->substituteAnchorExpression($expr->right, $resolve, $child);
+            if ($left === null || $right === null) {
+                return null;
+            }
+            return new \Phpdftk\Css\Value\CalcBinary($left, $expr->op, $right);
+        }
+        if ($expr instanceof \Phpdftk\Css\Value\CalcFunc) {
+            $args = [];
+            foreach ($expr->args as $arg) {
+                $substituted = $this->substituteAnchorExpression($arg, $resolve, $child);
+                if ($substituted === null) {
+                    return null;
+                }
+                $args[] = $substituted;
+            }
+            return new \Phpdftk\Css\Value\CalcFunc($expr->func, $args);
+        }
+        return $expr;
     }
 
     /**

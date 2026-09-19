@@ -6,6 +6,10 @@ namespace Phpdftk\Css\Tests;
 
 use Phpdftk\Css\Value\AnchorFunction;
 use Phpdftk\Css\Value\AnchorSizeFunction;
+use Phpdftk\Css\Value\Calc;
+use Phpdftk\Css\Value\CalcBinary;
+use Phpdftk\Css\Value\CalcFunc;
+use Phpdftk\Css\Value\CalcLeaf;
 use Phpdftk\Css\Value\CssFunction;
 use Phpdftk\Css\Value\Keyword;
 use Phpdftk\Css\Value\Length;
@@ -151,6 +155,43 @@ final class AnchorFunctionTest extends TestCase
     // -----------------------------------------------------------------------
     // Round-trip
     // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // anchor() / anchor-size() as calc() operands
+    // -----------------------------------------------------------------------
+
+    public function testAnchorIsAValidCalcOperand(): void
+    {
+        // CSS Anchor Positioning 1 §6 — `anchor()` produces a <length>,
+        // so it is a legal calc() operand. The calc parser used to reject
+        // any function it did not recognise, which dropped the whole
+        // declaration to a generic CssFunction that nothing resolves.
+        $value = $this->parser->parseFromString('calc(anchor(--my bottom) + 5px)');
+        self::assertInstanceOf(Calc::class, $value);
+        $expr = $value->expression;
+        self::assertInstanceOf(CalcBinary::class, $expr);
+        self::assertInstanceOf(CalcLeaf::class, $expr->left);
+        self::assertInstanceOf(AnchorFunction::class, $expr->left->value);
+        self::assertSame('--my', $expr->left->value->anchorName);
+    }
+
+    public function testAnchorSizeIsAValidCalcOperand(): void
+    {
+        $value = $this->parser->parseFromString('min(anchor-size(--my width), 100px)');
+        self::assertInstanceOf(Calc::class, $value);
+        $expr = $value->expression;
+        self::assertInstanceOf(CalcFunc::class, $expr);
+        self::assertInstanceOf(CalcLeaf::class, $expr->args[0]);
+        self::assertInstanceOf(AnchorSizeFunction::class, $expr->args[0]->value);
+    }
+
+    public function testMalformedAnchorInCalcDoesNotParseAsCalc(): void
+    {
+        // A bad anchor reference must not smuggle itself into a calc()
+        // tree as a resolvable leaf.
+        $value = $this->parser->parseFromString('calc(anchor(--my nonsense-side) + 5px)');
+        self::assertNotInstanceOf(Calc::class, $value);
+    }
 
     public function testToCssRoundTripsExplicit(): void
     {

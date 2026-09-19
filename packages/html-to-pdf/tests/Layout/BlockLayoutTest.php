@@ -12768,6 +12768,54 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
     }
 
+    public function testAnchorFunctionResolvesInsideCalc(): void
+    {
+        // CSS Anchor Positioning 1 §6 / §7 — anchor() and anchor-size()
+        // are <length> producers and so are legal calc() operands.
+        // Anchor right = 150, width = 100.
+        $box = $this->anchorTree(
+            'top: 0; left: calc(anchor(right) + 10px);'
+            . ' width: calc(anchor-size(width) + 10px); height: 20px;',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 160.0, $t->geometry->x, 0.5);
+        self::assertEqualsWithDelta(110.0, $t->geometry->width, 0.5);
+    }
+
+    public function testAnchorSizeResolvesInsideMin(): void
+    {
+        // min() / max() / clamp() are the same substitution, one level
+        // deeper. Anchor width = 100, so min(anchor-size(width), 40px)
+        // is 40.
+        $box = $this->anchorTree(
+            'top: 0; left: 0; width: min(anchor-size(width), 40px); height: 20px;',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta(40.0, $t->geometry->width, 0.5);
+    }
+
+    public function testUnresolvableAnchorInsideCalcTakesTheFallback(): void
+    {
+        // An anchor leaf that names nothing contributes its own fallback
+        // rather than poisoning the whole expression.
+        $box = $this->anchorTree(
+            'top: 0; left: calc(anchor(--nope right, 20px) + 10px);'
+            . ' width: 10px; height: 10px;',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 30.0, $t->geometry->x, 0.5);
+    }
+
     public function testPseudoElementAnchorsToItsOriginatingElement(): void
     {
         // CSS Anchor Positioning 1 §3.2 — `position-anchor: normal` (or
