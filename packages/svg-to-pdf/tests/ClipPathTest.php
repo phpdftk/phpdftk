@@ -250,6 +250,37 @@ final class ClipPathTest extends TestCase
         self::assertContains('W', $lines);
     }
 
+    public function testBboxModeKeepsThePathObjectFreeOfMatrixOperators(): void
+    {
+        // ISO 32000-2 §8.2 — a path object admits only path-construction
+        // operators between the first construction operator and the
+        // painting operator. The bbox / transform inverses used to be
+        // emitted BETWEEN the child path and `W`, which makes the stream
+        // malformed: consumers abandoned the path and the clip either
+        // vanished or never applied. Undoing the matrices after `W n` is
+        // equivalent (the region `W` records is already in device space)
+        // and keeps the path object well-formed.
+        $ops = explode("\n", $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="clip" clipPathUnits="objectBoundingBox" '
+            . 'transform="scale(0.5)">'
+            . '<rect width="2" height="2"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect x="10" y="20" width="50" height="30" fill="red" '
+            . 'clip-path="url(#clip)"/>'
+            . '</svg>',
+        ));
+        $ops = array_values(array_map('trim', $ops));
+        $reIndex = array_search('0 0 2 2 re', $ops, true);
+        self::assertIsInt($reIndex, 'clipPath child rect is emitted');
+        self::assertSame('W', $ops[$reIndex + 1] ?? null, 'W directly follows the path');
+        self::assertSame('n', $ops[$reIndex + 2] ?? null, 'n closes the path object');
+        // The inverses land after the path object, not inside it.
+        self::assertSame('2 0 0 2 0 0 cm', $ops[$reIndex + 3] ?? null);
+    }
+
     public function testClipPathTransformAndBboxModeCompose(): void
     {
         // bbox cm AND clipPath transform cm both apply. Order matters:

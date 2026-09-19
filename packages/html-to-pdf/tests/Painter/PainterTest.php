@@ -4992,6 +4992,103 @@ final class PainterTest extends TestCase
     }
 
     /**
+     * CSS Masking 1 §6.1 — `clip-path: url(#id)` clips the box to the
+     * referenced `<clipPath>`'s geometry, resolved in the element's own
+     * user space (origin = border-box top-left, y down).
+     */
+    public function testClipPathUrlReferenceEmitsClipFromClipPathElement(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<div style="width: 100px; height: 100px; background: green; '
+            . 'border: 10px solid red; clip-path: url(#c)"></div>'
+            . '<svg><clipPath id="c">'
+            . '<rect x="10" y="10" width="100" height="100"/>'
+            . '</clipPath></svg>'
+            . '</body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        $ops = $stream->getOperators();
+        self::assertContains('W', $this->operatorTokens($ops), 'url() clip-path emits a clip path');
+        // The rect is authored at (10, 10) 100x100 in the element's user
+        // space; the border box starts at the body origin, so the clip
+        // rectangle reaches the stream verbatim under a y-flip `cm`.
+        $rects = array_values(array_filter(
+            array_map('trim', $ops),
+            static fn(string $op): bool => str_ends_with($op, ' re')
+                && str_starts_with($op, '10 10 100 100'),
+        ));
+        self::assertNotEmpty($rects, 'clipPath child rect emitted in the element user space');
+    }
+
+    /**
+     * Negative: a `clip-path: url(#id)` whose target does not exist (or is
+     * not a `<clipPath>`) applies NO clip — the element paints whole
+     * rather than disappearing.
+     */
+    public function testClipPathUrlReferenceToMissingTargetEmitsNoClip(): void
+    {
+        foreach (['url(#nope)', 'url(#notaclip)'] as $value) {
+            $doc = $this->html->parseDocument(
+                '<html><body>'
+                . '<div style="width: 100px; height: 100px; background: green; '
+                . 'clip-path: ' . $value . '"></div>'
+                . '<svg><rect id="notaclip" width="10" height="10"/></svg>'
+                . '</body></html>',
+            );
+            $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+            $root = $this->generator->generate($doc, [$sheet]);
+            $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+            $writer = new PdfWriter(compressStreams: false);
+            $stream = $writer->addContentStream($writer->addPage(612, 792));
+            (new Painter(792.0))->paint($root, $stream);
+            self::assertNotContains(
+                'W',
+                $this->operatorTokens($stream->getOperators()),
+                "$value must not clip",
+            );
+        }
+    }
+
+    /**
+     * CSS Masking 1 §6.1 — `clipPathUnits="objectBoundingBox"` measures
+     * the children against the referencing element's bounding box, so a
+     * `width="0.5"` rect clips to its left half. ISO 32000-2 §8.2 also
+     * requires the bbox `cm` to be undone AFTER `W`/`n`: a `cm` between
+     * the path and its painting operator makes the stream malformed.
+     */
+    public function testClipPathUrlObjectBoundingBoxUnitsScaleToTheBorderBox(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<div style="width: 200px; height: 50px; background: green; '
+            . 'clip-path: url(#c)"></div>'
+            . '<svg><clipPath id="c" clipPathUnits="objectBoundingBox">'
+            . '<rect width="0.5" height="1"/>'
+            . '</clipPath></svg>'
+            . '</body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0))->paint($root, $stream);
+        $ops = array_map('trim', $stream->getOperators());
+        self::assertContains('200 0 0 50 0 0 cm', $ops, 'bbox matrix reifies the [0,1] coords');
+        // The path object must run `re` -> `W` -> `n` with nothing between.
+        $reIndex = array_search('0 0 0.5 1 re', $ops, true);
+        self::assertIsInt($reIndex, 'clipPath child rect emitted in bbox units');
+        self::assertSame('W', $ops[$reIndex + 1] ?? null, 'clip operator follows the path directly');
+        self::assertSame('n', $ops[$reIndex + 2] ?? null, 'path object ends with `n`');
+    }
+
+    /**
      * `clip-path: none` (the initial value) emits no clip path.
      */
     public function testClipPathNoneEmitsNoClip(): void

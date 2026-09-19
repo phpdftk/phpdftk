@@ -167,6 +167,12 @@ final class Painter
     private ?\Phpdftk\SvgToPdf\SvgRenderer $svgRenderer = null;
 
     /**
+     * Translator used to emit `clip-path: url(#id)` regions. Separate
+     * from {@see svgRenderer}'s translator — see {@see clipTranslator}.
+     */
+    private ?\Phpdftk\SvgToPdf\Translator $clipTranslator = null;
+
+    /**
      * Lazy-built adapter that converts an inline-SVG HTML DOM subtree
      * into a typed SvgDocument the renderer can paint. Caches its
      * results by element identity so a multi-page document only pays
@@ -4258,6 +4264,12 @@ final class Painter
     private function applyClipPath(Box $box, ContentStream $stream): bool
     {
         $shape = $box->style->get('clip-path');
+        // CSS Masking 1 §6.1 — `clip-path: <clip-source>` references a
+        // `<clipPath>` element. A `<url>` never combines with a
+        // `<geometry-box>`, so dispatch before the ValueList unwrap below.
+        if ($shape instanceof \Phpdftk\Css\Value\Url) {
+            return $this->applyReferencedClipPath($box, $shape->url, $stream);
+        }
         // CSS Masking 1 §6 — `clip-path: <basic-shape> || <geometry-box>`.
         // When a reference box is present the value parses as a ValueList
         // of [shape, geometry-box keyword] (in either order); unwrap it so
@@ -4410,6 +4422,131 @@ final class Painter
             return true;
         }
         return false;
+    }
+
+    /**
+     * CSS Masking 1 §6.1 — `clip-path: url(#id)` clips the box (and its
+     * subtree) to the geometry of the referenced `<clipPath>` element.
+     *
+     * The clipPath's children are resolved in the referencing element's
+     * own user coordinate system, whose origin is the top-left of its
+     * BORDER box with y running down (CSS Masking 1 §6.1, "the user
+     * coordinate system in place at the time the clipPath is
+     * referenced"). We install exactly that mapping as a `cm`, let the
+     * SVG translator build the region, then concatenate the inverse: the
+     * clip established by `W` already lives in device space, so undoing
+     * the CTM leaves the region in force while the caller keeps painting
+     * in page coordinates. (Popping with `Q` instead would discard the
+     * clip along with the matrix.)
+     *
+     * `clipPathUnits="objectBoundingBox"` measures the children against
+     * the element's bounding box, which for a non-SVG element is that
+     * same border box.
+     *
+     * Fragment-only URLs are always document-local (CSS Values 4 §4.5),
+     * so a `<base href>` never redirects them; a URL with a path is
+     * loaded as an external SVG resource. Returns false — no clip, the
+     * element paints whole — when the reference does not resolve to a
+     * `<clipPath>`.
+     */
+    private function applyReferencedClipPath(Box $box, string $rawUrl, ContentStream $stream): bool
+    {
+        $url = trim($rawUrl);
+        $hash = strpos($url, '#');
+        if ($hash === false) {
+            return false;
+        }
+        $id = substr($url, $hash + 1);
+        if ($id === '') {
+            return false;
+        }
+        $svgDoc = $hash === 0
+            ? $this->hostSvgDocumentFor($box, $id)
+            : $this->loadSvgDocument(substr($url, 0, $hash));
+        if ($svgDoc === null) {
+            return false;
+        }
+        $clipPath = $svgDoc->findById($id);
+        if (!$clipPath instanceof \Phpdftk\Svg\ClipPath) {
+            return false;
+        }
+        [$bx, $by, $bw, $bh] = $this->clipReferenceBox($box->geometry, 'border-box');
+        if ($bw <= 0.0 || $bh <= 0.0) {
+            return false;
+        }
+        $ph = $this->pageHeight;
+        $stream->saveGraphicsState();
+        $stream->concatMatrix(1.0, 0.0, 0.0, -1.0, $bx, $ph - $by);
+        try {
+            $this->clipTranslator()->emitClipPathRegion(
+                $svgDoc,
+                $clipPath,
+                $stream,
+                // SVG 2 §10.3 — percentage lengths on the clipPath's
+                // children resolve against the viewport. The referencing
+                // element is not inside any SVG viewport, so that is the
+                // initial viewport: the page box.
+                ['w' => $this->pageWidth, 'h' => $ph],
+                [0.0, 0.0, $bw, $bh],
+            );
+        } catch (\Throwable) {
+            $stream->restoreGraphicsState();
+            return false;
+        }
+        $stream->concatMatrix(1.0, 0.0, 0.0, -1.0, -$bx, $ph - $by);
+        return true;
+    }
+
+    /**
+     * Resolve a document-local `#id` clip / mask reference to the parsed
+     * `SvgDocument` for the inline `<svg>` that hosts it.
+     *
+     * The id is looked up in the HTML DOM (so an `<svg>` anywhere in the
+     * document can serve a `<clipPath>` to any element), then the
+     * OUTERMOST `<svg>` ancestor of the hit is adapted — that is the
+     * subtree `InlineSvgAdapter` knows how to turn into typed SVG
+     * elements, and its cache makes repeat lookups free.
+     */
+    private function hostSvgDocumentFor(Box $box, string $id): ?\Phpdftk\Svg\SvgDocument
+    {
+        $element = $box->element;
+        if ($element === null) {
+            return null;
+        }
+        $target = $element->ownerDocument->getElementById($id);
+        if ($target === null) {
+            return null;
+        }
+        $svgRoot = null;
+        for ($n = $target; $n !== null; $n = $n->parentNode) {
+            if ($n instanceof \Phpdftk\Html\Dom\Element
+                && \Phpdftk\HtmlToPdf\Box\BoxGenerator::foreignContentKind($n) === 'svg'
+            ) {
+                $svgRoot = $n;
+            }
+        }
+        if ($svgRoot === null) {
+            return null;
+        }
+        try {
+            return $this->inlineSvgAdapter()->adapt($svgRoot);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Lazily-built translator used ONLY to emit `<clipPath>` / `<mask>`
+     * geometry for document-local CSS references. Kept separate from
+     * {@see svgRenderer}'s translator so a clip emitted mid-paint can
+     * never disturb the state of an inline-SVG paint in progress.
+     */
+    private function clipTranslator(): \Phpdftk\SvgToPdf\Translator
+    {
+        if ($this->clipTranslator === null) {
+            $this->clipTranslator = new \Phpdftk\SvgToPdf\Translator();
+        }
+        return $this->clipTranslator;
     }
 
     /**

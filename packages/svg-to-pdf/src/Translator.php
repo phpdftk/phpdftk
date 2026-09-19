@@ -762,9 +762,84 @@ final class Translator
             return;
         }
 
-        $bboxMatrix = $bbox === null
-            ? null
-            : [$bbox['width'], 0.0, 0.0, $bbox['height'], $bbox['minX'], $bbox['minY']];
+        $this->emitClipRegion(
+            $clipPath,
+            $stream,
+            $bbox === null
+                ? null
+                : [$bbox['width'], 0.0, 0.0, $bbox['height'], $bbox['minX'], $bbox['minY']],
+        );
+    }
+
+    /**
+     * CSS Masking 1 §6.1 — emit the clipping region a `<clipPath>`
+     * describes into `$stream` for a caller OUTSIDE the SVG pipeline
+     * (the HTML painter's `clip-path: url(#id)`).
+     *
+     * The caller owns the coordinate system and the surrounding
+     * `q` / `Q`: it must already have concatenated the matrix that maps
+     * the clipPath's user space onto the page. On return the CTM is
+     * unchanged and the clip region is established, so the caller can
+     * keep painting in its own space.
+     *
+     * `$objectBoundingBox` is the referencing element's bounding box
+     * `[x, y, width, height]` **in that user space**, used only when the
+     * clipPath declares `clipPathUnits="objectBoundingBox"`; pass null
+     * to force `userSpaceOnUse`. `$viewport` resolves percentage lengths
+     * on the clipPath's children (SVG 2 §10.3) — for an HTML element
+     * that is the initial viewport, not any SVG viewport.
+     *
+     * @param array{w: float, h: float} $viewport
+     * @param array{0: float, 1: float, 2: float, 3: float}|null $objectBoundingBox
+     */
+    public function emitClipPathRegion(
+        SvgDocument $document,
+        ClipPath $clipPath,
+        ContentStream $stream,
+        array $viewport,
+        ?array $objectBoundingBox = null,
+    ): void {
+        $useBbox = $clipPath->clipPathUnits() === 'objectBoundingBox';
+        if ($useBbox && $objectBoundingBox === null) {
+            return;
+        }
+        $previousDocument = $this->document;
+        $this->document = $document;
+        $this->viewportStack[] = $viewport;
+        try {
+            $this->emitClipRegion(
+                $clipPath,
+                $stream,
+                $useBbox && $objectBoundingBox !== null
+                    ? [
+                        $objectBoundingBox[2],
+                        0.0,
+                        0.0,
+                        $objectBoundingBox[3],
+                        $objectBoundingBox[0],
+                        $objectBoundingBox[1],
+                    ]
+                    : null,
+            );
+        } finally {
+            array_pop($this->viewportStack);
+            $this->document = $previousDocument;
+        }
+    }
+
+    /**
+     * Shared body of {@see applyClipPath} / {@see emitClipPathRegion}:
+     * build the clipPath children's geometry under `$bboxMatrix` (the
+     * `objectBoundingBox` reification, null for `userSpaceOnUse`) plus
+     * the clipPath's own `transform`, then freeze it with `W`/`W*` + `n`.
+     *
+     * @param array{float, float, float, float, float, float}|null $bboxMatrix
+     */
+    private function emitClipRegion(
+        ClipPath $clipPath,
+        ContentStream $stream,
+        ?array $bboxMatrix,
+    ): void {
         $clipTransform = $clipPath->transform()?->toMatrix();
 
         // Apply outer→inner: bbox first, then the clipPath's own
@@ -782,17 +857,6 @@ final class Translator
                 $this->emitElementPath($child, $stream);
             }
         }
-        // Undo the cms in reverse order so the CTM is back to the
-        // pre-clip user space. The clip region established by `W`
-        // already lives in device space, so it survives the CTM
-        // changes.
-        if ($clipTransform !== null) {
-            $stream->concatMatrix(...self::inverseAffine($clipTransform));
-        }
-        if ($bboxMatrix !== null) {
-            $stream->concatMatrix(...self::inverseAffine($bboxMatrix));
-        }
-
         $rule = self::resolveClipRule($clipPath);
         if ($rule === 'evenodd') {
             $stream->clipEvenOdd();
@@ -800,6 +864,21 @@ final class Translator
             $stream->clip();
         }
         $stream->endPath();
+        // Undo the cms in reverse order so the CTM is back to the
+        // pre-clip user space. This has to happen AFTER `W`/`n`: ISO
+        // 32000-2 §8.2 admits only path-construction operators inside a
+        // path object, so a `cm` between the path and its painting
+        // operator makes the content stream malformed and consumers drop
+        // the clip (an `objectBoundingBox` clipPath then either vanished
+        // or failed to clip at all). Reordering is safe — the region
+        // `W` establishes already lives in device space, so it survives
+        // the CTM changes that follow.
+        if ($clipTransform !== null) {
+            $stream->concatMatrix(...self::inverseAffine($clipTransform));
+        }
+        if ($bboxMatrix !== null) {
+            $stream->concatMatrix(...self::inverseAffine($bboxMatrix));
+        }
     }
 
     /**
