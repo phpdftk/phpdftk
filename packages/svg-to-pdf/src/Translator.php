@@ -610,7 +610,7 @@ final class Translator
         if (preg_match('/^url\(\s*[\x22\x27]?#([^)\s\x22\x27]+)[\x22\x27]?\s*\)/i', $trimmed, $m) !== 1) {
             return null;
         }
-        $referent = $this->document->findById($m[1]);
+        $referent = $this->document->findByFragment($m[1]);
         if (!$referent instanceof Mask) {
             return null;
         }
@@ -974,7 +974,7 @@ final class Translator
         if (preg_match('/^url\(\s*[\x22\x27]?#([^)\s\x22\x27]+)[\x22\x27]?\s*\)/i', $trimmed, $m) !== 1) {
             return null;
         }
-        $referent = $this->document->findById($m[1]);
+        $referent = $this->document->findByFragment($m[1]);
         return $referent instanceof ClipPath ? $referent : null;
     }
 
@@ -2716,7 +2716,7 @@ final class Translator
         if (!$paint instanceof Url || $this->document === null) {
             return null;
         }
-        $target = $this->document->findById($paint->id);
+        $target = $this->document->findByFragment($paint->id);
         return $target instanceof Pattern ? $this->resolvePatternTemplate($target) : null;
     }
 
@@ -2762,7 +2762,7 @@ final class Translator
             if ($href === null || !str_starts_with($href, '#')) {
                 break;
             }
-            $next = $this->document->findById(substr($href, 1));
+            $next = $this->document->findByFragment(substr($href, 1));
             if (!$next instanceof Pattern) {
                 break;
             }

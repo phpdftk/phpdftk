@@ -111,7 +111,7 @@ final class GradientPainter
      */
     private function registerForElement(string $gradientId, Element $element, array $currentMatrix): ?ShadingPattern
     {
-        $gradient = $this->document->findById($gradientId);
+        $gradient = $this->document->findByFragment($gradientId);
         if (!$gradient instanceof Gradient) {
             return null;
         }

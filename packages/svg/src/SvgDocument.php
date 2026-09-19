@@ -43,6 +43,31 @@ final class SvgDocument extends ViewportElement
     }
 
     /**
+     * Resolve a URL FRAGMENT to the element it names.
+     *
+     * A `url(#…)` / `href="#…"` reference carries a URL fragment, and the
+     * URL Standard percent-DECODES a fragment before anything consumes
+     * it — so `url(#%66%6f%6f)` and `url(#foo)` name the same element.
+     * `findById()` deliberately stays a literal id lookup; every
+     * REFERENCE site goes through here instead.
+     *
+     * The literal form is tried as a fallback so a document that really
+     * does carry an id with a `%` in it stays reachable.
+     */
+    public function findByFragment(string $fragment): ?Element
+    {
+        if ($fragment === '') {
+            return null;
+        }
+        $decoded = rawurldecode($fragment);
+        $found = $this->findById($decoded);
+        if ($found !== null) {
+            return $found;
+        }
+        return $decoded === $fragment ? null : $this->findById($fragment);
+    }
+
+    /**
      * Drop the cached id index — call this after mutating the tree if
      * you need subsequent `findById` calls to see the new state.
      */

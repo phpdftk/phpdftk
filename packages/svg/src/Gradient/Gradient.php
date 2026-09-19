@@ -131,7 +131,7 @@ abstract class Gradient extends Element
         if ($href === null || isset($visited[$href])) {
             return [];
         }
-        $referent = $doc->findById($href);
+        $referent = $doc->findByFragment($href);
         if (!$referent instanceof self) {
             return [];
         }

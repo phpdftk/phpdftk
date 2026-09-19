@@ -82,7 +82,7 @@ final class Use_ extends Element
     public function resolve(SvgDocument $doc): ?Element
     {
         $id = $this->href();
-        return $id === null ? null : $doc->findById($id);
+        return $id === null ? null : $doc->findByFragment($id);
     }
 
     private function optionalLength(string $attr): ?float
