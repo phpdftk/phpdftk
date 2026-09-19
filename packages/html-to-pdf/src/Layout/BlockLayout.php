@@ -142,6 +142,14 @@ final class BlockLayout
     private array $anchorBoxes = [];
 
     /**
+     * Originating elements already registered under each anchor name, so
+     * {@see registerAnchorBox} keeps only an element's principal box.
+     *
+     * @var array<string, array<int, true>>
+     */
+    private array $anchorElements = [];
+
+    /**
      * Tree-order rank of every box, keyed by `spl_object_id`. CSS Anchor
      * Positioning 1 §3.1 only accepts an anchor that comes BEFORE the
      * positioned box, which is what keeps four sibling containers that
@@ -191,6 +199,7 @@ final class BlockLayout
         // before layout so an abs-pos box can resolve `anchor()` the
         // moment it is positioned.
         $this->anchorBoxes = [];
+        $this->anchorElements = [];
         $this->boxOrder = [];
         $this->collectAnchorBoxes($root, 0);
         // CSS Values 4 §6.1 — `rem` resolves against the DOCUMENT ROOT's
@@ -3412,12 +3421,12 @@ final class BlockLayout
         $name = $box->style->get('anchor-name');
         if ($name instanceof Keyword) {
             if (str_starts_with($name->name, '--')) {
-                $this->anchorBoxes[$name->name][] = $box;
+                $this->registerAnchorBox($name->name, $box);
             }
         } elseif ($name instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($name->values as $part) {
                 if ($part instanceof Keyword && str_starts_with($part->name, '--')) {
-                    $this->anchorBoxes[$part->name][] = $box;
+                    $this->registerAnchorBox($part->name, $box);
                 }
             }
         }
@@ -3425,6 +3434,35 @@ final class BlockLayout
             $order = $this->collectAnchorBoxes($child, $order);
         }
         return $order;
+    }
+
+    /**
+     * Register `$box` as the anchor element for `$name`.
+     *
+     * CSS Anchor Positioning 1 §3.1 names an *element*, and only its
+     * principal box is the anchor. One element can spawn several boxes
+     * that all share its `CascadedValues` — the `TextBox` holding its
+     * text, an `InlineBox` wrapper around replaced content — and those
+     * copies carry `anchor-name` along with everything else. They are
+     * never laid out into `Box::$geometry` (inline content lives in line
+     * fragments), so letting a later one win left every `anchor()` /
+     * `position-area` reference reading a zero rect whenever the anchor
+     * element had text in it. Keep the first box in tree order per
+     * element — that is the principal box — and ignore anonymous boxes,
+     * which no `anchor-name` declaration can ever name.
+     */
+    private function registerAnchorBox(string $name, Box $box): void
+    {
+        $element = $box->element;
+        if ($element === null) {
+            return;
+        }
+        $key = spl_object_id($element);
+        if (isset($this->anchorElements[$name][$key])) {
+            return;
+        }
+        $this->anchorElements[$name][$key] = true;
+        $this->anchorBoxes[$name][] = $box;
     }
 
     /**

@@ -12739,6 +12739,35 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($y, $second->geometry->y, 0.5);
     }
 
+    public function testAnchorWithTextContentStillResolvesFromItsPrincipalBox(): void
+    {
+        // CSS Anchor Positioning 1 §3.1 names an ELEMENT; only its
+        // principal box is the anchor. The `TextBox` generated for the
+        // anchor's text shares the element's `CascadedValues` — including
+        // `anchor-name` — but is never laid out into `Box::$geometry`, so
+        // preferring it (it comes later in tree order) made every
+        // reference read a zero rect. Same geometry as the empty-anchor
+        // case: anchor bottom = 100, anchor right = 150.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a">anchor text</div>'
+            . '<div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a { position: absolute; left: 50px; top: 40px;
+                  width: 100px; height: 60px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a;
+                  top: anchor(bottom); left: anchor(right);
+                  width: 20px; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $t->geometry->y, 0.5);
+        self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
+    }
+
     public function testColumnarRunIsCappedAtTheFragmentainerHeight(): void
     {
         // CSS Multi-column 1 §3.3 + §6.2 — a multicol container with a
