@@ -7164,7 +7164,7 @@ final class BlockLayout
         $dense = $this->gridLanesUsesDensePacking($style);
         /** @var array<int, list<array{start: float, end: float}>> $spaces */
         $spaces = [];
-        /** @var list<array{box: Box, start: int, span: int, pos: float, outer: float, oof: bool}> $placed */
+        /** @var list<array{box: Box, start: int, span: int, pos: float, outer: float, oof: bool, ctx: LayoutContext}> $placed */
         $placed = [];
 
         foreach ($items as $item) {
@@ -7217,6 +7217,9 @@ final class BlockLayout
             $areaStart = $trackReverse
                 ? $gridExtentUsed - $trackOffsets[$start] - $areaExtent
                 : $trackOffsets[$start];
+            // Overwritten by the callee; seeded so the by-ref argument is
+            // always a LayoutContext.
+            $itemContext = $context;
             $outer = $this->layoutGridLanesItem(
                 $item['box'],
                 $context,
@@ -7227,6 +7230,7 @@ final class BlockLayout
                 $maxPos,
                 $stackAxisSize,
                 $style,
+                $itemContext,
             );
             $placed[] = [
                 'box' => $item['box'],
@@ -7235,6 +7239,7 @@ final class BlockLayout
                 'pos' => $maxPos,
                 'outer' => max(0.0, $outer),
                 'oof' => $item['oof'],
+                'ctx' => $itemContext,
             ];
             if ($item['oof']) {
                 // §8 — an absolutely-positioned child is not a grid item;
@@ -7306,6 +7311,103 @@ final class BlockLayout
             $stackingRange = max($stackingRange, $r - $stackGap);
         }
         $stackingRange = max(0.0, $stackingRange);
+
+        // §6.4 — stacking-axis self-alignment. Unlike the grid axis (where
+        // the track supplies the alignment container), a masonry item's
+        // stacking-axis alignment container is the space it was allotted by
+        // the placement algorithm: from its own running position to wherever
+        // the NEXT item sharing one of its lanes begins, less the stacking
+        // gap. The last item in every lane it spans runs to the end of the
+        // stacking range.
+        //
+        // The bound is the next item's ALREADY-DECIDED position, so filling
+        // the space can never displace anything — this pass is not circular
+        // and needs no re-placement.
+        $stackSelfProperty = $gridAxisIsInline ? 'align-self' : 'justify-self';
+        $placedCount = count($placed);
+        foreach ($placed as $idx => $p) {
+            if ($p['oof']) {
+                // §8 — an abspos child is not a grid item; the lanes never
+                // allotted it any space.
+                continue;
+            }
+            $limit = $stackingRange;
+            for ($j = $idx + 1; $j < $placedCount; $j++) {
+                $q = $placed[$j];
+                if ($q['oof']) {
+                    continue;
+                }
+                // Lane ranges are half-open; disjoint spans do not constrain.
+                if ($q['start'] + $q['span'] <= $p['start']
+                    || $p['start'] + $p['span'] <= $q['start']
+                ) {
+                    continue;
+                }
+                $limit = min($limit, $q['pos'] - $stackGap);
+            }
+            $available = $limit - $p['pos'];
+            $slack = $available - $p['outer'];
+            if ($slack <= 0.001) {
+                continue;
+            }
+            $itemBox = $p['box'];
+            $keyword = $this->gridSelfKeyword($itemBox, $style, $stackSelfProperty);
+            $stackSizeIsAuto = $gridAxisIsInline
+                ? $this->isHeightAutoLike($itemBox->style->get('height'))
+                : $this->isAuto($itemBox->style->get('width'));
+            $autoStart = $this->isAuto(
+                $itemBox->style->get($gridAxisIsInline ? 'margin-top' : 'margin-left'),
+            );
+            $autoEnd = $this->isAuto(
+                $itemBox->style->get($gridAxisIsInline ? 'margin-bottom' : 'margin-right'),
+            );
+            $itemGeo = $itemBox->geometry;
+            if ($keyword === 'stretch' && $stackSizeIsAuto && !$autoStart && !$autoEnd) {
+                if ($gridAxisIsInline) {
+                    $content = $available
+                        - $itemGeo->marginTop - $itemGeo->marginBottom
+                        - $itemGeo->borderTop - $itemGeo->borderBottom
+                        - $itemGeo->paddingTop - $itemGeo->paddingBottom;
+                    $content = max(0.0, $content);
+                    $itemGeo->height = $content;
+                    // The stretch is a post-layout assignment like every
+                    // other; re-run the item's formatting context so its own
+                    // contents observe the definite block size.
+                    $this->relayoutStretchedToBlockSize($itemBox, $p['ctx'], $content);
+                    $itemGeo->height = $content;
+                } else {
+                    $itemGeo->width = max(
+                        0.0,
+                        $available
+                            - $itemGeo->marginLeft - $itemGeo->marginRight
+                            - $itemGeo->borderLeft - $itemGeo->borderRight
+                            - $itemGeo->paddingLeft - $itemGeo->paddingRight,
+                    );
+                }
+                $placed[$idx]['outer'] = $available;
+                continue;
+            }
+            // §10.1 — auto margins eat the free space before alignment does.
+            if ($autoStart || $autoEnd) {
+                $shift = $autoStart
+                    ? ($autoEnd ? $slack / 2.0 : $slack)
+                    : 0.0;
+            } else {
+                $shift = match ($keyword) {
+                    'end', 'flex-end', 'self-end' => $slack,
+                    'center' => $slack / 2.0,
+                    default => 0.0,
+                };
+            }
+            if ($shift !== 0.0) {
+                $this->shiftSubtree(
+                    $itemBox,
+                    $gridAxisIsInline ? $shift : 0.0,
+                    $gridAxisIsInline ? 0.0 : $shift,
+                );
+                $placed[$idx]['pos'] = $p['pos'] + $shift;
+            }
+        }
 
         // `fill-reverse` measures every running position from the END of
         // the stacking axis instead of its start, so an item placed at
@@ -7388,6 +7490,7 @@ final class BlockLayout
         float $stackPos,
         float $stackAxisSize,
         CascadedValues $containerStyle,
+        LayoutContext &$usedContext,
     ): float {
         $itemX = $gridAxisIsInline ? $geo->x + $areaStart : $geo->x + $stackPos;
         $itemY = $gridAxisIsInline ? $geo->y + $stackPos : $geo->y + $areaStart;
@@ -7428,6 +7531,9 @@ final class BlockLayout
             $layoutCtx = $layoutCtx->withContainingBlock($fitOuter, $cbItemHeight);
         }
         $this->layoutBox($child, $layoutCtx);
+        // Handed back so the §6.4 stacking-axis pass can re-run this item's
+        // own formatting context once its stretched size is known.
+        $usedContext = $layoutCtx;
 
         $childGeo = $child->geometry;
         if ($isStretch && $sizeIsAuto) {

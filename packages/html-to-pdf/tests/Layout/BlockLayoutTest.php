@@ -14936,4 +14936,55 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $col->geometry->height, 0.01);
         self::assertEqualsWithDelta(80.0, $grow->geometry->height, 0.01);
     }
+
+    public function testGridLanesStackingAxisAlignSelfEndUsesTheAllottedSpace(): void
+    {
+        // CSS Grid Layout 3 §6.4 — in the STACKING axis a masonry item's
+        // alignment container is the space the placement algorithm allotted
+        // it: from its own running position to where the next item sharing
+        // one of its lanes begins, less the stacking gap. Lane 1 holds a
+        // 40px item, lane 2 an 80px item; the spanning item is placed at 80,
+        // so item 1's allotted space is 0..80 and `align-self: end` puts its
+        // 40px box at y=40 instead of y=0.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 40px; align-self: end"></div>'
+            . '<div id="b" style="height: 80px"></div>'
+            . '<div id="c" style="height: 50px; grid-column: span 2"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid-lanes; grid-template-columns: 50px 50px;
+                  width: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertEqualsWithDelta($g->geometry->y + 40.0, $a->geometry->y, 0.01);
+    }
+
+    public function testGridLanesStackingAxisStretchFillsTheAllottedSpace(): void
+    {
+        // §6.4 — `normal` / `stretch` on an auto-sized item FILLS the
+        // allotted space rather than hugging its content. The same geometry
+        // as above: item 1 is auto-height, so it stretches from 0 to 80.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="align-self: stretch"></div>'
+            . '<div id="b" style="height: 80px"></div>'
+            . '<div id="c" style="height: 50px; grid-column: span 2"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid-lanes; grid-template-columns: 50px 50px;
+                  width: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertEqualsWithDelta($g->geometry->y, $a->geometry->y, 0.01);
+        self::assertEqualsWithDelta(80.0, $a->geometry->height, 0.01);
+    }
 }
