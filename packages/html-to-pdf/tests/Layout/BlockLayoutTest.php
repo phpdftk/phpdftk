@@ -12901,6 +12901,39 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y + 160.0, $t->geometry->y, 0.5);
     }
 
+    public function testPositionAreaBoxIsNotOffsetFromItsStaticPosition(): void
+    {
+        // CSS 2.1 §10.3.7 uses the static position only when BOTH insets
+        // on an axis are `auto`. A box positioned by `position-area` alone
+        // reads that way until the area has been folded into insets, so
+        // folding it afterwards laid the box out at its static position
+        // and then shifted it by the folded inset on top — landing at
+        // twice the offset whenever the static position was not the
+        // containing block's own corner. Here the anchor sits inside a
+        // 200px-indented wrapper, which is exactly the static position
+        // that used to be double-counted.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="pad"><div id="a"></div>'
+            . '<div id="t"></div></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 400px; height: 400px; }
+             #pad { padding-left: 200px; padding-top: 100px; }
+             #a { width: 50px; height: 25px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a;
+                  position-area: block-end center;
+                  width: 30px; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // Anchor x [200, 250], centre 225; a 30px box centres at 210.
+        self::assertEqualsWithDelta($cb->geometry->x + 210.0, $t->geometry->x, 0.5);
+        // Anchor bottom = 100 (padding) + 25 = 125.
+        self::assertEqualsWithDelta($cb->geometry->y + 125.0, $t->geometry->y, 0.5);
+    }
+
     public function testPositionAreaPercentageSizeResolvesAgainstTheRegion(): void
     {
         // CSS Anchor Positioning 1 §3.3 — the position-area region is the

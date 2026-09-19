@@ -5750,6 +5750,12 @@ final class BlockLayout
             ->withPositionedAncestor($pa);
         foreach ($absChildren as $child) {
             $this->cascade->resolveLengths($child->style, $this->boxLengthContext($child, $absCtx));
+            // CSS Anchor Positioning 1 §3.3 — fold `position-area` /
+            // `anchor()` down to ordinary insets BEFORE deciding whether
+            // the box has an edge anchor, or a box positioned purely by
+            // `position-area` reads as un-anchored and is laid out at its
+            // static position with the folded inset added on top.
+            $this->applyAbsoluteCornerAnchorSize($child, $absCtx);
             $absStyle = $child->style;
             $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
                 || !$this->isAuto($absStyle->get('bottom'));
@@ -5757,7 +5763,6 @@ final class BlockLayout
                 || !$this->isAuto($absStyle->get('right'));
             $absOriginX = $hasLeftAnchor ? $pa->originX : $geo->x;
             $absOriginY = $hasTopAnchor ? $pa->originY : $geo->y;
-            $this->applyAbsoluteCornerAnchorSize($child, $absCtx);
             $childLayoutCtx = $absCtx->withOrigin($absOriginX, $absOriginY);
             $this->layoutBox($child, $childLayoutCtx);
             [$dx, $dy] = $this->resolveAbsoluteOffsets(
@@ -13062,6 +13067,14 @@ final class BlockLayout
                 // at the positioned ancestor's origin on the anchored
                 // axes. The PA-relative resolveAbsoluteOffsets pass
                 // below applies the anchor offsets on top.
+                // CSS Anchor Positioning 1 §3.3 — fold `position-area` /
+                // `anchor()` down to ordinary insets BEFORE deciding
+                // whether the box has an edge anchor. A box positioned
+                // purely by `position-area` reads as "no anchor on either
+                // axis" until the fold has run, so it was laid out at its
+                // STATIC position and then shifted by the folded inset on
+                // top of it — landing at twice the offset.
+                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absStyle = $child->style;
                 $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
                     || !$this->isAuto($absStyle->get('bottom'));
@@ -13128,7 +13141,6 @@ final class BlockLayout
                 // derived from the containing block minus both
                 // anchors. Resolve here BEFORE laying out so the
                 // child's geometry reflects the corner-anchored size.
-                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
                 $this->layoutBox($child, $absLayoutCtx);
                 // resolveAbsoluteOffsets reads the cb dims from its
@@ -13577,6 +13589,14 @@ final class BlockLayout
                 if ($pa !== null) {
                     $absCb = $childContext->withContainingBlock($pa->width, $pa->height);
                 }
+                // CSS Anchor Positioning 1 §3.3 — fold `position-area` /
+                // `anchor()` down to ordinary insets BEFORE deciding
+                // whether the box has an edge anchor. A box positioned
+                // purely by `position-area` reads as "no anchor on either
+                // axis" until the fold has run, so it was laid out at its
+                // STATIC position and then shifted by the folded inset on
+                // top of it — landing at twice the offset.
+                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absStyle = $child->style;
                 $hasTopAnchor = !$this->isAuto($absStyle->get('top'))
                     || !$this->isAuto($absStyle->get('bottom'));
@@ -13631,7 +13651,6 @@ final class BlockLayout
                     ? $pa->originY
                     : (($child->wasInlineLevel ? $this->inlineStaticInlineEndVertical($prevInFlowChild, $absIsRtl) : null)
                         ?? $inlineStartFallbackY);
-                $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
                 $this->layoutBox($child, $absLayoutCtx);
                 [$dx, $dy] = $this->resolveAbsoluteOffsets(
