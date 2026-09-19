@@ -3678,8 +3678,11 @@ final class PainterTest extends TestCase
         $bytes = $writer->generate();
         self::assertStringContainsString('/SMask', $bytes);
         self::assertStringContainsString('/S /Luminosity', $bytes);
-        // The purple background still paints (masked, not hidden).
-        self::assertContains('rg', $opcodes, 'masked box still paints its background');
+        // The purple background still paints (masked, not hidden) — inside
+        // the transparency group the mask is applied to, so the PAGE stream
+        // holds the `Do` and the fill lives in the group's own stream.
+        self::assertContains('Do', $opcodes, 'masked subtree is drawn as one group');
+        self::assertStringContainsString('0.5019607843 0 0.5019607843 rg', $bytes);
     }
 
     public function testUrlImageMaskInstallsAlphaSoftMask(): void
@@ -3715,7 +3718,60 @@ final class PainterTest extends TestCase
         $bytes = $writer->generate();
         self::assertStringContainsString('/SMask', $bytes);
         self::assertStringContainsString('/S /Alpha', $bytes);
-        self::assertContains('rg', $opcodes, 'masked box still paints its background (not blanked)');
+        self::assertContains('Do', $opcodes, 'masked subtree is drawn as one group');
+        self::assertStringContainsString('0.5019607843 0 0.5019607843 rg', $bytes);
+    }
+
+    public function testMaskedSubtreeIsOneDrawUnderTheSoftMask(): void
+    {
+        // Regression guard: the masked scope must contain exactly ONE
+        // marking operation, the `Do` of the group form. Ghostscript drops
+        // a soft mask at the first `Q` inside the masked scope, and the
+        // painter wraps every paint step in its own `q`/`Q` — so a box
+        // painted step-by-step under `gs` kept only its FIRST block masked
+        // (a masked div rendered its borders at full opacity).
+        $png = 'data:image/png;base64,' . base64_encode(hex2bin(
+            '89504E470D0A1A0A0000000D49484452000000040000000408060000'
+            . '00A9F1CE7000000019744558745469746C6500496D6167652067656E657261746564206279204'
+            . '7494D502E64C84E6500000010494441541857636060601800000001000001D72E1D7900000000'
+            . '49454E44AE426082',
+        ));
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; }
+             div { width: 100px; height: 100px; background: purple;
+                   border: 10px solid red;
+                   mask-image: url(' . $png . '); }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, page: $page, writer: $writer))->paint($root, $stream);
+
+        $ops = array_map('trim', $stream->getOperators());
+        $gsIndex = null;
+        foreach ($ops as $i => $op) {
+            if (str_ends_with($op, ' gs')) {
+                $gsIndex = $i;
+                break;
+            }
+        }
+        self::assertIsInt($gsIndex, 'soft-mask ExtGState installed');
+        // Everything up to the closing `Q` of the mask scope.
+        $scope = [];
+        for ($i = $gsIndex + 1; $i < count($ops); $i++) {
+            if ($ops[$i] === 'Q') {
+                break;
+            }
+            $scope[] = $ops[$i];
+        }
+        self::assertCount(1, $scope, 'exactly one operator inside the mask scope');
+        self::assertStringEndsWith(' Do', $scope[0], 'and it is the group draw');
     }
 
     public function testUrlImageMaskWithNonDefaultGeometryStillInstallsSoftMask(): void
@@ -3750,8 +3806,10 @@ final class PainterTest extends TestCase
 
         $opcodes = $this->operatorTokens($stream->getOperators());
         self::assertContains('gs', $opcodes, 'non-default mask geometry still installs a soft mask');
-        self::assertStringContainsString('/SMask', $writer->generate());
-        self::assertContains('rg', $opcodes, 'masked box still paints its background');
+        $bytes = $writer->generate();
+        self::assertStringContainsString('/SMask', $bytes);
+        self::assertContains('Do', $opcodes, 'masked subtree is drawn as one group');
+        self::assertStringContainsString('0.5019607843 0 0.5019607843 rg', $bytes);
     }
 
     public function testNonDefaultMaskGeometryLeavesGradientMaskUnapplied(): void

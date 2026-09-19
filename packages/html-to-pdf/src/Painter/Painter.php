@@ -1103,8 +1103,12 @@ final class Painter
         return 0;
     }
 
-    private function paintBox(Box $box, ContentStream $stream, ?Box $parent = null): void
-    {
+    private function paintBox(
+        Box $box,
+        ContentStream $stream,
+        ?Box $parent = null,
+        bool $insideMaskedGroup = false,
+    ): void {
         // CSS Overflow 4 §6 — content after a `line-clamp` container's
         // clamp point is discarded: neither the box nor anything in its
         // subtree (including out-of-flow descendants) is painted.
@@ -1123,19 +1127,21 @@ final class Painter
         // box paint (ISO 32000-2 §11.6.5.2). A `url(<image>)` mask builds an
         // Alpha/Luminosity soft mask from the resolved image; a
         // `<linear-gradient>` mask builds one from the gradient's alpha.
-        $maskGsName = $this->buildBoxImageMaskGsName($box, $stream)
-            ?? $this->buildBoxGradientMaskGsName($box, $stream);
+        $maskGsName = $insideMaskedGroup
+            ? null
+            : ($this->buildBoxImageMaskGsName($box, $stream)
+                ?? $this->buildBoxGradientMaskGsName($box, $stream));
         // CSS Masking 1 §4.1 — a `mask-image` layer that cannot be resolved
         // to a mask image is empty (transparent black), masking the element
         // AND its subtree fully out. When we could NOT build a soft mask for
         // a single `url(...)` layer (unresolvable source, or a mask box model
         // we don't model yet), fall back to that "definitively failed" blank.
-        if ($maskGsName === null && $this->maskHidesElement($box)) {
+        if ($maskGsName === null && !$insideMaskedGroup && $this->maskHidesElement($box)) {
             return;
         }
         if ($maskGsName !== null) {
-            $stream->saveGraphicsState();
-            $stream->setGraphicsState($maskGsName);
+            $this->paintMaskedGroup($box, $stream, $parent, $maskGsName);
+            return;
         }
         $opacityGsName = $this->resolveOpacityGsName($box);
         if ($opacityGsName !== null) {
@@ -1274,9 +1280,71 @@ final class Painter
         if ($opacityGsName !== null) {
             $stream->restoreGraphicsState();
         }
-        if ($maskGsName !== null) {
-            $stream->restoreGraphicsState();
+    }
+
+    /**
+     * CSS Masking 1 §4 — paint a masked box as a single composited GROUP:
+     * the whole subtree goes into a transparency-group Form XObject, and
+     * that form is drawn once under the soft-mask `gs`.
+     *
+     * The obvious alternative — set `gs` and then paint normally — is what
+     * this replaces, and it does not survive a real consumer. Ghostscript
+     * drops the soft mask at the first `Q` inside the masked scope, and the
+     * painter wraps every step (background, each border, the content) in its
+     * own `q`/`Q`, so only the FIRST drawing block was ever masked: a masked
+     * `<div>` kept its borders at full opacity. Emitting one `Do` means
+     * there is exactly one marking operation under the mask, which is also
+     * the grouping CSS Masking specifies (the element and its subtree are
+     * composited, then masked) rather than per-operation masking.
+     *
+     * The form carries no `/Resources`: fonts, images and ExtGStates
+     * registered while painting the subtree land on the page, and a form
+     * without its own dictionary looks them up there (ISO 32000-2 §8.10.1).
+     */
+    private function paintMaskedGroup(
+        Box $box,
+        ContentStream $stream,
+        ?Box $parent,
+        string $maskGsName,
+    ): void {
+        $inner = new ContentStream();
+        $this->paintBox($box, $inner, $parent, insideMaskedGroup: true);
+        $operators = $inner->getOperators();
+        if ($operators === [] || $this->writer === null || $this->page === null) {
+            return;
         }
+        try {
+            $form = new \Phpdftk\Pdf\Core\Graphics\XObject\FormXObject(
+                new \Phpdftk\Pdf\Core\PdfArray([
+                    new \Phpdftk\Pdf\Core\PdfNumber(0.0),
+                    new \Phpdftk\Pdf\Core\PdfNumber(0.0),
+                    new \Phpdftk\Pdf\Core\PdfNumber($this->pageWidth),
+                    new \Phpdftk\Pdf\Core\PdfNumber($this->pageHeight),
+                ]),
+                implode("\n", $operators),
+            );
+            $group = new \Phpdftk\Pdf\Core\Document\GroupAttributes('Transparency');
+            $group->cs = new \Phpdftk\Pdf\Core\PdfName('DeviceRGB');
+            $group->i = new \Phpdftk\Pdf\Core\PdfBoolean(true);
+            $form->group = $group;
+            $this->writer->register($form);
+            $name = 'Fx_mask_' . $form->objectNumber;
+            $this->page->corePage()->resources?->addXObject(
+                $name,
+                new \Phpdftk\Pdf\Core\PdfReference($form->objectNumber),
+            );
+        } catch (\Throwable) {
+            // Could not build the group — paint the subtree unmasked
+            // rather than losing it entirely.
+            foreach ($operators as $operator) {
+                $stream->raw($operator);
+            }
+            return;
+        }
+        $stream->saveGraphicsState();
+        $stream->setGraphicsState($maskGsName);
+        $stream->doXObject($name);
+        $stream->restoreGraphicsState();
     }
 
     /**
