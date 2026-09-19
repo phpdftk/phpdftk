@@ -7512,11 +7512,13 @@ final class BlockLayout
             $shrinks[$i] = $this->resolveFlexShrink($children[$i]->style);
             $g = $children[$i]->geometry;
             if ($isColumn) {
-                $adornment = $g->marginTop + $g->borderTop + $g->paddingTop
-                    + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
+                $paddingBorder = $g->borderTop + $g->paddingTop
+                    + $g->paddingBottom + $g->borderBottom;
+                $adornment = $g->marginTop + $paddingBorder + $g->marginBottom;
             } else {
-                $adornment = $g->marginLeft + $g->borderLeft + $g->paddingLeft
-                    + $g->paddingRight + $g->borderRight + $g->marginRight;
+                $paddingBorder = $g->borderLeft + $g->paddingLeft
+                    + $g->paddingRight + $g->borderRight;
+                $adornment = $g->marginLeft + $paddingBorder + $g->marginRight;
             }
             $minProp2 = $isColumn ? 'min-height' : 'min-width';
             $maxProp2 = $isColumn ? 'max-height' : 'max-width';
@@ -7582,15 +7584,32 @@ final class BlockLayout
                         $transferred,
                         $itemContentBlock[$i] ?? 0.0,
                     );
-                    // Specified size suggestion: the definite used main
-                    // size (the post-flex-basis base size, when the
-                    // main-size property is definite). Undefined for an
-                    // `auto` main size, in which case the transferred
-                    // suggestion (cross × ratio) takes its place.
-                    $mainDefinite = !$this->isAuto(
-                        $children[$i]->style->get($isColumn ? 'height' : 'width'),
-                    );
-                    $specified = $mainDefinite ? max(0.0, $baseOuter[$i] - $adornment) : null;
+                    // Specified size suggestion: the item's PREFERRED
+                    // main size — its own `width` (row) / `height`
+                    // (column) property — when that is definite, NOT its
+                    // flex base size. `flex-basis` substitutes for the
+                    // preferred size only when computing the flex BASE
+                    // size (§9.2); §4.5 reads the size property itself.
+                    // Reading the base size instead made `flex: 0 0 0`
+                    // on a `width: 5em` item suggest 0, which floored the
+                    // automatic minimum at 0 and collapsed the item to
+                    // zero width (flexbox_flex-*-*-0). Undefined for an
+                    // `auto` (or intrinsic-keyword) main size, in which
+                    // case the transferred suggestion (cross × ratio)
+                    // takes its place.
+                    $mainSizeVal = $children[$i]->style->get($isColumn ? 'height' : 'width');
+                    $mainDefinite = !$this->isAuto($mainSizeVal)
+                        && $this->sizingKeywordName($mainSizeVal) === null;
+                    $specified = null;
+                    if ($mainDefinite) {
+                        $specified = $this->resolveLength($mainSizeVal, $cbMain);
+                        if ($this->isBorderBoxSizing($children[$i]->style)) {
+                            // CSS Sizing 3 §6.4 — under `border-box` the
+                            // declared size includes border + padding;
+                            // the suggestion is a CONTENT size.
+                            $specified = max(0.0, $specified - $paddingBorder);
+                        }
+                    }
                     $auto = $contentSuggestion;
                     if ($specified !== null) {
                         $auto = min($auto, $specified);

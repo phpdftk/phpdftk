@@ -224,6 +224,89 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $it->geometry->width, 1.0);
     }
 
+    public function testFlexBasisZeroKeepsSpecifiedSuggestionFromWidthNotBasis(): void
+    {
+        // CSS Flexbox 1 §4.5 — the SPECIFIED size suggestion is the item's
+        // preferred main size (its `width` property), NOT its flex base
+        // size. `flex: 0 0 0` zeroes the base size, but the automatic
+        // minimum must still be min(content suggestion, width) = 100px,
+        // so the item keeps a 100px floor. Reading the post-`flex-basis`
+        // base size instead suggested 0 and collapsed the item to zero
+        // width. (WPT flexbox_flex-0-0-0 and the whole flex-*-*-0 family.)
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="c"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #f { display: flex; width: 400px; }
+             #it { width: 200px; flex: 0 0 0; }
+             #c { width: 100px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $it = $this->findById($box, 'it');
+        self::assertNotNull($it);
+        self::assertEqualsWithDelta(100.0, $it->geometry->width, 0.5);
+    }
+
+    public function testFlexBasisZeroClampsAutomaticMinimumToTheSmallerWidth(): void
+    {
+        // The other half of §4.5's `min(content, specified)`: when the
+        // item's own `width` is SMALLER than its content min-content
+        // size, the specified suggestion is what caps the automatic
+        // minimum. A 40px-wide item holding 100px of content floors at
+        // 40px, not 100px.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="c"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #f { display: flex; width: 400px; }
+             #it { width: 40px; flex: 0 0 0; }
+             #c { width: 100px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $it = $this->findById($box, 'it');
+        self::assertNotNull($it);
+        self::assertEqualsWithDelta(40.0, $it->geometry->width, 0.5);
+    }
+
+    public function testExplicitMinWidthZeroStillOptsOutOfTheAutomaticMinimum(): void
+    {
+        // §4.5 applies only when the main-axis `min-width` is `auto`. An
+        // authored `min-width: 0` opts out, so a `flex: 0 0 0` item
+        // collapses to zero even though it has 100px of content — the
+        // specified-size-suggestion fix must not resurrect a floor here.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="c"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #f { display: flex; width: 400px; }
+             #it { width: 200px; min-width: 0; flex: 0 0 0; }
+             #c { width: 100px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $it = $this->findById($box, 'it');
+        self::assertNotNull($it);
+        self::assertEqualsWithDelta(0.0, $it->geometry->width, 0.5);
+    }
+
+    public function testBorderBoxFlexItemSpecifiedSuggestionExcludesPaddingAndBorder(): void
+    {
+        // CSS Sizing 3 §6.4 — under `box-sizing: border-box` the declared
+        // `width` is the BORDER box, while §4.5's specified size
+        // suggestion is a CONTENT size. A `width: 60px` item with 10px
+        // padding each side suggests 40px of content, so a `flex: 0 0 0`
+        // item holding 100px of content floors at 40px content
+        // (60px border box), not 60px content.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="c"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #f { display: flex; width: 400px; }
+             #it { box-sizing: border-box; width: 60px; padding: 0 10px;
+                   flex: 0 0 0; }
+             #c { width: 100px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $it = $this->findById($box, 'it');
+        self::assertNotNull($it);
+        self::assertEqualsWithDelta(40.0, $it->geometry->width, 0.5);
+    }
+
     public function testRowFlexItemPercentHeightTransfersMainAgainstContainer(): void
     {
         // CSS Sizing 4 §4.2 / Flexbox 1 §9.9 — a ROW flex item's
