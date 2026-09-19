@@ -32,6 +32,22 @@ final class GridBox extends Box
     public bool $lanesGridAxisIsInline = true;
 
     /**
+     * CSS Grid Layout 3 — `grid-lanes-direction: … fill-reverse`. Items
+     * fill each lane from the END of the stacking axis rather than its
+     * start. Only meaningful when {@see $lanes} is set.
+     */
+    public bool $lanesFillReverse = false;
+
+    /**
+     * CSS Grid Layout 3 — `grid-lanes-direction: … track-reverse`. The
+     * grid axis runs in the reverse direction, so the first lane the
+     * placement algorithm fills sits at the grid axis' END edge — the
+     * same relationship `direction: rtl` has with a column grid axis.
+     * Only meaningful when {@see $lanes} is set.
+     */
+    public bool $lanesTrackReverse = false;
+
+    /**
      * CSS Gaps 1 — absolute layout-space centre coordinates of each
      * column gap (for vertical `column-rule` decorations) and row gap
      * (for horizontal `row-rule` decorations). Populated by

@@ -5786,6 +5786,10 @@ final class BlockLayout
                 - $geo->borderLeft - $geo->borderRight
                 - $geo->paddingLeft - $geo->paddingRight,
         );
+        $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
+        $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
+        $gridAxisIsInline = $box->lanesGridAxisIsInline;
+
         $widthValue = $style->get('width');
         $widthKeyword = $this->sizingKeywordName($widthValue);
         if ($this->isAuto($widthValue)) {
@@ -5794,13 +5798,54 @@ final class BlockLayout
             if ($widthKeyword === 'stretch') {
                 $geo->width = $availableWidth;
             } else {
-                $mm = $this->measureContentMinMax($box, $context);
-                $geo->width = match ($widthKeyword) {
-                    'max-content' => $mm['max'],
-                    'min-content' => $mm['min'],
-                    'fit-content' => min($mm['max'], max($mm['min'], $availableWidth)),
-                    default => 0.0,
-                };
+                // CSS Grid Layout 3 §5 — a grid lanes container is sized like
+                // a regular grid container in the GRID axis, i.e. from its
+                // track list, not from an aggregate of its items. Only the
+                // stacking axis uses the stacking range. Fall back to the
+                // item aggregate when the tracks aren't fixed enough to add
+                // up on their own (an intrinsic track needs the items, which
+                // need a size).
+                // CSS Sizing 4 §6.1 — under inline-axis size containment the
+                // container's intrinsic size comes from
+                // `contain-intrinsic-size`, never from the tracks it
+                // happens to declare.
+                $containIntrinsicWidth = $this->resolveContainIntrinsicWidth($style);
+                $trackExtent = null;
+                if ($containIntrinsicWidth === null && $gridAxisIsInline) {
+                    $probe = $this->resolveGridTrackSizes(
+                        $this->parseGridTrackList(
+                            $style->get('grid-template-columns'),
+                            availableSize: 0.0,
+                            gap: $columnGap,
+                        ),
+                        0.0,
+                        $columnGap,
+                    );
+                    $extent = $this->gridTotalExtent($probe, $columnGap);
+                    if ($extent > 0.0) {
+                        $trackExtent = $extent;
+                    }
+                }
+                if ($containIntrinsicWidth !== null) {
+                    $geo->width = $containIntrinsicWidth;
+                } else {
+                    $mm = $this->measureContentMinMax($box, $context);
+                    // The track probe only knows the FIXED part of the track
+                    // list — an `fr` or intrinsic track reads as zero there.
+                    // Taking the larger of the two keeps a container whose
+                    // width is all fixed tracks honest (the item aggregate
+                    // misses the gaps and the empty tracks) without
+                    // undersizing one whose flexible tracks are carrying the
+                    // content.
+                    $min = max($mm['min'], $trackExtent ?? 0.0);
+                    $max = max($mm['max'], $trackExtent ?? 0.0);
+                    $geo->width = match ($widthKeyword) {
+                        'max-content' => $max,
+                        'min-content' => $min,
+                        'fit-content' => min($max, max($min, $availableWidth)),
+                        default => 0.0,
+                    };
+                }
             }
         } else {
             $geo->width = $this->resolveLength($widthValue, $cbWidth);
@@ -5809,10 +5854,6 @@ final class BlockLayout
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
-        $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
-        $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
-
-        $gridAxisIsInline = $box->lanesGridAxisIsInline;
         $explicitContainerHeight = $this->definiteContainerHeightOrNull($box, $context);
         $declaredHeight = $explicitContainerHeight
             ?? $this->ratioDerivedContainerHeight($style, $geo);
@@ -5828,12 +5869,45 @@ final class BlockLayout
             ? max(0.0, $declaredHeight ?? 0.0)
             : max(0.0, $geo->width);
 
+        // CSS Grid Layout 1 §6.4 / CSS Display 3 — `order` reorders the
+        // placement pass without touching DOM order for anything else.
+        $ordered = [];
+        foreach ($box->children as $domIdx => $child) {
+            if ($child instanceof \Phpdftk\HtmlToPdf\Box\TextBox
+                || $child instanceof \Phpdftk\HtmlToPdf\Box\InlineBox
+            ) {
+                continue;
+            }
+            $ordered[] = [
+                'box' => $child,
+                'order' => $this->resolveGridOrder($child),
+                'domIdx' => $domIdx,
+            ];
+        }
+        usort($ordered, static function (array $a, array $b): int {
+            return $a['order'] <=> $b['order'] ?: $a['domIdx'] <=> $b['domIdx'];
+        });
+
+        // §3.1.1 — Level 3 relaxes `<auto-repeat>` so the repeated track
+        // sizes may be intrinsic. Resolving the repetition count then needs
+        // a HYPOTHETICAL size for those tracks, computed per §3.4 with every
+        // item treated as auto-placed (and therefore contributing to every
+        // track). Since all lanes see the same candidate item set, one
+        // min/max-content pair over the items is that hypothetical size.
+        $lanesHypothetical = $this->gridLanesHypotheticalTrackSize(
+            $ordered,
+            $gridAxisIsInline,
+            $context,
+            $stackAxisSize,
+        );
+
         // §3.1 — the grid-template-* / grid-auto-* properties apply in the
         // grid axis and are IGNORED in the stacking axis.
         $descriptors = $this->parseGridTrackList(
             $style->get($gridAxisIsInline ? 'grid-template-columns' : 'grid-template-rows'),
             availableSize: $gridAxisSize,
             gap: $gridGap,
+            lanesHypothetical: $lanesHypothetical,
         );
         $autoTrackValue = $style->get($gridAxisIsInline ? 'grid-auto-columns' : 'grid-auto-rows');
         $autoTrackSize = $this->resolveGridAutoTrackSize($autoTrackValue);
@@ -5858,25 +5932,6 @@ final class BlockLayout
             $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);
             return $geo->outerHeight();
         }
-
-        // CSS Grid 1 §6.4 / CSS Display 3 — `order` reorders the placement
-        // pass without touching DOM order for anything else.
-        $ordered = [];
-        foreach ($box->children as $domIdx => $child) {
-            if ($child instanceof \Phpdftk\HtmlToPdf\Box\TextBox
-                || $child instanceof \Phpdftk\HtmlToPdf\Box\InlineBox
-            ) {
-                continue;
-            }
-            $ordered[] = [
-                'box' => $child,
-                'order' => $this->resolveGridOrder($child),
-                'domIdx' => $domIdx,
-            ];
-        }
-        usort($ordered, static function (array $a, array $b): int {
-            return $a['order'] <=> $b['order'] ?: $a['domIdx'] <=> $b['domIdx'];
-        });
 
         // §4.1 — the grid-placement properties apply in the grid axis only.
         // An explicit placement past the end of the explicit grid grows
@@ -5961,6 +6016,8 @@ final class BlockLayout
             $gridGapUsed += $extraGap;
         }
         $trackOffsets = $this->gridTrackOffsets($tracks, $gridGapUsed);
+        $trackReverse = $box->lanesTrackReverse;
+        $gridExtentUsed = $this->gridTotalExtent($tracks, $gridGapUsed);
 
         // §4.2 — the tie threshold. `normal` is 1em, a <percentage> resolves
         // against the grid-axis content box size, `infinite` disables the
@@ -5970,7 +6027,7 @@ final class BlockLayout
         $trackCount = count($tracks);
         $running = array_fill(0, $trackCount, 0.0);
         $cursor = 0;
-        /** @var list<array{box: Box, start: int, span: int, pos: float, oof: bool}> $placed */
+        /** @var list<array{box: Box, start: int, span: int, pos: float, outer: float, oof: bool}> $placed */
         $placed = [];
 
         foreach ($items as $item) {
@@ -6015,12 +6072,19 @@ final class BlockLayout
                 $maxPos = max($maxPos, $running[$start + $k]);
             }
             $areaExtent = $this->gridSpanExtent($tracks, $start, $span, $gridGapUsed);
+            // `track-reverse` runs the grid axis backwards: the lane the
+            // algorithm fills first sits at the axis' END edge, exactly as
+            // `direction: rtl` does for a column grid axis. Placement stays
+            // in declared-track order; only the physical offset mirrors.
+            $areaStart = $trackReverse
+                ? $gridExtentUsed - $trackOffsets[$start] - $areaExtent
+                : $trackOffsets[$start];
             $outer = $this->layoutGridLanesItem(
                 $item['box'],
                 $context,
                 $geo,
                 $gridAxisIsInline,
-                $trackOffsets[$start] + $gridOffset,
+                $areaStart + $gridOffset,
                 $areaExtent,
                 $maxPos,
                 $stackAxisSize,
@@ -6031,6 +6095,7 @@ final class BlockLayout
                 'start' => $start,
                 'span' => $span,
                 'pos' => $maxPos,
+                'outer' => max(0.0, $outer),
                 'oof' => $item['oof'],
             ];
             if ($item['oof']) {
@@ -6058,14 +6123,41 @@ final class BlockLayout
         }
         $stackingRange = max(0.0, $stackingRange);
 
+        // `fill-reverse` measures every running position from the END of
+        // the stacking axis instead of its start, so an item placed at
+        // `pos` with outer size `outer` actually sits at
+        // `size − pos − outer`. Mirroring after the fact keeps the
+        // placement algorithm itself direction-agnostic.
+        $stackMirrorSize = $gridAxisIsInline
+            ? ($explicitContainerHeight ?? $declaredHeight ?? $stackingRange)
+            : max(0.0, $geo->width);
+        if ($box->lanesFillReverse) {
+            foreach ($placed as $p) {
+                $delta = $stackMirrorSize - 2.0 * $p['pos'] - $p['outer'];
+                if ($delta !== 0.0) {
+                    $this->shiftSubtree(
+                        $p['box'],
+                        $gridAxisIsInline ? $delta : 0.0,
+                        $gridAxisIsInline ? 0.0 : $delta,
+                    );
+                }
+            }
+        }
+
         // §6.3 — stacking-axis content distribution treats the whole
         // stacking range as a single alignment subject, so only
-        // start / center / end have distinct behaviour.
+        // start / center / end have distinct behaviour. With
+        // `fill-reverse` the range already rests against the end edge,
+        // which is where the reversed fill put it; re-aligning it would
+        // undo the reversal.
         $stackContentProperty = $gridAxisIsInline ? 'align-content' : 'justify-content';
         $stackContainerSize = $gridAxisIsInline
             ? ($explicitContainerHeight ?? $declaredHeight)
             : max(0.0, $geo->width);
-        if ($stackContainerSize !== null && $stackContainerSize > $stackingRange) {
+        if (!$box->lanesFillReverse
+            && $stackContainerSize !== null
+            && $stackContainerSize > $stackingRange
+        ) {
             $shift = match ($this->gridContentAlignKeyword($style, $stackContentProperty)) {
                 'end', 'flex-end', 'self-end', 'right' => $stackContainerSize - $stackingRange,
                 'center', 'space-around', 'space-evenly' => ($stackContainerSize - $stackingRange) / 2.0,
@@ -6188,8 +6280,6 @@ final class BlockLayout
                 );
             }
         }
-
-        unset($sizeProperty);
 
         return $gridAxisIsInline ? $childGeo->outerHeight() : $childGeo->outerWidth();
     }
@@ -6330,6 +6420,87 @@ final class BlockLayout
     }
 
     /**
+     * CSS Grid Layout 3 §3.1.1 / §3.4 — the hypothetical size of an
+     * intrinsic track in a grid lanes container.
+     *
+     * §3.1.1 resolves an `<auto-repeat>` count by first sizing the
+     * repeated tracks "in accordance with §3.4 Grid Axis Track Sizing
+     * with … Ignore explicit item placement (that is, assume all items
+     * have an automatic position)". §3.4 then has every auto-placed item
+     * contribute to every track it could occupy, so every candidate
+     * track sees the same item set and the hypothetical size collapses
+     * to a single min/max-content pair over the items — each item's
+     * contribution divided by its span, since a spanning item's
+     * contribution is shared across the tracks it covers.
+     *
+     * Returns `null` when there is nothing to measure, which leaves the
+     * Grid 2 §7.2.3 "indeterminate → one repetition" fallback in place.
+     *
+     * @param  list<array{box: Box, order: int, domIdx: int}> $ordered
+     * @return array{min: float, max: float}|null
+     */
+    private function gridLanesHypotheticalTrackSize(
+        array $ordered,
+        bool $gridAxisIsInline,
+        LayoutContext $context,
+        float $stackAxisSize,
+    ): ?array {
+        $min = 0.0;
+        $max = 0.0;
+        $any = false;
+        foreach ($ordered as $entry) {
+            $child = $entry['box'];
+            if ($this->isOutOfFlow($child)) {
+                continue;
+            }
+            $span = max(1, $this->gridLanesDeclaredSpan($child, $gridAxisIsInline));
+            if ($gridAxisIsInline) {
+                $mm = $this->measureMinMaxContent($child, $context);
+            } else {
+                $trialCtx = $context->withContainingBlock($stackAxisSize, 0.0);
+                $this->cascade->resolveLengths(
+                    $child->style,
+                    $this->boxLengthContext($child, $trialCtx),
+                );
+                $fitOuter = $this->gridItemFitContentOuterWidth($child, $trialCtx, $stackAxisSize);
+                $height = $this->measureGridItemOuterHeight($child, $context, $fitOuter);
+                $mm = ['min' => $height, 'max' => $height];
+            }
+            $min = max($min, $mm['min'] / $span);
+            $max = max($max, $mm['max'] / $span);
+            $any = true;
+        }
+        return $any ? ['min' => $min, 'max' => $max] : null;
+    }
+
+    /**
+     * How many grid-axis tracks an item's own grid-placement properties
+     * ask for, before any auto-placement. `span N` on either side wins;
+     * two explicit lines give their difference; everything else is 1.
+     */
+    private function gridLanesDeclaredSpan(Box $child, bool $gridAxisIsInline): int
+    {
+        $startVal = $child->style->get($gridAxisIsInline ? 'grid-column-start' : 'grid-row-start');
+        $endVal = $child->style->get($gridAxisIsInline ? 'grid-column-end' : 'grid-row-end');
+        // A large line count keeps negative line numbers from folding onto
+        // a real line while the track count is still unknown.
+        $start = $this->parseGridLineValue($startVal, 1024);
+        $end = $this->parseGridLineValue($endVal, 1024);
+        if ($start !== null && $start['type'] === 'span') {
+            return max(1, $start['count'] ?? 1);
+        }
+        if ($end !== null && $end['type'] === 'span') {
+            return max(1, $end['count'] ?? 1);
+        }
+        if ($start !== null && $end !== null
+            && $start['type'] === 'line' && $end['type'] === 'line'
+        ) {
+            return max(1, ($end['value'] ?? 0) - ($start['value'] ?? 0));
+        }
+        return 1;
+    }
+
+    /**
      * CSS Grid Layout 3 §4.2 — resolve `flow-tolerance` to the tie
      * threshold in user units.
      *
@@ -6404,9 +6575,14 @@ final class BlockLayout
      * grid still has tracks to place items into.
      *
      * @param list<\Phpdftk\Css\Value\Value> $repeatTracks
+     * @param array{min: float, max: float}|null $lanesHypothetical
      */
-    private function computeAutoFillCount(array $repeatTracks, float $availableSize, float $gap): int
-    {
+    private function computeAutoFillCount(
+        array $repeatTracks,
+        float $availableSize,
+        float $gap,
+        ?array $lanesHypothetical = null,
+    ): int {
         if ($availableSize <= 0.0) {
             return 1;
         }
@@ -6420,10 +6596,29 @@ final class BlockLayout
         }
         $iterSize = 0.0;
         foreach ($iterTracks as $idx => $t) {
-            // Anything non-fixed (`fr`, intrinsic) makes the count
-            // indeterminate per §7.2.3; fall back to 1.
             if ($t['type'] !== 'length') {
-                return 1;
+                // CSS Grid Layout 3 §3.1.1 — Level 3 allows an intrinsic
+                // `<auto-repeat>` track in a grid lanes container and
+                // resolves the count against a hypothetical size derived
+                // from the items. Outside grid lanes (no hypothetical
+                // supplied) the count stays indeterminate per Grid 2
+                // §7.2.3 and falls back to a single repetition.
+                if ($lanesHypothetical === null) {
+                    return 1;
+                }
+                $hypo = match ($t['type']) {
+                    'min-content' => $lanesHypothetical['min'],
+                    'auto', 'max-content' => $lanesHypothetical['max'],
+                    default => null,
+                };
+                if ($hypo === null) {
+                    return 1;
+                }
+                $iterSize += max($hypo, (float) ($t['minFloor'] ?? 0.0));
+                if ($idx > 0) {
+                    $iterSize += $gap;
+                }
+                continue;
             }
             $iterSize += max(0.0, $t['value']);
             if ($idx > 0) {
@@ -6439,11 +6634,15 @@ final class BlockLayout
         return max(1, $count);
     }
 
-    /** @return list<array{type: string, value: float, minFloor?: float}> */
+    /**
+     * @param  array{min: float, max: float}|null $lanesHypothetical
+     * @return list<array{type: string, value: float, minFloor?: float}>
+     */
     private function parseGridTrackList(
         ?\Phpdftk\Css\Value\Value $value,
         float $availableSize = 0.0,
         float $gap = 0.0,
+        ?array $lanesHypothetical = null,
     ): array {
         if ($value === null
             || ($value instanceof Keyword && strtolower($value->name) === 'none')
@@ -6451,7 +6650,7 @@ final class BlockLayout
             return [];
         }
         $tracks = [];
-        $this->collectGridTrackDescriptors($value, $tracks, $availableSize, $gap);
+        $this->collectGridTrackDescriptors($value, $tracks, $availableSize, $gap, $lanesHypothetical);
         return $tracks;
     }
 
@@ -6461,16 +6660,18 @@ final class BlockLayout
      * other shape is silently skipped (Phase-2 will widen later).
      *
      * @param list<array{type: string, value: float, minFloor?: float}> $out
+     * @param array{min: float, max: float}|null $lanesHypothetical
      */
     private function collectGridTrackDescriptors(
         \Phpdftk\Css\Value\Value $value,
         array &$out,
         float $availableSize = 0.0,
         float $gap = 0.0,
+        ?array $lanesHypothetical = null,
     ): void {
         if ($value instanceof \Phpdftk\Css\Value\ValueList) {
             foreach ($value->values as $v) {
-                $this->collectGridTrackDescriptors($v, $out, $availableSize, $gap);
+                $this->collectGridTrackDescriptors($v, $out, $availableSize, $gap, $lanesHypothetical);
             }
             return;
         }
@@ -6506,6 +6707,7 @@ final class BlockLayout
                             $rest,
                             $availableSize,
                             $gap,
+                            $lanesHypothetical,
                         );
                     }
                 }
@@ -6515,7 +6717,7 @@ final class BlockLayout
                 $rest = array_slice($value->arguments, 1);
                 for ($i = 0; $i < $count; $i++) {
                     foreach ($rest as $r) {
-                        $this->collectGridTrackDescriptors($r, $out, $availableSize, $gap);
+                        $this->collectGridTrackDescriptors($r, $out, $availableSize, $gap, $lanesHypothetical);
                     }
                 }
                 return;

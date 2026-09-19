@@ -1003,6 +1003,15 @@ final class PropertyRegistry
         // grid lanes layout and 0 everywhere else.
         $r->register($initial('flow-tolerance', new Keyword('normal')));
 
+        // CSS Grid Layout 3 §2.3 / §4.3 — `grid-lanes-direction` names the
+        // grid axis explicitly (`row` = the lanes are rows, `column` = the
+        // lanes are columns) and may reverse either axis
+        // (`fill-reverse` / `track-reverse`); `grid-lanes-pack` selects
+        // dense backfilling. Both non-inheriting with an initial `normal`,
+        // which defers to the grid-template-* derived orientation.
+        $r->register($initial('grid-lanes-direction', new Keyword('normal')));
+        $r->register($initial('grid-lanes-pack', new Keyword('normal')));
+
         return $r;
     }
 }

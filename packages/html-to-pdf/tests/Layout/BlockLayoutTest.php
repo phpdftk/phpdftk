@@ -13715,4 +13715,150 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($g);
         self::assertEqualsWithDelta(0.0, $g->geometry->height, 0.01);
     }
+
+    public function testGridLanesDirectionNamesTheGridAxis(): void
+    {
+        // CSS Grid Layout 3 — `grid-lanes-direction: row` makes the BLOCK
+        // axis the grid axis even though only `grid-template-columns` is
+        // set, which the §2.3 default derivation would read the other way.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="width: 40px"></div>'
+            . '<div id="b" style="width: 20px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-lanes-direction: row;
+                  grid-template-columns: 100px 100px;
+                  grid-template-rows: 50px 50px;
+                  flow-tolerance: 0; width: 300px; height: 100px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        // Lanes are rows: both items start at the container's inline start
+        // and sit in successive rows. Without the property, `§2.3` would
+        // have picked the inline axis (grid-template-columns is set) and
+        // put them side by side in the first row.
+        self::assertEqualsWithDelta($g->geometry->x, $a->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x, $b->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $a->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 50.0, $b->geometry->y, 0.01);
+    }
+
+    public function testGridLanesFillReversePacksFromTheEndEdge(): void
+    {
+        // `grid-lanes-direction: column fill-reverse` measures each lane's
+        // running position from the END of the stacking axis: the first
+        // item's bottom edge sits on the container's bottom edge and later
+        // items in the same lane stack upwards.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 30px"></div>'
+            . '<div id="b" style="height: 20px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-lanes-direction: column fill-reverse;
+                  grid-template-columns: 100px; flow-tolerance: 0;
+                  width: 100px; height: 200px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta($g->geometry->y + 170.0, $a->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 150.0, $b->geometry->y, 0.01);
+    }
+
+    public function testGridLanesTrackReverseMirrorsTheGridAxis(): void
+    {
+        // `track-reverse` runs the grid axis backwards, so the lane the
+        // algorithm fills first sits at the axis' END edge.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 10px"></div>'
+            . '<div id="b" style="height: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-lanes-direction: column track-reverse;
+                  grid-template-columns: 60px 40px; flow-tolerance: 0;
+                  width: 100px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        // Lane 1 (the 60px track) is mirrored to the right edge; lane 2
+        // (40px) lands at the left edge.
+        self::assertEqualsWithDelta($g->geometry->x + 40.0, $a->geometry->x, 0.01);
+        self::assertEqualsWithDelta(60.0, $a->geometry->width, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x, $b->geometry->x, 0.01);
+        self::assertEqualsWithDelta(40.0, $b->geometry->width, 0.01);
+    }
+
+    public function testGridLanesIntrinsicAutoRepeatCountsFromItemContributions(): void
+    {
+        // CSS Grid Layout 3 §3.1.1 — `repeat(auto-fill, auto)` is only
+        // valid in grid lanes layout, where the repetition count comes
+        // from a hypothetical track size derived from the items (§3.4).
+        // Three 100px items in a 300px container give three lanes.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="width: 100px; height: 10px"></div>'
+            . '<div id="b" style="width: 100px; height: 10px"></div>'
+            . '<div id="c" style="width: 100px; height: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: repeat(auto-fill, auto);
+                  flow-tolerance: 0; width: 300px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        $c = $this->findById($box, 'c');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertNotNull($c);
+        // Three lanes side by side — not one lane with the items stacked.
+        self::assertEqualsWithDelta($g->geometry->x, $a->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x + 100.0, $b->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x + 200.0, $c->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $c->geometry->y, 0.01);
+    }
+
+    public function testGridLanesMinContentWidthComesFromTheTrackList(): void
+    {
+        // CSS Grid Layout 3 §5 — a grid lanes container is sized like a
+        // regular grid container in the GRID axis, so `width: min-content`
+        // is the track list's extent (80 + 4 + 80), not an aggregate of
+        // the items' own intrinsic widths.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div style="width: 10px; height: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: repeat(2, 80px);
+                  column-gap: 4px; width: min-content; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        self::assertNotNull($g);
+        self::assertEqualsWithDelta(164.0, $g->geometry->width, 0.01);
+    }
 }

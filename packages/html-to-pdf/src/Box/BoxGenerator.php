@@ -214,10 +214,24 @@ final class BoxGenerator
         // BLOCK axis the grid axis (the lanes are rows); in every other
         // case the INLINE axis is the grid axis (the lanes are columns).
         $lanesGridAxisIsInline = null;
+        $lanesFillReverse = false;
+        $lanesTrackReverse = false;
         if ($display === 'grid-lanes' || $display === 'inline-grid-lanes') {
             $hasRowTracks = !$this->isInitialValue($values->get('grid-template-rows'));
             $hasColTracks = !$this->isInitialValue($values->get('grid-template-columns'));
             $lanesGridAxisIsInline = !($hasRowTracks && !$hasColTracks);
+            // `grid-lanes-direction: normal | [ row | column ]
+            //  [ fill-reverse || track-reverse ]?` — an explicit `row` /
+            // `column` names the grid axis outright instead of deriving it
+            // from which grid-template-* the author set.
+            $directionNames = $this->keywordNames($values->get('grid-lanes-direction'));
+            if (in_array('row', $directionNames, true)) {
+                $lanesGridAxisIsInline = false;
+            } elseif (in_array('column', $directionNames, true)) {
+                $lanesGridAxisIsInline = true;
+            }
+            $lanesFillReverse = in_array('fill-reverse', $directionNames, true);
+            $lanesTrackReverse = in_array('track-reverse', $directionNames, true);
             if (!$lanesGridAxisIsInline) {
                 // Keeps the fallback 2D grid path sane for the
                 // `inline-grid-lanes` case, which still lands on an
@@ -629,6 +643,8 @@ final class BoxGenerator
         if ($lanesGridAxisIsInline !== null && $box instanceof GridBox) {
             $box->lanes = true;
             $box->lanesGridAxisIsInline = $lanesGridAxisIsInline;
+            $box->lanesFillReverse = $lanesFillReverse;
+            $box->lanesTrackReverse = $lanesTrackReverse;
         }
 
         // Walk children, building child boxes. Text nodes become TextBoxes.
@@ -2658,6 +2674,29 @@ final class BoxGenerator
             ['flex', 'inline-flex', 'grid', 'inline-grid'],
             true,
         );
+    }
+
+    /**
+     * Flatten a cascaded value that is either a single keyword or a
+     * space-separated list of keywords into its lower-cased names.
+     *
+     * @return list<string>
+     */
+    private function keywordNames(?\Phpdftk\Css\Value\Value $value): array
+    {
+        if ($value instanceof Keyword) {
+            return [strtolower($value->name)];
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $names = [];
+            foreach ($value->values as $v) {
+                if ($v instanceof Keyword) {
+                    $names[] = strtolower($v->name);
+                }
+            }
+            return $names;
+        }
+        return [];
     }
 
     private function displayKeyword(CascadedValues $values): string
