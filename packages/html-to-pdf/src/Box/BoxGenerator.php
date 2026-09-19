@@ -3051,20 +3051,31 @@ final class BoxGenerator
                     $values->set($attr, new \Phpdftk\Css\Value\Length($px, \Phpdftk\Css\Value\LengthUnit::Px));
                 }
             }
-            // SVG 2 §8.2 — the initial value of `height` on the outermost
-            // svg is `auto`, which resolves as `100%`. A percentage height
-            // against an auto-height parent is indefinite, so it falls
-            // back to the default object size's 150px (CSS Images 3 §5.2)
-            // — which is why a dimensionless `<svg>` is 150px tall in
-            // every browser instead of shrinking to its content. A
-            // `viewBox` is excluded: it supplies an intrinsic ratio, and
-            // the height then derives from the used width instead.
-            if (!$values->has('height')
-                && $element->getAttribute('height') === null
-                && $element->getAttribute('viewBox') === null
-                && !self::hasExplicitAspectRatio($values)
-            ) {
-                $values->set('height', new \Phpdftk\Css\Value\Length(150.0, \Phpdftk\Css\Value\LengthUnit::Px));
+            // SVG 2 §8.2 — the initial value of `width` / `height` on the
+            // outermost svg is `auto`, which resolves as `100%`. A
+            // percentage against an auto-sized parent is indefinite, so
+            // the outermost svg has NO intrinsic size, and with no
+            // `viewBox` no intrinsic ratio either — CSS Images 3 §5.3 then
+            // sizes the replaced box from the default object size,
+            // 300x150. That is why a dimensionless `<svg>` is 300x150 in
+            // every browser instead of collapsing to its content.
+            //
+            // Each axis defaults independently: `<svg height="200">` is
+            // 300 wide, and without the width half such an svg laid out
+            // zero-wide and painted NOTHING. A `viewBox` is excluded on
+            // both axes: it supplies an intrinsic ratio, so the missing
+            // axis derives from the other instead.
+            foreach (['width' => 300.0, 'height' => 150.0] as $axis => $default) {
+                if (!$values->has($axis)
+                    && $element->getAttribute($axis) === null
+                    && $element->getAttribute('viewBox') === null
+                    && !self::hasExplicitAspectRatio($values)
+                ) {
+                    $values->set(
+                        $axis,
+                        new \Phpdftk\Css\Value\Length($default, \Phpdftk\Css\Value\LengthUnit::Px),
+                    );
+                }
             }
         }
         // HTML §15.3.4 — `hspace` / `vspace` on embedded content map to

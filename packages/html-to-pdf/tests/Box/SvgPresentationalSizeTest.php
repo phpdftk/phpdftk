@@ -57,14 +57,47 @@ final class SvgPresentationalSizeTest extends TestCase
         return null;
     }
 
-    public function testSvgWithoutDimensionAttributesGetsNoWidthButTheDefaultHeight(): void
+    public function testSvgWithoutDimensionAttributesGetsTheDefaultObjectWidth(): void
     {
-        // Nothing to map on the width axis, so the cascade is left alone
-        // there. The height falls back to the default object size (see
-        // testDimensionlessSvgFallsBackToTheDefaultObjectHeight).
+        // CSS Images 3 §5.3 — with `width: auto` and no `viewBox` the
+        // outermost svg has neither an intrinsic width nor an intrinsic
+        // ratio, so the replaced box takes the default object size's
+        // 300px. Leaving the width axis alone made such an svg lay out
+        // zero-wide and paint nothing at all.
         $svg = $this->svgBox('<svg></svg>');
         self::assertNotNull($svg);
+        $w = $svg->style->get('width');
+        self::assertInstanceOf(Length::class, $w);
+        self::assertSame(300.0, $w->value);
+    }
+
+    public function testDefaultWidthYieldsToAnAuthorWidth(): void
+    {
+        $svg = $this->svgBox('<svg></svg>', 'svg { width: 40px; }');
+        self::assertNotNull($svg);
+        $w = $svg->style->get('width');
+        self::assertInstanceOf(Length::class, $w);
+        self::assertSame(40.0, $w->value);
+    }
+
+    public function testDefaultWidthYieldsToTheWidthAttribute(): void
+    {
+        $svg = $this->svgBox('<svg width="42"></svg>');
+        self::assertNotNull($svg);
+        $w = $svg->style->get('width');
+        self::assertInstanceOf(Length::class, $w);
+        self::assertSame(42.0, $w->value);
+    }
+
+    public function testViewBoxSuppressesBothDefaultAxes(): void
+    {
+        // A `viewBox` supplies an intrinsic ratio, so the missing axis
+        // derives from the other one rather than from the default object
+        // size — neither default may be injected.
+        $svg = $this->svgBox('<svg viewBox="0 0 10 20"></svg>');
+        self::assertNotNull($svg);
         self::assertNotInstanceOf(Length::class, $svg->style->get('width'));
+        self::assertNotInstanceOf(Length::class, $svg->style->get('height'));
     }
 
     /**
