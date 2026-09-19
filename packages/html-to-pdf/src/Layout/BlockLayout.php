@@ -8429,10 +8429,14 @@ final class BlockLayout
      *
      * @return array{min: float, max: float}
      */
-    public function measureMinMaxContent(Box $box, LayoutContext $context): array
-    {
+    public function measureMinMaxContent(
+        Box $box,
+        LayoutContext $context,
+        bool $trimLeading = true,
+        bool $trimTrailing = true,
+    ): array {
         if ($box instanceof TextBox) {
-            return $this->measureTextBoxMinMax($box, $context);
+            return $this->measureTextBoxMinMax($box, $context, $trimLeading, $trimTrailing);
         }
         // Any non-text box with an explicit `width` reports that
         // width as both min and max-content. Authors who declared a
@@ -8455,7 +8459,7 @@ final class BlockLayout
                 return ['min' => $explicitPx, 'max' => $explicitPx];
             }
         }
-        return $this->measureContentMinMax($box, $context);
+        return $this->measureContentMinMax($box, $context, $trimLeading, $trimTrailing);
     }
 
     /**
@@ -8470,10 +8474,14 @@ final class BlockLayout
      *
      * @return array{min: float, max: float}
      */
-    private function measureContentMinMax(Box $box, LayoutContext $context): array
-    {
+    private function measureContentMinMax(
+        Box $box,
+        LayoutContext $context,
+        bool $trimLeading = true,
+        bool $trimTrailing = true,
+    ): array {
         if ($box instanceof TextBox) {
-            return $this->measureTextBoxMinMax($box, $context);
+            return $this->measureTextBoxMinMax($box, $context, $trimLeading, $trimTrailing);
         }
         // CSS Sizing 4 §6.1 — `contain: size` (or `strict`)
         // overrides the child-derived intrinsic size with the
@@ -8504,10 +8512,16 @@ final class BlockLayout
                     return ['min' => $ratioWidth, 'max' => $ratioWidth];
                 }
             }
+            // A NON-atomic inline is part of its parent's line, so the
+            // parent's line-edge state carries through to its content. An
+            // ATOMIC inline is a formatting context of its own: its content
+            // always starts and ends its own line.
             return $this->aggregateChildrenMinMax(
                 $box,
                 $this->intrinsicChildContext($box, $context),
                 inline: true,
+                trimLeading: $box instanceof AtomicInlineBox ? true : $trimLeading,
+                trimTrailing: $box instanceof AtomicInlineBox ? true : $trimTrailing,
             );
         }
         // Block / anonymous-block / table cell. When the children are
@@ -8613,8 +8627,13 @@ final class BlockLayout
     /**
      * @return array{min: float, max: float}
      */
-    private function aggregateChildrenMinMax(Box $box, LayoutContext $context, bool $inline): array
-    {
+    private function aggregateChildrenMinMax(
+        Box $box,
+        LayoutContext $context,
+        bool $inline,
+        bool $trimLeading = true,
+        bool $trimTrailing = true,
+    ): array {
         $maxOfMins = 0.0;
         $maxOfMaxes = 0.0;
         // CSS Sizing 3 §5.1 — max-content is the width of the widest
@@ -8623,11 +8642,30 @@ final class BlockLayout
         // the whole text is measured laid end-to-end.
         $segment = 0.0;
         $widestSegment = 0.0;
-        foreach ($box->children as $child) {
+        // CSS Text 3 §4.1.3 — collapsible white space is removed at the
+        // START and END of each line, and a max-content measurement IS one
+        // line. Only the first and last in-flow child of an inline run sit
+        // at those edges (plus whatever a forced `<br>` break creates), so
+        // the flags are handed down per position rather than applied to
+        // every text node — trimming them all would swallow the real space
+        // BETWEEN two inline siblings.
+        $children = $box->children;
+        $lastIndex = count($children) - 1;
+        foreach ($children as $index => $child) {
             if ($inline && $child instanceof \Phpdftk\HtmlToPdf\Box\LineBreakBox) {
                 $widestSegment = max($widestSegment, $segment);
                 $segment = 0.0;
                 continue;
+            }
+            if (!$inline) {
+                // Block-level children each get a line of their own.
+                $childTrimLeading = true;
+                $childTrimTrailing = true;
+            } else {
+                $childTrimLeading = ($index === 0 && $trimLeading)
+                    || ($children[$index - 1] ?? null) instanceof \Phpdftk\HtmlToPdf\Box\LineBreakBox;
+                $childTrimTrailing = ($index === $lastIndex && $trimTrailing)
+                    || ($children[$index + 1] ?? null) instanceof \Phpdftk\HtmlToPdf\Box\LineBreakBox;
             }
             // CSS Sizing 3 §5.1 — intrinsic sizes are computed from a box's
             // IN-FLOW contents, so an absolutely-positioned or fixed child
@@ -8653,7 +8691,12 @@ final class BlockLayout
             ) {
                 continue;
             }
-            $cm = $this->measureMinMaxContent($child, $context);
+            $cm = $this->measureMinMaxContent(
+                $child,
+                $context,
+                $childTrimLeading,
+                $childTrimTrailing,
+            );
             // CSS Sizing 3 §5.1 — a child contributes its OUTER (margin
             // box) size, so a block-level child's inline-axis margin,
             // border and padding count toward the container's min/max
@@ -8713,13 +8756,42 @@ final class BlockLayout
      *
      * @return array{min: float, max: float}
      */
-    private function measureTextBoxMinMax(TextBox $box, LayoutContext $context): array
-    {
+    private function measureTextBoxMinMax(
+        TextBox $box,
+        LayoutContext $context,
+        bool $trimLeading = true,
+        bool $trimTrailing = true,
+    ): array {
         $text = $box->text;
-        if ($text === '' || trim($text) === '') {
+        if ($text === '' || trim($text, " \t\n\r\f\x0B\0") === '') {
             return ['min' => 0.0, 'max' => 0.0];
         }
         $whiteSpace = $this->resolveTextBoxWhiteSpace($box);
+        // CSS Text 3 §4.1.1 — in every white-space mode that does NOT
+        // preserve white space (`normal`, `nowrap`), each run of
+        // collapsible white space — spaces, tabs AND segment breaks —
+        // collapses to a single space before anything is measured. This
+        // mirrors `InlineLayout`'s tokeniser exactly. Shaping the raw
+        // source text instead measured the author's indentation: the
+        // corpus-standard `<div>\n      Number 1\n    </div>` reported a
+        // SIXTEEN-character max-content for an eight-character line, which
+        // silently inflated the intrinsic width of nearly every text node.
+        //
+        // §4.1.3 then removes collapsible white space at the start and end
+        // of a line; a max-content measurement is exactly one line, so the
+        // caller tells us whether this box sits at those edges.
+        if (!in_array($whiteSpace, ['pre', 'pre-wrap', 'pre-line', 'break-spaces'], true)) {
+            $text = preg_replace('/[ \t\n\r\f]+/', ' ', $text) ?? $text;
+            if ($trimLeading) {
+                $text = ltrim($text, ' ');
+            }
+            if ($trimTrailing) {
+                $text = rtrim($text, ' ');
+            }
+            if ($text === '') {
+                return ['min' => 0.0, 'max' => 0.0];
+            }
+        }
         // Resolve the box's own font-family (e.g. an @font-face `Ahem`) so the
         // intrinsic size matches what actually paints; the context default
         // font alone otherwise sizes text via the coarse char-count heuristic.

@@ -14729,4 +14729,109 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($wrap);
         self::assertEqualsWithDelta(150.0, $wrap->geometry->width, 0.01);
     }
+
+    public function testIntrinsicTextCollapsesInternalWhitespaceRuns(): void
+    {
+        // CSS Text 3 §4.1.1 — under `white-space: normal` a run of
+        // collapsible white space collapses to a SINGLE space. Intrinsic
+        // measurement shaped the raw source text, so `Number      1`
+        // measured five spaces wider than the `Number 1` line layout
+        // actually draws.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div class="f" id="runs">Number      1</div>'
+            . '<div class="f" id="single">Number 1</div>'
+            . '</body></html>',
+            'html, body, div { display: block; }
+             .f { float: left; clear: both; font-family: noto; font-size: 16px; }',
+        );
+        $this->layout->layout($box, $ctx);
+        $runs = $this->findById($box, 'runs');
+        $single = $this->findById($box, 'single');
+        self::assertNotNull($runs);
+        self::assertNotNull($single);
+        self::assertGreaterThan(0.0, $single->geometry->width);
+        self::assertEqualsWithDelta($single->geometry->width, $runs->geometry->width, 0.01);
+    }
+
+    public function testIntrinsicTextDropsWhitespaceAtTheLineEdges(): void
+    {
+        // CSS Text 3 §4.1.3 — collapsible white space at the start and end
+        // of a line is removed. A max-content measurement IS one line, so
+        // source indentation around a text node must not widen the box.
+        // This is the whole corpus's default shape: `<div>\n  text\n</div>`.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $box = $this->buildTree(
+            "<html><body>"
+            . "<div class=\"f\" id=\"indented\">\n      Number 1\n    </div>"
+            . "<div class=\"f\" id=\"tight\">Number 1</div>"
+            . "</body></html>",
+            'html, body, div { display: block; }
+             .f { float: left; clear: both; font-family: noto; font-size: 16px; }',
+        );
+        $this->layout->layout($box, $ctx);
+        $indented = $this->findById($box, 'indented');
+        $tight = $this->findById($box, 'tight');
+        self::assertNotNull($indented);
+        self::assertNotNull($tight);
+        self::assertGreaterThan(0.0, $tight->geometry->width);
+        self::assertEqualsWithDelta($tight->geometry->width, $indented->geometry->width, 0.01);
+    }
+
+    public function testIntrinsicTextKeepsTheSpaceBetweenInlineSiblings(): void
+    {
+        // The companion guard for the edge trim: a collapsible space
+        // BETWEEN two inline siblings survives (it is not at a line edge),
+        // so `Some <b>bold</b> text` measures exactly as wide as the same
+        // string written with no-break spaces. Trimming every text node
+        // would have lost two spaces of measure here.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div class="f" id="spaced">Some <b>bold</b> text</div>'
+            . "<div class=\"f\" id=\"nbsp\">Some\u{00a0}<b>bold</b>\u{00a0}text</div>"
+            . '</body></html>',
+            'html, body, div { display: block; }
+             b { display: inline; }
+             .f { float: left; clear: both; font-family: noto; font-size: 16px; }',
+        );
+        $this->layout->layout($box, $ctx);
+        $spaced = $this->findById($box, 'spaced');
+        $nbsp = $this->findById($box, 'nbsp');
+        self::assertNotNull($spaced);
+        self::assertNotNull($nbsp);
+        self::assertGreaterThan(0.0, $nbsp->geometry->width);
+        self::assertEqualsWithDelta($nbsp->geometry->width, $spaced->geometry->width, 0.01);
+    }
 }
