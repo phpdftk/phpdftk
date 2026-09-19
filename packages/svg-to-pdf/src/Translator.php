@@ -618,9 +618,70 @@ final class Translator
         if ($elementBbox === null) {
             return null;
         }
+        return $this->buildMaskState($referent, $elementBbox, null, null);
+    }
+
+    /**
+     * CSS Masking 1 §4 — build the soft-mask `ExtGState` for a `<mask>`
+     * element referenced from OUTSIDE the SVG pipeline (an HTML element's
+     * `mask-image: url(#id)`), and return its resource name.
+     *
+     * `$elementBbox` is the masked element's bounding box in the mask's
+     * own user space — for an HTML element that space has its origin at
+     * the top-left of the border box with y running down, so the bbox is
+     * `(0, 0, w, h)`. `$baseMatrix` maps that space onto the page and is
+     * prepended to the mask's content stream (the soft mask is evaluated
+     * under the CTM in force when its `gs` runs, and the HTML painter
+     * paints under the identity CTM). `$subtypeOverride` carries CSS
+     * `mask-mode`, which wins over the element's `mask-type`.
+     *
+     * @param array{minX: float, minY: float, width: float, height: float} $elementBbox
+     * @param array{float, float, float, float, float, float}|null $baseMatrix
+     */
+    public function registerMaskState(
+        SvgDocument $document,
+        Mask $mask,
+        Page $page,
+        PdfWriter $writer,
+        array $elementBbox,
+        ?array $baseMatrix = null,
+        ?string $subtypeOverride = null,
+    ): ?string {
+        $previous = [$this->document, $this->page, $this->writer, $this->gradientPainter, $this->fontResolver, $this->matrixStack];
+        $this->document = $document;
+        $this->page = $page;
+        $this->writer = $writer;
+        $this->gradientPainter = new GradientPainter($writer, $page, $document);
+        $this->fontResolver = new FontResolver($writer, $page);
+        $this->matrixStack = [$baseMatrix ?? [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]];
+        try {
+            return $this->buildMaskState($mask, $elementBbox, $baseMatrix, $subtypeOverride);
+        } finally {
+            [$this->document, $this->page, $this->writer, $this->gradientPainter, $this->fontResolver, $this->matrixStack] = $previous;
+        }
+    }
+
+    /**
+     * Shared body of {@see resolveMaskState} / {@see registerMaskState}.
+     *
+     * @param array{minX: float, minY: float, width: float, height: float} $elementBbox
+     * @param array{float, float, float, float, float, float}|null $baseMatrix
+     */
+    private function buildMaskState(
+        Mask $referent,
+        array $elementBbox,
+        ?array $baseMatrix,
+        ?string $subtypeOverride,
+    ): ?string {
+        if ($this->writer === null || $this->page === null) {
+            return null;
+        }
         $region = self::computeMaskRegion($referent, $elementBbox);
 
         $maskStream = new ContentStream();
+        if ($baseMatrix !== null) {
+            $maskStream->concatMatrix(...$baseMatrix);
+        }
         if ($referent->maskContentUnits() === 'objectBoundingBox') {
             // Reify mask children's [0, 1] coords against the masked
             // element's bbox (the same reference frame the masked
@@ -640,12 +701,25 @@ final class Translator
             }
         }
         $operatorBytes = implode("\n", $maskStream->getOperators());
+        // The BBox lives in the form's OWN space, i.e. before the content
+        // stream's own `cm`. Map the user-space region through the base
+        // matrix so an externally-supplied mapping is accounted for.
+        $corners = [
+            [$region['minX'], $region['minY']],
+            [$region['minX'] + $region['width'], $region['minY'] + $region['height']],
+        ];
+        if ($baseMatrix !== null) {
+            [$a, $b, $c, $d, $e, $f] = $baseMatrix;
+            foreach ($corners as $i => [$cx, $cy]) {
+                $corners[$i] = [$a * $cx + $c * $cy + $e, $b * $cx + $d * $cy + $f];
+            }
+        }
         $form = new FormXObject(
             new PdfArray([
-                new PdfNumber($region['minX']),
-                new PdfNumber($region['minY']),
-                new PdfNumber($region['minX'] + $region['width']),
-                new PdfNumber($region['minY'] + $region['height']),
+                new PdfNumber(min($corners[0][0], $corners[1][0])),
+                new PdfNumber(min($corners[0][1], $corners[1][1])),
+                new PdfNumber(max($corners[0][0], $corners[1][0])),
+                new PdfNumber(max($corners[0][1], $corners[1][1])),
             ]),
             $operatorBytes,
         );
@@ -663,7 +737,7 @@ final class Translator
         // `/S /Alpha` and `/S /Luminosity` modes.
         $maskSubtype = strtolower(trim($referent->getAttribute('mask-type') ?? ''));
         $smask = new SoftMask(
-            $maskSubtype === 'alpha' ? 'Alpha' : 'Luminosity',
+            $subtypeOverride ?? ($maskSubtype === 'alpha' ? 'Alpha' : 'Luminosity'),
             new PdfReference($form->objectNumber),
         );
         // Backdrop colour black ([0]) so anywhere the mask content

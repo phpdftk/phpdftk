@@ -3722,6 +3722,84 @@ final class PainterTest extends TestCase
         self::assertStringContainsString('0.5019607843 0 0.5019607843 rg', $bytes);
     }
 
+    public function testSvgMaskElementReferenceInstallsALuminositySoftMask(): void
+    {
+        // CSS Masking 1 §4.1 — `mask-image: url(#id)` pointing at an SVG
+        // `<mask>` ELEMENT masks by that element's children. The mask
+        // brings its own geometry, so it defaults to `/S /Luminosity`
+        // (SVG 2 §14.5's `mask-type: luminance`).
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<div style="width: 200px; height: 200px; background: green; '
+            . 'mask-image: url(#m)"></div>'
+            . '<svg><mask id="m">'
+            . '<rect x="50" y="50" width="100" height="100" fill="white"/>'
+            . '</mask></svg>'
+            . '</body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, page: $page, writer: $writer))->paint($root, $stream);
+
+        $bytes = $writer->generate();
+        self::assertStringContainsString('/SMask', $bytes);
+        self::assertStringContainsString('/S /Luminosity', $bytes);
+        // The mask's own rect is emitted in the element's user space.
+        self::assertStringContainsString('50 50 100 100 re', $bytes);
+    }
+
+    public function testMaskModeOverridesTheMaskElementsMaskType(): void
+    {
+        // CSS Masking 1 §3.3 — `mask-mode: alpha` wins over the `<mask>`
+        // element's own `mask-type`, which is `luminance` by default.
+        $doc = $this->html->parseDocument(
+            '<html><body>'
+            . '<div style="width: 200px; height: 200px; background: green; '
+            . 'mask-mode: alpha; mask-image: url(#m)"></div>'
+            . '<svg><mask id="m"><rect width="100" height="100" fill="white"/></mask></svg>'
+            . '</body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0, page: $page, writer: $writer))->paint($root, $stream);
+        self::assertStringContainsString('/S /Alpha', $writer->generate());
+    }
+
+    public function testMaskImageUrlToAMissingOrNonMaskTargetDoesNotBuildAMaskGroup(): void
+    {
+        // Negative: `url(#id)` that resolves to nothing, or to something
+        // that is not a `<mask>`, must not produce a mask group. CSS
+        // Masking 1 §4.1 makes such a layer transparent black, so the
+        // element (and its subtree) paints nothing at all — the existing
+        // "definitively failed" fallback, not a half-built mask.
+        foreach (['url(#nope)', 'url(#notamask)'] as $value) {
+            $doc = $this->html->parseDocument(
+                '<html><body>'
+                . '<div style="width: 100px; height: 100px; background: green; '
+                . 'mask-image: ' . $value . '"></div>'
+                . '<svg><rect id="notamask" width="10" height="10"/></svg>'
+                . '</body></html>',
+            );
+            $sheet = $this->css->parseStylesheet('html, body, div { display: block; }', Origin::UserAgent);
+            $root = $this->generator->generate($doc, [$sheet]);
+            $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+            $writer = new PdfWriter(compressStreams: false);
+            $page = $writer->addPage(612, 792);
+            $stream = $writer->addContentStream($page);
+            (new Painter(792.0, page: $page, writer: $writer))->paint($root, $stream);
+            self::assertStringNotContainsString('/SMask', $writer->generate(), $value);
+        }
+    }
+
     public function testMaskedSubtreeIsOneDrawUnderTheSoftMask(): void
     {
         // Regression guard: the masked scope must contain exactly ONE

@@ -1129,7 +1129,8 @@ final class Painter
         // `<linear-gradient>` mask builds one from the gradient's alpha.
         $maskGsName = $insideMaskedGroup
             ? null
-            : ($this->buildBoxImageMaskGsName($box, $stream)
+            : ($this->buildBoxSvgMaskGsName($box)
+                ?? $this->buildBoxImageMaskGsName($box, $stream)
                 ?? $this->buildBoxGradientMaskGsName($box, $stream));
         // CSS Masking 1 §4.1 — a `mask-image` layer that cannot be resolved
         // to a mask image is empty (transparent black), masking the element
@@ -4194,6 +4195,82 @@ final class Painter
                 },
             );
             return $this->page->ensureSoftMaskState($group, $subtype);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * CSS Masking 1 §4.1 — `mask-image: url(#id)` referencing an SVG
+     * `<mask>` ELEMENT (as opposed to an image). The mask element brings
+     * its own geometry — `maskUnits` / `maskContentUnits` / `x` / `y` /
+     * `width` / `height` — so the CSS mask box model (`mask-origin`,
+     * `mask-size`, `mask-position`, `mask-repeat`, `mask-clip`) does not
+     * apply; only `mask-mode` still speaks, overriding the element's
+     * `mask-type`.
+     *
+     * The mask's children are resolved in the referencing element's own
+     * user coordinate system — origin at the top-left of its border box,
+     * y running down — which is the same frame `clip-path: url(#id)`
+     * uses, and the element's bounding box for `objectBoundingBox` units
+     * is that border box.
+     *
+     * Returns null when the reference does not resolve to a `<mask>`, so
+     * the image / gradient builders get their turn.
+     */
+    private function buildBoxSvgMaskGsName(Box $box): ?string
+    {
+        if ($this->writer === null || $this->page === null) {
+            return null;
+        }
+        $maskImage = $box->style->get('mask-image');
+        if (!$maskImage instanceof \Phpdftk\Css\Value\Url) {
+            return null;
+        }
+        $url = trim($maskImage->url);
+        $hash = strpos($url, '#');
+        if ($hash === false) {
+            return null;
+        }
+        $id = substr($url, $hash + 1);
+        if ($id === '') {
+            return null;
+        }
+        $svgDoc = $hash === 0
+            ? $this->hostSvgDocumentFor($box, $id)
+            : $this->loadSvgDocument(substr($url, 0, $hash));
+        if ($svgDoc === null) {
+            return null;
+        }
+        $mask = $svgDoc->findById($id);
+        if (!$mask instanceof \Phpdftk\Svg\Mask) {
+            return null;
+        }
+        [$bx, $by, $bw, $bh] = $this->clipReferenceBox($box->geometry, 'border-box');
+        if ($bw <= 0.0 || $bh <= 0.0) {
+            return null;
+        }
+        // CSS Masking 1 §3.3 — `mask-mode` overrides the mask element's
+        // own `mask-type`; `match-source` defers to it.
+        $subtype = null;
+        $maskMode = $box->style->get('mask-mode');
+        if ($maskMode instanceof \Phpdftk\Css\Value\Keyword) {
+            $subtype = match (strtolower($maskMode->name)) {
+                'alpha' => 'Alpha',
+                'luminance' => 'Luminosity',
+                default => null,
+            };
+        }
+        try {
+            return $this->clipTranslator()->registerMaskState(
+                $svgDoc,
+                $mask,
+                $this->page,
+                $this->writer,
+                ['minX' => 0.0, 'minY' => 0.0, 'width' => $bw, 'height' => $bh],
+                [1.0, 0.0, 0.0, -1.0, $bx, $this->pageHeight - $by],
+                $subtype,
+            );
         } catch (\Throwable) {
             return null;
         }
