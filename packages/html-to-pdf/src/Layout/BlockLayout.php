@@ -6027,11 +6027,18 @@ final class BlockLayout
         $trackCount = count($tracks);
         $running = array_fill(0, $trackCount, 0.0);
         $cursor = 0;
+        // §4.3 — `grid-lanes-pack: dense` (the corpus also writes the
+        // older `grid-auto-flow: dense` alongside it) lets an item
+        // backtrack into a space an earlier spanning item skipped over.
+        $dense = $this->gridLanesUsesDensePacking($style);
+        /** @var array<int, list<array{start: float, end: float}>> $spaces */
+        $spaces = [];
         /** @var list<array{box: Box, start: int, span: int, pos: float, outer: float, oof: bool}> $placed */
         $placed = [];
 
         foreach ($items as $item) {
             $span = max(1, min($item['span'], $trackCount));
+            $cursorBefore = $cursor;
             if ($item['auto']) {
                 $best = null;
                 /** @var list<int> $possible */
@@ -6104,11 +6111,57 @@ final class BlockLayout
                 // advance any lane.
                 continue;
             }
+            $outerSize = max(0.0, $outer);
+            if ($dense) {
+                $backfill = $this->gridLanesDenseBackfill(
+                    $spaces,
+                    $tracks,
+                    $start,
+                    $span,
+                    $outerSize,
+                    $stackGap,
+                    $tolerance,
+                    $gridGapUsed,
+                );
+                if ($backfill !== null) {
+                    // §4.3 — the backfilled slot spans tracks of the same
+                    // total size, so the item keeps the size it was just
+                    // laid out at and only moves. The auto-placement cursor
+                    // and every running position rewind to their
+                    // pre-placement values (they were never touched).
+                    [$newStart, $newPos] = $backfill;
+                    $newExtent = $this->gridSpanExtent($tracks, $newStart, $span, $gridGapUsed);
+                    $newAreaStart = $trackReverse
+                        ? $gridExtentUsed - $trackOffsets[$newStart] - $newExtent
+                        : $trackOffsets[$newStart];
+                    $gridDelta = $newAreaStart - $areaStart;
+                    $stackDelta = $newPos - $maxPos;
+                    $this->shiftSubtree(
+                        $item['box'],
+                        $gridAxisIsInline ? $stackDelta : $gridDelta,
+                        $gridAxisIsInline ? $gridDelta : $stackDelta,
+                    );
+                    $lastIndex = count($placed) - 1;
+                    $placed[$lastIndex]['start'] = $newStart;
+                    $placed[$lastIndex]['pos'] = $newPos;
+                    $cursor = $cursorBefore;
+                    continue;
+                }
+            }
             // §4.4 — "Set the running position of the spanned grid axis
             // tracks to max_pos + outer size + grid-gap", with the outer
             // size floored at zero so negative margins can't rewind a lane.
-            $next = $maxPos + max(0.0, $outer) + $stackGap;
+            $next = $maxPos + $outerSize + $stackGap;
             for ($k = 0; $k < $span; $k++) {
+                if ($dense && $running[$start + $k] < $maxPos) {
+                    // This lane is shorter than the lane that decided the
+                    // placement, so the item skips over a space that a later
+                    // item may be able to backfill.
+                    $spaces[$start + $k][] = [
+                        'start' => $running[$start + $k],
+                        'end' => $maxPos,
+                    ];
+                }
                 $running[$start + $k] = $next;
             }
         }
@@ -6417,6 +6470,164 @@ final class BlockLayout
         }
 
         return array_values($tracks);
+    }
+
+    /**
+     * CSS Grid Layout 3 §4.3 — does this grid lanes container pack
+     * densely? `grid-lanes-pack: dense` is the Level 3 spelling; the
+     * corpus writes `grid-auto-flow: dense` alongside it for UAs that
+     * reuse the Grid 2 property, so either switches it on.
+     */
+    private function gridLanesUsesDensePacking(CascadedValues $style): bool
+    {
+        $pack = $style->get('grid-lanes-pack');
+        if ($pack instanceof Keyword && strtolower($pack->name) === 'dense') {
+            return true;
+        }
+        [, $dense] = $this->resolveGridAutoFlow($style->get('grid-auto-flow'));
+        return $dense;
+    }
+
+    /**
+     * CSS Grid Layout 3 §4.3 — find the space a densely-packed item
+     * should backtrack into, or `null` to keep its normal placement.
+     *
+     * > If the grid lanes container uses dense packing, and there exists
+     * > skipped spaces in the layout (e.g. due to spanning items) into
+     * > which the item, as it is sized now, could have fit if it were
+     * > placed earlier, and where the spanned tracks have the same total
+     * > used size as the tracks into which it is currently placed, then
+     * > instead place it into the highest such space. If there are
+     * > multiple valid spaces within the tie threshold of the highest
+     * > space, place it in the start-most of them.
+     *
+     * The equal-total-size restriction is what makes this cheap: the
+     * item's grid area is the same width in the backfilled slot, so it
+     * never has to be laid out twice — the caller just moves it.
+     *
+     * A space is recorded per lane when a placement leaves that lane's
+     * running position behind (only a multi-lane item can do that), and
+     * runs from the running position it skipped to where the item
+     * actually landed. "Could have fit if placed earlier" is therefore
+     * `space start + outer size + gap <= space end`, the condition under
+     * which the normal algorithm would not have pushed the spanning item
+     * any further down.
+     *
+     * @param  array<int, list<array{start: float, end: float}>> $spaces Mutated: the chosen space is consumed.
+     * @param  list<float> $tracks
+     * @return array{int, float}|null  `[line, position]`
+     */
+    private function gridLanesDenseBackfill(
+        array &$spaces,
+        array $tracks,
+        int $normalStart,
+        int $span,
+        float $outerSize,
+        float $stackGap,
+        float $tolerance,
+        float $gridGap,
+    ): ?array {
+        if ($spaces === []) {
+            return null;
+        }
+        $trackCount = count($tracks);
+        $normalExtent = $this->gridSpanExtent($tracks, $normalStart, $span, $gridGap);
+        /** @var list<array{line: int, pos: float}> $candidates */
+        $candidates = [];
+        for ($line = 0; $line + $span <= $trackCount; $line++) {
+            if ($line === $normalStart) {
+                continue;
+            }
+            if (abs($this->gridSpanExtent($tracks, $line, $span, $gridGap) - $normalExtent) > 0.001) {
+                continue;
+            }
+            // The item would have been placed at the LAST of the spanned
+            // lanes' skipped starts, exactly as the normal algorithm takes
+            // the maximum running position.
+            $pos = null;
+            $fits = true;
+            for ($k = 0; $k < $span; $k++) {
+                $laneSpaces = $spaces[$line + $k] ?? [];
+                if ($laneSpaces === []) {
+                    $fits = false;
+                    break;
+                }
+                $laneStart = null;
+                foreach ($laneSpaces as $space) {
+                    if ($space['start'] + $outerSize + $stackGap <= $space['end'] + 0.001) {
+                        $laneStart = $laneStart === null
+                            ? $space['start']
+                            : min($laneStart, $space['start']);
+                    }
+                }
+                if ($laneStart === null) {
+                    $fits = false;
+                    break;
+                }
+                $pos = $pos === null ? $laneStart : max($pos, $laneStart);
+            }
+            if (!$fits || $pos === null) {
+                continue;
+            }
+            // Re-check every lane against the common position.
+            foreach (range(0, $span - 1) as $k) {
+                $ok = false;
+                foreach ($spaces[$line + $k] ?? [] as $space) {
+                    if ($space['start'] <= $pos + 0.001
+                        && $pos + $outerSize + $stackGap <= $space['end'] + 0.001
+                    ) {
+                        $ok = true;
+                        break;
+                    }
+                }
+                if (!$ok) {
+                    $fits = false;
+                    break;
+                }
+            }
+            if (!$fits) {
+                continue;
+            }
+            $candidates[] = ['line' => $line, 'pos' => $pos];
+        }
+        if ($candidates === []) {
+            return null;
+        }
+        $highest = $candidates[0]['pos'];
+        foreach ($candidates as $c) {
+            $highest = min($highest, $c['pos']);
+        }
+        $chosen = null;
+        foreach ($candidates as $c) {
+            if ($c['pos'] <= $highest + $tolerance
+                && ($chosen === null || $c['line'] < $chosen['line'])
+            ) {
+                $chosen = $c;
+            }
+        }
+        if ($chosen === null) {
+            return null;
+        }
+        // Consume the chosen space in every lane the item now spans.
+        for ($k = 0; $k < $span; $k++) {
+            $lane = $chosen['line'] + $k;
+            $remaining = [];
+            foreach ($spaces[$lane] ?? [] as $space) {
+                if ($space['start'] <= $chosen['pos'] + 0.001
+                    && $chosen['pos'] + $outerSize + $stackGap <= $space['end'] + 0.001
+                ) {
+                    $newStart = $chosen['pos'] + $outerSize + $stackGap;
+                    if ($newStart + 0.001 < $space['end']) {
+                        $remaining[] = ['start' => $newStart, 'end' => $space['end']];
+                    }
+                    continue;
+                }
+                $remaining[] = $space;
+            }
+            $spaces[$lane] = $remaining;
+        }
+
+        return [$chosen['line'], $chosen['pos']];
     }
 
     /**

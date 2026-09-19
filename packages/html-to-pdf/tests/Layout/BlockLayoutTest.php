@@ -13861,4 +13861,66 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($g);
         self::assertEqualsWithDelta(164.0, $g->geometry->width, 0.01);
     }
+
+    public function testGridLanesDensePackingOnlyBackfillsEqualSizedSlots(): void
+    {
+        // CSS Grid Layout 3 §4.3 — dense packing lets an item backtrack
+        // into a space an earlier spanning item skipped, but ONLY when the
+        // backfilled slot's tracks have the same total used size as the
+        // tracks its normal placement would have used (so the item never
+        // has to be laid out twice).
+        //
+        // Lanes are 30 / 40 / 50 / 30. Item 1 pins lane 1 and item 2 pins
+        // lane 3, both 40px tall; the span-4 item is then placed at 40,
+        // skipping [0, 40) in lanes 2 and 4. Item 4 would normally land in
+        // lane 1 (30px wide), so the 40px-wide lane-2 space is
+        // incompatible and the 30px-wide lane-4 space wins.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div style="height: 40px; grid-column: 1"></div>'
+            . '<div style="height: 40px; grid-column: 3"></div>'
+            . '<div style="height: 10px; grid-column: span 4"></div>'
+            . '<div id="backfilled" style="height: 40px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-lanes-pack: dense;
+                  grid-template-columns: 30px 40px 50px 30px;
+                  flow-tolerance: 0; width: 150px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $item = $this->findById($box, 'backfilled');
+        self::assertNotNull($g);
+        self::assertNotNull($item);
+        self::assertEqualsWithDelta($g->geometry->x + 120.0, $item->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $item->geometry->y, 0.01);
+    }
+
+    public function testGridLanesWithoutDensePackingKeepsTheNormalPlacement(): void
+    {
+        // The same markup without `grid-lanes-pack: dense` must NOT
+        // backfill: the item stays below the spanning item in the lane the
+        // §4.4 cursor picked.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div style="height: 40px; grid-column: 1"></div>'
+            . '<div style="height: 40px; grid-column: 3"></div>'
+            . '<div style="height: 10px; grid-column: span 4"></div>'
+            . '<div id="normal" style="height: 40px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes;
+                  grid-template-columns: 30px 40px 50px 30px;
+                  flow-tolerance: 0; width: 150px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $item = $this->findById($box, 'normal');
+        self::assertNotNull($g);
+        self::assertNotNull($item);
+        self::assertEqualsWithDelta($g->geometry->x, $item->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 50.0, $item->geometry->y, 0.01);
+    }
 }
