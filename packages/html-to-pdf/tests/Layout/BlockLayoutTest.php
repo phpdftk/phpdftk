@@ -12901,6 +12901,19 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y + 160.0, $t->geometry->y, 0.5);
     }
 
+    public function testPositionAreaPercentageSizeResolvesAgainstTheRegion(): void
+    {
+        // CSS Anchor Positioning 1 §3.3 — the position-area region is the
+        // box's containing block, so `width: 100%` is the region's width,
+        // not the containing block's. The `bottom right` region is
+        // x [150, 300] — 150px wide — inside a 300px containing block.
+        $box = $this->anchorTree('position-area: bottom right; inset: 0; width: 50%; height: 10px;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $t = $this->findById($box, 't');
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta(75.0, $t->geometry->width, 0.5);
+    }
+
     public function testPositionAreaGridUsesTheAnchorEdgesEvenOutsideTheContainingBlock(): void
     {
         // CSS Anchor Positioning 1 §3.3 — the 3x3 grid's inner lines are

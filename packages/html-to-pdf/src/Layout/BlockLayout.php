@@ -3394,6 +3394,18 @@ final class BlockLayout
                 $style->set($endProperty, new Keyword('auto'));
             }
         }
+        // CSS Anchor Positioning 1 §3.3 — the position-area region is the
+        // box's containing block, so a percentage size is a percentage OF
+        // THE REGION. Fold it down now; the ordinary sizing path resolves
+        // percentages against the real containing block and would give
+        // `width: 100%` the whole containing block instead of the region.
+        $sizeValue = $style->get($sizeProperty);
+        if ($sizeValue instanceof Percentage) {
+            $style->set($sizeProperty, new Length(
+                $sizeValue->value / 100.0 * $regionSize,
+                \Phpdftk\Css\Value\LengthUnit::Px,
+            ));
+        }
         if ($alignment !== 'center') {
             return;
         }
