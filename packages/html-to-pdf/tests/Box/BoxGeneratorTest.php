@@ -2814,6 +2814,133 @@ final class BoxGeneratorTest extends TestCase
         );
     }
 
+    /** A 100x50 green PNG as a data URL — a 2:1 replaced element. */
+    private const PNG_100X50 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAy'
+        . 'CAMAAACd646MAAAAA1BMVEUAgACc+aWRAAAAHElEQVRYw+3BMQEAAADCoPVPbQ0PoAAAAACAPwMT'
+        . 'ugAB3yW6awAAAABJRU5ErkJggg==';
+
+    /** A 100x100 green PNG as a data URL — a 1:1 replaced element. */
+    private const PNG_100X100 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABk'
+        . 'CAMAAABHPGVmAAAAA1BMVEUAgACc+aWRAAAAIUlEQVRo3u3BgQAAAADDoPlTX+EAVQEAAAAAAAAA'
+        . 'AACPASd0AAG4NzwVAAAAAElFTkSuQmCC';
+
+    /**
+     * @return array{0: float, 1: float} the cascade's used width / height
+     *                                   for the single `<img>` in `$style`
+     */
+    private function replacedUsedSize(string $src, string $style): array
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; } img { display: inline-block; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><p><img src="' . $src . '" style="' . $style . '"></p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $img = $this->findFirstByTag($box, 'img');
+        self::assertNotNull($img);
+        $w = $img->style->get('width');
+        $h = $img->style->get('height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $w);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h);
+        return [$w->value, $h->value];
+    }
+
+    /**
+     * CSS 2.1 §10.4 — a single `max-width` violation scales the other
+     * axis through the intrinsic ratio.
+     */
+    public function testReplacedMaxWidthScalesHeightThroughRatio(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(self::PNG_100X50, 'max-width: 50px');
+        self::assertEqualsWithDelta(50.0, $w, 0.01);
+        self::assertEqualsWithDelta(25.0, $h, 0.01);
+    }
+
+    /**
+     * §10.4 row "w < min-w and h > max-h" — the ratio is ABANDONED and
+     * both constraints are honoured exactly. The old sequential
+     * max-then-min clamp produced a ratio-preserving box instead.
+     */
+    public function testReplacedMinWidthWithMaxHeightDropsTheRatio(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X100,
+            'min-width: 150px; max-height: 40px',
+        );
+        self::assertEqualsWithDelta(150.0, $w, 0.01);
+        self::assertEqualsWithDelta(40.0, $h, 0.01);
+    }
+
+    /** §10.4 row "w > max-w and h < min-h" — same, mirrored. */
+    public function testReplacedMaxWidthWithMinHeightDropsTheRatio(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X100,
+            'max-width: 40px; min-height: 150px',
+        );
+        self::assertEqualsWithDelta(40.0, $w, 0.01);
+        self::assertEqualsWithDelta(150.0, $h, 0.01);
+    }
+
+    /**
+     * §10.4 row "w > max-w and h > max-h" — the axis with the SMALLER
+     * ratio wins; the other is floored by its minimum. 100x50 against
+     * max 50x40: 50/100 = 0.5 <= 40/50 = 0.8, so width wins and the
+     * height follows the ratio to 25.
+     */
+    public function testReplacedBothMaximaViolatedPicksTheTighterAxis(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X50,
+            'max-width: 50px; max-height: 40px',
+        );
+        self::assertEqualsWithDelta(50.0, $w, 0.01);
+        self::assertEqualsWithDelta(25.0, $h, 0.01);
+    }
+
+    /** §10.4 row "w < min-w and h < min-h" — mirrored for the minima. */
+    public function testReplacedBothMinimaViolatedPicksTheTighterAxis(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X50,
+            'min-width: 200px; min-height: 200px',
+        );
+        // 200/100 = 2 <= 200/50 = 4, so the HEIGHT is the binding
+        // minimum and the width follows the ratio to 400.
+        self::assertEqualsWithDelta(400.0, $w, 0.01);
+        self::assertEqualsWithDelta(200.0, $h, 0.01);
+    }
+
+    /**
+     * CSS Sizing 3 §6.2 — under `box-sizing: border-box` the min / max
+     * properties describe the BORDER box, so the constraint applies to
+     * content + padding and the written-back size is the border box too.
+     */
+    public function testReplacedMinMaxRespectsBorderBoxSizing(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X100,
+            'box-sizing: border-box; padding: 10px; max-width: 60px',
+        );
+        // 60px border box = 40px content; the 1:1 ratio makes the content
+        // height 40 too, and the written height adds the padding back.
+        self::assertEqualsWithDelta(60.0, $w, 0.01);
+        self::assertEqualsWithDelta(60.0, $h, 0.01);
+    }
+
+    /** No violation leaves the natural size untouched. */
+    public function testReplacedWithSatisfiedConstraintsKeepsNaturalSize(): void
+    {
+        [$w, $h] = $this->replacedUsedSize(
+            self::PNG_100X50,
+            'min-width: 10px; max-width: 500px; min-height: 5px; max-height: 500px',
+        );
+        self::assertEqualsWithDelta(100.0, $w, 0.01);
+        self::assertEqualsWithDelta(50.0, $h, 0.01);
+    }
+
     /**
      * Collect every box of `$class` in the tree, in document order.
      *

@@ -3795,9 +3795,13 @@ final class BoxGenerator
      * cascaded-values bundle, apply any *length* `min/max-width|height`
      * while preserving the aspect ratio. Percentage and keyword
      * constraints are skipped here (no containing block at box-gen time;
-     * the layout-time replaced clamp handles those). The clamp order
-     * (max then min, width before height) approximates the §10.4
-     * constraint-violation table for the common single-constraint cases.
+     * the layout-time replaced clamp handles those).
+     *
+     * `box-sizing: border-box` makes the min/max properties describe the
+     * BORDER box (CSS Sizing 3 §6.2), so the constraints are pulled into
+     * content-box space before the table runs and the result is pushed
+     * back out — the caller writes the values into `width` / `height`,
+     * which the same `box-sizing` will re-interpret.
      *
      * @return array{0: float, 1: float} used [width, height]
      */
@@ -3806,29 +3810,92 @@ final class BoxGenerator
         if ($h <= 0.0 || $w <= 0.0) {
             return [$w, $h];
         }
-        $ratio = $w / $h;
+        [$hInset, $vInset, $borderBox] = $this->presentationalInsetsAndBoxSizing($values);
         $len = static function (?\Phpdftk\Css\Value\Value $v): ?float {
             return $v instanceof \Phpdftk\Css\Value\Length && $v->value >= 0.0 ? $v->value : null;
         };
-        $maxW = $len($values->get('max-width'));
-        $maxH = $len($values->get('max-height'));
-        $minW = $len($values->get('min-width'));
-        $minH = $len($values->get('min-height'));
-        if ($maxW !== null && $w > $maxW) {
-            $w = $maxW;
-            $h = $w / $ratio;
+        $toContent = static function (?float $value, float $inset) use ($borderBox): ?float {
+            if ($value === null) {
+                return null;
+            }
+            return $borderBox ? max(0.0, $value - $inset) : $value;
+        };
+        [$usedW, $usedH] = $this->replacedConstraintTable(
+            $w,
+            $h,
+            $toContent($len($values->get('min-width')), $hInset),
+            $toContent($len($values->get('max-width')), $hInset),
+            $toContent($len($values->get('min-height')), $vInset),
+            $toContent($len($values->get('max-height')), $vInset),
+        );
+        return $borderBox
+            ? [$usedW + $hInset, $usedH + $vInset]
+            : [$usedW, $usedH];
+    }
+
+    /**
+     * The CSS 2.1 §10.4 constraint-violation table, transcribed.
+     *
+     * The table is NOT a sequence of independent clamps: when both axes
+     * violate a constraint the winning axis is the one whose violation
+     * ratio is larger, and the other axis is then clamped by its OPPOSITE
+     * constraint. Applying `max` then `min` per axis (what this used to
+     * do) gets the single-constraint rows right and every combined row
+     * wrong — `min-width` + `max-height` on a square image produced a
+     * ratio-preserving box instead of the spec's `(min-w, max-h)`.
+     *
+     * All sizes are content-box. Absent constraints are 0 / ∞.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function replacedConstraintTable(
+        float $w,
+        float $h,
+        ?float $minW,
+        ?float $maxW,
+        ?float $minH,
+        ?float $maxH,
+    ): array {
+        $minWv = $minW ?? 0.0;
+        $minHv = $minH ?? 0.0;
+        $maxWv = $maxW ?? INF;
+        $maxHv = $maxH ?? INF;
+        // A min that exceeds its max wins outright (§10.4 note).
+        $maxWv = max($maxWv, $minWv);
+        $maxHv = max($maxHv, $minHv);
+
+        $wTooBig = $w > $maxWv;
+        $wTooSmall = $w < $minWv;
+        $hTooBig = $h > $maxHv;
+        $hTooSmall = $h < $minHv;
+
+        if ($wTooBig && $hTooBig) {
+            return ($maxWv / $w) <= ($maxHv / $h)
+                ? [$maxWv, max($minHv, $maxWv * $h / $w)]
+                : [max($minWv, $maxHv * $w / $h), $maxHv];
         }
-        if ($maxH !== null && $h > $maxH) {
-            $h = $maxH;
-            $w = $h * $ratio;
+        if ($wTooSmall && $hTooSmall) {
+            return ($minWv / $w) <= ($minHv / $h)
+                ? [min($maxWv, $minHv * $w / $h), $minHv]
+                : [$minWv, min($maxHv, $minWv * $h / $w)];
         }
-        if ($minW !== null && $w < $minW) {
-            $w = $minW;
-            $h = $w / $ratio;
+        if ($wTooSmall && $hTooBig) {
+            return [$minWv, $maxHv];
         }
-        if ($minH !== null && $h < $minH) {
-            $h = $minH;
-            $w = $h * $ratio;
+        if ($wTooBig && $hTooSmall) {
+            return [$maxWv, $minHv];
+        }
+        if ($wTooBig) {
+            return [$maxWv, max($maxWv * $h / $w, $minHv)];
+        }
+        if ($wTooSmall) {
+            return [$minWv, min($minWv * $h / $w, $maxHv)];
+        }
+        if ($hTooBig) {
+            return [max($maxHv * $w / $h, $minWv), $maxHv];
+        }
+        if ($hTooSmall) {
+            return [min($minHv * $w / $h, $maxWv), $minHv];
         }
         return [$w, $h];
     }
