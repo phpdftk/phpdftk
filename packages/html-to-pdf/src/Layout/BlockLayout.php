@@ -5038,6 +5038,13 @@ final class BlockLayout
      */
     private function layoutGridBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
     {
+        // CSS Grid Layout 3 — `display: grid-lanes` establishes a grid
+        // LANES formatting context: tracks in one axis, free packing in
+        // the other. It shares this box type (and most of the track
+        // machinery) with regular grid but not the 2D placement pass.
+        if ($box->lanes) {
+            return $this->layoutGridLanesBox($box, $context);
+        }
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
         $cbHeight = $context->containingBlockHeight;
@@ -5718,6 +5725,660 @@ final class BlockLayout
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $rowExtent);
 
         return $geo->outerHeight();
+    }
+
+    /**
+     * CSS Grid Layout 3 §4.4 — "Grid Lanes Layout and Placement
+     * Algorithm" (what used to be called masonry layout).
+     *
+     * A grid lanes container carries real grid tracks in ONE axis — the
+     * GRID axis — while the perpendicular STACKING axis has no tracks at
+     * all: items are packed one after another against a per-track
+     * running position, so a short item in one lane lets the next item
+     * in that lane start higher than its neighbours. §2.3 picks the
+     * axis: `grid-template-columns: none` together with a non-`none`
+     * `grid-template-rows` makes the block axis the grid axis (the lanes
+     * are rows and items stack inline-wards); otherwise the inline axis
+     * is the grid axis (the lanes are columns and items stack
+     * block-wards, the familiar "waterfall"). `BoxGenerator` records
+     * that decision on the box.
+     *
+     * The placement loop follows §4.4 literally: keep a running position
+     * per track initialised to zero plus an auto-placement cursor
+     * pointing at the first line; for each item in order-modified
+     * document order find, over every line the item could start at, the
+     * largest running position among the tracks it would span
+     * (`max_pos`), take the lines whose `max_pos` is within
+     * `flow-tolerance` (§4.2) of the smallest one, choose the first such
+     * line at or after the cursor (else the first one at all), place the
+     * item at that `max_pos` and set every spanned track's running
+     * position to `max_pos + outer size + gap`.
+     *
+     * Item containing blocks come from §4.4.1: the grid area in the grid
+     * axis, the container's content box in the stacking axis. Gutters
+     * (§6.1) are the grid-axis gap between adjacent tracks and the
+     * stacking-axis gap before every item but the first in a track.
+     */
+    private function layoutGridLanesBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
+    {
+        $style = $box->style;
+        $cbWidth = $context->containingBlockWidth;
+        $cbHeight = $context->containingBlockHeight;
+        $geo = $box->geometry;
+
+        // Container box-frame resolution mirrors layoutGridBox.
+        $geo->marginTop = $this->resolveLength($style->get('margin-top'), $cbWidth);
+        $geo->marginRight = $this->resolveLength($style->get('margin-right'), $cbWidth);
+        $geo->marginBottom = $this->resolveLength($style->get('margin-bottom'), $cbWidth);
+        $geo->marginLeft = $this->resolveLength($style->get('margin-left'), $cbWidth);
+        $geo->paddingTop = $this->resolveLength($style->get('padding-top'), $cbWidth);
+        $geo->paddingRight = $this->resolveLength($style->get('padding-right'), $cbWidth);
+        $geo->paddingBottom = $this->resolveLength($style->get('padding-bottom'), $cbWidth);
+        $geo->paddingLeft = $this->resolveLength($style->get('padding-left'), $cbWidth);
+        $geo->borderTop = $this->resolveBorderWidth($style, 'top');
+        $geo->borderRight = $this->resolveBorderWidth($style, 'right');
+        $geo->borderBottom = $this->resolveBorderWidth($style, 'bottom');
+        $geo->borderLeft = $this->resolveBorderWidth($style, 'left');
+
+        $availableWidth = max(
+            0.0,
+            $cbWidth - $geo->marginLeft - $geo->marginRight
+                - $geo->borderLeft - $geo->borderRight
+                - $geo->paddingLeft - $geo->paddingRight,
+        );
+        $widthValue = $style->get('width');
+        $widthKeyword = $this->sizingKeywordName($widthValue);
+        if ($this->isAuto($widthValue)) {
+            $geo->width = $availableWidth;
+        } elseif ($widthKeyword !== null) {
+            if ($widthKeyword === 'stretch') {
+                $geo->width = $availableWidth;
+            } else {
+                $mm = $this->measureContentMinMax($box, $context);
+                $geo->width = match ($widthKeyword) {
+                    'max-content' => $mm['max'],
+                    'min-content' => $mm['min'],
+                    'fit-content' => min($mm['max'], max($mm['min'], $availableWidth)),
+                    default => 0.0,
+                };
+            }
+        } else {
+            $geo->width = $this->resolveLength($widthValue, $cbWidth);
+        }
+
+        $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
+        $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
+
+        $columnGap = $this->resolveGridGap($style->get('column-gap'), $cbWidth);
+        $rowGap = $this->resolveGridGap($style->get('row-gap'), $cbHeight);
+
+        $gridAxisIsInline = $box->lanesGridAxisIsInline;
+        $explicitContainerHeight = $this->definiteContainerHeightOrNull($box, $context);
+        $declaredHeight = $explicitContainerHeight
+            ?? $this->ratioDerivedContainerHeight($style, $geo);
+
+        // Axis-generic naming: "grid" = the axis with tracks, "stack" =
+        // the axis items are packed along.
+        $gridGap = $gridAxisIsInline ? $columnGap : $rowGap;
+        $stackGap = $gridAxisIsInline ? $rowGap : $columnGap;
+        $gridAxisSize = $gridAxisIsInline
+            ? max(0.0, $geo->width)
+            : max(0.0, $declaredHeight ?? 0.0);
+        $stackAxisSize = $gridAxisIsInline
+            ? max(0.0, $declaredHeight ?? 0.0)
+            : max(0.0, $geo->width);
+
+        // §3.1 — the grid-template-* / grid-auto-* properties apply in the
+        // grid axis and are IGNORED in the stacking axis.
+        $descriptors = $this->parseGridTrackList(
+            $style->get($gridAxisIsInline ? 'grid-template-columns' : 'grid-template-rows'),
+            availableSize: $gridAxisSize,
+            gap: $gridGap,
+        );
+        $autoTrackValue = $style->get($gridAxisIsInline ? 'grid-auto-columns' : 'grid-auto-rows');
+        $autoTrackSize = $this->resolveGridAutoTrackSize($autoTrackValue);
+        $implicitTracksAreIntrinsic = !($autoTrackValue instanceof Length);
+        $tracks = $this->resolveGridTrackSizes($descriptors, $gridAxisSize, $gridGap);
+        if ($tracks === []) {
+            // No template in the grid axis: every lane is implicit and takes
+            // its sizing function from `grid-auto-columns` / `grid-auto-rows`
+            // (CSS Grid Layout 2 §7.4), which defaults to `auto`. Fabricating
+            // a single lane at the container's full grid-axis size instead
+            // would wrongly pin lane 1 and leave every lane an explicit
+            // placement creates afterwards at zero.
+            $this->growGridRows($tracks, 1, $autoTrackSize);
+        }
+
+        if ($box->children === []) {
+            $gridExtent = $this->gridTotalExtent($tracks, $gridGap);
+            $naturalHeight = $gridAxisIsInline ? 0.0 : $gridExtent;
+            $geo->height = $declaredHeight
+                ?? $this->resolveContainIntrinsicHeight($style, $context)
+                ?? $naturalHeight;
+            $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);
+            return $geo->outerHeight();
+        }
+
+        // CSS Grid 1 §6.4 / CSS Display 3 — `order` reorders the placement
+        // pass without touching DOM order for anything else.
+        $ordered = [];
+        foreach ($box->children as $domIdx => $child) {
+            if ($child instanceof \Phpdftk\HtmlToPdf\Box\TextBox
+                || $child instanceof \Phpdftk\HtmlToPdf\Box\InlineBox
+            ) {
+                continue;
+            }
+            $ordered[] = [
+                'box' => $child,
+                'order' => $this->resolveGridOrder($child),
+                'domIdx' => $domIdx,
+            ];
+        }
+        usort($ordered, static function (array $a, array $b): int {
+            return $a['order'] <=> $b['order'] ?: $a['domIdx'] <=> $b['domIdx'];
+        });
+
+        // §4.1 — the grid-placement properties apply in the grid axis only.
+        // An explicit placement past the end of the explicit grid grows
+        // implicit tracks, exactly as in regular grid layout.
+        /** @var list<array{box: Box, start: int, span: int, auto: bool, oof: bool}> $items */
+        $items = [];
+        foreach ($ordered as $entry) {
+            $child = $entry['box'];
+            $startProp = $gridAxisIsInline ? 'grid-column-start' : 'grid-row-start';
+            $endProp = $gridAxisIsInline ? 'grid-column-end' : 'grid-row-end';
+            [$start, $end, $auto] = $this->resolveGridLine(
+                $child->style->get($startProp),
+                $child->style->get($endProp),
+                count($tracks),
+            );
+            $span = max(1, $end - $start);
+            if (!$auto && $start + $span > count($tracks)) {
+                $this->growGridRows($tracks, $start + $span, $autoTrackSize);
+            }
+            $items[] = [
+                'box' => $child,
+                'start' => $auto ? -1 : max(0, $start),
+                'span' => $span,
+                'auto' => $auto,
+                'oof' => $this->isOutOfFlow($child),
+            ];
+        }
+        $trackCount = count($tracks);
+        foreach ($items as &$itemRef) {
+            // A span wider than the grid is clamped so the item still has
+            // somewhere to go (CSS Grid 2 §8.3).
+            $itemRef['span'] = max(1, min($itemRef['span'], $trackCount));
+            if (!$itemRef['auto']) {
+                $itemRef['start'] = max(0, min($itemRef['start'], $trackCount - $itemRef['span']));
+            }
+        }
+        unset($itemRef);
+
+        // §3.4 — grid-axis track sizing. Items with an automatic grid
+        // position contribute to EVERY track they could be placed in, not
+        // just the one they end up in; explicitly placed items contribute
+        // only to their own tracks.
+        $tracks = $this->sizeGridLanesIntrinsicTracks(
+            array_values($tracks),
+            $descriptors,
+            $items,
+            $context,
+            $implicitTracksAreIntrinsic,
+            $gridAxisIsInline,
+            $gridAxisIsInline ? $gridAxisSize : 0.0,
+            $gridGap,
+            $stackAxisSize,
+        );
+
+        // §6.2 — in the grid axis, content distribution works exactly as in
+        // a regular grid container: `normal` / `stretch` first hands the
+        // free space to the `auto` tracks, then the positional keywords
+        // offset what is left.
+        $gridContentProperty = $gridAxisIsInline ? 'justify-content' : 'align-content';
+        $gridContentKeyword = $this->gridContentAlignKeyword($style, $gridContentProperty);
+        $alignmentGridSize = $gridAxisIsInline
+            ? max(0.0, $geo->width)
+            : ($explicitContainerHeight ?? $declaredHeight);
+        if (($gridContentKeyword === 'normal' || $gridContentKeyword === 'stretch')
+            && $alignmentGridSize !== null
+        ) {
+            $tracks = $this->gridStretchAutoTracks(
+                $tracks,
+                $descriptors,
+                $implicitTracksAreIntrinsic,
+                $alignmentGridSize - $this->gridTotalExtent($tracks, $gridGap),
+            );
+        }
+        $gridGapUsed = $gridGap;
+        $gridOffset = 0.0;
+        if ($alignmentGridSize !== null) {
+            [$gridOffset, $extraGap] = $this->gridContentDistribution(
+                $gridContentKeyword,
+                count($tracks),
+                $alignmentGridSize - $this->gridTotalExtent($tracks, $gridGap),
+            );
+            $gridGapUsed += $extraGap;
+        }
+        $trackOffsets = $this->gridTrackOffsets($tracks, $gridGapUsed);
+
+        // §4.2 — the tie threshold. `normal` is 1em, a <percentage> resolves
+        // against the grid-axis content box size, `infinite` disables the
+        // shortest-track search entirely so items fill strictly in order.
+        $tolerance = $this->resolveFlowTolerance($style, $gridAxisSize, $context);
+
+        $trackCount = count($tracks);
+        $running = array_fill(0, $trackCount, 0.0);
+        $cursor = 0;
+        /** @var list<array{box: Box, start: int, span: int, pos: float, oof: bool}> $placed */
+        $placed = [];
+
+        foreach ($items as $item) {
+            $span = max(1, min($item['span'], $trackCount));
+            if ($item['auto']) {
+                $best = null;
+                /** @var list<int> $possible */
+                $possible = [];
+                $positions = [];
+                for ($line = 0; $line + $span <= $trackCount; $line++) {
+                    $maxPos = 0.0;
+                    for ($k = 0; $k < $span; $k++) {
+                        $maxPos = max($maxPos, $running[$line + $k]);
+                    }
+                    $positions[$line] = $maxPos;
+                    if ($best === null || $maxPos < $best) {
+                        $best = $maxPos;
+                    }
+                }
+                if ($best === null) {
+                    continue;
+                }
+                foreach ($positions as $line => $pos) {
+                    if ($pos <= $best + $tolerance) {
+                        $possible[] = $line;
+                    }
+                }
+                $start = $possible[0];
+                foreach ($possible as $line) {
+                    if ($line >= $cursor) {
+                        $start = $line;
+                        break;
+                    }
+                }
+                $cursor = $start + $span;
+            } else {
+                $start = max(0, min($item['start'], $trackCount - $span));
+            }
+
+            $maxPos = 0.0;
+            for ($k = 0; $k < $span; $k++) {
+                $maxPos = max($maxPos, $running[$start + $k]);
+            }
+            $areaExtent = $this->gridSpanExtent($tracks, $start, $span, $gridGapUsed);
+            $outer = $this->layoutGridLanesItem(
+                $item['box'],
+                $context,
+                $geo,
+                $gridAxisIsInline,
+                $trackOffsets[$start] + $gridOffset,
+                $areaExtent,
+                $maxPos,
+                $stackAxisSize,
+                $style,
+            );
+            $placed[] = [
+                'box' => $item['box'],
+                'start' => $start,
+                'span' => $span,
+                'pos' => $maxPos,
+                'oof' => $item['oof'],
+            ];
+            if ($item['oof']) {
+                // §8 — an absolutely-positioned child is not a grid item;
+                // its area only supplies a containing block, so it must not
+                // advance any lane.
+                continue;
+            }
+            // §4.4 — "Set the running position of the spanned grid axis
+            // tracks to max_pos + outer size + grid-gap", with the outer
+            // size floored at zero so negative margins can't rewind a lane.
+            $next = $maxPos + max(0.0, $outer) + $stackGap;
+            for ($k = 0; $k < $span; $k++) {
+                $running[$start + $k] = $next;
+            }
+        }
+
+        // §5 — the stacking range: from the start-most outer edge among the
+        // first items of each track to the end-most outer edge among the
+        // last items. Placement starts every lane at zero, so the range is
+        // [0, max(running − gap)].
+        $stackingRange = 0.0;
+        foreach ($running as $r) {
+            $stackingRange = max($stackingRange, $r - $stackGap);
+        }
+        $stackingRange = max(0.0, $stackingRange);
+
+        // §6.3 — stacking-axis content distribution treats the whole
+        // stacking range as a single alignment subject, so only
+        // start / center / end have distinct behaviour.
+        $stackContentProperty = $gridAxisIsInline ? 'align-content' : 'justify-content';
+        $stackContainerSize = $gridAxisIsInline
+            ? ($explicitContainerHeight ?? $declaredHeight)
+            : max(0.0, $geo->width);
+        if ($stackContainerSize !== null && $stackContainerSize > $stackingRange) {
+            $shift = match ($this->gridContentAlignKeyword($style, $stackContentProperty)) {
+                'end', 'flex-end', 'self-end', 'right' => $stackContainerSize - $stackingRange,
+                'center', 'space-around', 'space-evenly' => ($stackContainerSize - $stackingRange) / 2.0,
+                default => 0.0,
+            };
+            if ($shift !== 0.0) {
+                foreach ($placed as $p) {
+                    $this->shiftSubtree(
+                        $p['box'],
+                        $gridAxisIsInline ? $shift : 0.0,
+                        $gridAxisIsInline ? 0.0 : $shift,
+                    );
+                }
+            }
+        }
+
+        $gridExtent = $this->gridTotalExtent($tracks, $gridGapUsed);
+        $naturalHeight = $gridAxisIsInline ? $stackingRange : $gridExtent;
+        $geo->height = $this->resolveExplicitHeightOrNull($style, $cbHeight)
+            ?? $this->resolveContainIntrinsicHeight($style, $context)
+            ?? $naturalHeight;
+        $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);
+
+        return $geo->outerHeight();
+    }
+
+    /**
+     * Lay out one grid lanes item inside its lane and return the item's
+     * OUTER size along the stacking axis (what §4.4 adds to the lane's
+     * running position).
+     *
+     * `$areaStart` / `$areaExtent` are the item's grid area in the grid
+     * axis, measured from the container's content-box origin;
+     * `$stackPos` is the lane's running position, i.e. where the item's
+     * margin box starts in the stacking axis.
+     */
+    private function layoutGridLanesItem(
+        Box $child,
+        LayoutContext $context,
+        \Phpdftk\HtmlToPdf\Layout\BoxGeometry $geo,
+        bool $gridAxisIsInline,
+        float $areaStart,
+        float $areaExtent,
+        float $stackPos,
+        float $stackAxisSize,
+        CascadedValues $containerStyle,
+    ): float {
+        $itemX = $gridAxisIsInline ? $geo->x + $areaStart : $geo->x + $stackPos;
+        $itemY = $gridAxisIsInline ? $geo->y + $stackPos : $geo->y + $areaStart;
+        $cbItemWidth = $gridAxisIsInline ? $areaExtent : $stackAxisSize;
+        $cbItemHeight = $gridAxisIsInline ? $stackAxisSize : $areaExtent;
+
+        $childCtx = $context
+            ->withContainingBlock($cbItemWidth, $cbItemHeight)
+            ->withOrigin($itemX, $itemY);
+        $this->cascade->resolveLengths($child->style, $this->boxLengthContext($child, $childCtx));
+
+        $isOutOfFlow = $this->isOutOfFlow($child);
+        // §6.2 — in the grid axis the self-alignment properties behave
+        // exactly as in regular grid layout. `stretch` (the `normal`
+        // default) fills the area; anything else sizes the item to
+        // fit-content and then offsets it inside the area.
+        $selfProperty = $gridAxisIsInline ? 'justify-self' : 'align-self';
+        $selfKeyword = $this->gridSelfKeyword($child, $containerStyle, $selfProperty);
+        $autoStart = $this->isAuto($child->style->get($gridAxisIsInline ? 'margin-left' : 'margin-top'));
+        $autoEnd = $this->isAuto($child->style->get($gridAxisIsInline ? 'margin-right' : 'margin-bottom'));
+        $sizeIsAuto = $gridAxisIsInline
+            ? $this->isAuto($child->style->get('width'))
+            : $this->isHeightAutoLike($child->style->get('height'));
+        $isStretch = $selfKeyword === 'stretch' && !$isOutOfFlow && !$autoStart && !$autoEnd;
+
+        $layoutCtx = $childCtx;
+        if ($gridAxisIsInline && !$isStretch && !$isOutOfFlow && $sizeIsAuto) {
+            $fitOuter = $this->gridItemFitContentOuterWidth($child, $childCtx, $areaExtent);
+            if (abs($fitOuter - $areaExtent) > 0.001) {
+                $layoutCtx = $childCtx->withContainingBlock($fitOuter, $cbItemHeight);
+            }
+        }
+        if (!$gridAxisIsInline && !$isOutOfFlow && $this->isAuto($child->style->get('width'))) {
+            // The stacking axis is the inline axis here: an auto-width item
+            // is content-sized, not stretched across the container (there is
+            // no track to stretch to).
+            $fitOuter = $this->gridItemFitContentOuterWidth($child, $childCtx, $stackAxisSize);
+            $layoutCtx = $layoutCtx->withContainingBlock($fitOuter, $cbItemHeight);
+        }
+        $this->layoutBox($child, $layoutCtx);
+
+        $childGeo = $child->geometry;
+        if ($isStretch && $sizeIsAuto) {
+            if ($gridAxisIsInline) {
+                $childGeo->width = $areaExtent
+                    - $childGeo->marginLeft - $childGeo->marginRight
+                    - $childGeo->borderLeft - $childGeo->borderRight
+                    - $childGeo->paddingLeft - $childGeo->paddingRight;
+            } elseif ($childGeo->outerHeight() < $areaExtent) {
+                $childGeo->height = $areaExtent
+                    - $childGeo->marginTop - $childGeo->marginBottom
+                    - $childGeo->borderTop - $childGeo->borderBottom
+                    - $childGeo->paddingTop - $childGeo->paddingBottom;
+            }
+        } elseif (!$isStretch) {
+            $childOuter = $gridAxisIsInline ? $childGeo->outerWidth() : $childGeo->outerHeight();
+            $slack = $areaExtent - $childOuter;
+            if ($autoStart || $autoEnd) {
+                $shift = $autoStart
+                    ? ($autoEnd ? max(0.0, $slack) / 2.0 : max(0.0, $slack))
+                    : 0.0;
+            } else {
+                $shift = match ($selfKeyword) {
+                    'end' => $slack,
+                    'center' => $slack / 2.0,
+                    default => 0.0,
+                };
+            }
+            if ($shift !== 0.0) {
+                $this->shiftSubtree(
+                    $child,
+                    $gridAxisIsInline ? 0.0 : $shift,
+                    $gridAxisIsInline ? $shift : 0.0,
+                );
+            }
+        }
+
+        unset($sizeProperty);
+
+        return $gridAxisIsInline ? $childGeo->outerHeight() : $childGeo->outerWidth();
+    }
+
+    /**
+     * CSS Grid Layout 3 §3.4 — size the intrinsic (`auto` /
+     * `min-content` / `max-content`) tracks of the INLINE grid axis.
+     *
+     * The level-3 twist over regular grid track sizing is which items
+     * contribute where: an item with an automatic grid position is
+     * assumed to be placed at EVERY line it could start at and
+     * contributes to all of those tracks, because placement happens
+     * after sizing and the algorithm must not create a cycle. An
+     * explicitly placed item contributes only to the tracks it actually
+     * occupies.
+     *
+     * @param list<float> $tracks
+     * @param list<array{type: string, value: float, minFloor?: float}> $descriptors
+     * @param list<array{box: Box, start: int, span: int, auto: bool, oof: bool}> $items
+     * @return list<float>
+     */
+    private function sizeGridLanesIntrinsicTracks(
+        array $tracks,
+        array $descriptors,
+        array $items,
+        LayoutContext $context,
+        bool $implicitTracksAreIntrinsic,
+        bool $gridAxisIsInline,
+        float $availableSize,
+        float $gap,
+        float $stackAxisSize,
+    ): array {
+        $trackCount = count($tracks);
+        if ($trackCount === 0) {
+            return $tracks;
+        }
+        $intrinsic = [];
+        for ($i = 0; $i < $trackCount; $i++) {
+            $type = $descriptors[$i]['type'] ?? ($implicitTracksAreIntrinsic ? 'auto' : 'length');
+            if ($type === 'auto' || $type === 'min-content' || $type === 'max-content') {
+                $intrinsic[$i] = $type;
+            }
+        }
+        if ($intrinsic === []) {
+            return $tracks;
+        }
+        /** @var array<int, float> $minBase */
+        $minBase = [];
+        foreach ($items as $item) {
+            if ($item['oof']) {
+                // §8 — an absolutely-positioned child is not a grid item and
+                // contributes nothing to track sizing.
+                continue;
+            }
+            $span = max(1, min($item['span'], $trackCount));
+            $starts = [];
+            if ($item['auto']) {
+                for ($line = 0; $line + $span <= $trackCount; $line++) {
+                    $starts[] = $line;
+                }
+            } else {
+                $starts[] = max(0, min($item['start'], $trackCount - $span));
+            }
+            if ($starts === []) {
+                continue;
+            }
+            if ($gridAxisIsInline) {
+                $mm = $this->measureMinMaxContent($item['box'], $context);
+            } else {
+                // A block-axis (row) lane is sized by item HEIGHTS, which
+                // only exist after a layout. The item's inline size comes
+                // from the STACKING axis — it is independent of which lane
+                // the item lands in — so one trial layout per item feeds
+                // every candidate lane.
+                $trialCtx = $context->withContainingBlock($stackAxisSize, 0.0);
+                $this->cascade->resolveLengths(
+                    $item['box']->style,
+                    $this->boxLengthContext($item['box'], $trialCtx),
+                );
+                $fitOuter = $this->gridItemFitContentOuterWidth(
+                    $item['box'],
+                    $trialCtx,
+                    $stackAxisSize,
+                );
+                $height = $this->measureGridItemOuterHeight($item['box'], $context, $fitOuter);
+                $mm = ['min' => $height, 'max' => $height];
+            }
+            foreach ($starts as $start) {
+                $covered = [];
+                for ($i = $start; $i < $start + $span; $i++) {
+                    if (isset($intrinsic[$i])) {
+                        $covered[] = $i;
+                    }
+                }
+                if ($covered === []) {
+                    continue;
+                }
+                $shareCount = max(1, count($covered));
+                foreach ($covered as $i) {
+                    $minBase[$i] = max($minBase[$i] ?? 0.0, $mm['min'] / $shareCount);
+                    $size = $intrinsic[$i] === 'min-content' ? $mm['min'] : $mm['max'];
+                    $share = $size / $shareCount;
+                    if ($tracks[$i] < $share) {
+                        $tracks[$i] = $share;
+                    }
+                }
+            }
+        }
+        foreach ($descriptors as $i => $d) {
+            $floor = (float) ($d['minFloor'] ?? 0.0);
+            if ($floor <= 0.0 || !isset($tracks[$i])) {
+                continue;
+            }
+            if ($tracks[$i] < $floor) {
+                $tracks[$i] = $floor;
+            }
+            $minBase[$i] = max($minBase[$i] ?? 0.0, $floor);
+        }
+        // CSS Grid Layout 2 §12.5 — intrinsic tracks only grow towards
+        // their max-content limit while free space remains; pull them back
+        // towards their min-content bases when the row overflows.
+        if ($availableSize > 0.0 && $minBase !== []) {
+            $overflow = $this->gridTotalExtent($tracks, $gap) - $availableSize;
+            $shrinkable = 0.0;
+            foreach ($minBase as $i => $base) {
+                $shrinkable += max(0.0, ($tracks[$i] ?? 0.0) - $base);
+            }
+            if ($overflow > 0.0 && $shrinkable > 0.0) {
+                $ratio = min(1.0, $overflow / $shrinkable);
+                foreach ($minBase as $i => $base) {
+                    $slack = max(0.0, ($tracks[$i] ?? 0.0) - $base);
+                    $tracks[$i] -= $slack * $ratio;
+                }
+            }
+        }
+
+        return array_values($tracks);
+    }
+
+    /**
+     * CSS Grid Layout 3 §4.2 — resolve `flow-tolerance` to the tie
+     * threshold in user units.
+     *
+     * `normal` resolves to 1em in grid lanes layout, a `<percentage>`
+     * resolves against the grid-axis content box size of the container,
+     * and `infinite` returns `INF` so every candidate line ties and
+     * items fill strictly in order.
+     */
+    private function resolveFlowTolerance(
+        CascadedValues $style,
+        float $gridAxisSize,
+        LayoutContext $context,
+    ): float {
+        $value = $style->get('flow-tolerance');
+        if ($value instanceof Keyword) {
+            $name = strtolower($value->name);
+            if ($name === 'infinite') {
+                return INF;
+            }
+            // `normal` (the initial value) — 1em.
+            $fontSize = $style->get('font-size');
+            if ($fontSize instanceof Length) {
+                return max(0.0, \Phpdftk\Css\Cascade\LengthResolver::toPx(
+                    $fontSize,
+                    $context->lengthContext,
+                ));
+            }
+            return 16.0;
+        }
+        if ($value instanceof Percentage) {
+            return max(0.0, $value->value / 100.0 * $gridAxisSize);
+        }
+        if ($value instanceof Length) {
+            return max(0.0, \Phpdftk\Css\Cascade\LengthResolver::toPx(
+                $value,
+                $context->lengthContext,
+            ));
+        }
+        // A bare `0` is a valid unitless <length> and parses as an
+        // Integer / Number rather than a Length — the corpus writes
+        // `flow-tolerance: 0` constantly to switch the tie threshold off,
+        // and reading it as "unrecognised" would silently keep the 1em
+        // default and reorder every lane.
+        if ($value instanceof \Phpdftk\Css\Value\Integer
+            || $value instanceof \Phpdftk\Css\Value\Number
+        ) {
+            return max(0.0, (float) $value->value);
+        }
+        return 16.0;
     }
 
     /**

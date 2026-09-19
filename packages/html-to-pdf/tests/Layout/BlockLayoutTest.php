@@ -13491,4 +13491,228 @@ final class BlockLayoutTest extends TestCase
         // ... and the next sibling is not dragged above the container.
         self::assertEqualsWithDelta($cb->geometry->y, $next->geometry->y, 0.01);
     }
+
+    public function testGridLanesPacksItemsIntoTheShortestLane(): void
+    {
+        // CSS Grid Layout 3 §4.4 — grid lanes (masonry) placement. Three
+        // 100px column lanes, no gap, `flow-tolerance: 0` so ties are
+        // decided purely by the running positions. Items 1..3 fill the
+        // three empty lanes in order; item 4 then goes into whichever lane
+        // is currently shortest — lane 2 (30px), not lane 1 (DOM order).
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 50px"></div>'
+            . '<div id="b" style="height: 30px"></div>'
+            . '<div id="c" style="height: 70px"></div>'
+            . '<div id="d" style="height: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: 100px 100px 100px;
+                  flow-tolerance: 0; width: 300px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        $c = $this->findById($box, 'c');
+        $d = $this->findById($box, 'd');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertNotNull($c);
+        self::assertNotNull($d);
+        // Lanes fill left to right for the first pass.
+        self::assertEqualsWithDelta($g->geometry->x, $a->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x + 100.0, $b->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x + 200.0, $c->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $a->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $b->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $c->geometry->y, 0.01);
+        // Item 4 lands in the shortest lane (lane 2, running position 30),
+        // packed straight underneath item 2 — not on a rigid second row.
+        self::assertEqualsWithDelta($g->geometry->x + 100.0, $d->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 30.0, $d->geometry->y, 0.01);
+        // §5 — the container's stacking-axis size is the stacking range,
+        // i.e. the tallest lane (70px), NOT the sum of the item heights.
+        self::assertEqualsWithDelta(70.0, $g->geometry->height, 0.01);
+    }
+
+    public function testGridLanesStackingAxisGapSeparatesItemsInALane(): void
+    {
+        // §6.1 — in the stacking axis a gutter is placed before every item
+        // but the first in a lane. With one lane and `row-gap: 10px`, the
+        // second item starts at 50 + 10 and the container ends at 110.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 50px"></div>'
+            . '<div id="b" style="height: 50px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: 100px;
+                  row-gap: 10px; flow-tolerance: 0; width: 100px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($g);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta($g->geometry->y + 60.0, $b->geometry->y, 0.01);
+        // The trailing gutter is NOT part of the stacking range.
+        self::assertEqualsWithDelta(110.0, $g->geometry->height, 0.01);
+    }
+
+    public function testGridLanesFlowToleranceTiesFillInOrder(): void
+    {
+        // §4.2 — `flow-tolerance` is the tie threshold. Lane 1 is 20px
+        // tall and lane 2 is 10px. With `flow-tolerance: 0` the third item
+        // must go to lane 2 (strictly shortest); with a 50px tolerance the
+        // two lanes count as tied and the auto-placement cursor — which
+        // sits after item 2, i.e. past the last lane — wraps to the FIRST
+        // tied lane instead.
+        $css = '#g { display: grid-lanes; grid-template-columns: 100px 100px;
+                     width: 200px; }
+                #g > div { display: block; }';
+        $markup = '<html><body><div id="g">'
+            . '<div style="height: 20px"></div>'
+            . '<div style="height: 10px"></div>'
+            . '<div id="third" style="height: 5px"></div>'
+            . '</div></body></html>';
+
+        $strict = $this->buildTree($markup, 'html, body { display: block; }'
+            . $css . ' #g { flow-tolerance: 0; }');
+        $this->layout->layout($strict, $this->defaultCtx);
+        $g = $this->findById($strict, 'g');
+        $third = $this->findById($strict, 'third');
+        self::assertNotNull($g);
+        self::assertNotNull($third);
+        self::assertEqualsWithDelta($g->geometry->x + 100.0, $third->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 10.0, $third->geometry->y, 0.01);
+
+        $loose = $this->buildTree($markup, 'html, body { display: block; }'
+            . $css . ' #g { flow-tolerance: 50px; }');
+        $this->layout->layout($loose, $this->defaultCtx);
+        $g2 = $this->findById($loose, 'g');
+        $third2 = $this->findById($loose, 'third');
+        self::assertNotNull($g2);
+        self::assertNotNull($third2);
+        self::assertEqualsWithDelta($g2->geometry->x, $third2->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g2->geometry->y + 20.0, $third2->geometry->y, 0.01);
+    }
+
+    public function testGridLanesSpanningItemTakesTheMaxRunningPosition(): void
+    {
+        // §4.4 — an item spanning two lanes is placed at the MAXIMUM of
+        // those lanes' running positions, and afterwards both lanes share
+        // that new running position.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div style="height: 40px"></div>'
+            . '<div style="height: 10px"></div>'
+            . '<div id="wide" style="grid-column: span 2; height: 15px"></div>'
+            . '<div id="after" style="height: 5px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: 100px 100px;
+                  flow-tolerance: 0; width: 200px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $wide = $this->findById($box, 'wide');
+        $after = $this->findById($box, 'after');
+        self::assertNotNull($g);
+        self::assertNotNull($wide);
+        self::assertNotNull($after);
+        // max(40, 10) = 40.
+        self::assertEqualsWithDelta($g->geometry->x, $wide->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 40.0, $wide->geometry->y, 0.01);
+        self::assertEqualsWithDelta(200.0, $wide->geometry->width, 0.01);
+        // Both lanes now run at 55, so the next item may take either; it
+        // must not fall back to lane 2's stale 10px position.
+        self::assertEqualsWithDelta($g->geometry->y + 55.0, $after->geometry->y, 0.01);
+        self::assertEqualsWithDelta(60.0, $g->geometry->height, 0.01);
+    }
+
+    public function testGridLanesExplicitPlacementPinsTheGridAxis(): void
+    {
+        // §4.1 — the grid-placement properties still apply in the grid
+        // axis. An item pinned to lane 3 goes there regardless of which
+        // lane is shortest, and only lane 3's running position moves.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 40px"></div>'
+            . '<div id="pinned" style="grid-column: 3; height: 20px"></div>'
+            . '<div id="c" style="height: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: 100px 100px 100px;
+                  flow-tolerance: 0; width: 300px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $pinned = $this->findById($box, 'pinned');
+        $c = $this->findById($box, 'c');
+        self::assertNotNull($g);
+        self::assertNotNull($pinned);
+        self::assertNotNull($c);
+        self::assertEqualsWithDelta($g->geometry->x + 200.0, $pinned->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $pinned->geometry->y, 0.01);
+        // Lane 2 is still empty, so the auto-placed item goes there.
+        self::assertEqualsWithDelta($g->geometry->x + 100.0, $c->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y, $c->geometry->y, 0.01);
+    }
+
+    public function testGridLanesRowAxisPacksAlongTheInlineAxis(): void
+    {
+        // §2.3 — `grid-template-columns: none` plus a non-`none`
+        // `grid-template-rows` makes the BLOCK axis the grid axis: the
+        // lanes are rows and items pack left to right.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="width: 50px"></div>'
+            . '<div id="b" style="width: 30px"></div>'
+            . '<div id="c" style="width: 10px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-rows: 100px 100px;
+                  flow-tolerance: 0; width: 400px; height: 200px; }
+             #g > div { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        $c = $this->findById($box, 'c');
+        self::assertNotNull($g);
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertNotNull($c);
+        // Lane 1 = row 1 (y = 0), lane 2 = row 2 (y = 100).
+        self::assertEqualsWithDelta($g->geometry->y, $a->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->y + 100.0, $b->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x, $a->geometry->x, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x, $b->geometry->x, 0.01);
+        // The third item goes into the shorter row — row 2 (running 30).
+        self::assertEqualsWithDelta($g->geometry->y + 100.0, $c->geometry->y, 0.01);
+        self::assertEqualsWithDelta($g->geometry->x + 30.0, $c->geometry->x, 0.01);
+    }
+
+    public function testEmptyGridLanesContainerHasNoStackingExtent(): void
+    {
+        // An empty grid lanes container renders nothing: the stacking range
+        // is zero even though the grid axis declares tracks.
+        $box = $this->buildTree(
+            '<html><body><div id="g"></div></body></html>',
+            'html, body { display: block; }
+             #g { display: grid-lanes; grid-template-columns: 100px 100px;
+                  grid-template-rows: 80px 80px; width: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        self::assertNotNull($g);
+        self::assertEqualsWithDelta(0.0, $g->geometry->height, 0.01);
+    }
 }

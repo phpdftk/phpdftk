@@ -996,6 +996,13 @@ final class PropertyRegistry
         $r->register($initial('grid-row-start', new Keyword('auto')));
         $r->register($initial('grid-row-end', new Keyword('auto')));
 
+        // CSS Grid Layout 3 §4.2 — `flow-tolerance` is the tie threshold
+        // the grid lanes placement algorithm uses to decide that two
+        // tracks are "the same height" and should therefore fill in
+        // order. Non-inheriting; the initial `normal` resolves to 1em in
+        // grid lanes layout and 0 everywhere else.
+        $r->register($initial('flow-tolerance', new Keyword('normal')));
+
         return $r;
     }
 }

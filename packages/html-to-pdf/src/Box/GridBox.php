@@ -17,6 +17,21 @@ namespace Phpdftk\HtmlToPdf\Box;
 final class GridBox extends Box
 {
     /**
+     * CSS Grid Layout 3 — this box is a GRID LANES container
+     * (`display: grid-lanes`), i.e. it establishes tracks in one axis
+     * only and packs items freely in the other.
+     */
+    public bool $lanes = false;
+
+    /**
+     * CSS Grid Layout 3 §2.3 — which axis carries the tracks. `true`
+     * (the default orientation) means the inline axis is the grid axis
+     * and the lanes are columns; `false` means the block axis is, and
+     * the lanes are rows. Only meaningful when {@see $lanes} is set.
+     */
+    public bool $lanesGridAxisIsInline = true;
+
+    /**
      * CSS Gaps 1 — absolute layout-space centre coordinates of each
      * column gap (for vertical `column-rule` decorations) and row gap
      * (for horizontal `row-rule` decorations). Populated by

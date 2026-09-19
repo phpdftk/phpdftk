@@ -202,20 +202,26 @@ final class BoxGenerator
         if ($display === 'none') {
             return null;
         }
-        // CSS Grid 3 §11 — `display: grid-lanes` (masonry layout)
-        // currently aliases to `display: grid` with `grid-auto-flow`
-        // derived from which axis the author specified tracks for.
-        // For a row-axis grid-lanes (only `grid-template-rows` set),
-        // items flow column-major (auto-flow: column) and the
-        // column tracks grow implicitly. Symmetric for column-axis.
-        // The actual masonry algorithm (variable-height packing
-        // across tracks) is a future enhancement; this aliasing
-        // already lights up the empty-container / order /
-        // basic-placement subset of the corpus.
+        // CSS Grid 3 §2.2 — `display: grid-lanes` generates a grid lanes
+        // (masonry) container. It shares the `GridBox` box type and the
+        // grid cascade shape, so the display value is rewritten to
+        // `grid` here and the lanes-ness is recorded on the box below;
+        // `BlockLayout::layoutGridBox` then routes to the §4.4 lanes
+        // placement algorithm instead of the 2D grid one.
+        //
+        // §2.3 fixes the orientation: `grid-template-columns: none`
+        // together with a non-`none` `grid-template-rows` makes the
+        // BLOCK axis the grid axis (the lanes are rows); in every other
+        // case the INLINE axis is the grid axis (the lanes are columns).
+        $lanesGridAxisIsInline = null;
         if ($display === 'grid-lanes' || $display === 'inline-grid-lanes') {
             $hasRowTracks = !$this->isInitialValue($values->get('grid-template-rows'));
             $hasColTracks = !$this->isInitialValue($values->get('grid-template-columns'));
-            if ($hasRowTracks && !$hasColTracks) {
+            $lanesGridAxisIsInline = !($hasRowTracks && !$hasColTracks);
+            if (!$lanesGridAxisIsInline) {
+                // Keeps the fallback 2D grid path sane for the
+                // `inline-grid-lanes` case, which still lands on an
+                // `AtomicInlineBox` rather than a `GridBox`.
                 $values->set('grid-auto-flow', new Keyword('column'));
             }
             $values->set('display', new Keyword($display === 'inline-grid-lanes' ? 'inline-grid' : 'grid'));
@@ -620,6 +626,10 @@ final class BoxGenerator
 
         $box = $this->makeBox($element, $values, $display);
         $box->wasInlineLevel = $wasInlineLevelOutOfFlow;
+        if ($lanesGridAxisIsInline !== null && $box instanceof GridBox) {
+            $box->lanes = true;
+            $box->lanesGridAxisIsInline = $lanesGridAxisIsInline;
+        }
 
         // Walk children, building child boxes. Text nodes become TextBoxes.
         // `::before` is generated content prepended to the element's own
