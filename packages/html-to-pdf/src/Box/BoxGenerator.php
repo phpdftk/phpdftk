@@ -2737,6 +2737,7 @@ final class BoxGenerator
                 $child,
                 $rootValues,
             );
+            $this->substituteVarInSvgAttributes($child, $values);
             $declarations = [];
             foreach (self::SVG_PROJECTED as $property) {
                 if ($child->getAttribute($property) !== null) {
@@ -2860,6 +2861,107 @@ final class BoxGenerator
     private function attrValueParser(): \Phpdftk\Css\ValueParser
     {
         return $this->attrParser ??= new \Phpdftk\Css\ValueParser();
+    }
+
+    /**
+     * SVG attributes in which a `var()` reference is substituted.
+     *
+     * CSS Variables 1 §3 only substitutes inside a CSS PROPERTY's value,
+     * and SVG 2 §6.7 makes exactly the presentation attributes into
+     * properties — the geometry ones (§7.4) plus the styling ones. An
+     * attribute that is not a presentation attribute (`viewBox`,
+     * `points`, `preserveAspectRatio`, `href`) keeps its literal text,
+     * which is what a browser does too.
+     *
+     * @var list<string>
+     */
+    private const array SVG_VAR_SUBSTITUTABLE = [
+        // SVG 2 §7.4 — geometry properties.
+        'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'd',
+        // SVG 2 §6.7 / §13 — styling presentation attributes.
+        'fill', 'stroke', 'fill-opacity', 'stroke-opacity', 'opacity',
+        'fill-rule', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+        'stroke-miterlimit', 'stroke-dasharray', 'stroke-dashoffset',
+        'font-family', 'font-size', 'font-weight', 'font-style',
+        'color', 'visibility', 'stop-color', 'stop-opacity',
+        'clip-path', 'mask', 'transform', 'transform-origin',
+    ];
+
+    /**
+     * Resolve `var()` inside `$element`'s presentation attributes,
+     * rewriting each attribute with the substituted text.
+     *
+     * The value has to land back on the ATTRIBUTE rather than in the
+     * projected `style`: `Element::presentationOrStyle` reads the
+     * attribute first, so leaving `r="var(--radii)"` in place would keep
+     * feeding the raw text to the length parser (which reads it as 0 and
+     * drops the shape) no matter what the cascade resolved.
+     *
+     * CSS Variables 1 §4 — a `var()` that resolves to nothing and has no
+     * fallback is invalid at computed-value time. The attribute is
+     * blanked rather than left literal, so the element behaves as if it
+     * had never carried it.
+     */
+    private function substituteVarInSvgAttributes(Element $element, CascadedValues $values): void
+    {
+        foreach (self::SVG_VAR_SUBSTITUTABLE as $name) {
+            $raw = $element->getAttribute($name);
+            if ($raw === null || stripos($raw, 'var(') === false) {
+                continue;
+            }
+            try {
+                $parsed = $this->attrValueParser()->parseFromString($raw);
+            } catch (\Throwable) {
+                $element->removeAttribute($name);
+                continue;
+            }
+            $resolved = self::substituteVarValue($parsed, $values, 0);
+            if ($resolved === null) {
+                $element->removeAttribute($name);
+                continue;
+            }
+            $element->setAttribute($name, $resolved->toCss());
+        }
+    }
+
+    /**
+     * Replace every `var()` node in `$value` with what the element's
+     * custom properties resolve it to, or the `var()` fallback. Returns
+     * null when any reference resolves to nothing — per CSS Variables 1
+     * §4 that poisons the WHOLE declaration, not just the one token.
+     */
+    private static function substituteVarValue(
+        \Phpdftk\Css\Value\Value $value,
+        CascadedValues $values,
+        int $depth,
+    ): ?\Phpdftk\Css\Value\Value {
+        // Matches the cascade's own guard against a cyclic
+        // `--a: var(--b); --b: var(--a)` chain.
+        if ($depth > 32) {
+            return null;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\CustomProperty) {
+            $referenced = $values->get($value->name);
+            if ($referenced !== null) {
+                return self::substituteVarValue($referenced, $values, $depth + 1);
+            }
+            if ($value->fallback !== null) {
+                return self::substituteVarValue($value->fallback, $values, $depth + 1);
+            }
+            return null;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $out = [];
+            foreach ($value->values as $child) {
+                $resolved = self::substituteVarValue($child, $values, $depth + 1);
+                if ($resolved === null) {
+                    return null;
+                }
+                $out[] = $resolved;
+            }
+            return new \Phpdftk\Css\Value\ValueList($out, $value->separator);
+        }
+        return $value;
     }
 
     /**

@@ -238,4 +238,97 @@ final class InlineSvgIntegrationTest extends TestCase
             'the #g stylesheet rule should have beaten the fill presentation attribute',
         );
     }
+
+    /**
+     * CSS Variables 1 §3 + SVG 2 §6.7 — an SVG geometry attribute is a
+     * presentation attribute for the CSS property of the same name, so
+     * `r="var(--radii)"` must resolve against the element's custom
+     * properties. Without substitution the raw text `var(--radii)`
+     * reaches the length parser, yields 0, and the circle vanishes.
+     */
+    public function testVarOnGeometryAttributeResolvesFromCustomProperty(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><head><style>circle { --radii: 40px }</style></head><body>'
+                . '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">'
+                . '<circle cx="50" cy="50" r="var(--radii)" fill="#ff0000"/>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'circle with r="var(--radii)" painted nothing',
+        );
+    }
+
+    /** The `var()` fallback is used when the custom property is unset. */
+    public function testVarFallbackOnGeometryAttributeIsUsed(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">'
+                . '<circle cx="50" cy="50" r="var(--radii, 40px)" fill="#ff0000"/>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'circle with r="var(--radii, 40px)" painted nothing',
+        );
+    }
+
+    /**
+     * CSS Variables 1 §4 — an unresolvable `var()` with no fallback is
+     * invalid at computed-value time, so the geometry attribute it was
+     * written on contributes nothing and the shape does not paint.
+     */
+    public function testUnresolvableVarOnGeometryAttributePaintsNothing(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">'
+                . '<circle cx="50" cy="50" r="var(--radii)" fill="#ff0000"/>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertDoesNotMatchRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'an unresolvable var() must leave the circle unpainted',
+        );
+    }
+
+    /**
+     * `var()` is substituted only in attributes that ARE presentation
+     * attributes. `viewBox` is not a CSS property, so the text stays
+     * literal and no 50x50-viewBox-to-100x100-viewport scale appears.
+     */
+    public function testVarInNonPresentationAttributeIsNotSubstituted(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><head><style>svg { --vb: 0 0 50 50 }</style></head><body>'
+                . '<svg width="100" height="100" viewBox="var(--vb)" xmlns="http://www.w3.org/2000/svg">'
+                . '<rect width="100" height="100" fill="#ff0000"/>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+        self::assertStringNotContainsString('2 0 0 2 ', $bytes);
+    }
 }
