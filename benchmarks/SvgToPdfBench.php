@@ -230,6 +230,37 @@ class SvgToPdfBench
         );
     }
 
+    public function benchBasicShapeClipPathHeavy(): void
+    {
+        // 30 elements each carrying a CSS `clip-path: <basic-shape>
+        // <geometry-box>`. Every one resolves its reference box (an
+        // object / stroke bounding-box walk) and flattens the shape to a
+        // Bezier outline, so this is the hot path added alongside the
+        // `<clipPath>` element support benchClipAndMaskHeavy covers.
+        $shapes = [
+            'circle(50%)',
+            'ellipse(40% 25%) fill-box',
+            'inset(10% 5%) stroke-box',
+            'polygon(0% 0%, 100% 0%, 50% 100%)',
+            'circle(25% at calc(50% - 4px) 50%) view-box',
+        ];
+        $body = '';
+        for ($i = 0; $i < 30; $i++) {
+            $body .= sprintf(
+                '<rect x="%d" y="%d" width="40" height="40" '
+                . 'fill="hsl(%d, 70%%, 50%%)" stroke="black" stroke-width="4" '
+                . 'clip-path="%s"/>',
+                ($i % 6) * 50,
+                ((int) ($i / 6)) * 50,
+                $i * 12,
+                $shapes[$i % count($shapes)],
+            );
+        }
+        $this->render(
+            sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 250">%s</svg>', $body),
+        );
+    }
+
     public function benchRealisticIconAtlas(): void
     {
         // Combined fixture: a 60-element icon atlas using symbols,

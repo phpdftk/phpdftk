@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Phpdftk\SvgToPdf\Geometry;
 
 use Phpdftk\Svg\Element;
+use Phpdftk\Svg\ForeignObject;
+use Phpdftk\Svg\Group;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Path\ArcTo;
 use Phpdftk\Svg\Path\ClosePath;
@@ -22,6 +24,7 @@ use Phpdftk\Svg\Shape\Line;
 use Phpdftk\Svg\Shape\Polygon;
 use Phpdftk\Svg\Shape\Polyline;
 use Phpdftk\Svg\Shape\Rect;
+use Phpdftk\Svg\Value\Paint\None_;
 use Phpdftk\SvgToPdf\Path\ArcToCubic;
 
 /**
@@ -43,10 +46,21 @@ final class BoundingBox
     private const float EPSILON = 1.0e-12;
 
     /**
+     * `$includeStroke` widens the result to the element's STROKE box
+     * (SVG 2 §7.5 / CSS Masking 1 §6's `stroke-box`): the stroke is
+     * centred on the geometry, so it reaches half its width beyond the
+     * fill box on every side. A container grows each child's stroke box
+     * in turn, which is not the same as growing the container's fill box
+     * — only the stroked children move.
+     *
      * @return array{minX: float, minY: float, width: float, height: float}|null
      */
-    public static function compute(Element $element): ?array
+    public static function compute(Element $element, bool $includeStroke = false): ?array
     {
+        if ($includeStroke && !$element instanceof Group) {
+            $box = self::compute($element);
+            return $box === null ? null : self::grownByStroke($element, $box);
+        }
         if ($element instanceof Rect) {
             $w = $element->width();
             $h = $element->height();
@@ -106,7 +120,108 @@ final class BoundingBox
         if ($element instanceof Path) {
             return self::pathBoundingBox($element);
         }
+        if ($element instanceof ForeignObject) {
+            // SVG 2 §8.9 — a `<foreignObject>`'s bounding box is its
+            // viewport rectangle, exactly like a `<rect>`'s geometry.
+            $w = self::lengthAttribute($element, 'width');
+            $h = self::lengthAttribute($element, 'height');
+            return $w <= 0.0 || $h <= 0.0
+                ? null
+                : [
+                    'minX' => self::lengthAttribute($element, 'x'),
+                    'minY' => self::lengthAttribute($element, 'y'),
+                    'width' => $w,
+                    'height' => $h,
+                ];
+        }
+        if ($element instanceof Group) {
+            return self::groupBoundingBox($element, $includeStroke);
+        }
         return null;
+    }
+
+    /**
+     * Expand `$box` by half the element's stroke width on each side. An
+     * element with no stroke (or `stroke="none"`) is unchanged — its
+     * stroke box equals its fill box.
+     *
+     * @param array{minX: float, minY: float, width: float, height: float} $box
+     * @return array{minX: float, minY: float, width: float, height: float}
+     */
+    private static function grownByStroke(Element $element, array $box): array
+    {
+        $stroke = $element->stroke();
+        if ($stroke === null || $stroke instanceof None_) {
+            return $box;
+        }
+        $half = ($element->strokeWidth() ?? 1.0) / 2.0;
+        return [
+            'minX' => $box['minX'] - $half,
+            'minY' => $box['minY'] - $half,
+            'width' => $box['width'] + 2.0 * $half,
+            'height' => $box['height'] + 2.0 * $half,
+        ];
+    }
+
+    /**
+     * SVG 2 §7.10.2 — a container's bounding box is the union of its
+     * children's, each mapped through that child's own `transform`.
+     * Children with no computable bbox (`<defs>`, `<title>`, a `<line>`
+     * with zero extent) simply contribute nothing.
+     *
+     * @return array{minX: float, minY: float, width: float, height: float}|null
+     */
+    private static function groupBoundingBox(Group $group, bool $includeStroke = false): ?array
+    {
+        $minX = $minY = $maxX = $maxY = null;
+        foreach ($group->children as $child) {
+            if (!$child instanceof Element) {
+                continue;
+            }
+            $box = self::compute($child, $includeStroke);
+            if ($box === null) {
+                continue;
+            }
+            $corners = [
+                [$box['minX'], $box['minY']],
+                [$box['minX'] + $box['width'], $box['minY']],
+                [$box['minX'], $box['minY'] + $box['height']],
+                [$box['minX'] + $box['width'], $box['minY'] + $box['height']],
+            ];
+            $matrix = $child->transform()?->toMatrix();
+            foreach ($corners as [$cx, $cy]) {
+                if ($matrix !== null) {
+                    [$a, $b, $c, $d, $e, $f] = $matrix;
+                    [$cx, $cy] = [$a * $cx + $c * $cy + $e, $b * $cx + $d * $cy + $f];
+                }
+                $minX = $minX === null ? $cx : min($minX, $cx);
+                $maxX = $maxX === null ? $cx : max($maxX, $cx);
+                $minY = $minY === null ? $cy : min($minY, $cy);
+                $maxY = $maxY === null ? $cy : max($maxY, $cy);
+            }
+        }
+        if ($minX === null || $minY === null || $maxX === null || $maxY === null) {
+            return null;
+        }
+        return [
+            'minX' => $minX,
+            'minY' => $minY,
+            'width' => $maxX - $minX,
+            'height' => $maxY - $minY,
+        ];
+    }
+
+    /**
+     * Numeric prefix of a geometry attribute (`x` / `y` / `width` /
+     * `height`), in user units. Missing or unparseable → 0.
+     */
+    private static function lengthAttribute(Element $element, string $name): float
+    {
+        $raw = $element->getAttribute($name);
+        if ($raw === null || preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/', $raw, $m) !== 1) {
+            return 0.0;
+        }
+        return (float) $m[1];
     }
 
     /**

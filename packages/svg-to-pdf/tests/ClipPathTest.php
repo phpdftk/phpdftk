@@ -250,6 +250,107 @@ final class ClipPathTest extends TestCase
         self::assertContains('W', $lines);
     }
 
+    public function testBasicShapeClipPathClipsToTheObjectBoundingBox(): void
+    {
+        // CSS Masking 1 §6 — `clip-path: <basic-shape>` on an SVG
+        // graphics element. An SVG element has no CSS layout box, so the
+        // default `border-box` reference reduces to its fill box: here
+        // the rect's own (30, 30, 100, 100) geometry, giving a circle of
+        // radius 50 centred at (80, 80).
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<rect x="30" y="30" width="100" height="100" fill="green" '
+            . 'style="clip-path: circle(50%)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString("\nW", $ops);
+        // The outline starts at (cx + r, cy).
+        self::assertStringContainsString('130 80 m', $ops);
+    }
+
+    public function testStrokeBoxReferenceGrowsByHalfTheStrokeWidth(): void
+    {
+        // An 80x80 rect at (60, 60) with a 20-wide stroke has a stroke
+        // box of (50, 50, 100, 100), so `circle(50%) stroke-box` is a
+        // radius-50 circle centred at (100, 100).
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<rect x="60" y="60" width="80" height="80" fill="blue" '
+            . 'stroke="blue" stroke-width="20" clip-path="circle(50%) stroke-box"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString('150 100 m', $ops);
+    }
+
+    public function testStrokeBoxOfAGroupUnionsItsChildrenStrokeBoxes(): void
+    {
+        // The `<g>` has no stroke of its own; its stroke box is the union
+        // of its children's, each through that child's transform. Growing
+        // the group's FILL box instead would leave the circle too small.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g clip-path="circle(50%) stroke-box">'
+            . '<rect x="0" y="60" width="80" height="80" fill="blue" '
+            . 'stroke="blue" stroke-width="20" transform="translate(60,0)"/>'
+            . '</g>'
+            . '</svg>',
+        );
+        self::assertStringContainsString('150 100 m', $ops);
+    }
+
+    public function testViewBoxReferenceIsTheViewportAtTheUserSpaceOrigin(): void
+    {
+        // `view-box` measures against the nearest SVG viewport, anchored
+        // at the user-space origin — not against the element's own bbox.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">'
+            . '<rect x="20" y="20" width="135" height="135" fill="blue" '
+            . 'clip-path="circle(25% at calc(50% - 10px) calc(50% - 10px)) view-box"/>'
+            . '</svg>',
+        );
+        // radius = 25% of 200, centre (90, 90) → start at (140, 90).
+        self::assertStringContainsString('140 90 m', $ops);
+    }
+
+    public function testUnknownClipPathKeywordLeavesTheElementUnclipped(): void
+    {
+        // Neither a basic shape nor a `<geometry-box>`: CSS Masking 1
+        // §6.1 leaves the element unclipped rather than clipping it to
+        // its own box.
+        foreach (['not-a-url', 'inherit-ish', 'circle'] as $value) {
+            $ops = $this->paint(
+                '<svg xmlns="http://www.w3.org/2000/svg">'
+                . '<rect width="10" height="10" clip-path="' . $value . '"/>'
+                . '</svg>',
+            );
+            self::assertStringNotContainsString("\nW", $ops, $value);
+        }
+    }
+
+    public function testDegeneratePolygonShapeLeavesTheElementUnclipped(): void
+    {
+        // Fewer than three vertices encloses nothing; clipping to it
+        // would erase the element.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<rect width="10" height="10" clip-path="polygon(0% 0%, 100% 0%)"/>'
+            . '</svg>',
+        );
+        self::assertStringNotContainsString("\nW", $ops);
+    }
+
+    public function testBasicShapeOnAnElementWithNoBoundingBoxLeavesItUnclipped(): void
+    {
+        // A zero-extent rect has no object bounding box to measure
+        // against, so the shape can't be resolved and no clip is emitted.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<rect width="0" height="0" clip-path="circle(50%)"/>'
+            . '</svg>',
+        );
+        self::assertStringNotContainsString("\nW", $ops);
+    }
+
     public function testBboxModeKeepsThePathObjectFreeOfMatrixOperators(): void
     {
         // ISO 32000-2 §8.2 — a path object admits only path-construction

@@ -8,6 +8,11 @@ use Phpdftk\Color\CmykColor;
 use Phpdftk\Color\ColorInterface;
 use Phpdftk\Color\GrayColor;
 use Phpdftk\Color\RgbColor;
+use Phpdftk\Css\Shape\BasicShapePath;
+use Phpdftk\Css\Value\BasicShape;
+use Phpdftk\Css\Value\Keyword as CssKeyword;
+use Phpdftk\Css\Value\ValueList;
+use Phpdftk\Css\ValueParser;
 use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\ImageMetadata\ImageParser;
 use Phpdftk\ResourceLoader\Exception\FetchFailedException;
@@ -504,11 +509,13 @@ final class Translator
         $opacityGs = $this->resolveOpacityState($element);
         $needsStrokeParams = $this->needsStrokeParams($element);
         $clipPath = $this->resolveClipPath($element);
+        $shapeClip = $clipPath === null ? $this->resolveShapeClipPath($element) : null;
         $maskGs = $this->resolveMaskState($element);
         $needsWrap = $transform !== null
             || $opacityGs !== null
             || $needsStrokeParams
             || $clipPath !== null
+            || $shapeClip !== null
             || $maskGs !== null;
 
         if (!$needsWrap) {
@@ -540,6 +547,9 @@ final class Translator
         }
         if ($clipPath !== null) {
             $this->applyClipPath($clipPath, $element, $stream);
+        }
+        if ($shapeClip !== null) {
+            self::emitShapeClip($shapeClip, $stream);
         }
         if ($maskGs !== null) {
             $stream->setGraphicsState($maskGs);
@@ -713,6 +723,158 @@ final class Translator
             'width' => $mask->width() ?? $elementBbox['width'],
             'height' => $mask->height() ?? $elementBbox['height'],
         ];
+    }
+
+    /**
+     * CSS Masking 1 §6 — `clip-path: <basic-shape> || <geometry-box>` on
+     * an SVG graphics element. Returns the resolved outline (in the
+     * element's user space, y down) or null when the element has no such
+     * clip-path, the shape is one we don't model, or the reference box
+     * can't be computed.
+     *
+     * @return array{fillRule: 'nonzero'|'evenodd', commands: list<list<string|float>>}|null
+     */
+    private function resolveShapeClipPath(Element $element): ?array
+    {
+        $raw = $element->clipPathValue();
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '' || $trimmed === 'none' || str_starts_with(strtolower($trimmed), 'url(')) {
+            return null;
+        }
+        try {
+            $value = (new ValueParser())->parseFromString($trimmed);
+        } catch (\Throwable) {
+            return null;
+        }
+        // `<basic-shape> || <geometry-box>` parses as a ValueList in either
+        // order; a bare shape parses as itself. A bare `<geometry-box>`
+        // clips to that box's edge.
+        $shape = null;
+        $refBox = 'border-box';
+        $geometryBoxes = [
+            'content-box', 'padding-box', 'border-box', 'margin-box',
+            'fill-box', 'stroke-box', 'view-box',
+        ];
+        if ($value instanceof ValueList) {
+            foreach ($value->values as $part) {
+                if ($part instanceof BasicShape) {
+                    $shape = $part;
+                } elseif ($part instanceof CssKeyword
+                    && in_array(strtolower($part->name), $geometryBoxes, true)
+                ) {
+                    $refBox = strtolower($part->name);
+                }
+            }
+            if ($shape === null) {
+                return null;
+            }
+        } elseif ($value instanceof BasicShape) {
+            $shape = $value;
+        } elseif ($value instanceof CssKeyword
+            && in_array(strtolower($value->name), $geometryBoxes, true)
+        ) {
+            $refBox = strtolower($value->name);
+        } else {
+            // Not a shape, not a geometry box — an unparseable or unknown
+            // value. CSS Masking 1 §6.1 leaves the element unclipped.
+            return null;
+        }
+        $box = $this->clipReferenceBox($element, $refBox);
+        if ($box === null || $box['width'] <= 0.0 || $box['height'] <= 0.0) {
+            return null;
+        }
+        if ($shape === null) {
+            // Bare `<geometry-box>`: the box's own edge is the clip.
+            return [
+                'fillRule' => 'nonzero',
+                'commands' => [
+                    ['M', $box['minX'], $box['minY']],
+                    ['L', $box['minX'] + $box['width'], $box['minY']],
+                    ['L', $box['minX'] + $box['width'], $box['minY'] + $box['height']],
+                    ['L', $box['minX'], $box['minY'] + $box['height']],
+                    ['Z'],
+                ],
+            ];
+        }
+        return BasicShapePath::build(
+            $shape,
+            $box['minX'],
+            $box['minY'],
+            $box['width'],
+            $box['height'],
+        );
+    }
+
+    /**
+     * CSS Masking 1 §6 / CSS Box 3 — the `<geometry-box>` an SVG element's
+     * basic shape is measured against, in the element's user space.
+     *
+     * An SVG graphics element has no CSS layout box, so `content-box`,
+     * `padding-box`, `border-box` and `margin-box` all reduce to
+     * `fill-box` — its object bounding box. `stroke-box` grows that by
+     * half the stroke width on every side, and `view-box` is the nearest
+     * SVG viewport, anchored at the user-space origin.
+     *
+     * @return array{minX: float, minY: float, width: float, height: float}|null
+     */
+    private function clipReferenceBox(Element $element, string $refBox): ?array
+    {
+        if ($refBox === 'view-box') {
+            $viewport = $this->currentViewport();
+            if ($viewport['w'] <= 0.0 || $viewport['h'] <= 0.0) {
+                return null;
+            }
+            return [
+                'minX' => 0.0,
+                'minY' => 0.0,
+                'width' => $viewport['w'],
+                'height' => $viewport['h'],
+            ];
+        }
+        return BoundingBox::compute($element, includeStroke: $refBox === 'stroke-box');
+    }
+
+    /**
+     * Emit a resolved basic-shape outline as a PDF clipping path. The
+     * commands are already in the element's user space, which is the space
+     * the stream is painting in, so they go through verbatim.
+     *
+     * @param array{fillRule: 'nonzero'|'evenodd', commands: list<list<string|float>>} $outline
+     */
+    private static function emitShapeClip(array $outline, ContentStream $stream): void
+    {
+        foreach ($outline['commands'] as $command) {
+            switch ($command[0]) {
+                case 'M':
+                    $stream->moveTo((float) $command[1], (float) $command[2]);
+                    break;
+                case 'L':
+                    $stream->lineTo((float) $command[1], (float) $command[2]);
+                    break;
+                case 'C':
+                    $stream->curveTo(
+                        (float) $command[1],
+                        (float) $command[2],
+                        (float) $command[3],
+                        (float) $command[4],
+                        (float) $command[5],
+                        (float) $command[6],
+                    );
+                    break;
+                default:
+                    $stream->closePath();
+                    break;
+            }
+        }
+        if ($outline['fillRule'] === 'evenodd') {
+            $stream->clipEvenOdd();
+        } else {
+            $stream->clip();
+        }
+        $stream->endPath();
     }
 
     /**
