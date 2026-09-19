@@ -5201,6 +5201,7 @@ final class BlockLayout
         \Phpdftk\HtmlToPdf\Box\FlexBox $box,
         LayoutContext $context,
         ?float $definiteContentHeightOverride = null,
+        ?float $definiteContentWidthOverride = null,
     ): float {
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
@@ -5289,6 +5290,14 @@ final class BlockLayout
             $geo->width = min($intrinsic['max'], max($intrinsic['min'], $availableWidth));
         } else {
             $geo->width = $availableWidth;
+        }
+        // A caller that already RESOLVED this box's inline size pins it here,
+        // before anything reads `$geo->width`. The flex algorithm mutates a
+        // ROW item's `width` AFTER laying it out, so for a flexed item the
+        // used width no longer follows from `width` + containing block and a
+        // re-layout would otherwise recompute it from style and lose the flex.
+        if ($definiteContentWidthOverride !== null) {
+            $geo->width = $definiteContentWidthOverride;
         }
 
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
@@ -5949,10 +5958,18 @@ final class BlockLayout
                                 // `flex-grow` has no free space to distribute
                                 // without it.
                                 if (isset($childLayoutContexts[$i])) {
+                                    // §9.7 already resolved this item's MAIN
+                                    // (inline) size by mutating its width in
+                                    // place; hand that used width to the
+                                    // re-layout so it is not recomputed from
+                                    // `width` + containing block and the flex
+                                    // lost (`width: 200%` on a shrunk item
+                                    // would spring back to twice the CB).
                                     $this->relayoutStretchedToBlockSize(
                                         $child,
                                         $childLayoutContexts[$i],
                                         $stretchedContentHeight,
+                                        $childGeo->width,
                                     );
                                     $childGeo->height = $stretchedContentHeight;
                                 }
@@ -6117,6 +6134,7 @@ final class BlockLayout
         \Phpdftk\HtmlToPdf\Box\GridBox $box,
         LayoutContext $context,
         ?float $definiteContentHeightOverride = null,
+        ?float $definiteContentWidthOverride = null,
     ): float {
         // CSS Grid Layout 3 — `display: grid-lanes` establishes a grid
         // LANES formatting context: tracks in one axis, free packing in
@@ -6183,6 +6201,12 @@ final class BlockLayout
             }
         } else {
             $geo->width = $this->resolveLength($widthValue, $cbWidth);
+        }
+
+        // See {@see layoutFlexBox} — a caller that already resolved this
+        // box's inline size pins it before the track sizing reads it.
+        if ($definiteContentWidthOverride !== null) {
+            $geo->width = $definiteContentWidthOverride;
         }
 
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
@@ -12386,6 +12410,14 @@ final class BlockLayout
     private function subtreeHasPercentageHeight(Box $box): bool
     {
         foreach ($box->children as $child) {
+            // An OUT-OF-FLOW descendant resolves its percentage against its
+            // own containing block (the nearest positioned ancestor), not
+            // against this box, so it is not a reason to re-lay-out the
+            // subtree — and doing so re-ran the abspos placement a second
+            // time. The docblock always claimed "in-flow"; now it filters.
+            if ($this->isOutOfFlow($child)) {
+                continue;
+            }
             if ($child->style->get('height') instanceof Percentage) {
                 return true;
             }
@@ -12428,6 +12460,7 @@ final class BlockLayout
         Box $box,
         LayoutContext $context,
         float $contentHeight,
+        ?float $contentWidth = null,
     ): void {
         if ($contentHeight <= 0.0) {
             return;
@@ -12449,10 +12482,20 @@ final class BlockLayout
         $floatSnapshot = $floats?->snapshot();
         if ($isFlex) {
             /** @var \Phpdftk\HtmlToPdf\Box\FlexBox $box */
-            $this->layoutFlexBox($box, $context, definiteContentHeightOverride: $contentHeight);
+            $this->layoutFlexBox(
+                $box,
+                $context,
+                definiteContentHeightOverride: $contentHeight,
+                definiteContentWidthOverride: $contentWidth,
+            );
         } elseif ($isGrid) {
             /** @var \Phpdftk\HtmlToPdf\Box\GridBox $box */
-            $this->layoutGridBox($box, $context, definiteContentHeightOverride: $contentHeight);
+            $this->layoutGridBox(
+                $box,
+                $context,
+                definiteContentHeightOverride: $contentHeight,
+                definiteContentWidthOverride: $contentWidth,
+            );
         } else {
             // `flexItemDefiniteBlockSize` is the one-shot hook `layoutBlock`
             // already reads to treat an externally-imposed size as an author
