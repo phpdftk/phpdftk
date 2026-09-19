@@ -75,4 +75,47 @@ properties onto each descendant before the subtree is handed to the
 renderer. An element's own presentation attribute always wins over the
 projected value.
 
+Presentation attributes take part in that cascade. Per SVG 2 §6.7 each
+one is an author-origin declaration of specificity zero, synthesised
+into a stylesheet ordered ahead of every other author sheet — so a
+stylesheet rule out-ranks an attribute, and, more importantly, an
+INHERITED property set as an attribute reaches descendants:
+`<g fill="green"><rect/></g>` fills the rect green. The same holds for a
+standalone SVG document through `Css\CssBridge`.
+
+`var()` resolves inside a presentation attribute (CSS Variables 1 §3),
+since SVG 2 §6.7 makes those attributes into properties:
+`<circle r="var(--radii)">` reads `--radii` off the element's cascade,
+and a reference that resolves to nothing with no fallback is invalid at
+computed-value time, so the attribute is dropped. Attributes that are
+not properties — `viewBox`, `points`, `preserveAspectRatio`, `href` —
+keep their literal text.
+
+### `<use>` and the shadow tree
+
+`<use>` instantiates the element it references by deep-cloning it into a
+shadow tree whose host is the `<use>` (SVG 2 §5.6). For an inline
+`<svg>` the clone is built during the cascade projection, which is what
+lets the instance INHERIT from the `<use>` — the sprite idiom
+`<use href="#icon" fill="currentColor">` reaches the shapes inside
+`#icon`, which styling the referenced element where it sits (usually
+inside `<defs>`) can never do.
+
+The clone is cascaded while still detached from the document, which is
+the shadow BOUNDARY: a document-tree selector like `#test rect` cannot
+match inside the instance, while a selector wholly inside the tree
+(`.inside rect`) still does. Ids are stripped from the clone before it
+is attached, since a shadow node is not addressable by id.
+
+Circular references are dropped rather than expanded (SVG 2 §5.6.2):
+the referenced element being the `<use>` itself or one of its ancestors,
+and the mutual case where two `<use>` elements reference each other's
+containers. Instantiation is additionally capped at 8 levels of nesting
+and 20,000 cloned elements per `<svg>`.
+
+A `url(#…)` or `href="#…"` reference carries a URL fragment, so it is
+percent-decoded before it names anything: `url(#%66%6f%6f)` and
+`url(#foo)` resolve to the same element. `SvgDocument::findByFragment`
+is that entry point; `findById` stays a literal id lookup.
+
 The translator that emits PDF from the parsed tree ships as [`phpdftk/svg-to-pdf`](/rendering/svg-to-pdf/) — currently at **95.40%** in-scope WPT pass on the SVG corpus.
