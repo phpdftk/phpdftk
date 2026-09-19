@@ -239,6 +239,9 @@ final class FloatContext
             if ($item->side !== 'left') {
                 continue;
             }
+            if ($this->hasEmptyFloatArea($item, $ignoreShape)) {
+                continue;
+            }
             if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {
                 $rightEdge = $this->itemRightEdgeAt($item, $y, $ignoreShape);
                 if ($rightEdge > $edge) {
@@ -247,6 +250,19 @@ final class FloatContext
             }
         }
         return $edge;
+    }
+
+    /**
+     * CSS Shapes 1 §3 — a degenerate basic shape (`circle(0)`,
+     * `ellipse(0% 0%)`, a sub-triangular `polygon()`) is well-formed
+     * but encloses no area, so it "defines an empty float area": line
+     * boxes flow straight through the float as if it declared no
+     * exclusion at all. Such an item is skipped entirely rather than
+     * contributing its bounding rect.
+     */
+    private function hasEmptyFloatArea(FloatItem $item, bool $ignoreShape): bool
+    {
+        return !$ignoreShape && ($item->shape['kind'] ?? null) === 'empty';
     }
 
     /**
@@ -437,6 +453,9 @@ final class FloatContext
         $edge = $containingRight;
         foreach ($this->items as $item) {
             if ($item->side !== 'right') {
+                continue;
+            }
+            if ($this->hasEmptyFloatArea($item, $ignoreShape)) {
                 continue;
             }
             if ($y + 0.001 >= $item->top && $y + 0.001 < $item->top + $item->height) {

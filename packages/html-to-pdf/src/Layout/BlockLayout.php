@@ -2466,7 +2466,11 @@ final class BlockLayout
             $cy = $this->resolveShapePosition($shape->centerY, $refHeight, $refHeight / 2.0);
             $r = $this->resolveCircleRadius($shape->radius, $cx, $cy, $refWidth, $refHeight);
             if ($r <= 0.0) {
-                return null;
+                // CSS Shapes 1 §3.2 — a zero radius is a valid but
+                // DEGENERATE shape: it "defines an empty float area".
+                // Returning null here would hand the FloatContext the
+                // float's bounding rect instead — the exact opposite.
+                return ['kind' => 'empty'];
             }
             return ['kind' => 'circle', 'cx' => $cx, 'cy' => $cy, 'r' => $r];
         }
@@ -2476,7 +2480,9 @@ final class BlockLayout
             $rx = $this->resolveEllipseRadius($shape->radiusX, $cx, $refWidth);
             $ry = $this->resolveEllipseRadius($shape->radiusY, $cy, $refHeight);
             if ($rx <= 0.0 || $ry <= 0.0) {
-                return null;
+                // §3.3 — a zero radius on either axis collapses the
+                // ellipse to a line or a point: an empty float area.
+                return ['kind' => 'empty'];
             }
             return ['kind' => 'ellipse', 'cx' => $cx, 'cy' => $cy, 'rx' => $rx, 'ry' => $ry];
         }
@@ -2489,7 +2495,10 @@ final class BlockLayout
                 $vertices[] = [$x, $y];
             }
             if (count($vertices) < 3) {
-                return null;
+                // §3.4 — `polygon()` accepts one-or-more vertex pairs,
+                // so fewer than three is well-formed yet encloses no
+                // area: an empty float area, not the bounding rect.
+                return ['kind' => 'empty'];
             }
             return ['kind' => 'polygon', 'vertices' => $vertices];
         }
