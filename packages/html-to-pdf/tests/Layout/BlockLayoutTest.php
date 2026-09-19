@@ -12768,6 +12768,27 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
     }
 
+    public function testPositionAreaSpanAllAxisDefaultsToAnchorCenter(): void
+    {
+        // CSS Anchor Positioning 1 §3.3 — an axis the `position-area`
+        // does not mention spans all three bands, and a span that covers
+        // the anchor's own band defaults to `anchor-center`: the box
+        // lines its centre up with the ANCHOR's centre, not the region's.
+        // Anchor x = [50, 150], centre 100; the region is the whole 300px
+        // containing block, so the anchor-centred sub-region is [0, 200]
+        // and a 20px box lands at 90 — not at 140, the region's centre.
+        $box = $this->anchorTree('position-area: block-end; inset: 0; width: 20px; height: 20px;');
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 90.0, $t->geometry->x, 0.5);
+        // The block axis is band 2 only — entirely after the anchor — so
+        // it still aligns to the region's start, the anchor's bottom edge.
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $t->geometry->y, 0.5);
+    }
+
     public function testPositionVisibilityNoOverflowHidesABoxThatLeavesItsImcb(): void
     {
         // CSS Anchor Positioning 1 §10 — `no-overflow` strongly hides a

@@ -3267,12 +3267,16 @@ final class BlockLayout
      */
     private function positionAreaAlignment(?\Phpdftk\Css\Value\Value $value, array $bands): string
     {
-        if ($value instanceof Keyword) {
-            $named = match (strtolower($value->name)) {
+        foreach ($this->selfAlignmentKeywords($value) as $keyword) {
+            $named = match ($keyword) {
+                // `normal` is the initial value; for a position-area box
+                // it means "use the area's own default", so it falls
+                // through rather than mapping to `stretch`.
                 'stretch' => 'stretch',
                 'start', 'flex-start', 'self-start' => 'start',
                 'end', 'flex-end', 'self-end' => 'end',
-                'center', 'anchor-center' => 'center',
+                'center' => 'center',
+                'anchor-center' => 'anchor-center',
                 default => null,
             };
             if ($named !== null) {
@@ -3285,7 +3289,39 @@ final class BlockLayout
         if ($bands[0] === 2) {
             return 'start';
         }
-        return 'center';
+        // Every remaining span covers the anchor's own band, and CSS
+        // Anchor Positioning 1 §3.3 defaults those to `anchor-center` —
+        // the box lines its centre up with the ANCHOR's centre, not with
+        // the centre of the region. For a `center` region the two
+        // coincide; for `span-all` (which is what an unmentioned axis
+        // resolves to) they are wildly different, and centring in the
+        // region put a `position-area: block-end` box in the middle of
+        // the containing block instead of under its anchor.
+        return 'anchor-center';
+    }
+
+    /**
+     * The keywords of a `justify-self` / `align-self` value, lowercased.
+     * The property takes an optional `safe` / `unsafe` overflow keyword
+     * before the positional one, so the value can be a list.
+     *
+     * @return list<string>
+     */
+    private function selfAlignmentKeywords(?\Phpdftk\Css\Value\Value $value): array
+    {
+        if ($value instanceof Keyword) {
+            return [strtolower($value->name)];
+        }
+        if (!$value instanceof \Phpdftk\Css\Value\ValueList) {
+            return [];
+        }
+        $keywords = [];
+        foreach ($value->values as $part) {
+            if ($part instanceof Keyword) {
+                $keywords[] = strtolower($part->name);
+            }
+        }
+        return $keywords;
     }
 
     /**
@@ -3416,25 +3452,38 @@ final class BlockLayout
         $regionRight = $xEdges[$xBands[1] + 1];
         $regionTop = $yEdges[$yBands[0]];
         $regionBottom = $yEdges[$yBands[1] + 1];
+        $xAlignment = $this->positionAreaAlignment($style->get('justify-self'), $xBands);
+        $yAlignment = $this->positionAreaAlignment($style->get('align-self'), $yBands);
+        // `anchor-center` centres the box on the ANCHOR's centre rather
+        // than the region's. Expressing it as ordinary centring inside
+        // the widest sub-region that is symmetric about the anchor's
+        // centre keeps the existing auto-margin split — which is what
+        // defers the box's own size to layout — doing the work.
+        [$alignLeft, $alignRight] = $xAlignment === 'anchor-center'
+            ? $this->anchorCentredRegion($regionLeft, $regionRight, ($xEdges[1] + $xEdges[2]) / 2.0)
+            : [$regionLeft, $regionRight];
+        [$alignTop, $alignBottom] = $yAlignment === 'anchor-center'
+            ? $this->anchorCentredRegion($regionTop, $regionBottom, ($yEdges[1] + $yEdges[2]) / 2.0)
+            : [$regionTop, $regionBottom];
         $this->applyPositionAreaAxis(
             $style,
             'left',
             'right',
             'width',
-            $regionLeft - $cbLeft,
-            $cbRight - $regionRight,
+            $alignLeft - $cbLeft,
+            $cbRight - $alignRight,
             $regionRight - $regionLeft,
-            $this->positionAreaAlignment($style->get('justify-self'), $xBands),
+            $xAlignment === 'anchor-center' ? 'center' : $xAlignment,
         );
         $this->applyPositionAreaAxis(
             $style,
             'top',
             'bottom',
             'height',
-            $regionTop - $cbTop,
-            $cbBottom - $regionBottom,
+            $alignTop - $cbTop,
+            $cbBottom - $alignBottom,
             $regionBottom - $regionTop,
-            $this->positionAreaAlignment($style->get('align-self'), $yBands),
+            $yAlignment === 'anchor-center' ? 'center' : $yAlignment,
         );
         // The rewritten insets ADD the region offset to whatever the
         // author declared, so running this twice would offset twice.
@@ -3445,6 +3494,24 @@ final class BlockLayout
         // same self-guarding shape `applyAbsoluteCornerAnchorSize` gets
         // for free from only firing on `auto`.
         $style->set('position-area', new Keyword('none'));
+    }
+
+    /**
+     * The widest sub-range of `[$start, $end]` centred on `$center` —
+     * the region an `anchor-center` box is centred in. `$center` always
+     * lies inside the range, because CSS Anchor Positioning 1 §3.3 only
+     * defaults to `anchor-center` for a region that covers the anchor's
+     * own band.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function anchorCentredRegion(float $start, float $end, float $center): array
+    {
+        $half = min($center - $start, $end - $center);
+        if ($half <= 0.0) {
+            return [$start, $end];
+        }
+        return [$center - $half, $center + $half];
     }
 
     /**
