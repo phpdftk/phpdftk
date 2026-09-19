@@ -101,6 +101,34 @@ final class TreeBuilder
      */
     private array $templateInsertionModes = [];
 
+    /**
+     * XHTML source mode. In `text/html` a trailing `/` on a start tag is a
+     * parse error and is ignored (WHATWG §13.2.5.6 "acknowledge the token's
+     * self-closing flag" applies only to void and foreign elements), so
+     * `<div/>` OPENS a div that then swallows every following sibling.
+     * XHTML served as `application/xhtml+xml` — which is how WPT serves its
+     * `.xht` / `.xhtml` reftests — is XML, where `<div/>` is an empty
+     * element. Parsing those files with the HTML rules nests each sibling
+     * inside the previous self-closed element and wrecks the layout the
+     * reftest is asserting.
+     *
+     * When this is set, a self-closed start tag whose element is still the
+     * current node once its insertion-mode handler has run is popped, which
+     * reproduces XML's empty-element syntax without disturbing handlers
+     * that already popped (void elements) or that handed the tokenizer to a
+     * text mode.
+     *
+     * {@see \Phpdftk\Html\Parser} turns this on when the source carries an
+     * XML declaration or an XHTML DOCTYPE.
+     */
+    public bool $xhtmlSelfClosing = false;
+
+    /**
+     * Element inserted by the start tag currently being dispatched, when
+     * that tag was self-closed and {@see $xhtmlSelfClosing} is on.
+     */
+    private ?Element $pendingXhtmlSelfClose = null;
+
     public function __construct(
         public readonly ParserOptions $options = new ParserOptions(),
         ?Document $document = null,
@@ -239,6 +267,55 @@ final class TreeBuilder
             return;
         }
         $this->dispatchToInsertionMode($token);
+        $this->closePendingXhtmlSelfClosedElement($tokenizer);
+    }
+
+    /**
+     * Start tags the XHTML empty-element pop must leave alone.
+     *
+     * Each of these already ends at its next sibling through HTML's
+     * implied-end-tag rules, so `<td/><td/>` and `<li/><li/>` come out as
+     * siblings without any help. They also each own an insertion mode
+     * (InCell, InRow, …) that is switched by the handler AFTER the element
+     * is inserted; popping the element behind the mode's back leaves the
+     * mode pointing at a node that is no longer on the stack and the next
+     * sibling closes the wrong element.
+     *
+     * @var list<string>
+     */
+    private const XHTML_SELF_CLOSE_SKIPPED = [
+        'table', 'caption', 'colgroup', 'thead', 'tbody', 'tfoot', 'tr',
+        'td', 'th', 'li', 'dd', 'dt', 'p', 'option', 'optgroup',
+        'rb', 'rt', 'rtc', 'rp', 'select', 'form',
+    ];
+
+    /**
+     * XML empty-element syntax: close the element a self-closed start tag
+     * just opened (see {@see $xhtmlSelfClosing}).
+     *
+     * Two guards keep this out of the way of the HTML machinery. The
+     * element must still be the current node — a handler that already
+     * popped it (every void element does) leaves something else on top, and
+     * popping again would underflow the stack. And the tokenizer must still
+     * be in its data state — `<title/>`, `<style/>`, `<script/>` and
+     * friends hand it to RCDATA / RAWTEXT / ScriptData and switch the
+     * insertion mode to Text, which expects its element to stay open.
+     */
+    private function closePendingXhtmlSelfClosedElement(Tokenizer $tokenizer): void
+    {
+        $pending = $this->pendingXhtmlSelfClose;
+        $this->pendingXhtmlSelfClose = null;
+        if ($pending === null) {
+            return;
+        }
+        if ($tokenizer->state !== TokenizerState::Data) {
+            return;
+        }
+        if ($this->openElements->currentNode() !== $pending) {
+            return;
+        }
+        $this->openElements->pop();
+        $this->activeFormatting->remove($pending);
     }
 
     /**
@@ -1606,6 +1683,12 @@ final class TreeBuilder
             $parent->appendChild($element);
         }
         $this->openElements->push($element);
+        if ($this->xhtmlSelfClosing
+            && $token->selfClosing
+            && !in_array($token->tagName, self::XHTML_SELF_CLOSE_SKIPPED, true)
+        ) {
+            $this->pendingXhtmlSelfClose = $element;
+        }
         return $element;
     }
 

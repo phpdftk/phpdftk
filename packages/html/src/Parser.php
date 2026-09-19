@@ -39,9 +39,38 @@ final class Parser
     {
         $tokenizer = new Tokenizer($html);
         $builder = new TreeBuilder($this->options);
+        $builder->xhtmlSelfClosing = self::looksLikeXhtml($html);
         $doc = $builder->build($tokenizer);
         $this->mirrorSelectedContent($doc);
         return $doc;
+    }
+
+    /**
+     * Is this source XHTML rather than `text/html`?
+     *
+     * XHTML is XML, so `<div/>` is an empty element; the HTML tokenizer
+     * instead treats the trailing slash as a parse error and opens a div
+     * that swallows the rest of the document. Sniffing lets a single
+     * `parseDocument()` entry point serve both without the caller having
+     * to know the MIME type.
+     *
+     * The signals are the ones only an XHTML document carries: an XML
+     * declaration, or an XHTML `<!DOCTYPE>` public identifier. The
+     * `xmlns` attribute alone is NOT enough — it is legal (and common)
+     * in `text/html`, where the HTML rules still apply.
+     */
+    private static function looksLikeXhtml(string $html): bool
+    {
+        $prefix = substr($html, 0, 1024);
+        // Skip a UTF-8 BOM and leading whitespace before the prolog test.
+        $trimmed = ltrim($prefix, "\xEF\xBB\xBF \t\r\n\f");
+        if (str_starts_with($trimmed, '<?xml')) {
+            return true;
+        }
+        return (bool) preg_match(
+            '/<!DOCTYPE\s+html\s+PUBLIC\s+"-\/\/W3C\/\/DTD\s+XHTML/i',
+            $prefix,
+        );
     }
 
     /**
