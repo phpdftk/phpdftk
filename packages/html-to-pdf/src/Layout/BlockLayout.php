@@ -8629,6 +8629,30 @@ final class BlockLayout
                 $segment = 0.0;
                 continue;
             }
+            // CSS Sizing 3 §5.1 — intrinsic sizes are computed from a box's
+            // IN-FLOW contents, so an absolutely-positioned or fixed child
+            // contributes NOTHING: a shrink-to-fit float wrapping a 200px
+            // abs-pos child and a 30px in-flow child is 30px wide. The flex
+            // path (`flexAutoIntrinsicWidth`) already skipped them; the
+            // block path billed them.
+            //
+            // A float, by contrast, DOES contribute (CSS 2.1 §10.3.5
+            // preferred width includes floats), so only `position` is
+            // consulted here.
+            //
+            // `TextBox` / `InlineBox` children are excluded from the test on
+            // purpose: neither generates a box of its own, and a `TextBox`
+            // literally carries its parent's cascade — so the direct text of
+            // an abs-pos block reports `position: absolute` and skipping it
+            // would collapse that block's own intrinsic width to zero. An
+            // out-of-flow element is blockified (CSS Display 3 §2.7), so it
+            // can never surface here as a non-atomic inline.
+            if (!$child instanceof TextBox
+                && !$child instanceof InlineBox
+                && $this->isOutOfFlow($child)
+            ) {
+                continue;
+            }
             $cm = $this->measureMinMaxContent($child, $context);
             // CSS Sizing 3 §5.1 — a child contributes its OUTER (margin
             // box) size, so a block-level child's inline-axis margin,

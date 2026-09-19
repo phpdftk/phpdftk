@@ -14650,4 +14650,83 @@ final class BlockLayoutTest extends TestCase
         );
         self::assertEqualsWithDelta(0.0, $ws->geometry->width, 0.01);
     }
+
+    public function testOutOfFlowChildContributesNothingToIntrinsicInlineSize(): void
+    {
+        // CSS Sizing 3 §5.1 — intrinsic sizes are computed from a box's
+        // IN-FLOW contents. An absolutely-positioned (or fixed) child is
+        // out of flow and contributes nothing, so a shrink-to-fit float
+        // wrapping a 200px abs-pos child and a 30px in-flow child is 30px
+        // wide, not 200px. (The flex path already skipped them; the block
+        // path billed them.)
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div class="f" id="abs"><div class="oof-abs"></div><div class="narrow"></div></div>'
+            . '<div class="f" id="fixed"><div class="oof-fixed"></div><div class="narrow"></div></div>'
+            . '</body></html>',
+            'html, body, div { display: block; }
+             body { position: relative; }
+             .f { float: left; clear: both; }
+             .oof-abs { position: absolute; width: 200px; height: 10px; }
+             .oof-fixed { position: fixed; width: 300px; height: 10px; }
+             .narrow { width: 30px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $abs = $this->findById($box, 'abs');
+        $fixed = $this->findById($box, 'fixed');
+        self::assertNotNull($abs);
+        self::assertNotNull($fixed);
+        self::assertEqualsWithDelta(30.0, $abs->geometry->width, 0.01, 'abs-pos child excluded');
+        self::assertEqualsWithDelta(30.0, $fixed->geometry->width, 0.01, 'fixed child excluded');
+    }
+
+    public function testAbsPosBoxStillSizesToItsOwnContents(): void
+    {
+        // The counterpart guard. A `TextBox` carries its PARENT's cascade,
+        // so the direct text of an abs-pos block reports
+        // `position: absolute`. Excluding out-of-flow children naively
+        // would therefore collapse that block's own shrink-to-fit width
+        // to zero. It must still measure its contents.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $box = $this->buildTree(
+            '<html><body><div id="ap">hello world</div></body></html>',
+            'html, body, div { display: block; }
+             body { position: relative; }
+             #ap { position: absolute; top: 0; left: 0;
+                   font-family: noto; font-size: 16px; }',
+        );
+        $this->layout->layout($box, $ctx);
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        self::assertGreaterThan(10.0, $ap->geometry->width);
+    }
+
+    public function testFloatChildStillContributesToIntrinsicInlineSize(): void
+    {
+        // The companion guard: a FLOAT is not removed from intrinsic
+        // sizing (CSS 2.1 §10.3.5 preferred width includes floats), so the
+        // out-of-flow exclusion must not over-reach.
+        $box = $this->buildTree(
+            '<html><body><div class="f" id="wrap">'
+            . '<div class="inner"></div><div class="narrow"></div></div></body></html>',
+            'html, body, div { display: block; }
+             .f { float: left; }
+             .inner { float: left; width: 150px; height: 10px; }
+             .narrow { width: 30px; height: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $wrap = $this->findById($box, 'wrap');
+        self::assertNotNull($wrap);
+        self::assertEqualsWithDelta(150.0, $wrap->geometry->width, 0.01);
+    }
 }
