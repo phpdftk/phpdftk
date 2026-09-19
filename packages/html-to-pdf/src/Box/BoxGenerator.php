@@ -776,11 +776,11 @@ final class BoxGenerator
             $rawChildren = $this->wrapBareTableCellsInRows($rawChildren, $values);
         } elseif ($box instanceof TableRowBox) {
             $rawChildren = $this->wrapBareTableRowChildrenInCells($rawChildren, $values);
-        } elseif (!$box instanceof TableColumnBox) {
+        } elseif (!$box instanceof TableColumnBox && !$this->isInlineTableBox($box)) {
             // CSS 2.1 §17.2.1 "generate missing parents" — an internal
-            // table box (cell / row / row-group / column(-group) /
-            // caption) whose parent is NOT the table object it requires
-            // gets an anonymous `table` synthesised around it and every
+            // table box (cell / row / row-group / column(-group))
+            // whose parent is NOT the table object it requires gets an
+            // anonymous `table` synthesised around it and every
             // consecutive sibling that also needs one. Without this a
             // bare `<span style="display: table-cell">` inside a plain
             // `<div>` laid out as a naked block: no column widths, no
@@ -2085,6 +2085,22 @@ final class BoxGenerator
     }
 
     /**
+     * True when `$box` is a `display: inline-table` box.
+     *
+     * {@see makeBox} routes `inline-table` to an {@see AtomicInlineBox},
+     * not a {@see TableBox}, so an `instanceof TableBox` test misses it —
+     * and the "generate missing parents" pass would then decide the
+     * inline-table's own rows were misparented and bury an anonymous
+     * table inside it (caught as the two `*-width-applies-to-014`
+     * regressions in CSS2/normal-flow). An inline-table IS a table
+     * object, so its children need no parent generated.
+     */
+    private function isInlineTableBox(Box $box): bool
+    {
+        return $this->displayKeyword($box->style) === 'inline-table';
+    }
+
+    /**
      * CSS 2.1 §17.2.1 "generate missing parents" — wrap each run of
      * consecutive internal-table children of a NON-table parent in an
      * anonymous `table` box.
@@ -2165,20 +2181,24 @@ final class BoxGenerator
      * except a column inside a column group, which our box tree models as
      * a `TableColumnBox` parent and which short-circuits before the call.
      *
-     * The `table-caption` arm insists on a `BlockBox`, and that guard is
-     * load-bearing: a {@see TextBox} carries its PARENT element's
-     * cascade, so `display` read off a text box inside a caption reports
-     * `table-caption` and the caption's own text would be torn out into
-     * an anonymous table of its own.
+     * §17.2.1 also calls a misparented `table-caption` box a candidate,
+     * and that arm is DELIBERATELY not implemented here. Generating the
+     * anonymous table is only half the job: the caption then has to be
+     * sized and positioned as a caption of that table, and this renderer
+     * cannot yet do that (a `display: table-caption` inside a real
+     * `display: table` already lays out wrong). Wrapping a stray caption
+     * therefore trades a structurally-correct box tree for a visibly
+     * worse render — measured as 8 genuine regressions across
+     * `css/css-writing-modes/{block-flow,line-box}-direction-*`, which
+     * matched their reference to within 0.0033 before. Restore this arm
+     * together with table-caption layout, not before it.
      */
     private function needsAnonymousTableParent(Box $box): bool
     {
         return $box instanceof TableCellBox
             || $box instanceof TableRowBox
             || $box instanceof TableColumnBox
-            || $this->isTableRowGroupBox($box)
-            || ($box instanceof BlockBox
-                && $this->displayKeyword($box->style) === 'table-caption');
+            || $this->isTableRowGroupBox($box);
     }
 
     /** True when `$box` is a text box holding nothing but collapsible whitespace. */

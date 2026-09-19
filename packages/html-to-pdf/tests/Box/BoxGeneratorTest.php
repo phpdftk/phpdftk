@@ -2502,6 +2502,49 @@ final class BoxGeneratorTest extends TestCase
     }
 
     /**
+     * `display: inline-table` generates an AtomicInlineBox, not a
+     * TableBox — but it IS a table object, so its rows are not
+     * misparented and must not gain an anonymous table.
+     */
+    public function testInlineTableRowsGrowNoAnonymousTable(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .t { display: inline-table; }
+             .r { display: table-row; } .c { display: table-cell; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div class="t"><div class="r">'
+            . '<div class="c">a</div></div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        self::assertCount(
+            0,
+            $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class),
+            'an inline-table is already the table its rows need',
+        );
+    }
+
+    /**
+     * A stray `display: table-caption` does NOT get an anonymous table.
+     * §17.2.1 says it should, but the caption would then have to be laid
+     * out as that table's caption, which this renderer cannot do yet —
+     * see the note on `needsAnonymousTableParent`.
+     */
+    public function testStrayTableCaptionGrowsNoAnonymousTableYet(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } .cap { display: table-caption; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><div><div class="cap">a</div></div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        self::assertCount(0, $this->collect($box, \Phpdftk\HtmlToPdf\Box\TableBox::class));
+    }
+
+    /**
      * Collect every box of `$class` in the tree, in document order.
      *
      * @template T of \Phpdftk\HtmlToPdf\Box\Box
