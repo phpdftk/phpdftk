@@ -364,15 +364,27 @@ final class FloatContext
     private function bandLocalRange(FloatItem $item, float $bandTop, float $bandBottom): ?array
     {
         if ($bandBottom > $bandTop + 2.0 * self::EPS) {
-            $bandTop += self::EPS;
-            $bandBottom -= self::EPS;
+            // Non-degenerate band: OPEN interval against the item's own
+            // half-open extent. A line box whose BOTTOM edge lands exactly
+            // on the float's top is not overlapped by it and must keep its
+            // full measure — the tolerance below belongs to the degenerate
+            // single-point query, and carrying it over to a band let a
+            // float narrow the line immediately above itself.
+            $lo = max($bandTop + self::EPS, $item->top);
+            $hi = min($bandBottom - self::EPS, $item->top + $item->height);
+            if ($lo > $hi) {
+                return null;
+            }
+            return [$lo - $item->top, $hi - $item->top];
         }
-        $lo = max($bandTop, $item->top - self::EPS);
-        $hi = min($bandBottom, $item->top + $item->height - self::EPS);
-        if ($lo > $hi) {
+        // Degenerate band — keep the legacy single-point semantics exactly,
+        // so the `leftEdgeAt` / `rightEdgeAt` callers are unaffected.
+        if ($bandTop + self::EPS < $item->top
+            || $bandTop + self::EPS >= $item->top + $item->height
+        ) {
             return null;
         }
-        return [$lo - $item->top, $hi - $item->top];
+        return [$bandTop - $item->top, $bandTop - $item->top];
     }
 
     /**

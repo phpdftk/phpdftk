@@ -240,6 +240,201 @@ final class FloatContextTest extends TestCase
         self::assertEqualsWithDelta(100.0, $ctx->leftEdgeAt(50.0, 0.0), 1.0);
     }
 
+    // ---- CSS Shapes 1 §1.2: the float area of a LINE BOX ----
+    //
+    // `leftEdgeInBand` / `rightEdgeInBand` answer "how far does this float
+    // intrude anywhere across a line box of this block extent", which is
+    // what the spec shortens a line by — not the intrusion at the line's
+    // top edge. The expected numbers below are hand-derived from the WPT
+    // reference files named in each case, so they double as a check that
+    // the maths agrees with the reftests rather than with itself.
+
+    public function testBandEndingAtFloatTopDoesNotNarrowLine(): void
+    {
+        // Negative — a line box whose BOTTOM edge lands exactly on the
+        // float's top edge does not overlap the float at all and keeps its
+        // full measure. (Sampling the band's endpoints inclusively got this
+        // wrong and narrowed the line immediately above every float.)
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 50.0, 50.0);
+        self::assertSame(0.0, $ctx->leftEdgeInBand(-20.0, 0.0, 0.0));
+    }
+
+    public function testBandStartingAtFloatBottomDoesNotNarrowLine(): void
+    {
+        // Negative — mirror of the above at the far edge: the float's
+        // extent is the half-open [top, top + height).
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 50.0, 50.0);
+        self::assertSame(0.0, $ctx->leftEdgeInBand(50.0, 70.0, 0.0));
+    }
+
+    public function testEmptyShapeNeverNarrowsLine(): void
+    {
+        // Negative — CSS Shapes 1 §3.2/§3.3/§3.4: a degenerate basic shape
+        // (`circle(0)`, `ellipse(0% 0%)`, a sub-triangular `polygon()`)
+        // defines an EMPTY float area, so line boxes flow straight through
+        // the float. Note the float is offset 20px into the container: a
+        // regression that fell back to the bounding rect, or one that
+        // pinned the line to the float's own left edge, would both show up
+        // here as a non-zero result.
+        $ctx = new FloatContext();
+        $ctx->addLeft(20.0, 0.0, 80.0, 120.0, ['kind' => 'empty']);
+        self::assertSame(0.0, $ctx->leftEdgeInBand(0.0, 24.0, 0.0));
+        self::assertSame(0.0, $ctx->leftEdgeAt(60.0, 0.0));
+    }
+
+    public function testEmptyShapeNeverNarrowsLineForRightFloat(): void
+    {
+        // Negative — mirror for a right float.
+        $ctx = new FloatContext();
+        $ctx->addRight(120.0, 0.0, 80.0, 120.0, ['kind' => 'empty']);
+        self::assertSame(200.0, $ctx->rightEdgeInBand(0.0, 24.0, 200.0));
+        self::assertSame(200.0, $ctx->rightEdgeAt(60.0, 200.0));
+    }
+
+    public function testShapeWithNoAreaInBandDoesNotPinLineToFloatLeftEdge(): void
+    {
+        // Negative — the float's exclusion rect starts 20px into the
+        // container but its polygon only occupies local y 20..100. A band
+        // above that (local y 0..10) has NO float area, so the line keeps
+        // the container's left edge. Reporting "the contour sits at x = 0"
+        // instead of "there is no contour here" indented the line to the
+        // float's own left edge — 20px of phantom exclusion.
+        // From WPT shape-outside-polygon-018: the first `.longbox` line.
+        $ctx = new FloatContext();
+        $ctx->addLeft(20.0, 20.0, 120.0, 120.0, [
+            'kind' => 'polygon',
+            'vertices' => [[60.0, 20.0], [100.0, 60.0], [20.0, 60.0], [60.0, 100.0]],
+        ], ['x' => 0.0, 'y' => 0.0, 'width' => 160.0, 'height' => 160.0]);
+        self::assertSame(0.0, $ctx->leftEdgeInBand(0.0, 30.0, 0.0));
+        // ... and likewise for a band below the polygon but still inside
+        // the float's own rect (local y 110..120).
+        self::assertSame(0.0, $ctx->leftEdgeInBand(130.0, 160.0, 0.0));
+    }
+
+    public function testSelfIntersectingPolygonSpikeDoesNotLeakIntoNextLine(): void
+    {
+        // Negative — the same bowtie polygon crosses itself at local y=60,
+        // where its boundary momentarily spans the full width. That spike
+        // belongs to the line ABOVE (which ends there); the line below must
+        // see only the narrow lower lobe. Treating the band as a closed
+        // interval let the spike widen both lines.
+        $ctx = new FloatContext();
+        $ctx->addLeft(20.0, 20.0, 120.0, 120.0, [
+            'kind' => 'polygon',
+            'vertices' => [[60.0, 20.0], [100.0, 60.0], [20.0, 60.0], [60.0, 100.0]],
+        ], ['x' => 0.0, 'y' => 0.0, 'width' => 160.0, 'height' => 160.0]);
+        self::assertEqualsWithDelta(120.0, $ctx->leftEdgeInBand(60.0, 80.0, 0.0), 0.01);
+        self::assertEqualsWithDelta(80.0, $ctx->leftEdgeInBand(80.0, 100.0, 0.0), 0.01);
+    }
+
+    public function testCircleBandOutsideShapeLeavesLineFullWidth(): void
+    {
+        // Negative — a circle inscribed in the top half of a tall float
+        // leaves the bottom half with no float area, even though the
+        // float's own rect still covers it.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 200.0, [
+            'kind' => 'circle',
+            'cx' => 50.0,
+            'cy' => 50.0,
+            'r' => 50.0,
+        ]);
+        self::assertSame(0.0, $ctx->leftEdgeInBand(120.0, 140.0, 0.0));
+    }
+
+    public function testZeroHeightBandMatchesLegacyPointQuery(): void
+    {
+        // Negative — a degenerate band must not drift from the single-point
+        // semantics the abs-pos static-position callers still rely on.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'circle',
+            'cx' => 50.0,
+            'cy' => 50.0,
+            'r' => 50.0,
+        ]);
+        // At the float's top the circle has collapsed to its centre; at the
+        // equator it spans the full diameter; at y=100 the float's own
+        // half-open extent has ended, so there is no exclusion at all.
+        foreach ([[0.0, 50.0], [50.0, 100.0], [99.0, 59.95], [100.0, 0.0]] as [$y, $want]) {
+            self::assertEqualsWithDelta($want, $ctx->leftEdgeInBand($y, $y, 0.0), 0.01);
+            self::assertEqualsWithDelta($want, $ctx->leftEdgeAt($y, 0.0), 0.01);
+        }
+    }
+
+    // ---- Positive cases ----
+
+    public function testCircleBandTakesWidestPointWhenBandStraddlesCentre(): void
+    {
+        // A circle r=50 centred at (50,50). A band from y=40 to y=60
+        // straddles the equator, so the line is shortened by the FULL
+        // diameter even though neither endpoint reaches it:
+        // at y=40 and y=60 the contour is only at 50 + sqrt(50² - 10²)
+        // = 98.99, but at y=50 it is 100.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'circle',
+            'cx' => 50.0,
+            'cy' => 50.0,
+            'r' => 50.0,
+        ]);
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeInBand(40.0, 60.0, 0.0), 0.01);
+        // Band entirely above the equator — extremum at its LOWER endpoint.
+        self::assertEqualsWithDelta(98.99, $ctx->leftEdgeInBand(20.0, 40.0, 0.0), 0.01);
+    }
+
+    public function testEllipseBandReproducesReferenceLineOffsets(): void
+    {
+        // WPT shape-outside-ellipse-036: `ellipse()` on an 80x120 margin
+        // box resolves to rx=40, ry=60 centred at (40,60). The reference
+        // places its four boxes at left 72, 80, 80 and 72 for line bands
+        // [0,24], [24,60], [60,96] and [96,120] — which is exactly the
+        // contour's extremum over each band.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 80.0, 120.0, [
+            'kind' => 'ellipse',
+            'cx' => 40.0,
+            'cy' => 60.0,
+            'rx' => 40.0,
+            'ry' => 60.0,
+        ], ['x' => 0.0, 'y' => 0.0, 'width' => 80.0, 'height' => 120.0]);
+        self::assertEqualsWithDelta(72.0, $ctx->leftEdgeInBand(0.0, 24.0, 0.0), 0.01);
+        self::assertEqualsWithDelta(80.0, $ctx->leftEdgeInBand(24.0, 60.0, 0.0), 0.01);
+        self::assertEqualsWithDelta(80.0, $ctx->leftEdgeInBand(60.0, 96.0, 0.0), 0.01);
+        self::assertEqualsWithDelta(72.0, $ctx->leftEdgeInBand(96.0, 120.0, 0.0), 0.01);
+    }
+
+    public function testPolygonBandTakesExtremumAtVertexInsideBand(): void
+    {
+        // A diamond: widest at its middle vertex, which sits strictly
+        // INSIDE the band. Sampling only the band's endpoints (x=50 at
+        // both) would miss the 100 entirely.
+        $ctx = new FloatContext();
+        $ctx->addLeft(0.0, 0.0, 100.0, 100.0, [
+            'kind' => 'polygon',
+            'vertices' => [[50.0, 0.0], [100.0, 50.0], [50.0, 100.0], [0.0, 50.0]],
+        ]);
+        self::assertEqualsWithDelta(100.0, $ctx->leftEdgeInBand(20.0, 80.0, 0.0), 0.01);
+    }
+
+    public function testRightFloatBandNarrowsFromTheRight(): void
+    {
+        // Mirror of the circle case for a right float: a circle r=50
+        // centred at (50,50) inside a 100x100 float whose left edge is at
+        // x=100 pulls the line's end back to x=100 at the equator.
+        $ctx = new FloatContext();
+        $ctx->addRight(100.0, 0.0, 100.0, 100.0, [
+            'kind' => 'circle',
+            'cx' => 50.0,
+            'cy' => 50.0,
+            'r' => 50.0,
+        ]);
+        self::assertEqualsWithDelta(100.0, $ctx->rightEdgeInBand(40.0, 60.0, 200.0), 0.01);
+        self::assertEqualsWithDelta(101.01, $ctx->rightEdgeInBand(20.0, 40.0, 200.0), 0.01);
+    }
+
     public function testRectFloatStillUsesBoundingEdges(): void
     {
         // Negative test — `shape: null` keeps the legacy bounding-rect

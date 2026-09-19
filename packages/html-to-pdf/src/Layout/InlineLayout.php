@@ -204,7 +204,10 @@ final class InlineLayout
         // CSS 2.1 §9.5.3 — line boxes shorten on the side(s) where a
         // float is currently active. Compute the per-line (left, right)
         // bounds against the float context each time we start a new line.
-        $bounds = $this->lineBounds($parent, $availableWidth, $context, 0.0, $lineHeight);
+        // The strut is only a LOWER bound on the line's block extent; each
+        // token that joins the line may grow `$lineBand` (see below).
+        $lineBand = $lineHeight;
+        $bounds = $this->lineBounds($parent, $availableWidth, $context, 0.0, $lineBand);
         $lines = [];
         $currentFragments = [];
         // CSS Text 3 §5.5 — when in `pre-wrap` / `break-spaces`, trailing
@@ -245,95 +248,18 @@ final class InlineLayout
                 // Leading whitespace at a line start is collapsed.
                 continue;
             }
-            // A line may not break inside an inline box's own padding /
-            // border, so its spacer never opens a break opportunity: wrapping
-            // before it would strand the inset on the next line, away from
-            // the text it belongs to.
-            // A ZERO-WIDTH token always fits, so it must never trigger a
-            // wrap. Without this an already-overflowing line followed by a
-            // `<br>` breaks BEFORE the break itself: the `<br>` lands alone
-            // on a line of its own and everything after is pushed a whole
-            // line down. `border-padding-bleed-001` overflows its 596px
-            // measure with 640px of Ahem text, so its `<br>` produced a third
-            // line box where two are correct.
-            if ($allowSoftWrap
-                && $fitWidth > 0.0
-                && ($token['noWrapBefore'] ?? false) === false
-                && $currentX + $fitWidth > $lineMaxRight
-                && $currentFragments !== []
-            ) {
-                // Wrap before placing this token.
-                // For `pre-wrap` / `break-spaces`: trailing whitespace at the
-                // end of the current line "hangs" — drop those fragments so
-                // they don't push the line width and don't get re-emitted on
-                // the next line. The overflowing whitespace token that
-                // triggered this wrap also hangs (we drop it below).
-                if ($hangsTrailingWhitespace) {
-                    while ($currentFragmentIsWs !== [] && end($currentFragmentIsWs) === true) {
-                        array_pop($currentFragments);
-                        array_pop($currentFragmentIsWs);
-                    }
-                    // Re-derive currentX from the surviving fragments so
-                    // line-width-based math (e.g. alignment) sees the
-                    // post-hang width.
-                    $currentX = $currentFragments === []
-                        ? $bounds['left'] + $textIndent
-                        : end($currentFragments)->x + end($currentFragments)->width;
-                }
-                $currentFragments = $this->trimTrailingSpace($currentFragments, $currentTrailingSpace);
-                $currentTrailingSpace = 0.0;
-                [$effective, $lineBase, $currentFragments] = $this->finalizeLine($currentFragments, $strutAscent, $strutDescent, $lineHeight, $strutXHeight);
-                $this->commitAtomicFragmentY($parent, $y, $lineBase, $currentFragments);
-                $lines[] = new LineBox($y, $effective, $currentFragments, $lineBase, $lineMaxRight);
-                $y += $effective;
-                $currentFragments = [];
-                $currentFragmentIsWs = [];
-                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y, $lineHeight);
-                $currentX = $bounds['left'];
-                $lineMaxRight = $bounds['right'];
-                $atLineStart = true;
-                if ($collapseLeadingWhitespace && $token['isWhitespace']) {
-                    // Drop whitespace at start of next line.
-                    continue;
-                }
-                if ($hangsTrailingWhitespace && $token['isWhitespace']) {
-                    // The overflowing whitespace hangs on the prior line —
-                    // don't carry it to the new line.
-                    continue;
-                }
-            }
-            $currentFragments[] = new InlineFragment(
-                $currentX,
-                $width,
-                $token['shapedRun'],
-                $token['baselineShift'] ?? 0.0,
-                $token['href'] ?? null,
-                $token['isBold'] ?? false,
-                $token['isItalic'] ?? false,
-                $token['decorationLines'] ?? [],
-                $token['textColor'] ?? null,
-                $token['backgroundColor'] ?? null,
-                $token['linkTitle'] ?? null,
-                $token['decorationColor'] ?? null,
-                (bool) $token['isWhitespace'],
-                $token['lineHeight'] ?? -1.0,
-                $token['verticalAlign'] ?? 'baseline',
-                atomicBox: $token['atomicBox'] ?? null,
-                bgExtendAbove: $token['bgExtendAbove'] ?? 0.0,
-                bgExtendBelow: $token['bgExtendBelow'] ?? 0.0,
-            );
-            $currentFragmentIsWs[] = (bool) $token['isWhitespace'];
-            $currentTrailingSpace = $hangsTrailingWhitespace ? 0.0 : $token['trailingSpace'];
-            // Side-channel: AtomicInlineBox positions get committed back to
-            // the box's geometry so the painter can draw images / replaced
-            // content at the right spot. CSS Inline 3 §4.5: for the default
-            // `vertical-align: baseline`, the inline-block's baseline aligns
-            // with the parent line's baseline; for replaced elements like
-            // `<img>` the baseline is the bottom of the box. So position
-            // the box so its *bottom* sits at the line's baseline (line.y +
-            // ascent of the shaping font) — same convention the painter
-            // uses for text baselines.
+            // CSS Shapes 1 §1.2 — an atomic inline's own block extent sets
+            // the band the float contour is resolved over, so it has to be
+            // known BEFORE this line's bounds are (re-)queried below. Only
+            // the height resolution moves up here; committing the box's
+            // geometry still waits until the inline cursor is final.
             $atomic = $token['atomicBox'] ?? null;
+            $atomicContentHeight = 0.0;
+            $atomicOuterHeight = 0.0;
+            $atomicPadTop = 0.0;
+            $atomicPadBottom = 0.0;
+            $atomicBorderTop = 0.0;
+            $atomicBorderBottom = 0.0;
             if ($atomic !== null) {
                 // The token captured the box-sizing-resolved content +
                 // outer widths; resolve the heights with the same
@@ -389,6 +315,125 @@ final class InlineLayout
                     $atomicOuterHeight = $width;
                     $atomicContentHeight = max(0.0, $atomicOuterHeight - $verticalInset);
                 }
+            }
+            // A line may not break inside an inline box's own padding /
+            // border, so its spacer never opens a break opportunity: wrapping
+            // before it would strand the inset on the next line, away from
+            // the text it belongs to.
+            // A ZERO-WIDTH token always fits, so it must never trigger a
+            // wrap. Without this an already-overflowing line followed by a
+            // `<br>` breaks BEFORE the break itself: the `<br>` lands alone
+            // on a line of its own and everything after is pushed a whole
+            // line down. `border-padding-bleed-001` overflows its 596px
+            // measure with 640px of Ahem text, so its `<br>` produced a third
+            // line box where two are correct.
+            if ($allowSoftWrap
+                && $fitWidth > 0.0
+                && ($token['noWrapBefore'] ?? false) === false
+                && $currentX + $fitWidth > $lineMaxRight
+                && $currentFragments !== []
+            ) {
+                // Wrap before placing this token.
+                // For `pre-wrap` / `break-spaces`: trailing whitespace at the
+                // end of the current line "hangs" — drop those fragments so
+                // they don't push the line width and don't get re-emitted on
+                // the next line. The overflowing whitespace token that
+                // triggered this wrap also hangs (we drop it below).
+                if ($hangsTrailingWhitespace) {
+                    while ($currentFragmentIsWs !== [] && end($currentFragmentIsWs) === true) {
+                        array_pop($currentFragments);
+                        array_pop($currentFragmentIsWs);
+                    }
+                    // Re-derive currentX from the surviving fragments so
+                    // line-width-based math (e.g. alignment) sees the
+                    // post-hang width.
+                    $currentX = $currentFragments === []
+                        ? $bounds['left'] + $textIndent
+                        : end($currentFragments)->x + end($currentFragments)->width;
+                }
+                $currentFragments = $this->trimTrailingSpace($currentFragments, $currentTrailingSpace);
+                $currentTrailingSpace = 0.0;
+                [$effective, $lineBase, $currentFragments] = $this->finalizeLine($currentFragments, $strutAscent, $strutDescent, $lineHeight, $strutXHeight);
+                $this->commitAtomicFragmentY($parent, $y, $lineBase, $currentFragments);
+                $lines[] = new LineBox($y, $effective, $currentFragments, $lineBase, $lineMaxRight);
+                $y += $effective;
+                $currentFragments = [];
+                $currentFragmentIsWs = [];
+                $lineBand = $lineHeight;
+                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y, $lineBand);
+                $currentX = $bounds['left'];
+                $lineMaxRight = $bounds['right'];
+                $atLineStart = true;
+                if ($collapseLeadingWhitespace && $token['isWhitespace']) {
+                    // Drop whitespace at start of next line.
+                    continue;
+                }
+                if ($hangsTrailingWhitespace && $token['isWhitespace']) {
+                    // The overflowing whitespace hangs on the prior line —
+                    // don't carry it to the new line.
+                    continue;
+                }
+            }
+            // CSS Shapes 1 §1.2 — the float area is resolved per LINE BOX,
+            // over that line's own block extent. The strut is only a lower
+            // bound on it: a `line-height: 0` block whose lines are built
+            // from 36px-tall inline-blocks has a 36px band, and a curved or
+            // sloped contour intrudes far further across that band than it
+            // does at the line's top edge. So grow the band as each token
+            // joins the line and re-query the contour. Fragments already on
+            // the line shift by the difference, which is what re-running the
+            // line against the tighter bounds would have produced; the
+            // dominant case — an atomic that is the line's first token —
+            // has nothing to shift at all.
+            $tokenBand = $atomic !== null
+                ? $atomicOuterHeight
+                    + (float) ($token['atomicMarginTop'] ?? 0.0)
+                    + (float) ($token['atomicMarginBottom'] ?? 0.0)
+                : max(0.0, (float) ($token['lineHeight'] ?? -1.0));
+            if ($tokenBand > $lineBand + 0.001) {
+                $lineBand = $tokenBand;
+                $rebanded = $this->lineBounds($parent, $availableWidth, $context, $y, $lineBand);
+                $dx = $rebanded['left'] - $bounds['left'];
+                if ($dx !== 0.0 && $currentFragments !== []) {
+                    $currentFragments = $this->shiftFragments($currentFragments, $dx);
+                    $this->commitAtomicFragmentX($parent, $currentFragments);
+                }
+                $currentX += $dx;
+                $bounds = $rebanded;
+                $lineMaxRight = $rebanded['right'];
+            }
+            $currentFragments[] = new InlineFragment(
+                $currentX,
+                $width,
+                $token['shapedRun'],
+                $token['baselineShift'] ?? 0.0,
+                $token['href'] ?? null,
+                $token['isBold'] ?? false,
+                $token['isItalic'] ?? false,
+                $token['decorationLines'] ?? [],
+                $token['textColor'] ?? null,
+                $token['backgroundColor'] ?? null,
+                $token['linkTitle'] ?? null,
+                $token['decorationColor'] ?? null,
+                (bool) $token['isWhitespace'],
+                $token['lineHeight'] ?? -1.0,
+                $token['verticalAlign'] ?? 'baseline',
+                atomicBox: $token['atomicBox'] ?? null,
+                bgExtendAbove: $token['bgExtendAbove'] ?? 0.0,
+                bgExtendBelow: $token['bgExtendBelow'] ?? 0.0,
+            );
+            $currentFragmentIsWs[] = (bool) $token['isWhitespace'];
+            $currentTrailingSpace = $hangsTrailingWhitespace ? 0.0 : $token['trailingSpace'];
+            // Side-channel: AtomicInlineBox positions get committed back to
+            // the box's geometry so the painter can draw images / replaced
+            // content at the right spot. CSS Inline 3 §4.5: for the default
+            // `vertical-align: baseline`, the inline-block's baseline aligns
+            // with the parent line's baseline; for replaced elements like
+            // `<img>` the baseline is the bottom of the box. So position
+            // the box so its *bottom* sits at the line's baseline (line.y +
+            // ascent of the shaping font) — same convention the painter
+            // uses for text baselines.
+            if ($atomic !== null) {
                 $shapedRun = $token['shapedRun'];
                 $atomicFont = $shapedRun->font;
                 $atomicUpem = max(1, $atomicFont->unitsPerEm);
@@ -441,7 +486,8 @@ final class InlineLayout
                 $y += $effective;
                 $currentFragments = [];
                 $currentFragmentIsWs = [];
-                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y, $lineHeight);
+                $lineBand = $lineHeight;
+                $bounds = $this->lineBounds($parent, $availableWidth, $context, $y, $lineBand);
                 $currentX = $bounds['left'];
                 $lineMaxRight = $bounds['right'];
                 $atLineStart = true;
@@ -1543,7 +1589,38 @@ final class InlineLayout
      * break.
      *
      * @param list<string> $decorationLines
-     * @return list<array{shapedRun: ShapedRun, isWhitespace: bool, kind: LineBreakKind, trailingSpace: float}>
+     * @return list<array{
+     *     shapedRun: ShapedRun,
+     *     isWhitespace: bool,
+     *     kind: LineBreakKind,
+     *     trailingSpace: float,
+     *     noWrapBefore?: bool,
+     *     baselineShift?: float,
+     *     lineHeight?: float,
+     *     verticalAlign?: string,
+     *     href?: string|null,
+     *     isBold?: bool,
+     *     isItalic?: bool,
+     *     decorationLines?: list<string>,
+     *     textColor?: \Phpdftk\Css\Value\Color|null,
+     *     backgroundColor?: \Phpdftk\Css\Value\Color|null,
+     *     linkTitle?: string|null,
+     *     decorationColor?: \Phpdftk\Css\Value\Color|null,
+     *     bgExtendAbove?: float,
+     *     bgExtendBelow?: float,
+     *     atomicBox?: AtomicInlineBox,
+     *     atomicContentWidth?: float,
+     *     atomicOuterWidth?: float,
+     *     atomicPadLeft?: float,
+     *     atomicPadRight?: float,
+     *     atomicBorderLeft?: float,
+     *     atomicBorderRight?: float,
+     *     atomicMarginLeft?: float,
+     *     atomicMarginRight?: float,
+     *     atomicMarginTop?: float,
+     *     atomicMarginBottom?: float,
+     *     atomicBorderBox?: bool,
+     * }>
      */
     private function collectTokens(
         Box $parent,
@@ -1618,7 +1695,38 @@ final class InlineLayout
     }
 
     /**
-     * @param list<array{shapedRun: ShapedRun, isWhitespace: bool, kind: LineBreakKind, trailingSpace: float}> $tokens
+     * @param list<array{
+     *     shapedRun: ShapedRun,
+     *     isWhitespace: bool,
+     *     kind: LineBreakKind,
+     *     trailingSpace: float,
+     *     noWrapBefore?: bool,
+     *     baselineShift?: float,
+     *     lineHeight?: float,
+     *     verticalAlign?: string,
+     *     href?: string|null,
+     *     isBold?: bool,
+     *     isItalic?: bool,
+     *     decorationLines?: list<string>,
+     *     textColor?: \Phpdftk\Css\Value\Color|null,
+     *     backgroundColor?: \Phpdftk\Css\Value\Color|null,
+     *     linkTitle?: string|null,
+     *     decorationColor?: \Phpdftk\Css\Value\Color|null,
+     *     bgExtendAbove?: float,
+     *     bgExtendBelow?: float,
+     *     atomicBox?: AtomicInlineBox,
+     *     atomicContentWidth?: float,
+     *     atomicOuterWidth?: float,
+     *     atomicPadLeft?: float,
+     *     atomicPadRight?: float,
+     *     atomicBorderLeft?: float,
+     *     atomicBorderRight?: float,
+     *     atomicMarginLeft?: float,
+     *     atomicMarginRight?: float,
+     *     atomicMarginTop?: float,
+     *     atomicMarginBottom?: float,
+     *     atomicBorderBox?: bool,
+     * }> $tokens
      * @param list<string> $decorationLines
      */
     private function walkInline(
@@ -2740,7 +2848,38 @@ final class InlineLayout
      * by that amount per CSS Text 3 §10 — the painter picks the difference
      * up automatically via its TJ-kerning path.
      *
-     * @return list<array{shapedRun: ShapedRun, isWhitespace: bool, kind: LineBreakKind, trailingSpace: float}>
+     * @return list<array{
+     *     shapedRun: ShapedRun,
+     *     isWhitespace: bool,
+     *     kind: LineBreakKind,
+     *     trailingSpace: float,
+     *     noWrapBefore?: bool,
+     *     baselineShift?: float,
+     *     lineHeight?: float,
+     *     verticalAlign?: string,
+     *     href?: string|null,
+     *     isBold?: bool,
+     *     isItalic?: bool,
+     *     decorationLines?: list<string>,
+     *     textColor?: \Phpdftk\Css\Value\Color|null,
+     *     backgroundColor?: \Phpdftk\Css\Value\Color|null,
+     *     linkTitle?: string|null,
+     *     decorationColor?: \Phpdftk\Css\Value\Color|null,
+     *     bgExtendAbove?: float,
+     *     bgExtendBelow?: float,
+     *     atomicBox?: AtomicInlineBox,
+     *     atomicContentWidth?: float,
+     *     atomicOuterWidth?: float,
+     *     atomicPadLeft?: float,
+     *     atomicPadRight?: float,
+     *     atomicBorderLeft?: float,
+     *     atomicBorderRight?: float,
+     *     atomicMarginLeft?: float,
+     *     atomicMarginRight?: float,
+     *     atomicMarginTop?: float,
+     *     atomicMarginBottom?: float,
+     *     atomicBorderBox?: bool,
+     * }>
      */
     private function tokeniseText(
         string $text,
