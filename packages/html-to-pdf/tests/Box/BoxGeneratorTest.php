@@ -2930,6 +2930,33 @@ final class BoxGeneratorTest extends TestCase
         self::assertEqualsWithDelta(60.0, $h, 0.01);
     }
 
+    /**
+     * A `<canvas>` is sized from its bitmap attributes, and those go
+     * through the same §10.4 table: `max-width: 120px` +
+     * `max-height: 100px` on an 8000x8000 canvas is 100x100, not the
+     * 120x100 that clamping each axis independently produces.
+     */
+    public function testCanvasNaturalSizeGoesThroughTheConstraintTable(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, p { display: block; } canvas { display: inline-block; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><p><canvas width="8000" height="8000"'
+            . ' style="max-width: 120px; max-height: 100px"></canvas></p></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $canvas = $this->findFirstByTag($box, 'canvas');
+        self::assertNotNull($canvas);
+        $w = $canvas->style->get('width');
+        $h = $canvas->style->get('height');
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $w);
+        self::assertInstanceOf(\Phpdftk\Css\Value\Length::class, $h);
+        self::assertEqualsWithDelta(100.0, $w->value, 0.01);
+        self::assertEqualsWithDelta(100.0, $h->value, 0.01);
+    }
+
     /** No violation leaves the natural size untouched. */
     public function testReplacedWithSatisfiedConstraintsKeepsNaturalSize(): void
     {

@@ -3531,8 +3531,17 @@ final class BoxGenerator
             $heightAuto = !$values->has('height')
                 || $this->isAutoLength($values->get('height'));
             if ($widthAuto && $heightAuto) {
-                $values->set('width', new \Phpdftk\Css\Value\Length($canvasW, \Phpdftk\Css\Value\LengthUnit::Px));
-                $values->set('height', new \Phpdftk\Css\Value\Length($canvasH, \Phpdftk\Css\Value\LengthUnit::Px));
+                // Same CSS 2.1 §10.4 treatment the `<img>` path gets: a
+                // length min/max constrains the natural size as a PAIR, so
+                // `max-width: 120px; max-height: 100px` on an 8000x8000
+                // canvas is 100x100, not the 120x100 that clamping each
+                // axis on its own produces. Flex / grid items are left
+                // alone — their algorithm owns the min/max transfer.
+                [$usedW, $usedH] = $parentIsFlexOrGrid
+                    ? [$canvasW, $canvasH]
+                    : $this->constrainReplacedNaturalSize($canvasW, $canvasH, $values);
+                $values->set('width', new \Phpdftk\Css\Value\Length($usedW, \Phpdftk\Css\Value\LengthUnit::Px));
+                $values->set('height', new \Phpdftk\Css\Value\Length($usedH, \Phpdftk\Css\Value\LengthUnit::Px));
             }
             if (!$values->has('aspect-ratio')) {
                 $values->set(
