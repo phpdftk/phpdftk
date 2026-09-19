@@ -2026,6 +2026,16 @@ final class BlockLayout
                     }
                 }
                 $geo->height = $maxChildOuterHeight;
+                // CSS Writing Modes 4 §7.1 / CSS 2.1 §16.2 — the inline
+                // pass placed these runs against the PRE-shrink inline
+                // size, so `direction: rtl` (and `text-align: center /
+                // right`) parked every fragment part-way down the column.
+                // Shrink-wrapping the inline size has to re-align them
+                // against the size the box actually ended up with, which
+                // for every alignment is a single uniform shift: the
+                // widest line becomes flush with the inline-start edge and
+                // the rest keep their relative alignment slack.
+                $this->rebaseVerticalInlineRuns($box);
             } else {
                 $geo->height = $childTotal;
             }
@@ -11460,6 +11470,56 @@ final class BlockLayout
             }
         }
         return $end;
+    }
+
+    /**
+     * Re-align a vertical writing-mode box's transposed inline runs after
+     * its inline size shrink-wrapped to its content.
+     *
+     * CSS Writing Modes 4 §7.1 — in a vertical writing mode `height` is the
+     * inline size. {@see InlineLayout} lays the formatting context out
+     * against the inline size available BEFORE shrink-to-fit (the
+     * containing block's), and `applyVerticalLineShift` then stores each
+     * fragment's inline offset in `blockOffset`. When the box afterwards
+     * shrink-wraps (float / abs-pos / inline-block / orthogonal flow), the
+     * slack `direction: rtl` and `text-align: center | right` put in front
+     * of each run is measured against an inline size the box no longer has,
+     * so every fragment sits that slack too far down the column.
+     *
+     * Re-aligning is a single UNIFORM shift for all three alignments: for
+     * a line whose run is `r` wide inside an inline size `S`, the run's
+     * offset is `0` (start), `(S − r) / 2` (center) or `S − r` (end), so
+     * going from `S` to `S′` moves every line by the same `0`,
+     * `(S′ − S) / 2` or `S′ − S`. Shrink-to-fit makes `S′` the widest run,
+     * whose offset therefore becomes zero — so the uniform shift is exactly
+     * minus the smallest offset present, which is what this applies.
+     *
+     * Horizontal-tb boxes never reach here (the caller is the vertical
+     * shrink-wrap branch) and a box with no line boxes is a no-op.
+     */
+    private function rebaseVerticalInlineRuns(Box $box): void
+    {
+        if ($box->lineBoxes === []) {
+            return;
+        }
+        $minOffset = null;
+        foreach ($box->lineBoxes as $line) {
+            foreach ($line->fragments as $fragment) {
+                if ($minOffset === null || $fragment->blockOffset < $minOffset) {
+                    $minOffset = $fragment->blockOffset;
+                }
+            }
+        }
+        if ($minOffset === null || $minOffset === 0.0) {
+            return;
+        }
+        foreach ($box->lineBoxes as $line) {
+            $shifted = [];
+            foreach ($line->fragments as $fragment) {
+                $shifted[] = $fragment->withBlockOffset($fragment->blockOffset - $minOffset);
+            }
+            $line->fragments = $shifted;
+        }
     }
 
     /**

@@ -157,4 +157,35 @@ final readonly class InlineFragment
         public float $bgExtendAbove = 0.0,
         public float $bgExtendBelow = 0.0,
     ) {}
+
+    /**
+     * Clone with a different {@see $blockOffset}, preserving every other
+     * field. Used when a vertical writing-mode box shrink-wraps its inline
+     * size and its transposed runs have to be re-aligned against the size
+     * the box actually ended up with (CSS Writing Modes 4 §7.1).
+     */
+    public function withBlockOffset(float $blockOffset): self
+    {
+        return new self(
+            $this->x,
+            $this->width,
+            $this->shapedRun,
+            $this->baselineShift,
+            $this->href,
+            $this->isBold,
+            $this->isItalic,
+            $this->decorationLines,
+            $this->textColor,
+            $this->backgroundColor,
+            $this->linkTitle,
+            $this->decorationColor,
+            $this->isWhitespace,
+            $this->lineHeight,
+            $this->verticalAlign,
+            $blockOffset,
+            $this->atomicBox,
+            $this->bgExtendAbove,
+            $this->bgExtendBelow,
+        );
+    }
 }

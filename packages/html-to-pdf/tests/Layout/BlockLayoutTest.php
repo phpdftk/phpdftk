@@ -13070,4 +13070,98 @@ final class BlockLayoutTest extends TestCase
         $marginBoxBottom = $g->y + $g->height + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
         self::assertEqualsWithDelta($lineBaselineY, $marginBoxBottom, 0.01);
     }
+
+    // ------------------------------------------------------------
+    // CSS Writing Modes 4 §7.1 — a vertical writing-mode box that
+    // shrink-wraps its INLINE size (`height`) has to re-align the
+    // transposed runs the inline pass placed against the pre-shrink
+    // size. Mongolian text gives the fixture a real shaped advance.
+    // ------------------------------------------------------------
+
+    /**
+     * Lay out `$inner` inside a 320x320 `vertical-lr` containing block
+     * and return the first line box's fragment block offsets, plus the
+     * shrink-wrapped inline size.
+     *
+     * @return array{0: list<list<float>>, 1: float}
+     */
+    private function verticalRunOffsets(string $cbStyle, string $inner): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="position: relative; width: 320px; '
+            . 'height: 320px; writing-mode: vertical-lr;' . $cbStyle . '">'
+            . $inner . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        $offsets = [];
+        foreach ($ap->lineBoxes as $line) {
+            $row = [];
+            foreach ($line->fragments as $fragment) {
+                $row[] = $fragment->blockOffset;
+            }
+            $offsets[] = $row;
+        }
+        return [$offsets, $ap->geometry->height];
+    }
+
+    /**
+     * An abs-pos box in an `rtl` vertical containing block shrink-wraps
+     * its inline size; its run must end up flush with the inline-start
+     * edge of the SHRUNK box, not parked at the `rtl` alignment slack of
+     * the containing block's 320px inline size.
+     */
+    public function testVerticalShrinkWrapRebasesRtlRun(): void
+    {
+        [$offsets, $inlineSize] = $this->verticalRunOffsets(
+            ' direction: rtl;',
+            '<span id="ap" style="position: absolute; top: 0">' . "\u{1820}\u{1821}" . '</span>',
+        );
+        self::assertNotSame([], $offsets);
+        self::assertGreaterThan(0.0, $inlineSize);
+        self::assertLessThan(320.0, $inlineSize, 'the abs-pos box should shrink-wrap');
+        self::assertEqualsWithDelta(0.0, $offsets[0][0], 0.01);
+    }
+
+    /**
+     * The re-align is a single UNIFORM shift, so a centred two-line
+     * shrink-wrapped box keeps its per-line centring slack: the widest
+     * line lands at 0 and the narrower one stays centred against the
+     * new inline size. Flattening every line to zero would left-align
+     * the short line.
+     */
+    public function testVerticalShrinkWrapKeepsPerLineCentringSlack(): void
+    {
+        [$offsets, $inlineSize] = $this->verticalRunOffsets(
+            '',
+            '<div id="ap" style="float: left; text-align: center">'
+            . "\u{1820}\u{1821}\u{1820}\u{1821}" . '<br/>' . "\u{1820}" . '</div>',
+        );
+        self::assertCount(2, $offsets);
+        self::assertEqualsWithDelta(0.0, $offsets[0][0], 0.01);
+        // Second line is narrower, so centring leaves it half the
+        // difference in from the inline-start edge — strictly positive
+        // and strictly less than the shrink-wrapped inline size.
+        self::assertGreaterThan(0.0, $offsets[1][0]);
+        self::assertLessThan($inlineSize, $offsets[1][0]);
+    }
+
+    /**
+     * Guard: an IN-FLOW block in an `rtl` vertical containing block
+     * stretch-fits the inline size instead of shrink-wrapping, so its
+     * run keeps the full `rtl` alignment slack. Re-basing it would drag
+     * right-aligned text back to the inline-start edge.
+     */
+    public function testVerticalStretchedBlockKeepsRtlAlignmentSlack(): void
+    {
+        [$offsets, $inlineSize] = $this->verticalRunOffsets(
+            ' direction: rtl;',
+            '<div id="ap" style="display: block">' . "\u{1820}\u{1821}" . '</div>',
+        );
+        self::assertEqualsWithDelta(320.0, $inlineSize, 0.01);
+        self::assertNotSame([], $offsets);
+        self::assertGreaterThan(100.0, $offsets[0][0]);
+    }
 }
