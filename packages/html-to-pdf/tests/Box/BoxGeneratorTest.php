@@ -2638,6 +2638,31 @@ final class BoxGeneratorTest extends TestCase
     }
 
     /**
+     * A REPLACED run-in has no child boxes to carry across, so it has to
+     * become an atomic inline — wrapping it in a plain `InlineBox` drops
+     * the element's rendering entirely.
+     */
+    public function testReplacedRunInBecomesAnAtomicInline(): void
+    {
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; } img { display: inline-block; }'
+            . ' .r { display: run-in; }',
+        );
+        $doc = $this->html->parseDocument(
+            '<html><body><img class="r" src="' . self::PNG_100X100 . '">'
+            . '<div id="t">tail</div></body></html>',
+        );
+        $box = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($box);
+        $body = $this->findFirstByTag($box, 'body');
+        self::assertNotNull($body);
+        $target = $body->children[0];
+        self::assertInstanceOf(BlockBox::class, $target);
+        self::assertInstanceOf(AtomicInlineBox::class, $target->children[0]);
+        self::assertSame('img', $target->children[0]->element?->localName);
+    }
+
+    /**
      * Collapsible whitespace between the run-in and its block doesn't
      * break the association (CSS 2.1 §9.2.3).
      */

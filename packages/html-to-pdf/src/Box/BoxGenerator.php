@@ -938,6 +938,18 @@ final class BoxGenerator
             // box." The element's own cascade rides along, so `font-weight`
             // / colour / `line-height` on the run-in still apply; only the
             // outer display type changes.
+            // A replaced run-in becomes an ATOMIC inline: it has no child
+            // boxes to carry across, so wrapping it in a plain `InlineBox`
+            // would drop the element's rendering entirely (a
+            // `display: run-in` `<img>` simply vanished).
+            if ($this->isReplacedElementBox($child)) {
+                $child->style->set('display', new Keyword('inline-block'));
+                $this->prependInlineChild(
+                    $target,
+                    new AtomicInlineBox($child->element, $child->style),
+                );
+                continue;
+            }
             $child->style->set('display', new Keyword('inline'));
             $inline = new InlineBox($child->element, $child->style);
             foreach ($child->children as $grandchild) {
@@ -1025,7 +1037,24 @@ final class BoxGenerator
      * the outer level would re-mix block and inline siblings that the
      * §3.4 pass had already separated.
      */
-    private function prependInlineChild(Box $target, InlineBox $inline): void
+    /**
+     * `true` when `$box`'s element is replaced — its rendering comes from
+     * outside the CSS box tree, so it has no child boxes of its own.
+     */
+    private function isReplacedElementBox(Box $box): bool
+    {
+        if ($box->element === null) {
+            return false;
+        }
+        return match (strtolower($box->element->localName)) {
+            'img', 'canvas', 'video', 'audio', 'object', 'embed',
+            'iframe', 'svg', 'svg:svg', 'math', 'input', 'textarea',
+            'select', 'progress', 'meter' => true,
+            default => false,
+        };
+    }
+
+    private function prependInlineChild(Box $target, Box $inline): void
     {
         $first = $target->children[0] ?? null;
         if ($first instanceof AnonymousBlockBox) {
