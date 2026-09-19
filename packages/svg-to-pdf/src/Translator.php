@@ -1657,7 +1657,13 @@ final class Translator
         if ($this->document === null) {
             return;
         }
-        $referent = $use->resolve($this->document);
+        // SVG 2 §5.6 — when the embedding pipeline has already
+        // materialised the shadow tree (the HTML cascade does, so the
+        // instance INHERITS from the `<use>`), paint that clone. Falling
+        // back to re-resolving the `href` would paint the referenced
+        // element as it is styled where it sits, losing everything the
+        // `<use>` contributed.
+        $referent = self::materialisedUseInstance($use) ?? $use->resolve($this->document);
         if ($referent === null) {
             return;
         }
@@ -1716,6 +1722,25 @@ final class Translator
         $this->paintUseReferent($referent, $stream);
         $this->pendingUseViewport = $prevOverride;
         $stream->restoreGraphicsState();
+    }
+
+    /**
+     * The pre-built `<use>` instance, if the embedding pipeline
+     * materialised one. Identified by the marker attribute
+     * {@see \Phpdftk\HtmlToPdf\Box\BoxGenerator::USE_INSTANCE_ATTRIBUTE},
+     * which is spelled out here rather than imported: `svg-to-pdf` must
+     * not depend on `html-to-pdf` (the dependency runs the other way).
+     */
+    private static function materialisedUseInstance(Use_ $use): ?Element
+    {
+        foreach ($use->children as $child) {
+            if ($child instanceof Element
+                && $child->getAttribute('data-phpdftk-use-instance') !== null
+            ) {
+                return $child;
+            }
+        }
+        return null;
     }
 
     /**

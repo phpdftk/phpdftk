@@ -344,7 +344,16 @@ final class BoxGenerator
             $svgRootValues = $svgRootSheets === $sheets
                 ? $values
                 : $this->cascade->computeFor($svgRootSheets, $element, $parentValues);
-            $this->projectCssOntoSvgSubtree($element, $sheets, $svgRootValues);
+            // Clone every `<use>` instance BEFORE anything is styled:
+            // a clone taken after the referenced subtree had already
+            // been projected would carry that projection as its own
+            // inline style and out-rank what it should inherit from the
+            // `<use>`.
+            $this->useShadowBudget = self::USE_SHADOW_NODE_BUDGET;
+            $this->useShadowChain = new \SplObjectStorage();
+            $this->collectUseShadowTrees($element, $element, 0);
+            $this->projectCssOntoSvgSubtree($element, $sheets, $svgRootValues, $element, 0);
+            $this->useShadowTrees = null;
         }
         if ($this->isForeignContentRoot($element)
             && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
@@ -2730,41 +2739,265 @@ final class BoxGenerator
         Element $root,
         array $sheets,
         CascadedValues $rootValues,
+        Element $svgRoot,
+        int $useDepth,
     ): void {
         foreach ($root->children() as $child) {
-            $values = $this->cascade->computeFor(
-                $this->svgCascadeSheets($child, $sheets),
-                $child,
-                $rootValues,
+            $values = $this->projectCssOntoSvgElement($child, $sheets, $rootValues);
+            $this->projectCssOntoSvgSubtree($child, $sheets, $values, $svgRoot, $useDepth);
+            // AFTER the child's own children have been walked, so the
+            // instance appended here is not walked a second time.
+            $this->materialiseUseShadowTree($child, $sheets, $values, $svgRoot, $useDepth);
+        }
+    }
+
+    /**
+     * Cascade one inline-SVG element and write the result back onto it.
+     * Returns the cascaded values so the caller can use them as the
+     * parent for the element's children.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    private function projectCssOntoSvgElement(
+        Element $element,
+        array $sheets,
+        CascadedValues $parentValues,
+    ): CascadedValues {
+        $values = $this->cascade->computeFor(
+            $this->svgCascadeSheets($element, $sheets),
+            $element,
+            $parentValues,
+        );
+        $this->substituteVarInSvgAttributes($element, $values);
+        $declarations = [];
+        foreach (self::SVG_PROJECTED as $property) {
+            if ($element->getAttribute($property) !== null) {
+                continue;
+            }
+            if (!$values->has($property)) {
+                continue;
+            }
+            $value = $values->get($property);
+            if ($value === null) {
+                continue;
+            }
+            $declarations[] = $property . ': ' . $value->toCss();
+        }
+        if ($declarations !== []) {
+            $existing = $element->getAttribute('style');
+            $projection = implode('; ', $declarations);
+            $element->setAttribute(
+                'style',
+                $existing === null || $existing === ''
+                    ? $projection
+                    // The element's own inline style comes LAST so it
+                    // still wins over the projected cascade.
+                    : $projection . '; ' . $existing,
             );
-            $this->substituteVarInSvgAttributes($child, $values);
-            $declarations = [];
-            foreach (self::SVG_PROJECTED as $property) {
-                if ($child->getAttribute($property) !== null) {
-                    continue;
-                }
-                if (!$values->has($property)) {
-                    continue;
-                }
-                $value = $values->get($property);
-                if ($value === null) {
-                    continue;
-                }
-                $declarations[] = $property . ': ' . $value->toCss();
+        }
+        return $values;
+    }
+
+    /**
+     * Attribute marking the cloned root of a `<use>` shadow tree, so the
+     * SVG painter paints the clone instead of re-resolving the `href`.
+     */
+    public const string USE_INSTANCE_ATTRIBUTE = 'data-phpdftk-use-instance';
+
+    /** Nesting limit for `<use>` inside a `<use>` instance. */
+    private const int MAX_USE_SHADOW_DEPTH = 8;
+
+    /**
+     * Ceiling on cloned elements per inline `<svg>`. A document can
+     * legitimately instantiate a sprite hundreds of times; this only
+     * stops a pathological fan-out from exhausting memory.
+     */
+    private const int USE_SHADOW_NODE_BUDGET = 20000;
+
+    private int $useShadowBudget = self::USE_SHADOW_NODE_BUDGET;
+
+    /**
+     * Referenced elements whose shadow tree is currently being built.
+     * Two `<use>` elements can reference each other's containers without
+     * either referent being an ancestor of its own `<use>`, so the
+     * ancestor test alone does not terminate.
+     *
+     * @var \SplObjectStorage<Element, bool>|null
+     */
+    private ?\SplObjectStorage $useShadowChain = null;
+
+    /**
+     * `<use>` element → the pristine clone taken for it in phase 1.
+     *
+     * @var \SplObjectStorage<Element, Element>|null
+     */
+    private ?\SplObjectStorage $useShadowTrees = null;
+
+    /**
+     * SVG 2 §5.6 — `<use>` instantiates the element it references by
+     * deep-cloning it into a SHADOW TREE whose host is the `<use>`.
+     *
+     * PHASE 1: take every clone while the subtree is still pristine.
+     * The referenced element usually lives in `<defs>`, which the
+     * projection walk styles like any other part of the document; a
+     * clone taken afterwards would inherit that stamped `style` and,
+     * since an inline style out-ranks everything, it would beat the very
+     * values the `<use>` is supposed to contribute.
+     *
+     * Recurses into each clone so a `<use>` nested inside an instance
+     * gets its own instance, still cloned from pristine originals.
+     */
+    private function collectUseShadowTrees(Element $scope, Element $svgRoot, int $useDepth): void
+    {
+        if ($useDepth >= self::MAX_USE_SHADOW_DEPTH) {
+            return;
+        }
+        foreach ($scope->children() as $child) {
+            $this->collectUseShadowTrees($child, $svgRoot, $useDepth);
+            if (strtolower($child->localName) !== 'use') {
+                continue;
             }
-            if ($declarations !== []) {
-                $existing = $child->getAttribute('style');
-                $projection = implode('; ', $declarations);
-                $child->setAttribute(
-                    'style',
-                    $existing === null || $existing === ''
-                        ? $projection
-                        // The element's own inline style comes LAST so it
-                        // still wins over the projected cascade.
-                        : $projection . '; ' . $existing,
-                );
+            $referent = $this->useReferentToClone($child, $svgRoot);
+            if ($referent === null) {
+                continue;
             }
-            $this->projectCssOntoSvgSubtree($child, $sheets, $values);
+            $this->useShadowBudget -= self::countElements($referent);
+            $clone = $referent->cloneNode(true);
+            $clone->setAttribute(self::USE_INSTANCE_ATTRIBUTE, '1');
+            $this->useShadowTrees ??= new \SplObjectStorage();
+            $this->useShadowTrees[$child] = $clone;
+            // Held for the duration of the nested collect so a cycle
+            // reached back through this referent stops here, and
+            // released afterwards so a later, legitimate second
+            // reference to the same target still gets its own instance.
+            $this->useShadowChain?->attach($referent, true);
+            $this->collectUseShadowTrees($clone, $svgRoot, $useDepth + 1);
+            $this->useShadowChain?->detach($referent);
+        }
+    }
+
+    /**
+     * The element a `<use>` should be cloned from, or null when the
+     * reference is missing, external, circular, or over budget.
+     */
+    private function useReferentToClone(Element $use, Element $svgRoot): ?Element
+    {
+        if ($this->useShadowBudget <= 0) {
+            return null;
+        }
+        $referent = $this->resolveSvgUseReferent($use, $svgRoot);
+        if ($referent === null) {
+            return null;
+        }
+        // SVG 2 §5.6.2 — referencing the `<use>` itself or one of its
+        // ancestors is an invalid circular reference.
+        for ($n = $use; $n !== null; $n = $n->parentNode) {
+            if ($n === $referent) {
+                return null;
+            }
+        }
+        // Two `<use>` elements can reference each other's containers
+        // without either referent being an ancestor of its own `<use>`,
+        // so the ancestor test alone does not terminate.
+        if ($this->useShadowChain !== null && $this->useShadowChain->contains($referent)) {
+            return null;
+        }
+        return self::countElements($referent) > $this->useShadowBudget ? null : $referent;
+    }
+
+    /**
+     * PHASE 2: style the clone and attach it.
+     *
+     * The clone is projected while still DETACHED, which buys the shadow
+     * boundary for free: a document-tree selector like `#test rect`
+     * cannot match inside it because the clone root has no parent, while
+     * a selector wholly inside the tree (`.inside rect`) still does —
+     * exactly the split SVG 2 §5.6 and Selectors 4 describe. Taking the
+     * `<use>`'s cascaded values as the clone's parent is what finally
+     * makes `<use href="#icon" fill="currentColor">` reach the shapes
+     * inside `#icon`.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    private function materialiseUseShadowTree(
+        Element $use,
+        array $sheets,
+        CascadedValues $useValues,
+        Element $svgRoot,
+        int $useDepth,
+    ): void {
+        if ($this->useShadowTrees === null || !$this->useShadowTrees->contains($use)) {
+            return;
+        }
+        $clone = $this->useShadowTrees[$use];
+        $cloneValues = $this->projectCssOntoSvgElement($clone, $sheets, $useValues);
+        $this->projectCssOntoSvgSubtree($clone, $sheets, $cloneValues, $svgRoot, $useDepth + 1);
+        // SVG 2 §5.6 — a shadow-tree node is not addressable by id from
+        // the document. Leaving the ids on would let a later `url(#…)`
+        // (or the painter's own href resolution) land on the CLONE
+        // instead of the original, which is exactly what happens when
+        // the `<use>` is written before the `<defs>` it references.
+        self::stripIds($clone);
+        $use->appendChild($clone);
+    }
+
+    /**
+     * Resolve a `<use>`'s `href` / `xlink:href` fragment to the element
+     * it names. Scoped to the `<svg>` root first (the overwhelmingly
+     * common case, and cheap), then the whole document.
+     */
+    private function resolveSvgUseReferent(Element $use, Element $svgRoot): ?Element
+    {
+        $raw = $use->getAttribute('href') ?? $use->getAttribute('xlink:href');
+        if ($raw === null) {
+            return null;
+        }
+        $raw = trim($raw);
+        if (!str_starts_with($raw, '#')) {
+            // No implicit cross-document load, matching `Svg\Use_`.
+            return null;
+        }
+        // URL Standard — the fragment is percent-decoded before it names
+        // anything.
+        $id = rawurldecode(substr($raw, 1));
+        if ($id === '') {
+            return null;
+        }
+        $found = self::findByIdWithin($svgRoot, $id);
+        if ($found !== null) {
+            return $found;
+        }
+        return $use->ownerDocument->getElementById($id);
+    }
+
+    private static function findByIdWithin(Element $scope, string $id): ?Element
+    {
+        if ($scope->getAttribute('id') === $id) {
+            return $scope;
+        }
+        foreach ($scope->children() as $child) {
+            $found = self::findByIdWithin($child, $id);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+        return null;
+    }
+
+    private static function countElements(Element $element): int
+    {
+        $n = 1;
+        foreach ($element->children() as $child) {
+            $n += self::countElements($child);
+        }
+        return $n;
+    }
+
+    private static function stripIds(Element $element): void
+    {
+        $element->removeAttribute('id');
+        foreach ($element->children() as $child) {
+            self::stripIds($child);
         }
     }
 

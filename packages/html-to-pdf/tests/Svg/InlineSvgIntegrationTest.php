@@ -331,4 +331,158 @@ final class InlineSvgIntegrationTest extends TestCase
         $bytes = $writer->toBytes();
         self::assertStringNotContainsString('2 0 0 2 ', $bytes);
     }
+
+    /**
+     * SVG 2 §5.6 — `<use>` deep-clones the element it references into a
+     * SHADOW TREE whose host is the `<use>`. The clone therefore inherits
+     * from the `<use>`, so `<use fill="#ff0000">` paints a referenced
+     * `<rect>` that sets no fill of its own red.
+     *
+     * This is the `<use href="#icon" fill="currentColor">` sprite idiom.
+     * Before the shadow tree was materialised the referenced subtree was
+     * styled only from its position in the document (inside `<defs>`),
+     * so it painted the initial black no matter what the `<use>` said.
+     */
+    public function testUseInheritsItsOwnFillIntoTheInstance(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<defs><g id="square"><rect width="100" height="100"/></g></defs>'
+                . '<g id="test"><use href="#square" fill="#ff0000"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'fill on the <use> did not inherit into the instance',
+        );
+    }
+
+    /**
+     * SVG 2 §5.6 / Selectors 4 — a selector from the document tree does
+     * NOT cross the shadow boundary, so `#test rect` must not reach the
+     * instance even though the `<use>` host sits inside `#test`.
+     */
+    public function testDocumentSelectorDoesNotCrossTheUseShadowBoundary(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><head><style>#test rect { stroke: #0000ff; stroke-width: 10 }</style></head><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<defs><g id="square"><rect width="100" height="100"/></g></defs>'
+                . '<g id="test"><use href="#square" fill="#ff0000"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertDoesNotMatchRegularExpression(
+            '/\b0(?:\.0+)?\s+0(?:\.0+)?\s+1(?:\.0+)?\s+RG\b/',
+            $bytes,
+            '#test rect crossed the <use> shadow boundary and stroked the instance',
+        );
+    }
+
+    /**
+     * The other half of the same rule: a selector whose whole compound
+     * chain lives INSIDE the shadow tree does match. `.inside rect` has
+     * both ends within the clone.
+     */
+    public function testSelectorContainedInTheShadowTreeStillMatches(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><head><style>.inside rect { fill: #00ff00 }</style></head><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<defs><g id="square"><g class="inside"><rect width="100" height="100"/></g></g></defs>'
+                . '<g id="test"><use href="#square"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b0(?:\.0+)?\s+1(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            '.inside rect should have matched inside the <use> shadow tree',
+        );
+    }
+
+    /**
+     * An element the referenced subtree styles itself wins over the
+     * `<use>`: inheritance only fills in what the instance leaves unset.
+     */
+    public function testInstanceOwnFillBeatsTheUseFill(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<defs><g id="square" fill="#0000ff"><rect width="100" height="100"/></g></defs>'
+                . '<g id="test"><use href="#square" fill="#ff0000"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b0(?:\.0+)?\s+0(?:\.0+)?\s+1(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'the referenced group\'s own fill should have beaten the <use> fill',
+        );
+    }
+
+    /**
+     * A `<use>` that references an ancestor of itself is a cycle. It must
+     * terminate rather than clone forever.
+     */
+    public function testSelfReferencingUseTerminates(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<g id="loop"><use href="#loop"/><rect width="10" height="10"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        self::assertStringStartsWith('%PDF-', $writer->toBytes());
+    }
+
+    /**
+     * The cloned instance must not become addressable by its id: a
+     * document-order id lookup would otherwise be able to land on the
+     * clone instead of the original, which is exactly what happens when
+     * the `<use>` precedes the `<defs>` it references.
+     */
+    public function testUseBeforeDefsStillResolvesTheOriginal(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">'
+                . '<use href="#square" fill="#ff0000"/>'
+                . '<defs><g id="square"><rect width="100" height="100"/></g></defs>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'a <use> written before its <defs> did not paint the instance',
+        );
+    }
 }
