@@ -1763,6 +1763,7 @@ final class BlockLayout
                 $geo->width,
                 $geo->height,
                 $wm,
+                $style,
             );
             // CSS Writing Modes 4 §3 + Sizing 4 §6.4 — `width` is
             // the BLOCK-axis dimension in vertical modes. Auto block-
@@ -3709,7 +3710,14 @@ final class BlockLayout
         // byte-identical.
         $cbWm = $childContext->parentWritingMode;
         if ($cbWm !== null && $cbWm->isVertical()) {
-            return $this->resolveAbsoluteOffsetsVertical($child, $childContext, $originX, $originY, $cursorY);
+            return $this->resolveAbsoluteOffsetsVertical(
+                $child,
+                $childContext,
+                $originX,
+                $originY,
+                $cursorY,
+                $staticIsRtl,
+            );
         }
         $style = $child->style;
         $cbWidth = $childContext->containingBlockWidth;
@@ -3856,6 +3864,7 @@ final class BlockLayout
         float $originX,
         float $originY,
         float $cursorY,
+        bool $staticIsRtl = false,
     ): array {
         $style = $child->style;
         $cbWidth = $childContext->containingBlockWidth;
@@ -3900,6 +3909,14 @@ final class BlockLayout
             $dy = $this->resolveLength($top, $cbHeight);
         } elseif (!$this->isAuto($bottom)) {
             $dy = $cbHeight - $this->resolveLength($bottom, $cbHeight) - $child->geometry->outerHeight();
+        } elseif ($staticIsRtl) {
+            // Both `auto`: the box sits at the static position, which in an
+            // `rtl` vertical writing mode anchors its inline-start — the
+            // BOTTOM edge (CSS 2.1 §10.3.7 transposed by CSS WM 4 §7.1).
+            // The caller laid it out with that position as its TOP edge, so
+            // pull it back by its own inline size. Mirrors the horizontal
+            // `$staticIsRtl` branch in {@see resolveAbsoluteOffsets}.
+            $dy = -$child->geometry->outerHeight();
         }
         $heightStyleValue = $style->get('height');
         $heightKw = $this->sizingKeywordName($heightStyleValue);
@@ -11532,17 +11549,23 @@ final class BlockLayout
      * those over the last line's fragments. Returns null when there's no
      * preceding inline content (caller falls back to the content origin).
      */
-    private function inlineStaticInlineEndVertical(?Box $prevInFlowChild): ?float
+    private function inlineStaticInlineEndVertical(?Box $prevInFlowChild, bool $rtl = false): ?float
     {
         if ($prevInFlowChild === null || $prevInFlowChild->lineBoxes === []) {
             return null;
         }
         $lastLine = $prevInFlowChild->lineBoxes[count($prevInFlowChild->lineBoxes) - 1];
+        // Mirrors {@see inlineStaticPositionX}: `rtl` runs the inline axis
+        // bottom-to-top, so the column's inline END is its TOPMOST fragment
+        // edge, not its bottommost. Taking the bottom regardless parked the
+        // next inline box at the column's START — a whole column away.
         $end = null;
         foreach ($lastLine->fragments as $frag) {
-            $bottom = $lastLine->y + $frag->blockOffset + $frag->width;
-            if ($end === null || $bottom > $end) {
-                $end = $bottom;
+            $edge = $rtl
+                ? $lastLine->y + $frag->blockOffset
+                : $lastLine->y + $frag->blockOffset + $frag->width;
+            if ($end === null || ($rtl ? $edge < $end : $edge > $end)) {
+                $end = $edge;
             }
         }
         return $end === null ? null : $prevInFlowChild->geometry->y + $end;
@@ -11624,6 +11647,7 @@ final class BlockLayout
         float $blockExtent,
         float $inlineExtent,
         WritingMode $wm,
+        ?CascadedValues $containingBlockStyle = null,
     ): float {
         $direction = $wm->blockDirection();
         $cursorX = $direction === 1 ? $originX : ($originX + $blockExtent);
@@ -11663,12 +11687,23 @@ final class BlockLayout
                 // recovery applies only to boxes whose static-flow display was
                 // inline-level; a block-level abspos uses the raw block cursor
                 // / container inline-start.
+                // CSS 2.1 §10.3.7 transposed by CSS WM 4 §7.1 — with both
+                // inline-axis insets `auto` the CONTAINING BLOCK's
+                // `direction` decides which edge the static position
+                // anchors: `ltr` anchors the top, `rtl` the bottom. Read it
+                // off the containing block, not the child: `direction`
+                // inherits, so a child declaring `rtl` on itself would
+                // otherwise be pulled a full inline size upward inside an
+                // `ltr` container.
+                $absDirection = $containingBlockStyle?->get('direction');
+                $absIsRtl = $absDirection instanceof Keyword
+                    && strtolower($absDirection->name) === 'rtl';
                 $absOriginX = ($pa !== null && $hasLeftAnchor)
                     ? $pa->originX
                     : (($child->wasInlineLevel ? $this->inlineStaticBlockPositionVertical($prevInFlowChild) : null) ?? $cursorX);
                 $absOriginY = ($pa !== null && $hasTopAnchor)
                     ? $pa->originY
-                    : (($child->wasInlineLevel ? $this->inlineStaticInlineEndVertical($prevInFlowChild) : null) ?? $originY);
+                    : (($child->wasInlineLevel ? $this->inlineStaticInlineEndVertical($prevInFlowChild, $absIsRtl) : null) ?? $originY);
                 $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
                 $this->layoutBox($child, $absLayoutCtx);
@@ -11678,6 +11713,7 @@ final class BlockLayout
                     $absOriginX,
                     $absOriginY,
                     $absOriginY,
+                    $absIsRtl,
                 );
                 if ($dx !== 0.0 || $dy !== 0.0) {
                     $this->shiftSubtree($child, $dy, $dx);

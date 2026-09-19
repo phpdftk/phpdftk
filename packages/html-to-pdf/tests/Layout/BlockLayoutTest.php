@@ -13164,4 +13164,94 @@ final class BlockLayoutTest extends TestCase
         self::assertNotSame([], $offsets);
         self::assertGreaterThan(100.0, $offsets[0][0]);
     }
+
+    // ------------------------------------------------------------
+    // CSS 2.1 §10.3.7 transposed by CSS Writing Modes 4 §7.1 — an
+    // abs-pos box with BOTH inline-axis insets `auto` sits at the
+    // static position, and the containing block's `direction` picks
+    // the edge it anchors: `ltr` the top, `rtl` the bottom.
+    // ------------------------------------------------------------
+
+    /**
+     * Lay a `<span style="position: absolute">` out after inline text in
+     * a 200x200 vertical containing block and return its geometry.
+     *
+     * @return array{0: float, 1: float, 2: float} `[y, height, textRunOffset]`
+     */
+    private function verticalStaticAbsposGeo(string $direction): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; position: relative; '
+            . 'width: 200px; height: 200px; writing-mode: vertical-rl; direction: '
+            . $direction . '">' . "\u{1820}\u{1821}"
+            . '<span id="ap" style="position: absolute">' . "\u{1820}" . '</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        $cb = $this->findById($box, 'cb');
+        self::assertNotNull($ap);
+        self::assertNotNull($cb);
+        // The preceding text lives in an anonymous block wrapper.
+        $anon = $cb->children[0];
+        self::assertNotEmpty($anon->lineBoxes);
+        $run = $anon->lineBoxes[0]->fragments[0];
+        return [$ap->geometry->y, $ap->geometry->height, $run->blockOffset];
+    }
+
+    /**
+     * `ltr`: the inline axis runs top-to-bottom, so the static position
+     * is the inline END of the preceding run — the span's TOP edge lands
+     * where the text stopped.
+     */
+    public function testVerticalStaticAbsposLtrAnchorsItsTopEdge(): void
+    {
+        [$y, , $runOffset] = $this->verticalStaticAbsposGeo('ltr');
+        self::assertEqualsWithDelta(0.0, $runOffset, 0.01, 'ltr text starts at the top');
+        // The text run is 29.73 long for this font/size; the span follows it.
+        self::assertGreaterThan(0.0, $y);
+        self::assertLessThan(200.0, $y);
+    }
+
+    /**
+     * `rtl`: the inline axis runs bottom-to-top, so the preceding run is
+     * flush with the BOTTOM edge and the span's BOTTOM edge — not its top
+     * — lands where that run stopped. Anchoring the top instead pushed
+     * the box a full inline size down the column.
+     */
+    public function testVerticalStaticAbsposRtlAnchorsItsBottomEdge(): void
+    {
+        [$y, $height, $runOffset] = $this->verticalStaticAbsposGeo('rtl');
+        self::assertGreaterThan(0.0, $runOffset, 'rtl text is flush with the bottom edge');
+        // Inline-end of the rtl run = its topmost edge; the span hangs
+        // upward from there, so its bottom edge sits exactly on it.
+        self::assertEqualsWithDelta($runOffset, $y + $height, 0.01);
+    }
+
+    /**
+     * The `rtl` pull-back reads the CONTAINING BLOCK's `direction`, not
+     * the abs-pos box's own. A box that declares `rtl` on itself inside
+     * an `ltr` container still anchors its top edge.
+     */
+    public function testVerticalStaticAbsposReadsContainingBlockDirection(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; position: relative; '
+            . 'width: 200px; height: 200px; writing-mode: vertical-rl; direction: ltr">'
+            . "\u{1820}\u{1821}"
+            . '<span id="ap" style="position: absolute; direction: rtl">' . "\u{1820}" . '</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        $cb = $this->findById($box, 'cb');
+        self::assertNotNull($ap);
+        self::assertNotNull($cb);
+        $anon = $cb->children[0];
+        $run = $anon->lineBoxes[0]->fragments[0];
+        // ltr container: the span's TOP edge continues the run.
+        self::assertEqualsWithDelta($run->blockOffset + $run->width, $ap->geometry->y, 0.01);
+    }
 }
