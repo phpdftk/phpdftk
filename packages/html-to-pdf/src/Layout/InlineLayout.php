@@ -289,7 +289,11 @@ final class InlineLayout
                     $atomicPadBottom,
                     $atomicBorderTop,
                     $atomicBorderBottom,
-                ] = $token['atomicHeights'];
+                ] = $token['atomicHeights'] ?? $this->resolveAtomicHeights(
+                    $atomic,
+                    (bool) ($token['atomicBorderBox'] ?? false),
+                    $width,
+                );
             }
             // A line may not break inside an inline box's own padding /
             // border, so its spacer never opens a break opportunity: wrapping
