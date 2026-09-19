@@ -743,6 +743,11 @@ final class BlockLayout
             // above (the default). Reorder children once before the
             // generic block stacker runs so layout sees the caption
             // in the right slot.
+            // CSS 2.1 §17.5.1 — a table's header group renders BEFORE
+            // every row group and its footer group AFTER them, whatever
+            // the source order. Reorder before the cell grid is built so
+            // row indices, rowspans and the row stacker all agree.
+            $this->reorderTableRowGroups($box);
             $this->reorderTableCaptions($box);
             // Pre-walk to find the table's max columns so every row uses
             // the same column-width grid (CSS Tables 3 §4: columns are a
@@ -13572,6 +13577,91 @@ final class BlockLayout
      * @var array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>
      */
     private array $resolvedCellReferences = [];
+
+    /**
+     * CSS 2.1 §17.5.1 — "the table header group is rendered before all
+     * other rows and row groups, and the table footer group after".
+     * Source order between the two is irrelevant: a `<tfoot>` written
+     * first still paints last.
+     *
+     * Runs before {@see precomputeTableCellGrid} so the cell grid, the
+     * rowspan resolution and the row stacker share one row order.
+     * Captions are pinned ahead of the header group — a top caption
+     * renders above the table box either way, and
+     * {@see reorderTableCaptions} still moves `caption-side: bottom`
+     * ones past everything afterwards.
+     */
+    private function reorderTableRowGroups(\Phpdftk\HtmlToPdf\Box\TableBox $table): void
+    {
+        $captions = [];
+        $header = [];
+        $body = [];
+        $footer = [];
+        foreach ($table->children as $child) {
+            $role = $this->tableRowGroupRole($child);
+            if ($role === 'header') {
+                $header[] = $child;
+            } elseif ($role === 'footer') {
+                $footer[] = $child;
+            } elseif ($this->isTableCaptionChild($child)) {
+                $captions[] = $child;
+            } else {
+                $body[] = $child;
+            }
+        }
+        if ($header === [] && $footer === []) {
+            // No header / footer group — nothing can be out of order, and
+            // skipping the rebuild keeps plain tables byte-identical.
+            return;
+        }
+        $reordered = array_merge($captions, $header, $body, $footer);
+        if ($reordered !== $table->children) {
+            $table->children = $reordered;
+        }
+    }
+
+    /**
+     * Which §17.5.1 rendering slot a table child occupies: `'header'`,
+     * `'footer'`, or `null` for everything else.
+     *
+     * Both the CSS display values and the HTML element names are
+     * recognised — the UA sheet maps `<thead>` / `<tfoot>` to
+     * `display: block` (see `collectTableRows`, which walks through row
+     * groups transparently), so the display keyword alone would miss
+     * every real HTML table.
+     */
+    private function tableRowGroupRole(Box $child): ?string
+    {
+        $display = $child->style->get('display');
+        $name = $display instanceof Keyword ? strtolower($display->name) : '';
+        if ($name === 'table-header-group') {
+            return 'header';
+        }
+        if ($name === 'table-footer-group') {
+            return 'footer';
+        }
+        if ($name !== 'block' || $child->element === null) {
+            return null;
+        }
+        return match (strtolower($child->element->localName)) {
+            'thead' => 'header',
+            'tfoot' => 'footer',
+            default => null,
+        };
+    }
+
+    /** True when a table child is a caption box (element or `display`). */
+    private function isTableCaptionChild(Box $child): bool
+    {
+        if ($child->element !== null
+            && strtolower($child->element->localName) === 'caption'
+        ) {
+            return true;
+        }
+        $display = $child->style->get('display');
+        return $display instanceof Keyword
+            && strtolower($display->name) === 'table-caption';
+    }
 
     /**
      * Reorder a `<table>`'s direct children so that `<caption>` boxes

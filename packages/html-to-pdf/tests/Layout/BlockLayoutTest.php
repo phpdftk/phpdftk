@@ -3832,6 +3832,116 @@ final class BlockLayoutTest extends TestCase
         self::assertLessThan($tr->geometry->y, $caption->geometry->y);
     }
 
+    /**
+     * CSS 2.1 §17.5.1 — `<thead>` renders before every other row group
+     * even when it is written last.
+     */
+    public function testHeaderGroupRendersBeforeBodyRowsDespiteSourceOrder(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tbody><tr><td style="height: 40px" id="bodycell">b</td></tr></tbody>'
+                . '<thead><tr><td style="height: 40px" id="headcell">h</td></tr></thead>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $head = $this->findById($box, 'headcell');
+        $body = $this->findById($box, 'bodycell');
+        self::assertNotNull($head);
+        self::assertNotNull($body);
+        self::assertLessThan($body->geometry->y, $head->geometry->y);
+    }
+
+    /**
+     * CSS 2.1 §17.5.1 — `<tfoot>` renders after every other row group
+     * even when it is written first.
+     */
+    public function testFooterGroupRendersAfterBodyRowsDespiteSourceOrder(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tfoot><tr><td style="height: 40px" id="footcell">f</td></tr></tfoot>'
+                . '<tbody><tr><td style="height: 40px" id="bodycell">b</td></tr></tbody>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $foot = $this->findById($box, 'footcell');
+        $body = $this->findById($box, 'bodycell');
+        self::assertNotNull($foot);
+        self::assertNotNull($body);
+        self::assertGreaterThan($body->geometry->y, $foot->geometry->y);
+    }
+
+    /**
+     * The CSS spelling of the same rule: `display: table-header-group`
+     * on a plain element also jumps ahead of the rows.
+     */
+    public function testDisplayTableHeaderGroupRendersFirst(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><div class="t">'
+                . '<div class="r"><div class="c" id="bodycell">b</div></div>'
+                . '<div class="h"><div class="r"><div class="c" id="headcell">h</div></div></div>'
+                . '</div></body></html>',
+            '.t { display: table; } .h { display: table-header-group; }
+             .r { display: table-row; } .c { display: table-cell; height: 40px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $head = $this->findById($box, 'headcell');
+        $body = $this->findById($box, 'bodycell');
+        self::assertNotNull($head);
+        self::assertNotNull($body);
+        self::assertLessThan($body->geometry->y, $head->geometry->y);
+    }
+
+    /**
+     * A caption stays above the header group it precedes — the §17.5.1
+     * reorder must not hoist `<thead>` over `<caption>`.
+     */
+    public function testCaptionStaysAboveAReorderedHeaderGroup(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<caption style="height: 20px" id="cap"></caption>'
+                . '<tbody><tr><td style="height: 40px" id="bodycell">b</td></tr></tbody>'
+                . '<thead><tr><td style="height: 40px" id="headcell">h</td></tr></thead>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cap = $this->findById($box, 'cap');
+        $head = $this->findById($box, 'headcell');
+        $body = $this->findById($box, 'bodycell');
+        self::assertNotNull($cap);
+        self::assertNotNull($head);
+        self::assertNotNull($body);
+        self::assertLessThan($head->geometry->y, $cap->geometry->y);
+        self::assertLessThan($body->geometry->y, $head->geometry->y);
+    }
+
+    /**
+     * A table with neither a header nor a footer group keeps its rows in
+     * source order — the reorder bails out before touching anything.
+     */
+    public function testTableWithoutHeaderOrFooterKeepsSourceOrder(): void
+    {
+        $box = $this->buildTreeWithUa(
+            '<html><body><table>'
+                . '<tbody><tr><td style="height: 40px" id="first">1</td></tr>'
+                . '<tr><td style="height: 40px" id="second">2</td></tr></tbody>'
+                . '</table></body></html>',
+            '',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $first = $this->findById($box, 'first');
+        $second = $this->findById($box, 'second');
+        self::assertNotNull($first);
+        self::assertNotNull($second);
+        self::assertLessThan($second->geometry->y, $first->geometry->y);
+    }
+
     public function testCaptionSideBottomMovesCaptionAfterRows(): void
     {
         // `caption-side: bottom` should render the caption AFTER the
