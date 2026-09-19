@@ -2277,10 +2277,16 @@ final class BoxGeneratorTest extends TestCase
         self::assertNotInstanceOf(BlockBox::class, $math);
     }
 
-    public function testForeignSvgRootStaysAtomicInlineUnderAbsolutePosition(): void
+    public function testForeignSvgRootIsBlockifiedUnderAbsolutePosition(): void
     {
-        // Same posture for inline <svg> — paintInlineSvg owns
-        // its own positioning.
+        // CSS Display 3 §2.7 — an out-of-flow box is blockified, and
+        // CSS 2.1 §9.6 / §10.3.7 then place it from its containing
+        // block plus `left` / `top`. The painter accepts a replaced
+        // BlockBox and still routes <svg> to `paintInlineSvg`, so the
+        // element keeps its SVG paint AND gains real abs-pos geometry
+        // — which the background, border and `clip-path` painters all
+        // read off `Box::$geometry`. (<math> stays atomic-inline; see
+        // the sibling test.)
         $sheet = $this->css->parseStylesheet(
             'svg { position: absolute; top: 0; left: 0 }',
             Origin::Author,
@@ -2291,6 +2297,21 @@ final class BoxGeneratorTest extends TestCase
             . '</body></html>',
         );
         $box = $this->generator->generate($doc, [$this->uaSheet(), $sheet]);
+        $svg = $this->findFirstByTag($box, 'svg');
+        self::assertInstanceOf(BlockBox::class, $svg);
+    }
+
+    public function testInFlowForeignSvgRootStaysAtomicInline(): void
+    {
+        // The blockification is scoped to OUT-OF-FLOW boxes: an
+        // ordinary inline <svg> still generates an AtomicInlineBox so
+        // it sits on the line with the text around it.
+        $doc = $this->html->parseDocument(
+            '<html><body><p>a<svg xmlns="http://www.w3.org/2000/svg" '
+            . 'width="10" height="10"><rect width="10" height="10"/></svg>b</p>'
+            . '</body></html>',
+        );
+        $box = $this->generator->generate($doc, [$this->uaSheet()]);
         $svg = $this->findFirstByTag($box, 'svg');
         self::assertNotNull($svg);
         self::assertNotInstanceOf(BlockBox::class, $svg);

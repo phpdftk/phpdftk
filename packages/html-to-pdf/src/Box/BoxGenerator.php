@@ -325,7 +325,7 @@ final class BoxGenerator
         ];
         if (isset($outOfFlowBlockified[$display])
             && $this->isOutOfFlow($values)
-            && !$this->isForeignContentRoot($element)
+            && !$this->isInlinePositionedForeignRoot($element)
         ) {
             // Remember the pre-blockification level so the abs-pos
             // static-position recovery can distinguish an originally
@@ -2577,6 +2577,30 @@ final class BoxGenerator
     private function isForeignContentRoot(Element $element): bool
     {
         return self::foreignContentKind($element) !== null;
+    }
+
+    /**
+     * Foreign-content roots that must keep their atomic-inline box even
+     * when out of flow.
+     *
+     * `<math>` stays excluded: `paintInlineMath` resolves its own origin
+     * from the cascade (`resolveInlineAbsoluteOrigin`) and the generic
+     * block pipeline drops the inline-math paint entirely (see the
+     * `mathml/presentation-markup/spaces/space-3` regression note).
+     *
+     * `<svg>` is NOT excluded. CSS Display 3 §2.7 blockifies an
+     * out-of-flow box, and CSS 2.1 §9.6 / §10.3.7 then place it from its
+     * containing block plus `left` / `top`. The painter already accepts a
+     * replaced `BlockBox` and routes an `<svg>` element to
+     * `paintInlineSvg`, so blockification gives the element real abspos
+     * geometry — which every consumer of `Box::$geometry` (background,
+     * border, `clip-path`, the SVG viewport itself) then agrees on.
+     * Keeping it inline left `left` / `top` unapplied: the box painted at
+     * its static-flow position instead.
+     */
+    private function isInlinePositionedForeignRoot(Element $element): bool
+    {
+        return self::foreignContentKind($element) === 'math';
     }
 
     /**
