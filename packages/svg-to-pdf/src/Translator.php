@@ -154,7 +154,9 @@ final class Translator
          * {@see FontResolver}.
          */
         private readonly ?DocumentFontProvider $documentFontProvider = null,
-    ) {}
+    ) {
+        $this->useExpansionsInProgress = new \SplObjectStorage();
+    }
 
     /**
      * Paint a parsed SVG document into the given content stream.
@@ -259,6 +261,24 @@ final class Translator
      * @var array{w: float, h: float}|null
      */
     private ?array $pendingUseViewport = null;
+    /**
+     * Referenced elements whose `<use>` expansion is currently on the
+     * stack, keyed by identity.
+     *
+     * SVG 2 §5.6.2 — a circular `<use>` reference must not be rendered.
+     * The ancestor test in `paintUse` catches the direct form
+     * (`<g id="a"><use href="#a"/></g>`), but two `<use>` elements can
+     * also reference each other's containers, where neither referent is
+     * an ancestor of its own `<use>`. This re-entrancy set closes that:
+     * a referent already being painted is not painted again.
+     *
+     * Keyed on the REFERENT, not the `<use>`, and cleared on the way
+     * out, so the same target referenced twice in sequence still expands
+     * both times.
+     *
+     * @var \SplObjectStorage<Element, bool>
+     */
+    private \SplObjectStorage $useExpansionsInProgress;
     private ?GradientPainter $gradientPainter = null;
     private ?FontResolver $fontResolver = null;
     /**
@@ -1641,6 +1661,33 @@ final class Translator
         if ($referent === null) {
             return;
         }
+        // SVG 2 §5.6.2 — referencing an ancestor of the `<use>` (or the
+        // `<use>` itself) is an invalid circular reference: the element
+        // is not rendered. Unguarded this recursed until the C stack
+        // gave out and took the process with it (SIGSEGV), so a
+        // malformed or hostile document could kill the renderer.
+        for ($n = $use->parent; $n !== null; $n = $n->parent) {
+            if ($n === $referent) {
+                return;
+            }
+        }
+        if ($referent === $use || $this->useExpansionsInProgress->contains($referent)) {
+            return;
+        }
+        $this->useExpansionsInProgress->attach($referent, true);
+        try {
+            $this->paintUseResolved($use, $referent, $stream);
+        } finally {
+            $this->useExpansionsInProgress->detach($referent);
+        }
+    }
+
+    /**
+     * The body of {@see paintUse} once the referent is known to be a
+     * legal, non-circular target.
+     */
+    private function paintUseResolved(Use_ $use, Element $referent, ContentStream $stream): void
+    {
         // SVG 2 §5.6 — the `<use>`'s `x` / `y` translate the referent's
         // coordinate system. Width / height overrides on `<symbol>`
         // referents resolve through viewBox-to-viewport mapping; that

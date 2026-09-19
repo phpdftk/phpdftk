@@ -352,4 +352,75 @@ final class UseAndImageTest extends TestCase
         imagedestroy($image);
         return $path;
     }
+
+    /**
+     * SVG 2 §5.6.2 — a `<use>` whose referenced element is an ANCESTOR
+     * of the `<use>` itself is an invalid circular reference and must not
+     * be rendered. We recursed into it unguarded, so the painter
+     * exhausted the C stack and the PHP process died with SIGSEGV: a
+     * malformed (or hostile) SVG took the whole renderer down.
+     */
+    public function testSelfReferencingUseDoesNotRecurseForever(): void
+    {
+        $ops = $this->paintOpsOnly(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g id="loop"><use href="#loop"/><rect width="10" height="10"/></g>'
+            . '</svg>',
+        );
+        // The sibling rect still paints — only the circular <use> is
+        // dropped, not the whole subtree.
+        self::assertStringContainsString('re', $ops);
+        // ...and exactly once: a second copy would mean we re-entered.
+        self::assertSame(1, substr_count($ops, ' re'));
+    }
+
+    /**
+     * The `<use>` need not name its own parent: any ancestor counts.
+     */
+    public function testUseReferencingAGrandparentIsDropped(): void
+    {
+        $ops = $this->paintOpsOnly(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g id="outer"><g><use href="#outer"/></g><rect width="10" height="10"/></g>'
+            . '</svg>',
+        );
+        self::assertSame(1, substr_count($ops, ' re'));
+    }
+
+    /**
+     * Two `<use>` elements that reference each other's containers form a
+     * cycle even though neither referent is an ancestor of its own
+     * `<use>`. The re-entrancy guard, not the ancestor test, catches it.
+     */
+    public function testMutuallyReferencingUsesDoNotRecurseForever(): void
+    {
+        $ops = $this->paintOpsOnly(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<g id="a"><use href="#b"/><rect width="10" height="10"/></g>'
+            . '<g id="b"><use href="#a"/><rect width="20" height="20"/></g>'
+            . '</svg>',
+        );
+        // Deterministic expansion, and crucially a FINITE one. Painting
+        // g#a: its <use> expands g#b (rect 20) whose <use> re-expands
+        // g#a (rect 10, its own <use> now blocked) -> 2, plus g#a's own
+        // rect -> 3. Painting g#b at document level mirrors that for
+        // another 3. Six rects, and no unbounded recursion.
+        self::assertSame(6, substr_count($ops, ' re'));
+    }
+
+    /**
+     * A non-circular `<use>` chain must still expand fully — the guard
+     * has to key on the reference being IN PROGRESS, not on the referent
+     * having been visited before.
+     */
+    public function testRepeatedUseOfTheSameTargetStillPaintsEachTime(): void
+    {
+        $ops = $this->paintOpsOnly(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><g id="s"><rect width="10" height="10"/></g></defs>'
+            . '<use href="#s"/><use href="#s" x="20"/>'
+            . '</svg>',
+        );
+        self::assertSame(2, substr_count($ops, ' re'));
+    }
 }
