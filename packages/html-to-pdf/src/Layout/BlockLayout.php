@@ -1886,7 +1886,15 @@ final class BlockLayout
         // drop it on the floor here so the first child stays on-page.
         $isRoot = $box->element !== null
             && strtolower($box->element->localName) === 'html';
+        // CSS 2.1 §8.3.1 applies along the BLOCK axis, which CSS Writing
+        // Modes 4 §3 puts on physical X for a box in a vertical writing
+        // mode — `stackChildrenListVertical` collapses marginLeft /
+        // marginRight there. Running the physical-Y collapse as well
+        // hoisted a child's INLINE-start margin onto the parent and then
+        // shifted every sibling up by it, so a `<p>` in a `vertical-lr`
+        // page lost its inline offset and dragged the next block to y=-16.
         if (!$isRoot
+            && !$selfWm->isVertical()
             && $box->children !== []
             && $geo->paddingTop === 0.0
             && $geo->borderTop === 0.0
@@ -2219,6 +2227,7 @@ final class BlockLayout
             && $box->children !== []
             && $geo->paddingBottom === 0.0
             && $geo->borderBottom === 0.0
+            && !$selfWm->isVertical()
             && !$this->establishesBlockFormattingContext($box)
             // CSS Overflow 4 §6 — a clamp container establishes an
             // independent formatting context, so its last child's bottom

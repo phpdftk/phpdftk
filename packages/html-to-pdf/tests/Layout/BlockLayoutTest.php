@@ -13414,4 +13414,81 @@ final class BlockLayoutTest extends TestCase
         );
         self::assertEqualsWithDelta(160.0, $x, 0.01);
     }
+
+    // ------------------------------------------------------------
+    // HTML §15.3.3 — the UA stylesheet's body margin, and its
+    // block-direction margins as LOGICAL (`margin-block-*`) values so
+    // they follow the writing mode instead of always being vertical.
+    // ------------------------------------------------------------
+
+    private function uaTree(string $html): Box
+    {
+        return $this->buildTree(
+            $html,
+            (new \Phpdftk\HtmlToPdf\RendererOptions())->effectiveUserAgentStylesheet(),
+        );
+    }
+
+    public function testParagraphUaMarginIsVerticalInHorizontalWritingMode(): void
+    {
+        // Padding on the wrapper stops §8.3.1 hoisting the margin.
+        $box = $this->uaTree(
+            '<html><body><div style="padding: 1px"><p id="p">x</p></div></body></html>',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(16.0, $p->geometry->marginTop, 0.01);
+        self::assertEqualsWithDelta(16.0, $p->geometry->marginBottom, 0.01);
+        self::assertEqualsWithDelta(0.0, $p->geometry->marginLeft, 0.01);
+        self::assertEqualsWithDelta(0.0, $p->geometry->marginRight, 0.01);
+    }
+
+    public function testParagraphUaMarginFollowsTheBlockAxisInVerticalWritingMode(): void
+    {
+        $box = $this->uaTree(
+            '<html style="writing-mode: vertical-lr"><body>'
+            . '<div style="padding: 1px"><p id="p">x</p></div></body></html>',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        // The block axis is physical X here, so the 1em block margins
+        // are the LEFT and RIGHT ones.
+        self::assertEqualsWithDelta(16.0, $p->geometry->marginLeft, 0.01);
+        self::assertEqualsWithDelta(16.0, $p->geometry->marginRight, 0.01);
+        self::assertEqualsWithDelta(0.0, $p->geometry->marginTop, 0.01);
+        self::assertEqualsWithDelta(0.0, $p->geometry->marginBottom, 0.01);
+    }
+
+    /**
+     * CSS 2.1 §8.3.1 collapses margins along the BLOCK axis, which CSS
+     * Writing Modes 4 §3 puts on physical X in a vertical writing mode.
+     * A vertical-mode parent must therefore NOT hoist its first child's
+     * physical top margin — that is an INLINE-start margin, and
+     * collapsing it dragged every following sibling to a negative y.
+     */
+    public function testVerticalParentDoesNotCollapseItsChildTopMargin(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; writing-mode: vertical-lr; '
+            . 'width: 300px; height: 300px">'
+            . '<div id="first" style="display: block; margin-top: 20px; height: 40px"></div>'
+            . '<div id="next" style="display: block; width: 30px"></div>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $cb = $this->findById($box, 'cb');
+        $first = $this->findById($box, 'first');
+        $next = $this->findById($box, 'next');
+        self::assertNotNull($cb);
+        self::assertNotNull($first);
+        self::assertNotNull($next);
+        // The inline-start margin offsets the child; it is not hoisted.
+        self::assertEqualsWithDelta(0.0, $cb->geometry->marginTop, 0.01);
+        self::assertEqualsWithDelta($cb->geometry->y + 20.0, $first->geometry->y, 0.01);
+        // ... and the next sibling is not dragged above the container.
+        self::assertEqualsWithDelta($cb->geometry->y, $next->geometry->y, 0.01);
+    }
 }

@@ -527,15 +527,18 @@ final readonly class RendererOptions
                and its margins to its OWN font-size, so both scale with
                the document. Hard-coded px matched a 16px base and
                silently stopped scaling for anything else. */
-            h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-            h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-            h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
-            h4 { font-weight: bold; margin: 1.33em 0; }
-            h5 { font-size: 0.83em; font-weight: bold; margin: 1.67em 0; }
-            h6 { font-size: 0.67em; font-weight: bold; margin: 2.33em 0; }
+            /* HTML §15.3.3 — the block-direction UA margins are LOGICAL
+               (`margin-block-*`), so they run along the writing mode's
+               block axis instead of always being vertical. */
+            h1 { font-size: 2em; font-weight: bold; margin: 0; margin-block-start: 0.67em; margin-block-end: 0.67em; }
+            h2 { font-size: 1.5em; font-weight: bold; margin: 0; margin-block-start: 0.83em; margin-block-end: 0.83em; }
+            h3 { font-size: 1.17em; font-weight: bold; margin: 0; margin-block-start: 1em; margin-block-end: 1em; }
+            h4 { font-weight: bold; margin: 0; margin-block-start: 1.33em; margin-block-end: 1.33em; }
+            h5 { font-size: 0.83em; font-weight: bold; margin: 0; margin-block-start: 1.67em; margin-block-end: 1.67em; }
+            h6 { font-size: 0.67em; font-weight: bold; margin: 0; margin-block-start: 2.33em; margin-block-end: 2.33em; }
 
             /* Paragraph and inline emphasis. */
-            p { margin: 1em 0; }
+            p { margin: 0; margin-block-start: 1em; margin-block-end: 1em; }
             b, strong { font-weight: bold; }
             i, em, cite, var, dfn { font-style: italic; }
             small { font-size: 0.83em; }
@@ -545,16 +548,17 @@ final readonly class RendererOptions
 
             /* Code & preformatted. */
             code, kbd, samp, tt { font-family: monospace; }
-            pre { font-family: monospace; margin: 1em 0; white-space: pre; }
+            pre { font-family: monospace; margin: 0; margin-block-start: 1em; margin-block-end: 1em; white-space: pre; }
 
             /* Lists. */
-            ul, ol { margin: 1em 0; }
+            ul, ol { margin: 0; margin-block-start: 1em; margin-block-end: 1em; }
             ol { list-style-type: decimal; }
             ul ul, ol ul { list-style-type: circle; }
             ul ul ul, ol ul ul { list-style-type: square; }
 
             /* Block-level wrappers. */
-            blockquote { margin: 1em 40px; }
+            blockquote { margin: 0; margin-block-start: 1em; margin-block-end: 1em;
+                         margin-inline-start: 40px; margin-inline-end: 40px; }
             /* HTML §15.3.5 — an `<hr>` is a zero-height box with a 1px
                INSET border on all four sides (which is what gives the
                familiar two-tone rule), not a single top border. */
