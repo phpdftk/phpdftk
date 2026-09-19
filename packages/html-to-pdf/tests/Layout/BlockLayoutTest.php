@@ -13254,4 +13254,67 @@ final class BlockLayoutTest extends TestCase
         // ltr container: the span's TOP edge continues the run.
         self::assertEqualsWithDelta($run->blockOffset + $run->width, $ap->geometry->y, 0.01);
     }
+
+    /**
+     * Lay an abs-pos span out as the ONLY child of a 200x200 vertical
+     * containing block (no preceding inline content to continue) and
+     * return its geometry.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float} `[x, y, width, height]`
+     */
+    private function verticalLoneStaticAbsposGeo(string $writingMode, string $direction): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; position: relative; '
+            . 'width: 200px; height: 200px; writing-mode: ' . $writingMode
+            . '; direction: ' . $direction . '">'
+            . '<span id="ap" style="position: absolute">' . "\u{1820}" . '</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        $g = $ap->geometry;
+        return [$g->x, $g->y, $g->width, $g->height];
+    }
+
+    /**
+     * With no preceding content the static position degenerates to the
+     * container's own inline-START edge. In `rtl` that is the BOTTOM of
+     * the 200px column, so the box hangs upward from it — it must not
+     * land above the container's top edge.
+     */
+    public function testVerticalLoneStaticAbsposRtlSitsAtTheInlineStartEdge(): void
+    {
+        [, $y, , $height] = $this->verticalLoneStaticAbsposGeo('vertical-lr', 'rtl');
+        self::assertEqualsWithDelta(200.0, $y + $height, 0.01);
+        self::assertGreaterThan(0.0, $y, 'the box must stay inside the container');
+    }
+
+    /** `ltr` keeps the inline-start at the top, so the box starts at 0. */
+    public function testVerticalLoneStaticAbsposLtrSitsAtTheTopEdge(): void
+    {
+        [, $y] = $this->verticalLoneStaticAbsposGeo('vertical-lr', 'ltr');
+        self::assertEqualsWithDelta(0.0, $y, 0.01);
+    }
+
+    /**
+     * `vertical-rl` runs the BLOCK axis right-to-left, so a lone
+     * static-position abs-pos anchors its RIGHT edge on the container's
+     * block-start edge rather than starting its left edge there (which
+     * pushed the whole box outside the container).
+     */
+    public function testVerticalRlLoneStaticAbsposAnchorsItsRightEdge(): void
+    {
+        [$x, , $width] = $this->verticalLoneStaticAbsposGeo('vertical-rl', 'ltr');
+        self::assertEqualsWithDelta(200.0, $x + $width, 0.01);
+    }
+
+    /** `vertical-lr` runs the block axis left-to-right — left edge at 0. */
+    public function testVerticalLrLoneStaticAbsposAnchorsItsLeftEdge(): void
+    {
+        [$x] = $this->verticalLoneStaticAbsposGeo('vertical-lr', 'ltr');
+        self::assertEqualsWithDelta(0.0, $x, 0.01);
+    }
 }

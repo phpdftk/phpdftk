@@ -1761,7 +1761,13 @@ final class BlockLayout
                 $geo->x,
                 $geo->y,
                 $geo->width,
-                $geo->height,
+                // The container's INLINE extent. `$geo->height` is not
+                // committed yet for an explicit `height` (the auto-height
+                // resolution runs after children lay out), but
+                // `$childCbHeight` is the same content-box extent and is
+                // resolved up front — it is what the inline pass and the
+                // positioned-ancestor rect already use.
+                $childCbHeight,
                 $wm,
                 $style,
             );
@@ -11698,12 +11704,31 @@ final class BlockLayout
                 $absDirection = $containingBlockStyle?->get('direction');
                 $absIsRtl = $absDirection instanceof Keyword
                     && strtolower($absDirection->name) === 'rtl';
+                $staticBlockX = $child->wasInlineLevel
+                    ? $this->inlineStaticBlockPositionVertical($prevInFlowChild)
+                    : null;
+                // With no preceding column to continue, the block-axis
+                // static position is the block cursor — which in `vrl` /
+                // `srl` marks the box's intended block-START edge, i.e. its
+                // RIGHT edge (the in-flow branch below shifts children left
+                // by their own outer width for the same reason). Record
+                // that so the box can be pulled back once it is sized.
+                $pullBackBlockStart = $staticBlockX === null
+                    && $direction === -1
+                    && !($pa !== null && $hasLeftAnchor);
                 $absOriginX = ($pa !== null && $hasLeftAnchor)
                     ? $pa->originX
-                    : (($child->wasInlineLevel ? $this->inlineStaticBlockPositionVertical($prevInFlowChild) : null) ?? $cursorX);
+                    : ($staticBlockX ?? $cursorX);
+                // With no preceding inline content to continue, the static
+                // position degenerates to the container's own inline-START
+                // edge — the TOP in `ltr`, the BOTTOM in `rtl` (CSS 2.1
+                // §10.3.7 / §9.4.2 transposed). The `$staticIsRtl` pull-back
+                // below then re-anchors the box's bottom edge onto it.
+                $inlineStartFallbackY = $absIsRtl ? $originY + $inlineExtent : $originY;
                 $absOriginY = ($pa !== null && $hasTopAnchor)
                     ? $pa->originY
-                    : (($child->wasInlineLevel ? $this->inlineStaticInlineEndVertical($prevInFlowChild, $absIsRtl) : null) ?? $originY);
+                    : (($child->wasInlineLevel ? $this->inlineStaticInlineEndVertical($prevInFlowChild, $absIsRtl) : null)
+                        ?? $inlineStartFallbackY);
                 $this->applyAbsoluteCornerAnchorSize($child, $absCb);
                 $absLayoutCtx = $absCb->withOrigin($absOriginX, $absOriginY);
                 $this->layoutBox($child, $absLayoutCtx);
@@ -11715,6 +11740,9 @@ final class BlockLayout
                     $absOriginY,
                     $absIsRtl,
                 );
+                if ($pullBackBlockStart) {
+                    $dx -= $child->geometry->outerWidth();
+                }
                 if ($dx !== 0.0 || $dy !== 0.0) {
                     $this->shiftSubtree($child, $dy, $dx);
                 }
@@ -11767,11 +11795,9 @@ final class BlockLayout
             $hasPrev = true;
             $prevInFlowChild = $child;
         }
-        // Inline-extent extent isn't consumed here — vertical
-        // containers use it for sizing decisions outside this
-        // routine. Reference the parameter so the signature stays
-        // stable as auto-sizing wiring lands in a follow-up.
-        unset($inlineExtent);
+        // In-flow children consume no inline extent here (they stretch
+        // to it); only the `rtl` abs-pos static-position fallback above
+        // reads it, to find the container's inline-start edge.
         return $total;
     }
 
