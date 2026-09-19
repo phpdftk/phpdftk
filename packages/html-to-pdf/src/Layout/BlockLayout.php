@@ -12432,26 +12432,38 @@ final class BlockLayout
         if ($contentHeight <= 0.0) {
             return;
         }
-        if ($box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox) {
-            $this->layoutFlexBox($box, $context, definiteContentHeightOverride: $contentHeight);
-            return;
-        }
-        if ($box instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
-            $this->layoutGridBox($box, $context, definiteContentHeightOverride: $contentHeight);
-            return;
-        }
+        $isFlex = $box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox;
+        $isGrid = $box instanceof \Phpdftk\HtmlToPdf\Box\GridBox;
         // A plain block's layout is independent of its own block size
         // EXCEPT where a descendant resolves a percentage against it, so
         // the common case skips the second pass entirely.
-        if (!$this->subtreeHasPercentageHeight($box)) {
+        if (!$isFlex && !$isGrid && !$this->subtreeHasPercentageHeight($box)) {
             return;
         }
-        // `flexItemDefiniteBlockSize` is the one-shot hook `layoutBlock`
-        // already reads to treat an externally-imposed size as an author
-        // height; without it an auto-height box declares its own CB height
-        // indefinite on the way down and the stretch is lost again.
-        $this->flexItemDefiniteBlockSize = $contentHeight;
-        $this->layoutBlock($box, $context);
+        // The first pass already registered this subtree's floats. Running
+        // it again would register them a SECOND time, and the second pass
+        // would place each float around the first pass' phantom copy of
+        // itself. Roll the exclusion set back to its post-first-pass state
+        // afterwards so the document sees exactly one registration.
+        $floats = $context->floatContext;
+        $floatSnapshot = $floats?->snapshot();
+        if ($isFlex) {
+            /** @var \Phpdftk\HtmlToPdf\Box\FlexBox $box */
+            $this->layoutFlexBox($box, $context, definiteContentHeightOverride: $contentHeight);
+        } elseif ($isGrid) {
+            /** @var \Phpdftk\HtmlToPdf\Box\GridBox $box */
+            $this->layoutGridBox($box, $context, definiteContentHeightOverride: $contentHeight);
+        } else {
+            // `flexItemDefiniteBlockSize` is the one-shot hook `layoutBlock`
+            // already reads to treat an externally-imposed size as an author
+            // height; without it an auto-height box declares its own CB
+            // height indefinite on the way down and the stretch is lost.
+            $this->flexItemDefiniteBlockSize = $contentHeight;
+            $this->layoutBlock($box, $context);
+        }
+        if ($floats !== null && $floatSnapshot !== null) {
+            $floats->restore($floatSnapshot);
+        }
     }
 
     /**

@@ -27,6 +27,32 @@ final class FloatContext
     private array $items = [];
 
     /**
+     * Capture the current exclusion set so a speculative or repeated
+     * layout pass over the same subtree can be rolled back.
+     *
+     * A box that an ancestor stretches is laid out twice (once to measure,
+     * once against the stretched block size). Floats inside it would
+     * otherwise be registered by BOTH passes, and the second pass would
+     * then place them around the first pass' phantom copies of themselves.
+     *
+     * @return list<FloatItem>
+     */
+    public function snapshot(): array
+    {
+        return $this->items;
+    }
+
+    /**
+     * Roll the exclusion set back to a {@see snapshot}.
+     *
+     * @param list<FloatItem> $items
+     */
+    public function restore(array $items): void
+    {
+        $this->items = $items;
+    }
+
+    /**
      * @param array<string, mixed>|null $shape
      * @param array{x: float, y: float, width: float, height: float}|null $marginBox
      *        CSS 2.1 §9.5.1 margin box, when it differs from the
