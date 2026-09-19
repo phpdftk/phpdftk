@@ -12216,6 +12216,26 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(110.0, $outer->geometry->width, 0.5);
     }
 
+    /**
+     * An ATOMIC inline contributes its margin box to the line too, so an
+     * inline-block that wraps a padded replaced element is as wide as the
+     * image plus its padding — not just the image.
+     */
+    public function testInlineBlockCountsAtomicChildPadding(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><p id="p"><canvas id="c" width="75" height="75"'
+            . ' style="padding: 5px"></canvas></p></body></html>',
+            'html, body { display: block; }
+             p { display: inline-block; margin: 0; padding: 0; }
+             canvas { display: inline-block; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $p = $this->findById($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(85.0, $p->geometry->width, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];

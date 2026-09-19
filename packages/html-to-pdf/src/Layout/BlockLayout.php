@@ -8633,12 +8633,17 @@ final class BlockLayout
             // CSS Sizing 3 §5.1 — a child contributes its OUTER (margin
             // box) size, so a block-level child's inline-axis margin,
             // border and padding count toward the container's min/max
-            // content. Inline-level children are excluded: their insets
-            // are folded into the line by InlineLayout's spacer tokens,
-            // and the boxes in an inline run share their parent's cascade
-            // (a `TextBox` literally carries it), so charging them here
-            // would bill the same margin twice.
-            $outer = $inline ? 0.0 : $this->intrinsicOuterInlineInset($child);
+            // content. Non-atomic inline children are excluded: their
+            // insets are folded into the line by InlineLayout's spacer
+            // tokens, and the boxes in an inline run share their parent's
+            // cascade (a `TextBox` literally carries it), so charging them
+            // here would bill the same margin twice. An ATOMIC inline is
+            // not in that bind — it is a real element box sized like a
+            // block — and its margin box is what occupies the line, so a
+            // padded `<img>` widens the inline-block that wraps it.
+            $outer = ($inline && !$child instanceof AtomicInlineBox)
+                ? 0.0
+                : $this->intrinsicOuterInlineInset($child);
             $maxOfMins = max($maxOfMins, $cm['min'] + $outer);
             $maxOfMaxes = max($maxOfMaxes, $cm['max'] + $outer);
             $segment += $cm['max'] + $outer;
