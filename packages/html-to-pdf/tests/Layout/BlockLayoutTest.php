@@ -12872,6 +12872,35 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y + 100.0, $t->geometry->y, 0.5);
     }
 
+    public function testAnchorRectFollowsTheAnchorsTransform(): void
+    {
+        // CSS Anchor Positioning 1 §3 — the anchor rectangle is the
+        // anchor's border box as PAINTED, so its own `transform` and every
+        // ancestor's apply. Layout keeps untransformed geometry, so the
+        // rect has to be mapped explicitly. The anchor's border box is
+        // [50, 40, 100x60]; `scale(2)` about its top-left doubles its
+        // extent to [50, 40, 200x120], putting its right edge at 250 and
+        // its bottom at 160.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #a { position: absolute; left: 50px; top: 40px;
+                  width: 100px; height: 60px; anchor-name: --a;
+                  transform: scale(2); transform-origin: left top; }
+             #t { position: absolute; position-anchor: --a;
+                  top: anchor(bottom); left: anchor(right);
+                  width: 20px; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        self::assertEqualsWithDelta($cb->geometry->x + 250.0, $t->geometry->x, 0.5);
+        self::assertEqualsWithDelta($cb->geometry->y + 160.0, $t->geometry->y, 0.5);
+    }
+
     public function testPositionAreaGridUsesTheAnchorEdgesEvenOutsideTheContainingBlock(): void
     {
         // CSS Anchor Positioning 1 §3.3 — the 3x3 grid's inner lines are

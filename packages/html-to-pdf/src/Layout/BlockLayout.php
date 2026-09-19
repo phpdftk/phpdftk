@@ -3661,11 +3661,240 @@ final class BlockLayout
             return null;
         }
         $g = $box->geometry;
-        return [
+        $rect = [
             $g->x - $g->paddingLeft - $g->borderLeft,
             $g->y - $g->paddingTop - $g->borderTop,
             $g->borderLeft + $g->paddingLeft + $g->width + $g->paddingRight + $g->borderRight,
             $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom,
+        ];
+        return $this->transformAnchorRect($box, $rect);
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §3 — the anchor rectangle is the anchor's
+     * border box *as it is actually painted*, so every `transform` on the
+     * anchor and on its ancestors has to be applied before the rect is
+     * handed to the positioning machinery. Layout stores untransformed
+     * geometry (transforms are a paint-time concern here), so walk the
+     * ancestor chain and map the rect through each one, keeping the
+     * axis-aligned bounding box — which is what browsers use for a
+     * rotated or skewed anchor too.
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float} $rect
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    private function transformAnchorRect(Box $box, array $rect): array
+    {
+        for ($node = $box; $node !== null; $node = $this->boxParents[spl_object_id($node)] ?? null) {
+            $matrix = $this->layoutTransformMatrix($node);
+            if ($matrix === null) {
+                continue;
+            }
+            $g = $node->geometry;
+            $originX = $g->x - $g->paddingLeft - $g->borderLeft;
+            $originY = $g->y - $g->paddingTop - $g->borderTop;
+            [$offsetX, $offsetY] = $this->layoutTransformOrigin($node);
+            $rect = $this->mapRectThroughMatrix(
+                $rect,
+                $matrix,
+                $originX + $offsetX,
+                $originY + $offsetY,
+            );
+        }
+        return $rect;
+    }
+
+    /**
+     * The box's `transform` as a 2D affine matrix `[a, b, c, d, e, f]` in
+     * LAYOUT space (Y down), or null when the box has no transform we
+     * model. 3D functions are out of scope: they need the perspective
+     * machinery the painter only approximates.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}|null
+     */
+    private function layoutTransformMatrix(Box $box): ?array
+    {
+        $value = $box->style->get('transform');
+        if (!$value instanceof \Phpdftk\Css\Value\Transform) {
+            return null;
+        }
+        $matrix = null;
+        foreach ($value->functions as $fn) {
+            $step = $this->transformFunctionToLayoutMatrix($fn, $box);
+            if ($step === null) {
+                return null;
+            }
+            $matrix = $matrix === null ? $step : $this->multiplyLayoutMatrices($matrix, $step);
+        }
+        return $matrix;
+    }
+
+    /**
+     * One CSS transform function as a layout-space matrix. Returns null
+     * for anything with a Z component, so an anchor under a 3D transform
+     * keeps its untransformed rect rather than a wrong one.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}|null
+     */
+    private function transformFunctionToLayoutMatrix(
+        \Phpdftk\Css\Value\TransformFunction $fn,
+        Box $box,
+    ): ?array {
+        $g = $box->geometry;
+        if ($fn instanceof \Phpdftk\Css\Value\TranslateTransform) {
+            $tx = $this->transformLengthToPx($fn->x, $g->width);
+            $ty = $this->transformLengthToPx($fn->y, $g->height);
+            return [1.0, 0.0, 0.0, 1.0, $tx, $ty];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\ScaleTransform) {
+            return [$fn->sx, 0.0, 0.0, $fn->sy, 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\RotateTransform) {
+            $axisLength = sqrt($fn->ax * $fn->ax + $fn->ay * $fn->ay + $fn->az * $fn->az);
+            if ($axisLength <= 0.0 || abs($fn->az / $axisLength) < 0.9999) {
+                return null;
+            }
+            $rad = deg2rad($fn->angleDeg * ($fn->az > 0 ? 1.0 : -1.0));
+            return [cos($rad), sin($rad), -sin($rad), cos($rad), 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\SkewTransform) {
+            return [1.0, tan(deg2rad($fn->yDeg)), tan(deg2rad($fn->xDeg)), 1.0, 0.0, 0.0];
+        }
+        if ($fn instanceof \Phpdftk\Css\Value\MatrixTransform) {
+            return [$fn->a, $fn->b, $fn->c, $fn->d, $fn->e, $fn->f];
+        }
+        return null;
+    }
+
+    /**
+     * A `translate()` component in px. Percentages are of the box's own
+     * extent along that axis (CSS Transforms 1 §2).
+     */
+    private function transformLengthToPx(?\Phpdftk\Css\Value\Value $value, float $extent): float
+    {
+        if ($value instanceof Percentage) {
+            return $value->value / 100.0 * $extent;
+        }
+        return $this->resolveLength($value, $extent);
+    }
+
+    /**
+     * `transform-origin` as an (x, y) offset from the box's border-box
+     * top-left. Defaults to the box's centre.
+     *
+     * @return array{float, float}
+     */
+    private function layoutTransformOrigin(Box $box): array
+    {
+        $g = $box->geometry;
+        $width = $g->borderLeft + $g->paddingLeft + $g->width + $g->paddingRight + $g->borderRight;
+        $height = $g->borderTop + $g->paddingTop + $g->height + $g->paddingBottom + $g->borderBottom;
+        $value = $box->style->get('transform-origin');
+        $parts = $value instanceof \Phpdftk\Css\Value\ValueList
+            ? $value->values
+            : ($value !== null ? [$value] : []);
+        $offsetX = null;
+        $offsetY = null;
+        $positional = [];
+        foreach ($parts as $part) {
+            if ($part instanceof Keyword) {
+                switch (strtolower($part->name)) {
+                    case 'left':
+                        $offsetX = 0.0;
+                        continue 2;
+                    case 'right':
+                        $offsetX = $width;
+                        continue 2;
+                    case 'top':
+                        $offsetY = 0.0;
+                        continue 2;
+                    case 'bottom':
+                        $offsetY = $height;
+                        continue 2;
+                }
+            }
+            $positional[] = $part;
+        }
+        foreach ($positional as $part) {
+            if ($offsetX === null) {
+                $offsetX = $this->transformOriginComponent($part, $width);
+            } elseif ($offsetY === null) {
+                $offsetY = $this->transformOriginComponent($part, $height);
+            }
+        }
+        return [$offsetX ?? $width / 2.0, $offsetY ?? $height / 2.0];
+    }
+
+    private function transformOriginComponent(\Phpdftk\Css\Value\Value $value, float $extent): float
+    {
+        if ($value instanceof Percentage) {
+            return $value->value / 100.0 * $extent;
+        }
+        if ($value instanceof Keyword) {
+            return match (strtolower($value->name)) {
+                'left', 'top' => 0.0,
+                'right', 'bottom' => $extent,
+                default => $extent / 2.0,
+            };
+        }
+        // A bare `0` arrives as Integer / Number, which the generic
+        // stylesheet parser leaves alone for `transform-origin`.
+        if ($value instanceof \Phpdftk\Css\Value\Integer) {
+            return (float) $value->value;
+        }
+        if ($value instanceof \Phpdftk\Css\Value\Number) {
+            return $value->value;
+        }
+        return $this->resolveLength($value, $extent);
+    }
+
+    /**
+     * Map `[left, top, width, height]` through `$matrix` about the point
+     * (`$originX`, `$originY`), returning the axis-aligned bounding box
+     * of the four mapped corners.
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float} $rect
+     * @param array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float} $matrix
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    private function mapRectThroughMatrix(
+        array $rect,
+        array $matrix,
+        float $originX,
+        float $originY,
+    ): array {
+        [$a, $b, $c, $d, $e, $f] = $matrix;
+        [$left, $top, $width, $height] = $rect;
+        $xs = [];
+        $ys = [];
+        foreach ([[$left, $top], [$left + $width, $top], [$left, $top + $height], [$left + $width, $top + $height]] as [$x, $y]) {
+            $localX = $x - $originX;
+            $localY = $y - $originY;
+            $xs[] = $originX + $a * $localX + $c * $localY + $e;
+            $ys[] = $originY + $b * $localX + $d * $localY + $f;
+        }
+        return [min($xs), min($ys), max($xs) - min($xs), max($ys) - min($ys)];
+    }
+
+    /**
+     * Multiply two layout-space affine matrices in `[a, b, c, d, e, f]`
+     * form, the same convention CSS Transforms 1 §12 uses.
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float} $m1
+     * @param array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float} $m2
+     * @return array{0: float, 1: float, 2: float, 3: float, 4: float, 5: float}
+     */
+    private function multiplyLayoutMatrices(array $m1, array $m2): array
+    {
+        [$a1, $b1, $c1, $d1, $e1, $f1] = $m1;
+        [$a2, $b2, $c2, $d2, $e2, $f2] = $m2;
+        return [
+            $a1 * $a2 + $c1 * $b2,
+            $b1 * $a2 + $d1 * $b2,
+            $a1 * $c2 + $c1 * $d2,
+            $b1 * $c2 + $d1 * $d2,
+            $a1 * $e2 + $c1 * $f2 + $e1,
+            $b1 * $e2 + $d1 * $f2 + $f1,
         ];
     }
 
