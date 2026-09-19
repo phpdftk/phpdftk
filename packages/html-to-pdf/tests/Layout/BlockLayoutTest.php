@@ -224,6 +224,117 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $it->geometry->width, 1.0);
     }
 
+    public function testGridInIndefiniteColumnFlexContainerIgnoresPercentHeight(): void
+    {
+        // CSS 2.1 §10.5 — `height: %` against an INDEFINITE containing
+        // block computes to `auto`. The grid container path resolved the
+        // percentage unconditionally, so a `height: 100%` grid inside an
+        // auto-height column flex container claimed the 400px body height
+        // and centred its item in that phantom extent instead of hugging
+        // it. (WPT css-flexbox/grid-flex-item-007.)
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="g"><div id="c"></div></div></div></body></html>',
+            'html, body, div { display: block; }
+             body { height: 400px; }
+             #f { display: flex; flex-direction: column; }
+             #g { display: grid; align-items: center; height: 100%; }
+             #c { width: 100px; height: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $c = $this->findById($box, 'c');
+        $g = $this->findById($box, 'g');
+        self::assertNotNull($c);
+        self::assertNotNull($g);
+        // The single implicit row is content-sized (100px), so the item sits
+        // at the grid's top edge. Resolving `height: 100%` to the 400px body
+        // stretched the row and `align-items: center` pushed the item down
+        // to y = 150 — squarely off the reference's 100px square.
+        self::assertEqualsWithDelta($g->geometry->y, $c->geometry->y, 0.5);
+    }
+
+    public function testDefiniteFlexContainerPercentHeightStillResolves(): void
+    {
+        // The guard must not break the definite case: a `height: 50%` flex
+        // container inside a definite-height block still resolves to half
+        // that block's height.
+        $box = $this->buildTree(
+            '<html><body><div id="p"><div id="f"><div id="it"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #p { height: 400px; }
+             #f { display: flex; height: 50%; }
+             #it { width: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $f = $this->findById($box, 'f');
+        self::assertNotNull($f);
+        self::assertEqualsWithDelta(200.0, $f->geometry->height, 1.0);
+    }
+
+    public function testIndefiniteColumnFlexContainerLeavesItemBlockSizeIndefinite(): void
+    {
+        // CSS Flexbox 1 §9.8 — a flex item's post-flexing main size is
+        // definite only "if the flex container has a definite main size".
+        // A COLUMN flex container with `height: auto` has an indefinite
+        // main size, and `flex: 1 1 0%` means the declared `height: 100px`
+        // is not the item's used main size at all — so a descendant's
+        // `height: 100%` stays `auto`.
+        // (WPT css-flexbox/percentage-heights-016 / -017 / -018.)
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it">'
+                . '<div id="green"></div><div id="red"></div>'
+                . '</div></div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-direction: column; }
+             #it { flex: 1 1 0%; height: 100px; min-height: 0; }
+             #green { height: 100px; width: 100px; }
+             #red { height: 100%; width: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $red = $this->findById($box, 'red');
+        self::assertNotNull($red);
+        self::assertEqualsWithDelta(0.0, $red->geometry->height, 0.5);
+    }
+
+    public function testAutoFlexBasisItemKeepsItsDeclaredHeightDefinite(): void
+    {
+        // The other side of §9.8's gate: with `flex-basis: auto` (the
+        // initial value) the item's flex base size IS its declared
+        // `height`, and an indefinite COLUMN container gives it no free
+        // space to flex away from that. The height is therefore the used
+        // main size and a `height: 100%` child resolves against it — WPT
+        // percentage-heights-005 / -020 / -023 assert this explicitly, and
+        // an over-broad indefiniteness marker regressed all three.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="child"></div></div></div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-direction: column; }
+             #it { width: 100px; height: 100px; }
+             #child { height: 100%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->findById($box, 'child');
+        self::assertNotNull($child);
+        self::assertEqualsWithDelta(100.0, $child->geometry->height, 0.5);
+    }
+
+    public function testDefiniteColumnFlexContainerKeepsItemBlockSizeDefinite(): void
+    {
+        // The §9.8 complement: when the COLUMN flex container's main size
+        // IS definite, the item's block size is definite again and a
+        // percentage-height descendant resolves against it.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="it"><div id="child"></div></div></div></body></html>',
+            'html, body, div { display: block; }
+             #f { display: flex; flex-direction: column; height: 300px; }
+             #it { height: 100px; min-height: 0; }
+             #child { height: 50%; width: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $child = $this->findById($box, 'child');
+        self::assertNotNull($child);
+        self::assertEqualsWithDelta(50.0, $child->geometry->height, 1.0);
+    }
+
     public function testFlexBasisZeroKeepsSpecifiedSuggestionFromWidthNotBasis(): void
     {
         // CSS Flexbox 1 §4.5 — the SPECIFIED size suggestion is the item's

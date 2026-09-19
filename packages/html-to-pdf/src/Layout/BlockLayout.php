@@ -737,6 +737,16 @@ final class BlockLayout
 
     private function layoutBox(Box $box, LayoutContext $context): float
     {
+        // The §9.8 one-shot markers are consumed by `layoutBlock`. Every
+        // other dispatch target below would leave a set marker armed for
+        // whatever `layoutBlock` runs next INSIDE the subtree, so clear it
+        // here unless this box is heading for `layoutBlock` itself.
+        if (!$box instanceof BlockBox
+            && !$box instanceof AnonymousBlockBox
+            && !$box instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox
+        ) {
+            $this->flexItemMainSizeIndefinite = false;
+        }
         if ($box instanceof \Phpdftk\HtmlToPdf\Box\TableBox) {
             // CSS 2.1 §17.4.1 — `caption-side: bottom` moves a
             // `<caption>` child to render below the rows instead of
@@ -1126,10 +1136,32 @@ final class BlockLayout
      */
     private ?float $flexItemDefiniteBlockSize = null;
 
+    /**
+     * CSS Flexbox 1 §9.8 — the complement of
+     * {@see $flexItemDefiniteBlockSize}: a one-shot "this flex item's main
+     * size is INDEFINITE" marker handed from {@see layoutFlexBox} to the
+     * very next {@see layoutBlock} call.
+     *
+     * §9.8 makes a flex item's post-flexing main size definite only "if the
+     * flex container has a definite main size". A COLUMN flex container with
+     * `height: auto` has an indefinite main size, so its items' block sizes
+     * stay indefinite no matter what their own `height` declares — the
+     * declared height feeds the flex base size, it does not resolve
+     * descendants' percentages. `layoutBlock` otherwise reads the item's own
+     * `height: 100px` as definite and gave a `height: 100%` grandchild a full
+     * 100px instead of collapsing it to `auto`
+     * (WPT css-flexbox/percentage-heights-016 / -017).
+     *
+     * Consumed exactly once, like its sibling field.
+     */
+    private bool $flexItemMainSizeIndefinite = false;
+
     private function layoutBlock(Box $box, LayoutContext $context): float
     {
         $flexDefiniteBlockSize = $this->flexItemDefiniteBlockSize;
         $this->flexItemDefiniteBlockSize = null;
+        $flexMainSizeIndefinite = $this->flexItemMainSizeIndefinite;
+        $this->flexItemMainSizeIndefinite = false;
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
         $geo = $box->geometry;
@@ -1559,6 +1591,14 @@ final class BlockLayout
             // §9.8: the flexed main size is definite and supersedes `height`.
             $childCbHeight = $flexDefiniteBlockSize;
             $heightExplicit = true;
+        } elseif ($flexMainSizeIndefinite && $heightExplicit) {
+            // §9.8 the other way round: this box is a COLUMN flex item of a
+            // container whose main size is indefinite, so its block size is
+            // indefinite for percentage resolution even though `height` is a
+            // length. Leave `$childCbHeight` at the inherited CB height and
+            // keep `$heightExplicit` false so descendants' `height: %` (and
+            // the in-flow definiteness flag below) treat it as `auto`.
+            $heightExplicit = false;
         } elseif ($heightExplicit) {
             $resolvedHeight = $this->resolveLength(
                 $heightValueForChildCtx,
@@ -4064,7 +4104,7 @@ final class BlockLayout
         // `height` (definite → `crossDefinite`, item %-heights resolve).
         $ratioDeclaredHeight = $this->ratioDerivedContainerHeight($style, $geo);
         $declaredHeight = $definiteContentHeightOverride
-            ?? $this->resolveExplicitHeightOrNull($style, $cbHeight)
+            ?? $this->definiteContainerHeightOrNull($box, $context)
             ?? $ratioDeclaredHeight;
 
         // CSS Flexbox 1 §3 — absolutely-positioned children of a
@@ -4170,6 +4210,15 @@ final class BlockLayout
             // (auto height in column direction falls through to
             // layoutBlock's content-derived height).
             $basis = $this->resolveFlexBasis($child->style, $basisCbMain);
+            // Whether `flex-basis` SUPERSEDES the item's main-size property.
+            // An explicit length / percentage / zero does; so does the
+            // `content` keyword. `auto` does not — it defers to `height` /
+            // `width`, which is then the item's real used main size. §9.8
+            // definiteness below turns on exactly this distinction.
+            $flexBasisValue = $child->style->get('flex-basis');
+            $basisSupersedesMainSize = $basis !== null
+                || ($flexBasisValue instanceof Keyword
+                    && strtolower($flexBasisValue->name) === 'content');
             $mainIsAuto = $this->isAuto($child->style->get($mainProp));
             if ($basis === null && !$mainIsAuto) {
                 $basis = $this->resolveLength($child->style->get($mainProp), $basisCbMain);
@@ -4255,9 +4304,29 @@ final class BlockLayout
                 && $this->resolveFlexShrink($child->style) === 0.0
             ) {
                 $this->flexItemDefiniteBlockSize = $basis;
+            } elseif ($isColumn && $declaredHeight === null && $basisSupersedesMainSize) {
+                // CSS Flexbox 1 §9.8 — "if the flex container has a definite
+                // main size, a flex item's post-flexing main size is treated
+                // as definite". This container's main size (its height) is
+                // NOT definite, so a flexed item's block size is whatever the
+                // §9.7 distribution landed on, which is not a definite size.
+                //
+                // The gate is `flex-basis`, not the `height` property. When
+                // `flex-basis` is `auto` the base size IS the declared
+                // `height`, the item does not flex away from it here (there
+                // is no free space to distribute in an indefinite container),
+                // and that height is definite for descendants — WPT
+                // percentage-heights-005 / -020 / -023 assert exactly that.
+                // When `flex-basis` supersedes the main-size property
+                // (`flex: 1 1 0%`, `flex: 1 1`, `flex: 1 1 content`) the
+                // declared `height` is not the used main size at all, so a
+                // `height: 100%` descendant must collapse to `auto`
+                // (percentage-heights-016 / -017 / -018).
+                $this->flexItemMainSizeIndefinite = true;
             }
             $this->layoutBox($child, $childCtx);
             $this->flexItemDefiniteBlockSize = null;
+            $this->flexItemMainSizeIndefinite = false;
             // CSS Display 3 §2.7 — an inline-level box that is a flex item
             // is blockified. `layoutBox`'s atomic-inline path sizes the
             // content but leaves the box-model edges at zero, so the flex
@@ -4907,7 +4976,7 @@ final class BlockLayout
         // Compute the explicit-height-for-fr early so it's available
         // both for auto-fill row track resolution and the later fr
         // pass.
-        $explicitContainerHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight);
+        $explicitContainerHeight = $this->definiteContainerHeightOrNull($box, $context);
         $declaredHeightForFr = $explicitContainerHeight
             ?? $this->ratioDerivedContainerHeight($style, $geo);
         $columnDescriptors = $this->parseGridTrackList(
@@ -8405,6 +8474,37 @@ final class BlockLayout
             return null;
         }
         return $this->resolveLength($value, $cbHeight);
+    }
+
+    /**
+     * CSS 2.1 §10.5 — a box's `height: %` resolves against its containing
+     * block ONLY when that containing block's height is definite; otherwise
+     * the percentage computes to `auto` and the box sizes to its content.
+     *
+     * {@see layoutBlock} has applied that rule for a long time, but the flex
+     * and grid container paths called {@see resolveExplicitHeightOrNull}
+     * directly, which resolves a percentage unconditionally against
+     * `containingBlockHeight`. A `height: 100%` grid inside an auto-height
+     * COLUMN flex container therefore claimed the OUTER containing block's
+     * height (the 400px `<body>`) and then centred its items in that phantom
+     * extent instead of hugging them (WPT css-flexbox/grid-flex-item-007).
+     *
+     * Out-of-flow boxes keep the abspos-oriented definiteness flag, matching
+     * layoutBlock: an abspos box's containing block is a padding box whose
+     * height the ICB makes definite for `<html>` / `<body>` children.
+     */
+    private function definiteContainerHeightOrNull(Box $box, LayoutContext $context): ?float
+    {
+        $value = $box->style->get('height');
+        if ($value instanceof Percentage) {
+            $definite = $this->isOutOfFlow($box)
+                ? $context->containingBlockHeightDefinite
+                : $context->inFlowHeightDefinite;
+            if (!$definite) {
+                return null;
+            }
+        }
+        return $this->resolveExplicitHeightOrNull($box->style, $context->containingBlockHeight);
     }
 
     /**
