@@ -308,21 +308,7 @@ final class BoxGenerator
         // `table-cell` / `table-column` (etc.) computes to `block`.
         // `inline-table` is the one value that blockifies to `table`
         // rather than `block`, matching the flex-item mapping elsewhere.
-        $outOfFlowBlockified = [
-            'inline' => 'block',
-            'inline-block' => 'block',
-            'inline-flex' => 'flex',
-            'inline-grid' => 'grid',
-            'inline-table' => 'table',
-            'table-row-group' => 'block',
-            'table-header-group' => 'block',
-            'table-footer-group' => 'block',
-            'table-row' => 'block',
-            'table-column' => 'block',
-            'table-column-group' => 'block',
-            'table-cell' => 'block',
-            'table-caption' => 'block',
-        ];
+        $outOfFlowBlockified = self::OUT_OF_FLOW_BLOCKIFIED;
         if (isset($outOfFlowBlockified[$display])
             && $this->isOutOfFlow($values)
             && !$this->isInlinePositionedForeignRoot($element)
@@ -1135,6 +1121,18 @@ final class BoxGenerator
             return null;
         }
         $display = $this->displayKeyword($pseudoValues);
+        // CSS 2.1 §9.7 / CSS Display 3 §2.7 — a pseudo-element is
+        // blockified by going out of flow just like an element is.
+        // `::before { position: absolute }` with no `display` rule of its
+        // own computes to `inline`, and an inline out-of-flow box has no
+        // layout path: it generated an InlineBox that the abs-pos
+        // machinery never looked at, so the pseudo simply never painted.
+        if ($this->isOutOfFlow($pseudoValues)
+            && isset(self::OUT_OF_FLOW_BLOCKIFIED[$display])
+        ) {
+            $display = self::OUT_OF_FLOW_BLOCKIFIED[$display];
+            $pseudoValues->set('display', new Keyword($display));
+        }
         // CSS Display 3 §3.2 — `display: contents` on a pseudo-element
         // suppresses its box entirely; its generated `content` flows
         // into the parent as if it were a plain text node carrying
@@ -2410,6 +2408,30 @@ final class BoxGenerator
         }
         return false;
     }
+
+    /**
+     * CSS 2.1 §9.7 / CSS Display 3 §2.7 — the `display` an out-of-flow
+     * box blockifies to. Covers the internal-table displays as well as
+     * the inline family; `inline-table` is the one value that goes to
+     * `table` rather than `block`.
+     *
+     * @var array<string, string>
+     */
+    private const OUT_OF_FLOW_BLOCKIFIED = [
+        'inline' => 'block',
+        'inline-block' => 'block',
+        'inline-flex' => 'flex',
+        'inline-grid' => 'grid',
+        'inline-table' => 'table',
+        'table-row-group' => 'block',
+        'table-header-group' => 'block',
+        'table-footer-group' => 'block',
+        'table-row' => 'block',
+        'table-column' => 'block',
+        'table-column-group' => 'block',
+        'table-cell' => 'block',
+        'table-caption' => 'block',
+    ];
 
     private function makeBox(Element $element, CascadedValues $values, string $display): Box
     {

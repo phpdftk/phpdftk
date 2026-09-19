@@ -405,6 +405,46 @@ final class BoxGeneratorTest extends TestCase
         self::assertSame('?', $text->text);
     }
 
+    public function testOutOfFlowPseudoIsBlockified(): void
+    {
+        // CSS 2.1 §9.7 / CSS Display 3 §2.7 — going out of flow blockifies
+        // a pseudo-element the same way it blockifies an element. A
+        // `::after { position: absolute }` with no `display` rule computes
+        // to `inline`, and an inline out-of-flow box has no layout path at
+        // all: it generated an InlineBox nothing ever positioned or
+        // painted, so the pseudo silently vanished.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            p::after { content: ''; position: absolute; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p>X</p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+        self::assertCount(2, $p->children);
+        $pseudo = $p->children[1];
+        self::assertInstanceOf(BlockBox::class, $pseudo);
+        $display = $pseudo->style->get('display');
+        self::assertInstanceOf(Keyword::class, $display);
+        self::assertSame('block', $display->name);
+    }
+
+    public function testInFlowPseudoIsNotBlockified(): void
+    {
+        // The companion guard: an in-flow pseudo keeps its `inline`
+        // display, so the blockification above cannot leak into ordinary
+        // generated content.
+        $sheet = $this->css->parseStylesheet(<<<CSS
+            html, body, p { display: block; }
+            p::after { content: '?'; }
+        CSS);
+        $doc = $this->html->parseDocument('<html><body><p>X</p></body></html>');
+        $box = $this->generator->generate($doc, [$sheet]);
+        $p = $this->findFirstByTag($box, 'p');
+        self::assertNotNull($p);
+        self::assertInstanceOf(InlineBox::class, $p->children[1]);
+    }
+
     public function testPseudoAttrReadsHostAttribute(): void
     {
         // `a[href]::after { content: ' (' attr(href) ')' }` — print-style
