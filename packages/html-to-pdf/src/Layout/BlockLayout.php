@@ -8767,12 +8767,24 @@ final class BlockLayout
         // layout does. Without them a shrink-to-fit box is measured as
         // though the gaps were zero and then wraps content that would
         // have fit on one line.
-        $letterSpacing = $box->style->get('letter-spacing') instanceof Length
-            ? $box->style->get('letter-spacing')->value
-            : 0.0;
-        $wordSpacing = $box->style->get('word-spacing') instanceof Length
-            ? $box->style->get('word-spacing')->value
-            : 0.0;
+        //
+        // The declared value may still carry a RELATIVE unit: intrinsic
+        // measurement runs before the box's own `resolveLengths` pass (the
+        // same ordering the `font-size` branch above guards against), so
+        // `word-spacing: 10em` arrives as `10em`, not as the 160px line
+        // layout will use. Taking `->value` verbatim measured it as TEN
+        // pixels and wrapped text that fits on one line. `em` here resolves
+        // against the box's OWN font size — the one just computed.
+        $spacingContext = $this->boxLengthContext($box, $context)
+            ->withCurrentFontSize($fontSize);
+        $letterSpacing = $this->resolveSpacingLength(
+            $box->style->get('letter-spacing'),
+            $spacingContext,
+        );
+        $wordSpacing = $this->resolveSpacingLength(
+            $box->style->get('word-spacing'),
+            $spacingContext,
+        );
         // CSS Text 3 §4 / Sizing 3 §5 — preserved white-space modes
         // compute max-content per LINE (split on `\n`) rather than
         // as a single collapsed text run. Without this, `pre`,
@@ -8854,6 +8866,24 @@ final class BlockLayout
             );
         }
         return ['min' => $minAdvance, 'max' => $maxAdvance];
+    }
+
+    /**
+     * `letter-spacing` / `word-spacing` as a used px advance (CSS Text 3
+     * §9 / §10): the `normal` keyword is 0, and a `<length>` is resolved
+     * through {@see LengthResolver} so relative units (`em`, `ex`, `ch`,
+     * `rem`, …) that the cascade has not yet converted still measure the
+     * same as the px value line layout ends up applying. A length already
+     * in px round-trips unchanged.
+     */
+    private function resolveSpacingLength(mixed $value, LengthContext $context): float
+    {
+        if (!$value instanceof Length) {
+            return 0.0;
+        }
+        return $value->unit === \Phpdftk\Css\Value\LengthUnit::Px
+            ? $value->value
+            : \Phpdftk\Css\Cascade\LengthResolver::toPx($value, $context);
     }
 
     /**

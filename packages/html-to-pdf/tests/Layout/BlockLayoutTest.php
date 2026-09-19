@@ -14529,4 +14529,91 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($g->geometry->x, $item->geometry->x, 0.01);
         self::assertEqualsWithDelta($g->geometry->y + 50.0, $item->geometry->y, 0.01);
     }
+
+    public function testIntrinsicWordSpacingResolvesRelativeUnits(): void
+    {
+        // CSS Text 3 §9 / Sizing 3 §5.1 — intrinsic sizing must resolve a
+        // relative `word-spacing` against the box's own font-size exactly
+        // as line layout does. `10em` at `font-size: 16px` is 160px, so a
+        // shrink-to-fit table cell must be as wide as the `160px` form.
+        // Taking the declared value verbatim measured it as TEN pixels and
+        // wrapped content that fits on one line.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $em = $this->buildTree(
+            '<html><body><div id="t"><div id="c">aa bb</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; font-family: noto; font-size: 16px; }
+             #c { display: table-cell; word-spacing: 10em; }',
+        );
+        $px = $this->buildTree(
+            '<html><body><div id="t"><div id="c">aa bb</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; font-family: noto; font-size: 16px; }
+             #c { display: table-cell; word-spacing: 160px; }',
+        );
+        $this->layout->layout($em, $ctx);
+        $this->layout->layout($px, $ctx);
+        $emCell = $this->findById($em, 'c');
+        $pxCell = $this->findById($px, 'c');
+        self::assertNotNull($emCell);
+        self::assertNotNull($pxCell);
+        self::assertEqualsWithDelta(
+            $pxCell->geometry->width,
+            $emCell->geometry->width,
+            0.01,
+            '10em word-spacing measures the same as its 160px equivalent',
+        );
+    }
+
+    public function testIntrinsicLetterSpacingResolvesRelativeUnits(): void
+    {
+        // CSS Text 3 §10 — same for `letter-spacing`: `1em` at
+        // `font-size: 16px` adds 16px of advance per glyph intrinsically,
+        // not one pixel.
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+        $ctx = new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+        $em = $this->buildTree(
+            '<html><body><div id="t"><div id="c">aabb</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; font-family: noto; font-size: 16px; }
+             #c { display: table-cell; letter-spacing: 1em; }',
+        );
+        $px = $this->buildTree(
+            '<html><body><div id="t"><div id="c">aabb</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; font-family: noto; font-size: 16px; }
+             #c { display: table-cell; letter-spacing: 16px; }',
+        );
+        $this->layout->layout($em, $ctx);
+        $this->layout->layout($px, $ctx);
+        $emCell = $this->findById($em, 'c');
+        $pxCell = $this->findById($px, 'c');
+        self::assertNotNull($emCell);
+        self::assertNotNull($pxCell);
+        self::assertEqualsWithDelta(
+            $pxCell->geometry->width,
+            $emCell->geometry->width,
+            0.01,
+            '1em letter-spacing measures the same as its 16px equivalent',
+        );
+    }
 }
