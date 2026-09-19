@@ -156,4 +156,86 @@ final class InlineSvgIntegrationTest extends TestCase
             'blue fill from second inline SVG missing',
         );
     }
+
+    /**
+     * SVG 2 §6.7 — a presentation attribute is an author-origin CSS
+     * declaration with specificity zero, so an INHERITED property set
+     * that way (`fill` on a `<g>`) must reach descendants that do not
+     * set it themselves.
+     *
+     * Inline SVG in an HTML document is styled by projecting the HTML
+     * cascade onto the subtree; before the presentation-attribute sheet
+     * landed, that cascade never saw `fill="#ff0000"` on the `<g>`, so
+     * it projected the INITIAL `fill: #000000` onto the `<rect>` and the
+     * shape painted black.
+     */
+    public function testPresentationAttributeOnGroupInheritsToChild(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="80" height="60" xmlns="http://www.w3.org/2000/svg">'
+                . '<g fill="#ff0000"><rect x="0" y="0" width="80" height="60"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'fill="#ff0000" on the <g> did not inherit to the <rect>',
+        );
+    }
+
+    /**
+     * Same rule applied at the outermost `<svg>`: its own presentation
+     * attributes participate in the cascade the subtree inherits from.
+     */
+    public function testPresentationAttributeOnSvgRootInheritsToDescendant(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><body>'
+                . '<svg width="80" height="60" fill="#ff0000" xmlns="http://www.w3.org/2000/svg">'
+                . '<rect x="0" y="0" width="80" height="60"/>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b1(?:\.0+)?\s+0(?:\.0+)?\s+0(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'fill="#ff0000" on the <svg> root did not inherit to the <rect>',
+        );
+    }
+
+    /**
+     * A document stylesheet rule out-specifies a presentation attribute
+     * (SVG 2 §6.7 pins presentation attributes at specificity zero), so
+     * the descendant must inherit the STYLESHEET colour, not the
+     * attribute one.
+     */
+    public function testStylesheetRuleOutranksPresentationAttributeForInheritance(): void
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        (new Renderer())->renderInto(
+            $writer,
+            '<html><head><style>#g { fill: #0000ff }</style></head><body>'
+                . '<svg width="80" height="60" xmlns="http://www.w3.org/2000/svg">'
+                . '<g id="g" fill="#ff0000"><rect x="0" y="0" width="80" height="60"/></g>'
+                . '</svg>'
+                . '</body></html>',
+        );
+        $bytes = $writer->toBytes();
+
+        self::assertMatchesRegularExpression(
+            '/\b0(?:\.0+)?\s+0(?:\.0+)?\s+1(?:\.0+)?\s+rg\b/',
+            $bytes,
+            'the #g stylesheet rule should have beaten the fill presentation attribute',
+        );
+    }
 }

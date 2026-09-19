@@ -334,7 +334,17 @@ final class BoxGenerator
         // foreign root to `inline-block` so it generates an
         // `AtomicInlineBox`.
         if (self::foreignContentKind($element) === 'svg') {
-            $this->projectCssOntoSvgSubtree($element, $sheets, $values);
+            // SVG 2 §6.7 — the root `<svg>`'s own presentation attributes
+            // are author declarations too, so the subtree must inherit
+            // from a cascade that has seen them. `$values` comes from the
+            // HTML cascade, which has not; recompute with the synthesised
+            // sheet rather than mutating `$values` (box generation below
+            // relies on the unmodified one).
+            $svgRootSheets = $this->svgCascadeSheets($element, $sheets);
+            $svgRootValues = $svgRootSheets === $sheets
+                ? $values
+                : $this->cascade->computeFor($svgRootSheets, $element, $parentValues);
+            $this->projectCssOntoSvgSubtree($element, $sheets, $svgRootValues);
         }
         if ($this->isForeignContentRoot($element)
             && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
@@ -2722,7 +2732,11 @@ final class BoxGenerator
         CascadedValues $rootValues,
     ): void {
         foreach ($root->children() as $child) {
-            $values = $this->cascade->computeFor($sheets, $child, $rootValues);
+            $values = $this->cascade->computeFor(
+                $this->svgCascadeSheets($child, $sheets),
+                $child,
+                $rootValues,
+            );
             $declarations = [];
             foreach (self::SVG_PROJECTED as $property) {
                 if ($child->getAttribute($property) !== null) {
@@ -2751,6 +2765,101 @@ final class BoxGenerator
             }
             $this->projectCssOntoSvgSubtree($child, $sheets, $values);
         }
+    }
+
+    /**
+     * SVG presentation attributes fed into the cascade for inline-SVG
+     * descendants.
+     *
+     * Deliberately limited to the INHERITED paint / text properties (plus
+     * `color`, which `currentColor` resolves against). A presentation
+     * attribute for a non-inherited property already reaches the SVG
+     * renderer through `Element::presentationOrStyle`, so synthesising a
+     * declaration for it would buy nothing while risking a bad parse of
+     * SVG-only grammars (`transform="translate(1 2)"` is not a CSS
+     * `<transform-list>` in every legal form).
+     *
+     * @var list<string>
+     */
+    private const array SVG_PRESENTATION_ATTRIBUTES = [
+        'fill',
+        'stroke',
+        'fill-opacity',
+        'stroke-opacity',
+        'fill-rule',
+        'stroke-width',
+        'stroke-linecap',
+        'stroke-linejoin',
+        'stroke-miterlimit',
+        'stroke-dasharray',
+        'stroke-dashoffset',
+        'font-family',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'color',
+        'visibility',
+    ];
+
+    /**
+     * The `*` selector every synthesised presentation-attribute rule
+     * carries. Parsed once — `SelectorParser::parse` is not free and this
+     * runs per inline-SVG element.
+     */
+    private static ?\Phpdftk\Css\Selector\SelectorList $svgPresentationSelector = null;
+
+    /**
+     * `$sheets` with `$element`'s presentation attributes prepended as a
+     * synthesised author-origin stylesheet.
+     *
+     * SVG 2 §6.7 — a presentation attribute is an author-origin CSS
+     * declaration whose specificity is zero, ordered before every other
+     * author declaration. Modelling it as a real sheet (rather than
+     * reading the attribute at paint time) is what makes an inherited
+     * property set that way reach DESCENDANTS: the cascade for the child
+     * inherits from the parent's cascaded values, and without the sheet
+     * those values carry the property's initial instead.
+     *
+     * The rule's selector is `*`, which would match any element — safe
+     * because the returned sheet is only ever passed to a `computeFor`
+     * call for `$element` itself.
+     *
+     * @param list<Stylesheet> $sheets
+     * @return list<Stylesheet>
+     */
+    private function svgCascadeSheets(Element $element, array $sheets): array
+    {
+        $declarations = [];
+        foreach (self::SVG_PRESENTATION_ATTRIBUTES as $name) {
+            $raw = $element->getAttribute($name);
+            if ($raw === null || trim($raw) === '') {
+                continue;
+            }
+            // SVG 2 §6.7 — `inherit` is the one CSS-wide keyword a
+            // presentation attribute accepts; anything the value parser
+            // rejects makes the attribute invalid and it is dropped.
+            try {
+                $value = $this->attrValueParser()->parseFromString($raw);
+            } catch (\Throwable) {
+                continue;
+            }
+            $declarations[] = new \Phpdftk\Css\Sheet\Declaration($name, $value, important: false);
+        }
+        if ($declarations === []) {
+            return $sheets;
+        }
+        self::$svgPresentationSelector ??= \Phpdftk\Css\Selector\SelectorParser::parse('*');
+        $rule = new \Phpdftk\Css\Sheet\StyleRule(self::$svgPresentationSelector, $declarations);
+        return [
+            new Stylesheet([$rule], \Phpdftk\Css\Sheet\Origin::Author),
+            ...$sheets,
+        ];
+    }
+
+    /** Lazily-built value parser shared by the presentation-attribute sheet. */
+    private function attrValueParser(): \Phpdftk\Css\ValueParser
+    {
+        return $this->attrParser ??= new \Phpdftk\Css\ValueParser();
     }
 
     /**
