@@ -3432,26 +3432,34 @@ final class BlockLayout
         $cbTop = $positioned !== null ? $positioned->originY : $context->originY;
         $cbRight = $cbLeft + $context->containingBlockWidth;
         $cbBottom = $cbTop + $context->containingBlockHeight;
-        // An anchor that overhangs the containing block would otherwise
-        // produce inverted bands; clamping keeps every region non-empty
-        // and ordered.
+        // CSS Anchor Positioning 1 §3.3 — the grid lines are the
+        // containing block's edges and the ANCHOR's edges, taken as they
+        // are. An anchor that overhangs (or sits entirely outside) the
+        // containing block therefore yields regions that reach past it,
+        // and that is deliberate: the anchored box is out-of-flow and
+        // free to overflow. Clamping the anchor into the containing
+        // block instead made a box resolve against a different grid than
+        // the same anchor would give it one level up the tree.
         $xEdges = [
             $cbLeft,
-            min(max($anchorLeft, $cbLeft), $cbRight),
-            min(max($anchorLeft + $anchorWidth, $cbLeft), $cbRight),
+            $anchorLeft,
+            $anchorLeft + $anchorWidth,
             $cbRight,
         ];
         $yEdges = [
             $cbTop,
-            min(max($anchorTop, $cbTop), $cbBottom),
-            min(max($anchorTop + $anchorHeight, $cbTop), $cbBottom),
+            $anchorTop,
+            $anchorTop + $anchorHeight,
             $cbBottom,
         ];
         [$xBands, $yBands] = $this->positionAreaBands($keywords);
         $regionLeft = $xEdges[$xBands[0]];
-        $regionRight = $xEdges[$xBands[1] + 1];
+        // The edges are only guaranteed to be ordered when the anchor is
+        // inside the containing block; elsewhere collapse the inverted
+        // region onto its start edge rather than letting it run backwards.
+        $regionRight = max($regionLeft, $xEdges[$xBands[1] + 1]);
         $regionTop = $yEdges[$yBands[0]];
-        $regionBottom = $yEdges[$yBands[1] + 1];
+        $regionBottom = max($regionTop, $yEdges[$yBands[1] + 1]);
         $xAlignment = $this->positionAreaAlignment($style->get('justify-self'), $xBands);
         $yAlignment = $this->positionAreaAlignment($style->get('align-self'), $yBands);
         // `anchor-center` centres the box on the ANCHOR's centre rather
