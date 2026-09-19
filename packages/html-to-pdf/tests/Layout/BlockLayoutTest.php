@@ -12768,6 +12768,41 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->x + 150.0, $t->geometry->x, 0.5);
     }
 
+    public function testPseudoElementAnchorsToItsOriginatingElement(): void
+    {
+        // CSS Anchor Positioning 1 §3.2 — `position-anchor: normal` (or
+        // the older spelling `auto`, which is the initial value) uses the
+        // box's IMPLICIT anchor, and a ::before / ::after pseudo-element's
+        // implicit anchor is the element it originates from.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="pad"></div><div id="a"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 300px; height: 300px; }
+             #pad { height: 150px; }
+             #a { width: 100px; height: 100px; }
+             #a::after { content: ""; position: absolute;
+                         position-anchor: auto;
+                         width: 50px; height: 50px; bottom: anchor(top); }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $a = $this->findById($box, 'a');
+        self::assertNotNull($cb);
+        self::assertNotNull($a);
+        $pseudo = null;
+        foreach ($a->children as $child) {
+            if ($child->pseudoElement === 'after') {
+                $pseudo = $child;
+            }
+        }
+        self::assertNotNull($pseudo);
+        // `bottom: anchor(top)` pins the pseudo's bottom edge to the
+        // originating element's top edge at y = 150, so a 50px box sits
+        // at 100.
+        self::assertEqualsWithDelta($cb->geometry->y + 100.0, $pseudo->geometry->y, 0.5);
+    }
+
     public function testPositionAreaSpanAllAxisDefaultsToAnchorCenter(): void
     {
         // CSS Anchor Positioning 1 §3.3 — an axis the `position-area`

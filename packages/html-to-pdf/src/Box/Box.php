@@ -87,6 +87,16 @@ abstract class Box
      */
     public bool $hiddenByPositionVisibility = false;
 
+    /**
+     * `'before'` / `'after'` when this box was generated for a
+     * pseudo-element of {@see $element}, null when it is the element's
+     * own box. A pseudo-element shares its originating element's
+     * `Element` instance, so this is the only thing that tells the two
+     * apart — which CSS Anchor Positioning 1 §3.2 needs, because a
+     * pseudo-element's IMPLICIT anchor is its originating element.
+     */
+    public ?string $pseudoElement = null;
+
     public function __construct(
         public readonly ?Element $element,
         public readonly CascadedValues $style,

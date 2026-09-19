@@ -1144,6 +1144,7 @@ final class BoxGenerator
         }
         // Pseudo-elements default to `inline` when no `display` rule fires.
         $pseudo = $this->makeBox($element, $pseudoValues, $display);
+        $pseudo->pseudoElement = $pseudoName;
         if ($text !== '') {
             $pseudo->addChild(new TextBox($element, $pseudoValues, $text));
         }

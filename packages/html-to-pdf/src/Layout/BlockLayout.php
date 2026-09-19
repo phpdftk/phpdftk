@@ -142,12 +142,22 @@ final class BlockLayout
     private array $anchorBoxes = [];
 
     /**
-     * Originating elements already registered under each anchor name, so
-     * {@see registerAnchorBox} keeps only an element's principal box.
+     * Cascades already registered under each anchor name, so
+     * {@see registerAnchorBox} keeps only one box per declaration.
      *
      * @var array<string, array<int, true>>
      */
     private array $anchorElements = [];
+
+    /**
+     * The principal box of every element that has one, keyed by the
+     * element's `spl_object_id`. CSS Anchor Positioning 1 §3.2 makes a
+     * pseudo-element's IMPLICIT anchor its originating element, and this
+     * is what turns that element back into a box.
+     *
+     * @var array<int, Box>
+     */
+    private array $principalBoxes = [];
 
     /**
      * Tree-order rank of every box, keyed by `spl_object_id`. CSS Anchor
@@ -230,6 +240,7 @@ final class BlockLayout
         // moment it is positioned.
         $this->anchorBoxes = [];
         $this->anchorElements = [];
+        $this->principalBoxes = [];
         $this->boxOrder = [];
         $this->boxParents = [];
         $this->positionVisibilityBoxes = [];
@@ -3530,6 +3541,9 @@ final class BlockLayout
     private function collectAnchorBoxes(Box $box, int $order): int
     {
         $this->boxOrder[spl_object_id($box)] = $order++;
+        if ($box->element !== null && $box->pseudoElement === null) {
+            $this->principalBoxes[spl_object_id($box->element)] ??= $box;
+        }
         $name = $box->style->get('anchor-name');
         if ($name instanceof Keyword) {
             if (str_starts_with($name->name, '--')) {
@@ -3566,11 +3580,16 @@ final class BlockLayout
      */
     private function registerAnchorBox(string $name, Box $box): void
     {
-        $element = $box->element;
-        if ($element === null) {
+        if ($box->element === null) {
             return;
         }
-        $key = spl_object_id($element);
+        // One declaration, one anchor. Every box an element spawns that
+        // is not its principal box — the `TextBox` holding its text, an
+        // `InlineBox` wrapper — is handed the very same `CascadedValues`
+        // instance, so keying on that object collapses the copies while
+        // still telling a `::before` (which has a cascade of its own)
+        // apart from the element it hangs off.
+        $key = spl_object_id($box->style);
         if (isset($this->anchorElements[$name][$key])) {
             return;
         }
@@ -3590,10 +3609,13 @@ final class BlockLayout
             $implicit = $target->style->get('position-anchor');
             if ($implicit instanceof Keyword && str_starts_with($implicit->name, '--')) {
                 $name = $implicit->name;
+            } else {
+                // CSS Anchor Positioning 1 §3.2 — `position-anchor:
+                // normal` (spelled `auto` in older content) falls back to
+                // the box's IMPLICIT anchor element. The only one we can
+                // name is a pseudo-element's originating element.
+                return $this->implicitAnchorBox($target);
             }
-        }
-        if ($name === null) {
-            return null;
         }
         $candidates = $this->anchorBoxes[$name] ?? [];
         $targetOrder = $this->boxOrder[spl_object_id($target)] ?? PHP_INT_MAX;
@@ -3607,6 +3629,19 @@ final class BlockLayout
             }
         }
         return $box;
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §3.2 — the implicit anchor element of
+     * `$target`, which for a `::before` / `::after` box is the element
+     * it originates from. Anything else has no implicit anchor.
+     */
+    private function implicitAnchorBox(Box $target): ?Box
+    {
+        if ($target->pseudoElement === null || $target->element === null) {
+            return null;
+        }
+        return $this->principalBoxes[spl_object_id($target->element)] ?? null;
     }
 
     /**
