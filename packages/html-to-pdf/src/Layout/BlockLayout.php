@@ -8580,6 +8580,37 @@ final class BlockLayout
     }
 
     /**
+     * The inline-axis margin + border + padding a block-level child adds
+     * on top of its own min/max-content size (CSS Sizing 3 §5.1).
+     *
+     * Percentages — including a `%` term inside a `calc()` — resolve to
+     * ZERO here, since the containing block's inline size is exactly what
+     * is being computed. That is what makes `margin-left: calc(10% +
+     * 100px)` contribute 100px and `margin-left: 50%` contribute nothing.
+     */
+    private function intrinsicOuterInlineInset(Box $child): float
+    {
+        if ($child instanceof TextBox) {
+            return 0.0;
+        }
+        $style = $child->style;
+        $inset = $this->resolveIntrinsicInlineLength($style->get('margin-left'))
+            + $this->resolveIntrinsicInlineLength($style->get('margin-right'));
+        // An explicit `box-sizing: border-box` width already contains the
+        // border and padding that `measureMinMaxContent` just handed back,
+        // so only a content-box child adds them a second time.
+        $width = $style->get('width');
+        if ($width instanceof Length && $this->isBorderBoxSizing($style)) {
+            return $inset;
+        }
+        return $inset
+            + $this->resolveBorderWidth($style, 'left')
+            + $this->resolveBorderWidth($style, 'right')
+            + $this->resolveIntrinsicInlineLength($style->get('padding-left'))
+            + $this->resolveIntrinsicInlineLength($style->get('padding-right'));
+    }
+
+    /**
      * @return array{min: float, max: float}
      */
     private function aggregateChildrenMinMax(Box $box, LayoutContext $context, bool $inline): array
@@ -8599,9 +8630,18 @@ final class BlockLayout
                 continue;
             }
             $cm = $this->measureMinMaxContent($child, $context);
-            $maxOfMins = max($maxOfMins, $cm['min']);
-            $maxOfMaxes = max($maxOfMaxes, $cm['max']);
-            $segment += $cm['max'];
+            // CSS Sizing 3 §5.1 — a child contributes its OUTER (margin
+            // box) size, so a block-level child's inline-axis margin,
+            // border and padding count toward the container's min/max
+            // content. Inline-level children are excluded: their insets
+            // are folded into the line by InlineLayout's spacer tokens,
+            // and the boxes in an inline run share their parent's cascade
+            // (a `TextBox` literally carries it), so charging them here
+            // would bill the same margin twice.
+            $outer = $inline ? 0.0 : $this->intrinsicOuterInlineInset($child);
+            $maxOfMins = max($maxOfMins, $cm['min'] + $outer);
+            $maxOfMaxes = max($maxOfMaxes, $cm['max'] + $outer);
+            $segment += $cm['max'] + $outer;
         }
         if ($inline) {
             return ['min' => $maxOfMins, 'max' => max($widestSegment, $segment)];

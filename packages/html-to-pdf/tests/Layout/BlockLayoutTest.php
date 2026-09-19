@@ -12156,6 +12156,66 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(90.0, $float->geometry->width, 1.0);
     }
 
+    /**
+     * CSS Sizing 3 §5.1 — a child contributes its OUTER (margin box) size
+     * to the container's min/max-content, so a `width: min-content` block
+     * is as wide as its child's margin + border + padding even when that
+     * child has no content at all.
+     */
+    public function testMinContentWidthCountsChildMarginBorderPadding(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="o"><div id="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #o { width: min-content; }
+             #i { margin-left: 10px; border-left: 20px solid black;
+                  padding-left: 30px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $outer = $this->findById($box, 'o');
+        self::assertNotNull($outer);
+        self::assertEqualsWithDelta(60.0, $outer->geometry->width, 0.5);
+    }
+
+    /**
+     * The percentage part of that contribution resolves to ZERO — the
+     * containing block's inline size is exactly what is being computed —
+     * so `calc(10% + 100px)` contributes 100px, not 100 + 10% of the CB.
+     */
+    public function testMinContentWidthResolvesPercentChildMarginAsZero(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="o"><div id="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #o { width: min-content; }
+             #i { margin-left: calc(10% + 100px); }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $outer = $this->findById($box, 'o');
+        self::assertNotNull($outer);
+        self::assertEqualsWithDelta(100.0, $outer->geometry->width, 0.5);
+    }
+
+    /**
+     * A `box-sizing: border-box` child with an explicit width already
+     * reports border + padding inside that width, so they must not be
+     * charged a second time — only the margins are added.
+     */
+    public function testMinContentWidthDoesNotDoubleCountBorderBoxChild(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="o"><div id="i"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #o { width: min-content; }
+             #i { box-sizing: border-box; width: 100px; padding: 0 20px;
+                  margin-left: 10px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $outer = $this->findById($box, 'o');
+        self::assertNotNull($outer);
+        self::assertEqualsWithDelta(110.0, $outer->geometry->width, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];
