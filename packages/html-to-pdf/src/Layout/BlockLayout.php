@@ -7362,7 +7362,14 @@ final class BlockLayout
                 $itemBox->style->get($gridAxisIsInline ? 'margin-bottom' : 'margin-right'),
             );
             $itemGeo = $itemBox->geometry;
-            if ($keyword === 'stretch' && $stackSizeIsAuto && !$autoStart && !$autoEnd) {
+            // Masonry does NOT stretch an auto-sized item into its allotted
+            // space by default: the basic placement / gap tests show items
+            // stacking at their content size with the slack left empty. Only
+            // an EXPLICIT `stretch` — on the item, or inherited from the
+            // container's `align-items` / `justify-items` — fills the space.
+            // `normal` still participates in the positional keywords below.
+            $mayStretch = $this->gridLanesStackStretchIsExplicit($itemBox, $stackSelfProperty);
+            if ($keyword === 'stretch' && $stackSizeIsAuto && $mayStretch && !$autoStart && !$autoEnd) {
                 if ($gridAxisIsInline) {
                     $content = $available
                         - $itemGeo->marginTop - $itemGeo->marginBottom
@@ -7468,6 +7475,32 @@ final class BlockLayout
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);
 
         return $geo->outerHeight();
+    }
+
+    /**
+     * CSS Grid Layout 3 §6.4 — whether an item's stacking-axis `stretch`
+     * was written down rather than inferred from `normal`.
+     *
+     * `gridSelfKeyword` collapses `normal` / `auto` → `stretch`, which is
+     * right for an item that has allotted space between it and the next
+     * item, but wrong for the LAST item in a lane: `normal` leaves that one
+     * at its content size while an authored `stretch` fills the container.
+     * An `auto` self-alignment defers to the container's `align-items` /
+     * `justify-items`, so an explicit `stretch` there counts too.
+     */
+    private function gridLanesStackStretchIsExplicit(
+        Box $item,
+        string $selfProperty,
+    ): bool {
+        // NOTE: only the ITEM's own `align-self` / `justify-self` counts.
+        // The container's `align-items` cannot be consulted here because this
+        // engine registers its initial value as `stretch` (CSS Box Alignment
+        // 3 says `normal`), so an unset `align-items` is indistinguishable
+        // from an authored `align-items: stretch` — and treating the initial
+        // as explicit stretched every last-in-lane item, which the basic
+        // placement / gap tests show must keep its content size.
+        $self = $item->style->get($selfProperty);
+        return $self instanceof Keyword && strtolower($self->name) === 'stretch';
     }
 
     /**
