@@ -14616,4 +14616,38 @@ final class BlockLayoutTest extends TestCase
             '1em letter-spacing measures the same as its 16px equivalent',
         );
     }
+
+    public function testInlineBlockSplitHalvesDoNotRebillItsOwnInsets(): void
+    {
+        // CSS 2.1 §9.2.1.1 — an inline-block containing a block-level
+        // child is wrapped, and its inline runs ride in anonymous inline
+        // wrappers. Those wrappers are anonymous: they must NOT carry the
+        // inline-block's own border / padding / margin, which already sit
+        // on the wrapping box. Copying the cascade verbatim billed the
+        // inline-block's own `border-right` and `padding-left` a second
+        // time INSIDE its content box, so the identical markup measured
+        // 116px wider purely because the source had whitespace between the
+        // tags (which is what produces the anonymous wrappers at all).
+        $box = $this->buildTree(
+            '<html><body>'
+            . '<div><span id="ws" class="ib"> <span class="bd"></span> </span></div>'
+            . '<div><span id="nows" class="ib"><span class="bd"></span></span></div>'
+            . '</body></html>',
+            'html, body, div { display: block; }
+             .ib { display: inline-block; border-right: 96px solid; padding-left: 20px; }
+             .bd { display: block; height: 48px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $ws = $this->findById($box, 'ws');
+        $noWs = $this->findById($box, 'nows');
+        self::assertNotNull($ws);
+        self::assertNotNull($noWs);
+        self::assertEqualsWithDelta(
+            $noWs->geometry->width,
+            $ws->geometry->width,
+            0.01,
+            'inter-tag whitespace must not widen the inline-block content box',
+        );
+        self::assertEqualsWithDelta(0.0, $ws->geometry->width, 0.01);
+    }
 }

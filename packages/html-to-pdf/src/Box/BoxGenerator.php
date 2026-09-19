@@ -853,6 +853,26 @@ final class BoxGenerator
                     ? $this->blockInInlineWrapperValues($values)
                     : $values,
             );
+            // The inline halves around each block are ANONYMOUS boxes.
+            // Which cascade they carry depends on which box kept the
+            // element's box decoration:
+            //
+            //  - a NON-atomic inline genuinely splits (CSS 2.1 §9.2.1.1),
+            //    so its border / padding / margin ride on the halves and
+            //    the wrapping block above was reset instead;
+            //  - an ATOMIC inline does not split at all — it is a block
+            //    container, and the decoration stayed on the promoted box.
+            //    Copying its cascade onto the halves as well bills the
+            //    SAME inline-axis border / padding / margin a SECOND time,
+            //    inside the box's own content, because every consumer that
+            //    walks the children (notably the CSS Sizing 3 §5.1
+            //    intrinsic aggregation) reads it off each half. An
+            //    `inline-block` with `border-right: 1in` measured a 96px
+            //    content box purely because there was whitespace between
+            //    its tags — the only thing that creates a half at all.
+            $halfValues = $box instanceof InlineBox
+                ? $values
+                : $this->blockInInlineWrapperValues($values);
             $inlineGroup = [];
             foreach ($rawChildren as $child) {
                 if ($this->isInlineLevel($child)) {
@@ -860,7 +880,7 @@ final class BoxGenerator
                     continue;
                 }
                 if ($inlineGroup !== []) {
-                    $half = new InlineBox($element, $values);
+                    $half = new InlineBox($element, $halfValues);
                     foreach ($inlineGroup as $g) {
                         $half->addChild($g);
                     }
@@ -870,7 +890,7 @@ final class BoxGenerator
                 $promoted->addChild($child);
             }
             if ($inlineGroup !== []) {
-                $half = new InlineBox($element, $values);
+                $half = new InlineBox($element, $halfValues);
                 foreach ($inlineGroup as $g) {
                     $half->addChild($g);
                 }
