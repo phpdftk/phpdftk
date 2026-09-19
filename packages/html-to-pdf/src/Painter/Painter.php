@@ -328,6 +328,14 @@ final class Painter
             $source = $body;
         }
         $this->propagatedBgBox = $source;
+        // CSS Masking 1 §6 / Compositing 1 §5.2 — a `clip-path` on the
+        // ROOT element clips the root group, and the background the root
+        // propagates to the canvas is painted inside that group. Without
+        // this the element's own paint is clipped while the propagated
+        // background floods the whole page unclipped. The clip comes from
+        // the ROOT box even when the background itself was propagated up
+        // from the body: it is the root's group that carries it.
+        $canvasClipped = $this->applyClipPath($root, $stream);
         $color = $this->resolveColorWithCurrentColor(
             $source->style->get('background-color'),
             $source,
@@ -376,6 +384,9 @@ final class Painter
         }
         if ($bgImage instanceof \Phpdftk\Css\Value\ConicGradient) {
             $this->paintConicGradient($bgImage, $stream, 0.0, 0.0, $this->pageWidth, $this->pageHeight);
+        }
+        if ($canvasClipped) {
+            $stream->restoreGraphicsState();
         }
     }
 

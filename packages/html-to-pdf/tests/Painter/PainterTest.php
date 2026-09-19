@@ -5027,6 +5027,58 @@ final class PainterTest extends TestCase
     }
 
     /**
+     * CSS Masking 1 §6 / CSS Backgrounds 3 §3.11.2 — the background the
+     * root element propagates to the canvas is painted inside the root's
+     * group, so a `clip-path` on the root clips it too. Without this the
+     * root's own content was clipped while the propagated background
+     * flooded the page.
+     */
+    public function testRootClipPathAlsoClipsThePropagatedCanvasBackground(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html style="background: red; height: 200px; '
+            . 'clip-path: polygon(0px 0px, 50px 0px, 50px 50px, 0px 50px)">'
+            . '<body></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0, pageWidth: 612.0))->paint($root, $stream);
+        $ops = array_map('trim', $stream->getOperators());
+        // The full-page canvas fill must sit INSIDE a clip: a `W` has to
+        // precede the `1 0 0 rg` that paints the propagated red.
+        $fill = array_search('1 0 0 rg', $ops, true);
+        self::assertIsInt($fill, 'canvas background painted');
+        self::assertContains(
+            'W',
+            array_slice($ops, 0, $fill),
+            'root clip-path pushed before the canvas fill',
+        );
+        // …and it is the polygon, not a box rectangle.
+        self::assertContains('50 792 l', array_slice($ops, 0, $fill));
+    }
+
+    /**
+     * Negative: a root with no `clip-path` must not push a clip around
+     * the canvas background — the page fill stays unclipped.
+     */
+    public function testRootWithoutClipPathLeavesTheCanvasBackgroundUnclipped(): void
+    {
+        $doc = $this->html->parseDocument(
+            '<html style="background: red"><body></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet('html, body { display: block; }', Origin::UserAgent);
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+        $writer = new PdfWriter(compressStreams: false);
+        $stream = $writer->addContentStream($writer->addPage(612, 792));
+        (new Painter(792.0, pageWidth: 612.0))->paint($root, $stream);
+        self::assertNotContains('W', $this->operatorTokens($stream->getOperators()));
+    }
+
+    /**
      * Negative: a `clip-path: url(#id)` whose target does not exist (or is
      * not a `<clipPath>`) applies NO clip — the element paints whole
      * rather than disappearing.
