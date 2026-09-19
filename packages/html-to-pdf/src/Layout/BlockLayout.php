@@ -221,6 +221,22 @@ final class BlockLayout
      */
     private array $positionAreaBoxes = [];
 
+    /**
+     * The properties one `position-try-fallbacks` attempt may rewrite,
+     * and therefore the ones an attempt has to be able to roll back.
+     *
+     * @var list<string>
+     */
+    private const POSITION_TRY_PROPERTIES = [
+        'top', 'right', 'bottom', 'left',
+        'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'width', 'height',
+        'min-width', 'min-height', 'max-width', 'max-height',
+        'align-self', 'justify-self',
+        'position-area',
+    ];
+
     public function __construct(
         private readonly Cascade $cascade,
         private readonly InlineLayout $inlineLayout = new InlineLayout(),
@@ -4251,6 +4267,199 @@ final class BlockLayout
      */
     private function applyAbsoluteCornerAnchorSize(Box $child, LayoutContext $childContext): void
     {
+        $fallbacks = $this->positionTryFallbacks($child->style->get('position-try-fallbacks'));
+        if ($fallbacks === []) {
+            $this->applyAbsolutePositionAttempt($child, $childContext);
+        } else {
+            $this->applyPositionFallbacks($child, $childContext, $fallbacks);
+        }
+        $this->recordPositionVisibility($child, $childContext);
+        $this->recordAnchorCenter($child, $childContext);
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §8.3 — try the base position first and,
+     * if the box overflows its inset-modified containing block there,
+     * each `position-try-fallbacks` entry in order until one fits. When
+     * none fits the box goes back to the base position, which is what
+     * the spec's "last successful position fallback, else the base"
+     * rule degenerates to when nothing succeeded.
+     *
+     * @param list<list<string>> $fallbacks
+     */
+    private function applyPositionFallbacks(
+        Box $child,
+        LayoutContext $childContext,
+        array $fallbacks,
+    ): void {
+        $snapshot = $this->snapshotPositionProperties($child->style);
+        $this->applyAbsolutePositionAttempt($child, $childContext);
+        if (!$this->overflowsInsetModifiedContainingBlock($child, $childContext)) {
+            return;
+        }
+        foreach ($fallbacks as $tactics) {
+            $this->restorePositionProperties($child->style, $snapshot);
+            $this->applyPositionTryTactics($child->style, $tactics);
+            $this->applyAbsolutePositionAttempt($child, $childContext);
+            if (!$this->overflowsInsetModifiedContainingBlock($child, $childContext)) {
+                return;
+            }
+        }
+        $this->restorePositionProperties($child->style, $snapshot);
+        $this->applyAbsolutePositionAttempt($child, $childContext);
+    }
+
+    /**
+     * The `position-try-fallbacks` list as one list of tactic keywords
+     * per comma-separated entry. Entries that name an `@position-try`
+     * rule are dropped: the cascade does not keep those rules' bodies,
+     * so there is nothing to apply, and silently treating them as "no
+     * change" would let an unchanged position win the fallback search.
+     *
+     * @return list<list<string>>
+     */
+    private function positionTryFallbacks(?\Phpdftk\Css\Value\Value $value): array
+    {
+        if ($value === null
+            || ($value instanceof Keyword && strtolower($value->name) === 'none')
+        ) {
+            return [];
+        }
+        $entries = $value instanceof \Phpdftk\Css\Value\ValueList
+            ? $value->values
+            : [$value];
+        $fallbacks = [];
+        foreach ($entries as $entry) {
+            $parts = $entry instanceof \Phpdftk\Css\Value\ValueList
+                ? $entry->values
+                : [$entry];
+            $tactics = [];
+            $usable = true;
+            foreach ($parts as $part) {
+                if (!$part instanceof Keyword) {
+                    $usable = false;
+                    break;
+                }
+                $name = strtolower($part->name);
+                if (!in_array($name, ['flip-block', 'flip-inline', 'flip-start'], true)) {
+                    $usable = false;
+                    break;
+                }
+                $tactics[] = $name;
+            }
+            if ($usable && $tactics !== []) {
+                $fallbacks[] = $tactics;
+            }
+        }
+        return $fallbacks;
+    }
+
+    /**
+     * The properties a position-try attempt rewrites, snapshotted so the
+     * next attempt starts from the base position rather than from the
+     * previous attempt's leftovers.
+     *
+     * @return array<string, ?\Phpdftk\Css\Value\Value>
+     */
+    private function snapshotPositionProperties(CascadedValues $style): array
+    {
+        $snapshot = [];
+        foreach (self::POSITION_TRY_PROPERTIES as $property) {
+            $snapshot[$property] = $style->get($property);
+        }
+        return $snapshot;
+    }
+
+    /** @param array<string, ?\Phpdftk\Css\Value\Value> $snapshot */
+    private function restorePositionProperties(CascadedValues $style, array $snapshot): void
+    {
+        foreach ($snapshot as $property => $value) {
+            if ($value !== null) {
+                $style->set($property, $value);
+            }
+        }
+    }
+
+    /**
+     * CSS Anchor Positioning 1 §8.2 — apply the try tactics to a box's
+     * positioning properties. `flip-block` / `flip-inline` mirror the
+     * box across its anchor on one axis by swapping that axis' insets,
+     * margins and self-alignment; `flip-start` swaps the two axes
+     * outright. An `anchor()` side keyword needs no rewriting: every
+     * side it can name is resolved relative to the inset property it
+     * sits on, so moving the value to the opposite property already
+     * mirrors it.
+     *
+     * @param list<string> $tactics
+     */
+    private function applyPositionTryTactics(CascadedValues $style, array $tactics): void
+    {
+        foreach ($tactics as $tactic) {
+            $pairs = match ($tactic) {
+                'flip-block' => [['top', 'bottom'], ['margin-top', 'margin-bottom'], ['padding-top', 'padding-bottom']],
+                'flip-inline' => [['left', 'right'], ['margin-left', 'margin-right'], ['padding-left', 'padding-right']],
+                default => [
+                    ['top', 'left'], ['bottom', 'right'],
+                    ['margin-top', 'margin-left'], ['margin-bottom', 'margin-right'],
+                    ['width', 'height'], ['min-width', 'min-height'], ['max-width', 'max-height'],
+                    ['align-self', 'justify-self'],
+                ],
+            };
+            foreach ($pairs as [$a, $b]) {
+                $first = $style->get($a);
+                $second = $style->get($b);
+                if ($first !== null) {
+                    $style->set($b, $first);
+                }
+                if ($second !== null) {
+                    $style->set($a, $second);
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether the box's used outer size exceeds its inset-modified
+     * containing block on either axis — the overflow test
+     * `position-try-fallbacks` searches on (CSS Anchor Positioning 1
+     * §8.3). An axis whose size is still indefinite after the fold
+     * cannot be judged without laying the box out, so it counts as
+     * fitting.
+     */
+    private function overflowsInsetModifiedContainingBlock(Box $child, LayoutContext $context): bool
+    {
+        $imcb = $this->insetModifiedContainingBlock($child, $context);
+        $style = $child->style;
+        $borderBox = $this->isBorderBoxSizing($style);
+        $cbWidth = $context->containingBlockWidth;
+        foreach ([
+            ['width', max(0.0, $imcb[2] - $imcb[0]), 'left', 'right'],
+            ['height', max(0.0, $imcb[3] - $imcb[1]), 'top', 'bottom'],
+        ] as [$sizeProperty, $available, $startSide, $endSide]) {
+            $size = $style->get($sizeProperty);
+            if (!$size instanceof Length) {
+                continue;
+            }
+            $used = $size->value;
+            if (!$borderBox) {
+                $used += $this->resolveBorderWidth($style, $startSide)
+                    + $this->resolveBorderWidth($style, $endSide)
+                    + $this->resolveLength($style->get('padding-' . $startSide), $cbWidth)
+                    + $this->resolveLength($style->get('padding-' . $endSide), $cbWidth);
+            }
+            $marginStart = $style->get('margin-' . $startSide);
+            $marginEnd = $style->get('margin-' . $endSide);
+            $used += ($this->isAuto($marginStart) ? 0.0 : $this->resolveLength($marginStart, $cbWidth))
+                + ($this->isAuto($marginEnd) ? 0.0 : $this->resolveLength($marginEnd, $cbWidth));
+            if ($used > $available + 0.5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function applyAbsolutePositionAttempt(Box $child, LayoutContext $childContext): void
+    {
         // CSS Anchor Positioning 1 §6 / §7 — fold any `anchor()` /
         // `anchor-size()` reference down to a pixel length first, so
         // the §10.3.7 corner-anchor rules below see ordinary insets.
@@ -4322,8 +4531,6 @@ final class BlockLayout
             }
             $style->set('height', new Length($available, \Phpdftk\Css\Value\LengthUnit::Px));
         }
-        $this->recordPositionVisibility($child, $childContext);
-        $this->recordAnchorCenter($child, $childContext);
     }
 
     /**

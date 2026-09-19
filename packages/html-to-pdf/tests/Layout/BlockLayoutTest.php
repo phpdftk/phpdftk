@@ -12901,6 +12901,83 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($cb->geometry->y + 160.0, $t->geometry->y, 0.5);
     }
 
+    public function testPositionTryFallbackFlipsTheBlockAxisWhenTheBaseOverflows(): void
+    {
+        // CSS Anchor Positioning 1 §8.3 — the base position is tried
+        // first, and if the box overflows its inset-modified containing
+        // block the fallbacks are tried in order. `bottom: anchor(top)`
+        // puts the box's bottom edge on the anchor's top edge, leaving
+        // it a 40px-tall IMCB it cannot fit in; `flip-block` moves the
+        // inset to `top`, where the 60px that remain below the anchor
+        // are enough.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 100px; height: 100px; }
+             #a { position: absolute; left: 0; top: 40px;
+                  width: 100px; height: 20px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a;
+                  bottom: anchor(top); position-try-fallbacks: flip-block;
+                  width: 100px; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // The flipped position is `top: anchor(top)` — the anchor's top
+        // edge at 40 — not the base position's bottom-edge alignment.
+        self::assertEqualsWithDelta($cb->geometry->y + 40.0, $t->geometry->y, 0.5);
+    }
+
+    public function testPositionTryKeepsTheBaseWhenItAlreadyFits(): void
+    {
+        // The fallback list is only consulted on overflow; a base
+        // position that fits must be left alone.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 100px; height: 100px; }
+             #a { position: absolute; left: 0; top: 40px;
+                  width: 100px; height: 20px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a;
+                  bottom: anchor(top); position-try-fallbacks: flip-block;
+                  width: 100px; height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // Base position: bottom edge on the anchor's top edge (40), so
+        // a 20px box sits at 20.
+        self::assertEqualsWithDelta($cb->geometry->y + 20.0, $t->geometry->y, 0.5);
+    }
+
+    public function testPositionTryFallsBackToTheBaseWhenNothingFits(): void
+    {
+        // CSS Anchor Positioning 1 §8.3 — when no fallback fits either,
+        // the box returns to its base position rather than keeping the
+        // last one tried.
+        $box = $this->buildTree(
+            '<html><body><div id="cb"><div id="a"></div><div id="t"></div></div></body></html>',
+            'html, body, div { display: block; }
+             #cb { position: relative; width: 100px; height: 100px; }
+             #a { position: absolute; left: 0; top: 40px;
+                  width: 100px; height: 20px; anchor-name: --a; }
+             #t { position: absolute; position-anchor: --a;
+                  bottom: anchor(top); position-try-fallbacks: flip-block;
+                  width: 100px; height: 90px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cb = $this->findById($box, 'cb');
+        $t = $this->findById($box, 't');
+        self::assertNotNull($cb);
+        self::assertNotNull($t);
+        // Base position: bottom edge at 40, so a 90px box starts at -50.
+        self::assertEqualsWithDelta($cb->geometry->y - 50.0, $t->geometry->y, 0.5);
+    }
+
     public function testAnchorCenterSelfAlignmentCentresOnTheAnchor(): void
     {
         // CSS Anchor Positioning 1 §5 — `anchor-center` lines the box's
