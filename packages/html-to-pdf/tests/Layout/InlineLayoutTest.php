@@ -2438,4 +2438,95 @@ final class InlineLayoutTest extends TestCase
         }
         return null;
     }
+
+    // ------------------------------------------------------------
+    // CSS Writing Modes 4 §7.1 — `width` / `height` on an atomic inline
+    // (replaced / inline-block) box stay PHYSICAL, so in a vertical
+    // writing mode the box's INLINE extent is its height and its
+    // contribution to the line's CROSS size is its width.
+    // ------------------------------------------------------------
+
+    /**
+     * @return array{0: Box, 1: Box} `[paragraph, atomic]`
+     */
+    private function verticalAtomicTree(string $writingMode, float $atomicWidth): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; width: 400px; height: 400px; '
+            . 'writing-mode: ' . $writingMode . '">'
+            . '<p class="host" style="display: block; margin: 0">'
+            . '<span class="atom" style="display: inline-block; width: ' . $atomicWidth
+            . 'px; height: 36px"></span></p></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $p = $this->findByClass($box, 'host');
+        $atom = $this->findByClass($box, 'atom');
+        self::assertNotNull($p);
+        self::assertNotNull($atom);
+        return [$p, $atom];
+    }
+
+    public function testVerticalAtomicAdvancesByItsHeight(): void
+    {
+        [$p] = $this->verticalAtomicTree('vertical-lr', 246.0);
+        self::assertCount(1, $p->lineBoxes);
+        self::assertCount(1, $p->lineBoxes[0]->fragments);
+        // Inline advance = the box's physical HEIGHT.
+        self::assertEqualsWithDelta(36.0, $p->lineBoxes[0]->fragments[0]->width, 0.01);
+        // Line cross size (and therefore the block's block size) = its WIDTH.
+        self::assertEqualsWithDelta(246.0, $p->lineBoxes[0]->height, 0.01);
+        self::assertEqualsWithDelta(246.0, $p->geometry->width, 0.01);
+    }
+
+    public function testVerticalLrAtomicSitsAtTheColumnLeftEdge(): void
+    {
+        [$p, $atom] = $this->verticalAtomicTree('vertical-lr', 246.0);
+        self::assertEqualsWithDelta($p->geometry->x, $atom->geometry->x, 0.01);
+        self::assertEqualsWithDelta($p->geometry->y, $atom->geometry->y, 0.01);
+        // The box keeps its physical size — only its origin transposes.
+        self::assertEqualsWithDelta(246.0, $atom->geometry->width, 0.01);
+        self::assertEqualsWithDelta(36.0, $atom->geometry->height, 0.01);
+    }
+
+    /**
+     * `vertical-rl` stacks columns right-to-left, so the paragraph's
+     * column sits against the container's RIGHT edge and the box with it.
+     */
+    public function testVerticalRlAtomicSitsAtTheColumnRightEdge(): void
+    {
+        [$p, $atom] = $this->verticalAtomicTree('vertical-rl', 100.0);
+        self::assertEqualsWithDelta(300.0, $p->geometry->x, 0.01);
+        self::assertEqualsWithDelta(100.0, $p->geometry->width, 0.01);
+        self::assertEqualsWithDelta(300.0, $atom->geometry->x, 0.01);
+    }
+
+    /** Guard: horizontal-tb keeps the physical mapping it always had. */
+    public function testHorizontalAtomicStillAdvancesByItsWidth(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; width: 400px">'
+            . '<p class="host" style="display: block; margin: 0">'
+            . '<span class="atom" style="display: inline-block; width: 246px; height: 36px"></span>'
+            . '</p></div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $p = $this->findByClass($box, 'host');
+        self::assertNotNull($p);
+        self::assertCount(1, $p->lineBoxes);
+        self::assertEqualsWithDelta(246.0, $p->lineBoxes[0]->fragments[0]->width, 0.01);
+        self::assertGreaterThanOrEqual(36.0, $p->lineBoxes[0]->height);
+    }
+
+    /**
+     * The transpose must carry the fragment's atomic box across — the
+     * painter reads it to place inline images, and dropping it left
+     * every vertical-mode replaced box at its pre-transpose position.
+     */
+    public function testTransposedFragmentKeepsItsAtomicBox(): void
+    {
+        [$p, $atom] = $this->verticalAtomicTree('vertical-lr', 246.0);
+        self::assertSame($atom, $p->lineBoxes[0]->fragments[0]->atomicBox);
+    }
 }

@@ -76,6 +76,18 @@ final class InlineLayout
     private bool $currentBlockSizeAuto = false;
 
     /**
+     * True while laying out an inline formatting context whose block
+     * container is in a vertical writing mode (CSS Writing Modes 4 §3).
+     * The pass runs in a horizontal coordinate space and
+     * {@see applyVerticalLineShift} transposes it at the end, so this is
+     * what tells the atomic-inline sizing which physical dimension is the
+     * INLINE one: an `<img>` keeps its physical `width`/`height`, so in a
+     * vertical mode its inline extent is its HEIGHT and its contribution
+     * to the line's cross-size is its WIDTH — the opposite of horizontal-tb.
+     */
+    private bool $currentIsVertical = false;
+
+    /**
      * The containing block's content height and whether it is definite,
      * threaded from the block layout so an atomic replaced element can
      * resolve a percentage `height` / `max-height` / `min-height` and,
@@ -112,6 +124,7 @@ final class InlineLayout
         $this->currentCbHeightDefinite = $context->inFlowHeightDefinite;
         $this->currentWrapMeasure = $this->verticalInlineMeasure($parent, $inlineExtent);
         $this->currentBlockSizeAuto = $blockSizeAuto;
+        $this->currentIsVertical = WritingMode::fromStyle($parent->style)->isVertical();
         if ($availableWidth <= 0.0) {
             return [[], 0.0];
         }
@@ -266,55 +279,17 @@ final class InlineLayout
                 // semantics here. Falling back to width when height is
                 // unset keeps the square-replaced-element default
                 // (img with intrinsic ratio) the existing tests rely on.
-                $heightValue = $atomic->style->get('height');
-                // CSS 2.1 §10.5 — a percentage block size resolves only
-                // against a definite containing-block height; otherwise it
-                // stays auto (0 here) and the box squares to its width. An
-                // explicit length / `0` is always definite.
-                $declaredHeight = match (true) {
-                    $heightValue instanceof Length => $heightValue->value,
-                    $heightValue instanceof \Phpdftk\Css\Value\Integer => (float) $heightValue->value,
-                    $heightValue instanceof \Phpdftk\Css\Value\Percentage
-                        && $this->currentCbHeightDefinite && $this->currentCbHeight > 0.0
-                        => $this->currentCbHeight * ($heightValue->value / 100.0),
-                    default => 0.0,
-                };
-                $atomicPadTop = self::atomicLength($atomic->style->get('padding-top'));
-                $atomicPadBottom = self::atomicLength($atomic->style->get('padding-bottom'));
-                $atomicBorderTop = self::atomicBorderWidth($atomic->style, 'top');
-                $atomicBorderBottom = self::atomicBorderWidth($atomic->style, 'bottom');
-                $verticalInset = $atomicPadTop + $atomicPadBottom + $atomicBorderTop + $atomicBorderBottom;
-                $atomicBorderBox = $token['atomicBorderBox'] ?? false;
-                // The pre-layout pass resolved the used insets and the used
-                // content block size (CSS 2.1 §10.6.3 — `height: auto` on a
-                // block container is the distance to its last line box's
-                // bottom). Prefer both over the cascade re-read, which has
-                // no way to know how tall the contents came out.
-                if ($atomic->laidOutContentHeight !== null) {
-                    $atomicPadTop = $atomic->geometry->paddingTop;
-                    $atomicPadBottom = $atomic->geometry->paddingBottom;
-                    $atomicBorderTop = $atomic->geometry->borderTop;
-                    $atomicBorderBottom = $atomic->geometry->borderBottom;
-                    $verticalInset = $atomicPadTop + $atomicPadBottom
-                        + $atomicBorderTop + $atomicBorderBottom;
-                    $atomicContentHeight = $atomic->laidOutContentHeight;
-                    $atomicOuterHeight = $atomicContentHeight + $verticalInset;
-                } elseif ($declaredHeight > 0.0) {
-                    if ($atomicBorderBox) {
-                        $atomicContentHeight = max(0.0, $declaredHeight - $verticalInset);
-                        $atomicOuterHeight = $declaredHeight;
-                    } else {
-                        $atomicContentHeight = $declaredHeight;
-                        $atomicOuterHeight = $declaredHeight + $verticalInset;
-                    }
-                } else {
-                    // Height auto with no intrinsic-from-cascade fallback;
-                    // square the outer to the (already-resolved) outer
-                    // width so the historical "no height = square box"
-                    // contract holds for tests that rely on it.
-                    $atomicOuterHeight = $width;
-                    $atomicContentHeight = max(0.0, $atomicOuterHeight - $verticalInset);
-                }
+                // The token resolved the box-sizing-aware block size at
+                // creation time (the inline advance depends on it in a
+                // vertical writing mode, so it cannot wait until here).
+                [
+                    $atomicContentHeight,
+                    $atomicOuterHeight,
+                    $atomicPadTop,
+                    $atomicPadBottom,
+                    $atomicBorderTop,
+                    $atomicBorderBottom,
+                ] = $token['atomicHeights'];
             }
             // A line may not break inside an inline box's own padding /
             // border, so its spacer never opens a break opportunity: wrapping
@@ -629,14 +604,60 @@ final class InlineLayout
                     $f->lineHeight,
                     $f->verticalAlign,
                     blockOffset: $f->x,
+                    // The transposed fragment has to keep its atomic /
+                    // replaced box: the painter reads it to place inline
+                    // images, and commitVerticalAtomicGeometry below needs
+                    // it to re-seat their geometry in physical coordinates.
+                    atomicBox: $f->atomicBox,
                     bgExtendAbove: $f->bgExtendAbove,
                     bgExtendBelow: $f->bgExtendBelow,
                 );
             }
+            $this->commitVerticalAtomicGeometry($parent, $newFrags, $blockLeft, $line->height, $rtl);
             $out[] = new LineBox(0.0, $line->height, $newFrags, $line->baseline, $line->availableRight);
             $cumBlock += $line->height;
         }
         return $out;
+    }
+
+    /**
+     * Place each atomic / replaced box of a TRANSPOSED line in physical
+     * coordinates (CSS Writing Modes 4 §3 / §7.1).
+     *
+     * `commitAtomicFragmentX` / `commitAtomicFragmentY` placed the box in
+     * the horizontal coordinate space the inline pass works in; after the
+     * transpose a fragment's inline position lives in `blockOffset`
+     * (physical +Y down the column) and the column's block-axis position
+     * in `$blockLeft` (physical X). A replaced box keeps its physical
+     * `width`/`height`, so only its ORIGIN moves.
+     *
+     * The box sits at the column's block-START edge, which is the column's
+     * left edge for `vertical-lr` / `sideways-lr` and its right edge for
+     * `vertical-rl` / `sideways-rl`.
+     *
+     * @param list<InlineFragment> $fragments
+     */
+    private function commitVerticalAtomicGeometry(
+        Box $parent,
+        array $fragments,
+        float $blockLeft,
+        float $columnExtent,
+        bool $blockRtl,
+    ): void {
+        foreach ($fragments as $fragment) {
+            $atomic = $fragment->atomicBox;
+            if ($atomic === null) {
+                continue;
+            }
+            $g = $atomic->geometry;
+            $outerWidth = $g->marginLeft + $g->borderLeft + $g->paddingLeft + $g->width
+                + $g->paddingRight + $g->borderRight + $g->marginRight;
+            $blockStartInset = $blockRtl ? max(0.0, $columnExtent - $outerWidth) : 0.0;
+            $g->x = $parent->geometry->x + $blockLeft + $blockStartInset
+                + $g->marginLeft + $g->borderLeft + $g->paddingLeft;
+            $g->y = $parent->geometry->y + $fragment->blockOffset
+                + $g->marginTop + $g->borderTop + $g->paddingTop;
+        }
     }
 
     /**
@@ -1905,15 +1926,30 @@ final class InlineLayout
                     $atomicOuterWidth = $horizontalInset;
                 }
             }
+            // CSS Writing Modes 4 §7.1 — `width` / `height` on a replaced
+            // or inline-block box stay PHYSICAL, so which of them is the
+            // inline size depends on the writing mode. Resolve the block
+            // extents here (not in the fitter loop) because the advance
+            // below needs them in a vertical mode.
+            $atomicHeights = $this->resolveAtomicHeights(
+                $box,
+                $atomicBorderBox,
+                $atomicMarginLeft + $atomicOuterWidth + $atomicMarginRight,
+            );
+            // Advance = margin-box INLINE size so the line-breaker and fitter
+            // allocate the item's full footprint along the inline axis: its
+            // horizontal extent in horizontal-tb, its VERTICAL extent in a
+            // vertical writing mode.
+            $atomicAdvance = $this->currentIsVertical
+                ? $atomicMarginTop + $atomicHeights[1] + $atomicMarginBottom
+                : $atomicMarginLeft + $atomicOuterWidth + $atomicMarginRight;
             $tokens[] = [
                 'shapedRun' => new ShapedRun(
                     $shapingCtx->font,
                     $shapingCtx->fontSizePt,
                     $shapingCtx->direction,
                     [],
-                    // Advance = margin-box inline size so the line-breaker and
-                    // fitter allocate the item's full horizontal footprint.
-                    $atomicMarginLeft + $atomicOuterWidth + $atomicMarginRight,
+                    $atomicAdvance,
                 ),
                 'isWhitespace' => false,
                 'trailingSpace' => 0.0,
@@ -1930,6 +1966,7 @@ final class InlineLayout
                 'linkTitle' => $linkTitle,
                 'decorationColor' => $decorationColor,
                 'atomicBox' => $box,
+                'atomicHeights' => $atomicHeights,
                 'atomicContentWidth' => $atomicContentWidth,
                 'atomicOuterWidth' => $atomicOuterWidth,
                 'atomicPadLeft' => $atomicPadLeft,
@@ -2216,8 +2253,19 @@ final class InlineLayout
         float $strutXHeight,
     ): array {
         $strutLead = ($strutLineHeight - ($strutAscent + $strutDescent)) / 2.0;
-        $above = $strutAscent + $strutLead;
-        $below = $strutDescent + $strutLead;
+        // CSS Writing Modes 4 §4.1 — a vertical writing mode's dominant
+        // baseline is CENTRAL, not alphabetic: every item's extent is
+        // centred on it rather than split into an ascent above and a
+        // descent below. Modelling that as a symmetric half-extent makes
+        // the line's cross size come out as the widest item's extent,
+        // instead of that item's full extent PLUS the strut's descent.
+        $vertical = $this->currentIsVertical;
+        $above = $vertical
+            ? ($strutAscent + $strutDescent) / 2.0 + $strutLead
+            : $strutAscent + $strutLead;
+        $below = $vertical
+            ? ($strutAscent + $strutDescent) / 2.0 + $strutLead
+            : $strutDescent + $strutLead;
         // Per-fragment offset below the line baseline; null defers a
         // top/bottom fragment to pass B.
         /** @var array<int, float|null> $offsets */
@@ -2235,6 +2283,12 @@ final class InlineLayout
                 default => $f->baselineShift,
             };
             $offsets[$i] = $o;
+            if ($vertical) {
+                $half = ($ea + $ed) / 2.0;
+                $above = max($above, $half - $o);
+                $below = max($below, $half + $o);
+                continue;
+            }
             $above = max($above, $ea - $o);
             $below = max($below, $ed + $o);
         }
@@ -2286,6 +2340,91 @@ final class InlineLayout
                 : $this->withBaselineShift($f, $o);
         }
         return [$height, $baseline, $out];
+    }
+
+    /**
+     * Resolve an atomic inline box's used BLOCK-axis extents, with the
+     * same box-sizing semantics the inline-axis pass applies to its
+     * widths.
+     *
+     * Returns `[contentHeight, outerHeight, padTop, padBottom,
+     * borderTop, borderBottom]`, where `outerHeight` is the border box
+     * (padding + border included, margins not).
+     *
+     * `$fallbackOuter` is the value an `auto` height with no intrinsic
+     * source squares to — the box's own outer WIDTH, preserving the
+     * historical "no height = square box" contract.
+     *
+     * @return array{float, float, float, float, float, float}
+     */
+    private function resolveAtomicHeights(
+        AtomicInlineBox $box,
+        bool $borderBox,
+        float $fallbackOuter,
+    ): array {
+        $heightValue = $box->style->get('height');
+        // CSS 2.1 §10.5 — a percentage block size resolves only against a
+        // definite containing-block height; otherwise it stays auto (0
+        // here) and the box squares to its width. An explicit length / `0`
+        // is always definite.
+        $declaredHeight = match (true) {
+            $heightValue instanceof Length => $heightValue->value,
+            $heightValue instanceof \Phpdftk\Css\Value\Integer => (float) $heightValue->value,
+            $heightValue instanceof \Phpdftk\Css\Value\Percentage
+                && $this->currentCbHeightDefinite && $this->currentCbHeight > 0.0
+                => $this->currentCbHeight * ($heightValue->value / 100.0),
+            default => 0.0,
+        };
+        $padTop = self::atomicLength($box->style->get('padding-top'));
+        $padBottom = self::atomicLength($box->style->get('padding-bottom'));
+        $borderTop = self::atomicBorderWidth($box->style, 'top');
+        $borderBottom = self::atomicBorderWidth($box->style, 'bottom');
+        $inset = $padTop + $padBottom + $borderTop + $borderBottom;
+        // The pre-layout pass resolved the used insets and the used content
+        // block size (CSS 2.1 §10.6.3 — `height: auto` on a block container
+        // is the distance to its last line box's bottom). Prefer both over
+        // the cascade re-read, which has no way to know how tall the
+        // contents came out.
+        if ($box->laidOutContentHeight !== null) {
+            $padTop = $box->geometry->paddingTop;
+            $padBottom = $box->geometry->paddingBottom;
+            $borderTop = $box->geometry->borderTop;
+            $borderBottom = $box->geometry->borderBottom;
+            $inset = $padTop + $padBottom + $borderTop + $borderBottom;
+            $content = $box->laidOutContentHeight;
+
+            return [$content, $content + $inset, $padTop, $padBottom, $borderTop, $borderBottom];
+        }
+        if ($declaredHeight > 0.0) {
+            if ($borderBox) {
+                return [
+                    max(0.0, $declaredHeight - $inset),
+                    $declaredHeight,
+                    $padTop,
+                    $padBottom,
+                    $borderTop,
+                    $borderBottom,
+                ];
+            }
+
+            return [
+                $declaredHeight,
+                $declaredHeight + $inset,
+                $padTop,
+                $padBottom,
+                $borderTop,
+                $borderBottom,
+            ];
+        }
+
+        return [
+            max(0.0, $fallbackOuter - $inset),
+            $fallbackOuter,
+            $padTop,
+            $padBottom,
+            $borderTop,
+            $borderBottom,
+        ];
     }
 
     /**
@@ -2392,6 +2531,18 @@ final class InlineLayout
         // this line was finalized.
         if ($f->atomicBox !== null) {
             $g = $f->atomicBox->geometry;
+            if ($this->currentIsVertical) {
+                // CSS Writing Modes 4 §7.1 — the box keeps its physical
+                // `width`/`height`, so in a vertical writing mode the extent
+                // it contributes to the line's CROSS size is its margin-box
+                // WIDTH (its height is the inline advance instead). The
+                // §10.8.1 baseline split doesn't apply across the cross axis
+                // here, so the whole margin box counts as ascent.
+                $crossBox = $g->marginLeft + $g->borderLeft + $g->paddingLeft + $g->width
+                    + $g->paddingRight + $g->borderRight + $g->marginRight;
+
+                return [$crossBox, 0.0, $crossBox, 0.0];
+            }
             $marginBox = $g->marginTop + $g->borderTop + $g->paddingTop + $g->height
                 + $g->paddingBottom + $g->borderBottom + $g->marginBottom;
             // §10.8.1 again: an `inline-block` WITH in-flow line boxes
