@@ -27,6 +27,15 @@ final class HarnessRunner
     /** @var list<string> File extensions recognised as test files. */
     private const TEST_EXTENSIONS = ['html', 'xht', 'xhtml', 'htm', 'svg'];
 
+    /**
+     * How much of a fixture to scan for `<link rel=match>` and
+     * `<meta name=fuzzy>` declarations. WPT parses the whole
+     * document; a bounded read keeps a pathological fixture from
+     * stalling the harness. Verified against the full corpus: no
+     * fixture declares either past this offset.
+     */
+    private const MARKUP_SCAN_BYTES = 64 * 1024;
+
     public function __construct(
         private readonly Manifest $manifest,
         private readonly Rasteriser $rasteriser,
@@ -398,25 +407,48 @@ final class HarnessRunner
     }
 
     /**
-     * Locate the reference rendering for a WPT reftest. WPT supports
-     * two conventions:
+     * Locate the reference rendering for a WPT reftest.
      *
-     *  1. **Filename**: a sibling `<stem>-ref.{png,html,xht,svg}`
-     *     file. Simple and unambiguous; PNG wins when both exist
-     *     since it short-circuits a re-render.
+     * WPT's own manifest generator (`tools/manifest/sourcefile.py`)
+     * defines the reference set as:
      *
-     *  2. **`<link rel="match" href="…">`** inside the test's
-     *     `<head>`. The actual WPT corpus uses this for the
-     *     majority of tests — the reference often lives in a
-     *     sibling directory, sometimes with a name unrelated to
-     *     the test stem.
+     *     match_links = self.root.findall(
+     *         ".//{http://www.w3.org/1999/xhtml}link[@rel='match']")
      *
-     * `rel="mismatch"` is the negative variant and is skipped here
-     * — the harness doesn't yet implement "must not match"
-     * semantics (a follow-up).
+     * Three things follow, and this method honours all three:
+     *
+     *  1. The lookup is by **XHTML namespace**, not by literal tag
+     *     spelling. SVG and XML fixtures declare their reference as
+     *     `<html:link rel="match" href="…"/>` with `xmlns:html` bound
+     *     to the XHTML namespace — still an XHTML `link`, still a
+     *     reference. A matcher keyed on the literal string `<link`
+     *     misses every one of them (266 fixtures in the current
+     *     corpus, 112 of them under `css/css-masking/`), which drops
+     *     them out of scope entirely instead of scoring them.
+     *  2. The declared link is what makes a file a reftest, so when a
+     *     test declares one it **outranks** the legacy `<stem>-ref.*`
+     *     filename sibling. 35 fixtures in the corpus carry both and
+     *     disagree (e.g. `block-in-inline-remove-006.xht` declares
+     *     `…-nosplit-ref.xht` while a `…-ref.xht` sibling also
+     *     exists); WPT scores the declared one.
+     *  3. `rel="mismatch"` is the negative relation and is *not*
+     *     selected by `[@rel='match']`. The harness does not yet
+     *     implement "must not match" semantics, so mismatch-only
+     *     fixtures stay Skipped (a follow-up).
+     *
+     * The `<stem>-ref.*` sibling remains the fallback: it is a
+     * CSS-WG-era convention that predates `rel=match`, and 53 corpus
+     * fixtures still rely on it alone. PNG wins among siblings since
+     * it short-circuits a re-render.
+     *
+     * @internal Exposed for {@see \Phpdftk\WptHarness\Tests\ReferenceResolutionTest}.
      */
-    private function locateReference(string $testPath): ?string
+    public function locateReference(string $testPath): ?string
     {
+        $declared = $this->locateLinkRelMatchReference($testPath);
+        if ($declared !== null) {
+            return $declared;
+        }
         $info = pathinfo($testPath);
         $dir = $info['dirname'] ?? '.';
         $stem = $info['filename'] ?? '';
@@ -427,50 +459,108 @@ final class HarnessRunner
             $dir . '/' . $stem . '-ref.svg',
         ];
         foreach ($candidates as $cand) {
-            if (is_file($cand)) {
-                return $cand;
+            $real = realpath($cand);
+            if ($real !== false && is_file($real)) {
+                return $real;
             }
         }
-        return $this->locateLinkRelMatchReference($testPath);
+        return null;
     }
 
     /**
-     * Parse `<link rel="match" href="…">` from the head of a
-     * `.html` / `.xht` / `.svg` test file and resolve the href to
-     * an on-disk path relative to the test. Returns the first
-     * matching reference; `rel="mismatch"` is intentionally
-     * ignored.
+     * Resolve the first `<link rel="match" href="…">` in a test file
+     * to an on-disk path. Tags are scanned in document order and the
+     * first one whose href resolves to an existing file wins — an
+     * unresolvable declaration falls through to the caller's
+     * filename-sibling fallback rather than poisoning the lookup.
      *
-     * Read is bounded to the first 64 KB so a malformed test
-     * can't stall the harness — WPT's `<head>` always sits in
-     * the first few hundred bytes anyway.
+     * Accepts any namespace prefix on the element name (`html:link`,
+     * `x:link`, …) and unquoted attribute values (`rel=match`), both
+     * of which occur in the corpus.
+     *
+     * Read is bounded to {@see self::MARKUP_SCAN_BYTES} so a
+     * malformed test can't stall the harness. Verified against the
+     * full corpus: zero fixtures declare their reference beyond that
+     * offset.
      */
     private function locateLinkRelMatchReference(string $testPath): ?string
     {
-        $head = @file_get_contents($testPath, false, null, 0, 64 * 1024);
+        $head = @file_get_contents($testPath, false, null, 0, self::MARKUP_SCAN_BYTES);
         if ($head === false || $head === '') {
             return null;
         }
-        // Match either attribute order (rel-first or href-first) by trying
-        // two patterns rather than alternation — keeps PHPStan happy and
-        // makes the failure mode obvious.
-        $relFirst = '~<link\s+[^>]*?rel\s*=\s*["\']match["\']\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']~i';
-        $hrefFirst = '~<link\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']\s+[^>]*?rel\s*=\s*["\']match["\']~i';
-        $href = null;
-        if (preg_match($relFirst, $head, $matches) === 1) {
-            $href = $matches[1];
-        } elseif (preg_match($hrefFirst, $head, $matches) === 1) {
-            $href = $matches[1];
+        foreach (self::elementsNamed($head, 'link') as $tag) {
+            if (self::attributeValue($tag, 'rel') !== 'match') {
+                continue;
+            }
+            $href = self::attributeValue($tag, 'href');
+            if ($href === null) {
+                continue;
+            }
+            $resolved = $this->resolveHref($testPath, $href);
+            if ($resolved !== null) {
+                return $resolved;
+            }
         }
-        if ($href === null) {
+        return null;
+    }
+
+    /**
+     * Resolve a reftest href to an absolute on-disk path. Root-relative
+     * hrefs resolve against the corpus root (wptserve's document root);
+     * everything else against the referring file's directory.
+     *
+     * Fragments and query strings are stripped: they are meaningful to
+     * the browser but never part of the filename on disk.
+     */
+    private function resolveHref(string $fromPath, string $href): ?string
+    {
+        // WPT strips ASCII whitespace from the href before joining
+        // (`item.attrib["href"].strip(space_chars)`).
+        $href = trim($href, " \t\n\r\f\x0B");
+        $href = (string) preg_replace('~[#?].*$~s', '', $href);
+        if ($href === '') {
             return null;
         }
-        $dir = dirname($testPath);
         $resolved = str_starts_with($href, '/')
-            ? $this->wptRoot . $href
-            : $dir . '/' . $href;
+            ? rtrim($this->wptRoot, '/') . $href
+            : dirname($fromPath) . '/' . $href;
         $real = realpath($resolved);
         return ($real !== false && is_file($real)) ? $real : null;
+    }
+
+    /**
+     * Yield every start tag named `$name`, allowing an optional XML
+     * namespace prefix (`html:link`). `[^>]` bounds each match to a
+     * single tag so attributes can never be read across a tag
+     * boundary.
+     *
+     * @return list<string>
+     */
+    private static function elementsNamed(string $markup, string $name): array
+    {
+        $pattern = '~<(?:[A-Za-z_][\w.\-]*:)?' . preg_quote($name, '~') . '\b[^>]*>~i';
+        if (preg_match_all($pattern, $markup, $matches) < 1) {
+            return [];
+        }
+        /** @var list<string> $tags */
+        $tags = $matches[0];
+        return $tags;
+    }
+
+    /**
+     * Read one attribute out of a start tag. Handles double-quoted,
+     * single-quoted and unquoted values. The lookbehind stops
+     * `data-href` from being read as `href`.
+     */
+    private static function attributeValue(string $tag, string $name): ?string
+    {
+        $pattern = '~(?<![\w:.\-])' . preg_quote($name, '~')
+            . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))~i';
+        if (preg_match($pattern, $tag, $m, PREG_UNMATCHED_AS_NULL) !== 1) {
+            return null;
+        }
+        return $m[1] ?? $m[2] ?? $m[3] ?? null;
     }
 
     /**
