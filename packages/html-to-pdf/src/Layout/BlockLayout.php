@@ -3846,6 +3846,25 @@ final class BlockLayout
                 $resolvedMarginLeft = $isRtl ? $slack : 0.0;
             }
             $dx = $leftPx + $resolvedMarginLeft;
+        } elseif (!$this->isAuto($left)
+            && !$this->isAuto($right)
+            && $widthIsDefinite
+        ) {
+            // CSS 2.1 §10.3.7 — all three of `left`, `width` and `right`
+            // are non-`auto` and the margins are not both `auto`, so the
+            // values are OVER-CONSTRAINED and one inset is ignored: `right`
+            // when the containing block's `direction` is `ltr` (the `left`
+            // branch above already wins), `left` when it is `rtl`. Without
+            // the `rtl` half an over-constrained abs-pos in an rtl block
+            // anchored the wrong edge.
+            $directionValue = $style->get('direction');
+            $isRtlOverconstrained = $directionValue instanceof Keyword
+                && strtolower($directionValue->name) === 'rtl';
+            if ($isRtlOverconstrained) {
+                $dx = $cbWidth
+                    - $this->resolveLength($right, $cbWidth)
+                    - $child->geometry->outerWidth();
+            }
         }
         return [$dx, $dy];
     }
@@ -3905,6 +3924,23 @@ final class BlockLayout
                 + $geo->paddingRight + $geo->borderRight;
             $slackW = $cbWidth - $leftPx - $rightPx - $outerW;
             $dx = $leftPx + ($slackW / 2.0);
+        } elseif (!$this->isAuto($left)
+            && !$this->isAuto($right)
+            && $widthIsDefinite
+        ) {
+            // CSS 2.1 §10.6.4 (transposed) — all three of `left`, `width`
+            // and `right` are non-`auto` and the margins are not both
+            // `auto`, so the values are over-constrained and the block-END
+            // inset is the one ignored. §10.6.4 has no `direction`
+            // tie-break: the block axis picks its end by writing mode, so
+            // `vlr` / `slr` ignore `right` (the `left` branch above already
+            // wins) and `vrl` / `srl` ignore `left`.
+            $cbWmForEnd = $childContext->parentWritingMode;
+            if ($cbWmForEnd !== null && $cbWmForEnd->blockDirection() === -1) {
+                $dx = $cbWidth
+                    - $this->resolveLength($right, $cbWidth)
+                    - $child->geometry->outerWidth();
+            }
         }
 
         // --- Inline axis = physical Y (top / bottom / height), §10.3.7
@@ -3951,6 +3987,25 @@ final class BlockLayout
                 $resolvedMarginTop = $isRtl ? $slackH : 0.0;
             }
             $dy = $topPx + $resolvedMarginTop;
+        } elseif (!$this->isAuto($top)
+            && !$this->isAuto($bottom)
+            && $heightIsDefinite
+        ) {
+            // CSS 2.1 §10.3.7 (transposed) — all three of `top`, `height`
+            // and `bottom` are non-`auto` and the margins are not both
+            // `auto`, so the values are OVER-CONSTRAINED and one inset has
+            // to be ignored: the inline-END one. In a vertical writing mode
+            // that is `bottom` for `ltr` (already the default, since the
+            // `top` branch above wins) and `top` for `rtl` — so `rtl` has
+            // to re-anchor off `bottom` instead.
+            $directionValue = $style->get('direction');
+            $isRtl = $directionValue instanceof Keyword
+                && strtolower($directionValue->name) === 'rtl';
+            if ($isRtl) {
+                $dy = $cbHeight
+                    - $this->resolveLength($bottom, $cbHeight)
+                    - $child->geometry->outerHeight();
+            }
         }
 
         return [$dx, $dy];

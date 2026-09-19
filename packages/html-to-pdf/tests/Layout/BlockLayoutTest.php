@@ -13317,4 +13317,101 @@ final class BlockLayoutTest extends TestCase
         [$x] = $this->verticalLoneStaticAbsposGeo('vertical-lr', 'ltr');
         self::assertEqualsWithDelta(0.0, $x, 0.01);
     }
+
+    // ------------------------------------------------------------
+    // CSS 2.1 §10.3.7 / §10.6.4 — over-constrained abs-pos insets with
+    // non-`auto` margins: one inset is ignored and solved for. The
+    // inline axis picks it by `direction`, the block axis by writing
+    // mode.
+    // ------------------------------------------------------------
+
+    /**
+     * @return array{0: float, 1: float} the abspos span's [x, y]
+     */
+    private function overconstrainedAbsposGeo(string $cbStyle, string $spanStyle): array
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="cb" style="display: block; position: relative; '
+            . 'width: 320px; height: 320px;' . $cbStyle . '">'
+            . '<span id="ap" style="position: absolute; margin: 0;' . $spanStyle . '">x</span>'
+            . '</div></body></html>',
+            'html, body { display: block; }',
+        );
+        $this->layout->layout($box, $this->mongolianContext());
+        $ap = $this->findById($box, 'ap');
+        self::assertNotNull($ap);
+        return [$ap->geometry->x, $ap->geometry->y];
+    }
+
+    /**
+     * horizontal-tb + `rtl`: left(160) + width(80) + right(160) = 400 in
+     * a 320 containing block. `rtl` ignores `left`, so `right` anchors:
+     * x = 320 - 160 - 80 = 80.
+     */
+    public function testOverconstrainedAbsposRtlIgnoresLeft(): void
+    {
+        [$x] = $this->overconstrainedAbsposGeo(
+            ' direction: rtl;',
+            'left: 160px; right: 160px; width: 80px; height: 80px',
+        );
+        self::assertEqualsWithDelta(80.0, $x, 0.01);
+    }
+
+    /** Guard: `ltr` still ignores `right`, so `left` anchors at 160. */
+    public function testOverconstrainedAbsposLtrIgnoresRight(): void
+    {
+        [$x] = $this->overconstrainedAbsposGeo(
+            ' direction: ltr;',
+            'left: 160px; right: 160px; width: 80px; height: 80px',
+        );
+        self::assertEqualsWithDelta(160.0, $x, 0.01);
+    }
+
+    /**
+     * vertical-lr + `rtl`: the INLINE axis is physical Y, so
+     * top(160) + height(80) + bottom(160) over-constrains it and `rtl`
+     * ignores `top`: y = 320 - 160 - 80 = 80.
+     */
+    public function testOverconstrainedVerticalInlineAxisRtlIgnoresTop(): void
+    {
+        [, $y] = $this->overconstrainedAbsposGeo(
+            ' writing-mode: vertical-lr; direction: rtl;',
+            'top: 160px; bottom: 160px; height: 80px; width: 80px',
+        );
+        self::assertEqualsWithDelta(80.0, $y, 0.01);
+    }
+
+    /** Guard: the same in `ltr` ignores `bottom` — y stays at 160. */
+    public function testOverconstrainedVerticalInlineAxisLtrIgnoresBottom(): void
+    {
+        [, $y] = $this->overconstrainedAbsposGeo(
+            ' writing-mode: vertical-lr; direction: ltr;',
+            'top: 160px; bottom: 160px; height: 80px; width: 80px',
+        );
+        self::assertEqualsWithDelta(160.0, $y, 0.01);
+    }
+
+    /**
+     * The BLOCK axis has no `direction` tie-break — it ignores the
+     * block-END inset, which `vertical-rl` puts on the LEFT:
+     * x = 320 - 160 - 80 = 80.
+     */
+    public function testOverconstrainedVerticalRlBlockAxisIgnoresLeft(): void
+    {
+        [$x] = $this->overconstrainedAbsposGeo(
+            ' writing-mode: vertical-rl;',
+            'left: 160px; right: 160px; width: 80px; height: 80px',
+        );
+        self::assertEqualsWithDelta(80.0, $x, 0.01);
+    }
+
+    /** Guard: `vertical-lr` puts the block-end on the RIGHT — x = 160. */
+    public function testOverconstrainedVerticalLrBlockAxisIgnoresRight(): void
+    {
+        [$x] = $this->overconstrainedAbsposGeo(
+            ' writing-mode: vertical-lr;',
+            'left: 160px; right: 160px; width: 80px; height: 80px',
+        );
+        self::assertEqualsWithDelta(160.0, $x, 0.01);
+    }
 }
