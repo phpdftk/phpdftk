@@ -8504,7 +8504,11 @@ final class BlockLayout
                     return ['min' => $ratioWidth, 'max' => $ratioWidth];
                 }
             }
-            return $this->aggregateChildrenMinMax($box, $context, inline: true);
+            return $this->aggregateChildrenMinMax(
+                $box,
+                $this->intrinsicChildContext($box, $context),
+                inline: true,
+            );
         }
         // Block / anonymous-block / table cell. When the children are
         // all inline-level the box establishes an inline formatting
@@ -8515,7 +8519,7 @@ final class BlockLayout
         // the container needs the widest of them.
         $aggregate = $this->aggregateChildrenMinMax(
             $box,
-            $context,
+            $this->intrinsicChildContext($box, $context),
             inline: $this->allInlineLevel($box->children),
         );
         // CSS Sizing 4 §5.1 — a plain block with a definite height and an
@@ -8531,6 +8535,48 @@ final class BlockLayout
             ];
         }
         return $aggregate;
+    }
+
+    /**
+     * The context descendants are measured in while computing `$box`'s
+     * intrinsic inline size.
+     *
+     * CSS Sizing 3 §5.2 — a percentage resolves against its containing
+     * block whenever that size is *definite*, and intrinsic sizing is no
+     * exception in the BLOCK axis: only inline-axis percentages are the
+     * cyclic ones that have to behave as `auto`. So while we measure a box
+     * that declares a definite `height`, its children's `height: %` (and
+     * anything derived from it — notably a replaced child transferring a
+     * percentage height through its intrinsic ratio) must resolve against
+     * that height rather than against whatever containing block the
+     * top-level intrinsic caller happened to be standing in.
+     *
+     * Without this a `<div style="float:left;height:100px">` wrapping a
+     * `<canvas style="height:100%">` measured the canvas as height-less,
+     * reported a 0 max-content width, and the float collapsed
+     * (`css-sizing/intrinsic-percent-replaced-001`).
+     */
+    private function intrinsicChildContext(Box $box, LayoutContext $context): LayoutContext
+    {
+        $height = $this->definiteContainerHeightOrNull($box, $context);
+        if ($height === null || $height <= 0.0) {
+            return $context;
+        }
+        // Children resolve percentages against the CONTENT box, so a
+        // `border-box` height has to give back its own border + padding.
+        if ($this->isBorderBoxSizing($box->style)) {
+            $cbWidth = $context->containingBlockWidth;
+            $height -= $this->resolveBorderWidth($box->style, 'top')
+                + $this->resolveBorderWidth($box->style, 'bottom')
+                + $this->resolveLength($box->style->get('padding-top'), $cbWidth)
+                + $this->resolveLength($box->style->get('padding-bottom'), $cbWidth);
+        }
+        if ($height <= 0.0) {
+            return $context;
+        }
+        return $context
+            ->withContainingBlockHeightDefinite($height, true)
+            ->withInFlowHeightDefinite(true);
     }
 
     /**

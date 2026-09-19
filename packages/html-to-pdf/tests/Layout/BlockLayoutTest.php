@@ -12089,6 +12089,73 @@ final class BlockLayoutTest extends TestCase
         return $out;
     }
 
+    /**
+     * CSS Sizing 3 §5.2 — a definite block size is a definite percentage
+     * basis in the BLOCK axis even while an ancestor's intrinsic INLINE
+     * size is being measured. A shrink-to-fit float with `height: 100px`
+     * wrapping a ratio'd replaced child at `height: 100%` therefore
+     * measures the child as 100px tall and, through the 1:1 ratio, 100px
+     * wide — so the float is a 100x100 square, not a zero-width sliver.
+     */
+    public function testShrinkToFitFloatTransfersPercentHeightThroughRatio(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="f"><canvas width="10" height="10"></canvas>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }
+             canvas { display: inline-block; height: 100%; }
+             #f { float: left; height: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $float = $this->findById($box, 'f');
+        self::assertNotNull($float);
+        self::assertEqualsWithDelta(100.0, $float->geometry->width, 0.5);
+        self::assertEqualsWithDelta(100.0, $float->geometry->height, 0.5);
+    }
+
+    /**
+     * The same transfer must NOT fire when the ancestor's height is
+     * indefinite: `height: %` then behaves as `auto` (CSS 2.1 §10.5) and
+     * the replaced child falls back to its natural 10px width.
+     */
+    public function testShrinkToFitFloatWithAutoHeightKeepsNaturalWidth(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="f"><canvas width="10" height="10"></canvas>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }
+             canvas { display: inline-block; height: 100%; }
+             #f { float: left; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $float = $this->findById($box, 'f');
+        self::assertNotNull($float);
+        self::assertLessThan(50.0, $float->geometry->width);
+    }
+
+    /**
+     * `box-sizing: border-box` means the declared height includes border +
+     * padding, so descendants resolve their percentages against what is
+     * left — the CONTENT height (120 - 2*10 border - 2*5 padding = 90).
+     */
+    public function testIntrinsicPercentBasisSubtractsBorderBoxEdges(): void
+    {
+        $box = $this->buildTree(
+            '<html><body><div id="f"><canvas width="10" height="10"></canvas>'
+            . '</div></body></html>',
+            'html, body, div { display: block; }
+             canvas { display: inline-block; height: 100%; }
+             #f { float: left; box-sizing: border-box; height: 120px;
+                  border: 10px solid black; padding: 5px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $float = $this->findById($box, 'f');
+        self::assertNotNull($float);
+        // 120 - 2*10 border - 2*5 padding = 90 content height, transferred
+        // through the 1:1 ratio into the float's content width.
+        self::assertEqualsWithDelta(90.0, $float->geometry->width, 1.0);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];
