@@ -78,11 +78,66 @@ class BoxGeneratorBench
         $this->run($html);
     }
 
+    public function benchInlineSvgUseSprites(): void
+    {
+        // The `<use href="#icon">` sprite idiom on the box-generation
+        // hot path. Box generation is where an inline `<svg>` subtree is
+        // cascaded, and where each `<use>` instance is cloned and
+        // cascaded a second time (SVG 2 §5.6 shadow tree), so a sprite
+        // sheet is the shape that pays for that twice over.
+        $this->run($this->inlineSvgSprites(200));
+    }
+
+    public function benchInlineSvgWithoutUse(): void
+    {
+        // Same element count with no `<use>` at all — the baseline that
+        // isolates the shadow-tree cost from the cost of cascading an
+        // inline `<svg>` subtree in the first place.
+        $this->run($this->inlineSvgFlat(200));
+    }
+
     private function run(string $html): void
     {
         $doc = $this->htmlParser->parseDocument($html);
         $sheet = $this->cssParser->parseStylesheet($this->uaCss, Origin::UserAgent);
         $this->generator->generate($doc, [$sheet]);
+    }
+
+    private function inlineSvgSprites(int $instances): string
+    {
+        $body = '<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">'
+            . '<defs><g id="icon">'
+            . '<rect width="16" height="16"/>'
+            . '<circle cx="8" cy="8" r="6"/>'
+            . '<path d="M2 2 L14 14"/>'
+            . '</g></defs>';
+        for ($i = 0; $i < $instances; $i++) {
+            $body .= sprintf(
+                '<use href="#icon" x="%d" y="%d" fill="currentColor"/>',
+                ($i % 40) * 20,
+                intdiv($i, 40) * 20,
+            );
+        }
+        $body .= '</svg>';
+        return '<!DOCTYPE html><html><body>' . $body . '</body></html>';
+    }
+
+    private function inlineSvgFlat(int $groups): string
+    {
+        $body = '<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg">';
+        for ($i = 0; $i < $groups; $i++) {
+            $body .= sprintf(
+                '<g transform="translate(%d %d)" fill="currentColor">'
+                . '<rect width="16" height="16"/>'
+                . '<circle cx="8" cy="8" r="6"/>'
+                . '<path d="M2 2 L14 14"/>'
+                . '</g>',
+                ($i % 40) * 20,
+                intdiv($i, 40) * 20,
+            );
+        }
+        $body .= '</svg>';
+        return '<!DOCTYPE html><html><body>' . $body . '</body></html>';
     }
 
     private function tableGrid(int $tables): string
