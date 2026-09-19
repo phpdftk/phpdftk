@@ -237,8 +237,7 @@ final class HarnessRunner
 
             return $row;
         }
-        $fuzzy = $this->parseFuzzyMeta($testPath);
-        $diff = $this->scorer->diff($renderedPng, $refPng, $fuzzy['maxPixels']);
+        $diff = $this->scorer->diff($renderedPng, $refPng, $this->fuzzyFor($testPath, $refPath));
 
         @copy($renderedPng, $base . '-rendered.png');
         @copy($refPng, $base . '-ref.png');
@@ -333,8 +332,7 @@ final class HarnessRunner
             );
         }
 
-        $fuzzy = $this->parseFuzzyMeta($testPath);
-        $diff = $this->scorer->diff($renderedPng, $refPng, $fuzzy['maxPixels']);
+        $diff = $this->scorer->diff($renderedPng, $refPng, $this->fuzzyFor($testPath, $refPath));
         @unlink($renderedPng);
         if ($refPng !== $refPath) {
             @unlink($refPng);
@@ -351,48 +349,57 @@ final class HarnessRunner
     }
 
     /**
-     * Parse the WPT `<meta name="fuzzy">` annotation from a test file.
+     * Resolve the `<meta name="fuzzy">` tolerance that applies when
+     * this test is compared against `$referencePath`.
      *
-     * Format (CSS-WG convention):
-     *   maxDifference=A-B; totalPixels=C-D
-     *   maxDifference=A-B;totalPixels=C-D
-     *   A-B;C-D                              (positional shorthand)
+     * WPT selects fuzzy nodes exactly the way it selects reference
+     * links — `.//{http://www.w3.org/1999/xhtml}meta[@name='fuzzy']` —
+     * so a namespace prefix and unquoted attribute values are both
+     * normal, and 237 corpus fixtures do write `name=fuzzy` unquoted.
+     * A matcher that demands `name="fuzzy"` in quotes, and demands it
+     * before `content`, drops every one of those fixtures back onto
+     * the harness default threshold without saying so.
      *
-     * Both ranges are inclusive bounds; the *upper* bound is the one
-     * the renderer must respect. We surface the upper-bound pixel
-     * count to the Scorer so tests with relaxed tolerances (e.g.
-     * `totalPixels=0-127500`) pass when our renderer is within
-     * spec-allowed difference but not pixel-perfect.
+     * A declaration may be keyed to one specific reference
+     * (`content="ref.html:0-5;0-100"` — WPT's `parse_ref_keyed_meta`,
+     * splitting on the last colon). A keyed declaration applies only
+     * to the reference it names; an unkeyed one is the default for
+     * every reference.
      *
-     * Returns `['maxPixels' => null]` when no annotation is present;
-     * `null` tells the Scorer to use its default threshold.
-     *
-     * @return array{maxPixels: int|null}
+     * @internal Exposed for {@see \Phpdftk\WptHarness\Tests\FuzzyMetaResolutionTest}.
      */
-    private function parseFuzzyMeta(string $testPath): array
+    public function fuzzyFor(string $testPath, string $referencePath): ?FuzzyTolerance
     {
-        $head = @file_get_contents($testPath, false, null, 0, 64 * 1024);
+        $head = @file_get_contents($testPath, false, null, 0, self::MARKUP_SCAN_BYTES);
         if ($head === false || $head === '') {
-            return ['maxPixels' => null];
+            return null;
         }
-        if (preg_match(
-            '~<meta\s+[^>]*?name\s*=\s*["\']fuzzy["\']\s+[^>]*?content\s*=\s*["\']([^"\']+)["\']~i',
-            $head,
-            $m,
-        ) !== 1) {
-            return ['maxPixels' => null];
+        $unkeyed = null;
+        foreach (self::elementsNamed($head, 'meta') as $tag) {
+            if (self::attributeValue($tag, 'name') !== 'fuzzy') {
+                continue;
+            }
+            $content = self::attributeValue($tag, 'content');
+            if ($content === null) {
+                continue;
+            }
+            $colon = strrpos($content, ':');
+            if ($colon !== false) {
+                $keyedRef = $this->resolveHref($testPath, substr($content, 0, $colon));
+                if ($keyedRef !== null) {
+                    if ($keyedRef === $referencePath) {
+                        $keyed = FuzzyTolerance::parse(substr($content, $colon + 1));
+                        if ($keyed !== null) {
+                            return $keyed;
+                        }
+                    }
+                    // Keyed at a different reference — not ours.
+                    continue;
+                }
+            }
+            $unkeyed ??= FuzzyTolerance::parse($content);
         }
-        $content = trim($m[1]);
-        // Look for `totalPixels=<lo>-<hi>` first; fall back to the last
-        // semicolon-separated range in positional shorthand.
-        if (preg_match('~totalPixels\s*=\s*\d+\s*-\s*(\d+)~i', $content, $m2) === 1) {
-            return ['maxPixels' => (int) $m2[1]];
-        }
-        $parts = array_map('trim', explode(';', $content));
-        if (count($parts) >= 2 && preg_match('~^\d+\s*-\s*(\d+)$~', $parts[1], $m3) === 1) {
-            return ['maxPixels' => (int) $m3[1]];
-        }
-        return ['maxPixels' => null];
+        return $unkeyed;
     }
 
     private function resolveTestFile(string $rootAbs, string $testId): ?string

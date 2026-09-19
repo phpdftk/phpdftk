@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phpdftk\WptHarness\Tests;
 
+use Phpdftk\WptHarness\FuzzyTolerance;
 use Phpdftk\WptHarness\Scorer;
 use PHPUnit\Framework\TestCase;
 
@@ -52,29 +53,80 @@ final class ScorerTest extends TestCase
         self::assertEqualsWithDelta(0.0, $result['score'], 0.0001);
     }
 
-    public function testFuzzyMaxPixelsOverrideAllowsDiff(): void
+    public function testDeclaredToleranceReplacesTheDefaultThreshold(): void
     {
-        // The diffyPng has 8 differing pixels in a 64×64 = 4096 image,
-        // so the score is 8/4096 ≈ 0.002 — already under the default
-        // 0.01 threshold. Use a tiny image to trigger the override
-        // path: make a smaller diffy and pass `maxAllowedPixels`.
-        $tinyA = $this->makePng(8, 8, 255, 255, 255);
-        $tinyB = $this->makeDiffyPng(8, 8, 255, 255, 255, 4);
+        // 4 black pixels in an 8×8 = 64-pixel frame is 6.25% — well
+        // over the default 1% threshold.
+        $a = $this->makePng(8, 8, 255, 255, 255);
+        $b = $this->makeDiffyPng(8, 8, 255, 255, 255, 4);
         try {
-            $strict = (new Scorer())->diff($tinyA, $tinyB);
             self::assertFalse(
-                $strict['passed'],
-                '4-of-64 pixel diff should fail the default 1% threshold',
+                (new Scorer())->diff($a, $b)['passed'],
+                '4-of-64 differing pixels should fail the default threshold',
             );
-            $relaxed = (new Scorer())->diff($tinyA, $tinyB, maxAllowedPixels: 10);
+
+            $declared = FuzzyTolerance::parse('maxDifference=0-255;totalPixels=0-10');
+            self::assertNotNull($declared);
             self::assertTrue(
-                $relaxed['passed'],
-                '4-of-64 pixel diff should pass when maxAllowedPixels=10',
+                (new Scorer())->diff($a, $b, $declared)['passed'],
+                'a fixture allowing 10 differing pixels of any colour should pass',
             );
         } finally {
-            @unlink($tinyA);
-            @unlink($tinyB);
+            @unlink($a);
+            @unlink($b);
         }
+    }
+
+    public function testColourDifferenceBeyondDeclaredMaxDifferenceFails(): void
+    {
+        // Same 4 differing pixels, but this fixture declared that no
+        // channel may move by more than 5/255. Black on white is 255.
+        // Honouring only `totalPixels` — as the harness used to — would
+        // pass this, which is the whole defect.
+        $a = $this->makePng(8, 8, 255, 255, 255);
+        $b = $this->makeDiffyPng(8, 8, 255, 255, 255, 4);
+        try {
+            $declared = FuzzyTolerance::parse('maxDifference=0-5;totalPixels=0-10');
+            self::assertNotNull($declared);
+
+            $result = (new Scorer())->diff($a, $b, $declared);
+
+            self::assertFalse($result['passed']);
+            self::assertStringContainsString('maxDifference=255', (string) $result['reason']);
+        } finally {
+            @unlink($a);
+            @unlink($b);
+        }
+    }
+
+    public function testDeclaredToleranceCountsDifferingPixelsAtZeroFuzz(): void
+    {
+        // 6 pixels off by 2/255. That is inside ImageMagick's 1% colour
+        // fuzz, so the harness's old `-fuzz 1%` count saw ZERO differing
+        // pixels and passed the fixture's `totalPixels=0-2` budget
+        // without spending any of it. WPT counts pixels differing at
+        // all, so 6 > 2 must fail.
+        $a = $this->makePng(8, 8, 255, 255, 255);
+        $b = $this->makeShiftedPng(8, 8, 255, 255, 255, 6, 2);
+        try {
+            $declared = FuzzyTolerance::parse('maxDifference=0-10;totalPixels=0-2');
+            self::assertNotNull($declared);
+
+            self::assertFalse((new Scorer())->diff($a, $b, $declared)['passed']);
+        } finally {
+            @unlink($a);
+            @unlink($b);
+        }
+    }
+
+    public function testExactMatchPassesAnyDeclaredTolerance(): void
+    {
+        $declared = FuzzyTolerance::parse('maxDifference=0-1;totalPixels=0-2');
+        self::assertNotNull($declared);
+
+        $result = (new Scorer())->diff($this->renderedPng, $this->referencePng, $declared);
+
+        self::assertTrue($result['passed']);
     }
 
     private function makePng(int $w, int $h, int $r, int $g, int $b): string
@@ -100,6 +152,26 @@ final class ScorerTest extends TestCase
         $black = imagecolorallocate($img, 0, 0, 0);
         for ($i = 0; $i < $diffPixels; $i++) {
             imagesetpixel($img, $i, 0, $black);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'scorer_test_') . '.png';
+        imagepng($img, $path);
+        imagedestroy($img);
+        return $path;
+    }
+
+    /**
+     * Same as `makeDiffyPng()` but the differing pixels are only
+     * `$delta` darker rather than pure black — small enough to sit
+     * inside ImageMagick's 1% colour fuzz.
+     */
+    private function makeShiftedPng(int $w, int $h, int $r, int $g, int $b, int $diffPixels, int $delta): string
+    {
+        $img = imagecreatetruecolor($w, $h);
+        self::assertNotFalse($img);
+        imagefill($img, 0, 0, imagecolorallocate($img, $r, $g, $b));
+        $shifted = imagecolorallocate($img, $r - $delta, $g - $delta, $b - $delta);
+        for ($i = 0; $i < $diffPixels; $i++) {
+            imagesetpixel($img, $i, 0, $shifted);
         }
         $path = tempnam(sys_get_temp_dir(), 'scorer_test_') . '.png';
         imagepng($img, $path);

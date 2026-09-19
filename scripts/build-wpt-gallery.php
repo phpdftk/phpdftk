@@ -15,10 +15,9 @@ declare(strict_types=1);
  * layer (manifest + kept PNGs) plus sharding so the full ~22k corpus is
  * tractable in CI.
  *
- * Reference location mirrors HarnessRunner::locateReference — sibling
- * `-ref.{png,html,xht,svg}` first, then `<link rel="match">` — rather
- * than the v0 single-regex, and fuzzy-meta parsing mirrors the harness
- * so verdicts line up with the pass-rate scoreboard.
+ * Reference location and `<meta name=fuzzy>` parsing are DELEGATED to
+ * HarnessRunner rather than reimplemented here, so gallery verdicts can
+ * never drift from the pass-rate scoreboard's.
  *
  * Usage:
  *   php scripts/build-wpt-gallery.php \
@@ -39,6 +38,8 @@ declare(strict_types=1);
 use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\HtmlToPdf\Renderer;
 use Phpdftk\HtmlToPdf\RendererOptions;
+use Phpdftk\WptHarness\HarnessRunner;
+use Phpdftk\WptHarness\Manifest;
 use Phpdftk\WptHarness\Rasteriser;
 use Phpdftk\WptHarness\Scorer;
 
@@ -215,7 +216,7 @@ function renderOne(
     $refFull = null;
     $refThumb = null;
     $refSourceRel = null;
-    $refPath = locateReference($testPath, $html, $wptRoot);
+    $refPath = harnessSemantics($wptRoot)->locateReference($testPath);
     if ($refPath !== null) {
         $refSourceRel = relPath($wptRoot, $refPath);
         $refFull = "img/{$slug}.ref.png";
@@ -236,8 +237,11 @@ function renderOne(
     $ae = null;
     $verdict = 'unknown';
     if ($okOurs && $refFull !== null && $hasCompare) {
-        $maxPixels = parseFuzzyMaxPixels($testPath);
-        $diff = $scorer->diff($out . '/' . $oursFull, $out . '/' . $refFull, $maxPixels);
+        $diff = $scorer->diff(
+            $out . '/' . $oursFull,
+            $out . '/' . $refFull,
+            harnessSemantics($wptRoot)->fuzzyFor($testPath, $refPath),
+        );
         if ($diff['diffImage'] !== null) {
             @unlink($diff['diffImage']);
         }
@@ -341,61 +345,26 @@ function resolveFixture(string $root, string $id): ?string
 }
 
 /**
- * Locate the reference for a reftest — sibling `-ref.{png,html,xht,svg}`
- * first (PNG wins, it short-circuits a re-render), then
- * `<link rel="match">`. Ports HarnessRunner::locateReference.
+ * The harness's own reference-resolution and fuzzy-meta semantics.
+ *
+ * This script used to carry a second copy of both, keyed on a
+ * literal `<link` and a quoted `name="fuzzy"`. Two copies drift: the
+ * gallery would show a green verdict for a fixture the scoreboard
+ * scored red (or show "no-ref" for one the scoreboard scored at all).
+ * Delegating keeps exactly one implementation of WPT's rules.
+ *
+ * The Manifest is empty on purpose — the gallery renders whatever
+ * slice it was asked for and does not apply scope rules.
  */
-function locateReference(string $testPath, string $html, string $wptRoot): ?string
+function harnessSemantics(string $wptRoot): HarnessRunner
 {
-    $info = pathinfo($testPath);
-    $dir = $info['dirname'] ?? '.';
-    $stem = $info['filename'] ?? '';
-    foreach (['png', 'html', 'xht', 'svg'] as $ext) {
-        $cand = $dir . '/' . $stem . '-ref.' . $ext;
-        if (is_file($cand)) {
-            return $cand;
-        }
+    static $runner = null;
+    static $root = null;
+    if ($runner === null || $root !== $wptRoot) {
+        $root = $wptRoot;
+        $runner = new HarnessRunner(new Manifest(), new Rasteriser(), new Scorer(), $wptRoot);
     }
-    // <link rel="match"> — either attribute order.
-    $relFirst = '~<link\s+[^>]*?rel\s*=\s*["\']match["\']\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']~i';
-    $hrefFirst = '~<link\s+[^>]*?href\s*=\s*["\']([^"\']+)["\']\s+[^>]*?rel\s*=\s*["\']match["\']~i';
-    $href = null;
-    if (preg_match($relFirst, $html, $m) === 1) {
-        $href = $m[1];
-    } elseif (preg_match($hrefFirst, $html, $m) === 1) {
-        $href = $m[1];
-    }
-    if ($href === null) {
-        return null;
-    }
-    $resolved = str_starts_with($href, '/') ? $wptRoot . $href : $dir . '/' . $href;
-    $real = realpath($resolved);
-    return ($real !== false && is_file($real)) ? $real : null;
-}
-
-/** Parse the WPT `<meta name="fuzzy">` upper pixel bound (or null). */
-function parseFuzzyMaxPixels(string $testPath): ?int
-{
-    $head = @file_get_contents($testPath, false, null, 0, 64 * 1024);
-    if ($head === false || $head === '') {
-        return null;
-    }
-    if (preg_match(
-        '~<meta\s+[^>]*?name\s*=\s*["\']fuzzy["\']\s+[^>]*?content\s*=\s*["\']([^"\']+)["\']~i',
-        $head,
-        $m,
-    ) !== 1) {
-        return null;
-    }
-    $content = trim($m[1]);
-    if (preg_match('~totalPixels\s*=\s*\d+\s*-\s*(\d+)~i', $content, $m2) === 1) {
-        return (int) $m2[1];
-    }
-    $parts = array_map('trim', explode(';', $content));
-    if (count($parts) >= 2 && preg_match('~^\d+\s*-\s*(\d+)$~', $parts[1], $m3) === 1) {
-        return (int) $m3[1];
-    }
-    return null;
+    return $runner;
 }
 
 /** Extract the `<meta name="assert">` text, if any. */
