@@ -14834,4 +14834,106 @@ final class BlockLayoutTest extends TestCase
         self::assertGreaterThan(0.0, $nbsp->geometry->width);
         self::assertEqualsWithDelta($nbsp->geometry->width, $spaced->geometry->width, 0.01);
     }
+
+    public function testGridStretchedFlexColumnItemReLaysOutAgainstTheStretchedHeight(): void
+    {
+        // CSS Box Alignment 3 §4.2 + CSS Grid 2 §6.6 — `align-self:
+        // stretch` (the `normal` default) gives a grid item a DEFINITE
+        // block size. A flex container so stretched must run its own
+        // flex algorithm against that size, or `flex-grow` inside it has
+        // no free space to distribute and collapses to zero.
+        // Row is 100px, the first item is 20px → the grower gets 80px.
+        $box = $this->buildTree(
+            '<html><body><div id="g"><div id="col">'
+            . '<div id="fixed"></div><div id="grow"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 200px;
+                  grid-template-rows: 100px; width: 200px; }
+             #col { display: flex; flex-direction: column; }
+             #fixed { height: 20px; }
+             #grow { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $col = $this->findById($box, 'col');
+        $grow = $this->findById($box, 'grow');
+        self::assertNotNull($col);
+        self::assertNotNull($grow);
+        self::assertEqualsWithDelta(100.0, $col->geometry->height, 0.01);
+        self::assertEqualsWithDelta(80.0, $grow->geometry->height, 0.01);
+        self::assertEqualsWithDelta($col->geometry->y + 20.0, $grow->geometry->y, 0.01);
+    }
+
+    public function testGridStretchedGridItemResolvesItsOwnFrRowsAgainstTheStretchedHeight(): void
+    {
+        // The same rule for a nested GRID: a stretched grid container has
+        // a definite block size, so its own `1fr` row resolves against it
+        // instead of against zero.
+        $box = $this->buildTree(
+            '<html><body><div id="g"><div id="inner">'
+            . '<div id="fixed"></div><div id="fr"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 200px;
+                  grid-template-rows: 100px; width: 200px; }
+             #inner { display: grid; grid-template-rows: 20px 1fr; }
+             #fixed { height: 20px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $inner = $this->findById($box, 'inner');
+        $fr = $this->findById($box, 'fr');
+        self::assertNotNull($inner);
+        self::assertNotNull($fr);
+        self::assertEqualsWithDelta(100.0, $inner->geometry->height, 0.01);
+        self::assertEqualsWithDelta(80.0, $fr->geometry->height, 0.01);
+    }
+
+    public function testGridStretchedBlockItemResolvesDescendantPercentageHeights(): void
+    {
+        // A stretched PLAIN BLOCK item is likewise definite, so a
+        // `height: 50%` descendant resolves against the stretched 100px
+        // rather than collapsing against an indefinite auto height.
+        $box = $this->buildTree(
+            '<html><body><div id="g"><div id="item">'
+            . '<div id="half"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 200px;
+                  grid-template-rows: 100px; width: 200px; }
+             #half { height: 50%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $item = $this->findById($box, 'item');
+        $half = $this->findById($box, 'half');
+        self::assertNotNull($item);
+        self::assertNotNull($half);
+        self::assertEqualsWithDelta(100.0, $item->geometry->height, 0.01);
+        self::assertEqualsWithDelta(50.0, $half->geometry->height, 0.01);
+    }
+
+    public function testFlexCrossStretchedColumnFlexItemDistributesItsOwnFreeSpace(): void
+    {
+        // CSS Flexbox 1 §9.4 — cross-axis `stretch` in a ROW flex
+        // container makes the item's height definite. When the item is
+        // itself a COLUMN flex container that height is its MAIN size, so
+        // `flex-grow` inside it must distribute the stretched 100px.
+        $box = $this->buildTree(
+            '<html><body><div id="row"><div id="col">'
+            . '<div id="fixed"></div><div id="grow"></div>'
+            . '</div></div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #row { display: flex; flex-direction: row; align-items: stretch;
+                    height: 100px; width: 200px; }
+             #col { display: flex; flex-direction: column; width: 200px; }
+             #fixed { height: 20px; }
+             #grow { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $col = $this->findById($box, 'col');
+        $grow = $this->findById($box, 'grow');
+        self::assertNotNull($col);
+        self::assertNotNull($grow);
+        self::assertEqualsWithDelta(100.0, $col->geometry->height, 0.01);
+        self::assertEqualsWithDelta(80.0, $grow->geometry->height, 0.01);
+    }
 }

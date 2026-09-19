@@ -5936,54 +5936,24 @@ final class BlockLayout
                                     - $childGeo->borderTop - $childGeo->borderBottom
                                     - $childGeo->paddingTop - $childGeo->paddingBottom;
                                 $childGeo->height = $stretchedContentHeight;
-                                // CSS Flexbox 1 §9.4 — a stretched item that is
-                                // itself a ROW flex container now has a definite
-                                // cross size (this height). The first pass sized
-                                // ITS children against an indefinite cross (auto
-                                // → collapsed); re-run its flex layout with the
-                                // height definite so its own align-items:stretch
-                                // reaches ITS children. Gated to row-direction
-                                // FlexBox items (the exact nested-stretch case)
-                                // to keep the blast radius off the block path.
-                                $childDir = $this->flexKeyword($child->style, 'flex-direction', 'row');
-                                if ($child instanceof \Phpdftk\HtmlToPdf\Box\FlexBox
-                                    && ($childDir === 'row' || $childDir === 'row-reverse')
-                                    && $stretchedContentHeight > 0.0
-                                    && isset($childLayoutContexts[$i])
-                                ) {
-                                    $this->layoutFlexBox(
+                                // CSS Flexbox 1 §9.4 — a stretched item now has
+                                // a DEFINITE cross size (this height), but the
+                                // first pass already laid its subtree out
+                                // against the pre-stretch indefinite one. Re-run
+                                // the item's own formatting context against the
+                                // stretched size. This covers a nested flex
+                                // container in EITHER direction: for a row child
+                                // the stretched height is its cross size (its
+                                // own `align-items: stretch` needs it), for a
+                                // COLUMN child it is its MAIN size, so its
+                                // `flex-grow` has no free space to distribute
+                                // without it.
+                                if (isset($childLayoutContexts[$i])) {
+                                    $this->relayoutStretchedToBlockSize(
                                         $child,
                                         $childLayoutContexts[$i],
-                                        definiteContentHeightOverride: $stretchedContentHeight,
+                                        $stretchedContentHeight,
                                     );
-                                } elseif (
-                                    !($child instanceof \Phpdftk\HtmlToPdf\Box\FlexBox)
-                                    && $stretchedContentHeight > 0.0
-                                    && isset($childLayoutContexts[$i])
-                                    && $this->subtreeHasPercentageHeight($child)
-                                ) {
-                                    // CSS Flexbox 1 "definite sizes" — the same
-                                    // rule for a PLAIN BLOCK item: its stretched
-                                    // cross size is definite, so a descendant's
-                                    // `height: %` resolves against it. The first
-                                    // pass sized those descendants against an
-                                    // indefinite height and collapsed them to
-                                    // zero. Re-run the subtree with the height
-                                    // definite, then restore the stretched height
-                                    // (the re-run recomputes it from content).
-                                    //
-                                    // Gated on the subtree actually containing a
-                                    // percentage height so the common case pays
-                                    // nothing for a second pass.
-                                    // `flexItemDefiniteBlockSize` is the hook
-                                    // `layoutBlock` already reads (and clears)
-                                    // to treat a flexed size as an author
-                                    // height; an auto-height box otherwise
-                                    // forces its own CB-height definiteness to
-                                    // false and the stretch is lost on the way
-                                    // down.
-                                    $this->flexItemDefiniteBlockSize = $stretchedContentHeight;
-                                    $this->layoutBlock($child, $childLayoutContexts[$i]);
                                     $childGeo->height = $stretchedContentHeight;
                                 }
                             }
@@ -6143,8 +6113,11 @@ final class BlockLayout
      * areas`, `grid-auto-{columns,rows}` implicit tracks beyond the
      * declared template, `justify-self` / `align-self`, subgrid.
      */
-    private function layoutGridBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
-    {
+    private function layoutGridBox(
+        \Phpdftk\HtmlToPdf\Box\GridBox $box,
+        LayoutContext $context,
+        ?float $definiteContentHeightOverride = null,
+    ): float {
         // CSS Grid Layout 3 — `display: grid-lanes` establishes a grid
         // LANES formatting context: tracks in one axis, free packing in
         // the other. It shares this box type (and most of the track
@@ -6220,7 +6193,14 @@ final class BlockLayout
         // Compute the explicit-height-for-fr early so it's available
         // both for auto-fill row track resolution and the later fr
         // pass.
-        $explicitContainerHeight = $this->definiteContainerHeightOrNull($box, $context);
+        // CSS Box Alignment 3 §4.2 — when this grid container is itself an
+        // item its parent STRETCHED, the stretched content height is a
+        // definite block size for the container's own row sizing. Treat it
+        // exactly like an author `height` so `fr` rows, `align-content` and
+        // item stretching all resolve against it (mirrors the
+        // `definiteContentHeightOverride` flex containers already accept).
+        $explicitContainerHeight = $definiteContentHeightOverride
+            ?? $this->definiteContainerHeightOrNull($box, $context);
         $declaredHeightForFr = $explicitContainerHeight
             ?? $this->ratioDerivedContainerHeight($style, $geo);
         $columnDescriptors = $this->parseGridTrackList(
@@ -6751,10 +6731,29 @@ final class BlockLayout
                 $childOuterWidth = $childGeo->outerWidth();
             }
             if ($isStretchY && $childHeightAuto && $childOuterHeight < $cellHeight && !$ratioKeepsY) {
-                $childGeo->height = $cellHeight
+                $stretchedContentHeight = $cellHeight
                     - $childGeo->marginTop - $childGeo->marginBottom
                     - $childGeo->borderTop - $childGeo->borderBottom
                     - $childGeo->paddingTop - $childGeo->paddingBottom;
+                $childGeo->height = $stretchedContentHeight;
+                // The stretch was applied AFTER `layoutBox` ran (the target
+                // is measured against the item's own resolved surroundings),
+                // so the subtree was laid out against the pre-stretch,
+                // indefinite height. Re-run the item's own formatting
+                // context against the stretched size, then restore it — the
+                // re-run recomputes the height from content.
+                $this->relayoutStretchedToBlockSize($p['box'], $layoutCtx, $stretchedContentHeight);
+                $childGeo->height = $stretchedContentHeight;
+                if ($isStretchX && $childWidthAuto && !$ratioKeepsX) {
+                    // The re-layout also recomputed the width from the
+                    // containing block; re-apply the inline stretch so both
+                    // axes keep the size the alignment pass chose.
+                    $childGeo->width = $cellWidth
+                        - $childGeo->marginLeft - $childGeo->marginRight
+                        - $childGeo->borderLeft - $childGeo->borderRight
+                        - $childGeo->paddingLeft - $childGeo->paddingRight;
+                }
+                $childOuterWidth = $childGeo->outerWidth();
                 $childOuterHeight = $childGeo->outerHeight();
             }
             // Reposition for non-stretch alignment. `start` keeps the
@@ -6825,7 +6824,8 @@ final class BlockLayout
         // CSS Sizing 4 §6.1 — under size containment the grid container's
         // block size comes from `contain-intrinsic-size`, NOT from the rows
         // it happens to contain.
-        $declaredHeight = $this->resolveExplicitHeightOrNull($style, $cbHeight)
+        $declaredHeight = $definiteContentHeightOverride
+            ?? $this->resolveExplicitHeightOrNull($style, $cbHeight)
             ?? $this->resolveContainIntrinsicHeight($style, $context);
         $rowExtent = $this->gridTotalExtent($rowTracks, $rowGap);
         $geo->height = $declaredHeight ?? $rowExtent;
@@ -7413,10 +7413,16 @@ final class BlockLayout
                     - $childGeo->borderLeft - $childGeo->borderRight
                     - $childGeo->paddingLeft - $childGeo->paddingRight;
             } elseif ($childGeo->outerHeight() < $areaExtent) {
-                $childGeo->height = $areaExtent
+                $stretchedContentHeight = $areaExtent
                     - $childGeo->marginTop - $childGeo->marginBottom
                     - $childGeo->borderTop - $childGeo->borderBottom
                     - $childGeo->paddingTop - $childGeo->paddingBottom;
+                $childGeo->height = $stretchedContentHeight;
+                // Same post-assignment hazard as regular grid stretching:
+                // the subtree was laid out before the stretch target was
+                // known, so re-run the item's formatting context against it.
+                $this->relayoutStretchedToBlockSize($child, $layoutCtx, $stretchedContentHeight);
+                $childGeo->height = $stretchedContentHeight;
             }
         } elseif (!$isStretch) {
             $childOuter = $gridAxisIsInline ? $childGeo->outerWidth() : $childGeo->outerHeight();
@@ -12388,6 +12394,64 @@ final class BlockLayout
             }
         }
         return false;
+    }
+
+    /**
+     * CSS Box Alignment 3 §4.2 — a box that an ancestor STRETCHED to fill
+     * its alignment container has a DEFINITE block size, and that size is
+     * an input to the box's own formatting context. Because the stretch
+     * target is only known after the first layout pass (it is measured
+     * against the box's own resolved margin / border / padding), the
+     * stretch is applied as a post-layout size assignment — which leaves
+     * the already-laid-out subtree sized against the pre-stretch,
+     * indefinite height.
+     *
+     * This re-runs the box's own layout with the stretched content height
+     * treated as an author `height`, so the formatting context actually
+     * observes it:
+     *
+     *  - a FLEX container distributes `flex-grow` / `justify-content`
+     *    free space along a now-definite main axis (column) or stretches
+     *    its own items across a now-definite cross axis (row) — CSS
+     *    Flexbox 1 §9.4 / §9.7;
+     *  - a GRID container resolves `fr` rows and `align-content` against
+     *    a now-definite block size — CSS Grid 2 §7.2 / §12.6;
+     *  - a plain BLOCK only observes the change through a descendant's
+     *    percentage height, so it pays for a second pass only when the
+     *    subtree actually contains one.
+     *
+     * Callers assign the stretched height themselves; the re-layout
+     * recomputes the box's height from its content, so they must restore
+     * it afterwards (the flex cross-stretch path does the same).
+     */
+    private function relayoutStretchedToBlockSize(
+        Box $box,
+        LayoutContext $context,
+        float $contentHeight,
+    ): void {
+        if ($contentHeight <= 0.0) {
+            return;
+        }
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox) {
+            $this->layoutFlexBox($box, $context, definiteContentHeightOverride: $contentHeight);
+            return;
+        }
+        if ($box instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
+            $this->layoutGridBox($box, $context, definiteContentHeightOverride: $contentHeight);
+            return;
+        }
+        // A plain block's layout is independent of its own block size
+        // EXCEPT where a descendant resolves a percentage against it, so
+        // the common case skips the second pass entirely.
+        if (!$this->subtreeHasPercentageHeight($box)) {
+            return;
+        }
+        // `flexItemDefiniteBlockSize` is the one-shot hook `layoutBlock`
+        // already reads to treat an externally-imposed size as an author
+        // height; without it an auto-height box declares its own CB height
+        // indefinite on the way down and the stretch is lost again.
+        $this->flexItemDefiniteBlockSize = $contentHeight;
+        $this->layoutBlock($box, $context);
     }
 
     /**
