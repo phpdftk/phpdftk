@@ -1088,10 +1088,21 @@ final class Translator
         if ($clipTransform !== null) {
             $stream->concatMatrix(...$clipTransform);
         }
+        $before = count($stream->getOperators());
         foreach ($clipPath->children as $child) {
             if ($child instanceof Element) {
                 $this->emitElementPath($child, $stream);
             }
+        }
+        if (count($stream->getOperators()) === $before) {
+            // SVG 2 §14.4.1 / CSS Masking 1 §6.1 — a `<clipPath>` whose
+            // children contribute no geometry (it is empty, or holds only
+            // non-area-enclosing elements) clips EVERYTHING away: the
+            // referencing element disappears. `W` with no current path is
+            // undefined in PDF and consumers treat it as a no-op, which
+            // would leave the element fully visible instead — so emit a
+            // zero-extent rectangle to make the empty region explicit.
+            $stream->rectangle(0.0, 0.0, 0.0, 0.0);
         }
         $rule = self::resolveClipRule($clipPath);
         if ($rule === 'evenodd') {

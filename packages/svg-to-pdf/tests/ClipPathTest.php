@@ -282,6 +282,35 @@ final class ClipPathTest extends TestCase
         self::assertStringContainsString('150 100 m', $ops);
     }
 
+    public function testEmptyClipPathClipsEverythingAway(): void
+    {
+        // SVG 2 §14.4.1 — a `<clipPath>` with no geometry clips the whole
+        // element away ("clipPath element without content make the clipped
+        // element disappear"). `W` with no current path is undefined in
+        // PDF and consumers no-op it, which would leave the element fully
+        // visible, so the empty region has to be spelled out.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<clipPath id="empty"></clipPath>'
+            . '<rect width="100" height="100" fill="green" clip-path="url(#empty)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString("0 0 0 0 re\nW\nn", $ops);
+    }
+
+    public function testClipPathOfNonAreaEnclosingChildrenAlsoClipsEverythingAway(): void
+    {
+        // A `<line>` encloses no area, so it contributes nothing to the
+        // clip region (SVG 2 §14.4.1) — same outcome as an empty element.
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<clipPath id="line"><line x1="0" y1="0" x2="10" y2="10"/></clipPath>'
+            . '<rect width="100" height="100" fill="green" clip-path="url(#line)"/>'
+            . '</svg>',
+        );
+        self::assertStringContainsString("0 0 0 0 re\nW\nn", $ops);
+    }
+
     public function testBasicShapeOnAContainerLeavesItUnclipped(): void
     {
         // A container's bounding box is the union of its children's
