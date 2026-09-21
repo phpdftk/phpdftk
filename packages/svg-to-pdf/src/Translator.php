@@ -2062,8 +2062,20 @@ final class Translator
         $w = self::resolveImageExtent($image->getAttribute('width'), $vp['w']);
         $h = self::resolveImageExtent($image->getAttribute('height'), $vp['h']);
         if ($w === null && $h === null) {
-            $w = $intrinsicW;
-            $h = $intrinsicH;
+            if ($intrinsicW > 0.0 && $intrinsicH > 0.0) {
+                $w = $intrinsicW;
+                $h = $intrinsicH;
+            } else {
+                // CSS Images 3 §5.3 default sizing with NO specified
+                // size: the default object size for an `<image>` is
+                // the nearest SVG viewport. A resource carrying only
+                // an intrinsic ratio is contained within it; one with
+                // neither size nor ratio simply takes it. This is the
+                // `<image href="…svg"/>` case, where a referenced
+                // document whose root is itself `width: auto;
+                // height: auto` has no concrete size of its own.
+                [$w, $h] = self::containWithin($vp['w'], $vp['h'], $ratio);
+            }
         } elseif ($w === null) {
             $w = $ratio !== null ? ($h ?? 0.0) * $ratio : $intrinsicW;
         } elseif ($h === null) {
@@ -2162,6 +2174,24 @@ final class Translator
      * it"), a percentage resolved against the enclosing viewport, and
      * anything else through the element's own unit-aware parse.
      */
+    /**
+     * CSS Images 3 §5.3's contain constraint: the largest rectangle
+     * with `$ratio` (width ÷ height) that fits inside `$w` × `$h`. A
+     * null ratio has nothing to preserve, so the box is taken whole.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private static function containWithin(float $w, float $h, ?float $ratio): array
+    {
+        if ($ratio === null || $ratio <= 0.0) {
+            return [$w, $h];
+        }
+        $widthAtFullHeight = $h * $ratio;
+        return $widthAtFullHeight <= $w
+            ? [$widthAtFullHeight, $h]
+            : [$w, $w / $ratio];
+    }
+
     private static function resolveImageExtent(?string $raw, float $viewport): ?float
     {
         if ($raw === null) {

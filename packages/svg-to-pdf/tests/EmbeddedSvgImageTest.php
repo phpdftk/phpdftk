@@ -75,14 +75,19 @@ final class EmbeddedSvgImageTest extends TestCase
         self::assertSame('', $ops);
     }
 
-    public function testAnSvgWithNoIntrinsicSizeAndNoImageDimensionsPaintsNothing(): void
+    public function testAZeroSizedNearestViewportLeavesADimensionlessImageUnpainted(): void
     {
-        // No viewBox, no width/height on either side: there is no
-        // concrete object size to render into.
+        // `auto` width/height fall back to the nearest SVG viewport as
+        // their default object size — when that viewport is itself
+        // degenerate there is nothing to render into.
         $uri = self::dataUri(
             '<svg xmlns="http://www.w3.org/2000/svg"><rect width="50" height="50" fill="green"/></svg>',
         );
-        $ops = $this->paintOps(self::host(sprintf('<image href="%s"/>', $uri)));
+        $ops = $this->paintOps(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . sprintf('<image href="%s"/>', $uri)
+            . '</svg>',
+        );
         self::assertSame('', $ops);
     }
 
@@ -254,6 +259,43 @@ final class EmbeddedSvgImageTest extends TestCase
         ));
         self::assertStringContainsString('1 0 0 1 0 0 cm', $ops);
         self::assertStringContainsString('0 0 100 100 re', $ops);
+    }
+
+    public function testDimensionlessImageAndResourceFillTheNearestViewport(): void
+    {
+        // SVG 2 §8.6 — `width` / `height` on `<image>` are `auto`, and
+        // a resource with no intrinsic size has no concrete object
+        // size of its own, so the default sizing algorithm falls back
+        // to the default object size: the nearest SVG viewport.
+        $uri = self::dataUri(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<rect width="100" height="100" fill="green"/></svg>',
+        );
+        $ops = $this->paintOps(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+            . sprintf('<image href="%s"/>', $uri)
+            . '</svg>',
+        );
+        self::assertStringContainsString('0 0 100 100 re', $ops);
+        self::assertStringContainsString('0 0.5019607843 0 rg', $ops);
+    }
+
+    public function testADimensionlessImageContainsAResourceThatOnlyHasARatio(): void
+    {
+        // Intrinsic ratio but no intrinsic size: the concrete object
+        // size is the largest rectangle of that ratio fitting the
+        // default object size (a contain constraint), so a 2:1
+        // resource in a 100x100 viewport is 100x50.
+        $uri = self::dataUri(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" preserveAspectRatio="none">'
+            . '<rect width="200" height="100" fill="green"/></svg>',
+        );
+        $ops = $this->paintOps(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+            . sprintf('<image href="%s"/>', $uri)
+            . '</svg>',
+        );
+        self::assertStringContainsString('0 0 100 50 re', $ops);
     }
 
     public function testTheReferencedContentIsClippedToTheImageViewport(): void

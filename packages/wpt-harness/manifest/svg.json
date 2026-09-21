@@ -364,14 +364,19 @@
             "reason": "CSS :visited pseudo-class on SVG fill — needs link-state cascade resolution"
         },
         {
-            "glob": "svg/embedded/image-embedding-nested-*data-url*",
+            "glob": "svg/embedded/image-embedding-nested-data-url-from-canvas*",
             "phase": "v2",
-            "reason": "Nested data: URLs in SVG <image> — needs recursive data-URL resolution"
+            "reason": "SVG <image> href produced at runtime by <canvas>.toDataURL() — needs canvas rasterisation and script execution, not the data-URL substrate"
         },
         {
-            "glob": "svg/embedded/image-embedding-nesteder-data-url*",
+            "glob": "svg/embedded/image-embedding-nested*data-url-png*",
             "phase": "v2",
-            "reason": "Deeper-nested data: URLs in SVG <image> (WPT name 'nesteder', not a typo here) — same substrate as nested data-url"
+            "reason": "Raster <image> nested inside an <img src=\"data:image/svg+xml\"> — the SVG painter embeds the PNG correctly when the document is rendered standalone, so what is missing is in the HTML <img>-to-SVG bridge, not in SVG <image>"
+        },
+        {
+            "glob": "svg/embedded/image-embedding-nested-external-data-url*",
+            "phase": "v2",
+            "reason": "<pattern patternContentUnits=\"objectBoundingBox\"> wrapping a <use> of an <image> — blocked on pattern content units, not on the <image> href"
         },
         {
             "glob": "svg/embedded/image-embedding-svg-nested-svg-in-foreignobject*",
