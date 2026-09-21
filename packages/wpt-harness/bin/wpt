@@ -396,7 +396,13 @@ switch ($subcommand) {
             exit(1);
         }
         foreach ($rows as $r) {
-            printf("%-4s  score=%.4f  %s\n", $r['passed'] ? 'PASS' : 'FAIL', $r['score'], $r['testId']);
+            printf(
+                "%-4s  %s  score=%.4f  %s\n",
+                $r['passed'] ? 'PASS' : 'FAIL',
+                $r['relation'],
+                $r['score'],
+                $r['testId'],
+            );
             if ($r['reason'] !== null) {
                 printf("      reason: %s\n", $r['reason']);
             }

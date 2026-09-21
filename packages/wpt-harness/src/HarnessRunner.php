@@ -21,6 +21,8 @@ namespace Phpdftk\WptHarness;
  * `$wptRoot`. Files matching `*-ref.*` are treated as reference
  * renderings (skipped — they're the expected output for some
  * other test, not a test themselves).
+ *
+ * @phpstan-import-type DiffResult from Scorer
  */
 final class HarnessRunner
 {
@@ -161,7 +163,7 @@ final class HarnessRunner
      * options, same `Rasteriser`, same `Scorer`) so the artefacts match
      * what `run` scores — no divergence from a hand-rolled renderer.
      *
-     * @return list<array{testId: string, score: float, passed: bool, rendered: ?string, reference: ?string, diff: ?string, reason: ?string}>
+     * @return list<array{testId: string, score: float, passed: bool, relation: string, rendered: ?string, reference: ?string, diff: ?string, reason: ?string}>
      */
     public function renderDiffArtefacts(?string $filter, string $outDir, int $limit = 20): array
     {
@@ -191,7 +193,7 @@ final class HarnessRunner
     }
 
     /**
-     * @return array{testId: string, score: float, passed: bool, rendered: ?string, reference: ?string, diff: ?string, reason: ?string}
+     * @return array{testId: string, score: float, passed: bool, relation: string, rendered: ?string, reference: ?string, diff: ?string, reason: ?string}
      */
     private function renderOneArtefact(string $testId, string $outDir): array
     {
@@ -199,6 +201,7 @@ final class HarnessRunner
             'testId' => $testId,
             'score' => 1.0,
             'passed' => false,
+            'relation' => ReferenceRelation::Match->value,
             'rendered' => null,
             'reference' => null,
             'diff' => null,
@@ -214,12 +217,17 @@ final class HarnessRunner
 
             return $row;
         }
-        $refPath = $this->locateReference($testPath);
-        if ($refPath === null) {
-            $row['reason'] = 'no -ref sibling / rel=match reference';
+        $references = $this->references($testPath);
+        if ($references === []) {
+            $row['reason'] = 'no -ref sibling / rel=match|mismatch reference';
 
             return $row;
         }
+        // Artefacts are a debugging aid, so show the first reference
+        // WPT would try rather than every one of them.
+        $reference = $references[0];
+        $refPath = $reference->path;
+        $row['relation'] = $reference->relation->value;
         try {
             $renderedPng = $this->renderToPng($testPath);
         } catch (\Throwable $e) {
@@ -251,7 +259,7 @@ final class HarnessRunner
         }
 
         $row['score'] = $diff['score'];
-        $row['passed'] = $diff['passed'];
+        $row['passed'] = $reference->relation->satisfiedBy($diff['passed']);
         $row['rendered'] = is_file($base . '-rendered.png') ? $base . '-rendered.png' : null;
         $row['reference'] = is_file($base . '-ref.png') ? $base . '-ref.png' : null;
         $row['diff'] = is_file($base . '-diff.png') ? $base . '-diff.png' : null;
@@ -261,9 +269,39 @@ final class HarnessRunner
 
     /**
      * Render an in-scope test, rasterise the resulting PDF, and
-     * visually-diff against its WPT reference. Tests without a
-     * `*-ref.{png,html,xht,svg}` sibling are reported as Skipped
-     * — the harness can't know what "pass" means without one.
+     * visually-diff it against its WPT references. Tests that declare
+     * no reference and have no `*-ref.{png,html,xht,svg}` sibling are
+     * reported as Skipped — the harness can't know what "pass" means
+     * without one.
+     *
+     * The verdict over a multi-reference fixture is the one in
+     * `docs/writing-tests/reftests.md`:
+     *
+     *     If there are any match references, at least one must match,
+     *     and if there are any mismatch references, all must mismatch.
+     *
+     * Read on its own, `executors/base.py::run_test` looks like a
+     * plain disjunction — it walks a stack of references and returns
+     * PASS at the first satisfied one. The conjunction over the
+     * mismatches comes from the shape of the tree it is walking,
+     * which `wpttest.py::ReftestTest.from_manifest` builds: mismatch
+     * references are chained BEHIND the match references rather than
+     * listed beside them, so reaching a leaf means clearing one match
+     * AND every mismatch. Porting the executor without that tree
+     * would turn "must not look like this" into an alternative way to
+     * pass — the exact opposite of the assertion the fixture makes.
+     *
+     * One deliberate simplification: WPT compares each mismatch
+     * reference against the match reference that just succeeded (its
+     * chain is `ref != mismatch`), because that screenshot is already
+     * in its cache. This compares the *test* against each mismatch
+     * reference instead. It is the same assertion — the test and the
+     * matched reference were just shown to be equal — and it is the
+     * one the documentation states.
+     *
+     * (wptrunner also recurses into a reference\'s own `rel=match`
+     * links, so a reference can have references. The harness does not
+     * follow those chains yet.)
      */
     private function runRendered(string $testId): TestResult
     {
@@ -289,13 +327,13 @@ final class HarnessRunner
                 renderMicros: 0.0,
             );
         }
-        $refPath = $this->locateReference($testPath);
-        if ($refPath === null) {
+        $references = $this->references($testPath);
+        if ($references === []) {
             return new TestResult(
                 testId: $testId,
                 status: TestStatus::Skipped,
                 diffScore: 0.0,
-                reason: 'no -ref.{png,html,xht,svg} sibling found',
+                reason: 'no rel=match / rel=mismatch reference and no -ref.{png,html,xht,svg} sibling',
                 diffArtefactPath: null,
                 renderMicros: 0.0,
             );
@@ -316,37 +354,203 @@ final class HarnessRunner
         }
         $renderMicros = (hrtime(true) - $start) / 1000.0;
 
-        try {
-            $refPng = str_ends_with(strtolower($refPath), '.png')
-                ? $refPath
-                : $this->renderToPng($refPath);
-        } catch (\Throwable $e) {
-            @unlink($renderedPng);
-            return new TestResult(
-                testId: $testId,
-                status: TestStatus::HarnessError,
-                diffScore: 1.0,
-                reason: 'reference render failed: ' . $e->getMessage(),
-                diffArtefactPath: null,
-                renderMicros: $renderMicros,
-            );
-        }
+        // "At least one match must match" and "all mismatches must
+        // mismatch" are two different quantifiers, so they are two
+        // separate walks.
+        $matches = array_values(array_filter(
+            $references,
+            static fn(ReftestReference $r) => $r->relation === ReferenceRelation::Match,
+        ));
+        $mismatches = array_values(array_filter(
+            $references,
+            static fn(ReftestReference $r) => $r->relation === ReferenceRelation::Mismatch,
+        ));
 
-        $diff = $this->scorer->diff($renderedPng, $refPng, $this->fuzzyFor($testPath, $refPath));
-        @unlink($renderedPng);
-        if ($refPng !== $refPath) {
+        try {
+            $verdict = null;
+            foreach ($matches as $reference) {
+                $comparison = $this->compareAgainst($testPath, $renderedPng, $reference);
+                if ($comparison === null) {
+                    return $this->referenceRenderFailed($testId, $reference, $renderMicros, $verdict);
+                }
+                self::discard($verdict);
+                $verdict = $comparison;
+                if ($comparison['satisfied']) {
+                    break;
+                }
+            }
+            // No match reference held. Nothing downstream can rescue
+            // the test: a mismatch reference is an extra condition,
+            // never an alternative one.
+            if ($verdict !== null && !$verdict['satisfied']) {
+                return $this->fromVerdict($testId, $verdict, $renderMicros);
+            }
+
+            foreach ($mismatches as $reference) {
+                $comparison = $this->compareAgainst($testPath, $renderedPng, $reference);
+                if ($comparison === null) {
+                    return $this->referenceRenderFailed($testId, $reference, $renderMicros, $verdict);
+                }
+                if (!$comparison['satisfied']) {
+                    // Rendering the same as something the fixture says
+                    // it must differ from settles the whole test.
+                    self::discard($verdict);
+                    $verdict = $comparison;
+                    break;
+                }
+                // A satisfied mismatch only confirms a verdict the
+                // match walk already reached; keep it only when there
+                // was no match reference to reach one.
+                if ($verdict === null) {
+                    $verdict = $comparison;
+                } else {
+                    self::discard($comparison);
+                }
+            }
+
+            assert($verdict !== null);
+
+            return $this->fromVerdict($testId, $verdict, $renderMicros);
+        } finally {
+            @unlink($renderedPng);
+        }
+    }
+
+    /**
+     * Compare the already-rendered test frame against one reference.
+     * Returns null when the reference itself could not be rendered.
+     *
+     * @return array{diff: DiffResult, reference: ReftestReference, satisfied: bool}|null
+     */
+    private function compareAgainst(
+        string $testPath,
+        string $renderedPng,
+        ReftestReference $reference,
+    ): ?array {
+        try {
+            $refPng = str_ends_with(strtolower($reference->path), '.png')
+                ? $reference->path
+                : $this->renderToPng($reference->path);
+        } catch (\Throwable) {
+            return null;
+        }
+        $diff = $this->scorer->diff(
+            $renderedPng,
+            $refPng,
+            $this->fuzzyFor($testPath, $reference->path),
+        );
+        if ($refPng !== $reference->path) {
             @unlink($refPng);
         }
 
+        return [
+            'diff' => $diff,
+            'reference' => $reference,
+            // `$diff['passed']` is "the two frames are equal within
+            // whatever tolerance applies"; the relation decides what
+            // that means for the verdict.
+            'satisfied' => $reference->relation->satisfiedBy($diff['passed']),
+        ];
+    }
+
+    /**
+     * Turn the deciding comparison into the test's ledger row.
+     *
+     * @param array{diff: DiffResult, reference: ReftestReference, satisfied: bool} $verdict
+     */
+    private function fromVerdict(string $testId, array $verdict, float $renderMicros): TestResult
+    {
+        $diff = $verdict['diff'];
+
         return new TestResult(
             testId: $testId,
-            status: $diff['passed'] ? TestStatus::Pass : TestStatus::Fail,
+            status: $verdict['satisfied'] ? TestStatus::Pass : TestStatus::Fail,
             diffScore: $diff['score'],
-            reason: $diff['reason'],
+            reason: $verdict['satisfied'] ? null : self::unsatisfiedReason($verdict, $this->relativeToRoot(
+                $verdict['reference']->path,
+            )),
             diffArtefactPath: $diff['diffImage'] ?? null,
             renderMicros: $renderMicros,
-            bothRendersSolid: $diff['bothSolid'],
+            // A mismatch reference that the test DID match is a
+            // failure whose two frames are, by definition, equal —
+            // and can therefore be blank. That is not a blank pass,
+            // it is a caught one, so the flag stays off unless the
+            // verdict it is attached to is a pass.
+            bothRendersSolid: $verdict['satisfied'] && $diff['bothSolid'],
         );
+    }
+
+    /**
+     * Why an unsatisfied comparison failed. A match reference already
+     * carries the scorer's own reason (usually null — the score says
+     * it); a mismatch reference has to say out loud that matching *is*
+     * the failure, or the ledger reads as a test that failed with a
+     * perfect score.
+     *
+     * @param array{diff: DiffResult, reference: ReftestReference, satisfied: bool} $verdict
+     */
+    private static function unsatisfiedReason(array $verdict, string $referenceId): ?string
+    {
+        if ($verdict['reference']->relation === ReferenceRelation::Match) {
+            return $verdict['diff']['reason'];
+        }
+
+        return sprintf(
+            'rendered the same as its rel=mismatch reference (%s), which it must not match',
+            $referenceId,
+        );
+    }
+
+    /**
+     * A reference the harness could not render at all. That is a
+     * harness fault, not a renderer one, so it lands in its own
+     * bucket rather than counting against the pass rate.
+     *
+     * @param array{diff: DiffResult, reference: ReftestReference, satisfied: bool}|null $pending
+     */
+    private function referenceRenderFailed(
+        string $testId,
+        ReftestReference $reference,
+        float $renderMicros,
+        ?array $pending,
+    ): TestResult {
+        self::discard($pending);
+
+        return new TestResult(
+            testId: $testId,
+            status: TestStatus::HarnessError,
+            diffScore: 1.0,
+            reason: 'reference render failed for ' . $this->relativeToRoot($reference->path),
+            diffArtefactPath: null,
+            renderMicros: $renderMicros,
+        );
+    }
+
+    /**
+     * Drop the diff artefact of a comparison the runner is no longer
+     * going to report.
+     *
+     * @param array{diff: DiffResult, reference: ReftestReference, satisfied: bool}|null $comparison
+     */
+    private static function discard(?array $comparison): void
+    {
+        if ($comparison !== null && $comparison['diff']['diffImage'] !== null) {
+            @unlink($comparison['diff']['diffImage']);
+        }
+    }
+
+    /**
+     * A corpus path as it reads in a test ID — relative to the WPT
+     * root — for failure messages.
+     */
+    private function relativeToRoot(string $path): string
+    {
+        $rootAbs = realpath($this->wptRoot);
+        if ($rootAbs !== false && str_starts_with($path, $rootAbs . '/')) {
+            return substr($path, strlen($rootAbs) + 1);
+        }
+
+        return $path;
     }
 
     /**
@@ -415,15 +619,17 @@ final class HarnessRunner
     }
 
     /**
-     * Locate the reference rendering for a WPT reftest.
+     * The full reference list for a WPT reftest, in WPT's own order.
      *
-     * WPT's own manifest generator (`tools/manifest/sourcefile.py`)
-     * defines the reference set as:
+     * WPT's manifest generator (`tools/manifest/sourcefile.py`)
+     * builds it from two `findall`s and one map:
      *
-     *     match_links = self.root.findall(
-     *         ".//{http://www.w3.org/1999/xhtml}link[@rel='match']")
+     *     match_links    = root.findall(".//{…xhtml}link[@rel='match']")
+     *     mismatch_links = root.findall(".//{…xhtml}link[@rel='mismatch']")
+     *     reftest_nodes  = match_links + mismatch_links
+     *     rel_map = {"match": "==", "mismatch": "!="}
      *
-     * Three things follow, and this method honours all three:
+     * Four things follow, and this method honours all four:
      *
      *  1. The lookup is by **XHTML namespace**, not by literal tag
      *     spelling. SVG and XML fixtures declare their reference as
@@ -438,23 +644,41 @@ final class HarnessRunner
      *     filename sibling. 35 fixtures in the corpus carry both and
      *     disagree (e.g. `block-in-inline-remove-006.xht` declares
      *     `…-nosplit-ref.xht` while a `…-ref.xht` sibling also
-     *     exists); WPT scores the declared one.
-     *  3. `rel="mismatch"` is the negative relation and is *not*
-     *     selected by `[@rel='match']`. The harness does not yet
-     *     implement "must not match" semantics, so mismatch-only
-     *     fixtures stay Skipped (a follow-up).
+     *     exists); WPT scores the declared one. `rel=mismatch` counts
+     *     for this too — it is every bit as much a reftest link as
+     *     `rel=match`, so a fixture declaring only mismatch
+     *     references is scored against those, not against a `-ref`
+     *     sibling it never pointed at (28 corpus fixtures).
+     *  3. `rel="mismatch"` is the negative relation: the test must
+     *     render *differently* from that reference. It is carried
+     *     here as {@see ReferenceRelation::Mismatch} rather than
+     *     dropped, which is what used to leave 375 real reftests
+     *     (286 css, 56 html, 4 svg, 29 mathml) unscored.
+     *  4. Every match link precedes every mismatch link regardless of
+     *     document order, because WPT concatenates the two `findall`
+     *     results in that order. Within a relation, document order is
+     *     the order the references get tried.
      *
-     * The `<stem>-ref.*` sibling remains the fallback: it is a
-     * CSS-WG-era convention that predates `rel=match`, and 53 corpus
-     * fixtures still rely on it alone. PNG wins among siblings since
-     * it short-circuits a re-render.
+     * The `<stem>-ref.*` sibling remains the fallback for a fixture
+     * that declares no reftest link at all: it is a CSS-WG-era
+     * convention that predates `rel=match`, and 53 corpus fixtures
+     * still rely on it alone. PNG wins among siblings since it
+     * short-circuits a re-render. There is deliberately no
+     * `<stem>-notref.*` counterpart. WPT classifies those files as
+     * references (`sourcefile.py::name_is_reference`, which is why
+     * they are skipped as tests) but never links a test to one by
+     * filename, so inventing that edge could only manufacture passes
+     * — and it would buy almost nothing anyway: 5 in-scope fixtures
+     * corpus-wide have a `-notref` sibling and no `rel=mismatch`.
+     *
+     * @return list<ReftestReference>
      *
      * @internal Exposed for {@see \Phpdftk\WptHarness\Tests\ReferenceResolutionTest}.
      */
-    public function locateReference(string $testPath): ?string
+    public function references(string $testPath): array
     {
-        $declared = $this->locateLinkRelMatchReference($testPath);
-        if ($declared !== null) {
+        $declared = $this->declaredReftestReferences($testPath);
+        if ($declared !== []) {
             return $declared;
         }
         $info = pathinfo($testPath);
@@ -469,18 +693,43 @@ final class HarnessRunner
         foreach ($candidates as $cand) {
             $real = realpath($cand);
             if ($real !== false && is_file($real)) {
-                return $real;
+                return [new ReftestReference($real, ReferenceRelation::Match)];
             }
         }
+
+        return [];
+    }
+
+    /**
+     * The first `rel=match` reference, or null when the fixture
+     * declares none and has no `-ref` sibling.
+     *
+     * Kept for callers that want "the document this test is supposed
+     * to look like" and have no use for the negative relation — the
+     * gallery builder renders it as the reference panel. Scoring goes
+     * through {@see self::references()}, which is the whole list.
+     *
+     * @internal Exposed for {@see \Phpdftk\WptHarness\Tests\ReferenceResolutionTest}.
+     */
+    public function locateReference(string $testPath): ?string
+    {
+        foreach ($this->references($testPath) as $reference) {
+            if ($reference->relation === ReferenceRelation::Match) {
+                return $reference->path;
+            }
+        }
+
         return null;
     }
 
     /**
-     * Resolve the first `<link rel="match" href="…">` in a test file
-     * to an on-disk path. Tags are scanned in document order and the
-     * first one whose href resolves to an existing file wins — an
-     * unresolvable declaration falls through to the caller's
-     * filename-sibling fallback rather than poisoning the lookup.
+     * Resolve every `<link rel="match">` / `<link rel="mismatch">` in
+     * a test file to an on-disk path, matches first.
+     *
+     * Tags are scanned in document order within each relation. A
+     * declaration whose href doesn't resolve to a file is dropped
+     * rather than allowed to poison the lookup — WPT has a served URL
+     * for every reference, we only have the checkout.
      *
      * Accepts any namespace prefix on the element name (`html:link`,
      * `x:link`, …) and unquoted attribute values (`rel=match`), both
@@ -490,27 +739,35 @@ final class HarnessRunner
      * malformed test can't stall the harness. Verified against the
      * full corpus: zero fixtures declare their reference beyond that
      * offset.
+     *
+     * @return list<ReftestReference>
      */
-    private function locateLinkRelMatchReference(string $testPath): ?string
+    private function declaredReftestReferences(string $testPath): array
     {
         $head = @file_get_contents($testPath, false, null, 0, self::MARKUP_SCAN_BYTES);
         if ($head === false || $head === '') {
-            return null;
+            return [];
         }
-        foreach (self::elementsNamed($head, 'link') as $tag) {
-            if (self::attributeValue($tag, 'rel') !== 'match') {
-                continue;
-            }
-            $href = self::attributeValue($tag, 'href');
-            if ($href === null) {
-                continue;
-            }
-            $resolved = $this->resolveHref($testPath, $href);
-            if ($resolved !== null) {
-                return $resolved;
+        $tags = self::elementsNamed($head, 'link');
+        $references = [];
+        foreach ([ReferenceRelation::Match, ReferenceRelation::Mismatch] as $relation) {
+            $rel = $relation === ReferenceRelation::Match ? 'match' : 'mismatch';
+            foreach ($tags as $tag) {
+                if (self::attributeValue($tag, 'rel') !== $rel) {
+                    continue;
+                }
+                $href = self::attributeValue($tag, 'href');
+                if ($href === null) {
+                    continue;
+                }
+                $resolved = $this->resolveHref($testPath, $href);
+                if ($resolved !== null) {
+                    $references[] = new ReftestReference($resolved, $relation);
+                }
             }
         }
-        return null;
+
+        return $references;
     }
 
     /**

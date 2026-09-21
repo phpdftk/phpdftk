@@ -71,6 +71,9 @@ namespace Phpdftk\WptHarness;
  * one-pixel shift of an anti-aliased edge moves channels by far more
  * than 2/255 — and it is the only remaining divergence from WPT's
  * byte-exact default.
+ *
+ * @phpstan-type DiffResult array{score: float, passed: bool,
+ *     reason: string|null, diffImage: string|null, bothSolid: bool}
  */
 final class Scorer
 {
@@ -105,10 +108,13 @@ final class Scorer
      * threshold outright — see the class docblock.
      *
      * `bothSolid` is the evidence flag described on
-     * {@see self::isSolidColour()}: true when the comparison passed
-     * *and* neither side drew anything distinguishable. It is only
-     * evaluated on a pass — a failing comparison already carries its
-     * own signal, and the scan is not free.
+     * {@see self::isSolidColour()}: true when the two frames compared
+     * EQUAL *and* neither of them drew anything. It is only evaluated
+     * when they compared equal, because that is the only outcome
+     * blankness can manufacture; frames that differ have already drawn
+     * something different, and the scan is not free. Whether equal
+     * frames are a pass is the caller's question — a `rel=mismatch`
+     * reference makes them a failure.
      *
      * @return array{score: float, passed: bool, reason: string|null,
      *               diffImage: string|null, bothSolid: bool}
