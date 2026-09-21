@@ -12315,6 +12315,32 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(300.0, $pct->geometry->height, 0.5);
     }
 
+    public function testRowspanExtendedCellResolvesPercentageHeightChild(): void
+    {
+        // CSS Tables 3 §11.1 — a `rowspan` cell is extended to cover every
+        // row it spans in a post-pass, after the rows have resolved. That
+        // extension is the same post-layout assignment: a percentage-height
+        // child inside the spanning cell needs the cell re-laid-out.
+        $box = $this->buildTree(
+            '<html><body><table><tr>'
+            . '<td id="span" rowspan="2"><div id="pct"></div></td><td id="a"></td>'
+            . '</tr><tr><td id="b"></td></tr></table></body></html>',
+            'html, body { display: block; }
+             table { display: table; border-spacing: 0; }
+             tr { display: table-row; }
+             td { display: table-cell; width: 100px; vertical-align: top; }
+             #a, #b { height: 100px; }
+             #pct { display: block; height: 50%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $span = $this->findById($box, 'span');
+        $pct = $this->findById($box, 'pct');
+        self::assertNotNull($span);
+        self::assertNotNull($pct);
+        self::assertEqualsWithDelta(200.0, $span->geometry->height, 0.5);
+        self::assertEqualsWithDelta(100.0, $pct->geometry->height, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];

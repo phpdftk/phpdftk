@@ -16625,6 +16625,18 @@ final class BlockLayout
             // Only extend; never shrink below content height.
             if ($sum > $cell->geometry->height) {
                 $cell->geometry->height = $sum;
+                // Same post-layout size assignment as the per-row stretch:
+                // the spanning cell's block size is now definite, so its
+                // own formatting context has to observe it (percentage
+                // heights, `fr` rows, `flex-grow`). The re-layout
+                // recomputes the cell's height from its content, so pin
+                // the spanned extent back afterwards.
+                $cellCtx = $this->tableCellRelayoutContext($cell);
+                if ($cellCtx !== null
+                    && $this->relayoutStretchedToBlockSize($cell, $cellCtx, $sum)
+                ) {
+                    $cell->geometry->height = $sum;
+                }
             }
         }
     }
