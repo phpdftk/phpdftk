@@ -12236,6 +12236,60 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(85.0, $p->geometry->width, 0.5);
     }
 
+    public function testStretchedTableCellResolvesPercentageHeightChild(): void
+    {
+        // CSS Tables 3 §6.1 / CSS 2.1 §17.5.3 — a cell stretched to the row
+        // height has a DEFINITE block size, so a `height: 50%` child
+        // resolves against it. The stretch is applied after the cell's
+        // first layout pass, so it only reaches the child if the cell's
+        // formatting context is re-run against the stretched size.
+        $box = $this->buildTree(
+            '<html><body><div id="t"><div id="r">'
+            . '<div id="tall"></div><div id="short"><div id="pct"></div></div>'
+            . '</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; }
+             #r { display: table-row; }
+             #tall, #short { display: table-cell; width: 100px; }
+             #tall { height: 200px; }
+             #pct { display: block; height: 50%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $short = $this->findById($box, 'short');
+        $pct = $this->findById($box, 'pct');
+        self::assertNotNull($short);
+        self::assertNotNull($pct);
+        self::assertEqualsWithDelta(200.0, $short->geometry->height, 0.5);
+        self::assertEqualsWithDelta(100.0, $pct->geometry->height, 0.5);
+    }
+
+    public function testStretchedTableCellFeedsNestedFlexColumnFreeSpace(): void
+    {
+        // The same stretch makes a `height: 100%` COLUMN flex container
+        // inside the cell definite along its MAIN axis, so its `flex-grow`
+        // item has free space to absorb (CSS Flexbox 1 §9.7).
+        $box = $this->buildTree(
+            '<html><body><div id="t"><div id="r">'
+            . '<div id="tall"></div><div id="short">'
+            . '<div id="col"><div id="grower"></div></div>'
+            . '</div></div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; }
+             #r { display: table-row; }
+             #tall, #short { display: table-cell; width: 100px; }
+             #tall { height: 200px; }
+             #col { display: flex; flex-direction: column; height: 100%; }
+             #grower { flex-grow: 1; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $col = $this->findById($box, 'col');
+        $grower = $this->findById($box, 'grower');
+        self::assertNotNull($col);
+        self::assertNotNull($grower);
+        self::assertEqualsWithDelta(200.0, $col->geometry->height, 0.5);
+        self::assertEqualsWithDelta(200.0, $grower->geometry->height, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];

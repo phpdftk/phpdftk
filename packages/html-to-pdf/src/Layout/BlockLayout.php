@@ -1087,6 +1087,13 @@ final class BlockLayout
         $maxHeight = 0.0;
         $rowIndex = $this->resolveRowIndex($row);
         $cellCursorFallback = 0; // when no precomputed grid is present
+        // The row-height stretch below re-runs each cell's own layout
+        // against its now-definite block size, which needs the very
+        // context the first pass used (the cell's column width + its
+        // origin) — recomputing it there would duplicate the whole
+        // column-offset walk.
+        /** @var array<int, LayoutContext> $cellContexts */
+        $cellContexts = [];
         foreach ($cells as $i => $cell) {
             $span = $colspans[$i];
             $col = $this->resolveCellColumn($cell, $cellCursorFallback);
@@ -1106,6 +1113,7 @@ final class BlockLayout
             $cellCtx = $context
                 ->withContainingBlock($cellWidth, $context->containingBlockHeight)
                 ->withOrigin($cellX, $geo->y);
+            $cellContexts[$i] = $cellCtx;
             // Resolve cell-level CSS lengths against the cell's containing
             // block before recursing (mirrors `layoutBlock`'s pre-pass).
             $this->cascade->resolveLengths($cell->style, $this->boxLengthContext($cell, $cellCtx));
@@ -1128,7 +1136,7 @@ final class BlockLayout
         // `vertical-align: middle | bottom` shifts the cell's children
         // down by half / all of the slack so the content sits centred /
         // at the bottom of the row.
-        foreach ($cells as $cell) {
+        foreach ($cells as $i => $cell) {
             $cellGeo = $cell->geometry;
             // `$maxHeight` is the tallest cell's OUTER (border-box) height,
             // i.e. the row height. A cell's border box must fill the row,
@@ -1142,6 +1150,22 @@ final class BlockLayout
             $contentHeight = $cellGeo->height;
             $slack = $targetContent - $contentHeight;
             if ($slack > 0.0) {
+                // CSS 2.1 §17.5.3 / CSS Tables 3 "row layout" — the cell
+                // now has a DEFINITE block size (the row height), and that
+                // size is an input to the cell's own formatting context:
+                // a `height: %` child resolves against it and a nested
+                // `height: 100%` flex column gets a main axis to distribute
+                // `flex-grow` along. The first pass laid the subtree out
+                // against the pre-stretch, indefinite height, so the
+                // stretch has to be re-run rather than assigned.
+                if (isset($cellContexts[$i])) {
+                    $this->relayoutStretchedToBlockSize($cell, $cellContexts[$i], $targetContent);
+                    // Content that responded to the stretch now fills part
+                    // or all of the row, so `vertical-align` only has the
+                    // REMAINING slack to distribute — measured from the
+                    // re-laid-out content, not from the first pass'.
+                    $slack = max(0.0, $targetContent - $cellGeo->height);
+                }
                 $valign = $cell->style->get('vertical-align');
                 $shift = 0.0;
                 if ($valign instanceof \Phpdftk\Css\Value\Keyword) {
