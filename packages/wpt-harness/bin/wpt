@@ -296,6 +296,7 @@ switch ($subcommand) {
                 'pendingSubstrate' => $agg['pendingSubstrate'],
                 'skipped' => $agg['skipped'],
                 'harnessError' => $agg['harnessError'],
+                'blankPass' => $agg['blankPass'],
                 'inScopeTotal' => $agg['inScopeTotal'],
                 'inScopePassRate' => $agg['inScopePassRate'],
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
@@ -320,6 +321,16 @@ switch ($subcommand) {
         printf("    Harness errors:   %d\n", $agg['harnessError']);
         printf("\n  In-scope total:    %d\n", $agg['inScopeTotal']);
         printf("  In-scope pass:     %.2f%%\n", $agg['inScopePassRate'] * 100);
+        // Passes where BOTH renders came out a single solid colour.
+        // The harness renders the reference with the same engine as
+        // the test, so an unimplemented feature is absent from both
+        // sides and the two blank pages match. Reported, never
+        // auto-failed — a few fixtures do legitimately draw nothing.
+        printf(
+            "  Blank passes:      %d (%.1f%% of passes, no rendered evidence)\n",
+            $agg['blankPass'],
+            $agg['pass'] > 0 ? $agg['blankPass'] / $agg['pass'] * 100 : 0.0,
+        );
 
         if (!empty($parsed['opts']['show-fails'])) {
             $fails = array_filter(

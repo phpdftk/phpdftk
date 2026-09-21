@@ -345,6 +345,7 @@ final class HarnessRunner
             reason: $diff['reason'],
             diffArtefactPath: $diff['diffImage'] ?? null,
             renderMicros: $renderMicros,
+            bothRendersSolid: $diff['bothSolid'],
         );
     }
 

@@ -41,6 +41,7 @@ final class ReportPublisher
      *     pendingSubstrate: int,
      *     skipped: int,
      *     harnessError: int,
+     *     blankPass: int,
      *     inScopeTotal: int,
      *     inScopePassRate: float
      * }
@@ -55,6 +56,11 @@ final class ReportPublisher
             'skipped' => 0,
             'harnessError' => 0,
         ];
+        // Passes with nothing drawn on either side. A subset of
+        // `pass`, NOT a bucket of its own: a handful of fixtures
+        // legitimately render nothing, so this is reported as
+        // evidence-quality metadata and never as a verdict.
+        $blankPass = 0;
         foreach ($results as $result) {
             $counts[match ($result->status) {
                 TestStatus::Pass => 'pass',
@@ -64,6 +70,9 @@ final class ReportPublisher
                 TestStatus::Skipped => 'skipped',
                 TestStatus::HarnessError => 'harnessError',
             }]++;
+            if ($result->status === TestStatus::Pass && $result->bothRendersSolid) {
+                $blankPass++;
+            }
         }
         $inScopeTotal = $counts['pass'] + $counts['fail'];
         // PHP `int / int` returns int when divisible — force float so
@@ -71,6 +80,7 @@ final class ReportPublisher
         $inScopePassRate = $inScopeTotal > 0 ? (float) $counts['pass'] / $inScopeTotal : 0.0;
         return [
             ...$counts,
+            'blankPass' => $blankPass,
             'inScopeTotal' => $inScopeTotal,
             'inScopePassRate' => $inScopePassRate,
         ];

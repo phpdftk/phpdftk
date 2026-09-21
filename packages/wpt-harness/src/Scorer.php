@@ -38,6 +38,13 @@ namespace Phpdftk\WptHarness;
  */
 final class Scorer
 {
+    /**
+     * Grid step for {@see self::isSolidColour()}'s reject pass. 16px
+     * puts ~3.4k probes on a letter-size page, which rejects a page
+     * that drew anything in well under a millisecond.
+     */
+    private const SOLID_PROBE_STRIDE = 16;
+
     public function __construct(
         private readonly float $passThreshold = 0.01,
         private readonly string $compareBinary = 'compare',
@@ -52,8 +59,14 @@ final class Scorer
      * tolerance when it declared one. It replaces the harness default
      * threshold outright — see the class docblock.
      *
+     * `bothSolid` is the evidence flag described on
+     * {@see self::isSolidColour()}: true when the comparison passed
+     * *and* neither side drew anything distinguishable. It is only
+     * evaluated on a pass — a failing comparison already carries its
+     * own signal, and the scan is not free.
+     *
      * @return array{score: float, passed: bool, reason: string|null,
-     *               diffImage: string|null}
+     *               diffImage: string|null, bothSolid: bool}
      */
     public function diff(string $renderedPath, string $referencePath, ?FuzzyTolerance $fuzzy = null): array
     {
@@ -73,12 +86,16 @@ final class Scorer
         $diffImage = tempnam(sys_get_temp_dir(), 'wpt_diff_') . '.png';
 
         if ($fuzzy !== null && !$fuzzy->isTrivial()) {
-            return $this->diffAgainstDeclaredTolerance(
+            return $this->withSolidEvidence(
+                $this->diffAgainstDeclaredTolerance(
+                    $renderedPath,
+                    $referencePath,
+                    $diffImage,
+                    $fuzzy,
+                    $totalPixels,
+                ),
                 $renderedPath,
                 $referencePath,
-                $diffImage,
-                $fuzzy,
-                $totalPixels,
             );
         }
 
@@ -91,12 +108,104 @@ final class Scorer
         $errorPixels = (int) round($metric['raw']);
         $score = min(1.0, $errorPixels / $totalPixels);
 
-        return [
+        return $this->withSolidEvidence([
             'score' => $score,
             'passed' => $score <= $this->passThreshold,
             'reason' => null,
             'diffImage' => is_file($diffImage) ? $diffImage : null,
-        ];
+            'bothSolid' => false,
+        ], $renderedPath, $referencePath);
+    }
+
+    /**
+     * Fill in the `bothSolid` evidence flag for a finished
+     * comparison.
+     *
+     * Only a *passing* comparison is probed. On a fail the verdict
+     * already says the renders disagree, and the probe costs a full
+     * pixel scan of both frames.
+     *
+     * @param array{score: float, passed: bool, reason: string|null,
+     *              diffImage: string|null, bothSolid: bool} $result
+     * @return array{score: float, passed: bool, reason: string|null,
+     *               diffImage: string|null, bothSolid: bool}
+     */
+    private function withSolidEvidence(array $result, string $renderedPath, string $referencePath): array
+    {
+        if (!$result['passed']) {
+            return $result;
+        }
+        $result['bothSolid'] = self::isSolidColour($renderedPath)
+            && self::isSolidColour($referencePath);
+
+        return $result;
+    }
+
+    /**
+     * Does this image consist of exactly one colour?
+     *
+     * This is WPT's own `check_if_solid_color` criterion
+     * (`executors/base.py`), which reads the per-channel extrema of
+     * the RGB image and reports the screenshot as solid when every
+     * channel's min equals its max. Alpha is excluded because WPT
+     * converts to `RGB` before looking.
+     *
+     * WPT only ever *logs* it, because a browser comparing one
+     * document against another cannot produce two blank screenshots
+     * by accident. This harness can: it renders the test AND the
+     * reference with the same engine, so any feature the engine does
+     * not implement is absent from both sides and the two blank pages
+     * match perfectly. Such a pass carries no evidence that anything
+     * was rendered correctly — it only shows the two documents agree
+     * about drawing nothing.
+     *
+     * Returns false for an unreadable image: the caller is counting
+     * evidence, and no evidence of blankness is not evidence of
+     * blankness.
+     *
+     * Implementation note: the coarse grid pass exists only for
+     * speed. A sampled pixel that differs is a real difference, so
+     * the grid can reject but never confirm; anything that survives
+     * it is settled by the exhaustive scan.
+     */
+    public static function isSolidColour(string $path): bool
+    {
+        $image = @imagecreatefrompng($path);
+        if ($image === false) {
+            return false;
+        }
+        try {
+            // A palette image's `imagecolorat` returns an index, and
+            // two indices can name the same colour — promote so the
+            // comparison is over actual colour values.
+            if (!imageistruecolor($image) && !imagepalettetotruecolor($image)) {
+                return false;
+            }
+            $width = imagesx($image);
+            $height = imagesy($image);
+            if ($width < 1 || $height < 1) {
+                return false;
+            }
+            $first = imagecolorat($image, 0, 0) & 0xFFFFFF;
+            for ($y = 0; $y < $height; $y += self::SOLID_PROBE_STRIDE) {
+                for ($x = 0; $x < $width; $x += self::SOLID_PROBE_STRIDE) {
+                    if ((imagecolorat($image, $x, $y) & 0xFFFFFF) !== $first) {
+                        return false;
+                    }
+                }
+            }
+            for ($y = 0; $y < $height; $y++) {
+                for ($x = 0; $x < $width; $x++) {
+                    if ((imagecolorat($image, $x, $y) & 0xFFFFFF) !== $first) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        } finally {
+            imagedestroy($image);
+        }
     }
 
     /**
@@ -116,7 +225,7 @@ final class Scorer
      * `.count`.)
      *
      * @return array{score: float, passed: bool, reason: string|null,
-     *               diffImage: string|null}
+     *               diffImage: string|null, bothSolid: bool}
      */
     private function diffAgainstDeclaredTolerance(
         string $renderedPath,
@@ -150,6 +259,7 @@ final class Scorer
                 $pixelsDifferent,
             ),
             'diffImage' => is_file($diffImage) ? $diffImage : null,
+            'bothSolid' => false,
         ];
     }
 
@@ -205,7 +315,7 @@ final class Scorer
 
     /**
      * @return array{score: float, passed: bool, reason: string,
-     *               diffImage: null}
+     *               diffImage: null, bothSolid: bool}
      */
     private static function failure(string $reason): array
     {
@@ -214,6 +324,7 @@ final class Scorer
             'passed' => false,
             'reason' => $reason,
             'diffImage' => null,
+            'bothSolid' => false,
         ];
     }
 

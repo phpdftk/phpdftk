@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ReportPublisherAggregateTest extends TestCase
 {
-    private function row(string $id, TestStatus $status): TestResult
+    private function row(string $id, TestStatus $status, bool $bothRendersSolid = false): TestResult
     {
         return new TestResult(
             testId: $id,
@@ -28,6 +28,7 @@ final class ReportPublisherAggregateTest extends TestCase
             reason: null,
             diffArtefactPath: null,
             renderMicros: 0.0,
+            bothRendersSolid: $bothRendersSolid,
         );
     }
 
@@ -76,6 +77,38 @@ final class ReportPublisherAggregateTest extends TestCase
         self::assertSame(1, $agg['harnessError']);
         self::assertSame(1, $agg['inScopeTotal']);
         self::assertSame(1.0, $agg['inScopePassRate']);
+    }
+
+    public function testBlankPassesAreCountedWithoutChangingAnyVerdict(): void
+    {
+        // `blankPass` is a subset of `pass`, not a bucket of its own:
+        // it must not move the pass count, the in-scope denominator,
+        // or the rate. It exists so a run says out loud how many of
+        // its passes have nothing drawn behind them.
+        $results = [
+            $this->row('a', TestStatus::Pass, bothRendersSolid: true),
+            $this->row('b', TestStatus::Pass, bothRendersSolid: true),
+            $this->row('c', TestStatus::Pass),
+            $this->row('d', TestStatus::Fail),
+        ];
+        $agg = ReportPublisher::aggregate($results);
+
+        self::assertSame(2, $agg['blankPass']);
+        self::assertSame(3, $agg['pass']);
+        self::assertSame(4, $agg['inScopeTotal']);
+        self::assertEqualsWithDelta(0.75, $agg['inScopePassRate'], 1e-9);
+    }
+
+    public function testASolidFailIsNotABlankPass(): void
+    {
+        // Solid-on-both-sides is only interesting when it produced a
+        // PASS. A failure already carries its own signal.
+        $agg = ReportPublisher::aggregate([
+            $this->row('a', TestStatus::Fail, bothRendersSolid: true),
+            $this->row('b', TestStatus::Skipped, bothRendersSolid: true),
+        ]);
+
+        self::assertSame(0, $agg['blankPass']);
     }
 
     public function testSkippedTestsExcludedFromPassRate(): void

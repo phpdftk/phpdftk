@@ -129,6 +129,76 @@ final class ScorerTest extends TestCase
         self::assertTrue($result['passed']);
     }
 
+    public function testBlankVersusBlankStillPassesButIsFlaggedAsUnevidenced(): void
+    {
+        // Both fixtures are solid white. They match perfectly, so the
+        // verdict stays a PASS — WPT scores it the same way, and a
+        // handful of fixtures legitimately draw nothing. What the flag
+        // records is that neither side drew anything, so the pass is
+        // no evidence that the renderer got anything right.
+        $result = (new Scorer())->diff($this->renderedPng, $this->referencePng);
+
+        self::assertTrue($result['passed'], 'a blank-vs-blank pass must NOT be auto-failed');
+        self::assertTrue($result['bothSolid']);
+    }
+
+    public function testAPassWithDrawnContentIsNotFlaggedBlank(): void
+    {
+        $a = $this->makeDiffyPng(64, 64, 255, 255, 255, 8);
+        $b = $this->makeDiffyPng(64, 64, 255, 255, 255, 8);
+        try {
+            $result = (new Scorer())->diff($a, $b);
+
+            self::assertTrue($result['passed']);
+            self::assertFalse($result['bothSolid'], 'both frames drew 8 black pixels');
+        } finally {
+            @unlink($a);
+            @unlink($b);
+        }
+    }
+
+    public function testTwoSolidFramesOfDifferentColoursFailAndAreNotFlagged(): void
+    {
+        // Solid green against solid red is a real, maximal failure.
+        // The flag counts *passes* with no evidence, so it must stay
+        // false here even though both frames are solid.
+        $a = $this->makePng(64, 64, 0, 255, 0);
+        $b = $this->makePng(64, 64, 255, 0, 0);
+        try {
+            $result = (new Scorer())->diff($a, $b);
+
+            self::assertFalse($result['passed']);
+            self::assertFalse($result['bothSolid']);
+        } finally {
+            @unlink($a);
+            @unlink($b);
+        }
+    }
+
+    public function testSolidProbeSeesAPixelThatFallsBetweenItsGridSamples(): void
+    {
+        // The probe rejects most frames off a coarse 16px grid. A lone
+        // pixel at (1, 1) is invisible to every grid sample, so this
+        // only comes out right if the exhaustive scan really runs.
+        $img = imagecreatetruecolor(64, 64);
+        imagefill($img, 0, 0, imagecolorallocate($img, 255, 255, 255));
+        imagesetpixel($img, 1, 1, imagecolorallocate($img, 0, 0, 0));
+        $path = tempnam(sys_get_temp_dir(), 'scorer_test_') . '.png';
+        imagepng($img, $path);
+        imagedestroy($img);
+        try {
+            self::assertFalse(Scorer::isSolidColour($path));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testUnreadableImageIsNotCountedAsBlank(): void
+    {
+        // No evidence of blankness is not evidence of blankness.
+        self::assertFalse(Scorer::isSolidColour('/nonexistent/wpt-harness-probe.png'));
+    }
+
     private function makePng(int $w, int $h, int $r, int $g, int $b): string
     {
         $img = imagecreatetruecolor($w, $h);

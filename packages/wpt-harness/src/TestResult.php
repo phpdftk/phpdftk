@@ -46,6 +46,18 @@ final readonly class TestResult
      *                                dashboard can surface
      *                                performance regressions
      *                                alongside conformance ones.
+     * @param bool $bothRendersSolid  True when the test PASSED and
+     *                                both the test render and the
+     *                                reference render came out a
+     *                                single solid colour — WPT's
+     *                                `check_if_solid_color`
+     *                                criterion. Because this harness
+     *                                renders both sides with its own
+     *                                engine, an unimplemented feature
+     *                                is missing from both and the two
+     *                                blank pages match: a pass with
+     *                                no evidence behind it. Reported
+     *                                as `blankPass`; never a verdict.
      */
     public function __construct(
         public string $testId,
@@ -54,5 +66,6 @@ final readonly class TestResult
         public ?string $reason,
         public ?string $diffArtefactPath,
         public float $renderMicros,
+        public bool $bothRendersSolid = false,
     ) {}
 }
