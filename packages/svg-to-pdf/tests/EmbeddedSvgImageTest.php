@@ -134,6 +134,27 @@ final class EmbeddedSvgImageTest extends TestCase
         self::assertLessThan(10, substr_count($ops, ' re'));
     }
 
+    public function testAnInlineHexColourIsNotMistakenForAUrlFragment(): void
+    {
+        // `#` is the RFC 3986 fragment delimiter, so a payload that
+        // inlines an unencoded hex colour would be truncated mid-
+        // document by a naive split. The fragment can only be the
+        // whole remainder after the document's final `>`.
+        $uri = 'data:image/svg+xml,' . str_replace(
+            '%23',
+            '#',
+            rawurlencode(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50">'
+                . '<rect width="50" height="50" fill="#008000"/></svg>',
+            ),
+        );
+        $ops = $this->paintOps(self::host(
+            sprintf('<image width="100" height="100" href="%s"/>', $uri),
+        ));
+        self::assertStringContainsString('0 0 50 50 re', $ops);
+        self::assertStringContainsString('0 0.5019607843 0 rg', $ops);
+    }
+
     public function testANonSvgDataUriStillTakesTheRasterPath(): void
     {
         // A payload that merely mentions `<svg` inside other markup is

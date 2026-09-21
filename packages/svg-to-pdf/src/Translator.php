@@ -1889,6 +1889,7 @@ final class Translator
                 return;
             }
             $bytes = $decoded['bytes'];
+            $fragment = $decoded['fragment'];
         } elseif (str_starts_with($locator, 'http://') || str_starts_with($locator, 'https://')) {
             if ($this->resourceLoader === null) {
                 return;
@@ -1962,6 +1963,16 @@ final class Translator
      */
     private static function splitHrefFragment(string $href): array
     {
+        if (str_starts_with($href, 'data:')) {
+            // A `data:` URI carries its payload inline, so splitting on
+            // a bare `#` would truncate any document that inlines an
+            // unencoded hex colour (`fill='#0f0'`) — technically
+            // malformed per RFC 3986, but common enough that silently
+            // blanking those documents is worse than ignoring a
+            // fragment. {@see decodeDataUri} peels the fragment off the
+            // decoded bytes instead, where it can tell the two apart.
+            return [$href, null];
+        }
         $hash = strpos($href, '#');
         if ($hash === false) {
             return [$href, null];
@@ -1971,9 +1982,7 @@ final class Translator
         if ($locator === '') {
             return [$href, null];
         }
-        $isUrl = str_starts_with($href, 'data:')
-            || str_starts_with($href, 'http://')
-            || str_starts_with($href, 'https://');
+        $isUrl = str_starts_with($href, 'http://') || str_starts_with($href, 'https://');
         if (!$isUrl && !is_file($locator)) {
             return [$href, null];
         }
@@ -2287,7 +2296,16 @@ final class Translator
      * but is not authoritative — `ImageParser::parse` still sniffs the
      * actual bytes to determine the PDF colour space + filter.
      *
-     * @return array{bytes: string, mime: string}|null
+     * A URL fragment (`…svg%3e#view`) is peeled off here rather than
+     * by {@see splitHrefFragment}, because only after decoding can a
+     * real fragment be told apart from a `#` the author inlined in the
+     * payload. Base64 data has an alphabet that excludes `#`, so the
+     * first one delimits; percent-encoded data can contain anything,
+     * so a fragment is recognised only when it is the whole remainder
+     * after the document's final `>` — which an inline `fill='#0f0'`
+     * never is.
+     *
+     * @return array{bytes: string, mime: string, fragment: string|null}|null
      */
     private static function decodeDataUri(string $uri): ?array
     {
@@ -2312,15 +2330,29 @@ final class Translator
                 }
             }
         }
+        $fragment = null;
         if ($isBase64) {
+            $hash = strpos($data, '#');
+            if ($hash !== false) {
+                $fragment = substr($data, $hash + 1);
+                $data = substr($data, 0, $hash);
+            }
             $bytes = base64_decode($data, true);
             if ($bytes === false) {
                 return null;
             }
         } else {
             $bytes = rawurldecode($data);
+            if (preg_match('/^(?<doc>.*>)\s*#(?<fragment>[^>#\s]+)\s*$/s', $bytes, $m) === 1) {
+                $bytes = $m['doc'];
+                $fragment = $m['fragment'];
+            }
         }
-        return ['bytes' => $bytes, 'mime' => $mime];
+        return [
+            'bytes' => $bytes,
+            'mime' => $mime,
+            'fragment' => ($fragment === null || $fragment === '') ? null : $fragment,
+        ];
     }
 
     /**
