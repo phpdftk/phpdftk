@@ -870,6 +870,8 @@ final class BlockLayout
             $prevGrid = $this->currentTableCellGrid;
             $prevRowHeights = $this->currentTableRowHeights;
             $prevCellRefs = $this->resolvedCellReferences;
+            $prevCellContexts = $this->tableCellContexts;
+            $this->tableCellContexts = [];
             $prevSpacingH = $this->currentBorderSpacingH;
             $prevSpacingV = $this->currentBorderSpacingV;
             // CSS 2.1 §17.6.1 — separated-borders `border-spacing`. Gated
@@ -937,6 +939,7 @@ final class BlockLayout
                 $this->currentTableCellGrid = $prevGrid;
                 $this->currentTableRowHeights = $prevRowHeights;
                 $this->resolvedCellReferences = $prevCellRefs;
+                $this->tableCellContexts = $prevCellContexts;
                 $this->currentBorderSpacingH = $prevSpacingH;
                 $this->currentBorderSpacingV = $prevSpacingV;
             }
@@ -1114,6 +1117,7 @@ final class BlockLayout
                 ->withContainingBlock($cellWidth, $context->containingBlockHeight)
                 ->withOrigin($cellX, $geo->y);
             $cellContexts[$i] = $cellCtx;
+            $this->tableCellContexts[spl_object_id($cell)] = $cellCtx;
             // Resolve cell-level CSS lengths against the cell's containing
             // block before recursing (mirrors `layoutBlock`'s pre-pass).
             $this->cascade->resolveLengths($cell->style, $this->boxLengthContext($cell, $cellCtx));
@@ -12618,15 +12622,20 @@ final class BlockLayout
      * Callers assign the stretched height themselves; the re-layout
      * recomputes the box's height from its content, so they must restore
      * it afterwards (the flex cross-stretch path does the same).
+     *
+     * Returns whether the second pass actually ran — a caller that also
+     * aligns the box's content needs to know, because the re-layout
+     * re-places every child from the box's content origin and therefore
+     * discards any shift an earlier pass applied.
      */
     private function relayoutStretchedToBlockSize(
         Box $box,
         LayoutContext $context,
         float $contentHeight,
         ?float $contentWidth = null,
-    ): void {
+    ): bool {
         if ($contentHeight <= 0.0) {
-            return;
+            return false;
         }
         $isFlex = $box instanceof \Phpdftk\HtmlToPdf\Box\FlexBox;
         $isGrid = $box instanceof \Phpdftk\HtmlToPdf\Box\GridBox;
@@ -12634,7 +12643,7 @@ final class BlockLayout
         // EXCEPT where a descendant resolves a percentage against it, so
         // the common case skips the second pass entirely.
         if (!$isFlex && !$isGrid && !$this->subtreeHasPercentageHeight($box)) {
-            return;
+            return false;
         }
         // The first pass already registered this subtree's floats. Running
         // it again would register them a SECOND time, and the second pass
@@ -12670,6 +12679,7 @@ final class BlockLayout
         if ($floats !== null && $floatSnapshot !== null) {
             $floats->restore($floatSnapshot);
         }
+        return true;
     }
 
     /**
@@ -16537,16 +16547,34 @@ final class BlockLayout
                 if (!($cell instanceof \Phpdftk\HtmlToPdf\Box\TableCellBox)) {
                     continue;
                 }
-                $cell->geometry->height += $share;
+                $cellGeo = $cell->geometry;
+                $grown = $cellGeo->height + $share;
+                // CSS Tables 3 "row layout" — the distributed surplus is
+                // part of the cell's used block size, and that size is an
+                // input to the cell's own formatting context: a
+                // `height: %` child resolves against it, a nested flex
+                // column gets a main axis to distribute `flex-grow` along.
+                // Growing the geometry alone leaves the subtree sized
+                // against the pre-distribution height, so re-run it.
+                $cellCtx = $this->tableCellRelayoutContext($cell);
+                $relaidOut = $cellCtx !== null
+                    && $this->relayoutStretchedToBlockSize($cell, $cellCtx, $grown);
                 // Honour vertical-align for the newly-added slack (the
                 // initial per-row stretch already placed content for the
-                // pre-distribution height).
+                // pre-distribution height). After a re-layout that is no
+                // longer true — every child was re-placed from the cell's
+                // content origin — so the alignment applies to ALL of the
+                // leftover, not just this pass' share.
+                $alignSlack = $relaidOut
+                    ? max(0.0, $grown - $cellGeo->height)
+                    : $share;
+                $cellGeo->height = $grown;
                 $valign = $cell->style->get('vertical-align');
                 $vshift = 0.0;
                 if ($valign instanceof Keyword) {
                     $vshift = match (strtolower($valign->name)) {
-                        'middle' => $share / 2.0,
-                        'bottom', 'baseline' => $share,
+                        'middle' => $alignSlack / 2.0,
+                        'bottom', 'baseline' => $alignSlack,
                         default => 0.0,
                     };
                 }
@@ -16609,6 +16637,49 @@ final class BlockLayout
      * @var array<int, \Phpdftk\HtmlToPdf\Box\TableCellBox>
      */
     private array $resolvedCellReferences = [];
+
+    /**
+     * Each table cell's first-pass {@see LayoutContext}, keyed by
+     * `spl_object_id` and recorded by {@see layoutTableRow}.
+     *
+     * The table post-passes ({@see finalizeRowspanHeights},
+     * {@see distributeTableExtraHeight}) grow a cell's block size after
+     * the whole table has been laid out. Re-running the cell's own
+     * formatting context against the grown size needs the context that
+     * sized and positioned it in the first place — rebuilding one there
+     * would mean repeating the entire column-offset walk.
+     *
+     * Rebuilt per table layout and restored by the same `finally` that
+     * restores the rest of the `current*` table state.
+     *
+     * @var array<int, LayoutContext>
+     */
+    private array $tableCellContexts = [];
+
+    /**
+     * A table cell's recorded layout context, re-anchored to the cell's
+     * CURRENT position.
+     *
+     * {@see distributeTableExtraHeight} shifts each row down past the
+     * rows it grew above it, so by post-pass time the recorded origin is
+     * stale — re-running the cell's layout from it would teleport the
+     * cell back to where the first pass put it. The content-box origin is
+     * recoverable from the cell's own geometry, which the shift keeps up
+     * to date.
+     */
+    private function tableCellRelayoutContext(
+        \Phpdftk\HtmlToPdf\Box\TableCellBox $cell,
+    ): ?LayoutContext {
+        $context = $this->tableCellContexts[spl_object_id($cell)] ?? null;
+        if ($context === null) {
+            return null;
+        }
+        $geo = $cell->geometry;
+        return $context->withOrigin(
+            $geo->x - $geo->marginLeft - $geo->borderLeft - $geo->paddingLeft,
+            $geo->y - $geo->marginTop - $geo->borderTop - $geo->paddingTop,
+        );
+    }
 
     /**
      * CSS 2.1 §17.5.1 — "the table header group is rendered before all

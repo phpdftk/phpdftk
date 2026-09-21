@@ -12290,6 +12290,31 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(200.0, $grower->geometry->height, 0.5);
     }
 
+    public function testTableHeightDistributionReachesPercentageHeightCellChild(): void
+    {
+        // CSS 2.1 §17.5.3 — a table taller than its rows' content spreads
+        // the surplus over the rows, growing every cell. That growth is
+        // another post-layout size assignment, so a `height: 100%` child
+        // only sees it if the grown cell is re-laid-out.
+        $box = $this->buildTree(
+            '<html><body><div id="t"><div id="r">'
+            . '<div id="cell"><div id="pct"></div></div>'
+            . '</div></div></body></html>',
+            'html, body { display: block; }
+             #t { display: table; height: 300px; }
+             #r { display: table-row; }
+             #cell { display: table-cell; width: 100px; vertical-align: top; }
+             #pct { display: block; height: 100%; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $cell = $this->findById($box, 'cell');
+        $pct = $this->findById($box, 'pct');
+        self::assertNotNull($cell);
+        self::assertNotNull($pct);
+        self::assertEqualsWithDelta(300.0, $cell->geometry->height, 0.5);
+        self::assertEqualsWithDelta(300.0, $pct->geometry->height, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];
