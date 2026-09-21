@@ -6504,6 +6504,58 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(-81.9, $p->lineBoxes[0]->y, 0.05);
     }
 
+    public function testTextBoxTrimPropagatesThroughMarginButNotPadding(): void
+    {
+        // CSS Inline 3 §6.4 — the trim reaches a descendant's first line
+        // only if nothing separates that line from the trimming block's
+        // content edge. A margin does not separate them (it collapses),
+        // but padding does, and a padded child is left untrimmed.
+        $css = 'html, body, div { display: block; }
+                #outer { font-family: noto; font-size: 100px;
+                         line-height: 300px; text-box-trim: trim-start; }';
+
+        $margin = $this->buildTree(
+            '<html><body><div id="outer"><div id="inner">X</div></div></body></html>',
+            $css . ' #inner { margin-top: 10px; }',
+        );
+        $this->layout->layout($margin, $this->notoCtx());
+        self::assertEqualsWithDelta(
+            -81.9,
+            $this->findById($margin, 'inner')?->lineBoxes[0]->y ?? 0.0,
+            0.05,
+            'a margin must not block text-box-trim propagation',
+        );
+
+        $padding = $this->buildTree(
+            '<html><body><div id="outer"><div id="inner">X</div></div></body></html>',
+            $css . ' #inner { padding-top: 10px; }',
+        );
+        $this->layout->layout($padding, $this->notoCtx());
+        self::assertEqualsWithDelta(
+            0.0,
+            $this->findById($padding, 'inner')?->lineBoxes[0]->y ?? -1.0,
+            0.05,
+            'padding on the trimmed edge must block propagation',
+        );
+    }
+
+    public function testTextBoxTrimPropagationBlockedByBorder(): void
+    {
+        // CSS Inline 3 §6.4 — a border blocks propagation for the same
+        // reason padding does.
+        $box = $this->buildTree(
+            '<html><body><div id="outer"><div id="inner">X</div></div></body></html>',
+            'html, body, div { display: block; }
+             #outer { font-family: noto; font-size: 100px; line-height: 300px;
+                      text-box-trim: trim-start; }
+             #inner { border-top: 10px solid black; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $inner = $this->findById($box, 'inner');
+        self::assertNotNull($inner);
+        self::assertEqualsWithDelta(0.0, $inner->lineBoxes[0]->y, 0.05);
+    }
+
     public function testInlineWithBlockChildPromotesToAnonymousBlock(): void
     {
         // CSS 2.1 §9.2.1.1 — when an inline element has a block-level

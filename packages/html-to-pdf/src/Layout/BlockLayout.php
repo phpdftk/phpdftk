@@ -751,6 +751,14 @@ final class BlockLayout
             ) {
                 continue;
             }
+            // CSS Inline 3 §6.4 — padding or a border on the edge being
+            // trimmed separates the child's line from the trimming
+            // block's content edge, so the trim stops here. Margins do
+            // NOT block it: they collapse away rather than reserving
+            // space the text edge would have to cross.
+            if ($this->blocksTextBoxTrimPropagation($child, $last)) {
+                return null;
+            }
             $sub = $this->findLineHostPath($child, $last);
             if ($sub !== null) {
                 return [$box, ...$sub];
@@ -761,6 +769,20 @@ final class BlockLayout
             return null;
         }
         return null;
+    }
+
+    /**
+     * Whether descending into `$box` crosses padding or a border on the
+     * edge being trimmed, which blocks `text-box-trim` propagation
+     * (CSS Inline 3 §6.4). Reads the USED values off the laid-out
+     * geometry rather than re-resolving the cascade.
+     */
+    private function blocksTextBoxTrimPropagation(Box $box, bool $last): bool
+    {
+        $padding = $last ? $box->geometry->paddingBottom : $box->geometry->paddingTop;
+        $border = $last ? $box->geometry->borderBottom : $box->geometry->borderTop;
+
+        return $padding > 0.0 || $border > 0.0;
     }
 
     /**
