@@ -247,14 +247,26 @@ final class Translator
             : null;
         try {
             $viewBox = $document->viewBox();
-            if ($viewBox !== null && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)) {
-                // SVG 2 §7 — the viewBox's `min-x`/`min-y` shift the
+            if (
+                $baseMatrix === null
+                && $viewBox !== null
+                && ($viewBox[0] !== 0.0 || $viewBox[1] !== 0.0)
+            ) {
+                // SVG 2 §7.7 — the viewBox's `min-x`/`min-y` shift the
                 // origin of the local coordinate system. The proper
                 // viewBox-to-viewport mapping (with `preserveAspectRatio`)
                 // needs a caller-supplied target rectangle, so it lives
                 // in the 3R adapter layer; here we honour just the
                 // translation so the painted content stays anchored
                 // correctly relative to the viewBox.
+                //
+                // ONLY when the caller did not hand us a `$baseMatrix`.
+                // `SvgRenderer::draw` already folds the shift into the
+                // matrix it concatenates (`e = x + offsetX - minX * sx`),
+                // so doing it again here translated the content a second
+                // time — and UNSCALED, which pushed every document with a
+                // non-zero viewBox min-x clean off the page and rendered
+                // it blank.
                 $stream->saveGraphicsState();
                 $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, -$viewBox[0], -$viewBox[1]);
                 $this->pushMatrix([1.0, 0.0, 0.0, 1.0, -$viewBox[0], -$viewBox[1]]);
