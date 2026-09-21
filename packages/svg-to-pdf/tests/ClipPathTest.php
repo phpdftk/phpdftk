@@ -465,4 +465,82 @@ final class ClipPathTest extends TestCase
         self::assertStringNotContainsString(' cm', $ops);
         self::assertStringContainsString('0 0 10 10 re', $ops);
     }
+    /**
+     * CSS Masking 1 §6.1 / SVG 2 §14.4 — `clip-path` ON a `<clipPath>`
+     * element further restricts the clipping region it describes: the
+     * effective region is the INTERSECTION of the clipPath's own child
+     * geometry and the region its `clip-path` reference describes.
+     * Previously the attribute was ignored on the clipPath element, so
+     * the referencing element was clipped to the inner geometry alone.
+     */
+    public function testClipPathOnClipPathElementIntersectsBothRegions(): void
+    {
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="outer"><rect x="50" y="50" width="100" height="100"/></clipPath>'
+            . '<clipPath id="inner" clip-path="url(#outer)">'
+            . '<rect width="200" height="200"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect width="200" height="200" fill="green" clip-path="url(#inner)"/>'
+            . '</svg>',
+        );
+        $lines = explode("\n", $ops);
+        // Both regions are constructed and frozen inside the one q/Q
+        // wrap, so the PDF clip is their intersection.
+        self::assertSame(2, count(array_keys($lines, 'W', true)));
+        $outer = array_search('50 50 100 100 re', $lines, true);
+        $inner = array_search('0 0 200 200 re', $lines, true);
+        self::assertNotFalse($outer);
+        self::assertNotFalse($inner);
+        // Referenced region is emitted before this clipPath's own
+        // geometry, and both precede the fill.
+        self::assertLessThan($inner, $outer);
+        self::assertLessThan(array_search('f', $lines, true), $inner);
+    }
+
+    /**
+     * A `clip-path` cycle on `<clipPath>` elements must terminate rather
+     * than recursing forever. A clipPath referencing itself is an
+     * invalid reference, so per SVG 2 it is dropped and only the
+     * clipPath's own geometry clips.
+     */
+    public function testClipPathSelfReferenceIsDroppedAndDoesNotRecurse(): void
+    {
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="loop" clip-path="url(#loop)">'
+            . '<rect width="10" height="10"/>'
+            . '</clipPath>'
+            . '</defs>'
+            . '<rect width="20" height="20" fill="red" clip-path="url(#loop)"/>'
+            . '</svg>',
+        );
+        $lines = explode("\n", $ops);
+        self::assertSame(1, count(array_keys($lines, 'W', true)));
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+    }
+
+    /**
+     * A two-clipPath cycle (A references B, B references A) terminates
+     * and still yields the intersection of both geometries.
+     */
+    public function testClipPathMutualCycleTerminates(): void
+    {
+        $ops = $this->paint(
+            '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<defs>'
+            . '<clipPath id="a" clip-path="url(#b)"><rect width="10" height="10"/></clipPath>'
+            . '<clipPath id="b" clip-path="url(#a)"><rect width="20" height="20"/></clipPath>'
+            . '</defs>'
+            . '<rect width="40" height="40" fill="red" clip-path="url(#a)"/>'
+            . '</svg>',
+        );
+        $lines = explode("\n", $ops);
+        self::assertSame(2, count(array_keys($lines, 'W', true)));
+        self::assertStringContainsString('0 0 10 10 re', $ops);
+        self::assertStringContainsString('0 0 20 20 re', $ops);
+    }
 }

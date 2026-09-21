@@ -289,6 +289,15 @@ final class Translator
      * @var list<array{w: float, h: float}>
      */
     private array $viewportStack = [];
+
+    /**
+     * `<clipPath>` elements currently being reified into a clip region,
+     * innermost last. Guards {@see emitClipRegion} against `clip-path`
+     * reference cycles between clipPath elements.
+     *
+     * @var list<ClipPath>
+     */
+    private array $clipPathStack = [];
     /**
      * The document's OUTERMOST viewport — the initial containing block
      * the `vw` / `vh` / `vmin` / `vmax` units resolve against (CSS
@@ -1168,6 +1177,35 @@ final class Translator
         ContentStream $stream,
         ?array $bboxMatrix,
     ): void {
+        // CSS Masking 1 §6.1 / SVG 2 §14.4 — `clip-path` ON the
+        // `<clipPath>` element itself further restricts the region it
+        // describes: the effective clip is the INTERSECTION of this
+        // clipPath's child geometry with the region its own reference
+        // describes. PDF clipping is already intersective (successive
+        // `W`/`n` pairs narrow the region), so emitting the referenced
+        // region first and this clipPath's geometry second composes
+        // correctly without any explicit path intersection.
+        //
+        // The nested region is emitted BEFORE this clipPath's bbox /
+        // transform `cm`s, so it resolves in the user space of the
+        // element that referenced us — which is where a nested
+        // clipPath's own coordinates live. `$bboxMatrix` is threaded
+        // through unchanged so an `objectBoundingBox` nested clipPath
+        // reifies against the same referencing element's bbox.
+        //
+        // `$clipPathStack` breaks reference cycles (a clipPath that
+        // reaches itself); per SVG 2's "invalid → no clip" rule the
+        // self-reference is dropped rather than failing the element.
+        $nested = $this->resolveClipPath($clipPath);
+        if ($nested !== null && $nested !== $clipPath && !in_array($nested, $this->clipPathStack, true)) {
+            $this->clipPathStack[] = $clipPath;
+            try {
+                $this->emitClipRegion($nested, $stream, $bboxMatrix);
+            } finally {
+                array_pop($this->clipPathStack);
+            }
+        }
+
         $clipTransform = $clipPath->transform()?->toMatrix();
 
         // Apply outer→inner: bbox first, then the clipPath's own
