@@ -2728,6 +2728,186 @@ final class RendererTest extends TestCase
         }
     }
 
+    public function testImportedStylesheetResolvesUrlsAgainstItsOwnDirectory(): void
+    {
+        // CSS Values 4 §4.2 — a relative URL in a stylesheet resolves
+        // against THAT stylesheet's base URL, not the document's. An
+        // `@font-face` in `support/fonts.css` saying `src: url(f.otf)`
+        // means `support/f.otf`; resolving it next to the document
+        // dropped the face and silently fell back to the default font.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-rebase-' . bin2hex(random_bytes(4));
+        mkdir($baseDir . '/support', 0o777, true);
+        $fontBytes = (string) file_get_contents(
+            dirname(__DIR__, 3) . '/tests/fixtures/fonts/NotoSans-Regular.otf',
+        );
+        file_put_contents($baseDir . '/support/f.otf', $fontBytes);
+        file_put_contents(
+            $baseDir . '/support/fonts.css',
+            '@font-face { font-family: "Rebased"; src: url(f.otf); }',
+        );
+        try {
+            $renderer = new Renderer((new RendererOptions())->withBaseDir($baseDir));
+            $result = $renderer->render(
+                '<html><head><style>@import "support/fonts.css";</style></head>'
+                . '<body><p style="font-family: Rebased;">hi</p></body></html>',
+            );
+            $missing = array_filter(
+                $result->warnings,
+                static fn($w): bool => str_contains($w->message, 'font-face'),
+            );
+            self::assertSame(
+                [],
+                array_values(array_map(static fn($w): string => $w->message, $missing)),
+                'the imported sheet\'s relative src must resolve against support/',
+            );
+        } finally {
+            @unlink($baseDir . '/support/f.otf');
+            @unlink($baseDir . '/support/fonts.css');
+            @rmdir($baseDir . '/support');
+            @rmdir($baseDir);
+        }
+    }
+
+    public function testImportedStylesheetLeavesRootAbsoluteUrlsAlone(): void
+    {
+        // A root-absolute `src: url(/f.otf)` already carries its own base
+        // and must NOT be rebased onto the importing sheet's directory —
+        // otherwise every WPT fixture using `/fonts/ahem.css` breaks.
+        $baseDir = sys_get_temp_dir() . '/phpdftk-rebase-' . bin2hex(random_bytes(4));
+        mkdir($baseDir . '/support', 0o777, true);
+        $fontBytes = (string) file_get_contents(
+            dirname(__DIR__, 3) . '/tests/fixtures/fonts/NotoSans-Regular.otf',
+        );
+        file_put_contents($baseDir . '/f.otf', $fontBytes);
+        file_put_contents(
+            $baseDir . '/support/fonts.css',
+            '@font-face { font-family: "Absolute"; src: url(/f.otf); }',
+        );
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())
+                    ->withBaseDir($baseDir . '/support')
+                    ->withSandboxRoot($baseDir),
+            );
+            $result = $renderer->render(
+                '<html><head><style>@import "fonts.css";</style></head>'
+                . '<body><p style="font-family: Absolute;">hi</p></body></html>',
+            );
+            $missing = array_filter(
+                $result->warnings,
+                static fn($w): bool => str_contains($w->message, 'font-face'),
+            );
+            self::assertSame(
+                [],
+                array_values(array_map(static fn($w): string => $w->message, $missing)),
+                'a root-absolute src must stay anchored to the sandbox root',
+            );
+        } finally {
+            @unlink($baseDir . '/f.otf');
+            @unlink($baseDir . '/support/fonts.css');
+            @rmdir($baseDir . '/support');
+            @rmdir($baseDir);
+        }
+    }
+
+    /**
+     * The rebasing must only ever move URLs that are genuinely relative to
+     * the fetched sheet. Everything that already carries its own base is
+     * returned byte-for-byte, and a sheet that lives in the document's own
+     * directory has no prefix to apply at all.
+     *
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('untouchedStylesheetUrlProvider')]
+    public function testRebasingLeavesSelfBasedUrlsUntouched(string $href, string $sheetCss): void
+    {
+        $baseDir = sys_get_temp_dir() . '/phpdftk-guard-' . bin2hex(random_bytes(4));
+        mkdir($baseDir . '/support', 0o777, true);
+        file_put_contents($baseDir . '/' . $href, $sheetCss);
+        try {
+            $renderer = new Renderer(
+                (new RendererOptions())->withBaseDir($baseDir)->withSandboxRoot($baseDir),
+            );
+            $method = new \ReflectionMethod($renderer, 'rebaseStylesheetUrls');
+            self::assertSame(
+                $sheetCss,
+                $method->invoke($renderer, $sheetCss, $href),
+                "rebasing must not rewrite: $sheetCss (sheet at $href)",
+            );
+        } finally {
+            @unlink($baseDir . '/' . $href);
+            @rmdir($baseDir . '/support');
+            @rmdir($baseDir);
+        }
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function untouchedStylesheetUrlProvider(): iterable
+    {
+        // A sheet in the document's own directory has an empty prefix, so
+        // the source comes back verbatim whatever it contains.
+        yield 'sheet beside the document' => [
+            'sheet.css',
+            '@font-face { font-family: A; src: url(f.otf); }',
+        ];
+        // Below here the sheet IS in a subdirectory, so a prefix exists —
+        // these assert the per-URL exemptions rather than the empty prefix.
+        yield 'root-absolute src' => [
+            'support/a.css',
+            '@font-face { font-family: A; src: url(/f.otf); }',
+        ];
+        yield 'data: URL' => [
+            'support/b.css',
+            '@font-face { font-family: A; src: url(data:font/otf;base64,AAAA); }',
+        ];
+        yield 'https scheme' => [
+            'support/c.css',
+            '.x { background: url(https://example.com/i.png); }',
+        ];
+        yield 'bare fragment' => [
+            'support/d.css',
+            '.x { clip-path: url(#clip); }',
+        ];
+        yield 'no url() at all' => [
+            'support/e.css',
+            '.x { color: red; } @font-face { font-family: A; src: local(Arial); }',
+        ];
+    }
+
+    public function testRebasingPrefixesOnlyRelativeUrlsInASubdirectorySheet(): void
+    {
+        // The positive half of the guard: in a sheet that does live in a
+        // subdirectory, a genuinely relative URL picks up that directory
+        // while its absolute neighbours in the same declaration do not.
+        $renderer = new Renderer((new RendererOptions())->withBaseDir(sys_get_temp_dir()));
+        $method = new \ReflectionMethod($renderer, 'rebaseStylesheetUrls');
+        $out = $method->invoke(
+            $renderer,
+            '@font-face { src: url(rel.otf), url(/abs.otf), url("q.otf"); }',
+            'support/fonts.css',
+        );
+        self::assertStringContainsString('url("support/rel.otf")', $out);
+        self::assertStringContainsString('url(/abs.otf)', $out, 'absolute URL kept byte-for-byte');
+        self::assertStringContainsString('url("support/q.otf")', $out);
+        self::assertStringNotContainsString('support/support/', $out);
+        self::assertStringNotContainsString('support//abs', $out);
+    }
+
+    public function testRebasingRewritesNestedImportsSoTheyResolveToo(): void
+    {
+        // A nested `@import` inside a fetched sheet is itself relative to
+        // that sheet, in both the url() and bare-string forms.
+        $renderer = new Renderer((new RendererOptions())->withBaseDir(sys_get_temp_dir()));
+        $method = new \ReflectionMethod($renderer, 'rebaseStylesheetUrls');
+        $out = $method->invoke(
+            $renderer,
+            '@import url("inner.css"); @import "other.css"; @import "/rooted.css";',
+            'support/outer.css',
+        );
+        self::assertStringContainsString('url("support/inner.css")', $out);
+        self::assertStringContainsString('@import "support/other.css"', $out);
+        self::assertStringContainsString('@import "/rooted.css"', $out, 'rooted import kept as-is');
+    }
+
     public function testCssAtImportBareStringForm(): void
     {
         // `@import "base.css"` (no url()) should also load.

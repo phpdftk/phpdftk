@@ -902,7 +902,11 @@ final class Renderer
         if ($css === null) {
             return null;
         }
-        return $this->cssParser->parseStylesheet($css, $origin);
+
+        return $this->cssParser->parseStylesheet(
+            $this->rebaseStylesheetUrls($css, $href),
+            $origin,
+        );
     }
 
     /**
@@ -2080,7 +2084,106 @@ final class Renderer
         if (str_starts_with($href, 'data:')) {
             return $this->resourceLoader()->load($href, allowedMimes: ['text/css']);
         }
-        return $this->resourceLoader()->load($href);
+        $css = $this->resourceLoader()->load($href);
+
+        return $css === null ? null : $this->rebaseStylesheetUrls($css, $href);
+    }
+
+    /**
+     * Rewrite relative `url()` / `@import` references inside a fetched
+     * stylesheet so they resolve against THAT stylesheet's location
+     * rather than the document's (CSS Values 4 §4.2: "relative URLs are
+     * resolved against the base URL of the style sheet").
+     *
+     * Everything downstream resolves against the document's `baseDir`,
+     * so rebasing means prefixing the sheet's own directory. A WPT
+     * fixture importing `support/fonts.css`, whose `src: url(x.ttf)`
+     * means `support/x.ttf`, was looking for `x.ttf` next to the test
+     * and silently falling back to the default font.
+     *
+     * Absolute references (`/…`, `scheme://…`, `data:`, fragments) are
+     * already unambiguous and pass through untouched.
+     */
+    private function rebaseStylesheetUrls(string $css, string $href): string
+    {
+        $prefix = $this->stylesheetBasePrefix($href);
+        if ($prefix === '') {
+            return $css;
+        }
+        $rebase = function (string $url) use ($prefix): string {
+            if ($url === '' || $this->isAbsoluteResourceUrl($url)) {
+                return $url;
+            }
+
+            return $prefix . $url;
+        };
+        // Re-emitted URLs are always double-quoted, so a literal quote in
+        // the value has to be escaped or it would terminate the token.
+        $quote = static fn(string $url): string => 'url("' . str_replace(
+            ['\\', '"'],
+            ['\\\\', '\\"'],
+            $url,
+        ) . '")';
+        $out = preg_replace_callback(
+            '~\burl\(\s*(?:"([^"]*)"|\'([^\']*)\'|([^)\s"\']*))\s*\)~i',
+            static function (array $m) use ($rebase, $quote): string {
+                $url = $m[1] !== '' ? $m[1] : ($m[2] !== '' ? $m[2] : ($m[3] ?? ''));
+                $rebased = $rebase($url);
+                // A URL that already carries its own base comes back
+                // byte-for-byte — no re-quoting, so the only tokens this
+                // pass can disturb are the ones it genuinely moves.
+                return $rebased === $url ? $m[0] : $quote($rebased);
+            },
+            $css,
+        ) ?? $css;
+
+        // `@import "sheet.css"` has no `url()` wrapper, so it needs its
+        // own pass or a nested import resolves against the wrong dir.
+        return preg_replace_callback(
+            '~(@import\s+)(?:"([^"]*)"|\'([^\']*)\')~i',
+            static function (array $m) use ($rebase, $quote): string {
+                $url = $m[2] !== '' ? $m[2] : ($m[3] ?? '');
+                $rebased = $rebase($url);
+
+                return $rebased === $url
+                    ? $m[0]
+                    : $m[1] . substr($quote($rebased), 4, -1);
+            },
+            $out,
+        ) ?? $out;
+    }
+
+    /**
+     * The directory part of a stylesheet href, as a prefix to prepend to
+     * that sheet's relative references. Empty when the sheet sits in the
+     * document's own directory (nothing to rebase) or when the href is
+     * itself absolute in a way the prefix can't express.
+     */
+    private function stylesheetBasePrefix(string $href): string
+    {
+        if ($href === '' || ($this->isAbsoluteResourceUrl($href) && !str_starts_with($href, '/'))) {
+            return '';
+        }
+        // Strip any query / fragment before taking the directory.
+        $path = preg_replace('~[?#].*$~', '', $href) ?? $href;
+        $slash = strrpos($path, '/');
+        if ($slash === false) {
+            return '';
+        }
+
+        return substr($path, 0, $slash + 1);
+    }
+
+    /**
+     * Whether a URL already carries its own base — a scheme, a root-
+     * relative path, a `data:` payload or a bare fragment — and so must
+     * not be rebased onto a stylesheet's directory.
+     */
+    private function isAbsoluteResourceUrl(string $url): bool
+    {
+        return str_starts_with($url, '/')
+            || str_starts_with($url, '#')
+            || preg_match('~^[a-zA-Z][a-zA-Z0-9+.-]*:~', $url) === 1;
     }
 
     /**
