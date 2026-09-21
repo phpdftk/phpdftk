@@ -60,7 +60,9 @@ use Phpdftk\Svg\Shape\Line;
 use Phpdftk\Svg\Shape\Polygon;
 use Phpdftk\Svg\Shape\Polyline;
 use Phpdftk\Svg\Shape\Rect;
+use Phpdftk\Svg\Parser as SvgDocumentParser;
 use Phpdftk\Svg\SvgDocument;
+use Phpdftk\Svg\View as SvgView;
 use Phpdftk\Svg\Text as TextNode;
 use Phpdftk\Svg\Text\TextElement;
 use Phpdftk\Svg\Value\Transform;
@@ -115,6 +117,16 @@ final class Translator
     private const int MAX_PATTERN_TEMPLATE_DEPTH = 16;
 
     /**
+     * How deep `<image href="…svg">` references may nest before the
+     * painter stops descending. An SVG resource can reference another
+     * SVG resource that references it back; SVG 2 §8.6 forbids
+     * rendering such a cycle, and a hard cap is the cheapest way to
+     * guarantee termination when the cycle runs through `data:` URIs
+     * that are never identity-equal.
+     */
+    private const int MAX_EMBEDDED_SVG_DEPTH = 8;
+
+    /**
      * SVG 2 §13.3 — the `<pattern>` attributes a referencing pattern
      * inherits from its `href` template when it does not specify them
      * itself. `href` / `xlink:href` are deliberately absent: the chain
@@ -154,9 +166,24 @@ final class Translator
          * {@see FontResolver}.
          */
         private readonly ?DocumentFontProvider $documentFontProvider = null,
+        /**
+         * Projects a referenced document's `<style>` cascade into its
+         * elements' `style` attributes before an embedded SVG is
+         * painted — the referenced resource never went through
+         * {@see SvgRenderer::draw}, which is where the host document
+         * gets the same treatment.
+         */
+        private readonly SvgCascadeProjector $cascadeProjector = new SvgCascadeProjector(),
     ) {
         $this->useExpansionsInProgress = new \SplObjectStorage();
     }
+
+    /**
+     * How many `<image href="…svg">` hops led to this translator.
+     * Zero for the host document; incremented for each embedded
+     * resource so {@see MAX_EMBEDDED_SVG_DEPTH} can terminate cycles.
+     */
+    private int $embeddedSvgDepth = 0;
 
     /**
      * Paint a parsed SVG document into the given content stream.
@@ -397,9 +424,33 @@ final class Translator
         float $dstW,
         float $dstH,
     ): array {
+        return self::viewBoxTransform(
+            $svg->getAttribute('preserveAspectRatio') ?? '',
+            $srcW,
+            $srcH,
+            $dstW,
+            $dstH,
+        );
+    }
+
+    /**
+     * viewBox-to-viewport mapping for a given `preserveAspectRatio`
+     * string, in SVG user space (y-down — the outer document transform
+     * applies the PDF flip). Returns `[scaleX, scaleY, offsetX,
+     * offsetY]`.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    private static function viewBoxTransform(
+        string $preserveAspectRatio,
+        float $srcW,
+        float $srcH,
+        float $dstW,
+        float $dstH,
+    ): array {
         $sx = $srcW > 0.0 ? $dstW / $srcW : 1.0;
         $sy = $srcH > 0.0 ? $dstH / $srcH : 1.0;
-        $par = strtolower(trim($svg->getAttribute('preserveAspectRatio') ?? ''));
+        $par = strtolower(trim($preserveAspectRatio));
         if ($par === 'none') {
             return [$sx, $sy, 0.0, 0.0];
         }
@@ -1759,13 +1810,15 @@ final class Translator
 
     private function paintImage(SvgImage $image, ContentStream $stream): void
     {
-        if ($this->writer === null || $this->page === null) {
-            return;
-        }
         $href = $image->href();
         if ($href === null) {
             return;
         }
+        // SVG 2 §8.6 — an `<image>` href may carry a URL fragment
+        // (`…#view`) selecting a `<view>` inside the referenced SVG.
+        // The fragment is never part of the resource bytes, so it is
+        // split off before the payload is decoded / read.
+        [$locator, $fragment] = self::splitHrefFragment($href);
         // 3Q: filesystem hrefs.
         // 3R+18: `data:` URIs decoded and materialised to a temp
         // file so the same `ImageParser` + `PdfWriter::addImage`
@@ -1778,29 +1831,62 @@ final class Translator
         // path. When no loader is configured, http(s):// drops
         // silently per the original 3R+18 posture so existing
         // callers don't change behaviour.
-        $sourcePath = $href;
-        $tempPath = null;
-        if (str_starts_with($href, 'data:')) {
-            $decoded = self::decodeDataUri($href);
+        $sourcePath = $locator;
+        $bytes = null;
+        if (str_starts_with($locator, 'data:')) {
+            $decoded = self::decodeDataUri($locator);
             if ($decoded === null) {
                 return;
             }
-            $tempPath = self::materialiseDataUri($decoded);
-            if ($tempPath === null) {
-                return;
-            }
-            $sourcePath = $tempPath;
-        } elseif (str_starts_with($href, 'http://') || str_starts_with($href, 'https://')) {
+            $bytes = $decoded['bytes'];
+        } elseif (str_starts_with($locator, 'http://') || str_starts_with($locator, 'https://')) {
             if ($this->resourceLoader === null) {
                 return;
             }
-            $tempPath = $this->fetchAndMaterialiseHttpHref($href);
+            $bytes = $this->fetchHttpHref($locator);
+            if ($bytes === null) {
+                return;
+            }
+        } elseif (str_contains($locator, '://')) {
+            return;
+        } else {
+            // Filesystem href: sniff the head only, so a large raster
+            // still streams through `ImageParser` + `addImage` rather
+            // than being slurped into memory here.
+            try {
+                $head = LocalFilesystem::readPrefix($sourcePath, 4096, 'image');
+            } catch (\Throwable) {
+                return;
+            }
+            if (self::looksLikeSvg($head)) {
+                try {
+                    $bytes = LocalFilesystem::readFile($sourcePath, 'svg image');
+                } catch (\Throwable) {
+                    return;
+                }
+            }
+        }
+
+        // SVG 2 §8.6 — an `<image>` referencing an SVG resource
+        // establishes a viewport for it and renders the referenced
+        // document's own tree into it. There is no raster to embed,
+        // so this never reaches `PdfWriter::addImage` (which rejects
+        // SVG bytes outright).
+        if ($bytes !== null && self::looksLikeSvg($bytes)) {
+            $this->paintEmbeddedSvg($image, $bytes, $fragment, $stream);
+            return;
+        }
+
+        if ($this->writer === null || $this->page === null) {
+            return;
+        }
+        $tempPath = null;
+        if ($bytes !== null) {
+            $tempPath = self::materialiseBytes($bytes);
             if ($tempPath === null) {
                 return;
             }
             $sourcePath = $tempPath;
-        } elseif (str_contains($href, '://')) {
-            return;
         }
         try {
             $this->paintImageFromPath($sourcePath, $image, $stream);
@@ -1809,6 +1895,241 @@ final class Translator
                 @unlink($tempPath);
             }
         }
+    }
+
+    /**
+     * Split an `<image>` href into its resource locator and URL
+     * fragment. RFC 3986 makes `#` the fragment delimiter for every
+     * URI form including `data:` (a literal `#` in a data payload has
+     * to be percent-encoded), so the FIRST `#` wins.
+     *
+     * Bare filesystem paths are exempt unless the pre-`#` prefix is
+     * itself a readable file — a `#` is a legal character in a
+     * filename and splitting one off would break existing local
+     * hrefs.
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    private static function splitHrefFragment(string $href): array
+    {
+        $hash = strpos($href, '#');
+        if ($hash === false) {
+            return [$href, null];
+        }
+        $locator = substr($href, 0, $hash);
+        $fragment = substr($href, $hash + 1);
+        if ($locator === '') {
+            return [$href, null];
+        }
+        $isUrl = str_starts_with($href, 'data:')
+            || str_starts_with($href, 'http://')
+            || str_starts_with($href, 'https://');
+        if (!$isUrl && !is_file($locator)) {
+            return [$href, null];
+        }
+        return [$locator, $fragment === '' ? null : $fragment];
+    }
+
+    /**
+     * SVG sniffer mirroring {@see ImageParser}'s: a case-insensitive
+     * `<svg` within the head, and the document must open with an XML
+     * declaration, a comment, a doctype, or the `<svg` tag itself.
+     * Rules out arbitrary markup where `<svg` merely appears inside.
+     */
+    private static function looksLikeSvg(string $bytes): bool
+    {
+        $head = substr($bytes, 0, 4096);
+        if (stripos($head, '<svg') === false) {
+            return false;
+        }
+        $trimmed = ltrim($head, " \t\r\n");
+        return str_starts_with($trimmed, '<?xml')
+            || str_starts_with($trimmed, '<!--')
+            || stripos($trimmed, '<!doctype') === 0
+            || stripos($trimmed, '<svg') === 0;
+    }
+
+    /**
+     * SVG 2 §8.6 — render an SVG resource referenced by `<image>`.
+     *
+     * The element establishes a new viewport at `(x, y, width,
+     * height)` with `overflow: hidden`, and the referenced document is
+     * a SEPARATE document: nothing inherits into it, and its ids live
+     * in their own space. That is why the tree is painted by a fresh
+     * `Translator` rather than this one — `findById` on the host
+     * document must not resolve against the embedded tree, or vice
+     * versa.
+     *
+     * Sizing follows the CSS Images 3 §5.3 default sizing algorithm:
+     * an omitted `width` / `height` on the `<image>` is derived from
+     * the referenced document's intrinsic size, or from the other axis
+     * via its intrinsic ratio.
+     *
+     * The viewBox-to-viewport mapping uses, in order of precedence,
+     * the `preserveAspectRatio` on the `<image>` element (SVG 2 §8.6
+     * makes it override the referenced root's), then the one on an
+     * activated `<view>`, then the referenced root's own.
+     */
+    private function paintEmbeddedSvg(
+        SvgImage $image,
+        string $bytes,
+        ?string $fragment,
+        ContentStream $stream,
+    ): void {
+        if ($this->embeddedSvgDepth >= self::MAX_EMBEDDED_SVG_DEPTH) {
+            return;
+        }
+        try {
+            $document = (new SvgDocumentParser())->parse($bytes);
+        } catch (\Throwable) {
+            // Unparseable resource — SVG 2 §8.6's "no image available".
+            return;
+        }
+
+        $viewBox = $document->viewBox();
+        $referencedPar = $document->getAttribute('preserveAspectRatio');
+        // SVG 2 §18.3 — `resource.svg#viewId` activates that `<view>`,
+        // whose `viewBox` / `preserveAspectRatio` stand in for the
+        // root element's for this reference.
+        if ($fragment !== null) {
+            $view = $document->findByFragment($fragment);
+            if ($view instanceof SvgView) {
+                $viewBox = $view->viewBox() ?? $viewBox;
+                $referencedPar = $view->preserveAspectRatio() ?? $referencedPar;
+            }
+        }
+
+        [$intrinsicW, $intrinsicH] = self::embeddedSvgIntrinsicSize($document, $viewBox);
+        $ratio = $intrinsicW > 0.0 && $intrinsicH > 0.0
+            ? $intrinsicW / $intrinsicH
+            : ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0
+                ? $viewBox[2] / $viewBox[3]
+                : null);
+
+        $vp = $this->currentViewport();
+        $x = $this->resolveViewportLength($image->getAttribute('x'), $vp['w'], 0.0);
+        $y = $this->resolveViewportLength($image->getAttribute('y'), $vp['h'], 0.0);
+        $w = self::resolveImageExtent($image->getAttribute('width'), $vp['w']);
+        $h = self::resolveImageExtent($image->getAttribute('height'), $vp['h']);
+        if ($w === null && $h === null) {
+            $w = $intrinsicW;
+            $h = $intrinsicH;
+        } elseif ($w === null) {
+            $w = $ratio !== null ? ($h ?? 0.0) * $ratio : $intrinsicW;
+        } elseif ($h === null) {
+            $h = $ratio !== null && $ratio > 0.0 ? $w / $ratio : $intrinsicH;
+        }
+        if ($w === null || $h === null || $w <= 0.0 || $h <= 0.0) {
+            // A zero-sized viewport disables rendering (SVG 2 §8.6).
+            return;
+        }
+
+        // Source rect. A referenced root without a `viewBox` has one
+        // synthesised from its intrinsic size; with neither, the
+        // document simply lays out at the viewport's own size (1:1),
+        // which is what makes `width="100%"` / viewport units inside
+        // the referenced document resolve against the image box.
+        if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
+            $srcW = $viewBox[2];
+            $srcH = $viewBox[3];
+        } elseif ($intrinsicW > 0.0 && $intrinsicH > 0.0) {
+            $srcW = $intrinsicW;
+            $srcH = $intrinsicH;
+        } else {
+            $srcW = $w;
+            $srcH = $h;
+        }
+
+        $par = $image->preserveAspectRatio() ?? $referencedPar ?? '';
+        [$scaleX, $scaleY, $offsetX, $offsetY] = self::viewBoxTransform($par, $srcW, $srcH, $w, $h);
+
+        $stream->saveGraphicsState();
+        $placement = [1.0, 0.0, 0.0, 1.0, $x, $y];
+        $stream->concatMatrix(...$placement);
+        $stream->rectangle(0.0, 0.0, $w, $h);
+        $stream->clip();
+        $stream->endPath();
+        $mapping = [$scaleX, 0.0, 0.0, $scaleY, $offsetX, $offsetY];
+        $stream->concatMatrix(...$mapping);
+
+        // The cumulative SVG→page matrix the child inherits, so any
+        // gradient inside the embedded document reconstructs the right
+        // `/Matrix` (PDF resolves pattern matrices against DEFAULT
+        // page space, not the fill-time CTM).
+        $baseMatrix = self::multiplyAffine(
+            self::multiplyAffine($this->currentMatrix(), $placement),
+            $mapping,
+        );
+
+        $child = new self($this->resourceLoader, $this->documentFontProvider);
+        $child->embeddedSvgDepth = $this->embeddedSvgDepth + 1;
+        $this->cascadeProjector->project($document);
+        $child->paint(
+            $document,
+            $stream,
+            $this->page,
+            $this->writer,
+            compensateTextFlip: $this->compensateTextFlip,
+            effectiveViewport: ['w' => $srcW, 'h' => $srcH],
+            baseMatrix: $baseMatrix,
+        );
+        $stream->restoreGraphicsState();
+    }
+
+    /**
+     * Intrinsic width / height of a referenced SVG root per CSS Images
+     * 3 §4: the `width` / `height` attributes when they are absolute
+     * lengths, with a missing axis derived from the other plus the
+     * `viewBox` ratio. Percentage attributes carry no intrinsic
+     * extent. Returns `[0.0, 0.0]` when neither axis resolves.
+     *
+     * @param  array{0: float, 1: float, 2: float, 3: float}|null $viewBox
+     * @return array{0: float, 1: float}
+     */
+    private static function embeddedSvgIntrinsicSize(
+        SvgDocument $document,
+        ?array $viewBox,
+    ): array {
+        $w = self::parseLengthPrefixForViewport($document->widthAttribute());
+        $h = self::parseLengthPrefixForViewport($document->heightAttribute());
+        $ratio = $viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0
+            ? $viewBox[2] / $viewBox[3]
+            : null;
+        if ($w !== null && $h === null && $ratio !== null) {
+            $h = $w / $ratio;
+        } elseif ($h !== null && $w === null && $ratio !== null) {
+            $w = $h * $ratio;
+        }
+        if ($w === null || $h === null || $w <= 0.0 || $h <= 0.0) {
+            return [0.0, 0.0];
+        }
+        return [$w, $h];
+    }
+
+    /**
+     * An `<image>` `width` / `height` attribute as a used length:
+     * `null` for absent / `auto` / negative (all of which mean "derive
+     * it"), a percentage resolved against the enclosing viewport, and
+     * anything else through the element's own unit-aware parse.
+     */
+    private static function resolveImageExtent(?string $raw, float $viewport): ?float
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '' || strtolower($trimmed) === 'auto') {
+            return null;
+        }
+        if (preg_match('/^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*%$/', $trimmed, $m) === 1) {
+            $value = ((float) $m[1]) / 100.0 * $viewport;
+            return $value < 0.0 ? null : $value;
+        }
+        $plain = self::parseLengthPrefixForViewport($trimmed);
+        if ($plain === null || $plain < 0.0) {
+            return null;
+        }
+        return $plain;
     }
 
     private function paintImageFromPath(string $path, SvgImage $image, ContentStream $stream): void
@@ -1923,22 +2244,21 @@ final class Translator
     }
 
     /**
-     * Write the decoded data-URI bytes to a temp file that lives only
-     * for the duration of `paintImage`. Returns the path on success
-     * or `null` if either the temp file couldn't be opened or the
-     * write failed — both fall back to the SVG "no image available"
-     * outcome.
-     *
-     * @param array{bytes: string, mime: string} $decoded
+     * Write decoded `<image>` payload bytes to a temp file that lives
+     * only for the duration of `paintImage`. Returns the path on
+     * success or `null` if either the temp file couldn't be opened or
+     * the write failed — both fall back to the SVG "no image
+     * available" outcome. Only the raster path needs this; SVG
+     * payloads are painted straight from the byte string.
      */
-    private static function materialiseDataUri(array $decoded): ?string
+    private static function materialiseBytes(string $bytes): ?string
     {
         $tmpPath = tempnam(sys_get_temp_dir(), 'svg-img-');
         if ($tmpPath === false) {
             return null;
         }
         try {
-            LocalFilesystem::writeFile($tmpPath, $decoded['bytes']);
+            LocalFilesystem::writeFile($tmpPath, $bytes);
             return $tmpPath;
         } catch (\Throwable) {
             @unlink($tmpPath);
@@ -1948,15 +2268,12 @@ final class Translator
 
     /**
      * 4F.1 — fetch an `http(s)://` `<image>` href through the
-     * injected ResourceLoader and materialise the bytes to a temp
-     * file so the existing `ImageParser` + `PdfWriter::addImage`
-     * flow can register them as a PDF XObject. Returns the temp
-     * path on success or null on any failure (SSRF policy
-     * violation, network error, non-2xx, body cap exceeded, write
-     * failure) — all of which surface as the SVG 2 §12.6 "no image
-     * available" outcome.
+     * injected ResourceLoader. Returns the response bytes on success
+     * or null on any failure (SSRF policy violation, network error,
+     * non-2xx, body cap exceeded) — all of which surface as the SVG 2
+     * §12.6 "no image available" outcome.
      */
-    private function fetchAndMaterialiseHttpHref(string $href): ?string
+    private function fetchHttpHref(string $href): ?string
     {
         if ($this->resourceLoader === null) {
             return null;
@@ -1966,17 +2283,7 @@ final class Translator
         } catch (SsrfBlockedException | FetchFailedException) {
             return null;
         }
-        $tmpPath = tempnam(sys_get_temp_dir(), 'svg-http-img-');
-        if ($tmpPath === false) {
-            return null;
-        }
-        try {
-            LocalFilesystem::writeFile($tmpPath, $result->bytes);
-            return $tmpPath;
-        } catch (\Throwable) {
-            @unlink($tmpPath);
-            return null;
-        }
+        return $result->bytes;
     }
 
     private function paintTextElement(TextElement $text, ContentStream $stream): void
