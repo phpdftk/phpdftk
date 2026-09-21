@@ -1373,42 +1373,22 @@ final class Translator
         };
     }
 
-    private function emitRectPath(Rect $rect, ContentStream $stream): void
+    /** @return bool whether any geometry was emitted. */
+    private function emitRectPath(Rect $rect, ContentStream $stream): bool
     {
         $vp = $this->currentViewport();
-        $x = $this->resolvePercentLength($rect->getAttribute('x'), $vp['w'], $rect->x());
-        $y = $this->resolvePercentLength($rect->getAttribute('y'), $vp['h'], $rect->y());
-        $w = $this->resolvePercentLength($rect->getAttribute('width'), $vp['w'], $rect->width());
-        $h = $this->resolvePercentLength($rect->getAttribute('height'), $vp['h'], $rect->height());
-        if ($w > 0.0 && $h > 0.0) {
-            $stream->rectangle($x, $y, $w, $h);
+        $x = $this->geometryLength($rect, 'x', $vp['w']) ?? 0.0;
+        $y = $this->geometryLength($rect, 'y', $vp['h']) ?? 0.0;
+        // A negative `width` / `height` is invalid, so the declaration
+        // is ignored and the initial value 0 stands — nothing paints,
+        // which the `> 0.0` guard already expresses.
+        $w = $this->geometryLength($rect, 'width', $vp['w']) ?? 0.0;
+        $h = $this->geometryLength($rect, 'height', $vp['h']) ?? 0.0;
+        if ($w <= 0.0 || $h <= 0.0) {
+            return false;
         }
-    }
-
-    /**
-     * Resolve a length attribute against the current viewport. SVG 2 §10.3:
-     * percentage values resolve against the relevant viewport dimension
-     * (`%` width → viewport width, `%` height → viewport height), and CSS
-     * Values 4 §6.1 viewport units against the INITIAL containing block —
-     * for an SVG document, its own outermost viewport, not the nearest
-     * nested one. Anything else falls back to `$plain` — the shape's
-     * existing unit-stripped float, which is what every shape accessor
-     * returned before this method existed.
-     */
-    private function resolvePercentLength(?string $raw, float $viewport, float $plain): float
-    {
-        if ($raw === null || trim($raw) === '') {
-            return 0.0;
-        }
-        if (preg_match(
-            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*(%|vw|vh|vmin|vmax)/i',
-            $raw,
-            $m,
-        ) !== 1) {
-            return $plain;
-        }
-        $basis = $this->relativeLengthBasis(strtolower($m[2]), $viewport);
-        return ((float) $m[1]) / 100.0 * $basis;
+        $stream->rectangle($x, $y, $w, $h);
+        return true;
     }
 
     /**
@@ -1498,20 +1478,101 @@ final class Translator
         return (float) $m[1];
     }
 
-    private function emitCirclePath(Circle $circle, ContentStream $stream): void
+    /** @return bool whether any geometry was emitted. */
+    private function emitCirclePath(Circle $circle, ContentStream $stream): bool
     {
-        if ($circle->r() > 0.0) {
-            $this->emitEllipsePath($stream, $circle->cx(), $circle->cy(), $circle->r(), $circle->r());
+        $vp = $this->currentViewport();
+        $cx = $this->geometryLength($circle, 'cx', $vp['w']) ?? 0.0;
+        $cy = $this->geometryLength($circle, 'cy', $vp['h']) ?? 0.0;
+        // SVG 2 §10.1: a percentage `r` resolves against the NORMALIZED
+        // DIAGONAL, not either axis. A negative `r` is invalid — the
+        // declaration is ignored and the initial 0 stands, so nothing
+        // paints.
+        $r = $this->geometryLength($circle, 'r', self::normalizedDiagonal($vp)) ?? 0.0;
+        if ($r <= 0.0) {
+            return false;
         }
+        $this->emitEllipsePath($stream, $cx, $cy, $r, $r);
+        return true;
     }
 
-    private function emitEllipsePathFor(Ellipse $ellipse, ContentStream $stream): void
+    /** @return bool whether any geometry was emitted. */
+    private function emitEllipsePathFor(Ellipse $ellipse, ContentStream $stream): bool
     {
-        $rx = $ellipse->rx();
-        $ry = $ellipse->ry();
-        if ($rx !== null && $ry !== null && $rx > 0.0 && $ry > 0.0) {
-            $this->emitEllipsePath($stream, $ellipse->cx(), $ellipse->cy(), $rx, $ry);
+        $vp = $this->currentViewport();
+        $cx = $this->geometryLength($ellipse, 'cx', $vp['w']) ?? 0.0;
+        $cy = $this->geometryLength($ellipse, 'cy', $vp['h']) ?? 0.0;
+        $rx = $this->geometryLength($ellipse, 'rx', $vp['w']);
+        $ry = $this->geometryLength($ellipse, 'ry', $vp['h']);
+        // SVG 2 §10.1 — `rx` / `ry` initial value is `auto`, and a
+        // NEGATIVE radius is invalid: the declaration is ignored, which
+        // leaves `auto` in force rather than collapsing the shape. Each
+        // `auto` radius then mirrors the other, so
+        // `<ellipse rx="-65" ry="65">` paints a circle of r=65.
+        if ($rx !== null && $rx < 0.0) {
+            $rx = null;
         }
+        if ($ry !== null && $ry < 0.0) {
+            $ry = null;
+        }
+        $rx ??= $ry;
+        $ry ??= $rx;
+        if ($rx === null || $ry === null || $rx <= 0.0 || $ry <= 0.0) {
+            return false;
+        }
+        $this->emitEllipsePath($stream, $cx, $cy, $rx, $ry);
+        return true;
+    }
+
+    /**
+     * SVG 2 §10.1 — resolve one geometry property for `$element`.
+     *
+     * The value may be written as a presentation attribute or come from
+     * the cascade (which {@see SvgCascadeProjector} projects into
+     * `style`); {@see Element::geometryValue()} reads both. `$basis` is
+     * the 1%-basis for the property's axis: viewport width for
+     * `x`/`width`/`cx`/`rx`, height for `y`/`height`/`cy`/`ry`, and the
+     * normalized diagonal for `r`.
+     *
+     * Returns null when the property is absent or is not a length (an
+     * `auto` keyword, a `calc()` we don't evaluate here), so callers can
+     * apply that property's own initial-value rule instead of guessing.
+     */
+    private function geometryLength(Element $element, string $property, float $basis): ?float
+    {
+        $raw = $element->geometryValue($property);
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        // Prefix match, not anchored: mirrors the leniency the shape
+        // accessors have always had for trailing junk (`"10 20"`).
+        if (preg_match(
+            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*([a-zA-Z%]*)/',
+            $raw,
+            $m,
+        ) !== 1) {
+            return null;
+        }
+        $value = (float) $m[1];
+        $unit = strtolower($m[2]);
+        if ($unit === '') {
+            return $value;
+        }
+        if ($unit === '%' || $unit === 'vw' || $unit === 'vh' || $unit === 'vmin' || $unit === 'vmax') {
+            return $value / 100.0 * $this->relativeLengthBasis($unit, $basis);
+        }
+        return $value * Element::absoluteUnitScale($unit);
+    }
+
+    /**
+     * SVG 2 §10.1's "normalized diagonal" — `sqrt(w² + h²) / sqrt(2)`,
+     * the 1%-basis for properties that are not tied to one axis (`r`).
+     *
+     * @param array{w: float, h: float} $viewport
+     */
+    private static function normalizedDiagonal(array $viewport): float
+    {
+        return sqrt($viewport['w'] ** 2 + $viewport['h'] ** 2) / M_SQRT2;
     }
 
     private function emitPolylinePath(Polyline $polyline, ContentStream $stream): void
@@ -3079,37 +3140,34 @@ final class Translator
         return [$state->currentX + $x, $state->currentY + $y];
     }
 
+    // The paint* entry points below share their geometry with the
+    // emit*Path methods the clip-region builder uses. Keeping ONE
+    // resolver per shape is what makes SVG 2 §10.1 geometry (CSS-
+    // declared `cx` / `r` / `width` / …) reach BOTH the painter and
+    // `clip-path`; the two used to compute coordinates separately and
+    // only the clip side was ever taught about the cascade.
+
     private function paintRect(Rect $rect, ContentStream $stream): void
     {
-        $vp = $this->currentViewport();
-        $x = $this->resolvePercentLength($rect->getAttribute('x'), $vp['w'], $rect->x());
-        $y = $this->resolvePercentLength($rect->getAttribute('y'), $vp['h'], $rect->y());
-        $w = $this->resolvePercentLength($rect->getAttribute('width'), $vp['w'], $rect->width());
-        $h = $this->resolvePercentLength($rect->getAttribute('height'), $vp['h'], $rect->height());
-        if ($w <= 0.0 || $h <= 0.0) {
+        if (!$this->emitRectPath($rect, $stream)) {
             return;
         }
-        $stream->rectangle($x, $y, $w, $h);
         $this->applyFillAndStroke($rect, $stream);
     }
 
     private function paintCircle(Circle $circle, ContentStream $stream): void
     {
-        if ($circle->r() <= 0.0) {
+        if (!$this->emitCirclePath($circle, $stream)) {
             return;
         }
-        $this->emitEllipsePath($stream, $circle->cx(), $circle->cy(), $circle->r(), $circle->r());
         $this->applyFillAndStroke($circle, $stream);
     }
 
     private function paintEllipse(Ellipse $ellipse, ContentStream $stream): void
     {
-        $rx = $ellipse->rx();
-        $ry = $ellipse->ry();
-        if ($rx === null || $ry === null || $rx <= 0.0 || $ry <= 0.0) {
+        if (!$this->emitEllipsePathFor($ellipse, $stream)) {
             return;
         }
-        $this->emitEllipsePath($stream, $ellipse->cx(), $ellipse->cy(), $rx, $ry);
         $this->applyFillAndStroke($ellipse, $stream);
     }
 

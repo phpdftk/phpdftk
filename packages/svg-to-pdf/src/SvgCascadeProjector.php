@@ -70,6 +70,29 @@ final class SvgCascadeProjector
         'text-shadow',
     ];
 
+    /**
+     * SVG 2 §10.1 geometry properties. Split out from
+     * {@see PROJECTED} because they are projected on a STRICTER test:
+     * only when a declaration actually won the cascade
+     * (`wasDeclared()`), never from an inherited or initial value.
+     *
+     * `width` / `height` are registered CSS properties whose initial
+     * value is `auto`; projecting those on the looser `has()` test
+     * would stamp `width: auto` onto shapes the author never sized and
+     * change what the painter reads.
+     */
+    private const array PROJECTED_GEOMETRY = [
+        'x',
+        'y',
+        'width',
+        'height',
+        'cx',
+        'cy',
+        'r',
+        'rx',
+        'ry',
+    ];
+
     public function __construct(
         private readonly CssBridge $bridge = new CssBridge(),
     ) {}
@@ -108,6 +131,23 @@ final class SvgCascadeProjector
         );
 
         $declarations = [];
+        foreach (self::PROJECTED_GEOMETRY as $property) {
+            // Geometry: a presentation attribute on the element is the
+            // author's own value and still reaches the painter first,
+            // so leave it alone. Otherwise project only a value a
+            // declaration won — see PROJECTED_GEOMETRY.
+            if ($element->getAttribute($property) !== null) {
+                continue;
+            }
+            if (!$values->wasDeclared($property)) {
+                continue;
+            }
+            $value = $values->get($property);
+            if ($value === null) {
+                continue;
+            }
+            $declarations[] = $property . ': ' . $value->toCss();
+        }
         foreach (self::PROJECTED as $property) {
             // The author intent on the element itself (presentation
             // attribute, inline style) already feeds the painter

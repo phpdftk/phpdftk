@@ -96,7 +96,7 @@ abstract class Element extends Node
      * Scale factor from an absolute CSS unit to user units (px), per CSS
      * Values 4 §6.2. Unknown, empty, and relative units scale by 1.
      */
-    protected static function absoluteUnitScale(string $unit): float
+    public static function absoluteUnitScale(string $unit): float
     {
         return match (strtolower($unit)) {
             'cm' => 96.0 / 2.54,
@@ -150,6 +150,20 @@ abstract class Element extends Node
      * (CSS Masking 1 §4). Raw string — the translator resolves the
      * `url(#id)` reference against the document.
      */
+    /**
+     * SVG 2 §10.1 — the geometry properties (`x`, `y`, `width`,
+     * `height`, `cx`, `cy`, `r`, `rx`, `ry`) are BOTH presentation
+     * attributes and CSS properties, so a value can arrive as an
+     * attribute or through the cascade. `SvgCascadeProjector` projects
+     * cascaded geometry into `style`, so reading through
+     * `presentationOrStyle` here is what lets a `<style>` block size a
+     * shape that carries no geometry attributes at all.
+     */
+    public function geometryValue(string $property): ?string
+    {
+        return $this->presentationOrStyle($property);
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');

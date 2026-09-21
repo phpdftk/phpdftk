@@ -2736,6 +2736,37 @@ final class BoxGenerator
         'stop-color',
         'stop-opacity',
         'text-shadow',
+        // SVG 2 §10.1 geometry properties. Gated on `wasDeclared()`
+        // below, not `has()`: `width` / `height` are registered CSS
+        // properties whose initial value is `auto`, and stamping
+        // `width: auto` onto every inline-SVG shape would change what
+        // the painter reads.
+        'x',
+        'y',
+        'width',
+        'height',
+        'cx',
+        'cy',
+        'r',
+        'rx',
+        'ry',
+    ];
+
+    /**
+     * The subset of {@see SVG_PROJECTED} that is projected only when a
+     * declaration actually won the cascade. Mirrors
+     * `SvgCascadeProjector::PROJECTED_GEOMETRY`; extend both together.
+     */
+    private const array SVG_PROJECTED_GEOMETRY = [
+        'x',
+        'y',
+        'width',
+        'height',
+        'cx',
+        'cy',
+        'r',
+        'rx',
+        'ry',
     ];
 
     /**
@@ -2794,7 +2825,10 @@ final class BoxGenerator
             if ($element->getAttribute($property) !== null) {
                 continue;
             }
-            if (!$values->has($property)) {
+            $declared = in_array($property, self::SVG_PROJECTED_GEOMETRY, true)
+                ? $values->wasDeclared($property)
+                : $values->has($property);
+            if (!$declared) {
                 continue;
             }
             $value = $values->get($property);
