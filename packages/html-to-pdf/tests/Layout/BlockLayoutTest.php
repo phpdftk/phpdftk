@@ -6351,6 +6351,159 @@ final class BlockLayoutTest extends TestCase
         self::assertNotNull($p->geometry);
     }
 
+    /**
+     * Build a layout context backed by NotoSans, whose ascent (1.069em)
+     * and descent (0.293em) sum to 1.362em — deliberately NOT 1em, so a
+     * trim computed from the em box is distinguishable from one computed
+     * from the font's real text edges.
+     */
+    private function notoCtx(): LayoutContext
+    {
+        $font = OpenTypeParser::fromBytes(
+            (string) file_get_contents(dirname(__DIR__, 4) . '/tests/fixtures/fonts/NotoSans-Regular.otf'),
+        )->parse();
+
+        return new LayoutContext(
+            600.0,
+            800.0,
+            0.0,
+            0.0,
+            new LengthContext(),
+            fontResolver: new FontResolver(['noto' => $font], null),
+        );
+    }
+
+    public function testTextBoxTrimStartTrimsToFontAscentNotEmBox(): void
+    {
+        // CSS Inline 3 §6.2 — `text-box-edge: text` (the used value of the
+        // initial `auto`) puts the over edge at the font's ASCENT, not at
+        // the top of the em box. NotoSans at 100px has ascent 106.9px and
+        // descent 29.3px, so a 300px line box carries a half-leading of
+        // (300 − 136.2) / 2 = 81.9px and its baseline sits at 188.8px.
+        //
+        // trim-start therefore removes 81.9px — the distance from the line
+        // top down to the text-over edge — NOT the (300 − 100) / 2 = 100px
+        // an em-box model would compute.
+        $box = $this->buildTree(
+            '<html><body><p>X</p></body></html>',
+            'html, body, p { display: block; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 text-box-trim: trim-start; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(218.1, $p->geometry->height, 0.05);
+        self::assertEqualsWithDelta(-81.9, $p->lineBoxes[0]->y, 0.05);
+    }
+
+    public function testTextBoxTrimEndHonoursAlphabeticUnderEdge(): void
+    {
+        // CSS Inline 3 §6.2 — `text-box-edge: text alphabetic` puts the
+        // under edge on the ALPHABETIC baseline, so trim-end removes
+        // everything below the baseline: 300 − 188.8 = 111.2px. An
+        // em-box / half-leading model would remove only 100px, and a
+        // model that ignored `text-box-edge` entirely would be identical
+        // for every edge keyword.
+        $box = $this->buildTree(
+            '<html><body><p>X</p></body></html>',
+            'html, body, p { display: block; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 text-box-trim: trim-end; text-box-edge: text alphabetic; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(188.8, $p->geometry->height, 0.05);
+    }
+
+    public function testTextBoxTrimCapEdgeTrimsToCapHeight(): void
+    {
+        // CSS Inline 3 §6.2 — `cap` puts the over edge at the font's cap
+        // height (NotoSans: 0.714em = 71.4px at 100px), so trim-start
+        // removes 188.8 − 71.4 = 117.4px. This is strictly more than the
+        // `text` edge trims, which is what makes `cap` observable.
+        $box = $this->buildTree(
+            '<html><body><p>X</p></body></html>',
+            'html, body, p { display: block; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 text-box-trim: trim-start; text-box-edge: cap text; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(182.6, $p->geometry->height, 0.05);
+        self::assertEqualsWithDelta(-117.4, $p->lineBoxes[0]->y, 0.05);
+    }
+
+    public function testTextBoxTrimReferencesBlockMetricsNotTallInlineChild(): void
+    {
+        // CSS Inline 3 §6.2 — the trim is measured against the BLOCK
+        // CONTAINER's font metrics, not against whatever inline descendant
+        // happens to make the line box tall. A 200%-sized span stretches
+        // the line box well past the block's own strut; trim-both must
+        // still collapse the line down to the block's own text edges,
+        // leaving exactly ascent + descent = 136.2px.
+        $box = $this->buildTree(
+            '<html><body><p>A<span>X</span></p></body></html>',
+            'html, body, p { display: block; } span { font-size: 200%; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 text-box-trim: trim-both; text-box-edge: text; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertEqualsWithDelta(136.2, $p->geometry->height, 0.05);
+    }
+
+    public function testTextBoxTrimPullsFollowingSiblingUp(): void
+    {
+        // The trim removes real space from the block's content box, so
+        // everything laid out after it moves up by the same amount and
+        // the auto-height ancestors shrink. Without this the trim is
+        // visually inert: the block reports a smaller height but the
+        // next box still starts where the untrimmed line box ended.
+        $box = $this->buildTree(
+            '<html><body><p>X</p><div id="after"></div></body></html>',
+            'html, body, p, div { display: block; }
+             #after { height: 10px; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 text-box-trim: trim-start; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $after = $this->findById($box, 'after');
+        $body = $this->find($box, 'body');
+        self::assertNotNull($after);
+        self::assertNotNull($body);
+        // p shrinks 300 → 218.1, so #after starts there, and body's
+        // auto height becomes 218.1 + 10.
+        self::assertEqualsWithDelta(218.1, $after->geometry->y, 0.05);
+        self::assertEqualsWithDelta(228.1, $body->geometry->height, 0.05);
+    }
+
+    public function testTextBoxTrimDoesNotOverrideSpecifiedHeight(): void
+    {
+        // CSS Inline 3 §6.1 — trimming changes where the text sits, but a
+        // specified `height` still wins for the box itself, and a box that
+        // cannot shrink must not drag its following siblings up either.
+        $box = $this->buildTree(
+            '<html><body><p>X</p><div id="after"></div></body></html>',
+            'html, body, p, div { display: block; }
+             #after { height: 10px; }
+             p { font-family: noto; font-size: 100px; line-height: 300px;
+                 height: 400px; text-box-trim: trim-start; }',
+        );
+        $this->layout->layout($box, $this->notoCtx());
+        $p = $this->find($box, 'p');
+        $after = $this->findById($box, 'after');
+        self::assertNotNull($p);
+        self::assertNotNull($after);
+        self::assertEqualsWithDelta(400.0, $p->geometry->height, 0.05);
+        self::assertEqualsWithDelta(400.0, $after->geometry->y, 0.05);
+        // The line still shifts up to put the text-over edge at the top.
+        self::assertEqualsWithDelta(-81.9, $p->lineBoxes[0]->y, 0.05);
+    }
+
     public function testInlineWithBlockChildPromotesToAnonymousBlock(): void
     {
         // CSS 2.1 §9.2.1.1 — when an inline element has a block-level

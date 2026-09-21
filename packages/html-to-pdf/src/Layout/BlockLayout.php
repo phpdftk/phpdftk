@@ -342,7 +342,7 @@ final class BlockLayout
         // it walks each block container with `text-box-trim != none` and
         // shifts the first / last line of the propagated first-line
         // host (CSS Inline 3 §6.4), blocked by empty block boxes.
-        $this->applyTextBoxTrimTree($root);
+        $this->applyTextBoxTrimTree($root, $context);
         // CSS Anchor Positioning 1 §5 — `anchor-center` needs the box's
         // used size, so it runs as a post-layout pass. It has to land
         // before `position-visibility`, which tests where the box ended
@@ -680,11 +680,15 @@ final class BlockLayout
      * descendant whose own `lineBoxes` carry the trim target) and
      * adjust that line's geometry. The propagation is blocked by
      * empty block boxes (no own lines, no descendant lines).
+     *
+     * @param list<Box> $ancestors root-first chain of `$box`'s ancestors
      */
-    private function applyTextBoxTrimTree(Box $box): void
+    private function applyTextBoxTrimTree(Box $box, LayoutContext $context, array $ancestors = []): void
     {
+        $childAncestors = $ancestors;
+        $childAncestors[] = $box;
         foreach ($box->children as $child) {
-            $this->applyTextBoxTrimTree($child);
+            $this->applyTextBoxTrimTree($child, $context, $childAncestors);
         }
         $value = $box->style->get('text-box-trim');
         if (!($value instanceof Keyword)) {
@@ -696,16 +700,19 @@ final class BlockLayout
         }
         $trimStart = $mode === 'trim-start' || $mode === 'trim-both' || $mode === 'both';
         $trimEnd = $mode === 'trim-end' || $mode === 'trim-both' || $mode === 'both';
-        if ($trimStart) {
-            $host = $this->findLineHost($box, last: false);
-            if ($host !== null) {
-                $this->trimEdgeLineLeading($box, $host, end: false);
+        // The END edge is trimmed first: it only shortens the host, so it
+        // can't invalidate the start edge's line metrics. Doing it the
+        // other way round would move the last line before we measured it.
+        if ($trimEnd) {
+            $path = $this->findLineHostPath($box, last: true);
+            if ($path !== null) {
+                $this->trimEdgeLine($path, $ancestors, end: true, context: $context);
             }
         }
-        if ($trimEnd) {
-            $host = $this->findLineHost($box, last: true);
-            if ($host !== null) {
-                $this->trimEdgeLineLeading($box, $host, end: true);
+        if ($trimStart) {
+            $path = $this->findLineHostPath($box, last: false);
+            if ($path !== null) {
+                $this->trimEdgeLine($path, $ancestors, end: false, context: $context);
             }
         }
     }
@@ -718,12 +725,14 @@ final class BlockLayout
      * blocked by an empty block child (a block that itself has no
      * lines and whose descendants also have none) — CSS Inline 3
      * §6.4 propagation rule.
+     *
+     * @return list<Box>|null `$box` … host, inclusive
      */
-    private function findLineHost(Box $box, bool $last): ?Box
+    private function findLineHostPath(Box $box, bool $last): ?array
     {
         // If this box has its own line boxes, IT is the host.
         if ($box->lineBoxes !== []) {
-            return $box;
+            return [$box];
         }
         $children = $box->children;
         if ($children === []) {
@@ -742,9 +751,9 @@ final class BlockLayout
             ) {
                 continue;
             }
-            $sub = $this->findLineHost($child, $last);
+            $sub = $this->findLineHostPath($child, $last);
             if ($sub !== null) {
-                return $sub;
+                return [$box, ...$sub];
             }
             // This block contained no lines anywhere — it's an empty
             // block. Per §6.4 it BLOCKS further propagation along
@@ -755,51 +764,217 @@ final class BlockLayout
     }
 
     /**
-     * Trim the half-leading from the first / last line of `$host`
-     * (its own `lineBoxes`). When `$end` is true, only the line's
-     * trailing extent shrinks (the IFC's reported height reduces);
-     * when false, the line shifts upward by half-leading and every
-     * subsequent line moves with it.
+     * Trim the leading off the first / last line of the host at the end
+     * of `$path` (CSS Inline 3 §6.1).
      *
-     * Half-leading is computed from the host's resolved font-size
-     * and line-height, matching the way InlineLayout sized the
-     * line. With `text-box-edge: leading` (default) the trim is
-     * `(lineHeight − fontSize) / 2` — bigger when authors crank
-     * line-height past 1.
+     * The trimmed amount is the distance between the line box's own edge
+     * and the *text edge* selected by `text-box-edge` — measured against
+     * the BLOCK CONTAINER's font metrics, never against whatever inline
+     * descendant happened to stretch the line box:
+     *
+     *   trim-start = line.baseline − overEdgeAboveBaseline
+     *   trim-end   = (line.height − line.baseline) − underEdgeBelowBaseline
+     *
+     * That is what makes a line inflated by a 200%-sized span still
+     * collapse to the block's own ascent/descent, and it is why the old
+     * `(lineHeight − fontSize) / 2` half-leading model was wrong twice
+     * over: it assumed the text box is the em box (it is ascent+descent)
+     * and it ignored `text-box-edge` entirely.
+     *
+     * @param list<Box> $path      owner … host, inclusive
+     * @param list<Box> $ancestors the owner's own ancestors, root-first
      */
-    private function trimEdgeLineLeading(Box $owner, Box $host, bool $end): void
+    private function trimEdgeLine(array $path, array $ancestors, bool $end, LayoutContext $context): void
     {
+        $host = $path[count($path) - 1];
         if ($host->lineBoxes === []) {
             return;
         }
-        $fontSize = $this->fontSizePx($host);
-        $lineHeight = $this->lineHeightPx($host, $fontSize);
-        $halfLeading = max(0.0, ($lineHeight - $fontSize) / 2.0);
-        if ($halfLeading <= 0.0) {
+        $line = $end
+            ? $host->lineBoxes[count($host->lineBoxes) - 1]
+            : $host->lineBoxes[0];
+        [$overEdge, $underEdge] = $this->textBoxEdgeKeywords($host);
+        $trim = $end
+            ? ($line->height - $line->baseline) - $this->textEdgeUnderPx($host, $context, $underEdge)
+            : $line->baseline - $this->textEdgeOverPx($host, $context, $overEdge);
+        if ($trim <= 0.0) {
             return;
         }
-        if ($end) {
-            // Shrink the host's reported height by half-leading. The
-            // host's geometry.height is what the parent uses to
-            // place subsequent siblings, so this is what the spec's
-            // "trim-end" rule modifies.
-            $host->geometry->height = max(0.0, $host->geometry->height - $halfLeading);
-        } else {
-            // Shift every line on the host up by half-leading so the
-            // first line's top sits at the box's content edge. The
-            // host's own height also reduces.
+        if (!$end) {
+            // Shift every line up so the first line's text-over edge
+            // lands on the host's content-box top. Later lines keep
+            // their spacing relative to the first.
             $shifted = [];
-            foreach ($host->lineBoxes as $line) {
+            foreach ($host->lineBoxes as $existing) {
                 $shifted[] = new LineBox(
-                    $line->y - $halfLeading,
-                    $line->height,
-                    $line->fragments,
-                    $line->baseline,
+                    $existing->y - $trim,
+                    $existing->height,
+                    $existing->fragments,
+                    $existing->baseline,
+                    $existing->availableRight,
                 );
             }
             $host->lineBoxes = $shifted;
-            $host->geometry->height = max(0.0, $host->geometry->height - $halfLeading);
         }
+        // The space is really gone from the content box, so the host
+        // shrinks and everything laid out after it closes up. Without
+        // this the trim is visually inert — the box reports a smaller
+        // height while the next box still starts where the untrimmed
+        // line box ended.
+        $this->absorbBlockShrink($host, [...$ancestors, ...array_slice($path, 0, -1)], $trim);
+    }
+
+    /**
+     * Remove `$delta` of block-axis space at `$box`: shrink the box, pull
+     * every following in-flow sibling up, and repeat for each ancestor —
+     * the reflow a mid-layout size change would have produced naturally.
+     *
+     * A box with a specified `height` can absorb the change instead: its
+     * own size is fixed, so its later siblings do not move and the walk
+     * stops there.
+     *
+     * @param list<Box> $ancestors root-first chain of `$box`'s ancestors
+     */
+    private function absorbBlockShrink(Box $box, array $ancestors, float $delta): void
+    {
+        if ($delta <= 0.0) {
+            return;
+        }
+        if ($this->hasSpecifiedBlockHeight($box)) {
+            // The box's own size is fixed, so no space is actually freed:
+            // the text moves inside it and nothing outside it reflows.
+            return;
+        }
+        $box->geometry->height = max(0.0, $box->geometry->height - $delta);
+        $node = $box;
+        for ($i = count($ancestors) - 1; $i >= 0; $i--) {
+            $parent = $ancestors[$i];
+            $after = false;
+            foreach ($parent->children as $sibling) {
+                if ($sibling === $node) {
+                    $after = true;
+                    continue;
+                }
+                // Out-of-flow boxes are positioned against their own
+                // containing block, not the normal-flow cursor, so the
+                // reflow doesn't move them.
+                if ($after && !$this->isOutOfFlow($sibling)) {
+                    $this->shiftSubtree($sibling, -$delta);
+                }
+            }
+            if ($this->hasSpecifiedBlockHeight($parent)) {
+                return;
+            }
+            $parent->geometry->height = max(0.0, $parent->geometry->height - $delta);
+            $node = $parent;
+        }
+    }
+
+    /**
+     * Whether the box's `height` is a definite specified length, which
+     * makes it immune to the `text-box-trim` reflow.
+     */
+    private function hasSpecifiedBlockHeight(Box $box): bool
+    {
+        return $box->style->get('height') instanceof Length;
+    }
+
+    /**
+     * The `text-box-edge` over / under keywords in effect on `$box`.
+     *
+     * `auto` is the initial value and behaves as `text` at both edges.
+     * When only one keyword is given it applies to both edges, except
+     * that `cap` / `ex` are over-edge-only and leave the under edge at
+     * `text` (CSS Inline 3 §6.2).
+     *
+     * @return array{string, string}
+     */
+    private function textBoxEdgeKeywords(Box $box): array
+    {
+        $value = $box->style->get('text-box-edge');
+        if ($value instanceof \Phpdftk\Css\Value\ValueList) {
+            $values = $value->values;
+            $over = ($values[0] ?? null) instanceof Keyword
+                ? strtolower($values[0]->name)
+                : 'text';
+            if (($values[1] ?? null) instanceof Keyword) {
+                return [$over, strtolower($values[1]->name)];
+            }
+            return [$over, $this->mirroredUnderEdge($over)];
+        }
+        if ($value instanceof Keyword) {
+            $keyword = strtolower($value->name);
+            if ($keyword !== 'auto') {
+                return [$keyword, $this->mirroredUnderEdge($keyword)];
+            }
+        }
+        return ['text', 'text'];
+    }
+
+    /**
+     * The under edge implied by a single-keyword `text-box-edge`. `cap`
+     * and `ex` name over-edge-only metrics, so they fall back to `text`.
+     */
+    private function mirroredUnderEdge(string $over): string
+    {
+        return in_array($over, ['text', 'ideographic', 'ideographic-ink'], true)
+            ? $over
+            : 'text';
+    }
+
+    /**
+     * Distance from the baseline up to the `text-box-edge` over edge, in
+     * px, using `$box`'s own font. `cap` / `ex` fall back to the ascent
+     * when the face carries no cap-height / x-height metric.
+     */
+    private function textEdgeOverPx(Box $box, LayoutContext $context, string $edge): float
+    {
+        $fontSize = $this->fontSizePx($box);
+        $font = $this->trimEdgeFont($box, $context);
+        if ($font === null) {
+            // No metrics available — approximate the text box with the
+            // em box, which is what an Ahem-like 0.8 / 0.2 split gives.
+            return $fontSize * 0.8;
+        }
+        $upem = max(1, $font->unitsPerEm);
+        $ascent = ($font->ascent / $upem) * $fontSize;
+
+        return match ($edge) {
+            'cap' => $font->capHeight > 0 ? ($font->capHeight / $upem) * $fontSize : $ascent,
+            'ex' => $font->xHeight > 0 ? ($font->xHeight / $upem) * $fontSize : $ascent,
+            default => $ascent,
+        };
+    }
+
+    /**
+     * Distance from the baseline down to the `text-box-edge` under edge,
+     * in px. `alphabetic` sits exactly on the baseline.
+     */
+    private function textEdgeUnderPx(Box $box, LayoutContext $context, string $edge): float
+    {
+        if ($edge === 'alphabetic') {
+            return 0.0;
+        }
+        $fontSize = $this->fontSizePx($box);
+        $font = $this->trimEdgeFont($box, $context);
+        if ($font === null) {
+            return $fontSize * 0.2;
+        }
+
+        return (abs($font->descent) / max(1, $font->unitsPerEm)) * $fontSize;
+    }
+
+    /**
+     * The face `$box`'s own `font-family` resolves to — the block
+     * container's metrics are what `text-box-edge` measures against.
+     */
+    private function trimEdgeFont(Box $box, LayoutContext $context): ?\Phpdftk\FontParser\FontFaceData
+    {
+        return $context->fontResolver?->resolve(
+            $box->style->get('font-family'),
+            $this->intrinsicFontWeight($box->style),
+            $this->intrinsicFontStyle($box->style),
+        ) ?? $context->defaultFont;
     }
 
     /**
@@ -814,26 +989,6 @@ final class BlockLayout
             return $value->value;
         }
         return 16.0;
-    }
-
-    /**
-     * Resolve the box's line-height to px against `$fontSize`. The
-     * initial `normal` keyword approximates to 1.2 × fontSize per
-     * CSS Inline 3 §3 (until OS/2 metrics-driven leading ships).
-     */
-    private function lineHeightPx(Box $box, float $fontSize): float
-    {
-        $value = $box->style->get('line-height');
-        if ($value instanceof Length) {
-            return $value->value;
-        }
-        if ($value instanceof \Phpdftk\Css\Value\Number) {
-            return $fontSize * $value->value;
-        }
-        if ($value instanceof \Phpdftk\Css\Value\Percentage) {
-            return $fontSize * ($value->value / 100.0);
-        }
-        return $fontSize * 1.2;
     }
 
     private function layoutBox(Box $box, LayoutContext $context): float
