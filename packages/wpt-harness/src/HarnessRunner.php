@@ -645,11 +645,55 @@ final class HarnessRunner
             throw new \RuntimeException("could not read test file: $path");
         }
         $writer = new \Phpdftk\Pdf\Writer\PdfWriter();
-        $page = $writer->addPage();
+        $pageWidth = 612.0;
+        $pageHeight = 792.0;
+        $page = $writer->addPage($pageWidth, $pageHeight);
         $svgDoc = (new \Phpdftk\Svg\Parser())->parse($svgSource);
         $renderer = new \Phpdftk\SvgToPdf\SvgRenderer($page, $writer);
-        $renderer->draw($svgDoc, x: 0, y: 0);
+        // SVG 2 §8.2 — `width` / `height` on the outermost `<svg>` are
+        // `auto`, which resolves to `100%`. For a STANDALONE document the
+        // viewport is the window, which here is the page: pass it as the
+        // destination so a sizeless root fills the page instead of
+        // collapsing to the renderer's finite-size fallback. Without this
+        // a `<svg>` with no width/height/viewBox renders blank, and its
+        // reftest passes only because the test side is equally blank.
+        // Only a root that supplies NO intrinsic size takes the page as
+        // its viewport; one declaring `width="200" height="200"` (or a
+        // `viewBox`, which gives a ratio) keeps its natural size, exactly
+        // as a browser shows a standalone SVG.
+        $hasFixedSize = self::svgRootHasIntrinsicSize($svgDoc);
+        $renderer->draw(
+            $svgDoc,
+            x: 0,
+            y: 0,
+            width: $hasFixedSize ? null : $pageWidth,
+            height: $hasFixedSize ? null : $pageHeight,
+        );
         return $writer->toBytes();
+    }
+
+    /**
+     * True when the outermost `<svg>` supplies its own intrinsic size —
+     * a parseable fixed `width` AND `height`, or a `viewBox` (which
+     * supplies a ratio the renderer resolves against). Percentage or
+     * omitted dimensions are `auto` per SVG 2 §8.2 and resolve to 100%
+     * of the viewport instead.
+     */
+    private static function svgRootHasIntrinsicSize(\Phpdftk\Svg\SvgDocument $svg): bool
+    {
+        if ($svg->viewBox() !== null) {
+            return true;
+        }
+        $w = $svg->widthAttribute();
+        $h = $svg->heightAttribute();
+        if ($w === null || $h === null) {
+            return false;
+        }
+        // A percentage is `auto`-like: it needs a viewport to resolve.
+        if (str_contains($w, '%') || str_contains($h, '%')) {
+            return false;
+        }
+        return is_numeric(trim(rtrim($w, 'pxptemrn%'))) && is_numeric(trim(rtrim($h, 'pxptemrn%')));
     }
 
     public function manifest(): Manifest
