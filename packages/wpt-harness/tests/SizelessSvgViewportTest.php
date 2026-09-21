@@ -8,10 +8,14 @@ use Phpdftk\WptHarness\HarnessRunner;
 use PHPUnit\Framework\TestCase;
 
 /**
- * SVG 2 §8.2 — `width` / `height` on the outermost `<svg>` are `auto`,
- * which resolves to `100%`. For a STANDALONE document the viewport is
- * the window, so a root declaring no dimensions fills the page rather
- * than collapsing to the renderer's finite-size fallback.
+ * SVG 2 §8.2 — the viewport a STANDALONE outermost `<svg>` paints into.
+ *
+ * `width` / `height` on the root are `auto`, which resolves to `100%`;
+ * for a standalone document the containing window is the viewport, so a
+ * root declaring no dimensions fills the page rather than collapsing to
+ * the renderer's finite-size fallback. A root that DOES declare fixed
+ * dimensions gets exactly those — a `viewBox` is a coordinate system
+ * mapped into the viewport, never the viewport itself.
  *
  * This matters for scoring, not just rendering: a sizeless reference
  * that draws almost nothing matches an equally blank test, so the
@@ -33,39 +37,70 @@ final class SizelessSvgViewportTest extends TestCase
         }
     }
 
-    private function hasIntrinsicSize(string $svg): bool
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function viewport(string $svg): array
     {
         $doc = (new \Phpdftk\Svg\Parser())->parse($svg);
-        $m = new \ReflectionMethod(HarnessRunner::class, 'svgRootHasIntrinsicSize');
+        $m = new \ReflectionMethod(HarnessRunner::class, 'svgRootViewport');
         $m->setAccessible(true);
-        return (bool) $m->invoke(null, $doc);
+        /** @var array{0: float, 1: float} $result */
+        $result = $m->invoke(null, $doc, 612.0, 792.0);
+        return $result;
     }
 
-    public function testASizelessRootIsNotTreatedAsHavingAnIntrinsicSize(): void
+    public function testASizelessRootTakesThePageAsItsViewport(): void
     {
-        self::assertFalse($this->hasIntrinsicSize(
+        self::assertSame([612.0, 792.0], $this->viewport(
             '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="green"/></svg>',
         ));
     }
 
-    public function testAFixedWidthAndHeightPairIsAnIntrinsicSize(): void
+    public function testPercentageDimensionsAreAutoAndTakeThePage(): void
     {
-        self::assertTrue($this->hasIntrinsicSize(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="10" height="10"/></svg>',
+        self::assertSame([612.0, 792.0], $this->viewport(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="10" height="10"/></svg>',
         ));
     }
 
-    public function testAViewBoxAloneSuppliesAnIntrinsicRatio(): void
+    public function testAFixedWidthAndHeightPairIsTheViewport(): void
     {
-        self::assertTrue($this->hasIntrinsicSize(
+        self::assertSame([200.0, 150.0], $this->viewport(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150"><rect width="10" height="10"/></svg>',
+        ));
+    }
+
+    public function testAViewBoxDoesNotOverrideDeclaredDimensions(): void
+    {
+        // The regression this guards: the viewBox extent was being used
+        // as the destination rect, so a 200x200 document declaring
+        // `viewBox="0 0 3 3"` rendered 3pt wide.
+        self::assertSame([200.0, 200.0], $this->viewport(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 3" width="200" height="200">'
+            . '<rect width="1" height="1"/></svg>',
+        ));
+    }
+
+    public function testAViewBoxAloneKeepsItsExtentAsTheNaturalSize(): void
+    {
+        self::assertSame([3.0, 3.0], $this->viewport(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 3"><rect width="1" height="1"/></svg>',
         ));
     }
 
-    public function testPercentageDimensionsAreAutoAndNeedAViewport(): void
+    public function testASingleFixedAxisResolvesTheOtherThroughTheViewBoxRatio(): void
     {
-        self::assertFalse($this->hasIntrinsicSize(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="10" height="10"/></svg>',
+        self::assertSame([200.0, 100.0], $this->viewport(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 2" width="200">'
+            . '<rect width="1" height="1"/></svg>',
+        ));
+    }
+
+    public function testAbsoluteUnitsOnTheRootConvertToCssPixels(): void
+    {
+        self::assertSame([96.0, 144.0], $this->viewport(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1in" height="1.5in"><rect width="1" height="1"/></svg>',
         ));
     }
 
@@ -85,6 +120,19 @@ final class SizelessSvgViewportTest extends TestCase
         // The y-flip must use the PAGE height: a sizeless root takes the
         // page as its viewport, not the unit-square fallback.
         self::assertMatchesRegularExpression('/1 0 0 -1 0 792(\.0+)? cm/', $ops);
+    }
+
+    public function testDeclaredDimensionsScaleTheViewBoxAndAnchorAtThePageTop(): void
+    {
+        // `viewBox="0 0 100 100"` inside a 200x200 viewport means one
+        // user unit is 2px, and the document's top-left sits at the TOP
+        // of the page — not flush with the bottom margin.
+        $pdf = $this->render(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">'
+            . '<rect width="50" height="50" fill="green"/></svg>',
+        );
+        $ops = self::inflateContentStreams($pdf);
+        self::assertMatchesRegularExpression('/\b2 0 0 -2 0 792(\.0+)? cm/', $ops);
     }
 
     /** Concatenate every inflated content stream in the PDF. */

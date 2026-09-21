@@ -661,39 +661,105 @@ final class HarnessRunner
         // its viewport; one declaring `width="200" height="200"` (or a
         // `viewBox`, which gives a ratio) keeps its natural size, exactly
         // as a browser shows a standalone SVG.
-        $hasFixedSize = self::svgRootHasIntrinsicSize($svgDoc);
+        [$viewportWidth, $viewportHeight] = self::svgRootViewport($svgDoc, $pageWidth, $pageHeight);
+        // `draw()` anchors the destination rect by its BOTTOM-left in
+        // PDF user space, while a standalone document's viewport
+        // starts at the TOP-left of the canvas. They only coincide
+        // when the viewport is as tall as the page, so a shorter
+        // viewport has to be lifted by the difference or it renders
+        // flush with the bottom margin instead of the top.
         $renderer->draw(
             $svgDoc,
             x: 0,
-            y: 0,
-            width: $hasFixedSize ? null : $pageWidth,
-            height: $hasFixedSize ? null : $pageHeight,
+            y: $pageHeight - $viewportHeight,
+            width: $viewportWidth,
+            height: $viewportHeight,
         );
         return $writer->toBytes();
     }
 
     /**
-     * True when the outermost `<svg>` supplies its own intrinsic size —
-     * a parseable fixed `width` AND `height`, or a `viewBox` (which
-     * supplies a ratio the renderer resolves against). Percentage or
-     * omitted dimensions are `auto` per SVG 2 §8.2 and resolve to 100%
-     * of the viewport instead.
+     * SVG 2 §8.2 — the viewport a STANDALONE outermost `<svg>` paints
+     * into, in CSS px.
+     *
+     * The `width` / `height` attributes are the viewport; a `viewBox`
+     * is a coordinate system mapped INTO that viewport, never the
+     * viewport itself. `<svg viewBox="0 0 3 3" width="200"
+     * height="200">` is a 200×200 box in which one user unit is 66⅔
+     * px — passing no destination would instead render the whole
+     * document 3pt wide.
+     *
+     * When only one axis is fixed, a `viewBox` supplies the ratio for
+     * the other. When neither axis is fixed, `width` / `height` are
+     * `auto` → `100%` of the window, which for a standalone render is
+     * the page. A `viewBox`-only root keeps its viewBox extent as its
+     * natural size.
+     *
+     * @return array{0: float, 1: float}
      */
-    private static function svgRootHasIntrinsicSize(\Phpdftk\Svg\SvgDocument $svg): bool
+    private static function svgRootViewport(
+        \Phpdftk\Svg\SvgDocument $svg,
+        float $pageWidth,
+        float $pageHeight,
+    ): array {
+        $viewBox = $svg->viewBox();
+        $w = self::parseSvgRootLength($svg->widthAttribute());
+        $h = self::parseSvgRootLength($svg->heightAttribute());
+        $ratio = $viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0
+            ? $viewBox[2] / $viewBox[3]
+            : null;
+        if ($w !== null && $h === null && $ratio !== null) {
+            $h = $w / $ratio;
+        } elseif ($h !== null && $w === null && $ratio !== null) {
+            $w = $h * $ratio;
+        }
+        if ($w !== null && $h !== null) {
+            // Mirror `SvgRenderer::resolveSourceRect`'s near-integral
+            // snap (crbug.com/1392140) when there is no viewBox, so the
+            // destination it derives from the same attributes and the
+            // one passed here stay identical and the scale stays 1.
+            return $viewBox === null
+                ? [(float) round($w), (float) round($h)]
+                : [$w, $h];
+        }
+        if ($viewBox !== null) {
+            return [$viewBox[2], $viewBox[3]];
+        }
+        return [$pageWidth, $pageHeight];
+    }
+
+    /**
+     * A root `width` / `height` attribute as a fixed CSS-px length, or
+     * null when it is absent, a percentage, or otherwise not a
+     * parseable absolute length (all of which are `auto`-like and need
+     * a viewport to resolve).
+     */
+    private static function parseSvgRootLength(?string $raw): ?float
     {
-        if ($svg->viewBox() !== null) {
-            return true;
+        if ($raw === null) {
+            return null;
         }
-        $w = $svg->widthAttribute();
-        $h = $svg->heightAttribute();
-        if ($w === null || $h === null) {
-            return false;
+        $trimmed = trim($raw);
+        if ($trimmed === '' || str_contains($trimmed, '%')) {
+            return null;
         }
-        // A percentage is `auto`-like: it needs a viewport to resolve.
-        if (str_contains($w, '%') || str_contains($h, '%')) {
-            return false;
+        if (preg_match(
+            '/^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*(px|pt|pc|cm|mm|q|in)?$/i',
+            $trimmed,
+            $m,
+        ) !== 1) {
+            return null;
         }
-        return is_numeric(trim(rtrim($w, 'pxptemrn%'))) && is_numeric(trim(rtrim($h, 'pxptemrn%')));
+        $value = (float) $m[1] * match (strtolower($m[2] ?? '')) {
+            'cm' => 96.0 / 2.54,
+            'mm' => 96.0 / 25.4,
+            'q' => 96.0 / 101.6,
+            'in' => 96.0,
+            'pt' => 96.0 / 72.0,
+            'pc' => 16.0,
+            default => 1.0,
+        };
+        return $value > 0.0 ? $value : null;
     }
 
     public function manifest(): Manifest
