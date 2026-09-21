@@ -23,13 +23,15 @@ final readonly class TestResult
      *                                {@see TestStatus} bucket
      *                                hierarchy.
      * @param float $diffScore        Perceptual diff score in
-     *                                `[0.0, 1.0]`. `0.0` is byte-
-     *                                identical to the reference;
+     *                                `[0.0, 1.0]` — the share of the
+     *                                frame that differs. `0.0` is
+     *                                byte-identical to the reference;
      *                                `1.0` is "completely
-     *                                different". Pass tolerance is
-     *                                set by the harness config and
-     *                                defaults to `0.01` per the WPT
-     *                                reftest convention.
+     *                                different". Reported for sorting
+     *                                and trending; it is NOT the pass
+     *                                criterion, which is an absolute
+     *                                differing-pixel budget (see
+     *                                {@see Scorer}).
      * @param string|null $reason     Human-readable explanation when
      *                                the status is `OutOfScope`,
      *                                `PendingSubstrate`, or

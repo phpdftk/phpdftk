@@ -19,8 +19,9 @@ use PHPUnit\Framework\TestCase;
  * isn't populated.
  *
  * Each smoke fixture sits next to a `-ref.html` or `-ref.svg`
- * sibling that should render identically to the test (within the
- * default 1% fuzz). When any of them regresses, the harness has
+ * sibling that should render identically to the test — pixel-for-
+ * pixel, which is the harness default. When any of them regresses,
+ * the harness has
  * broken — either the renderer no longer matches its own
  * reference, or the rasterise / score path is sick.
  *

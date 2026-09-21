@@ -28,13 +28,49 @@ namespace Phpdftk\WptHarness;
  *    difference is acceptable, and inventing more would overrule
  *    them.
  *  - **Harness default** — no annotation. WPT requires a byte-exact
- *    screenshot match here. We cannot: the test and its reference are
- *    two different documents rasterised independently, so sub-pixel
- *    layout differences produce anti-aliasing noise on edges that a
- *    browser's single-screenshot comparison never sees. The default
- *    pass threshold `0.01` (1% of pixels, each within a 1% colour
- *    fuzz) is the harness's stand-in. It is a deliberate divergence
- *    from WPT, not an implementation of it.
+ *    screenshot match here, and so does this: {@see self::$pixelBudget}
+ *    defaults to zero differing pixels.
+ *
+ * The default used to be a *fraction* of the frame, `0.01`. On the
+ * 816×1056 page the harness rasterises that is 8,616 pixels — a 93×93
+ * square, larger than the 100×100 indicator square WPT tests are built
+ * around, so a fixture could be wrong across 86% of its test square and
+ * still pass. Worse, being a fraction, it meant something different at
+ * every page geometry. Rendered evidence from the corpus, at scores the
+ * old threshold called comfortable passes:
+ *
+ *   -    81px (0.0001) `css-backgrounds/background-origin-004` draws a
+ *                      red line across a box whose own text reads
+ *                      "Test passes if there is no red".
+ *   -    44px (0.0001) `counter-style-at-rule/system-additive-invalid`
+ *                      renders `-2. foo` where the reference renders
+ *                      `:2. foo` — the fallback the test exists to check.
+ *   -   602px (0.0007) `svg/text/reftests/text-transform-002` renders
+ *                      "hello, world!" against a reference reading
+ *                      "Hello, World!" — `text-transform` unimplemented.
+ *   -  2001px (0.0023) `svg/shapes/ellipse-03` renders NOTHING against a
+ *                      reference drawing a blue circle.
+ *
+ * The justification offered for the fraction was anti-aliasing noise
+ * between independently rasterised documents. It does not survive
+ * contact with the pipeline. Both sides are rendered by the same engine
+ * and rasterised by the same Ghostscript at the same DPI (verified
+ * byte-reproducible across runs), and no in-scope fixture in the corpus
+ * has a checked-in PNG reference, so there is no cross-engine
+ * comparison anywhere in the scored set. Identical layout produces
+ * identical pixels; a differing pixel means the two documents drew
+ * different things. The measured distribution agrees — 65% of passes
+ * are already pixel-exact, and the non-exact tail has no noise cluster
+ * to cut above: the smallest non-exact pass in the corpus is 1 pixel,
+ * and real failures start at 10.
+ *
+ * One grain of slack survives, and it is a colour tolerance rather than
+ * a pixel count: the differing-pixel count is taken at ImageMagick's
+ * `-fuzz 1%`, so a channel that rounds to 127 down one code path and
+ * 128 down another is not counted. It cannot hide geometry — a
+ * one-pixel shift of an anti-aliased edge moves channels by far more
+ * than 2/255 — and it is the only remaining divergence from WPT's
+ * byte-exact default.
  */
 final class Scorer
 {
@@ -46,7 +82,16 @@ final class Scorer
     private const SOLID_PROBE_STRIDE = 16;
 
     public function __construct(
-        private readonly float $passThreshold = 0.01,
+        /**
+         * How many differing pixels a fixture that declares no
+         * tolerance of its own may have and still pass — an absolute
+         * count, so the criterion says the same thing on any page
+         * geometry. Zero is WPT's own default and the evidenced one;
+         * see the class docblock. Callers comparing renders from
+         * *different* engines (the cross-browser oracle) are the ones
+         * with a reason to raise it.
+         */
+        private readonly int $pixelBudget = 0,
         private readonly string $compareBinary = 'compare',
     ) {}
 
@@ -100,18 +145,24 @@ final class Scorer
         }
 
         // Harness default: count pixels outside a 1% colour fuzz and
-        // require them to be under `passThreshold` of the frame.
+        // require them to fit the absolute budget.
         $metric = $this->runCompare('AE', $renderedPath, $referencePath, $diffImage, 1.0);
         if ($metric['error'] !== null) {
             return self::failure($metric['error']);
         }
         $errorPixels = (int) round($metric['raw']);
-        $score = min(1.0, $errorPixels / $totalPixels);
+        $passed = $errorPixels <= $this->pixelBudget;
 
         return $this->withSolidEvidence([
-            'score' => $score,
-            'passed' => $score <= $this->passThreshold,
-            'reason' => null,
+            // The score stays a fraction of the frame: it is what the
+            // ledger sorts and trends on, and it is not the criterion.
+            'score' => min(1.0, $errorPixels / $totalPixels),
+            'passed' => $passed,
+            'reason' => $passed ? null : sprintf(
+                '%d pixels differ; budget is %d',
+                $errorPixels,
+                $this->pixelBudget,
+            ),
             'diffImage' => is_file($diffImage) ? $diffImage : null,
             'bothSolid' => false,
         ], $renderedPath, $referencePath);
@@ -343,9 +394,9 @@ final class Scorer
         return ['w' => $info[0], 'h' => $info[1]];
     }
 
-    public function passThreshold(): float
+    public function pixelBudget(): int
     {
-        return $this->passThreshold;
+        return $this->pixelBudget;
     }
 
     public function compareBinary(): string

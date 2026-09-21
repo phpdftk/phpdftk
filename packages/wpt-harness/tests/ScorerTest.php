@@ -55,8 +55,7 @@ final class ScorerTest extends TestCase
 
     public function testDeclaredToleranceReplacesTheDefaultThreshold(): void
     {
-        // 4 black pixels in an 8×8 = 64-pixel frame is 6.25% — well
-        // over the default 1% threshold.
+        // 4 black pixels is 4 over the default budget of zero.
         $a = $this->makePng(8, 8, 255, 255, 255);
         $b = $this->makeDiffyPng(8, 8, 255, 255, 255, 4);
         try {
@@ -197,6 +196,62 @@ final class ScorerTest extends TestCase
     {
         // No evidence of blankness is not evidence of blankness.
         self::assertFalse(Scorer::isSolidColour('/nonexistent/wpt-harness-probe.png'));
+    }
+
+    public function testASinglyDifferingPixelFailsTheDefaultBudget(): void
+    {
+        // One pixel in a 64×64 frame is 0.02% of it, so the old
+        // fractional threshold passed it — as it passed anything up to
+        // 1% of the frame, which on the 816×1056 page the harness
+        // actually rasterises is a 93×93 square.
+        $a = $this->makePng(64, 64, 255, 255, 255);
+        $b = $this->makeDiffyPng(64, 64, 255, 255, 255, 1);
+        try {
+            $result = (new Scorer())->diff($a, $b);
+
+            self::assertFalse($result['passed']);
+            self::assertStringContainsString('budget is 0', (string) $result['reason']);
+        } finally {
+            @unlink($a);
+            @unlink($b);
+        }
+    }
+
+    public function testTheBudgetIsAnAbsoluteCountNotAShareOfTheFrame(): void
+    {
+        // The same 8 differing pixels, in a small frame and a large
+        // one. Under a fractional threshold the verdict flips with the
+        // page size — 8 of 64 is 12.5% and fails, 8 of 640,000 is
+        // 0.001% and passes — which means the criterion was really
+        // "how big is the page", not "how wrong is the render".
+        $small = [$this->makePng(8, 8, 255, 255, 255), $this->makeDiffyPng(8, 8, 255, 255, 255, 8)];
+        $large = [$this->makePng(800, 800, 255, 255, 255), $this->makeDiffyPng(800, 800, 255, 255, 255, 8)];
+        try {
+            $scorer = new Scorer();
+
+            self::assertFalse($scorer->diff($small[0], $small[1])['passed']);
+            self::assertFalse($scorer->diff($large[0], $large[1])['passed']);
+        } finally {
+            array_map('unlink', [...$small, ...$large]);
+        }
+    }
+
+    public function testAConfiguredBudgetIsSpentInPixels(): void
+    {
+        // The dial exists for callers comparing renders from different
+        // engines, where zero is not achievable.
+        $a = $this->makePng(64, 64, 255, 255, 255);
+        $eight = $this->makeDiffyPng(64, 64, 255, 255, 255, 8);
+        $twelve = $this->makeDiffyPng(64, 64, 255, 255, 255, 12);
+        try {
+            $scorer = new Scorer(pixelBudget: 10);
+
+            self::assertSame(10, $scorer->pixelBudget());
+            self::assertTrue($scorer->diff($a, $eight)['passed']);
+            self::assertFalse($scorer->diff($a, $twelve)['passed']);
+        } finally {
+            array_map('unlink', [$a, $eight, $twelve]);
+        }
     }
 
     private function makePng(int $w, int $h, int $r, int $g, int $b): string
