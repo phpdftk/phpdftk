@@ -228,6 +228,13 @@ final class Translator
         $this->document = $document;
         $this->compensateTextFlip = $compensateTextFlip;
         $this->effectiveViewport = $effectiveViewport;
+        // CSS Values 4 §6.1 — `vw` / `vh` / `vmin` / `vmax` resolve
+        // against the INITIAL containing block, which for an SVG
+        // document is its outermost viewport. Capture it here, with
+        // the nested-viewport stack empty, so a `<svg>` nested inside
+        // the document can't shadow it.
+        $this->viewportStack = [];
+        $this->rootViewport = $this->currentViewport();
         // Seed the cumulative-transform stack with the renderer's base matrix
         // (viewport scale + y-flip + page placement) so gradient patterns can
         // reconstruct the SVG→page mapping the caller applied to the stream.
@@ -266,6 +273,7 @@ final class Translator
             $this->activeFont = null;
             $this->compensateTextFlip = false;
             $this->effectiveViewport = null;
+            $this->rootViewport = null;
         }
     }
 
@@ -281,6 +289,15 @@ final class Translator
      * @var list<array{w: float, h: float}>
      */
     private array $viewportStack = [];
+    /**
+     * The document's OUTERMOST viewport — the initial containing block
+     * the `vw` / `vh` / `vmin` / `vmax` units resolve against (CSS
+     * Values 4 §6.1). Captured once per {@see paint()} so a nested
+     * `<svg>` viewport can't shadow it the way it shadows `%`.
+     *
+     * @var array{w: float, h: float}|null
+     */
+    private ?array $rootViewport = null;
     /**
      * A `<use>`'s width/height override for the nested `<svg>` it
      * references (SVG 2 §5.6.1), consumed by the next `paintNestedSvg`.
@@ -401,8 +418,12 @@ final class Translator
         if ($raw === null || trim($raw) === '') {
             return $default;
         }
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*%\s*$/', $raw, $m) === 1) {
-            return ((float) $m[1]) / 100.0 * $viewport;
+        if (preg_match(
+            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*(%|vw|vh|vmin|vmax)\s*$/i',
+            $raw,
+            $m,
+        ) === 1) {
+            return ((float) $m[1]) / 100.0 * $this->relativeLengthBasis(strtolower($m[2]), $viewport);
         }
         $plain = self::parseLengthPrefixForViewport($raw);
         return $plain ?? $default;
@@ -1329,20 +1350,49 @@ final class Translator
     /**
      * Resolve a length attribute against the current viewport. SVG 2 §10.3:
      * percentage values resolve against the relevant viewport dimension
-     * (`%` width → viewport width, `%` height → viewport height). Anything
-     * else falls back to `$plain` — the shape's existing unit-stripped
-     * float, which is what every shape accessor returned before this method
-     * existed.
+     * (`%` width → viewport width, `%` height → viewport height), and CSS
+     * Values 4 §6.1 viewport units against the INITIAL containing block —
+     * for an SVG document, its own outermost viewport, not the nearest
+     * nested one. Anything else falls back to `$plain` — the shape's
+     * existing unit-stripped float, which is what every shape accessor
+     * returned before this method existed.
      */
     private function resolvePercentLength(?string $raw, float $viewport, float $plain): float
     {
         if ($raw === null || trim($raw) === '') {
             return 0.0;
         }
-        if (preg_match('/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)(\s*%)/', $raw, $m) !== 1) {
+        if (preg_match(
+            '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*(%|vw|vh|vmin|vmax)/i',
+            $raw,
+            $m,
+        ) !== 1) {
             return $plain;
         }
-        return ((float) $m[1]) / 100.0 * $viewport;
+        $basis = $this->relativeLengthBasis(strtolower($m[2]), $viewport);
+        return ((float) $m[1]) / 100.0 * $basis;
+    }
+
+    /**
+     * The 1%-basis for a relative length unit: the supplied viewport
+     * extent for `%`, and the document's OWN outermost viewport for the
+     * `v*` units. An embedded resource's outermost viewport is the
+     * `<image>` box it was given, which is exactly what makes `50vw`
+     * inside an `<image href="…svg">` mean half that box.
+     */
+    private function relativeLengthBasis(string $unit, float $percentBasis): float
+    {
+        if ($unit === '%') {
+            return $percentBasis;
+        }
+        $root = $this->rootViewport ?? $this->currentViewport();
+        return match ($unit) {
+            'vw' => $root['w'],
+            'vh' => $root['h'],
+            'vmin' => min($root['w'], $root['h']),
+            'vmax' => max($root['w'], $root['h']),
+            default => $percentBasis,
+        };
     }
 
     /**
