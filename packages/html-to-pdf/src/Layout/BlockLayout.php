@@ -6169,7 +6169,12 @@ final class BlockLayout
         // the other. It shares this box type (and most of the track
         // machinery) with regular grid but not the 2D placement pass.
         if ($box->lanes) {
-            return $this->layoutGridLanesBox($box, $context);
+            return $this->layoutGridLanesBox(
+                $box,
+                $context,
+                $definiteContentHeightOverride,
+                $definiteContentWidthOverride,
+            );
         }
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
@@ -6918,8 +6923,12 @@ final class BlockLayout
      * (§6.1) are the grid-axis gap between adjacent tracks and the
      * stacking-axis gap before every item but the first in a track.
      */
-    private function layoutGridLanesBox(\Phpdftk\HtmlToPdf\Box\GridBox $box, LayoutContext $context): float
-    {
+    private function layoutGridLanesBox(
+        \Phpdftk\HtmlToPdf\Box\GridBox $box,
+        LayoutContext $context,
+        ?float $definiteContentHeightOverride = null,
+        ?float $definiteContentWidthOverride = null,
+    ): float {
         $style = $box->style;
         $cbWidth = $context->containingBlockWidth;
         $cbHeight = $context->containingBlockHeight;
@@ -7010,10 +7019,22 @@ final class BlockLayout
             $geo->width = $this->resolveLength($widthValue, $cbWidth);
         }
 
+        // See {@see layoutGridBox} — a caller that already resolved this
+        // box's inline size pins it before the track sizing reads it.
+        if ($definiteContentWidthOverride !== null) {
+            $geo->width = $definiteContentWidthOverride;
+        }
+
         $geo->x = $context->originX + $geo->marginLeft + $geo->borderLeft + $geo->paddingLeft;
         $geo->y = $context->originY + $geo->marginTop + $geo->borderTop + $geo->paddingTop;
 
-        $explicitContainerHeight = $this->definiteContainerHeightOrNull($box, $context);
+        // CSS Box Alignment 3 §4.2 — when this container is itself an item
+        // its parent STRETCHED, the stretched content height is a definite
+        // block size for its own track sizing, its stacking range and its
+        // content distribution. Exactly the treatment `layoutGridBox`
+        // gives the same override.
+        $explicitContainerHeight = $definiteContentHeightOverride
+            ?? $this->definiteContainerHeightOrNull($box, $context);
         $declaredHeight = $explicitContainerHeight
             ?? $this->ratioDerivedContainerHeight($style, $geo);
 
@@ -7085,7 +7106,8 @@ final class BlockLayout
         if ($box->children === []) {
             $gridExtent = $this->gridTotalExtent($tracks, $gridGap);
             $naturalHeight = $gridAxisIsInline ? 0.0 : $gridExtent;
-            $geo->height = $declaredHeight
+            $geo->height = $definiteContentHeightOverride
+                ?? $declaredHeight
                 ?? $this->resolveContainIntrinsicHeight($style, $context)
                 ?? $naturalHeight;
             $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);
@@ -7497,7 +7519,8 @@ final class BlockLayout
 
         $gridExtent = $this->gridTotalExtent($tracks, $gridGapUsed);
         $naturalHeight = $gridAxisIsInline ? $stackingRange : $gridExtent;
-        $geo->height = $this->resolveExplicitHeightOrNull($style, $cbHeight)
+        $geo->height = $definiteContentHeightOverride
+            ?? $this->resolveExplicitHeightOrNull($style, $cbHeight)
             ?? $this->resolveContainIntrinsicHeight($style, $context)
             ?? $naturalHeight;
         $this->clampMinMax($style, $geo, $cbWidth, $cbHeight, $naturalHeight);

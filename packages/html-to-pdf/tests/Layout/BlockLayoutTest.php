@@ -12341,6 +12341,32 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta(100.0, $pct->geometry->height, 0.5);
     }
 
+    public function testStretchedGridLanesContainerHonoursTheBlockSizeOverride(): void
+    {
+        // CSS Grid Layout 3 §4.4 + Box Alignment 3 §4.2 — a `grid-lanes`
+        // container stretched by its flex parent must observe the stretched
+        // block size: `align-content: end` in the stacking axis has nothing
+        // to push against otherwise.
+        $box = $this->buildTree(
+            '<html><body><div id="f"><div id="lanes">'
+            . '<div id="i"></div></div></div></body></html>',
+            'html, body { display: block; }
+             #f { display: flex; align-items: stretch; height: 300px; }
+             #lanes { display: grid-lanes; grid-template-columns: 100px;
+                      align-content: end; width: 100px; }
+             #i { display: block; height: 50px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $lanes = $this->findById($box, 'lanes');
+        $i = $this->findById($box, 'i');
+        self::assertNotNull($lanes);
+        self::assertNotNull($i);
+        self::assertEqualsWithDelta(300.0, $lanes->geometry->height, 0.5);
+        // `align-content: end` pushes the single 50px item to the bottom of
+        // the 300px stacking range.
+        self::assertEqualsWithDelta($lanes->geometry->y + 250.0, $i->geometry->y, 0.5);
+    }
+
     private function findById(Box $root, string $id): ?Box
     {
         $stack = [$root];
