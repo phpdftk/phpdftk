@@ -1,27 +1,28 @@
 {
-  "_comment": "Per-bucket in-scope PASS-COUNT floor for the WPT regression gate (scripts/wpt-scoreboard.php). Gate on counts, not percentages: counts are stable while the corpus total drifts. `tolerance` absorbs rasterisation ±1 jitter. Refresh after intentional gains with: php scripts/wpt-scoreboard.php --update. Numbers are settler-OFF (deterministic, no Playwright dependency) and rendered with the harness DEFAULT FONT (DejaVu Serif) so text-dependent reftests actually exercise text rather than passing blank. Set WPT_DEFAULT_FONT=none to reproduce the legacy font-less numbers.",
+  "_comment": "Per-bucket in-scope PASS-COUNT floor for the WPT regression gate (scripts/wpt-scoreboard.php). Gate on counts, not percentages: counts are stable while the corpus total drifts. `tolerance` absorbs rasterisation jitter. Refresh after intentional gains with: php scripts/wpt-scoreboard.php --update. Numbers are settler-OFF (deterministic, no Playwright dependency) and rendered with the harness DEFAULT FONT (DejaVu Serif) so text-dependent reftests actually exercise text rather than passing blank. Set WPT_DEFAULT_FONT=none to reproduce the legacy font-less numbers. REBASELINED 2026-09-22: these numbers are NOT comparable to any earlier revision of this file. Three harness defects were fixed \u2014 reference resolution missed ~555 fixtures (namespaced <html:link rel=match> and unquoted rel=match), <meta name=fuzzy> tolerances were discarded, and rel=mismatch reftests were never scored \u2014 which RAISED every inScopeTotal; and the pass criterion changed from 1%-of-page (8616 differing pixels at 816x1056, larger than WPT's own 100x100 indicator square) to EXACT pixel match, which lowered every pass count. Fixtures declaring their own fuzzy tolerances are still judged by those. The rates roughly halved; nothing regressed.",
   "settler": "off",
   "tolerance": 2,
   "buckets": {
     "html": {
       "filter": "html/**",
-      "pass": 487,
-      "inScopeTotal": 584
+      "pass": 351,
+      "inScopeTotal": 707
     },
     "css": {
       "filter": "css/**",
-      "pass": 13577,
-      "inScopeTotal": 21270
+      "pass": 9408,
+      "inScopeTotal": 21818
     },
     "svg": {
       "filter": "svg/**",
       "pass": 159,
-      "inScopeTotal": 174
+      "inScopeTotal": 324
     },
     "mathml": {
       "filter": "mathml/**",
-      "pass": 161,
-      "inScopeTotal": 167
+      "pass": 87,
+      "inScopeTotal": 183
     }
-  }
+  },
+  "criterion": "exact-pixel-match; per-fixture <meta name=fuzzy> tolerances honoured"
 }

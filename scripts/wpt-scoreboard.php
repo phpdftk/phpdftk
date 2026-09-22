@@ -66,7 +66,13 @@ foreach ($baseline['buckets'] as $name => $spec) {
     }
     $base = (int) ($spec['pass'] ?? 0);
 
-    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($wptBin)
+    // A whole-bucket run holds every fixture's render in one process and
+    // exceeds a default 128M limit — `css/css-backgrounds/background-size`
+    // alone does. The child died mid-run, emitted a Fatal error instead of
+    // JSON, and the gate reported "no JSON" with no indication that memory
+    // was the cause. Raise it explicitly rather than depending on whatever
+    // php.ini the CI image happens to ship.
+    $cmd = escapeshellarg(PHP_BINARY) . ' -d memory_limit=1G ' . escapeshellarg($wptBin)
         . ' run --filter=' . escapeshellarg($filter) . ' --json';
     if ($rootArg !== null) {
         $cmd .= ' --root=' . escapeshellarg($rootArg);
@@ -77,7 +83,11 @@ foreach ($baseline['buckets'] as $name => $spec) {
     $raw = shell_exec($env . $cmd);
     $data = is_string($raw) ? json_decode($raw, true) : null;
     if (!is_array($data) || !isset($data['pass'], $data['inScopeTotal'])) {
-        fwrite(STDERR, "wpt-scoreboard: no JSON from `$cmd`\n  output: " . trim((string) $raw) . "\n");
+        $out = trim((string) $raw);
+        $hint = str_contains($out, 'Allowed memory size')
+            ? "\n  hint: the child ran out of memory — raise `-d memory_limit` above 1G"
+            : '';
+        fwrite(STDERR, "wpt-scoreboard: no JSON from `$cmd`\n  output: " . $out . $hint . "\n");
         exit(2);
     }
 
