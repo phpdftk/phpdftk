@@ -23,6 +23,30 @@ Two subclasses extend it:
 
 `Shaper`, `FontResolver`, and `RendererOptions::$fontMap` accept the base type, so a single font registry can mix both kinds. The PDF writer dispatches via `instanceof` at registration time — CFF gets the CFF subsetter, TrueType gets the glyf subsetter — but the layout pipeline doesn't see that distinction.
 
+## WOFF 1.0 and WOFF 2.0
+
+Both WOFF containers are unwrapped transparently before the SFNT reaches
+the parser, so `src: url(font.woff)` and `src: url(font.woff2)` behave
+exactly like a bare `.ttf` / `.otf`.
+
+**WOFF 2.0 requires `ext-brotli`**, because the container is Brotli-
+compressed. It is declared as a Composer `suggest` rather than a hard
+`require`, and the dependency is *optional by design*:
+
+- the `woff2` format keyword is always accepted, and
+- a woff2 source is skipped at **decode** time when the extension is
+  absent, so a stylesheet listing woff2 first still falls through to its
+  next `src` candidate rather than losing the face.
+
+Install it with `pecl install brotli` and add `extension=brotli.so` to
+your `php.ini`. Without it you get a Warning naming the family and the
+next source is used.
+
+Malformed WOFF2 is rejected rather than trusted: a table declaring a
+length larger than the header's `totalSfntSize` is refused, since those
+lengths are attacker-controlled `UIntBase128` values and an unbounded one
+would otherwise drive a multi-gigabyte allocation.
+
 ## `@font-face` loading
 
 `<style>@font-face { font-family: Inter; src: url(Inter.ttf); }</style>` resolves through the same pipeline regardless of format:
@@ -67,6 +91,5 @@ The TrueType parser and the CFF parser are both header-only — neither decodes 
 
 ## What's still pending
 
-- **WOFF 2** — `phpdftk/font-parser` decompresses WOFF 1.0 transparently, but the WOFF 2.0 Brotli container hasn't been wired yet. Authors shipping `url(font.woff2)` will see the source dropped with a Warning until that lands.
 - **Variable fonts** — `TrueTypeData` exposes the `fvar` axes and named instances, but `font-variation-settings` doesn't yet pick a specific instance for layout. This is a downstream layout change, not a parser gap.
 - **Synthetic bold / italic** — the painter falls back to a 2D-skew italic and a stroke-2 fake bold when no real face matches. Real fakes still beat dropping the glyphs but visibly diverge from a properly-designed italic / bold cut.

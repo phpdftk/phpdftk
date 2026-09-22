@@ -35,6 +35,9 @@
         {"type": "path", "url": "packages/paged-media"},
         {"type": "path", "url": "packages/wpt-harness"}
     ],
+    "suggest": {
+        "ext-brotli": "Required to decode WOFF 2.0 (.woff2) @font-face sources; without it a woff2 source is skipped and the next src candidate is used."
+    },
     "require": {
         "php": "^8.4"
     },

@@ -157,10 +157,29 @@ final class Woff2Parser
         $streamOffset = 0;
         $decompressedTables = [];
 
+        // WOFF2 §4.1 — `origLength` / `transformLength` are UIntBase128
+        // values read straight out of the file, so a malformed font can
+        // declare a table larger than any real font. The reconstructed
+        // sfnt cannot exceed the header's `totalSfntSize`, and neither
+        // can any single table within it, so that is the bound. Without
+        // it a declared 0xFFFFFFFF sends `str_pad()` below at a 4 GB
+        // allocation and the process dies on an untrusted input — the
+        // WOFF2 conformance suite supplies exactly such files and
+        // requires them to be REJECTED, not to abort the renderer.
+        $maxTableLength = max($totalSfntSize, strlen($decompressed));
         foreach ($tables as $table) {
             $tableLength = $table['isTransformed']
                 ? ($table['transformLength'] ?? $table['origLength'])
                 : $table['origLength'];
+
+            if ($tableLength > $maxTableLength || $table['origLength'] > $maxTableLength) {
+                throw new \RuntimeException(sprintf(
+                    'WOFF2 table `%s` declares length %d, exceeding the %d-byte reconstructed font',
+                    $table['tag'],
+                    max($tableLength, $table['origLength']),
+                    $maxTableLength,
+                ));
+            }
 
             if ($streamOffset + $tableLength > strlen($decompressed)) {
                 // Truncated — use what we have
