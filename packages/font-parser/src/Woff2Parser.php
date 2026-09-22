@@ -227,7 +227,14 @@ final class Woff2Parser
     private static function brotliDecompress(string $data): string
     {
         if (function_exists('brotli_uncompress')) {
-            $result = brotli_uncompress($data);
+            // Suppressed: a malformed or truncated stream is an
+            // EXPECTED input here — the WOFF2 conformance suite feeds
+            // deliberately broken files and requires them to be
+            // rejected. The false return is checked immediately and
+            // turned into an exception; the raw PHP warning would
+            // otherwise corrupt any caller writing machine-readable
+            // output to stdout.
+            $result = @brotli_uncompress($data);
             if ($result === false) {
                 throw new \RuntimeException('Brotli decompression failed (ext-brotli)');
             }

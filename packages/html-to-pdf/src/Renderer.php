@@ -1648,7 +1648,27 @@ final class Renderer
                     // WOFF 1.0 wraps OTF/TTF in a zlib-compressed
                     // container; transparently unwrap so the downstream
                     // OpenTypeParser sees the original SFNT.
-                    if (\Phpdftk\FontParser\WoffParser::isWoff($bytes)) {
+                    // WOFF 2.0 wraps the SFNT in a Brotli-compressed,
+                    // table-transformed container. Decoding needs
+                    // ext-brotli; without it `decompressBytes` throws and
+                    // we skip this source so the next `src` candidate (a
+                    // plain .ttf/.otf, typically) still gets its chance.
+                    if (\Phpdftk\FontParser\Woff2Parser::isWoff2($bytes)) {
+                        try {
+                            $bytes = \Phpdftk\FontParser\Woff2Parser::decompressBytes($bytes);
+                        } catch (\Throwable $e) {
+                            $warnings[] = new Warning(
+                                WarningCode::UnsupportedCssValue,
+                                sprintf(
+                                    '@font-face `%s` WOFF2 source failed to decode: %s',
+                                    $family,
+                                    $e->getMessage(),
+                                ),
+                                WarningSeverity::Warning,
+                            );
+                            continue;
+                        }
+                    } elseif (\Phpdftk\FontParser\WoffParser::isWoff($bytes)) {
                         try {
                             $bytes = \Phpdftk\FontParser\WoffParser::decompressBytes($bytes);
                         } catch (\Throwable $e) {
@@ -2004,6 +2024,13 @@ final class Renderer
         'opentype',
         'opentype-variations',
         'woff',
+        // WOFF 2.0 needs Brotli, which is an OPTIONAL ext-brotli
+        // dependency (see composer.json `suggest`). The format is
+        // advertised unconditionally and the source is skipped at
+        // decode time when the extension is absent, so a stylesheet
+        // listing `woff2` first still falls through to its next
+        // `src` entry rather than losing the face entirely.
+        'woff2',
     ];
 
     /**
