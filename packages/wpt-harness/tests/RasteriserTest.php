@@ -30,6 +30,51 @@ final class RasteriserTest extends TestCase
     }
 
     /**
+     * One CSS pixel must rasterise to exactly one device pixel.
+     *
+     * The renderer emits 1 CSS px as 1 PDF point and a point is
+     * 1/72", so the rasteriser has to run at 72 dpi for the two to
+     * line up. Any other resolution rescales every render. That
+     * cancels for the reftest comparison itself — both sides scale
+     * together — but it does NOT cancel for a fixture's
+     * `<meta name=fuzzy>` `totalPixels` budget, which is an absolute
+     * count of differing pixels authored against a browser at
+     * 1 CSS px = 1 device px. At 96 dpi every budget was being asked
+     * to cover (96/72)^2 = 1.78x the pixels its author allowed for.
+     */
+    public function testOneCssPixelRasterisesToOneDevicePixel(): void
+    {
+        $png = $this->rasterise(
+            new Rasteriser(),
+            '<!doctype html><style>body{margin:0}'
+            . 'div{width:100px;height:40px;background:#00f}</style><div></div>',
+        );
+
+        self::assertSame([100, 40], self::paintedExtent($png));
+    }
+
+    public function testDefaultResolutionIsOneDevicePixelPerPoint(): void
+    {
+        self::assertSame(72, (new Rasteriser())->dpi());
+    }
+
+    /**
+     * An explicit resolution still applies — the default is a default,
+     * not a constant — so the cross-browser oracle and any future
+     * caller can still ask for a different sampling density.
+     */
+    public function testAnExplicitResolutionOverridesTheDefault(): void
+    {
+        $png = $this->rasterise(
+            new Rasteriser(144),
+            '<!doctype html><style>body{margin:0}'
+            . 'div{width:100px;height:40px;background:#00f}</style><div></div>',
+        );
+
+        self::assertSame([200, 80], self::paintedExtent($png));
+    }
+
+    /**
      * A path fill and a shading handed the SAME coordinate must land
      * on the same device column.
      *
@@ -161,4 +206,19 @@ final class RasteriserTest extends TestCase
         }
         return -1;
     }
+    /**
+     * Width and height of everything the page painted.
+     *
+     * @return array{int, int}
+     */
+    private static function paintedExtent(string $png): array
+    {
+        $out = [];
+        exec(sprintf('convert %s -trim info: 2>/dev/null', escapeshellarg($png)), $out);
+        if (preg_match('~ (\d+)x(\d+) ~', implode("\n", $out), $m) !== 1) {
+            self::fail('could not measure the painted region: ' . implode("\n", $out));
+        }
+        return [(int) $m[1], (int) $m[2]];
+    }
+
 }

@@ -53,6 +53,42 @@ php scripts/build-wpt-gallery.php --filter='css/**' --shard=3/16
 Output lands in `docs/generated/wpt-gallery/` (gitignored): a `manifest.json`
 plus `img/<slug>.{ours,ref}.png` full renders and `.thumb.png` thumbnails.
 
+## Resolution and the rounding rule
+
+The renderer emits **1 CSS pixel as 1 PDF point**, and never rounds a
+coordinate: `ContentStream::num()` formats every real at `%.10f`, so
+layout geometry reaches the page at full precision. That makes the
+rasteriser the pipeline's only rounding site, and it settles two
+questions.
+
+**How big a device pixel is.** A point is 1/72", so `Rasteriser`
+renders at **72 dpi** and one CSS pixel becomes exactly one device
+pixel — the geometry WPT reftests are authored against. Sampling
+denser would cancel for the reftest comparison itself, since both
+sides scale together, but it does not cancel for a fixture's
+`<meta name="fuzzy">` `totalPixels` budget: that is an absolute count
+of differing pixels, and at 96 dpi each one was being asked to cover
+(96/72)² = 1.78× the pixels its author allowed for.
+
+**Which device pixel an edge belongs to.** Ghostscript expands path
+fills by half a device pixel before scan-converting them, so a
+`re … f` paints every pixel it touches, while shadings, image XObjects
+and glyphs are resolved at the pixel *centre*. An edge in the upper
+half of a pixel therefore lands in one column when a rectangle draws
+it and the next column right when a gradient, an image or a glyph
+draws it. A reftest reaches the same picture down two different paint
+paths by construction — a gradient with a hard stop against the solid
+blocks of its reference — so the disagreement surfaces as a
+whole-colour seam one pixel wide and fails an exact-match comparison.
+The rasteriser zeroes the fill adjustment (`0 0 .setfilladjust2`), so
+the whole pipeline rounds one way: pixel centre.
+
+The cost is dropout protection. A fill thinner than a device pixel
+that clears every pixel centre now paints nothing. At one device pixel
+per CSS pixel anything a full CSS pixel wide or wider always covers
+exactly one centre whatever its sub-pixel phase, so the exposure is
+limited to explicitly sub-pixel rules.
+
 ## Manifest schema (v1)
 
 ```json

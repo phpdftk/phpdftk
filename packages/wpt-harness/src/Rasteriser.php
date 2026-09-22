@@ -8,8 +8,29 @@ namespace Phpdftk\WptHarness;
  * Renders a PDF to a PNG file for downstream perceptual diffing.
  *
  * v1 implementation: shells out to Ghostscript with `-sDEVICE=png16m`
- * at the configured DPI (default 96 — the WPT reference). One PNG
- * per page; this method returns the path for `$pageIndex`.
+ * at the configured DPI. One PNG per page; this method returns the
+ * path for `$pageIndex`.
+ *
+ * The default is **72 dpi**, which makes one device pixel one PDF
+ * point and — because the renderer emits 1 CSS px as 1 pt — one CSS
+ * pixel. That is the geometry WPT reftests are written against, where
+ * the browser runs at one device pixel per CSS pixel.
+ *
+ * Sampling denser than that looks free, because a reftest compares two
+ * renders that scale together, but it is not: a fixture's
+ * `<meta name="fuzzy">` `totalPixels` bound is an ABSOLUTE count of
+ * differing pixels, chosen by its author against a 1:1 browser. The
+ * harness used to rasterise at 96 dpi, where a CSS pixel covers
+ * (96/72)^2 = 1.78 device pixels, so every declared budget was being
+ * asked to cover 1.78x the pixels it was written for and fixtures
+ * failed on arithmetic rather than on rendering.
+ *
+ * Resolution decides more than the budgets, because it decides which
+ * coordinates are fractional. At 96 dpi an integer CSS coordinate
+ * lands on a device pixel boundary only when it is a multiple of
+ * three; at 72 dpi it always does, which keeps whole-pixel CSS
+ * geometry off the rounding boundary entirely. See
+ * {@see self::fillAdjustPrologue()} for what happens at that boundary.
  *
  * v2 implementation (Phase 4C): swap to `phpdftk/raster` so the
  * harness has zero external dependencies. Until then the gs path
@@ -32,7 +53,7 @@ final class Rasteriser
     private static array $fillAdjustSupport = [];
 
     public function __construct(
-        private readonly int $dpi = 96,
+        private readonly int $dpi = 72,
         private readonly string $ghostscriptBinary = 'gs',
     ) {}
 

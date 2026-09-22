@@ -202,8 +202,8 @@ final class ScorerTest extends TestCase
     {
         // One pixel in a 64×64 frame is 0.02% of it, so the old
         // fractional threshold passed it — as it passed anything up to
-        // 1% of the frame, which on the 816×1056 page the harness
-        // actually rasterises is a 93×93 square.
+        // 1% of the frame, which on a real page is a square around 70
+        // pixels on a side.
         $a = $this->makePng(64, 64, 255, 255, 255);
         $b = $this->makeDiffyPng(64, 64, 255, 255, 255, 1);
         try {

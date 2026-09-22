@@ -32,12 +32,15 @@ namespace Phpdftk\WptHarness;
  *    defaults to zero differing pixels.
  *
  * The default used to be a *fraction* of the frame, `0.01`. On the
- * 816×1056 page the harness rasterises that is 8,616 pixels — a 93×93
- * square, larger than the 100×100 indicator square WPT tests are built
- * around, so a fixture could be wrong across 86% of its test square and
- * still pass. Worse, being a fraction, it meant something different at
- * every page geometry. Rendered evidence from the corpus, at scores the
- * old threshold called comfortable passes:
+ * 816×1056 page the harness rasterised at the time that is 8,616
+ * pixels — a 93×93 square, nearly the whole 100×100 indicator square
+ * WPT tests are built around, so a fixture could be wrong across 86%
+ * of its test square and still pass. Worse, being a fraction, it meant
+ * something different at every page geometry and every rasterisation
+ * resolution; the page is 612×792 now that {@see Rasteriser} samples
+ * one device pixel per CSS pixel, and the same 1% would mean a 69×69
+ * square. Rendered evidence from the corpus, at scores the old
+ * threshold called comfortable passes:
  *
  *   -    81px (0.0001) `css-backgrounds/background-origin-004` draws a
  *                      red line across a box whose own text reads
