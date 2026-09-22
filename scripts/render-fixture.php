@@ -142,6 +142,13 @@ if ($ext === 'svg') {
 
 $pdfPath = tempnam(sys_get_temp_dir(), 'render_fixture_') . '.pdf';
 file_put_contents($pdfPath, $pdfBytes);
+// A one-pixel seam is diagnosed by reading the operators each paint
+// path emitted, not by squinting at the pixels they produced, so keep
+// the intermediate PDF when asked. `WPT_PDF_OUT=/tmp/x.pdf` writes it
+// alongside the PNG; inflate its FlateDecode streams to read it.
+if (($keep = getenv('WPT_PDF_OUT')) !== false && $keep !== '') {
+    @copy($pdfPath, $keep);
+}
 try {
     $png = (new Rasteriser())->rasterise($pdfPath, $pageIndex);
 } finally {
