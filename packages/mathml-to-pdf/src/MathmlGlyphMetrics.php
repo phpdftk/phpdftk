@@ -38,6 +38,38 @@ final class MathmlGlyphMetrics
     /** PostScript name for the italic face used on single-char `<mi>`. */
     public const string ITALIC_FONT = 'Times-Italic';
 
+    /**
+     * Unicode's invisible operators (U+2061 FUNCTION APPLICATION,
+     * U+2062 INVISIBLE TIMES, U+2063 INVISIBLE SEPARATOR, U+2064
+     * INVISIBLE PLUS). They express an operation without drawing one,
+     * so they have no glyph in any font and no advance.
+     *
+     * They need naming here because the WinAnsi round trip cannot
+     * represent them and would otherwise turn each into the encoder's
+     * `?` substitute - which both draws ink and takes width, so
+     * `2<mo>U+2062</mo>x` came out as `2?x`. Removing them is not the
+     * same as dropping everything WinAnsi cannot encode: a real glyph
+     * the standard faces lack (say U+2211) SHOULD still substitute, so
+     * the gap stays visible instead of silently disappearing.
+     *
+     * @var non-empty-string
+     */
+    public const string INVISIBLE_OPERATORS_PATTERN = '/[\x{2061}-\x{2064}]/u';
+
+    /**
+     * Strip the invisible operators from `$utf8`. Shared with the
+     * painter so what is measured and what is drawn stay the same
+     * string.
+     */
+    public static function stripInvisibleOperators(string $utf8): string
+    {
+        if ($utf8 === '') {
+            return '';
+        }
+
+        return preg_replace(self::INVISIBLE_OPERATORS_PATTERN, '', $utf8) ?? $utf8;
+    }
+
     private static ?AfmData $uprightCache = null;
 
     private static ?AfmData $italicCache = null;
@@ -59,6 +91,7 @@ final class MathmlGlyphMetrics
      */
     public static function measure(string $utf8, float $fontSize, bool $italic = false): float
     {
+        $utf8 = self::stripInvisibleOperators($utf8);
         if ($utf8 === '' || $fontSize <= 0.0) {
             return 0.0;
         }

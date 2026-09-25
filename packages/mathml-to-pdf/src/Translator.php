@@ -2967,6 +2967,13 @@ final class Translator
 
     private function emitText(string $content, MathmlPaintContext $ctx, bool $italic = false): void
     {
+        // Unicode's invisible operators have no glyph in any font, so
+        // they are removed before anything else looks at the string:
+        // left in, the WinAnsi round trip turns each into a visible
+        // `?` that also takes width (MathmlGlyphMetrics::
+        // INVISIBLE_OPERATORS_PATTERN documents why this is not a
+        // blanket unencodable-character drop).
+        $content = MathmlGlyphMetrics::stripInvisibleOperators($content);
         if ($content === '') {
             return;
         }
