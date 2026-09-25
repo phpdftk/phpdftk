@@ -555,6 +555,30 @@ final readonly class RendererOptions
             ol { list-style-type: decimal; }
             ul ul, ol ul { list-style-type: circle; }
             ul ul ul, ol ul ul { list-style-type: square; }
+            /* HTML §15.3.9 — the legacy `type` presentational hints, as
+               UA-origin rules so author CSS still wins outright and an
+               `<li type>` still beats what the `li` would INHERIT from a
+               styled list.
+
+               The flags are load-bearing, not decoration. `type` is on
+               HTML's ASCII-case-insensitive attribute list (§15.2), so the
+               ORDERED keywords need an explicit `s` or `type=a` and
+               `type=A` would collapse onto one counter style. The BULLET
+               keywords want the opposite and carry `i`.
+
+               Each keyword is bound to the element that owns it: there is
+               deliberately no `ol[type=circle]` or `ul[type="1"]`, so a
+               keyword written on the wrong list element matches nothing
+               and the list keeps its default marker. */
+            ol[type="1"], li[type="1"] { list-style-type: decimal; }
+            ol[type="a" s], li[type="a" s] { list-style-type: lower-alpha; }
+            ol[type="A" s], li[type="A" s] { list-style-type: upper-alpha; }
+            ol[type="i" s], li[type="i" s] { list-style-type: lower-roman; }
+            ol[type="I" s], li[type="I" s] { list-style-type: upper-roman; }
+            ul[type="none" i], li[type="none" i] { list-style-type: none; }
+            ul[type="disc" i], li[type="disc" i] { list-style-type: disc; }
+            ul[type="circle" i], li[type="circle" i] { list-style-type: circle; }
+            ul[type="square" i], li[type="square" i] { list-style-type: square; }
 
             /* Block-level wrappers. */
             blockquote { margin: 0; margin-block-start: 1em; margin-block-end: 1em;

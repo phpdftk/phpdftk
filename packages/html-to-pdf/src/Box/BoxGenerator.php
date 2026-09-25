@@ -4362,34 +4362,13 @@ final class BoxGenerator
                 );
             }
         }
-        // HTML 5 §4.4.5.1: `<ol type="A">` / `"a"` / `"I"` / `"i"` / `"1"`
-        // maps to a `list-style-type` keyword. `<ul type="..."` is the
-        // older HTML 4 form; supported because real-world docs still use
-        // it.
-        if ($tag === 'ol' || $tag === 'ul') {
-            $type = $element->getAttribute('type');
-            if ($type !== null && $type !== '') {
-                $keyword = match ($type) {
-                    '1' => 'decimal',
-                    'A' => 'upper-alpha',
-                    'a' => 'lower-alpha',
-                    'I' => 'upper-roman',
-                    'i' => 'lower-roman',
-                    'disc', 'circle', 'square' => $type,
-                    default => null,
-                };
-                if ($keyword !== null) {
-                    // Author CSS still wins: only apply when the cascade
-                    // hasn't already set a non-default value.
-                    $current = $values->get('list-style-type');
-                    $defaulted = $current instanceof Keyword
-                        && in_array(strtolower($current->name), ['disc', 'decimal'], true);
-                    if (!$values->has('list-style-type') || $defaulted) {
-                        $values->set('list-style-type', new Keyword($keyword));
-                    }
-                }
-            }
-        }
+        // `<ol type>` / `<ul type>` / `<li type>` are NOT handled here.
+        // HTML §15.3.9 expresses them as user-agent style rules keyed on
+        // `[type]` attribute selectors, and that is where they live (see
+        // RendererOptions' UA sheet). Doing it in the cascade rather than
+        // as a post-cascade patch is what makes `<li type>` beat a value
+        // INHERITED from an author-styled list, and what keeps a keyword
+        // from leaking onto the wrong element (`<ol type=circle>`).
     }
 
     /**

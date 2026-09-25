@@ -1074,10 +1074,16 @@ final class BoxGeneratorTest extends TestCase
 
     public function testOlTypeAttributeMapsToListStyleType(): void
     {
+        // HTML §15.3.9 puts the `type` hints in the UA sheet rather than
+        // in a post-cascade patch, so the sheet under test has to carry
+        // the rule. The full matrix (both keyword families, both case
+        // rules, the wrong-element cases) lives in ListTypeAttributeTest,
+        // which runs against the SHIPPED UA stylesheet.
         $sheet = $this->css->parseStylesheet(<<<CSS
             html, body, ol, li { display: block; }
             li { display: list-item; }
-        CSS);
+            ol[type="A" s], li[type="A" s] { list-style-type: upper-alpha; }
+        CSS, Origin::UserAgent);
         $doc = $this->html->parseDocument(
             '<html><body><ol type="A"><li>x</li></ol></body></html>',
         );
@@ -1092,16 +1098,20 @@ final class BoxGeneratorTest extends TestCase
     public function testOlTypeIsOverriddenByAuthorCss(): void
     {
         // `ol { list-style-type: lower-roman }` author rule beats the
-        // `<ol type="A">` attribute.
-        $sheet = $this->css->parseStylesheet(<<<CSS
+        // `<ol type="A">` attribute, because the hint is UA-origin.
+        $ua = $this->css->parseStylesheet(<<<CSS
             html, body, ol, li { display: block; }
             li { display: list-item; }
-            ol { list-style-type: lower-roman; }
-        CSS);
+            ol[type="A" s], li[type="A" s] { list-style-type: upper-alpha; }
+        CSS, Origin::UserAgent);
+        $sheet = $this->css->parseStylesheet(
+            'ol { list-style-type: lower-roman; }',
+            Origin::Author,
+        );
         $doc = $this->html->parseDocument(
             '<html><body><ol type="A"><li>x</li></ol></body></html>',
         );
-        $box = $this->generator->generate($doc, [$sheet]);
+        $box = $this->generator->generate($doc, [$ua, $sheet]);
         $ol = $this->findFirstByTag($box, 'ol');
         self::assertNotNull($ol);
         $kw = $ol->style->get('list-style-type');
