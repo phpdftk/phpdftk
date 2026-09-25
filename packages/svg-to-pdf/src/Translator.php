@@ -535,7 +535,7 @@ final class Translator
      * @return array{0: float, 1: float, 2: float, 3: float}
      */
     private function nestedViewBoxTransform(
-        \Phpdftk\Svg\ViewportElement $svg,
+        Element $svg,
         float $srcW,
         float $srcH,
         float $dstW,
@@ -3928,6 +3928,7 @@ final class Translator
             );
             $bbox = self::transformBoundingBox($bbox, $inverse);
         }
+        $contentMatrix = $this->patternContentMatrix($pattern, $tile);
         $i0 = (int) floor(($bbox['minX'] - $tile['x']) / $pw);
         $i1 = (int) ceil(($bbox['minX'] + $bbox['width'] - $tile['x']) / $pw);
         $j0 = (int) floor(($bbox['minY'] - $tile['y']) / $ph);
@@ -3939,6 +3940,21 @@ final class Translator
                     $stream->concatMatrix(1.0, 0.0, 0.0, 1.0, $i * $pw, $j * $ph);
                     $stream->rectangle($tile['x'], $tile['y'], $pw, $ph);
                     $stream->clip()->endPath();
+                    // SVG 2 §13.3 — a `<pattern>` `viewBox` establishes
+                    // a coordinate system for its content, mapped into
+                    // the tile rectangle under `preserveAspectRatio`,
+                    // exactly as a nested `<svg>` maps into its
+                    // viewport.
+                    if ($contentMatrix !== null) {
+                        $stream->concatMatrix(
+                            $contentMatrix[0],
+                            0.0,
+                            0.0,
+                            $contentMatrix[1],
+                            $contentMatrix[2],
+                            $contentMatrix[3],
+                        );
+                    }
                     $this->paintChildren($pattern, $stream);
                     $stream->restoreGraphicsState();
                 }
@@ -3947,6 +3963,36 @@ final class Translator
         if ($patternMatrix !== null && $inverse !== null) {
             $stream->restoreGraphicsState();
         }
+    }
+
+    /**
+     * The viewBox-to-tile mapping for a `<pattern>`'s content, as
+     * `[scaleX, scaleY, translateX, translateY]`, or null when the
+     * pattern declares no usable `viewBox`.
+     *
+     * SVG 2 §13.3 — the mapping is the same one a nested `<svg>`
+     * applies, `preserveAspectRatio` included, with the tile rectangle
+     * standing in for the viewport. A degenerate viewBox (zero width
+     * or height) would divide by zero, so it is ignored rather than
+     * emitting a NaN matrix.
+     *
+     * @param array{x: float, y: float, w: float, h: float} $tile
+     * @return array{float, float, float, float}|null
+     */
+    private function patternContentMatrix(Pattern $pattern, array $tile): ?array
+    {
+        $viewBox = $pattern->viewBox();
+        if ($viewBox === null || $viewBox[2] <= 0.0 || $viewBox[3] <= 0.0) {
+            return null;
+        }
+        [$scaleX, $scaleY, $offsetX, $offsetY]
+            = $this->nestedViewBoxTransform($pattern, $viewBox[2], $viewBox[3], $tile['w'], $tile['h']);
+        return [
+            $scaleX,
+            $scaleY,
+            $tile['x'] + $offsetX - $viewBox[0] * $scaleX,
+            $tile['y'] + $offsetY - $viewBox[1] * $scaleY,
+        ];
     }
 
     /**
