@@ -694,7 +694,7 @@ final class BoxGenerator
                 if ($entry['label'] !== null) {
                     $inline->addChild(new TextBox($element, $values, $entry['label'] . ': '));
                 }
-                $text = $entry['option']->textContent();
+                $text = self::optionLabel($entry['option']);
                 if ($text !== '') {
                     $inline->addChild(new TextBox($element, $values, $text));
                 }
@@ -1774,6 +1774,37 @@ final class BoxGenerator
             return [$available[0]];
         }
         return [];
+    }
+
+    /**
+     * The *label* of an `<option>` — what HTML §15.3.13 says a select
+     * renders ("the option element is expected to be rendered by
+     * displaying the element's label").
+     *
+     * Per HTML §4.10.10 that is the `label` content attribute when it is
+     * present AND non-empty, and otherwise the element's *text*. The
+     * non-empty part is load-bearing: `<option label="">Fallback</option>`
+     * shows "Fallback", not nothing. A whitespace-only label is NOT
+     * empty, so it is used as-is and collapses to blank at paint time.
+     *
+     * "The element's text" is the CHILD text content — direct child text
+     * nodes only, not the whole subtree — with ASCII whitespace stripped
+     * and collapsed. That is what makes `<option>a<br>b</option>` read as
+     * the single option "ab" instead of splitting across two lines.
+     */
+    private static function optionLabel(Element $option): string
+    {
+        $label = $option->getAttribute('label');
+        if ($label !== null && $label !== '') {
+            return $label;
+        }
+        $text = '';
+        for ($node = $option->firstChild; $node !== null; $node = $node->nextSibling) {
+            if ($node instanceof \Phpdftk\Html\Dom\Text) {
+                $text .= $node->data;
+            }
+        }
+        return trim((string) preg_replace('/[ \t\n\f\r]+/', ' ', $text));
     }
 
     /**
