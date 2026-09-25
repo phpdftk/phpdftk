@@ -449,16 +449,16 @@
         },
         {
             "name": "dompdf/dompdf",
-            "version": "v3.1.5",
+            "version": "v3.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dompdf/dompdf.git",
-                "reference": "f11ead23a8a76d0ff9bbc6c7c8fd7e05ca328496"
+                "reference": "6d4b4eb8500f7a786da8868ba463a71b725a4005"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dompdf/dompdf/zipball/f11ead23a8a76d0ff9bbc6c7c8fd7e05ca328496",
-                "reference": "f11ead23a8a76d0ff9bbc6c7c8fd7e05ca328496",
+                "url": "https://api.github.com/repos/dompdf/dompdf/zipball/6d4b4eb8500f7a786da8868ba463a71b725a4005",
+                "reference": "6d4b4eb8500f7a786da8868ba463a71b725a4005",
                 "shasum": ""
             },
             "require": {
@@ -507,9 +507,9 @@
             "homepage": "https://github.com/dompdf/dompdf",
             "support": {
                 "issues": "https://github.com/dompdf/dompdf/issues",
-                "source": "https://github.com/dompdf/dompdf/tree/v3.1.5"
+                "source": "https://github.com/dompdf/dompdf/tree/v3.1.6"
             },
-            "time": "2026-03-03T13:54:37+00:00"
+            "time": "2026-07-20T12:29:38+00:00"
         },
         {
             "name": "dompdf/php-font-lib",
@@ -1662,7 +1662,7 @@
         },
         {
             "name": "phpdftk/barcode",
-            "version": "dev-feat/mathml-paint-metrics-adapter",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "packages/barcode",
@@ -2078,11 +2078,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/font-parser",
-                "reference": "75a448cfd5b21d38cfb8f587d1c412b223d1abab"
+                "reference": "0f77aee550065aaae32ced30123af96bc9a5ba58"
             },
             "require": {
                 "php": "^8.4",
                 "phpdftk/filesystem": "^1.0"
+            },
+            "suggest": {
+                "ext-brotli": "Required to decode WOFF 2.0 (.woff2) @font-face sources; without it a woff2 source is skipped and the next src candidate is used."
             },
             "type": "library",
             "extra": {
@@ -2238,7 +2241,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/html-to-pdf",
-                "reference": "4350294d29e6358ffeccd89d861b53beb116c2e3"
+                "reference": "a9231aae2bb387d4f45abbbe1cb032ca3c08b414"
             },
             "require": {
                 "ext-intl": "*",
@@ -2255,6 +2258,9 @@
                 "phpdftk/svg": "^1.0",
                 "phpdftk/svg-to-pdf": "^1.0",
                 "phpdftk/text": "^1.0"
+            },
+            "suggest": {
+                "ext-brotli": "Required to decode WOFF 2.0 (.woff2) @font-face sources; without it a woff2 source is skipped and the next src candidate is used."
             },
             "type": "library",
             "extra": {
@@ -2410,10 +2416,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/mathml-to-pdf",
-                "reference": "62deb642fde76878e938d8ba184e6355004631c3"
+                "reference": "95222415eb0fcde1ac02ddbbbf2ca2005ea6f607"
             },
             "require": {
                 "php": "^8.4",
+                "phpdftk/color": "^1.0",
                 "phpdftk/encoding": "^1.0",
                 "phpdftk/font-metrics": "^1.0",
                 "phpdftk/font-parser": "^1.0",
