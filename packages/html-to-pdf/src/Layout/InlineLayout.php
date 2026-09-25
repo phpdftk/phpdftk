@@ -2825,9 +2825,29 @@ final class InlineLayout
             $stretch,
         );
         $font = $match?->face->data ?? $fallback;
-        $isBold = $requestBold && ($match === null || !$match->matchesWeight);
-        $isItalic = $requestItalic && ($match === null || !$match->matchesStyle);
+        // CSS Fonts 4 §6.7 — `font-synthesis-weight` / `font-synthesis-style`
+        // veto the fake-bold stroke / fake-italic skew the painter would
+        // otherwise apply when the matched face has no real bold or italic.
+        $isBold = $requestBold
+            && ($match === null || !$match->matchesWeight)
+            && self::allowsSynthesis($box, 'font-synthesis-weight');
+        $isItalic = $requestItalic
+            && ($match === null || !$match->matchesStyle)
+            && self::allowsSynthesis($box, 'font-synthesis-style');
         return ['font' => $font, 'isBold' => $isBold, 'isItalic' => $isItalic];
+    }
+
+    /**
+     * Is the named `font-synthesis-*` longhand anything other than `none`?
+     *
+     * Both longhands are `auto | none` with an `auto` initial, so only an
+     * explicit `none` suppresses the synthetic face.
+     */
+    private static function allowsSynthesis(Box $box, string $property): bool
+    {
+        $value = $box->style->get($property);
+        return !($value instanceof \Phpdftk\Css\Value\Keyword)
+            || strtolower($value->name) !== 'none';
     }
 
     /**

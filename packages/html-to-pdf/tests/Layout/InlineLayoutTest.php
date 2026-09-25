@@ -2529,4 +2529,94 @@ final class InlineLayoutTest extends TestCase
         [$p, $atom] = $this->verticalAtomicTree('vertical-lr', 246.0);
         self::assertSame($atom, $p->lineBoxes[0]->fragments[0]->atomicBox);
     }
+    // -----------------------------------------------------------------
+    // CSS Fonts 4 §6.7 — font-synthesis.
+    // -----------------------------------------------------------------
+
+    /**
+     * Collect the synthetic-face flags of every text fragment laid out for
+     * `$css` applied to a single bold/italic `<p>`.
+     *
+     * @return array{bold: bool, italic: bool}
+     */
+    private function syntheticFlags(string $css): array
+    {
+        $box = $this->buildTree(
+            '<html><body><p>Filler</p></body></html>',
+            'html, body, p { display: block; } ' . $css,
+        );
+        $this->layout->layout($box, $this->defaultContext());
+        $p = $this->find($box, 'p');
+        self::assertNotNull($p);
+        self::assertNotSame([], $p->lineBoxes, 'the paragraph laid out at least one line');
+        $bold = false;
+        $italic = false;
+        foreach ($p->lineBoxes as $line) {
+            foreach ($line->fragments as $fragment) {
+                $bold = $bold || $fragment->isBold;
+                $italic = $italic || $fragment->isItalic;
+            }
+        }
+        return ['bold' => $bold, 'italic' => $italic];
+    }
+
+    public function testSyntheticFacesAreUsedWhenSynthesisIsAuto(): void
+    {
+        // The test font has neither a real bold nor a real italic, so the
+        // painter's fake-bold stroke and fake-italic skew are what make
+        // `font-weight: bold` / `font-style: italic` visible at all.
+        if ($this->font === null) {
+            self::markTestSkipped('test font unavailable');
+        }
+        $flags = $this->syntheticFlags('p { font-weight: bold; font-style: italic; }');
+        self::assertTrue($flags['bold'], 'fake bold applies by default');
+        self::assertTrue($flags['italic'], 'fake italic applies by default');
+    }
+
+    public function testFontSynthesisNoneSuppressesBothSyntheticFaces(): void
+    {
+        if ($this->font === null) {
+            self::markTestSkipped('test font unavailable');
+        }
+        $flags = $this->syntheticFlags(
+            'p { font-weight: bold; font-style: italic; font-synthesis: none; }',
+        );
+        self::assertFalse($flags['bold'], '`font-synthesis: none` forbids the fake bold');
+        self::assertFalse($flags['italic'], '`font-synthesis: none` forbids the fake italic');
+    }
+
+    public function testFontSynthesisLonghandsAreIndependent(): void
+    {
+        if ($this->font === null) {
+            self::markTestSkipped('test font unavailable');
+        }
+        $weightOff = $this->syntheticFlags(
+            'p { font-weight: bold; font-style: italic; font-synthesis-weight: none; }',
+        );
+        self::assertFalse($weightOff['bold'], 'font-synthesis-weight: none kills only the bold');
+        self::assertTrue($weightOff['italic'], '... and leaves the italic alone');
+
+        $styleOff = $this->syntheticFlags(
+            'p { font-weight: bold; font-style: italic; font-synthesis-style: none; }',
+        );
+        self::assertTrue($styleOff['bold'], 'font-synthesis-style: none leaves the bold alone');
+        self::assertFalse($styleOff['italic'], '... and kills only the italic');
+    }
+
+    public function testFontSynthesisAutoIsTheInitialValue(): void
+    {
+        if ($this->font === null) {
+            self::markTestSkipped('test font unavailable');
+        }
+        // An explicit `auto` must behave exactly like saying nothing —
+        // the guard reads the cascaded value, and every registered
+        // property answers `get()` once inheritance has run.
+        $flags = $this->syntheticFlags(
+            'p { font-weight: bold; font-style: italic;'
+            . ' font-synthesis-weight: auto; font-synthesis-style: auto; }',
+        );
+        self::assertTrue($flags['bold']);
+        self::assertTrue($flags['italic']);
+    }
+
 }
