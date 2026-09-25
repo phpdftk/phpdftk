@@ -51,8 +51,19 @@ printf '%s\n' "${shards[@]}" | xargs -P "$PAR" -I {} bash -c '
   shard="$1"; out="$2"; root="$3"
   safe="$(printf "%s" "$shard" | tr "/*" "__")"
   WPT_DISABLE_DOM_SETTLER=1 php "$root/packages/wpt-harness/bin/wpt" run --filter="$shard" --json="$out/$safe.json" >/dev/null 2>&1
-  pass=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d[\"pass\"])" "$out/$safe.json" 2>/dev/null || echo 0)
-  ins=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d[\"inScopeTotal\"])" "$out/$safe.json" 2>/dev/null || echo 0)
+  # A shard that dies (OOM is the usual cause — `background-size` alone can
+  # exceed 1G, and concurrent sweeps make it likelier) leaves no JSON. Do NOT
+  # fall back to 0: a zero is indistinguishable from a shard that legitimately
+  # scored nothing, so the TOTAL comes out silently short and reads as a
+  # regression. Mark it FAILED so it is visible in the log, and let the
+  # aggregator below count it separately.
+  if [ -s "$out/$safe.json" ]; then
+    pass=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d[\"pass\"])" "$out/$safe.json" 2>/dev/null || echo FAILED)
+    ins=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d[\"inScopeTotal\"])" "$out/$safe.json" 2>/dev/null || echo FAILED)
+  else
+    pass=FAILED; ins=FAILED
+    echo "$shard" >> "$out/.failed-shards"
+  fi
   printf "%-45s pass=%s inScope=%s\n" "$shard" "$pass" "$ins"
 ' _ {} "$OUT" "$ROOT"
 
@@ -66,5 +77,15 @@ for f in glob.glob(os.path.join(sys.argv[1], "*.json")):
         tp += d["pass"]; ti += d["inScopeTotal"]; n += 1
     except Exception:
         pass
+failed = []
+fp = os.path.join(sys.argv[1], ".failed-shards")
+if os.path.exists(fp):
+    failed = [l.strip() for l in open(fp) if l.strip()]
+if failed:
+    print(f"TOTAL pass={tp} inScope={ti} shards={n}  *** INCOMPLETE: {len(failed)} shard(s) produced no JSON ***")
+    for f in failed:
+        print(f"  FAILED SHARD: {f}")
+    print("  This total is UNDERSTATED. Re-run the failed shard(s) before comparing.")
+    sys.exit(3)
 print(f"TOTAL pass={tp} inScope={ti} shards={n}")
 PY
