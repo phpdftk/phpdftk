@@ -4543,7 +4543,19 @@ final class BoxGenerator
             // CSS pixels, on each axis independently. Without this the
             // frame laid out at zero and the nested document had nowhere
             // to go, so an `<iframe>` painted nothing at all.
-            if ($tag === 'iframe') {
+            //
+            // The size is written as a `width` / `height` declaration,
+            // which is a SHORTCUT: the default object size is an
+            // INTRINSIC size, not a specified one. Nothing in normal flow
+            // can tell the two apart, but a flex / grid item can — a
+            // specified cross size defeats `align-items: stretch`, and a
+            // specified main size pins `flex-basis: auto`. So a frame
+            // that is a flex / grid item keeps both axes `auto` and is
+            // sized by the container, which is what
+            // `flexbox-iframe-intrinsic-size-001` checks when it asserts
+            // that the default size "does not imply having an aspect
+            // ratio".
+            if ($tag === 'iframe' && !$parentIsFlexOrGrid) {
                 foreach (['width' => 300.0, 'height' => 150.0] as $axis => $default) {
                     if ($values->has($axis) || $element->getAttribute($axis) !== null) {
                         continue;

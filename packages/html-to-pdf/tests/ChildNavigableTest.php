@@ -116,6 +116,36 @@ final class ChildNavigableTest extends TestCase
         self::assertSame(120.0, $frame->geometry->height);
     }
 
+    public function testFlexItemFrameIsSizedByTheContainerNotTheDefaultObjectSize(): void
+    {
+        // The §15.3.3 default object size is an INTRINSIC size, not a
+        // specified one. Writing it as a `width` / `height` declaration
+        // is invisible in normal flow but wrong for a flex item: a
+        // specified cross size defeats `align-items: stretch`, which
+        // pinned a frame in a 400px-tall flex row to 150px.
+        $root = $this->layoutDocument(
+            '<!doctype html><body style="margin:0">'
+            . '<div style="display:flex; height:400px">'
+            . '<iframe srcdoc="a"></iframe></div>',
+        );
+        $frame = $this->frame($root);
+        // `geometry->height` is the CONTENT box, so the stretched 400px
+        // line cross size shows up as 400 minus the frame's two 2px UA
+        // borders. Before the carve-out this was 150.
+        self::assertSame(396.0, $frame->geometry->height);
+    }
+
+    public function testNonFlexFrameStillTakesTheDefaultObjectSize(): void
+    {
+        // The flex carve-out must not leak into normal flow.
+        $frame = $this->frame($this->layoutDocument(
+            '<!doctype html><body style="margin:0">'
+            . '<div style="height:400px"><iframe srcdoc="a"></iframe></div>',
+        ));
+        self::assertSame(150.0, $frame->geometry->height);
+        self::assertSame(300.0, $frame->geometry->width);
+    }
+
     public function testEmbeddedDocumentBecomesAChildOfTheFrame(): void
     {
         $frame = $this->frame($this->layoutDocument(
