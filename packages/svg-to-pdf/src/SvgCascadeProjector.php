@@ -98,6 +98,28 @@ final class SvgCascadeProjector
         'ry',
     ];
 
+    /**
+     * CSS Transforms 1 — `transform`, `transform-origin` and
+     * `transform-box` are ordinary CSS properties on SVG elements, so a
+     * `<style>` rule has to reach the painter the same way a
+     * presentation attribute does.
+     *
+     * Projected on the STRICT `wasDeclared()` test, like the geometry
+     * properties and for the same reason: all three are registered with
+     * non-empty initial values, and `transform-origin`'s registered
+     * initial is the CSS box default `50% 50%`. An SVG element has no
+     * CSS layout box and pivots on the user-space origin instead, so
+     * stamping the registry initial onto every element would silently
+     * relocate every rotation and scale in the document.
+     *
+     * @var list<string>
+     */
+    private const array PROJECTED_TRANSFORM = [
+        'transform',
+        'transform-origin',
+        'transform-box',
+    ];
+
     public function __construct(
         private readonly CssBridge $bridge = new CssBridge(),
     ) {}
@@ -136,11 +158,11 @@ final class SvgCascadeProjector
         );
 
         $declarations = [];
-        foreach (self::PROJECTED_GEOMETRY as $property) {
-            // Geometry: a presentation attribute on the element is the
-            // author's own value and still reaches the painter first,
-            // so leave it alone. Otherwise project only a value a
-            // declaration won — see PROJECTED_GEOMETRY.
+        foreach ([...self::PROJECTED_GEOMETRY, ...self::PROJECTED_TRANSFORM] as $property) {
+            // A presentation attribute on the element is the author's
+            // own value and still reaches the painter first, so leave
+            // it alone. Otherwise project only a value a declaration
+            // won — see PROJECTED_GEOMETRY / PROJECTED_TRANSFORM.
             if ($element->getAttribute($property) !== null) {
                 continue;
             }
