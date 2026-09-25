@@ -1945,6 +1945,16 @@ final class Translator
             $mo->attributes['rspace'] ?? null,
             $entry['rspace'],
         );
+        // MathML Core §3.2.5.7.3 — `lspace` / `rspace` are the
+        // operator's LEADING and TRAILING space along the inline
+        // axis, not its left and right sides. An RTL formula runs the
+        // inline axis right-to-left, so the leading space sits on the
+        // operator's right. This painter always emits left-to-right
+        // (walkChildren reverses source order to build the RTL row),
+        // so along the paint direction the two exchange roles.
+        if ($ctx->direction === 'rtl') {
+            [$lspaceEm, $rspaceEm] = [$rspaceEm, $lspaceEm];
+        }
 
         if ($lspaceEm > 0.0) {
             $ctx->cursorX += $lspaceEm * $ctx->fontSize;

@@ -169,6 +169,116 @@ final class DirectionRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\nS\n/', $bytes);
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core §3.2.5.7.3 — `lspace` / `rspace` are the operator's
+    // LEADING / TRAILING space along the inline axis, so an RTL
+    // formula swaps which side each lands on.
+    // ---------------------------------------------------------------
+
+    private const string SPACED_OPERATOR =
+        '<mrow><mtext>p</mtext>'
+        . '<mo lspace="1em" rspace="2em">X</mo>'
+        . '<mtext>q</mtext></mrow>';
+
+    /**
+     * Negative case: the LTR path must be untouched by the swap —
+     * leading space is still the left one.
+     */
+    public function testLtrOperatorSpacingIsUnchanged(): void
+    {
+        $ltr = $this->renderRaw($this->math(self::SPACED_OPERATOR));
+        $wider = $this->renderRaw($this->math(
+            '<mrow><mtext>p</mtext><mo lspace="4em" rspace="2em">X</mo>'
+            . '<mtext>q</mtext></mrow>',
+        ));
+        // Widening the LEADING space by 3em moves the operator 3em
+        // right (36pt at the 12pt default size).
+        self::assertEqualsWithDelta(
+            36.0,
+            $this->glyphX($wider, 'X') - $this->glyphX($ltr, 'X'),
+            0.01,
+        );
+    }
+
+    /**
+     * Negative case: an operator whose two spaces are EQUAL must land
+     * in the same place either way — a swap that also changed the
+     * total would show up here.
+     */
+    public function testSymmetricOperatorSpacingIsDirectionInvariant(): void
+    {
+        $symmetric = '<mrow><mtext>p</mtext>'
+            . '<mo lspace="2em" rspace="2em">X</mo>'
+            . '<mtext>q</mtext></mrow>';
+        self::assertEqualsWithDelta(
+            $this->glyphX($this->renderRaw($this->math($symmetric)), 'X'),
+            $this->glyphX($this->renderRaw($this->math($symmetric, rtl: true)), 'X'),
+            0.01,
+        );
+    }
+
+    public function testRtlSwapsOperatorLeadingAndTrailingSpace(): void
+    {
+        $ltr = $this->renderRaw($this->math(self::SPACED_OPERATOR));
+        $rtl = $this->renderRaw($this->math(self::SPACED_OPERATOR, rtl: true));
+        // lspace 1em / rspace 2em: the RTL operator carries the 2em
+        // space on its paint-order left, so it sits one em further
+        // right than the LTR one (12pt at the default font size).
+        self::assertEqualsWithDelta(
+            12.0,
+            $this->glyphX($rtl, 'X') - $this->glyphX($ltr, 'X'),
+            0.01,
+        );
+    }
+
+    /**
+     * Swapping moves the operator WITHIN the row; it must not change
+     * how much room the row takes, so the trailing token lands at the
+     * same place in both directions. (The two `<mtext>` glyphs have
+     * equal advances, so reversal alone does not move it.)
+     */
+    public function testSwapDoesNotChangeTheRowAdvance(): void
+    {
+        $ltr = $this->renderRaw($this->math(self::SPACED_OPERATOR));
+        $rtl = $this->renderRaw($this->math(self::SPACED_OPERATOR, rtl: true));
+        self::assertEqualsWithDelta(
+            $this->glyphX($ltr, 'q'),
+            $this->glyphX($rtl, 'p'),
+            0.01,
+            'the last-painted token should end up at the same x',
+        );
+    }
+
+    public function testRtlOperatorWithNoAuthorSpacingStillUsesTheDictionary(): void
+    {
+        // `+` is infix here, so the dictionary supplies equal
+        // lspace / rspace and the swap is a no-op — but the glyph
+        // must still be emitted and still be spaced off its operands.
+        $rtl = $this->renderRaw($this->math(
+            '<mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow>',
+            rtl: true,
+        ));
+        self::assertMatchesRegularExpression('/\(\+\)\s+Tj/', $rtl);
+    }
+
+    private function math(string $body, bool $rtl = false): string
+    {
+        return '<math xmlns="http://www.w3.org/1998/Math/MathML"'
+            . ($rtl ? ' dir="rtl"' : '') . '>' . $body . '</math>';
+    }
+
+    /**
+     * Absolute x of the text matrix that positions `$glyph`'s Tj.
+     */
+    private function glyphX(string $bytes, string $glyph): float
+    {
+        $pattern = '/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm\s*\('
+            . preg_quote($glyph, '/') . '\)\s+Tj/';
+        self::assertMatchesRegularExpression($pattern, $bytes);
+        preg_match($pattern, $bytes, $m);
+        return (float) $m[1];
+    }
+
     /**
      * Pull out Tj emissions for the named glyphs, preserving stream
      * order. Glyphs not in the source list are filtered.
