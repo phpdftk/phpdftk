@@ -25,10 +25,21 @@ final class OperatorDictionaryTest extends TestCase
 
     public function testLookupReturnsDefaultEntryForWrongForm(): void
     {
-        // '+' is registered for infix only - looking it up as prefix
-        // should fall through to the default.
-        $entry = OperatorDictionary::lookup('+', 'prefix');
+        // '+' has infix and prefix entries but no postfix one, so a
+        // postfix lookup falls through to the default. (Its PREFIX
+        // entry is real - unary plus, with no spacing either side -
+        // so that form is not the fallback case it looks like.)
+        $entry = OperatorDictionary::lookup('+', 'postfix');
         self::assertSame(OperatorDictionary::DEFAULT_ENTRY, $entry);
+    }
+
+    public function testUnaryFormsOfAdditiveOperatorsTakeNoSpacing(): void
+    {
+        foreach (['+', '-'] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'prefix');
+            self::assertSame(0.0, $entry['lspace'], "lspace for unary $op");
+            self::assertSame(0.0, $entry['rspace'], "rspace for unary $op");
+        }
     }
 
     public function testAdditiveOperatorsHaveMediumSpacing(): void
@@ -131,22 +142,28 @@ final class OperatorDictionaryTest extends TestCase
         }
     }
 
-    public function testQuantifiersArePrefixWithThinRspace(): void
+    public function testQuantifiersArePrefixWithNoSpacing(): void
     {
-        $thin = 3.0 / 18.0;
+        // ∀ ∃ ∄ bind tightly to what they quantify: Core gives them
+        // zero on both sides, not the thin rspace a separator gets.
         foreach (["\u{2200}", "\u{2203}", "\u{2204}"] as $op) {
             $entry = OperatorDictionary::lookup($op, 'prefix');
             self::assertSame(0.0, $entry['lspace']);
-            self::assertEqualsWithDelta($thin, $entry['rspace'], 0.001);
+            self::assertSame(0.0, $entry['rspace']);
         }
     }
 
-    public function testEllipsisAndDotsAreInfixWithZeroSpacing(): void
+    public function testEllipsisAndDotsAreNotInTheDictionary(): void
     {
+        // … ⋮ ⋯ ⋱ have no dictionary entry in any form, so they take
+        // the 5/18 default. Pinned because it is tempting to "fix"
+        // their spacing by inventing entries the spec does not have.
         foreach (["\u{2026}", "\u{22EE}", "\u{22EF}", "\u{22F1}"] as $op) {
-            $entry = OperatorDictionary::lookup($op, 'infix');
-            self::assertSame(0.0, $entry['lspace']);
-            self::assertSame(0.0, $entry['rspace']);
+            self::assertFalse(OperatorDictionary::hasOperator($op), "unexpected entry for $op");
+            self::assertSame(
+                OperatorDictionary::DEFAULT_ENTRY,
+                OperatorDictionary::lookup($op, 'infix'),
+            );
         }
     }
 
@@ -173,13 +190,20 @@ final class OperatorDictionaryTest extends TestCase
         }
     }
 
-    public function testCircledOperatorsHaveMediumSpacing(): void
+    public function testCircledOperatorsSplitBetweenAdditiveAndMultiplicativeSpacing(): void
     {
-        $med = 4.0 / 18.0;
-        foreach (["\u{2295}", "\u{2296}", "\u{2297}", "\u{2299}"] as $op) {
+        // ⊕ ⊖ are additive (4/18); ⊗ ⊙ are multiplicative (3/18).
+        // They are not one uniform family, which is exactly the kind
+        // of detail a hand-curated table smooths over.
+        foreach (["\u{2295}", "\u{2296}"] as $op) {
             $entry = OperatorDictionary::lookup($op, 'infix');
-            self::assertEqualsWithDelta($med, $entry['lspace'], 0.001);
-            self::assertEqualsWithDelta($med, $entry['rspace'], 0.001);
+            self::assertEqualsWithDelta(4.0 / 18.0, $entry['lspace'], 0.001, "lspace for $op");
+            self::assertEqualsWithDelta(4.0 / 18.0, $entry['rspace'], 0.001, "rspace for $op");
+        }
+        foreach (["\u{2297}", "\u{2299}"] as $op) {
+            $entry = OperatorDictionary::lookup($op, 'infix');
+            self::assertEqualsWithDelta(3.0 / 18.0, $entry['lspace'], 0.001, "lspace for $op");
+            self::assertEqualsWithDelta(3.0 / 18.0, $entry['rspace'], 0.001, "rspace for $op");
         }
     }
 
@@ -208,7 +232,7 @@ final class OperatorDictionaryTest extends TestCase
 
     public function testLargeOperatorsHaveLargeopAndMovableLimitsTrue(): void
     {
-        foreach (["\u{2211}", "\u{220F}", "\u{222B}", "\u{22C3}", "\u{22C2}"] as $op) {
+        foreach (["\u{2211}", "\u{220F}", "\u{22C3}", "\u{22C2}"] as $op) {
             $entry = OperatorDictionary::lookup($op, 'prefix');
             self::assertTrue(
                 $entry['largeop'],
@@ -219,6 +243,16 @@ final class OperatorDictionaryTest extends TestCase
                 "Expected movablelimits=true for $op",
             );
         }
+    }
+
+    public function testIntegralIsALargeOperatorWithoutMovableLimits(): void
+    {
+        // ∫ is the exception in the big-operator family: it is a
+        // largeop, but its limits stay where they are written instead
+        // of moving above/below the sign in inline style.
+        $entry = OperatorDictionary::lookup("\u{222B}", 'prefix');
+        self::assertTrue($entry['largeop']);
+        self::assertFalse($entry['movablelimits']);
     }
 
     public function testNonLargeOperatorsHaveBothFlagsFalse(): void
