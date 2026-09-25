@@ -179,9 +179,29 @@
             "reason": "Marker + filter combination — needs marker substrate plus the existing filter substrate gap"
         },
         {
-            "glob": "svg/painting/reftests/non-scaling-stroke-*",
+            "glob": "svg/painting/reftests/non-scaling-stroke-002*",
             "phase": "v2",
-            "reason": "CSS `vector-effect: non-scaling-stroke` — needs stroke width to be normalised against the current transform"
+            "reason": "`vector-effect: non-scaling-stroke` under a CSS ANIMATION — the fixture waits on `animationend` and calls `takeScreenshot`, so the settled state is unreachable without script. The width normalisation itself is implemented (001, 003 and 005 are scored and pass)"
+        },
+        {
+            "glob": "svg/painting/reftests/non-scaling-stroke-004*",
+            "phase": "v2",
+            "reason": "`vector-effect: non-scaling-stroke` under a CSS `transform` + `transform-origin` on the inline `<svg>` ELEMENT itself — the host's transform is not in the SVG painter's matrix stack, so there is no scale to divide out. A viewBox-imposed scale already is (005 passes)"
+        },
+        {
+            "glob": "svg/painting/reftests/non-scaling-stroke-006*",
+            "phase": "v2",
+            "reason": "`vector-effect: non-scaling-stroke` with `preserveAspectRatio=none` — a NON-UNIFORM viewBox fit has no single scale factor, and a PDF line width cannot express the per-axis stroke outline the spec asks for. Our sqrt(|det|) stands in for it"
+        },
+        {
+            "glob": "svg/painting/reftests/non-scaling-stroke-007*",
+            "phase": "v2",
+            "reason": "`vector-effect: non-scaling-stroke` on a NESTED `<svg>` — the inner viewport's own scale is not yet folded into the matrix the painter divides by"
+        },
+        {
+            "glob": "svg/painting/reftests/non-scaling-stroke-precision-loss*",
+            "phase": "v2",
+            "reason": "`vector-effect: non-scaling-stroke` at extreme transform scales, where the reference is built from `getScreenCTM` in script"
         },
         {
             "glob": "svg/painting/reftests/percentage*",

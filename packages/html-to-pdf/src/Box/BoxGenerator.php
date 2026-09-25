@@ -3261,6 +3261,15 @@ final class BoxGenerator
         'stop-color',
         'stop-opacity',
         'text-shadow',
+        // SVG 2 §11.6.2 — the marker family. Inherited, so the winning
+        // declaration usually sits on an ancestor. The `marker`
+        // shorthand is expanded by the cascade before it gets here.
+        'marker-start',
+        'marker-mid',
+        'marker-end',
+        // SVG 2 §13.6 — `vector-effect`. Not inherited, so this only
+        // ever carries a declaration that won on this element.
+        'vector-effect',
         // SVG 2 §10.1 geometry properties. Gated on `wasDeclared()`
         // below, not `has()`: `width` / `height` are registered CSS
         // properties whose initial value is `auto`, and stamping

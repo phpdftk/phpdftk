@@ -167,6 +167,33 @@ final class NonScalingStrokeTest extends TestCase
     }
 
     /**
+     * A viewBox-imposed scale counts too: it is part of the transform
+     * chain between the element and the root, which is the whole point
+     * of the effect. The painter is seeded with that chain as its base
+     * matrix, exactly as the renderer seeds it for a real document.
+     */
+    public function testAViewBoxFitScaleIsDividedOutToo(): void
+    {
+        $doc = (new SvgParser())->parse(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="150" height="100"'
+            . ' preserveAspectRatio="xMinYMin" viewBox="0 0 10 10">'
+            . '<rect x="1" y="2" width="5" height="6" fill="none" stroke="#0000ff"'
+            . ' stroke-width="10" vector-effect="non-scaling-stroke"/></svg>',
+        );
+        (new SvgCascadeProjector())->project($doc);
+        $stream = new ContentStream();
+        // A 10-unit viewBox fitted into a 150x100 viewport under
+        // xMinYMin meet scales by 10, so a 10-unit stroke is one user
+        // unit -- ten device pixels, whatever the fit.
+        (new Translator())->paint(
+            $doc,
+            $stream,
+            baseMatrix: [10.0, 0.0, 0.0, 10.0, 0.0, 0.0],
+        );
+        self::assertStringContainsString('1 w', implode("\n", $stream->getOperators()));
+    }
+
+    /**
      * SVG 2 §11.6.2 — `markerUnits="strokeWidth"` scales by the USED
      * stroke width, so the effect shrinks the marker with it. Without
      * this the marker was drawn ten times too big in WPT's
