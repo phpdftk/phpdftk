@@ -15323,4 +15323,127 @@ final class BlockLayoutTest extends TestCase
         self::assertEqualsWithDelta($g->geometry->y, $a->geometry->y, 0.01);
         self::assertEqualsWithDelta(80.0, $a->geometry->height, 0.01);
     }
+
+    public function testGridImplicitRowsSplitDeclaredHeightMinusRowGap(): void
+    {
+        // CSS Grid Layout 2 §7.4 + §12.9 — four items in a two-column
+        // grid auto-flow into TWO implicit rows. A declared container
+        // height is leftover space that "stretch auto tracks" shares
+        // between both rows AFTER deducting the row gap, so each row is
+        // (110 - 10) / 2 = 50px and row 1 starts 60px below row 0.
+        // Regression: the single implicit row used to be seeded with the
+        // whole declared height, so row 0 was 110px tall, row 1 was 0px,
+        // and the row-gap centre line landed past the container's bottom
+        // edge. (WPT css-gaps/grid/grid-gap-decorations-002.)
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a"></div><div id="b"></div>'
+            . '<div id="c"></div><div id="d"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: repeat(2, 1fr);
+                  row-gap: 10px; column-gap: 10px;
+                  width: 110px; height: 110px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $c = $this->findById($box, 'c');
+        self::assertNotNull($a);
+        self::assertNotNull($c);
+        self::assertEqualsWithDelta(50.0, $a->geometry->height, 0.01, 'row 0 is half the leftover height');
+        self::assertEqualsWithDelta(50.0, $c->geometry->height, 0.01, 'row 1 is half the leftover height');
+        self::assertEqualsWithDelta(
+            60.0,
+            $c->geometry->y - $a->geometry->y,
+            0.01,
+            'row 1 starts one row + one row-gap below row 0',
+        );
+    }
+
+    public function testGridSingleImplicitRowStillFillsDeclaredHeight(): void
+    {
+        // Guard on the case the removed seed used to cover: ONE item in a
+        // grid with a declared height and no `grid-template-rows` still
+        // gets a full-height row, now via §12.9's stretch step rather
+        // than by pre-seeding the track.
+        $box = $this->buildTree(
+            '<html><body><div id="g"><div id="a"></div></div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 100px;
+                  width: 100px; height: 120px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        self::assertNotNull($a);
+        self::assertEqualsWithDelta(120.0, $a->geometry->height, 0.01);
+    }
+
+    public function testGridImplicitRowsHonourLengthGridAutoRowsOverDeclaredHeight(): void
+    {
+        // Negative: `grid-auto-rows: <length>` pins every implicit row,
+        // including the FIRST one. It is not an `auto` track, so §12.9's
+        // stretch step must leave it alone even though the container has
+        // 200px of height to give away.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a"></div><div id="b"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 100px;
+                  grid-auto-rows: 30px; row-gap: 10px;
+                  width: 100px; height: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta(30.0, $a->geometry->height, 0.01, 'first implicit row keeps grid-auto-rows');
+        self::assertEqualsWithDelta(30.0, $b->geometry->height, 0.01, 'second implicit row keeps grid-auto-rows');
+        self::assertEqualsWithDelta(40.0, $b->geometry->y - $a->geometry->y, 0.01, 'row + row-gap');
+    }
+
+    public function testGridImplicitRowsAreContentSizedWhenAlignContentIsNotStretch(): void
+    {
+        // Negative: `align-content: start` opts out of the stretch step,
+        // so implicit rows stay at their content size and simply sit at
+        // the start of the container rather than absorbing its height.
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 20px"></div>'
+            . '<div id="b" style="height: 20px"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 100px;
+                  align-content: start; row-gap: 10px;
+                  width: 100px; height: 200px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $a = $this->findById($box, 'a');
+        $b = $this->findById($box, 'b');
+        self::assertNotNull($a);
+        self::assertNotNull($b);
+        self::assertEqualsWithDelta(20.0, $a->geometry->height, 0.01);
+        self::assertEqualsWithDelta(30.0, $b->geometry->y - $a->geometry->y, 0.01);
+    }
+
+    public function testGridAutoHeightContainerSizesToImplicitRowsPlusGaps(): void
+    {
+        // Negative: with no declared height there is no leftover space to
+        // stretch, so the container is exactly its content-sized rows plus
+        // the gap between them (20 + 10 + 20 = 50).
+        $box = $this->buildTree(
+            '<html><body><div id="g">'
+            . '<div id="a" style="height: 20px"></div>'
+            . '<div id="b" style="height: 20px"></div>'
+            . '</div></body></html>',
+            'html, body, div { display: block; margin: 0; }
+             #g { display: grid; grid-template-columns: 100px;
+                  row-gap: 10px; width: 100px; }',
+        );
+        $this->layout->layout($box, $this->defaultCtx);
+        $g = $this->findById($box, 'g');
+        self::assertNotNull($g);
+        self::assertEqualsWithDelta(50.0, $g->geometry->height, 0.01);
+    }
 }

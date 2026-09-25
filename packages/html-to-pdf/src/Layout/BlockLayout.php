@@ -6520,10 +6520,19 @@ final class BlockLayout
             $columnTracks = [max(0.0, $geo->width)];
         }
         if ($rowTracks === []) {
-            // Implicit row sizing falls back to one row of "auto"
-            // height — but auto track sizing isn't shipped yet, so
-            // we use the container's declared height or 0.
-            $rowTracks = [$declaredHeightForFr ?? 0.0];
+            // CSS Grid Layout 2 §7.4 — with no `grid-template-rows` the
+            // grid starts with a single IMPLICIT row, sized by
+            // `grid-auto-rows` (`auto` → content-sized by pass 2.6, then
+            // grown by §12.9's "stretch auto tracks" step).
+            //
+            // It must NOT swallow the container's declared height: once
+            // auto-flow adds further implicit rows, §12.9 distributes the
+            // leftover space across ALL the `auto` rows *after* deducting
+            // the row gaps between them. Seeding row 0 with the whole
+            // declared height instead pinned every item into the first
+            // row's full-height band and pushed the row-gap centre line
+            // past the container's bottom edge.
+            $rowTracks = [$autoRowSize];
         }
 
         // CSS Grid Layout 1 §6.4 / CSS Box Layout §3.5 — when items
