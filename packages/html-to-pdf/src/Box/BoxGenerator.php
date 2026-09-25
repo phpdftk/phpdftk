@@ -414,6 +414,18 @@ final class BoxGenerator
             $this->projectCssOntoSvgSubtree($element, $sheets, $svgRootValues, $element, 0);
             $this->useShadowTrees = null;
         }
+        // MathML Core §3.1.4 — `mathcolor` and the CSS `color` property
+        // are the same thing, and §2.1.1 makes every MathML element a
+        // normal CSS box for cascade purposes. The subtree generates no
+        // boxes of its own here (the painter serialises it and hands it
+        // to the MathML renderer), so a document rule like
+        // `mo { color: black }` would otherwise never reach the element
+        // it names. Mirror the inline-SVG projector: write the cascaded
+        // value onto the one path the MathML side already reads — the
+        // inline `style` attribute that `Mathml\Element` consults.
+        if (self::foreignContentKind($element) === 'math') {
+            $this->projectCssOntoMathmlSubtree($element, $sheets, $values);
+        }
         if ($this->isForeignContentRoot($element)
             && in_array($display, ['inline', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table'], true)
         ) {
@@ -3379,6 +3391,101 @@ final class BoxGenerator
             // instance appended here is not walked a second time.
             $this->materialiseUseShadowTree($child, $sheets, $values, $svgRoot, $useDepth);
         }
+    }
+
+    /**
+     * Properties projected onto an inline-MathML subtree.
+     *
+     * Deliberately narrow: only properties the MathML side already
+     * reads off the `style` attribute are worth stamping, and every
+     * one of them is INHERITED, which is why the projection is gated
+     * on {@see CascadedValues::wasDeclared()} below rather than
+     * `has()`. Stamping an inherited-but-undeclared value onto every
+     * descendant would shadow `mathcolor` / `mathsize` set on an
+     * ancestor: the descendant's own projected `style` is consulted
+     * before the painter's inherited cascade, so a projected
+     * `color: #000000` on a child of `<mstyle mathcolor="red">` would
+     * silently repaint it black.
+     */
+    private const array MATHML_PROJECTED = [
+        'color',
+    ];
+
+    /**
+     * Project the document cascade onto an inline `<math>` subtree.
+     *
+     * Sibling of {@see projectCssOntoSvgSubtree} and structurally the
+     * same: walk the subtree computing the cascade element by element
+     * (so descendant / child / sibling selectors resolve against real
+     * ancestry) and write the winning declarations into each element's
+     * inline `style`.
+     *
+     * `$rootValues` is the `<math>` element's own cascaded bag, which
+     * the caller already computed — the root itself is NOT projected
+     * onto, because the painter reads its style off the box tree.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    private function projectCssOntoMathmlSubtree(
+        Element $root,
+        array $sheets,
+        CascadedValues $rootValues,
+    ): void {
+        foreach ($root->children() as $child) {
+            $values = $this->projectCssOntoMathmlElement($child, $sheets, $rootValues);
+            $this->projectCssOntoMathmlSubtree($child, $sheets, $values);
+        }
+    }
+
+    /**
+     * Cascade one inline-MathML element and write the result back onto
+     * it. Returns the cascaded values so the caller can use them as the
+     * parent for the element's children.
+     *
+     * A property is projected only when a declaration actually won the
+     * cascade ON THIS ELEMENT. That ordering is what keeps MathML's own
+     * presentation attributes working: an undeclared property leaves
+     * the element's `style` untouched, so `mathcolor` on an ancestor
+     * still reaches it through the painter's own inheritance. When an
+     * author rule DID match, CSS outranks the presentation attribute
+     * (MathML Core §2.1.1 makes `mathcolor` a presentational hint,
+     * which loses to any author declaration), so the projection is
+     * written ahead of — and therefore beaten by — the element's own
+     * inline style, but ahead of the attribute the painter reads only
+     * as a fallback.
+     *
+     * @param list<Stylesheet> $sheets
+     */
+    private function projectCssOntoMathmlElement(
+        Element $element,
+        array $sheets,
+        CascadedValues $parentValues,
+    ): CascadedValues {
+        $values = $this->cascade->computeFor($sheets, $element, $parentValues);
+        $declarations = [];
+        foreach (self::MATHML_PROJECTED as $property) {
+            if (!$values->wasDeclared($property)) {
+                continue;
+            }
+            $value = $values->get($property);
+            if ($value === null) {
+                continue;
+            }
+            $declarations[] = $property . ': ' . $value->toCss();
+        }
+        if ($declarations !== []) {
+            $existing = $element->getAttribute('style');
+            $projection = implode('; ', $declarations);
+            $element->setAttribute(
+                'style',
+                $existing === null || $existing === ''
+                    ? $projection
+                    // The element's own inline style comes LAST so it
+                    // still wins over the projected cascade.
+                    : $projection . '; ' . $existing,
+            );
+        }
+        return $values;
     }
 
     /**
