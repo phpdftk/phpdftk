@@ -156,7 +156,7 @@
         <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">95</span>
+    <span class="phpdocumentor-element-found-in__line">97</span>
 
     </aside>
 
@@ -253,6 +253,16 @@ usual required / read-only flags.</dd>
 stroked ellipse inscribed in the rectangle.</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addConicShadingStops">addConicShadingStops()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a>    </span>
+</dt>
+<dd>Register a CSS `conic-gradient()` as a function-based shading
+(ShadingType 1, ISO 32000-2 §8.7.4.5.2) driven by a PostScript
+calculator function (FunctionType 4) that maps each point (x, y)
+to its sweep angle around `$center` and interpolates the stop list.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addFreeText">addFreeText()</a>
     <span>
                                 &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Annotation-FreeTextAnnotation.html"><abbr title="\Phpdftk\Pdf\Core\Annotation\FreeTextAnnotation">FreeTextAnnotation</abbr></a>    </span>
@@ -295,6 +305,20 @@ operations as belonging to this layer.</dd>
                                 &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Annotation-LineAnnotation.html"><abbr title="\Phpdftk\Pdf\Core\Annotation\LineAnnotation">LineAnnotation</abbr></a>    </span>
 </dt>
 <dd>Add a line annotation between two points.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearAlphaShading">addLinearAlphaShading()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType2.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2">ShadingType2</abbr></a>    </span>
+</dt>
+<dd>Register a linear DeviceGray shading whose gray value at each
+offset equals the *alpha* of the corresponding gradient stop
+(0 → black → fully transparent, 1 → white → fully opaque). Painted
+with the `sh` operator inside a transparency group, it becomes the
+`/G` of a Luminosity soft mask (ISO 32000-2 §11.6.5.2) that
+modulates a colour gradient&#039;s per-stop opacity — the CSS
+`linear-gradient(rgba(c,0), rgba(c,1))` case, which the colour
+shading alone cannot express (PDF shadings carry no alpha).</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearGradient">addLinearGradient()</a>
@@ -364,6 +388,15 @@ the polygon is implicitly closed back to the first vertex.</dd>
 </dt>
 <dd>Add a polyline annotation — like a polygon but open (last point
 does not connect back to the first).</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialAlphaShading">addRadialAlphaShading()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType3.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3">ShadingType3</abbr></a>    </span>
+</dt>
+<dd>Radial counterpart to {@see addLinearAlphaShading()} — a
+DeviceGray Type-3 shading carrying the gradient&#039;s per-stop alpha
+as gray, for use as a Luminosity soft-mask `/G` form.</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialGradient">addRadialGradient()</a>
@@ -501,6 +534,16 @@ pages via `Writer\Page::drawTemplate()`.</dd>
 <dd>Build a reusable Form XObject — a self-contained content stream
 that can be placed on multiple pages without re-emitting the
 underlying operators.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTransparencyGroup">createTransparencyGroup()</a>
+    <span>
+                                &nbsp;: <a href="classes/Phpdftk-Pdf-Core-Graphics-XObject-FormXObject.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\XObject\FormXObject">FormXObject</abbr></a>    </span>
+</dt>
+<dd>Create a registered transparency-group Form XObject — a
+{@see createTemplate()} whose content is drawn inside an isolated
+`/Group &lt;&lt; /S /Transparency /CS /DeviceRGB /I true &gt;&gt;` so it can
+serve as the `/G` of an ExtGState soft mask (ISO 32000-2 §11.6.5).</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_registerSpotColor">registerSpotColor()</a>
@@ -649,7 +692,7 @@ friendly API on top of it.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">105</span>
+    <span class="phpdocumentor-element-found-in__line">107</span>
 
     </aside>
 
@@ -700,7 +743,7 @@ friendly API on top of it.</dd>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1277</span>
+    <span class="phpdocumentor-element-found-in__line">1578</span>
 
     </aside>
 
@@ -765,7 +808,7 @@ or PRC payload.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1095</span>
+    <span class="phpdocumentor-element-found-in__line">1396</span>
 
     </aside>
 
@@ -822,7 +865,7 @@ used to mark an insertion point.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">281</span>
+    <span class="phpdocumentor-element-found-in__line">283</span>
 
     </aside>
 
@@ -893,7 +936,7 @@ recorded as the field&#039;s `/V` when checked) defaults to `Yes`.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">307</span>
+    <span class="phpdocumentor-element-found-in__line">309</span>
 
     </aside>
 
@@ -965,7 +1008,7 @@ usual required / read-only flags.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1210</span>
+    <span class="phpdocumentor-element-found-in__line">1511</span>
 
     </aside>
 
@@ -1014,6 +1057,97 @@ stroked ellipse inscribed in the rectangle.</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_addConicShadingStops">
+        addConicShadingStops()
+        <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addConicShadingStops" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">580</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Register a CSS `conic-gradient()` as a function-based shading
+(ShadingType 1, ISO 32000-2 §8.7.4.5.2) driven by a PostScript
+calculator function (FunctionType 4) that maps each point (x, y)
+to its sweep angle around `$center` and interpolates the stop list.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">addConicShadingStops</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$center</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$fromAngleDeg</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array{float, float, float, float}&nbsp;</span><span class="phpdocumentor-signature__argument__name">$domain</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$repeating</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>PDF has no native angular shading, so the calculator computes the
+CSS angle <code class="prettyprint">atan2(x - cx, y - cy)</code> (0° at 12 o'clock, increasing
+clockwise in the PDF y-up space), subtracts the <code class="prettyprint">from</code> angle, wraps
+to [0, 1), then walks the stop segments. Coordinates are absolute
+page-space (the <code class="prettyprint">$domain</code> rect), with an identity pattern matrix —
+mirroring the linear path so pattern anchoring is CTM-independent.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$center</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$fromAngleDeg</span>
+                : <span class="phpdocumentor-argument-list__argument__type">float</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$stops</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>Resolved stops, offsets in [0, 1] ascending, first at 0 / last at 1.</p>
+</section>
+
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$domain</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array{float, float, float, float}</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>[x0, x1, y0, y1] box rect.</p>
+</section>
+
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$repeating</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">false</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_addFreeText">
         addFreeText()
         <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addFreeText" class="headerlink"><i class="fas fa-link"></i></a>
@@ -1022,7 +1156,7 @@ stroked ellipse inscribed in the rectangle.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1023</span>
+    <span class="phpdocumentor-element-found-in__line">1324</span>
 
     </aside>
 
@@ -1095,7 +1229,7 @@ is the PDF &quot;default appearance&quot; string controlling font + colour
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1044</span>
+    <span class="phpdocumentor-element-found-in__line">1345</span>
 
     </aside>
 
@@ -1153,7 +1287,7 @@ line). The annotation&#039;s bounding rect is the union of all quads.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1107</span>
+    <span class="phpdocumentor-element-found-in__line">1408</span>
 
     </aside>
 
@@ -1210,7 +1344,7 @@ each stroke a flat list of `[x0, y0, x1, y1, ...]` points.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">809</span>
+    <span class="phpdocumentor-element-found-in__line">1110</span>
 
     </aside>
 
@@ -1272,7 +1406,7 @@ the default config's <code class="prettyprint">/ON</code> list, hidden ones into
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1145</span>
+    <span class="phpdocumentor-element-found-in__line">1446</span>
 
     </aside>
 
@@ -1341,6 +1475,83 @@ the default config's <code class="prettyprint">/ON</code> list, hidden ones into
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_addLinearAlphaShading">
+        addLinearAlphaShading()
+        <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearAlphaShading" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">793</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Register a linear DeviceGray shading whose gray value at each
+offset equals the *alpha* of the corresponding gradient stop
+(0 → black → fully transparent, 1 → white → fully opaque). Painted
+with the `sh` operator inside a transparency group, it becomes the
+`/G` of a Luminosity soft mask (ISO 32000-2 §11.6.5.2) that
+modulates a colour gradient&#039;s per-stop opacity — the CSS
+`linear-gradient(rgba(c,0), rgba(c,1))` case, which the colour
+shading alone cannot express (PDF shadings carry no alpha).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">addLinearAlphaShading</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$from</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$to</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, gray: float}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType2.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2">ShadingType2</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$from</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$to</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$stops</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, gray: float}&gt;</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$extend</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType2.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType2">ShadingType2</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_addLinearGradient">
         addLinearGradient()
         <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearGradient" class="headerlink"><i class="fas fa-link"></i></a>
@@ -1349,7 +1560,7 @@ the default config's <code class="prettyprint">/ON</code> list, hidden ones into
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">418</span>
+    <span class="phpdocumentor-element-found-in__line">420</span>
 
     </aside>
 
@@ -1432,7 +1643,7 @@ the default config's <code class="prettyprint">/ON</code> list, hidden ones into
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">497</span>
+    <span class="phpdocumentor-element-found-in__line">499</span>
 
     </aside>
 
@@ -1446,7 +1657,7 @@ a Type-3 stitching function with N-1 Type-2 sub-functions.</p>
 
     <code class="phpdocumentor-code phpdocumentor-signature ">
     <span class="phpdocumentor-signature__visibility">public</span>
-                    <span class="phpdocumentor-signature__name">addLinearGradientStops</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$from</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$to</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span></code>
+                    <span class="phpdocumentor-signature__name">addLinearGradientStops</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$from</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$to</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span></code>
 
     <div class="phpdocumentor-label-line">
         </div>
@@ -1470,7 +1681,7 @@ a Type-3 stitching function with N-1 Type-2 sub-functions.</p>
             </dd>
                     <dt class="phpdocumentor-argument-list__entry">
                 <span class="phpdocumentor-argument-list__argument__name">$stops</span>
-                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}}&gt;</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;</span>
                             </dt>
             <dd class="phpdocumentor-argument-list__definition">
                 
@@ -1508,7 +1719,7 @@ a Type-3 stitching function with N-1 Type-2 sub-functions.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">958</span>
+    <span class="phpdocumentor-element-found-in__line">1259</span>
 
     </aside>
 
@@ -1588,7 +1799,7 @@ registered via <abbr title="\Phpdftk\Pdf\Writer\setNamedDestinations()">setNamed
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1261</span>
+    <span class="phpdocumentor-element-found-in__line">1562</span>
 
     </aside>
 
@@ -1652,7 +1863,7 @@ Rich Media / Screen annotations; provided for legacy workflows.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1408</span>
+    <span class="phpdocumentor-element-found-in__line">1709</span>
 
     </aside>
 
@@ -1702,7 +1913,7 @@ are responsible for linking Prev/Next/First/Last/Parent.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">136</span>
+    <span class="phpdocumentor-element-found-in__line">138</span>
 
     </aside>
 
@@ -1759,7 +1970,7 @@ are responsible for linking Prev/Next/First/Last/Parent.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1174</span>
+    <span class="phpdocumentor-element-found-in__line">1475</span>
 
     </aside>
 
@@ -1816,7 +2027,7 @@ the polygon is implicitly closed back to the first vertex.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1188</span>
+    <span class="phpdocumentor-element-found-in__line">1489</span>
 
     </aside>
 
@@ -1865,6 +2076,92 @@ does not connect back to the first).</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_addRadialAlphaShading">
+        addRadialAlphaShading()
+        <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialAlphaShading" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">824</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Radial counterpart to {@see addLinearAlphaShading()} — a
+DeviceGray Type-3 shading carrying the gradient&#039;s per-stop alpha
+as gray, for use as a Luminosity soft-mask `/G` form.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">addRadialAlphaShading</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, gray: float}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">true</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType3.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3">ShadingType3</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+    
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$innerCenter</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$innerRadius</span>
+                : <span class="phpdocumentor-argument-list__argument__type">float</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$outerCenter</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$outerRadius</span>
+                : <span class="phpdocumentor-argument-list__argument__type">float</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$stops</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, gray: float}&gt;</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$extend</span>
+                : <span class="phpdocumentor-argument-list__argument__type">bool</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">true</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Shading-ShadingType3.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Shading\ShadingType3">ShadingType3</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_addRadialGradient">
         addRadialGradient()
         <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialGradient" class="headerlink"><i class="fas fa-link"></i></a>
@@ -1873,7 +2170,7 @@ does not connect back to the first).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">454</span>
+    <span class="phpdocumentor-element-found-in__line">456</span>
 
     </aside>
 
@@ -1970,7 +2267,7 @@ boundary.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">530</span>
+    <span class="phpdocumentor-element-found-in__line">532</span>
 
     </aside>
 
@@ -1979,7 +2276,7 @@ boundary.</p>
 
     <code class="phpdocumentor-code phpdocumentor-signature ">
     <span class="phpdocumentor-signature__visibility">public</span>
-                    <span class="phpdocumentor-signature__name">addRadialGradientStops</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span></code>
+                    <span class="phpdocumentor-signature__name">addRadialGradientStops</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$innerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Point.html"><abbr title="\Phpdftk\Geometry\Point">Point</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerCenter</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">float&nbsp;</span><span class="phpdocumentor-signature__argument__name">$outerRadius</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;&nbsp;</span><span class="phpdocumentor-signature__argument__name">$stops</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">bool&nbsp;</span><span class="phpdocumentor-signature__argument__name">$extend</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">false</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-Pattern-ShadingPattern.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\Pattern\ShadingPattern">ShadingPattern</abbr></a></span></code>
 
     <div class="phpdocumentor-label-line">
         </div>
@@ -2017,7 +2314,7 @@ boundary.</p>
             </dd>
                     <dt class="phpdocumentor-argument-list__entry">
                 <span class="phpdocumentor-argument-list__argument__name">$stops</span>
-                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}}&gt;</span>
+                : <span class="phpdocumentor-argument-list__argument__type">array&lt;int, array{offset: float, rgb: array{float, float, float}, alpha?: float}&gt;</span>
                             </dt>
             <dd class="phpdocumentor-argument-list__definition">
                 
@@ -2055,7 +2352,7 @@ boundary.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">346</span>
+    <span class="phpdocumentor-element-found-in__line">348</span>
 
     </aside>
 
@@ -2120,7 +2417,7 @@ generate time.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1246</span>
+    <span class="phpdocumentor-element-found-in__line">1547</span>
 
     </aside>
 
@@ -2186,7 +2483,7 @@ new documents.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1200</span>
+    <span class="phpdocumentor-element-found-in__line">1501</span>
 
     </aside>
 
@@ -2243,7 +2540,7 @@ rectangle on the page.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1070</span>
+    <span class="phpdocumentor-element-found-in__line">1371</span>
 
     </aside>
 
@@ -2299,7 +2596,7 @@ rectangle on the page.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1220</span>
+    <span class="phpdocumentor-element-found-in__line">1521</span>
 
     </aside>
 
@@ -2363,7 +2660,7 @@ stamp identifier (`Approved`, `Confidential`, `Draft`, etc.).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1001</span>
+    <span class="phpdocumentor-element-found-in__line">1302</span>
 
     </aside>
 
@@ -2442,7 +2739,7 @@ lower-left corner; the rect defaults to a 16×16 box around it.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1083</span>
+    <span class="phpdocumentor-element-found-in__line">1384</span>
 
     </aside>
 
@@ -2498,7 +2795,7 @@ lower-left corner; the rect defaults to a 16×16 box around it.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">253</span>
+    <span class="phpdocumentor-element-found-in__line">255</span>
 
     </aside>
 
@@ -2578,7 +2875,7 @@ annotation is attached to the page&#039;s `/Annots` array.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1057</span>
+    <span class="phpdocumentor-element-found-in__line">1358</span>
 
     </aside>
 
@@ -2635,7 +2932,7 @@ draws a line under each text span. `$quads` is one rect per span.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1234</span>
+    <span class="phpdocumentor-element-found-in__line">1535</span>
 
     </aside>
 
@@ -2692,7 +2989,7 @@ doesn&#039;t print by default (PDF 1.7).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">861</span>
+    <span class="phpdocumentor-element-found-in__line">1162</span>
 
     </aside>
 
@@ -2771,7 +3068,7 @@ to viewers about the file's role. ZUGFeRD invoices use
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">877</span>
+    <span class="phpdocumentor-element-found-in__line">1178</span>
 
     </aside>
 
@@ -2850,7 +3147,7 @@ etc.).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">724</span>
+    <span class="phpdocumentor-element-found-in__line">990</span>
 
     </aside>
 
@@ -2918,7 +3215,7 @@ throw at render time.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">757</span>
+    <span class="phpdocumentor-element-found-in__line">1023</span>
 
     </aside>
 
@@ -2977,6 +3274,71 @@ the placing page.</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_createTransparencyGroup">
+        createTransparencyGroup()
+        <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTransparencyGroup" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">1055</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Create a registered transparency-group Form XObject — a
+{@see createTemplate()} whose content is drawn inside an isolated
+`/Group &lt;&lt; /S /Transparency /CS /DeviceRGB /I true &gt;&gt;` so it can
+serve as the `/G` of an ExtGState soft mask (ISO 32000-2 §11.6.5).</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">createTransparencyGroup</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Geometry-Rectangle.html"><abbr title="\Phpdftk\Geometry\Rectangle">Rectangle</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$bbox</span></span><span class="phpdocumentor-signature__argument"><span>, </span><span class="phpdocumentor-signature__argument__type">callable(<a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html"><abbr title="\Phpdftk\Pdf\Core\Content\ContentStream">ContentStream</abbr></a>, <a href="classes/Phpdftk-Pdf-Core-Content-Resources.html"><abbr title="\Phpdftk\Pdf\Core\Content\Resources">Resources</abbr></a>): void&nbsp;</span><span class="phpdocumentor-signature__argument__name">$draw</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-XObject-FormXObject.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\XObject\FormXObject">FormXObject</abbr></a></span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>The group carries its OWN <a href="classes/Phpdftk-Pdf-Core-Content-Resources.html"><abbr title="\Phpdftk\Pdf\Core\Content\Resources">Resources</abbr></a> so a caller can register
+shading patterns / images used only by the mask content on it.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$bbox</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Geometry-Rectangle.html"><abbr title="\Phpdftk\Geometry\Rectangle">Rectangle</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$draw</span>
+                : <span class="phpdocumentor-argument-list__argument__type">callable(<a href="classes/Phpdftk-Pdf-Core-Content-ContentStream.html"><abbr title="\Phpdftk\Pdf\Core\Content\ContentStream">ContentStream</abbr></a>, <a href="classes/Phpdftk-Pdf-Core-Content-Resources.html"><abbr title="\Phpdftk\Pdf\Core\Content\Resources">Resources</abbr></a>): void</span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                    <section class="phpdocumentor-description"><p>receives the
+group's content stream and its resource dict.</p>
+</section>
+
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type"><a href="classes/Phpdftk-Pdf-Core-Graphics-XObject-FormXObject.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\XObject\FormXObject">FormXObject</abbr></a></span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_registerSpotColor">
         registerSpotColor()
         <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_registerSpotColor" class="headerlink"><i class="fas fa-link"></i></a>
@@ -2985,7 +3347,7 @@ the placing page.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">671</span>
+    <span class="phpdocumentor-element-found-in__line">937</span>
 
     </aside>
 
@@ -3054,7 +3416,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">157</span>
+    <span class="phpdocumentor-element-found-in__line">159</span>
 
     </aside>
 
@@ -3102,7 +3464,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">175</span>
+    <span class="phpdocumentor-element-found-in__line">177</span>
 
     </aside>
 
@@ -3150,7 +3512,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">145</span>
+    <span class="phpdocumentor-element-found-in__line">147</span>
 
     </aside>
 
@@ -3198,7 +3560,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">169</span>
+    <span class="phpdocumentor-element-found-in__line">171</span>
 
     </aside>
 
@@ -3246,7 +3608,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">194</span>
+    <span class="phpdocumentor-element-found-in__line">196</span>
 
     </aside>
 
@@ -3295,7 +3657,7 @@ $page-&gt;contentStream()
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1444</span>
+    <span class="phpdocumentor-element-found-in__line">1745</span>
 
     </aside>
 
@@ -3345,7 +3707,7 @@ array of name =&gt; Destination.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">789</span>
+    <span class="phpdocumentor-element-found-in__line">1090</span>
 
     </aside>
 
@@ -3398,7 +3760,7 @@ factories.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1397</span>
+    <span class="phpdocumentor-element-found-in__line">1698</span>
 
     </aside>
 
@@ -3448,7 +3810,7 @@ Outline for further configuration (setting First/Last/Count).</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1421</span>
+    <span class="phpdocumentor-element-found-in__line">1722</span>
 
     </aside>
 
@@ -3500,7 +3862,7 @@ associative array of zero-based page index =&gt; PageLabel.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">163</span>
+    <span class="phpdocumentor-element-found-in__line">165</span>
 
     </aside>
 
@@ -3548,7 +3910,7 @@ associative array of zero-based page index =&gt; PageLabel.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">151</span>
+    <span class="phpdocumentor-element-found-in__line">153</span>
 
     </aside>
 
@@ -3596,7 +3958,7 @@ associative array of zero-based page index =&gt; PageLabel.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">930</span>
+    <span class="phpdocumentor-element-found-in__line">1231</span>
 
     </aside>
 
@@ -3653,7 +4015,7 @@ $vp-&gt;fitWindow = true;
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">210</span>
+    <span class="phpdocumentor-element-found-in__line">212</span>
 
     </aside>
 
@@ -3697,7 +4059,7 @@ MetadataStream on the Catalog.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">117</span>
+    <span class="phpdocumentor-element-found-in__line">119</span>
 
     </aside>
 
@@ -3748,7 +4110,7 @@ friendly API on top of it.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/PdfDoc.php"><a href="files/packages-pdf-writer-src-pdfdoc.html"><abbr title="packages/pdf/writer/src/PdfDoc.php">PdfDoc.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">127</span>
+    <span class="phpdocumentor-element-found-in__line">129</span>
 
     </aside>
 
@@ -3894,11 +4256,13 @@ friendly API on top of it.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addCheckbox">addCheckbox()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addChoiceField">addChoiceField()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addCircleAnnotation">addCircleAnnotation()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addConicShadingStops">addConicShadingStops()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addFreeText">addFreeText()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addHighlight">addHighlight()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addInk">addInk()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLayer">addLayer()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLineAnnotation">addLineAnnotation()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearAlphaShading">addLinearAlphaShading()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearGradient">addLinearGradient()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearGradientStops">addLinearGradientStops()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLink">addLink()</a></li>
@@ -3907,6 +4271,7 @@ friendly API on top of it.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addPage">addPage()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addPolygon">addPolygon()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addPolyline">addPolyline()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialAlphaShading">addRadialAlphaShading()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialGradient">addRadialGradient()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialGradientStops">addRadialGradientStops()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addSignatureField">addSignatureField()</a></li>
@@ -3923,6 +4288,7 @@ friendly API on top of it.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_attachFileBytes">attachFileBytes()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createBarcode">createBarcode()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTemplate">createTemplate()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTransparencyGroup">createTransparencyGroup()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_registerSpotColor">registerSpotColor()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_setAuthor">setAuthor()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_setCreator">setCreator()</a></li>

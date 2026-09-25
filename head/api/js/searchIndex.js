@@ -2326,6 +2326,11 @@ Search.appendIndex(
             "summary": "Decode\u0020an\u00208\u002Dbit\u0020alpha\u0020PNG\u0020\u0028color\u0020type\u00204\u0020\u003D\u0020grayscale\u002Balpha,\ntype\u00206\u0020\u003D\u0020RGB\u002Balpha\u0029\u0020into\u0020separate\u0020colour\u0020and\u0020alpha\u0020streams.",
             "url": "classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeAlphaPng"
         },                {
+            "fqsen": "\\Phpdftk\\ImageMetadata\\PngParser\u003A\u003AdecodeOpaquePng\u0028\u0029",
+            "name": "decodeOpaquePng",
+            "summary": "Decode\u0020a\u0020non\u002Dalpha\u00208\u002Dbit\u0020PNG\u0020\u0028colour\u0020type\u00200\u0020grayscale\u0020or\u00202\u0020RGB\u0029\nto\u0020a\u0020flat\u0020raster.",
+            "url": "classes/Phpdftk-ImageMetadata-PngParser.html#method_decodeOpaquePng"
+        },                {
             "fqsen": "\\Phpdftk\\ImageMetadata\\PngParser\u003A\u003AdecodeIndexedPng\u0028\u0029",
             "name": "decodeIndexedPng",
             "summary": "Decode\u0020an\u00208\u002Dbit\u0020indexed\u002Dcolour\u0020PNG\u0020\u0028color\u0020type\u00203\u0029\u0020into\u0020the\nseparate\u0020colour\u0020\u002B\u0020alpha\u0020streams\u0020a\u0020PDF\u0020Image\u0020XObject\u0020embeds.",
@@ -17246,6 +17251,11 @@ Search.appendIndex(
             "summary": "Lazily\u0020build\u0020\u0028or\u0020reuse\u0029\u0020an\u0020ExtGState\u0020resource\u0020for\u0020this\u0020page\u0020that\nsets\u0020CA\u0020\u002B\u0020ca\u0020and\u0020returns\u0020its\u0020resource\u0020name.\u0020The\u0020cache\u0020key\u0020is\nderived\u0020from\u0020the\u0020alpha\u0020values\u0020so\u0020identical\u0020opacity\u0020calls\u0020reuse\nthe\u0020same\u0020registered\u0020ExtGState.\u0020Public\u0020so\u0020consumers\u0020writing\u0020to\nadditional\u0020content\u0020streams\u0020\u0028e.g.\u0020the\u0020html\u002Dto\u002Dpdf\u0020painter\u0029\u0020can\ngrab\u0020the\u0020resource\u0020name\u0020and\u0020emit\u0020\u0060gs\u0060\u0020themselves\u0020without\u0020going\nthrough\u0020\u0060setOpacity\u0028\u0029\u0060\u0027s\u0020stream\u0020side\u0020effect.",
             "url": "classes/Phpdftk-Pdf-Writer-Page.html#method_ensureOpacityState"
         },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\Page\u003A\u003AensureSoftMaskState\u0028\u0029",
+            "name": "ensureSoftMaskState",
+            "summary": "Lazily\u0020build\u0020\u0028or\u0020reuse\u0029\u0020an\u0020ExtGState\u0020that\u0020installs\u0020a\u0020soft\u0020mask\n\u0028ISO\u002032000\u002D2\u0020\u00A711.6.5.2\u0029\u0020whose\u0020\u0060\/G\u0060\u0020is\u0020the\u0020given\u0020transparency\u002Dgroup\nForm\u0020XObject\u0020\u0028see\u0020\u007B\u0040see\u0020PdfDoc\u003A\u003AcreateTransparencyGroup\u0028\u0029\u007D\u0029,\u0020and\nreturn\u0020its\u0020resource\u0020name.\u0020\u0060\u0024subtype\u0060\u0020is\u0020\u0060Luminosity\u0060\u0020\u0028mask\u0020value\u0020\u003D\nthe\u0020group\u0027s\u0020luminance\u0020on\u0020a\u0020black\u0020backdrop\u0029\u0020or\u0020\u0060Alpha\u0060.\u0020Emit\n\u0060\/\u003Cname\u003E\u0020gs\u0060\u0020before\u0020painting\u0020the\u0020masked\u0020content,\u0020inside\u0020\u0060q\u0060\/\u0060Q\u0060.",
+            "url": "classes/Phpdftk-Pdf-Writer-Page.html#method_ensureSoftMaskState"
+        },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\Page\u003A\u003AsetRotation\u0028\u0029",
             "name": "setRotation",
             "summary": "Set\u0020the\u0020page\u0020rotation,\u0020in\u0020degrees\u0020clockwise.\u0020Only\u0020multiples\u0020of\n90\u0020are\u0020valid\u0020per\u0020ISO\u002032000\u002D2\u0020\u00A7\u00207.7.3.3\u0020\u2014\u0020anything\u0020else\u0020throws.",
@@ -17776,6 +17786,21 @@ Search.appendIndex(
             "summary": "Register\u0020an\u0020N\u002Dstop\u0020radial\u0020gradient.\u0020Same\u0020stop\u0020semantics\u0020as\n\u007B\u0040see\u0020addLinearGradientStops\u0028\u0029\u007D.",
             "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialGradientStops"
         },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AaddConicShadingStops\u0028\u0029",
+            "name": "addConicShadingStops",
+            "summary": "Register\u0020a\u0020CSS\u0020\u0060conic\u002Dgradient\u0028\u0029\u0060\u0020as\u0020a\u0020function\u002Dbased\u0020shading\n\u0028ShadingType\u00201,\u0020ISO\u002032000\u002D2\u0020\u00A78.7.4.5.2\u0029\u0020driven\u0020by\u0020a\u0020PostScript\ncalculator\u0020function\u0020\u0028FunctionType\u00204\u0029\u0020that\u0020maps\u0020each\u0020point\u0020\u0028x,\u0020y\u0029\nto\u0020its\u0020sweep\u0020angle\u0020around\u0020\u0060\u0024center\u0060\u0020and\u0020interpolates\u0020the\u0020stop\u0020list.",
+            "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addConicShadingStops"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AaddLinearAlphaShading\u0028\u0029",
+            "name": "addLinearAlphaShading",
+            "summary": "Register\u0020a\u0020linear\u0020DeviceGray\u0020shading\u0020whose\u0020gray\u0020value\u0020at\u0020each\noffset\u0020equals\u0020the\u0020\u002Aalpha\u002A\u0020of\u0020the\u0020corresponding\u0020gradient\u0020stop\n\u00280\u0020\u2192\u0020black\u0020\u2192\u0020fully\u0020transparent,\u00201\u0020\u2192\u0020white\u0020\u2192\u0020fully\u0020opaque\u0029.\u0020Painted\nwith\u0020the\u0020\u0060sh\u0060\u0020operator\u0020inside\u0020a\u0020transparency\u0020group,\u0020it\u0020becomes\u0020the\n\u0060\/G\u0060\u0020of\u0020a\u0020Luminosity\u0020soft\u0020mask\u0020\u0028ISO\u002032000\u002D2\u0020\u00A711.6.5.2\u0029\u0020that\nmodulates\u0020a\u0020colour\u0020gradient\u0027s\u0020per\u002Dstop\u0020opacity\u0020\u2014\u0020the\u0020CSS\n\u0060linear\u002Dgradient\u0028rgba\u0028c,0\u0029,\u0020rgba\u0028c,1\u0029\u0029\u0060\u0020case,\u0020which\u0020the\u0020colour\nshading\u0020alone\u0020cannot\u0020express\u0020\u0028PDF\u0020shadings\u0020carry\u0020no\u0020alpha\u0029.",
+            "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addLinearAlphaShading"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AaddRadialAlphaShading\u0028\u0029",
+            "name": "addRadialAlphaShading",
+            "summary": "Radial\u0020counterpart\u0020to\u0020\u007B\u0040see\u0020addLinearAlphaShading\u0028\u0029\u007D\u0020\u2014\u0020a\nDeviceGray\u0020Type\u002D3\u0020shading\u0020carrying\u0020the\u0020gradient\u0027s\u0020per\u002Dstop\u0020alpha\nas\u0020gray,\u0020for\u0020use\u0020as\u0020a\u0020Luminosity\u0020soft\u002Dmask\u0020\u0060\/G\u0060\u0020form.",
+            "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_addRadialAlphaShading"
+        },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AregisterSpotColor\u0028\u0029",
             "name": "registerSpotColor",
             "summary": "Register\u0020a\u0020spot\u0020color\u0020\u0028a\u0020\u007B\u0040see\u0020Separation\u007D\u0020color\u0020space\u0029.\u0020The\n\u0060\u0024cmykTint\u0060\u0020parameter\u0020specifies\u0020the\u0020device\u002DCMYK\u0020approximation\nused\u0020by\u0020viewers\u0020that\u0020don\u0027t\u0020have\u0020the\u0020spot\u0020ink\u0020\u2014\u0020values\u0020are\u00200\u20131.",
@@ -17790,6 +17815,11 @@ Search.appendIndex(
             "name": "createTemplate",
             "summary": "Build\u0020a\u0020reusable\u0020Form\u0020XObject\u0020\u2014\u0020a\u0020self\u002Dcontained\u0020content\u0020stream\nthat\u0020can\u0020be\u0020placed\u0020on\u0020multiple\u0020pages\u0020without\u0020re\u002Demitting\u0020the\nunderlying\u0020operators.",
             "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTemplate"
+        },                {
+            "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AcreateTransparencyGroup\u0028\u0029",
+            "name": "createTransparencyGroup",
+            "summary": "Create\u0020a\u0020registered\u0020transparency\u002Dgroup\u0020Form\u0020XObject\u0020\u2014\u0020a\n\u007B\u0040see\u0020createTemplate\u0028\u0029\u007D\u0020whose\u0020content\u0020is\u0020drawn\u0020inside\u0020an\u0020isolated\n\u0060\/Group\u0020\u003C\u003C\u0020\/S\u0020\/Transparency\u0020\/CS\u0020\/DeviceRGB\u0020\/I\u0020true\u0020\u003E\u003E\u0060\u0020so\u0020it\u0020can\nserve\u0020as\u0020the\u0020\u0060\/G\u0060\u0020of\u0020an\u0020ExtGState\u0020soft\u0020mask\u0020\u0028ISO\u002032000\u002D2\u0020\u00A711.6.5\u0029.",
+            "url": "classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createTransparencyGroup"
         },                {
             "fqsen": "\\Phpdftk\\Pdf\\Writer\\PdfDoc\u003A\u003AsetOpenAction\u0028\u0029",
             "name": "setOpenAction",

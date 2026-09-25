@@ -357,6 +357,18 @@ grab the resource name and emit `gs` themselves without going
 through `setOpacity()`&#039;s stream side effect.</dd>
 
             <dt class="phpdocumentor-table-of-contents__entry -method -public">
+    <a class="" href="classes/Phpdftk-Pdf-Writer-Page.html#method_ensureSoftMaskState">ensureSoftMaskState()</a>
+    <span>
+                                &nbsp;: string    </span>
+</dt>
+<dd>Lazily build (or reuse) an ExtGState that installs a soft mask
+(ISO 32000-2 §11.6.5.2) whose `/G` is the given transparency-group
+Form XObject (see {@see PdfDoc::createTransparencyGroup()}), and
+return its resource name. `$subtype` is `Luminosity` (mask value =
+the group&#039;s luminance on a black backdrop) or `Alpha`. Emit
+`/&lt;name&gt; gs` before painting the masked content, inside `q`/`Q`.</dd>
+
+            <dt class="phpdocumentor-table-of-contents__entry -method -public">
     <a class="" href="classes/Phpdftk-Pdf-Writer-Page.html#method_inLayer">inLayer()</a>
     <span>
                                 &nbsp;: self    </span>
@@ -806,7 +818,7 @@ prefer <a href="classes/Phpdftk-Pdf-Writer-PdfDoc.html#method_createBarcode"><ab
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1010</span>
+    <span class="phpdocumentor-element-found-in__line">1038</span>
 
     </aside>
 
@@ -1277,7 +1289,7 @@ Standard 14 fonts only — wrap-aware widths come from
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1177</span>
+    <span class="phpdocumentor-element-found-in__line">1205</span>
 
     </aside>
 
@@ -1521,7 +1533,7 @@ through <a href="classes/Phpdftk-Pdf-Writer-ListRenderer.html#method_drawBlock">
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1106</span>
+    <span class="phpdocumentor-element-found-in__line">1134</span>
 
     </aside>
 
@@ -2275,6 +2287,69 @@ through `setOpacity()`&#039;s stream side effect.</p>
             -public
                                                         "
 >
+    <h4 class="phpdocumentor-element__name" id="method_ensureSoftMaskState">
+        ensureSoftMaskState()
+        <a href="classes/Phpdftk-Pdf-Writer-Page.html#method_ensureSoftMaskState" class="headerlink"><i class="fas fa-link"></i></a>
+
+    </h4>
+    <aside class="phpdocumentor-element-found-in">
+    <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
+    :
+    <span class="phpdocumentor-element-found-in__line">936</span>
+
+    </aside>
+
+        <p class="phpdocumentor-summary">Lazily build (or reuse) an ExtGState that installs a soft mask
+(ISO 32000-2 §11.6.5.2) whose `/G` is the given transparency-group
+Form XObject (see {@see PdfDoc::createTransparencyGroup()}), and
+return its resource name. `$subtype` is `Luminosity` (mask value =
+the group&#039;s luminance on a black backdrop) or `Alpha`. Emit
+`/&lt;name&gt; gs` before painting the masked content, inside `q`/`Q`.</p>
+
+    <code class="phpdocumentor-code phpdocumentor-signature ">
+    <span class="phpdocumentor-signature__visibility">public</span>
+                    <span class="phpdocumentor-signature__name">ensureSoftMaskState</span><span>(</span><span class="phpdocumentor-signature__argument"><span class="phpdocumentor-signature__argument__type"><a href="classes/Phpdftk-Pdf-Core-Graphics-XObject-FormXObject.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\XObject\FormXObject">FormXObject</abbr></a>&nbsp;</span><span class="phpdocumentor-signature__argument__name">$group</span></span><span class="phpdocumentor-signature__argument"><span>[</span><span>, </span><span class="phpdocumentor-signature__argument__type">string&nbsp;</span><span class="phpdocumentor-signature__argument__name">$subtype</span><span> = </span><span class="phpdocumentor-signature__argument__default-value">'Luminosity'</span><span> ]</span></span><span>)</span><span> : </span><span class="phpdocumentor-signature__response_type">string</span></code>
+
+    <div class="phpdocumentor-label-line">
+        </div>
+    
+        <section class="phpdocumentor-description"><p>Public so the html-to-pdf painter can grab the name and emit <code class="prettyprint">gs</code>.</p>
+</section>
+
+        <h5 class="phpdocumentor-argument-list__heading">Parameters</h5>
+    <dl class="phpdocumentor-argument-list">
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$group</span>
+                : <span class="phpdocumentor-argument-list__argument__type"><a href="classes/Phpdftk-Pdf-Core-Graphics-XObject-FormXObject.html"><abbr title="\Phpdftk\Pdf\Core\Graphics\XObject\FormXObject">FormXObject</abbr></a></span>
+                            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+                    <dt class="phpdocumentor-argument-list__entry">
+                <span class="phpdocumentor-argument-list__argument__name">$subtype</span>
+                : <span class="phpdocumentor-argument-list__argument__type">string</span>
+                 = <span class="phpdocumentor-argument-list__argument__default-value">'Luminosity'</span>            </dt>
+            <dd class="phpdocumentor-argument-list__definition">
+                
+            </dd>
+            </dl>
+
+    
+
+        
+    
+            <section>
+        <h5 class="phpdocumentor-return-value__heading">Return values</h5>
+        <span class="phpdocumentor-signature__response_type">string</span>
+            </section>
+
+</article>
+                    <article
+        class="phpdocumentor-element
+            -method
+            -public
+                                                        "
+>
     <h4 class="phpdocumentor-element__name" id="method_inLayer">
         inLayer()
         <a href="classes/Phpdftk-Pdf-Writer-Page.html#method_inLayer" class="headerlink"><i class="fas fa-link"></i></a>
@@ -2346,7 +2421,7 @@ shown / hidden.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">1215</span>
+    <span class="phpdocumentor-element-found-in__line">1243</span>
 
     </aside>
 
@@ -2519,7 +2594,7 @@ state restore. Wrap calls in <code class="prettyprint">withTransform()</code> fo
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">980</span>
+    <span class="phpdocumentor-element-found-in__line">1008</span>
 
     </aside>
 
@@ -2568,7 +2643,7 @@ state restore. Wrap calls in <code class="prettyprint">withTransform()</code> fo
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">962</span>
+    <span class="phpdocumentor-element-found-in__line">990</span>
 
     </aside>
 
@@ -2618,7 +2693,7 @@ for production presses.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">952</span>
+    <span class="phpdocumentor-element-found-in__line">980</span>
 
     </aside>
 
@@ -2730,7 +2805,7 @@ argument is provided.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">935</span>
+    <span class="phpdocumentor-element-found-in__line">963</span>
 
     </aside>
 
@@ -2780,7 +2855,7 @@ argument is provided.</p>
     <aside class="phpdocumentor-element-found-in">
     <abbr class="phpdocumentor-element-found-in__file" title="packages/pdf/writer/src/Page.php"><a href="files/packages-pdf-writer-src-page.html"><abbr title="packages/pdf/writer/src/Page.php">Page.php</abbr></a></abbr>
     :
-    <span class="phpdocumentor-element-found-in__line">971</span>
+    <span class="phpdocumentor-element-found-in__line">999</span>
 
     </aside>
 
@@ -3227,6 +3302,7 @@ closure are reverted on exit.</p>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_drawTemplate">drawTemplate()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_drawText">drawText()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_ensureOpacityState">ensureOpacityState()</a></li>
+                                            <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_ensureSoftMaskState">ensureSoftMaskState()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_inLayer">inLayer()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_raw">raw()</a></li>
                                             <li class=""><a href="classes/Phpdftk-Pdf-Writer-Page.html#method_rotate">rotate()</a></li>
