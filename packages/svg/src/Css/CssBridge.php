@@ -56,6 +56,10 @@ final class CssBridge
         'stroke-miterlimit', 'stroke-dasharray', 'stroke-dashoffset',
         'font-family', 'font-size', 'font-weight', 'font-style',
         'color', 'display', 'visibility', 'overflow',
+        // SVG 2 §11.6.2 — the marker family. Inherited, so a
+        // presentation attribute on a `<g>` has to enter the cascade
+        // to reach the shapes underneath it.
+        'marker', 'marker-start', 'marker-mid', 'marker-end',
     ];
 
     /**

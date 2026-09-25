@@ -141,6 +141,16 @@ final class ShorthandExpander
             'text-wrap' => $this->expandTextWrap($value),
             'white-space' => $this->expandWhiteSpace($value),
             'caret' => $this->expandCaret($value),
+            // SVG 2 §11.6.2 — `marker` sets all three marker
+            // longhands to the same value. It is a shorthand, not an
+            // inherited property of its own: the longhands are what
+            // inherit, so `marker-end` declared on a child has to be
+            // able to beat a `marker` inherited from its parent.
+            'marker' => [
+                'marker-start' => $value,
+                'marker-mid' => $value,
+                'marker-end' => $value,
+            ],
             'font-synthesis' => $this->expandFontSynthesis($value),
             'font-variant' => $this->expandFontVariant($value),
             default => [$property => $value],
@@ -189,6 +199,7 @@ final class ShorthandExpander
                 'background-attachment', 'background-color',
             ],
             'list-style' => ['list-style-type', 'list-style-position', 'list-style-image'],
+            'marker' => ['marker-start', 'marker-mid', 'marker-end'],
             default => [],
         };
     }
@@ -220,7 +231,7 @@ final class ShorthandExpander
             'page-break-before', 'page-break-after', 'page-break-inside',
             'inset-area', 'word-wrap', 'grid-gap', 'grid-row-gap', 'grid-column-gap',
             'text-wrap', 'white-space', 'caret',
-            'font-synthesis', 'font-variant', 'container' => true,
+            'font-synthesis', 'font-variant', 'container', 'marker' => true,
             default => false,
         };
     }

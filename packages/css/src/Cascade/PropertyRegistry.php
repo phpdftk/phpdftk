@@ -843,7 +843,10 @@ final class PropertyRegistry
         // analogue for clip masks. Inherits.
         $r->register($initial('clip-rule', new Keyword('nonzero'), true));
         // SVG 2 §11 — marker family used by <line>/<polyline>/<path>.
-        $r->register($initial('marker', new Keyword('none'), true));
+        // `marker` itself is a SHORTHAND (see ShorthandExpander), so it
+        // is deliberately not registered here: registering it as a
+        // longhand too would give it an inherited computed value that
+        // the expansion never writes and nothing reads.
         $r->register($initial('marker-start', new Keyword('none'), true));
         $r->register($initial('marker-mid', new Keyword('none'), true));
         $r->register($initial('marker-end', new Keyword('none'), true));

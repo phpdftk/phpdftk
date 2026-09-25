@@ -81,6 +81,14 @@ final class SvgCascadeProjector
         'stop-color',
         'stop-opacity',
         'text-shadow',
+        // SVG 2 §11.6.2 — the marker family inherits, so like `color`
+        // these are projected on the loose `has()` test: the winning
+        // declaration usually sits on an ancestor `<g>`. Only the
+        // longhands appear here — the cascade expands the `marker`
+        // shorthand before anything reaches this point.
+        'marker-start',
+        'marker-mid',
+        'marker-end',
     ];
 
     /**

@@ -289,6 +289,44 @@ abstract class Element extends Node
     }
 
     /**
+     * SVG 2 §11.6.2 — `marker-start` / `marker-mid` / `marker-end`,
+     * raw (`none`, or a `url(#id)` the translator resolves).
+     *
+     * Each falls back to the `marker` shorthand, which sets all three.
+     * The cascade registers `marker` as an inherited property of its
+     * own rather than expanding it into longhands, so an ancestor's
+     * `marker: url(#m)` reaches here through inheritance exactly as
+     * the expansion would have. The one case the two models disagree
+     * on is a longhand INHERITED from an ancestor competing with a
+     * `marker` shorthand declared on this element, where real CSS
+     * would let the shorthand win; the longhand wins here.
+     */
+    public function markerStart(): ?string
+    {
+        return $this->markerProperty('marker-start');
+    }
+
+    public function markerMid(): ?string
+    {
+        return $this->markerProperty('marker-mid');
+    }
+
+    public function markerEnd(): ?string
+    {
+        return $this->markerProperty('marker-end');
+    }
+
+    private function markerProperty(string $property): ?string
+    {
+        $raw = $this->presentationOrStyle($property)
+            ?? $this->presentationOrStyle('marker');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return trim($raw);
+    }
+
+    /**
      * The `transform-box` presentation attribute / CSS property
      * (CSS Transforms 1 §7), lowercased. Null when absent, which is
      * NOT the same as the initial `view-box`: this renderer keeps a

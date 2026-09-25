@@ -40,10 +40,13 @@ use Phpdftk\Svg\ClipPath;
 use Phpdftk\Svg\Defs;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\Image as SvgImage;
+use Phpdftk\Svg\Marker;
 use Phpdftk\Svg\Mask;
 use Phpdftk\Svg\Symbol;
 use Phpdftk\Svg\Use_;
 use Phpdftk\SvgToPdf\Geometry\BoundingBox;
+use Phpdftk\SvgToPdf\Path\MarkerVertex;
+use Phpdftk\SvgToPdf\Path\MarkerVertices;
 use Phpdftk\SvgToPdf\Path\PathLengthMeasure;
 use Phpdftk\Svg\Path;
 use Phpdftk\Svg\Pattern;
@@ -3373,6 +3376,7 @@ final class Translator
             $this->emitPathCommand($command, $stream, $state);
         }
         $this->applyFillAndStroke($path, $stream);
+        $this->paintMarkers($path, MarkerVertices::ofPathData($path->d()), $stream);
     }
 
     private function emitPathCommand(
@@ -3598,15 +3602,25 @@ final class Translator
         // op with no colour would otherwise draw a black line by
         // accident.
         $stroke = $line->stroke();
-        if ($stroke === null || $stroke instanceof None_) {
-            return;
+        if ($stroke !== null
+            && !$stroke instanceof None_
+            && $this->applyStrokePaint($stroke, $line, $stream)
+        ) {
+            $stream->moveTo($line->x1(), $line->y1())
+                ->lineTo($line->x2(), $line->y2())
+                ->stroke();
         }
-        if (!$this->applyStrokePaint($stroke, $line, $stream)) {
-            return;
-        }
-        $stream->moveTo($line->x1(), $line->y1())
-            ->lineTo($line->x2(), $line->y2())
-            ->stroke();
+        // SVG 2 §11.6.1 — markers are a paint channel of their own.
+        // A `<line>` with no stroke still places them, so this sits
+        // outside the stroke guard above.
+        $this->paintMarkers(
+            $line,
+            MarkerVertices::ofPoints(
+                [[$line->x1(), $line->y1()], [$line->x2(), $line->y2()]],
+                closed: false,
+            ),
+            $stream,
+        );
     }
 
     private function paintPolyline(Polyline $polyline, ContentStream $stream): void
@@ -3617,6 +3631,7 @@ final class Translator
         }
         $this->emitPolyPath($stream, $points, closed: false);
         $this->applyFillAndStroke($polyline, $stream);
+        $this->paintMarkers($polyline, MarkerVertices::ofPoints($points, closed: false), $stream);
     }
 
     private function paintPolygon(Polygon $polygon, ContentStream $stream): void
@@ -3627,6 +3642,7 @@ final class Translator
         }
         $this->emitPolyPath($stream, $points, closed: true);
         $this->applyFillAndStroke($polygon, $stream);
+        $this->paintMarkers($polygon, MarkerVertices::ofPoints($points, closed: true), $stream);
     }
 
     /**
@@ -3708,6 +3724,186 @@ final class Translator
         // Path constructed but nothing wants to paint it — discard so
         // we don't bake a leftover current-path into the graphics state.
         $stream->endPath();
+    }
+
+    /**
+     * SVG 2 §11.6 — paint the `marker-start` / `marker-mid` /
+     * `marker-end` markers of a shape, at the vertices `$vertices`
+     * describes.
+     *
+     * Markers are a paint channel of their own, drawn AFTER the fill
+     * and stroke of the shape that places them and on top of both
+     * (§11.6.1). They are painted here inside the referencing element's
+     * `q`/`Q` wrap, so they share its user space and its `transform`,
+     * which is what puts a marker on a rotated path in the right place
+     * without any extra bookkeeping.
+     *
+     * Marker content does NOT inherit from the referencing element —
+     * the `<marker>` subtree carries its own cascade — so nothing here
+     * seeds fill or stroke from `$element`.
+     *
+     * @param list<MarkerVertex> $vertices
+     */
+    private function paintMarkers(Element $element, array $vertices, ContentStream $stream): void
+    {
+        if ($vertices === [] || $this->document === null) {
+            return;
+        }
+        $start = $this->resolveMarker($element->markerStart());
+        $mid = $this->resolveMarker($element->markerMid());
+        $end = $this->resolveMarker($element->markerEnd());
+        if ($start === null && $mid === null && $end === null) {
+            return;
+        }
+        // `markerUnits="strokeWidth"` (the default) scales the marker
+        // by the USED stroke width of the shape — which is 1 when the
+        // property is absent, per SVG 2 §13.2, not 0.
+        $strokeWidth = $element->strokeWidth() ?? 1.0;
+        $last = count($vertices) - 1;
+        foreach ($vertices as $index => $vertex) {
+            // A shape reduced to a single vertex (a lone `moveto`) has
+            // an END vertex and no start: there is no segment for a
+            // start marker to sit at the beginning of.
+            $marker = match (true) {
+                $index === 0 && $last > 0 => $start,
+                $index === $last => $end,
+                default => $mid,
+            };
+            if ($marker === null) {
+                continue;
+            }
+            // SVG 2 §11.6.3 — `orient` is either a FIXED angle, which
+            // ignores the path entirely, or `auto` / `auto-start-reverse`,
+            // which face along it.
+            $orient = $marker->orient();
+            $angle = is_float($orient) ? $orient : $vertex->angle();
+            if ($orient === 'auto-start-reverse' && $index === 0 && $last > 0) {
+                // `auto-start-reverse` is `auto` everywhere except the
+                // start vertex, where the marker is turned to face back
+                // down the path. That is what lets one arrowhead
+                // definition serve both ends of a line.
+                $angle += 180.0;
+            }
+            $this->paintMarkerInstance($marker, $vertex, $angle, $strokeWidth, $stream);
+        }
+    }
+
+    /**
+     * Resolve a `marker-*` property value to the `<marker>` it names.
+     *
+     * `none`, a malformed value, a reference that misses, and a
+     * reference to something that is not a `<marker>` all resolve to
+     * "no marker" — SVG 2 §11.6.2 gives the property no fallback
+     * syntax, so an unusable reference simply paints nothing.
+     */
+    private function resolveMarker(?string $value): ?Marker
+    {
+        if ($value === null || $this->document === null) {
+            return null;
+        }
+        if (preg_match('/^url\(\s*(["\']?)#([^"\')\s]+)\1\s*\)$/i', trim($value), $m) !== 1) {
+            return null;
+        }
+        $target = $this->document->findByFragment($m[2]);
+        return $target instanceof Marker ? $target : null;
+    }
+
+    /**
+     * Paint one marker instance at one vertex.
+     *
+     * The placement transform is, outermost first (SVG 2 §11.6.3):
+     *
+     *   1. `translate(vertex)` — put the marker on the vertex.
+     *   2. `rotate(angle)` — turn it along the path direction.
+     *   3. `scale(strokeWidth)` when `markerUnits="strokeWidth"`.
+     *   4. `translate(-refPoint)` — line the marker's reference point
+     *      up with the vertex, where the reference point is `refX` /
+     *      `refY` mapped through the `viewBox` transform, because
+     *      §11.6.3 defines them in the marker CONTENT's coordinate
+     *      system.
+     *
+     * What is left after that is the marker viewport: a
+     * `markerWidth` x `markerHeight` rectangle at the origin, which
+     * clips the content unless `overflow` says otherwise (the UA
+     * stylesheet puts `overflow: hidden` on `marker`), and into which
+     * a `viewBox` maps under `preserveAspectRatio` exactly as it does
+     * for a nested `<svg>`.
+     */
+    private function paintMarkerInstance(
+        Marker $marker,
+        MarkerVertex $vertex,
+        float $angle,
+        float $strokeWidth,
+        ContentStream $stream,
+    ): void {
+        $markerWidth = $marker->markerWidth();
+        $markerHeight = $marker->markerHeight();
+        // SVG 2 §11.6.2 — "A value of zero disables rendering of the
+        // element", and a negative value is an error that does the
+        // same.
+        if ($markerWidth <= 0.0 || $markerHeight <= 0.0) {
+            return;
+        }
+        $scale = $marker->markerUnits() === 'strokeWidth' ? $strokeWidth : 1.0;
+        if ($scale <= 0.0) {
+            return;
+        }
+        $viewBox = $marker->viewBox();
+        $content = null;
+        $refX = $marker->refX();
+        $refY = $marker->refY();
+        if ($viewBox !== null && $viewBox[2] > 0.0 && $viewBox[3] > 0.0) {
+            [$scaleX, $scaleY, $offsetX, $offsetY] = $this->nestedViewBoxTransform(
+                $marker,
+                $viewBox[2],
+                $viewBox[3],
+                $markerWidth,
+                $markerHeight,
+            );
+            $content = [
+                $scaleX,
+                0.0,
+                0.0,
+                $scaleY,
+                $offsetX - $viewBox[0] * $scaleX,
+                $offsetY - $viewBox[1] * $scaleY,
+            ];
+            $refX = $content[0] * $refX + $content[4];
+            $refY = $content[3] * $refY + $content[5];
+        }
+        $radians = deg2rad($angle);
+        $cos = cos($radians) * $scale;
+        $sin = sin($radians) * $scale;
+        $placement = [
+            $cos,
+            $sin,
+            -$sin,
+            $cos,
+            $vertex->x - $cos * $refX + $sin * $refY,
+            $vertex->y - $sin * $refX - $cos * $refY,
+        ];
+
+        $stream->saveGraphicsState();
+        $stream->concatMatrix(...$placement);
+        $this->pushMatrix($placement);
+        if (self::viewportClips($marker)) {
+            $stream->rectangle(0.0, 0.0, $markerWidth, $markerHeight);
+            $stream->clip()->endPath();
+        }
+        $childViewport = ['w' => $markerWidth, 'h' => $markerHeight];
+        if ($content !== null) {
+            $stream->concatMatrix(...$content);
+            $this->pushMatrix($content);
+            $childViewport = ['w' => $viewBox[2], 'h' => $viewBox[3]];
+        }
+        $this->viewportStack[] = $childViewport;
+        $this->paintChildren($marker, $stream);
+        array_pop($this->viewportStack);
+        if ($content !== null) {
+            $this->popMatrix();
+        }
+        $this->popMatrix();
+        $stream->restoreGraphicsState();
     }
 
     /** Upper bound on tile repetitions, guarding against pathological patterns. */
