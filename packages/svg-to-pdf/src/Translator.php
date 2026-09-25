@@ -1400,8 +1400,82 @@ final class Translator
         if ($w <= 0.0 || $h <= 0.0) {
             return false;
         }
-        $stream->rectangle($x, $y, $w, $h);
+        [$rx, $ry] = $this->rectCornerRadii($rect, $w, $h, $vp);
+        if ($rx <= 0.0 || $ry <= 0.0) {
+            $stream->rectangle($x, $y, $w, $h);
+            return true;
+        }
+        self::emitRoundedRectPath($stream, $x, $y, $w, $h, $rx, $ry);
         return true;
+    }
+
+    /**
+     * SVG 2 §10.4 — the used `rx` / `ry` of a `<rect>`.
+     *
+     * Both radii are `auto` by default, and an `auto` radius mirrors
+     * the other one, so `rx="8"` alone rounds both axes by 8. A
+     * NEGATIVE radius is invalid: the declaration is ignored, which
+     * leaves `auto` in force. Percentages are §10.1 geometry
+     * percentages — `rx` against the viewport WIDTH, `ry` against its
+     * HEIGHT, never against the rectangle's own box. Finally each
+     * radius is clamped to half its side, so an over-large radius
+     * degenerates into a stadium instead of self-intersecting.
+     *
+     * @param array{w: float, h: float} $vp
+     * @return array{float, float}
+     */
+    private function rectCornerRadii(Rect $rect, float $w, float $h, array $vp): array
+    {
+        $rx = $this->geometryLength($rect, 'rx', $vp['w']);
+        $ry = $this->geometryLength($rect, 'ry', $vp['h']);
+        if ($rx !== null && $rx < 0.0) {
+            $rx = null;
+        }
+        if ($ry !== null && $ry < 0.0) {
+            $ry = null;
+        }
+        $rx ??= $ry;
+        $ry ??= $rx;
+        if ($rx === null || $ry === null) {
+            return [0.0, 0.0];
+        }
+        return [min($rx, $w / 2.0), min($ry, $h / 2.0)];
+    }
+
+    /**
+     * A rounded rectangle as four straight edges joined by four
+     * quarter-ellipse corners.
+     *
+     * PDF's `re` operator only draws square corners, so this is the
+     * lowering. Corner arcs reuse the same `KAPPA` cubic approximation
+     * `emitEllipsePath()` uses, which keeps a fully-rounded rect
+     * (`rx = w/2`, `ry = h/2`) pixel-consistent with the `<ellipse>`
+     * that describes the same shape.
+     */
+    private static function emitRoundedRectPath(
+        ContentStream $stream,
+        float $x,
+        float $y,
+        float $w,
+        float $h,
+        float $rx,
+        float $ry,
+    ): void {
+        $kx = $rx * self::KAPPA;
+        $ky = $ry * self::KAPPA;
+        $right = $x + $w;
+        $top = $y + $h;
+        $stream
+            ->moveTo($x + $rx, $y)
+            ->lineTo($right - $rx, $y)
+            ->curveTo($right - $rx + $kx, $y, $right, $y + $ry - $ky, $right, $y + $ry)
+            ->lineTo($right, $top - $ry)
+            ->curveTo($right, $top - $ry + $ky, $right - $rx + $kx, $top, $right - $rx, $top)
+            ->lineTo($x + $rx, $top)
+            ->curveTo($x + $rx - $kx, $top, $x, $top - $ry + $ky, $x, $top - $ry)
+            ->lineTo($x, $y + $ry)
+            ->curveTo($x, $y + $ry - $ky, $x + $rx - $kx, $y, $x + $rx, $y)
+            ->closePath();
     }
 
     /**
