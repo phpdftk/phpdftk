@@ -51,9 +51,13 @@ final class CounterFormatTest extends TestCase
     public function testUnknownStyleFallsBackToDecimal(): void
     {
         // Browsers render unknown `list-style-type` as `decimal`; mirror
-        // that fallback so callers don't have to special-case it.
-        self::assertSame('7', CounterFormat::format(7, 'mongolian'));
-        self::assertSame('7', CounterFormat::format(7, 'georgian'));
+        // that fallback so callers don't have to special-case it. Only a
+        // name that is not a counter style at all takes this path —
+        // `mongolian` / `georgian` are predefined and format properly
+        // (see CounterStyleRegistryTest).
+        self::assertSame('7', CounterFormat::format(7, 'not-a-counter-style'));
+        self::assertSame("\u{1817}", CounterFormat::format(7, 'mongolian'));
+        self::assertSame("\u{10D6}", CounterFormat::format(7, 'georgian'));
     }
 
     public function testLowerGreekFirstLetter(): void

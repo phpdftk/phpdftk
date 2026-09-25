@@ -2156,18 +2156,14 @@ final class BoxGenerator
         if ($type === 'none') {
             return null;
         }
-        $text = match ($type) {
-            'disc' => "\u{2022}",
-            'circle' => "\u{25E6}",
-            'square' => "\u{25AA}",
-            'disclosure-open' => "\u{25BC}",
-            'disclosure-closed' => "\u{25B6}",
-            default => $this->formatCounter(
-                \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($element),
-                $type,
-            ) . '.',
-        };
-        return new TextBox($element, $values, $text . ' ');
+        // CSS Counter Styles 3 §4.7 — the marker is `prefix` + the counter
+        // representation + `suffix`, and `suffix` is per-style: `". "` for
+        // most, `"、"` for the CJK families, a bare space for the bullets.
+        // Stitching a full stop on by hand got every CJK list wrong.
+        return new TextBox($element, $values, \Phpdftk\HtmlToPdf\Layout\CounterFormat::marker(
+            \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($element),
+            $type,
+        ));
     }
 
     /**
