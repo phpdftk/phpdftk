@@ -269,6 +269,53 @@ final class FirstLetterPseudoTest extends TestCase
         );
     }
 
+    /**
+     * A leading space is never the first LETTER, whether or not the white
+     * space processing model would collapse it. Non-breaking, en, em and
+     * thin spaces all survive collapsing but none of them is a letter.
+     *
+     * @return iterable<string, array{0: string}>
+     */
+    public static function nonCollapsingSpaceProvider(): iterable
+    {
+        yield 'no-break space' => ["\u{00A0}"];
+        yield 'en space' => ["\u{2002}"];
+        yield 'em space' => ["\u{2003}"];
+        yield 'thin space' => ["\u{2009}"];
+        yield 'ideographic space' => ["\u{3000}"];
+        yield 'narrow no-break space' => ["\u{202F}"];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonCollapsingSpaceProvider')]
+    public function testNonCollapsingSpacesAreNotTheFirstLetter(string $space): void
+    {
+        $runs = $this->inlineRuns(
+            '<div>' . $space . 'Test</div>',
+            'div::first-letter { color: green; }',
+        );
+        self::assertSame(
+            [[null, $space], ['first-letter', 'T'], [null, 'est']],
+            $runs,
+            'a space must not take the first-letter slot from the letter behind it',
+        );
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonCollapsingSpaceProvider')]
+    public function testASpaceOnlyBlockHasNoFirstLetter(string $space): void
+    {
+        // `css-backgrounds/first-letter-space-not-selected` paints the
+        // pseudo red: a space-only block must produce no box at all.
+        $runs = $this->inlineRuns(
+            '<div>' . $space . '</div>',
+            'div::first-letter { color: green; }',
+        );
+        self::assertSame(
+            [[null, $space]],
+            $runs,
+            'nothing but space means there is no first letter to select',
+        );
+    }
+
     public function testDescendsIntoALeadingInlineBox(): void
     {
         $runs = $this->inlineRuns(

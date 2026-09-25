@@ -1584,11 +1584,28 @@ final class BoxGenerator
         return $out;
     }
 
-    /** White space the CSS Text 3 §4.1 processing model can collapse away. */
+    /**
+     * Space that precedes the first typographic letter unit and is
+     * therefore NOT part of `::first-letter`.
+     *
+     * Wider than the collapsible set of CSS Text 3 §4.1: a non-breaking
+     * space never collapses, and an en / em / thin space is not white
+     * space for line breaking at all, but none of them is a letter, so
+     * none of them may take the first-letter slot. Matching only ASCII
+     * space put a 3em red background on the `&nbsp;` of
+     * `css-backgrounds/first-letter-space-not-selected`.
+     */
     private static function isCollapsibleSpace(string $char): bool
     {
-        return $char === ' ' || $char === "\t" || $char === "\n"
-            || $char === "\r" || $char === "\f";
+        if ($char === ' ' || $char === "\t" || $char === "\n"
+            || $char === "\r" || $char === "\f"
+        ) {
+            return true;
+        }
+        $cp = mb_ord($char, 'UTF-8');
+        // Unicode Zs — U+00A0, U+2000-200A, U+202F, U+205F, U+3000.
+        return $cp !== false
+            && \IntlChar::charType($cp) === \IntlChar::CHAR_CATEGORY_SPACE_SEPARATOR;
     }
 
     /**
