@@ -9368,7 +9368,7 @@ final class Painter
      * `font-family` the cascade resolved.
      */
     private function mathFontDataFor(
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
     ): ?\Phpdftk\FontParser\FontFaceData {
         if ($this->fontDataByFamily === []) {
             return null;
@@ -9407,16 +9407,13 @@ final class Painter
      * renderer when no MATH-table font matches the cascade -
      * keeps the common "no math font" path zero-cost.
      *
-     * Intentionally retained but not yet wired into the paint path:
-     * switching to the per-element renderer regresses
-     * `painting-stretchy-operator-001` and `frac-default-padding`
-     * (see the call site in {@see paintMathml}). Kept as the #105
-     * math-font-handoff substrate.
-     *
-     * @phpstan-ignore method.unused
+     * Wired into the paint path: without it every document laid its
+     * maths out on the tracer-bullet constants no matter what font the
+     * author specified, because the cached default renderer carries no
+     * font at all.
      */
     private function mathmlRendererFor(
-        \Phpdftk\HtmlToPdf\Box\AtomicInlineBox $box,
+        Box $box,
     ): \Phpdftk\MathmlToPdf\MathmlRenderer {
         $fontData = $this->mathFontDataFor($box);
         // The MathML renderer needs CFF outlines for its math-table-
@@ -9542,18 +9539,11 @@ final class Painter
             $geo->y,
         );
         $pdfY = $this->pageHeight - $layoutY - $height;
-        // Use the cached default MathmlRenderer. Math-font handoff
-        // via `mathmlRendererFor($box)` (#105 substrate) stays
-        // gated: even with the per-element CSS cascade now
-        // projecting through (#107 + this PR's font-size hook),
-        // switching renderers regresses two tests that pass under
-        // the default-renderer path (painting-stretchy-operator-001
-        // and frac-default-padding). Both expose latent gaps
-        // (stretchy operator variant selection that fills the
-        // container; fraction-padding metrics that match the
-        // browser) which the math-font handoff makes visible but
-        // doesn't yet address.
-        $renderer = $this->mathmlRenderer();
+        // Hand the cascade-resolved MATH font to the renderer so the
+        // font's own MathConstants drive layout. Falls back to the
+        // cached default renderer when the resolved family has no
+        // MATH table, which keeps the no-math-font path unchanged.
+        $renderer = $this->mathmlRendererFor($box);
         $ascentPt = $renderer->intrinsicAscent($mathDoc, $fontSize);
         $renderer->draw(
             $mathDoc,
