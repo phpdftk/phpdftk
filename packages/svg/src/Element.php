@@ -657,7 +657,29 @@ abstract class Element extends Node
      */
     protected function presentationOrStyle(string $property): ?string
     {
-        return $this->attributes[$property] ?? $this->styleProperty($property);
+        $attribute = $this->attributes[$property] ?? null;
+        // CSS Cascade 5 §7.3 — `inherit` / `initial` / `unset` /
+        // `revert` are not values, they are instructions to the
+        // cascade, and no accessor here can do anything with the
+        // literal string. `fill="inherit"` used to reach the painter
+        // verbatim, fail to parse as a paint, and fall through to the
+        // black default. Ignoring the attribute lets the projected
+        // cascade result — which HAS resolved the keyword — through
+        // instead.
+        if ($attribute !== null && !self::isCssWideKeyword($attribute)) {
+            return $attribute;
+        }
+        return $this->styleProperty($property);
+    }
+
+    /** CSS Cascade 5 §7.3 — the CSS-wide keywords. */
+    public static function isCssWideKeyword(string $value): bool
+    {
+        return in_array(
+            strtolower(trim($value)),
+            ['inherit', 'initial', 'unset', 'revert', 'revert-layer'],
+            true,
+        );
     }
 
     /**

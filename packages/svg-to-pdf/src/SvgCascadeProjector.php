@@ -218,8 +218,15 @@ final class SvgCascadeProjector
             // attribute, inline style) already feeds the painter
             // through `presentationOrStyle`. Skip properties where
             // the element has its own source so we never overwrite
-            // the author's per-element value with the cascaded one.
-            if ($element->getAttribute($property) !== null) {
+            // the author's per-element value with the cascaded one —
+            // UNLESS that source is a CSS-wide keyword, which is not a
+            // value at all but an instruction to the cascade. The
+            // painter can do nothing with the literal string
+            // `inherit`, so `fill="inherit"` used to fall through to
+            // the black default; the resolved value has to come from
+            // here.
+            $own = $element->getAttribute($property);
+            if ($own !== null && !Element::isCssWideKeyword($own)) {
                 continue;
             }
             if (!$values->has($property)) {
