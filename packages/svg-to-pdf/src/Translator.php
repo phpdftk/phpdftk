@@ -1888,12 +1888,67 @@ final class Translator
      * leak past a sibling shape if emitted inline. Used to decide
      * whether to wrap the element's painting in `q`/`Q`.
      */
+    /**
+     * SVG 2 §13.2 / §13.6 — the line width to emit, in the element's
+     * own user space.
+     *
+     * Normally that is `stroke-width` verbatim. Under
+     * `vector-effect: non-scaling-stroke` the stroke is calculated in
+     * the host coordinate space instead, so its on-screen thickness
+     * must not depend on the transforms between here and the root:
+     * dividing by the scale those transforms apply is what cancels
+     * them out, and is the approach the harness manifest already named
+     * for this substrate.
+     *
+     * Returns null when there is nothing to emit, so a shape with no
+     * `stroke-width` and no vector effect still costs no operator.
+     */
+    private function usedStrokeWidth(Element $element): ?float
+    {
+        $width = $element->strokeWidth();
+        $scale = $this->nonScalingStrokeScale($element);
+        if ($scale === null) {
+            return $width;
+        }
+        // The initial `stroke-width` is 1 (§13.2), and it scales too.
+        return ($width ?? 1.0) / $scale;
+    }
+
+    /**
+     * The factor `non-scaling-stroke` has to divide out, or null when
+     * the element does not ask for the effect.
+     *
+     * `sqrt(|det|)` is the uniform scale the current matrix applies;
+     * for a rotation it is 1 and for a flip it is 1, both correct. A
+     * NON-uniform scale or a shear has no single such factor — the
+     * spec wants the stroke outline computed in host space and mapped
+     * back, which a PDF line width cannot express — so the geometric
+     * mean of the two axis scales stands in for it. A degenerate
+     * (zero-determinant) matrix collapses the geometry to nothing, so
+     * the effect is skipped rather than dividing by zero.
+     */
+    private function nonScalingStrokeScale(Element $element): ?float
+    {
+        if ($element->vectorEffect() !== 'non-scaling-stroke') {
+            return null;
+        }
+        [$a, $b, $c, $d] = $this->currentMatrix();
+        $scale = sqrt(abs($a * $d - $b * $c));
+        return $scale > 1.0e-9 ? $scale : null;
+    }
+
     private function needsStrokeParams(Element $element): bool
     {
         if ($element->stroke() === null || $element->stroke() instanceof None_) {
             return false;
         }
         if ($element->strokeWidth() !== null) {
+            return true;
+        }
+        // SVG 2 §13.6 — `non-scaling-stroke` rewrites the line width
+        // even when the author declared none, because the default 1
+        // still has to be divided by the transform scale.
+        if ($element->vectorEffect() === 'non-scaling-stroke') {
             return true;
         }
         if ($element->strokeLinecap() !== null) {
@@ -1916,7 +1971,7 @@ final class Translator
 
     private function applyStrokeParams(Element $element, ContentStream $stream): void
     {
-        $width = $element->strokeWidth();
+        $width = $this->usedStrokeWidth($element);
         if ($width !== null) {
             $stream->setLineWidth($width);
         }
@@ -3766,7 +3821,10 @@ final class Translator
         // `markerUnits="strokeWidth"` (the default) scales the marker
         // by the USED stroke width of the shape — which is 1 when the
         // property is absent, per SVG 2 §13.2, not 0.
-        $strokeWidth = $element->strokeWidth() ?? 1.0;
+        // SVG 2 §11.6.2 — `markerUnits="strokeWidth"` scales by the USED
+        // stroke width, which `non-scaling-stroke` has already
+        // normalised against the transform.
+        $strokeWidth = $this->usedStrokeWidth($element) ?? 1.0;
         $context = new ContextElementPaint($element->fill(), $element->stroke());
         $last = count($vertices) - 1;
         foreach ($vertices as $index => $vertex) {

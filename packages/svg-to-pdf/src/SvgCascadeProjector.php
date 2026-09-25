@@ -89,6 +89,9 @@ final class SvgCascadeProjector
         'marker-start',
         'marker-mid',
         'marker-end',
+        // SVG 2 §13.6 — `vector-effect`. Not inherited, so this only
+        // ever carries a declaration that won on this element.
+        'vector-effect',
     ];
 
     /**

@@ -60,6 +60,8 @@ final class CssBridge
         // presentation attribute on a `<g>` has to enter the cascade
         // to reach the shapes underneath it.
         'marker', 'marker-start', 'marker-mid', 'marker-end',
+        // SVG 2 §13.6 — `vector-effect`.
+        'vector-effect',
     ];
 
     /**

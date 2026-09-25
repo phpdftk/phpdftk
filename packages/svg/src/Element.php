@@ -280,6 +280,30 @@ abstract class Element extends Node
     }
 
     /**
+     * SVG 2 §13.6 — `vector-effect`, lowercased. Null when absent or
+     * unrecognised, which is the same as the initial `none`.
+     *
+     * NOT inherited: a `<g vector-effect="non-scaling-stroke">` does
+     * not hand the effect to the shapes inside it.
+     */
+    public function vectorEffect(): ?string
+    {
+        $raw = $this->presentationOrStyle('vector-effect');
+        if ($raw === null) {
+            return null;
+        }
+        $value = strtolower(trim($raw));
+        return match ($value) {
+            'none',
+            'non-scaling-stroke',
+            'non-scaling-size',
+            'non-rotation',
+            'fixed-position' => $value,
+            default => null,
+        };
+    }
+
+    /**
      * The `mask` presentation attribute or CSS property
      * (CSS Masking 1 §7). Raw string, resolved by the translator.
      */
