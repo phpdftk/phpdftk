@@ -938,15 +938,6 @@ final class BoxGenerator
         // The original element's cascade rides on the
         // AnonymousBlockBox so `position: relative` on the inline
         // still affects the block half per spec.
-        // CSS 2.1 §9.2.1.1 splits an inline around an IN-FLOW
-        // block-level box. An absolutely positioned child is out of
-        // flow and generates no box in the inline's own formatting
-        // context, so it must not trigger the split — for either
-        // flavour of inline. Splitting on it destroyed the atomic
-        // inline that foreign content depends on: a `<math>` with a
-        // `position: absolute` descendant was promoted to an
-        // anonymous block, which is not routed to `paintInlineMath`,
-        // so the entire formula vanished.
         $splitsAroundBlock = $box instanceof AtomicInlineBox
             ? $this->containsInFlowBlockLevel($rawChildren)
             : $this->containsBlockLevel($rawChildren);
