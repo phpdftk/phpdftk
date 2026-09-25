@@ -659,7 +659,7 @@ final class Translator
             $viewport = $this->currentViewport();
             return [0.0, 0.0, $viewport['w'], $viewport['h']];
         }
-        $bbox = BoundingBox::compute($element);
+        $bbox = BoundingBox::compute($element, viewport: $this->currentViewport());
         if ($bbox === null) {
             return null;
         }
@@ -827,7 +827,7 @@ final class Translator
         if (!$referent instanceof Mask) {
             return null;
         }
-        $elementBbox = BoundingBox::compute($element);
+        $elementBbox = BoundingBox::compute($element, viewport: $this->currentViewport());
         if ($elementBbox === null) {
             return null;
         }
@@ -1121,7 +1121,11 @@ final class Translator
                 'height' => $viewport['h'],
             ];
         }
-        return BoundingBox::compute($element, includeStroke: $refBox === 'stroke-box');
+        return BoundingBox::compute(
+            $element,
+            includeStroke: $refBox === 'stroke-box',
+            viewport: $this->currentViewport(),
+        );
     }
 
     /**
@@ -1203,7 +1207,9 @@ final class Translator
     private function applyClipPath(ClipPath $clipPath, Element $element, ContentStream $stream): void
     {
         $useBbox = $clipPath->clipPathUnits() === 'objectBoundingBox';
-        $bbox = $useBbox ? BoundingBox::compute($element) : null;
+        $bbox = $useBbox
+            ? BoundingBox::compute($element, viewport: $this->currentViewport())
+            : null;
         if ($useBbox && $bbox === null) {
             // bbox required for objectBoundingBox mode but unavailable
             // (e.g. `<path>` element with no bbox helper at 3R+3) —
@@ -4112,7 +4118,7 @@ final class Translator
         ContentStream $stream,
         ?Paint $stroke,
     ): void {
-        $bbox = BoundingBox::compute($element);
+        $bbox = BoundingBox::compute($element, viewport: $this->currentViewport());
         $tile = $bbox !== null ? $this->resolvePatternTile($pattern, $bbox) : null;
         // Whitespace between the tags of an otherwise empty `<pattern>`
         // parses as a text node, so "has children" has to mean "has
@@ -4214,7 +4220,7 @@ final class Translator
             );
             $bbox = self::transformBoundingBox($bbox, $inverse);
         }
-        $contentMatrix = $this->patternContentMatrix($pattern, $tile);
+        $contentMatrix = $this->patternContentMatrix($pattern, $tile, $bbox);
         $i0 = (int) floor(($bbox['minX'] - $tile['x']) / $pw);
         $i1 = (int) ceil(($bbox['minX'] + $bbox['width'] - $tile['x']) / $pw);
         $j0 = (int) floor(($bbox['minY'] - $tile['y']) / $ph);
@@ -4263,13 +4269,32 @@ final class Translator
      * emitting a NaN matrix.
      *
      * @param array{x: float, y: float, w: float, h: float} $tile
+     * @param array{minX: float, minY: float, width: float, height: float} $bbox
      * @return array{float, float, float, float}|null
      */
-    private function patternContentMatrix(Pattern $pattern, array $tile): ?array
+    private function patternContentMatrix(Pattern $pattern, array $tile, array $bbox): ?array
     {
         $viewBox = $pattern->viewBox();
         if ($viewBox === null || $viewBox[2] <= 0.0 || $viewBox[3] <= 0.0) {
-            return null;
+            // SVG 2 §13.3 — `patternContentUnits="objectBoundingBox"`
+            // puts the tile's CONTENT in bounding-box units: the origin
+            // is the box's own corner and one unit is its full extent,
+            // so `<rect width="1" height="1"/>` covers the shape. The
+            // attribute is ignored when a `viewBox` is present, which
+            // establishes its own coordinate system instead — hence
+            // this sitting on the no-viewBox branch.
+            if ($pattern->patternContentUnits() !== 'objectBoundingBox'
+                || $bbox['width'] <= 0.0
+                || $bbox['height'] <= 0.0
+            ) {
+                return null;
+            }
+            return [
+                $bbox['width'],
+                $bbox['height'],
+                $bbox['minX'],
+                $bbox['minY'],
+            ];
         }
         [$scaleX, $scaleY, $offsetX, $offsetY]
             = $this->nestedViewBoxTransform($pattern, $viewBox[2], $viewBox[3], $tile['w'], $tile['h']);
@@ -4370,7 +4395,7 @@ final class Translator
             return false;
         }
         if ($paint instanceof Url) {
-            if ($this->gradientPainter?->applyAsFill($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
+            if ($this->gradientPainter?->applyAsFill($paint->id, $element, $stream, $this->currentMatrix(), $this->currentViewport()) ?? false) {
                 return true;
             }
             // SVG 2 §13.4 — a gradient that resolves but defines no
@@ -4444,7 +4469,7 @@ final class Translator
             return false;
         }
         if ($paint instanceof Url) {
-            if ($this->gradientPainter?->applyAsStroke($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
+            if ($this->gradientPainter?->applyAsStroke($paint->id, $element, $stream, $this->currentMatrix(), $this->currentViewport()) ?? false) {
                 return true;
             }
             // SVG 2 §13.4, as in applyFillPaint(): a stop-less gradient

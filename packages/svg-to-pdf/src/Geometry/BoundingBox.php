@@ -49,29 +49,48 @@ final class BoundingBox
      * centred on the geometry, so it reaches half its width beyond the
      * fill box on every side.
      *
+     * `$viewport` is the `{w, h}` a PERCENTAGE geometry attribute
+     * resolves against (SVG 2 §7.10). Without it the shape accessors
+     * strip the `%` and read `width="100%"` as a hundred user units,
+     * which silently made every `objectBoundingBox` gradient, pattern,
+     * mask and clip on a percentage-sized shape resolve against a box
+     * of the wrong size. Null keeps the accessor's reading, for
+     * callers that genuinely have no viewport to hand.
+     *
+     * @param array{w: float, h: float}|null $viewport
      * @return array{minX: float, minY: float, width: float, height: float}|null
      */
-    public static function compute(Element $element, bool $includeStroke = false): ?array
-    {
+    public static function compute(
+        Element $element,
+        bool $includeStroke = false,
+        ?array $viewport = null,
+    ): ?array {
         if ($includeStroke) {
-            $box = self::compute($element);
+            $box = self::compute($element, viewport: $viewport);
             return $box === null ? null : self::grownByStroke($element, $box);
         }
         if ($element instanceof Rect) {
-            $w = $element->width();
-            $h = $element->height();
+            $w = self::length($element, 'width', $viewport, $viewport['w'] ?? 0.0, $element->width());
+            $h = self::length($element, 'height', $viewport, $viewport['h'] ?? 0.0, $element->height());
             return $w <= 0.0 || $h <= 0.0
                 ? null
-                : ['minX' => $element->x(), 'minY' => $element->y(), 'width' => $w, 'height' => $h];
+                : [
+                    'minX' => self::length($element, 'x', $viewport, $viewport['w'] ?? 0.0, $element->x()),
+                    'minY' => self::length($element, 'y', $viewport, $viewport['h'] ?? 0.0, $element->y()),
+                    'width' => $w,
+                    'height' => $h,
+                ];
         }
         if ($element instanceof Circle) {
-            $r = $element->r();
+            $r = self::length($element, 'r', $viewport, self::diagonal($viewport), $element->r());
             if ($r <= 0.0) {
                 return null;
             }
+            $cx = self::length($element, 'cx', $viewport, $viewport['w'] ?? 0.0, $element->cx());
+            $cy = self::length($element, 'cy', $viewport, $viewport['h'] ?? 0.0, $element->cy());
             return [
-                'minX' => $element->cx() - $r,
-                'minY' => $element->cy() - $r,
+                'minX' => $cx - $r,
+                'minY' => $cy - $r,
                 'width' => 2.0 * $r,
                 'height' => 2.0 * $r,
             ];
@@ -79,12 +98,19 @@ final class BoundingBox
         if ($element instanceof Ellipse) {
             $rx = $element->rx();
             $ry = $element->ry();
-            if ($rx === null || $ry === null || $rx <= 0.0 || $ry <= 0.0) {
+            if ($rx === null || $ry === null) {
                 return null;
             }
+            $rx = self::length($element, 'rx', $viewport, $viewport['w'] ?? 0.0, $rx);
+            $ry = self::length($element, 'ry', $viewport, $viewport['h'] ?? 0.0, $ry);
+            if ($rx <= 0.0 || $ry <= 0.0) {
+                return null;
+            }
+            $cx = self::length($element, 'cx', $viewport, $viewport['w'] ?? 0.0, $element->cx());
+            $cy = self::length($element, 'cy', $viewport, $viewport['h'] ?? 0.0, $element->cy());
             return [
-                'minX' => $element->cx() - $rx,
-                'minY' => $element->cy() - $ry,
+                'minX' => $cx - $rx,
+                'minY' => $cy - $ry,
                 'width' => 2.0 * $rx,
                 'height' => 2.0 * $ry,
             ];
@@ -117,6 +143,50 @@ final class BoundingBox
             return self::pathBoundingBox($element);
         }
         return null;
+    }
+
+    /**
+     * One geometry length, resolving a PERCENTAGE against `$basis`
+     * (SVG 2 §7.10) and otherwise deferring to `$fallback` — the value
+     * the shape's own accessor already computed, which handles absolute
+     * units and plain numbers.
+     *
+     * @param array{w: float, h: float}|null $viewport
+     */
+    private static function length(
+        Element $element,
+        string $property,
+        ?array $viewport,
+        float $basis,
+        float $fallback,
+    ): float {
+        if ($viewport === null) {
+            return $fallback;
+        }
+        $raw = $element->geometryValue($property);
+        if ($raw === null
+            || preg_match(
+                '/^\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*%\s*$/',
+                $raw,
+                $m,
+            ) !== 1
+        ) {
+            return $fallback;
+        }
+        return (float) $m[1] / 100.0 * $basis;
+    }
+
+    /**
+     * SVG 2 §7.10's "normalized diagonal" — `sqrt(w^2 + h^2)/sqrt(2)`,
+     * the 1% basis for `r`, which is tied to neither axis.
+     *
+     * @param array{w: float, h: float}|null $viewport
+     */
+    private static function diagonal(?array $viewport): float
+    {
+        return $viewport === null
+            ? 0.0
+            : sqrt($viewport['w'] ** 2 + $viewport['h'] ** 2) / M_SQRT2;
     }
 
     /**

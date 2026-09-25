@@ -77,9 +77,9 @@ final class GradientPainter
      *        `/Matrix` so the shading tracks the geometry (PDF resolves a
      *        pattern matrix against default page space, not the fill CTM).
      */
-    public function applyAsFill(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]): bool
+    public function applyAsFill(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], ?array $viewport = null): bool
     {
-        $pattern = $this->registerForElement($gradientId, $element, $currentMatrix);
+        $pattern = $this->registerForElement($gradientId, $element, $currentMatrix, $viewport);
         if ($pattern === null) {
             return false;
         }
@@ -94,9 +94,9 @@ final class GradientPainter
      *
      * @param array{float, float, float, float, float, float} $currentMatrix
      */
-    public function applyAsStroke(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]): bool
+    public function applyAsStroke(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], ?array $viewport = null): bool
     {
-        $pattern = $this->registerForElement($gradientId, $element, $currentMatrix);
+        $pattern = $this->registerForElement($gradientId, $element, $currentMatrix, $viewport);
         if ($pattern === null) {
             return false;
         }
@@ -127,8 +127,11 @@ final class GradientPainter
 
     /**
      * @param array{float, float, float, float, float, float} $currentMatrix
+     * @param array{w: float, h: float}|null $viewport the basis a
+     *        PERCENTAGE geometry attribute on `$element` resolves
+     *        against, for the `objectBoundingBox` box (SVG 2 §7.10)
      */
-    private function registerForElement(string $gradientId, Element $element, array $currentMatrix): ?ShadingPattern
+    private function registerForElement(string $gradientId, Element $element, array $currentMatrix, ?array $viewport = null): ?ShadingPattern
     {
         $gradient = $this->document->findByFragment($gradientId);
         // SVG 2 §13.4 — a paint server outside the render tree (defined
@@ -153,7 +156,7 @@ final class GradientPainter
         }
         $bbox = null;
         if ($gradient->gradientUnits() === 'objectBoundingBox') {
-            $bbox = BoundingBox::compute($element);
+            $bbox = BoundingBox::compute($element, viewport: $viewport);
             if ($bbox === null) {
                 return null;
             }
