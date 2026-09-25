@@ -7,6 +7,9 @@ namespace Phpdftk\SvgToPdf;
 use Phpdftk\Css\Cascade\CascadedValues;
 use Phpdftk\Svg\Css\CssBridge;
 use Phpdftk\Svg\Element;
+use Phpdftk\Svg\GenericElement;
+use Phpdftk\Svg\Node;
+use Phpdftk\Svg\Use_;
 use Phpdftk\Svg\SvgDocument;
 
 /**
@@ -148,6 +151,44 @@ final class SvgCascadeProjector
         'd',
     ];
 
+    /**
+     * Marker attribute on a materialised `<use>` instance. Spelled out
+     * rather than imported from `html-to-pdf`, which writes the same
+     * one: the dependency runs the other way, and the painter already
+     * reads this literal.
+     */
+    public const string USE_INSTANCE_ATTRIBUTE = 'data-phpdftk-use-instance';
+
+    /** Nesting cap on `<use>` -> `<use>` expansion. */
+    private const int MAX_USE_DEPTH = 8;
+
+    /**
+     * Total element budget for shadow-tree cloning, so a document that
+     * fans out exponentially through nested `<use>` can't exhaust
+     * memory.
+     */
+    private const int USE_NODE_BUDGET = 20000;
+
+    private int $useBudget = self::USE_NODE_BUDGET;
+
+    /**
+     * Clone per `<use>`, built in a first pass BEFORE anything is
+     * styled — a clone taken after the referenced subtree had been
+     * projected would carry that projection as its own inline style
+     * and out-rank what it should inherit from the `<use>`.
+     *
+     * @var \SplObjectStorage<Element, Element>|null
+     */
+    private ?\SplObjectStorage $useShadowTrees = null;
+
+    /**
+     * Referents currently being expanded, so `<use>` -> `<use>` cycles
+     * terminate.
+     *
+     * @var \SplObjectStorage<Element, true>|null
+     */
+    private ?\SplObjectStorage $useChain = null;
+
     public function __construct(
         private readonly CssBridge $bridge = new CssBridge(),
     ) {}
@@ -161,7 +202,154 @@ final class SvgCascadeProjector
      */
     public function project(SvgDocument $document): void
     {
-        $this->walk($document, null);
+        // SVG 2 §5.6 — PHASE 1: clone every `<use>` referent while the
+        // tree is still unstyled. The clones stay DETACHED until the
+        // walk reaches their `<use>`, which is what buys the shadow
+        // boundary for free: a document-tree selector like
+        // `.container rect` cannot match inside a subtree whose root
+        // has no parent, while a bare `rect` rule still does — exactly
+        // the split §5.6 and Selectors 4 describe.
+        $this->useBudget = self::USE_NODE_BUDGET;
+        $this->useShadowTrees = new \SplObjectStorage();
+        $this->useChain = new \SplObjectStorage();
+        $this->collectUseShadowTrees($document, $document, 0);
+        $this->useChain = null;
+        try {
+            $this->walk($document, null);
+        } finally {
+            $this->useShadowTrees = null;
+        }
+    }
+
+    /**
+     * PHASE 1 — build the clone for every `<use>` in `$scope`.
+     */
+    private function collectUseShadowTrees(Element $scope, SvgDocument $document, int $depth): void
+    {
+        if ($depth >= self::MAX_USE_DEPTH) {
+            return;
+        }
+        foreach ($scope->children as $child) {
+            if (!$child instanceof Element) {
+                continue;
+            }
+            $this->collectUseShadowTrees($child, $document, $depth);
+            if (!$child instanceof Use_) {
+                continue;
+            }
+            $referent = $this->useReferentToClone($child, $document);
+            if ($referent === null) {
+                continue;
+            }
+            $this->useBudget -= self::countElements($referent);
+            $clone = self::cloneElement($referent);
+            $clone->setAttribute(self::USE_INSTANCE_ATTRIBUTE, '1');
+            self::stripIds($clone);
+            // The clone's parent is a synthetic SHADOW ROOT rather than
+            // nothing at all. Leaving it parentless would make it match
+            // `:root` — and WPT's struct/reftests/use-inheritance-001
+            // pins that it must not ("it is considered to have no
+            // parent, but it is not a root element"). The placeholder's
+            // local name is deliberately unspellable as a CSS type
+            // selector, so no document rule can reach through it, which
+            // is the boundary §5.6 asks for.
+            $shadowRoot = new GenericElement('#shadow-root');
+            $shadowRoot->appendChild($clone);
+            $this->useShadowTrees?->attach($child, $clone);
+            // Held only for the nested collect, so a cycle back through
+            // this referent stops here while a later, legitimate second
+            // reference still gets its own instance.
+            $this->useChain?->attach($referent, true);
+            $this->collectUseShadowTrees($clone, $document, $depth + 1);
+            $this->useChain?->detach($referent);
+        }
+    }
+
+    /**
+     * The element a `<use>` should clone, or null when the reference is
+     * missing, external, circular, or over budget.
+     */
+    private function useReferentToClone(Use_ $use, SvgDocument $document): ?Element
+    {
+        if ($this->useBudget <= 0) {
+            return null;
+        }
+        // Idempotent: a document projected twice must not grow a second
+        // instance under the same `<use>`.
+        foreach ($use->children as $existing) {
+            if ($existing instanceof Element
+                && $existing->getAttribute(self::USE_INSTANCE_ATTRIBUTE) !== null
+            ) {
+                return null;
+            }
+        }
+        $referent = $use->resolve($document);
+        if ($referent === null || $referent === $use) {
+            return null;
+        }
+        if ($this->useChain?->contains($referent) ?? false) {
+            return null;
+        }
+        // SVG 2 §5.6.2 — referencing an ancestor of the `<use>` is a
+        // circular reference and the element is not rendered.
+        for ($n = $use->parent; $n !== null; $n = $n->parent) {
+            if ($n === $referent) {
+                return null;
+            }
+        }
+        return $referent;
+    }
+
+    /** Deep copy of an element subtree, detached from its parent. */
+    private static function cloneElement(Element $element): Element
+    {
+        $copy = clone $element;
+        $copy->parent = null;
+        $children = $copy->children;
+        $copy->children = [];
+        foreach ($children as $child) {
+            $copy->appendChild(self::cloneNode($child));
+        }
+        return $copy;
+    }
+
+    /** Deep copy of any node, detached from its parent. */
+    private static function cloneNode(Node $node): Node
+    {
+        if ($node instanceof Element) {
+            return self::cloneElement($node);
+        }
+        $copy = clone $node;
+        $copy->parent = null;
+        return $copy;
+    }
+
+    /**
+     * SVG 2 §5.6 — a shadow-tree node is not addressable by id from the
+     * document. Leaving the ids on would let a later `url(#…)` — or the
+     * painter's own `href` resolution — land on the CLONE instead of
+     * the original, which is exactly what happens when the `<use>` is
+     * written before the `<defs>` it references.
+     */
+    private static function stripIds(Element $element): void
+    {
+        unset($element->attributes['id']);
+        foreach ($element->children as $child) {
+            if ($child instanceof Element) {
+                self::stripIds($child);
+            }
+        }
+    }
+
+    private static function countElements(Element $element): int
+    {
+        $count = 1;
+        foreach ($element->children as $child) {
+            if ($child instanceof Element) {
+                $count += self::countElements($child);
+            }
+        }
+        return $count;
     }
 
     /**
@@ -179,6 +367,22 @@ final class SvgCascadeProjector
         if ($document === null) {
             return;
         }
+        $this->walkFrom($element, $parentValues, $document);
+    }
+
+    /**
+     * The recursive half of {@see walk()}, with the document handed in.
+     *
+     * Split out because a `<use>`'s shadow-tree clone is projected
+     * while still DETACHED — that is what gives it a shadow boundary —
+     * and `walk()` finds its document by following parent links the
+     * clone does not have.
+     */
+    private function walkFrom(
+        Element $element,
+        ?CascadedValues $parentValues,
+        SvgDocument $document,
+    ): void {
         $values = $this->bridge->computeStyle(
             $element,
             $document,
@@ -253,8 +457,21 @@ final class SvgCascadeProjector
 
         foreach ($element->children as $child) {
             if ($child instanceof Element) {
-                $this->walk($child, $values);
+                $this->walkFrom($child, $values, $document);
             }
+        }
+
+        // SVG 2 §5.6 PHASE 2 — style this `<use>`'s clone with the
+        // `<use>`'s own cascade as its parent, which is what finally
+        // makes `<use fill="green">` reach the shapes inside the
+        // referent, then attach it. Done AFTER the element's own
+        // children are walked so the instance isn't walked twice, and
+        // while the clone is still detached so document-tree selectors
+        // can't reach into it.
+        if ($element instanceof Use_ && ($this->useShadowTrees?->contains($element) ?? false)) {
+            $clone = $this->useShadowTrees[$element];
+            $this->walkFrom($clone, $values, $document);
+            $element->appendChild($clone);
         }
     }
 
