@@ -45,6 +45,57 @@ final class ShorthandExpanderTest extends TestCase
         }
     }
 
+    public function testBareZeroBorderSwitchesTheBorderOff(): void
+    {
+        // CSS Values 4 §5.2 — zero is the one <length> writable without a
+        // unit, so `border: 0` arrives as a number rather than a Length.
+        // The width predicate accepted only Length/thin/medium/thick, so the
+        // shorthand was unclassifiable and the whole declaration was dropped,
+        // leaving UA borders (hr, fieldset, input, table cells) painted.
+        $out = $this->expander->expand('border', $this->value('0'));
+        foreach (['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width'] as $longhand) {
+            self::assertArrayHasKey($longhand, $out, 'bare 0 must not be discarded');
+            // Emitted as a Length, not a bare Integer: downstream consumers
+            // gate on `instanceof Length` and would ignore an Integer zero.
+            self::assertInstanceOf(Length::class, $out[$longhand]);
+            self::assertSame(0.0, $out[$longhand]->value);
+        }
+    }
+
+    public function testBareZeroMatchesExplicitZeroPx(): void
+    {
+        $bare = $this->expander->expand('border', $this->value('0'));
+        $units = $this->expander->expand('border', $this->value('0px'));
+        self::assertSame(array_keys($units), array_keys($bare));
+        foreach ($units as $longhand => $value) {
+            self::assertEquals($value, $bare[$longhand], "$longhand must match 0px");
+        }
+    }
+
+    public function testBareZeroOutlineAndRuleShorthandsAlsoResolve(): void
+    {
+        // The same predicate backs `outline` and the gap-decoration
+        // `column-rule` / `row-rule` shorthands.
+        foreach ([
+            'outline' => 'outline-width',
+            'column-rule' => 'column-rule-width',
+            'row-rule' => 'row-rule-width',
+        ] as $shorthand => $widthLonghand) {
+            $out = $this->expander->expand($shorthand, $this->value('0'));
+            self::assertArrayHasKey($widthLonghand, $out, "$shorthand: 0 must not be discarded");
+            self::assertInstanceOf(Length::class, $out[$widthLonghand]);
+            self::assertSame(0.0, $out[$widthLonghand]->value);
+        }
+    }
+
+    public function testNonZeroBareNumberIsStillNotABorderWidth(): void
+    {
+        // Only ZERO is unitless. `border: 5` is invalid and must stay
+        // unclassifiable rather than silently becoming 5px.
+        $out = $this->expander->expand('border', $this->value('5'));
+        self::assertArrayNotHasKey('border-top-width', $out);
+    }
+
     public function testBorderInheritDistributesToAllLonghands(): void
     {
         // CSS Cascade 5 §3.2 — a CSS-wide keyword on the `border`

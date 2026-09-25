@@ -555,7 +555,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = $c;
+                $width = self::asBorderWidth($c);
                 continue;
             }
             if ($color === null && $this->isColorComponent($c)) {
@@ -605,7 +605,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = $c;
+                $width = self::asBorderWidth($c);
                 continue;
             }
             if ($color === null && $this->looksLikeColor($c)) {
@@ -665,7 +665,35 @@ final class ShorthandExpander
         if ($v instanceof \Phpdftk\Css\Value\Keyword) {
             return in_array(strtolower($v->name), ['thin', 'medium', 'thick'], true);
         }
-        return false;
+        // CSS Values 4 §5.2 — zero is the one <length> that may be written
+        // without a unit, so a bare `0` tokenises as a number, not a Length.
+        // `border: 0` is the overwhelmingly common way to switch a UA border
+        // off; rejecting it here left the shorthand unclassifiable, so the
+        // whole declaration was silently dropped and the UA border stayed.
+        return self::isZeroNumber($v);
+    }
+
+    /**
+     * A unitless numeric zero, as written in `border: 0` / `outline: 0`.
+     */
+    private static function isZeroNumber(Value $v): bool
+    {
+        if ($v instanceof \Phpdftk\Css\Value\Integer) {
+            return $v->value === 0;
+        }
+        return $v instanceof \Phpdftk\Css\Value\Number && $v->value === 0.0;
+    }
+
+    /**
+     * Normalise a matched width to a Length. Downstream consumers almost all
+     * gate on `instanceof Length`, so emitting a bare Integer would trade a
+     * dropped declaration for one that is parsed and then ignored.
+     */
+    private static function asBorderWidth(Value $v): Value
+    {
+        return self::isZeroNumber($v)
+            ? new \Phpdftk\Css\Value\Length(0.0, \Phpdftk\Css\Value\LengthUnit::Px)
+            : $v;
     }
 
     private function looksLikeBorderStyle(Value $v): bool
@@ -1434,7 +1462,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = $c;
+                $width = self::asBorderWidth($c);
                 continue;
             }
             if ($color === null && $this->looksLikeColor($c)) {
