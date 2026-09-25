@@ -227,6 +227,7 @@ final class Renderer
         // colour. Only the root box's used style changes; computed
         // values stay as-cascaded so descendants keep inheriting
         // from the original chain.
+        $this->propagateBodyWritingModeToRoot($root);
         // HTML §4.8.5 / §7.3 — an `<iframe>` hosts a CHILD NAVIGABLE: a
         // second document laid out inside the frame's content box. Expand
         // those now, between box generation and layout, so the embedded
@@ -234,18 +235,19 @@ final class Renderer
         // and paint walk the tree — the frame's definite 300x150 content
         // box is the nested viewport, and its UA `overflow: clip` is what
         // crops the embedded page to the frame.
-        // Markup of every embedded document, accumulated so the font
-        // subset below can see its codepoints. The subset is built from
-        // `strip_tags()` of the SOURCE, and an iframe's document lives in
-        // an attribute value that `strip_tags` deletes wholesale — so
-        // without this the embedded text's characters are absent from the
-        // subset, and an absent codepoint paints whatever glyph occupies
-        // that slot rather than notdef. That is how `left/right` came out
-        // as `left;` in one document and `leftA` in another.
+        //
+        // `$embeddedMarkup` collects each embedded document's source so
+        // the font subset further down can see its codepoints. That
+        // subset is built from `strip_tags()` of the HOST source, and a
+        // frame's document lives in an attribute value `strip_tags`
+        // deletes wholesale — so without this the embedded text's
+        // characters are absent from the subset, and an absent codepoint
+        // paints whatever glyph occupies that slot rather than notdef.
+        // That is how `left/right` came out as `left;` in one document
+        // and `leftA` in another.
         /** @var list<string> $embeddedMarkup */
         $embeddedMarkup = [];
         $this->expandChildNavigables($root, 0, $embeddedMarkup);
-        $this->propagateBodyWritingModeToRoot($root);
         $this->layout->layout($root, $layoutCtx);
 
         // If the document contains non-whitespace text but no font was
