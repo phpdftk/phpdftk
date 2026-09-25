@@ -116,6 +116,33 @@ final class MarkerVerticesTest extends TestCase
     }
 
     /**
+     * A `Z` onto the point the subpath already ends on adds no vertex.
+     * Emitting one put a mid marker on top of the end marker at the
+     * closing corner of every curve that landed back on its start
+     * (WPT marker-path-022 / -023).
+     */
+    public function testDegenerateClosePathAddsNoExtraVertex(): void
+    {
+        // Four cubics round a loop, the last one landing exactly on the
+        // start point, then `z`. Start + 3 mids + end, not 6.
+        $vertices = self::angles(
+            'm 240,100 c -40,0 -40,0 -40,40 c 0,40 0,40 40,40'
+            . ' c 40,0 40,0 40,-40 c 0,-40 0,-40 -40,-40 z',
+        );
+        self::assertCount(5, $vertices);
+        self::assertSame([240.0, 100.0], [$vertices[0][0], $vertices[0][1]]);
+        self::assertSame([240.0, 100.0], [$vertices[4][0], $vertices[4][1]]);
+    }
+
+    /** A `Z` that really does draw a segment still adds its vertex. */
+    public function testNonDegenerateClosePathKeepsItsVertex(): void
+    {
+        $vertices = self::angles('m 120,100 -40,40 40,40 40,-40 z');
+        self::assertCount(5, $vertices);
+        self::assertSame([160.0, 140.0], [$vertices[3][0], $vertices[3][1]]);
+    }
+
+    /**
      * A path that doubles straight back on itself has tangents 180
      * degrees apart. Their arithmetic mean is a direction the path
      * never travels; the swept bisector is the one browsers draw (WPT

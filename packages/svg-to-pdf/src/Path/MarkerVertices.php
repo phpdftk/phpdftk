@@ -302,7 +302,15 @@ final class MarkerVertices
             if ($points === []) {
                 $points = [[$subpathStartX, $subpathStartY]];
             }
-            if ($index > 0) {
+            // A `Z` onto the point the subpath already ends on draws
+            // no segment, so it adds no vertex either. Emitting one
+            // put a SECOND marker on the closing corner — a mid on top
+            // of the end marker — whenever the last curve already
+            // landed back on the start point.
+            $degenerateClose = $type === 'close'
+                && abs($subpathStartX - $originX) <= self::EPSILON
+                && abs($subpathStartY - $originY) <= self::EPSILON;
+            if ($index > 0 && !$degenerateClose) {
                 // A `moveto` ends the subpath the previous segment was
                 // building, so that vertex has no outgoing tangent of
                 // its own and reuses its incoming one.
