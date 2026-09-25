@@ -3208,7 +3208,13 @@ final class Translator
                 return $widthPt;
             }
         }
-        // Tier 2 — container shapes sum the children they PAINT.
+        // Tier 2a — constructs that impose their own geometry report
+        // the width the painter gives them.
+        $constructWidth = $this->constructWidth($element, $fontSize, $ctx);
+        if ($constructWidth !== null) {
+            return $constructWidth;
+        }
+        // Tier 2b — container shapes sum the children they PAINT.
         $contained = $this->paintedContainerChildren($element);
         if ($contained !== null && $contained !== []) {
             $total = 0.0;
@@ -3294,8 +3300,102 @@ final class Translator
             || $element instanceof Mstyle
             || $element instanceof Mpadded
             || $element instanceof Merror
+            || $element instanceof Msqrt
         ) {
             return $this->elementChildren($element);
+        }
+
+        return null;
+    }
+
+    /**
+     * Inline size of a construct that imposes its own geometry, or
+     * null when `$element` is not one.
+     *
+     * Each arm mirrors the arithmetic the corresponding `paint*`
+     * method uses to advance the cursor, because the two have to
+     * agree: the painter sizes a fraction bar and a line box from
+     * these numbers, and html-to-pdf now sizes the `<math>` element's
+     * layout box from them too. Without these arms every construct
+     * fell through to the flattened-text fallback, which reports the
+     * empty string — and therefore zero — for anything built out of
+     * `<mspace>` or nested constructs.
+     *
+     * Scripts are measured at the script font size, the same
+     * reduction {@see scriptFontSizeFor} applies when painting; with
+     * no context to read the font's MathConstants from, the metrics
+     * default stands in.
+     *
+     * `<mmultiscripts>` and `<mtable>` are deliberately absent: their
+     * painters do more bookkeeping (prescript runs, per-column
+     * widths) than a one-line formula reproduces, so they keep the
+     * text fallback until they get measurement arms of their own.
+     */
+    private function constructWidth(
+        Element $element,
+        float $fontSize,
+        ?MathmlPaintContext $ctx,
+    ): ?float {
+        $children = $this->elementChildren($element);
+        // Scripts render one level down; mroot's index two (Core §3.1.6).
+        $scriptSize = $ctx !== null
+            ? $this->scriptFontSizeFor($ctx)
+            : $fontSize * MathmlMetrics::DEFAULT_SCRIPT_SCALE;
+        $indexSize = $ctx !== null
+            ? $this->scriptFontSizeFor($ctx, levelDelta: 2)
+            : $fontSize * MathmlMetrics::DEFAULT_SCRIPT_SCRIPT_SCALE;
+
+        if ($element instanceof Mfrac && count($children) === 2) {
+            // paintMfrac: the bar spans the wider of the two parts,
+            // both measured at the fraction's child font size.
+            $childSize = $ctx !== null
+                ? $this->childContextForFraction(
+                    $ctx,
+                    $element->displaystyle() ?? $ctx->displayStyle,
+                )->fontSize
+                : $scriptSize;
+
+            return max(
+                $this->estimateWidth($children[0], $childSize, $ctx),
+                $this->estimateWidth($children[1], $childSize, $ctx),
+            );
+        }
+        if ($element instanceof Mroot && count($children) === 2) {
+            // paintMroot: index, then the radical, then the base.
+            return $this->estimateWidth($children[1], $indexSize, $ctx)
+                + $this->estimateWidth($children[0], $fontSize, $ctx);
+        }
+        if ($element instanceof Msubsup && count($children) === 3) {
+            // paintMsubsup: both scripts attach at the base's right
+            // edge, so the wider of the two sets the extent.
+            return $this->estimateWidth($children[0], $fontSize, $ctx)
+                + max(
+                    $this->estimateWidth($children[1], $scriptSize, $ctx),
+                    $this->estimateWidth($children[2], $scriptSize, $ctx),
+                );
+        }
+        if (($element instanceof Msub || $element instanceof Msup)
+            && count($children) === 2
+        ) {
+            return $this->estimateWidth($children[0], $fontSize, $ctx)
+                + $this->estimateWidth($children[1], $scriptSize, $ctx);
+        }
+        if (($element instanceof Munder || $element instanceof Mover)
+            && count($children) === 2
+        ) {
+            // paintUnderOver: the children stack, so the construct is
+            // as wide as the widest of them.
+            return max(
+                $this->estimateWidth($children[0], $fontSize, $ctx),
+                $this->estimateWidth($children[1], $scriptSize, $ctx),
+            );
+        }
+        if ($element instanceof Munderover && count($children) === 3) {
+            return max(
+                $this->estimateWidth($children[0], $fontSize, $ctx),
+                $this->estimateWidth($children[1], $scriptSize, $ctx),
+                $this->estimateWidth($children[2], $scriptSize, $ctx),
+            );
         }
 
         return null;
