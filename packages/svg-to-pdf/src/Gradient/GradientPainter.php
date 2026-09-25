@@ -76,6 +76,9 @@ final class GradientPainter
      *        element) the shape is painted under, baked into the pattern
      *        `/Matrix` so the shading tracks the geometry (PDF resolves a
      *        pattern matrix against default page space, not the fill CTM).
+     * @param array{w: float, h: float}|null $viewport the basis a
+     *        PERCENTAGE geometry attribute on `$element` resolves
+     *        against when measuring its `objectBoundingBox` (SVG 2 §7.10)
      */
     public function applyAsFill(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], ?array $viewport = null): bool
     {
@@ -93,6 +96,7 @@ final class GradientPainter
      * Same shape as `applyAsFill` but for the stroke channel.
      *
      * @param array{float, float, float, float, float, float} $currentMatrix
+     * @param array{w: float, h: float}|null $viewport
      */
     public function applyAsStroke(string $gradientId, Element $element, ContentStream $stream, array $currentMatrix = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], ?array $viewport = null): bool
     {
