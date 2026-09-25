@@ -169,6 +169,123 @@ final class MtableAlignmentRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\(1\)\s+Tj/', $bytes);
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core §3.5.1 — an RTL table lays its COLUMNS out
+    // right-to-left; rows and cell content keep source order
+    // (direction-006).
+    // ---------------------------------------------------------------
+
+    private const string TABLE_BODY =
+        '<mtable><mtr>'
+        . '<mtd><mtext>A</mtext></mtd>'
+        . '<mtd><mtext>B</mtext></mtd>'
+        . '<mtd><mtext>C</mtext></mtd>'
+        . '</mtr></mtable>';
+
+    public function testRtlTableReversesColumnOrder(): void
+    {
+        $rtl = $this->renderWithDir(self::TABLE_BODY, rtl: true);
+        self::assertSame(['C', 'B', 'A'], $this->glyphOrder($rtl, ['A', 'B', 'C']));
+    }
+
+    public function testLtrTableKeepsSourceColumnOrder(): void
+    {
+        $ltr = $this->renderWithDir(self::TABLE_BODY, rtl: false);
+        self::assertSame(['A', 'B', 'C'], $this->glyphOrder($ltr, ['A', 'B', 'C']));
+    }
+
+    /**
+     * An RTL table must match the LTR table whose cells are written
+     * in reverse — that identity is exactly what direction-006
+     * asserts, and it pins the column POSITIONS, not just the order
+     * glyphs happen to be emitted in.
+     */
+    public function testRtlTableMatchesTheReversedLtrTable(): void
+    {
+        $rtl = $this->renderWithDir(self::TABLE_BODY, rtl: true);
+        $mirrored = $this->renderWithDir(
+            '<mtable><mtr>'
+            . '<mtd><mtext>C</mtext></mtd>'
+            . '<mtd><mtext>B</mtext></mtd>'
+            . '<mtd><mtext>A</mtext></mtd>'
+            . '</mtr></mtable>',
+            rtl: false,
+        );
+        foreach (['A', 'B', 'C'] as $glyph) {
+            self::assertEqualsWithDelta(
+                $this->glyphX($mirrored, $glyph),
+                $this->glyphX($rtl, $glyph),
+                0.01,
+                "column holding '$glyph' should be at the mirrored x",
+            );
+        }
+    }
+
+    /**
+     * Negative guard: ROWS are a block-axis concern and must NOT be
+     * reversed by inline direction.
+     */
+    public function testRtlTableKeepsRowOrder(): void
+    {
+        $rtl = $this->renderWithDir(
+            '<mtable>'
+            . '<mtr><mtd><mtext>A</mtext></mtd></mtr>'
+            . '<mtr><mtd><mtext>B</mtext></mtd></mtr>'
+            . '</mtable>',
+            rtl: true,
+        );
+        self::assertGreaterThan(
+            $this->glyphY($rtl, 'B'),
+            $this->glyphY($rtl, 'A'),
+            'the first source row stays on top',
+        );
+    }
+
+    private function renderWithDir(string $innerXml, bool $rtl): string
+    {
+        $xml = '<math xmlns="http://www.w3.org/1998/Math/MathML"'
+            . ($rtl ? ' dir="rtl"' : '') . '>' . $innerXml . '</math>';
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage();
+        $renderer = new MathmlRenderer($page, $writer);
+        $renderer->draw($this->parser->parse($xml), x: 72.0, y: 600.0, width: 400.0, height: 100.0);
+        return $writer->toBytes();
+    }
+
+    /**
+     * @param list<string> $glyphs
+     * @return list<string>
+     */
+    private function glyphOrder(string $bytes, array $glyphs): array
+    {
+        $pattern = '/\((' . implode('|', array_map(
+            static fn(string $g): string => preg_quote($g, '/'),
+            $glyphs,
+        )) . ')\)\s+Tj/';
+        preg_match_all($pattern, $bytes, $matches);
+        return $matches[1];
+    }
+
+    private function glyphX(string $bytes, string $glyph): float
+    {
+        return $this->glyphMatrix($bytes, $glyph)[0];
+    }
+
+    private function glyphY(string $bytes, string $glyph): float
+    {
+        return $this->glyphMatrix($bytes, $glyph)[1];
+    }
+
+    /** @return array{float, float} */
+    private function glyphMatrix(string $bytes, string $glyph): array
+    {
+        $pattern = '/1 0 0 1 (-?[\d.]+) (-?[\d.]+) Tm\s*(?:\/F\d+ [\d.]+ Tf\s*)*\('
+            . preg_quote($glyph, '/') . '\)\s+Tj/';
+        self::assertMatchesRegularExpression($pattern, $bytes);
+        preg_match($pattern, $bytes, $m);
+        return [(float) $m[1], (float) $m[2]];
+    }
+
     private function render(string $innerXml): string
     {
         $xml = '<math xmlns="http://www.w3.org/1998/Math/MathML">'

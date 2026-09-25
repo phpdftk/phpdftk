@@ -876,6 +876,22 @@ final class Translator
                 $rows[] = $this->elementChildren($rowEl);
             }
         }
+        // MathML Core §3.5.1 — an RTL table lays its COLUMNS out
+        // right-to-left, so the first cell of each row is the
+        // rightmost one. Rows keep their source order (the block
+        // axis is unaffected by inline direction) and so does the
+        // content inside each cell. Reversing the cell list here
+        // mirrors the column widths and the per-column alignment
+        // along with the content, because everything below indexes
+        // off this same list.
+        //
+        // direction-006 states it as an identity: an RTL table
+        // matches the LTR table whose cells are written in reverse.
+        if ($ctx->direction === 'rtl') {
+            foreach ($rows as $i => $row) {
+                $rows[$i] = array_reverse($row);
+            }
+        }
         if ($rows === []) {
             $this->walkChildren($mtable, $ctx);
             return;
