@@ -681,6 +681,13 @@ final class Translator
 
     private function paintElement(Element $element, ContentStream $stream): void
     {
+        // SVG 2 §5.8 — conditional processing gates EVERY direct
+        // rendering element, not only `<switch>` branches. An element
+        // whose conditions evaluate false is not rendered, and neither
+        // are its children.
+        if (!$this->switchChildPasses($element)) {
+            return;
+        }
         // Any of these scope-leaking attributes triggers a `q`/`Q` wrap
         // so the state doesn't leak across siblings:
         //
@@ -2166,26 +2173,29 @@ final class Translator
     }
 
     /**
-     * Evaluate the conditional-processing attributes on a
-     * `<switch>` child:
+     * Evaluate the conditional-processing attributes (SVG 2 §5.8) on
+     * an element:
      *
      *   - `requiredFeatures` — legacy SVG 1.1 list of feature
      *     URIs. All listed URIs evaluate true here so the test
      *     never fails (matches major browser behaviour now).
      *   - `requiredExtensions` — author-supplied extension URIs.
      *     Any presence fails: print medium can't observe any
-     *     UA-specific extensions.
+     *     UA-specific extensions. A PRESENT BUT EMPTY list also
+     *     evaluates false, which §5.8.3 states outright — it is not
+     *     "no requirements".
      *   - `systemLanguage` — comma-separated BCP 47 tags. The
      *     test passes when at least one tag prefix-matches the
      *     `xml:lang` (or `lang`) ancestor chain.
+     *
+     * These apply to ANY direct rendering element, not just the
+     * children of a `<switch>`; `<switch>` layers its own
+     * "first passing child only" rule on top.
      */
     private function switchChildPasses(Element $child): bool
     {
         if ($child->hasAttribute('requiredExtensions')) {
-            $exts = trim($child->getAttribute('requiredExtensions') ?? '');
-            if ($exts !== '') {
-                return false;
-            }
+            return false;
         }
         if ($child->hasAttribute('systemLanguage')) {
             $needed = preg_split(
