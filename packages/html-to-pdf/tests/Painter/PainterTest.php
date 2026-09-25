@@ -4238,6 +4238,72 @@ final class PainterTest extends TestCase
         self::assertSame([], $rects, 'multi-value rule lists paint nothing');
     }
 
+    public function testGridGapRulesFollowTheBoxWhenItsMarginCollapses(): void
+    {
+        // Regression: the segments were cached in ABSOLUTE coordinates at
+        // the end of the grid's own layout, but the box is still movable
+        // after that — here the preceding paragraph's 16px bottom margin
+        // collapses with the grid's adjoining top margin and shifts the
+        // grid up. The children move with it; a cached absolute rule did
+        // not, so every decoration painted 16px below its grid (WPT
+        // css-gaps/grid/grid-gap-decorations-001, whose fixture keeps the
+        // UA body/paragraph margins). Segments are stored relative to the
+        // container and re-anchored at paint time instead.
+        $doc = $this->html->parseDocument(
+            '<html><body><p>lead</p><div class="g">'
+            . '<div></div><div></div><div></div><div></div>'
+            . '</div></body></html>',
+        );
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div, p { display: block; margin: 0; }
+             p { margin: 16px 0; }
+             .g { display: grid; grid-template-columns: 40px 40px;
+                  grid-template-rows: 40px 40px; column-gap: 10px; row-gap: 10px;
+                  column-rule: 4px solid blue; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        self::assertNotNull($root);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $grid = null;
+        $stack = [$root];
+        while ($stack !== []) {
+            $node = array_shift($stack);
+            if ($node instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
+                $grid = $node;
+            }
+            foreach ($node->children as $child) {
+                $stack[] = $child;
+            }
+        }
+        self::assertNotNull($grid);
+
+        $writer = new PdfWriter();
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        (new Painter(792.0))->paint($root, $stream);
+
+        $rect = null;
+        foreach ($stream->getOperators() as $op) {
+            if (!str_ends_with(rtrim($op), ' re')) {
+                continue;
+            }
+            $parts = preg_split('/\s+/', trim($op)) ?: [];
+            if (count($parts) === 5 && abs((float) $parts[2] - 4.0) < 0.01) {
+                $rect = $parts;
+            }
+        }
+        self::assertNotNull($rect, 'the column rule is painted');
+        $top = 792.0 - (float) $rect[1] - (float) $rect[3];
+        self::assertEqualsWithDelta(
+            $grid->geometry->y,
+            $top,
+            0.01,
+            'the rule starts at the grid\'s own top edge, not its pre-collapse position',
+        );
+    }
+
     /**
      * Lay out a grid with the given items + container declarations, paint it,
      * and return every gap-rule rectangle in top-down layout coordinates

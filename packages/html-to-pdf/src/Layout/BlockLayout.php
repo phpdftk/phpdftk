@@ -10443,7 +10443,41 @@ final class BlockLayout
             $segments[] = ['prefix' => 'row-rule', 'x1' => $start, 'y1' => $fixed, 'x2' => $end, 'y2' => $fixed];
         }
 
-        $box->gapRuleSegments = $segments;
+        // Store the segments RELATIVE to the grid's own content-box
+        // origin. A box's absolute position is not final when its
+        // formatting context finishes: margin collapsing, relative
+        // positioning and alignment in an ancestor can all still move it,
+        // and the children move with it while a cached absolute
+        // coordinate would not. The painter re-anchors on the box's final
+        // geometry.
+        $box->gapRuleSegments = $this->relativeGapRuleSegments($segments, $box);
+    }
+
+    /**
+     * Rebase absolute gap-decoration segments onto the container's own
+     * content-box origin, so the painter can re-anchor them on the box's
+     * FINAL position. See {@see computeGridGapRuleSegments()} for why the
+     * layout-time absolute position cannot be trusted.
+     *
+     * @param  list<array{prefix: string, x1: float, y1: float, x2: float, y2: float}> $segments
+     * @return list<array{prefix: string, x1: float, y1: float, x2: float, y2: float}>
+     */
+    private function relativeGapRuleSegments(array $segments, Box $box): array
+    {
+        $originX = $box->geometry->x;
+        $originY = $box->geometry->y;
+        $out = [];
+        foreach ($segments as $seg) {
+            $out[] = [
+                'prefix' => $seg['prefix'],
+                'x1' => $seg['x1'] - $originX,
+                'y1' => $seg['y1'] - $originY,
+                'x2' => $seg['x2'] - $originX,
+                'y2' => $seg['y2'] - $originY,
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -15407,7 +15441,10 @@ final class BlockLayout
             }
         }
 
-        $box->gapRuleSegments = $segments;
+        // Relative to the flex container's content-box origin, for the
+        // same reason as the grid path: the box can still be moved after
+        // its formatting context finishes.
+        $box->gapRuleSegments = $this->relativeGapRuleSegments($segments, $box);
     }
 
     /**

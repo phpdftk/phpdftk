@@ -10673,15 +10673,20 @@ final class Painter
             $stream->clip();
             $stream->endPath();
         }
+        // The segments are stored relative to the container's content-box
+        // origin (layout cannot know the box's final absolute position),
+        // so re-anchor on the box's geometry before the Y-flip.
+        $originX = $box->geometry->x;
+        $originY = $box->geometry->y;
         foreach ($box->gapRuleSegments as $seg) {
             $this->strokeGapRule(
                 $box,
                 $stream,
                 $seg['prefix'],
-                $seg['x1'],
-                $this->pageHeight - $seg['y1'],
-                $seg['x2'],
-                $this->pageHeight - $seg['y2'],
+                $originX + $seg['x1'],
+                $this->pageHeight - $originY - $seg['y1'],
+                $originX + $seg['x2'],
+                $this->pageHeight - $originY - $seg['y2'],
             );
         }
         $stream->restoreGraphicsState();
@@ -10715,15 +10720,20 @@ final class Painter
             $stream->clip();
             $stream->endPath();
         }
+        // The segments are stored relative to the container's content-box
+        // origin (layout cannot know the box's final absolute position),
+        // so re-anchor on the box's geometry before the Y-flip.
+        $originX = $box->geometry->x;
+        $originY = $box->geometry->y;
         foreach ($box->gapRuleSegments as $seg) {
             $this->strokeGapRule(
                 $box,
                 $stream,
                 $seg['prefix'],
-                $seg['x1'],
-                $this->pageHeight - $seg['y1'],
-                $seg['x2'],
-                $this->pageHeight - $seg['y2'],
+                $originX + $seg['x1'],
+                $this->pageHeight - $originY - $seg['y1'],
+                $originX + $seg['x2'],
+                $this->pageHeight - $originY - $seg['y2'],
             );
         }
         $stream->restoreGraphicsState();
