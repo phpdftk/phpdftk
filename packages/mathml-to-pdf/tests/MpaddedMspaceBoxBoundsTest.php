@@ -174,4 +174,93 @@ final class MpaddedMspaceBoxBoundsTest extends TestCase
         $renderer->draw($doc, $x, $y, $boxWidth, $boxHeight);
         return $writer->toBytes();
     }
+
+    // ---------------------------------------------------------------
+    // MathML Core §3.3.6 — `lspace` is the space at the content's
+    // INLINE-START edge, so an RTL formula puts it on the right
+    // (direction-mpadded).
+    // ---------------------------------------------------------------
+
+    /**
+     * `lspace="25px" width="150px"` over 75px of content: RTL leaves
+     * 150 - 75 - 25 = 50px ahead of the content in paint order, which
+     * is what the LTR reference draws as `lspace="50px"`.
+     */
+    public function testRtlMpaddedMeasuresLspaceFromTheInlineEnd(): void
+    {
+        $rtl = $this->contentStartX(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" dir="rtl">'
+            . self::PADDED . '</math>',
+        );
+        $ltrMirror = $this->contentStartX(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            . '<mpadded lspace="50px" width="150px">'
+            . '<mspace width="25px" height="25px" mathbackground="red"/>'
+            . '<mspace width="25px" height="25px" mathbackground="green"/>'
+            . '<mspace width="25px" height="25px" mathbackground="blue"/>'
+            . '</mpadded></math>',
+        );
+        self::assertEqualsWithDelta($ltrMirror, $rtl, 0.01);
+    }
+
+    /**
+     * Negative guard: the LTR path is untouched — `lspace` is still
+     * measured from the left there.
+     */
+    public function testLtrMpaddedStillMeasuresLspaceFromTheLeft(): void
+    {
+        $ltr = $this->contentStartX(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+            . self::PADDED . '</math>',
+        );
+        self::assertEqualsWithDelta(25.0, $ltr, 0.01);
+    }
+
+    /**
+     * With no `width`, the box is `lspace + content` wide, so RTL
+     * puts the whole `lspace` AFTER the content and nothing before.
+     */
+    public function testRtlMpaddedWithoutWidthPutsLspaceAfterTheContent(): void
+    {
+        $rtl = $this->contentStartX(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" dir="rtl">'
+            . '<mpadded lspace="25px">'
+            . '<mspace width="25px" height="25px" mathbackground="red"/>'
+            . '</mpadded></math>',
+        );
+        self::assertEqualsWithDelta(0.0, $rtl, 0.01);
+    }
+
+    private const string PADDED =
+        '<mpadded lspace="25px" width="150px">'
+        . '<mspace width="25px" height="25px" mathbackground="red"/>'
+        . '<mspace width="25px" height="25px" mathbackground="green"/>'
+        . '<mspace width="25px" height="25px" mathbackground="blue"/>'
+        . '</mpadded>';
+
+    /**
+     * Offset from the formula origin at which the mpadded's content
+     * begins, read off the first `mathbackground` rect the children
+     * paint.
+     */
+    private function contentStartX(string $xml): float
+    {
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage();
+        (new MathmlRenderer($page, $writer))->draw(
+            (new MathmlParser())->parse($xml),
+            x: 0.0,
+            y: 600.0,
+            width: 400.0,
+            height: 40.0,
+        );
+        $bytes = $writer->toBytes();
+        $pattern = '/(-?[\d.]+) -?[\d.]+ -?[\d.]+ -?[\d.]+ re/';
+        self::assertMatchesRegularExpression($pattern, $bytes);
+        preg_match_all($pattern, $bytes, $matches);
+        // The first rect painted is the leftmost child in LTR and the
+        // leftmost (last-source) child in RTL; either way it marks
+        // where the content starts.
+        return min(array_map(static fn(string $x): float => (float) $x, $matches[1]));
+    }
 }

@@ -1431,6 +1431,24 @@ final class Translator
     {
         $startX = $ctx->cursorX;
         $lspacePt = $mpadded->lspacePt($ctx->fontSize) ?? 0.0;
+        // MathML Core §3.3.6 — `lspace` is the space at the content's
+        // INLINE-START edge, which in an RTL formula is its RIGHT
+        // side. The painter works in left-to-right paint order, so
+        // the leading offset has to be measured from the other end:
+        // whatever slack `width` leaves over after the content and
+        // the trailing `lspace` is what precedes the content here.
+        // direction-mpadded states the same geometry twice —
+        // `dir="rtl"` with `lspace="25px" width="150px"` over 75px of
+        // content is the LTR `lspace="50px"` its reference draws.
+        if ($ctx->direction === 'rtl') {
+            $contentWidth = 0.0;
+            foreach ($this->elementChildren($mpadded) as $child) {
+                $contentWidth += $this->estimateWidth($child, $ctx->fontSize, $ctx);
+            }
+            $totalWidth = $mpadded->widthPt($ctx->fontSize)
+                ?? ($lspacePt + $contentWidth);
+            $lspacePt = $totalWidth - $contentWidth - $lspacePt;
+        }
         if ($lspacePt !== 0.0) {
             $ctx->cursorX += $lspacePt;
             $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
