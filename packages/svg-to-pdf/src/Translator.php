@@ -490,18 +490,18 @@ final class Translator
      *
      * SVG 2 §8.2 — the UA stylesheet sets `overflow: hidden` on `svg`,
      * `symbol`, `image`, `marker` and `pattern`, so the DEFAULT here is
-     * to clip even though CSS's own initial value is `visible`. An
-     * author `overflow: visible` turns the clip off; so does `auto`,
-     * which SVG defines as "the content is not clipped" rather than
-     * CSS's scroll container.
+     * to clip even though CSS's own initial value is `visible`. Only an
+     * author `overflow: visible` turns the clip off.
+     *
+     * `auto` CLIPS. SVG 1.1 used to define it as "the content is not
+     * clipped", but w3c/svgwg#1072 settled on CSS's meaning — there is
+     * nothing to scroll in an SVG viewport, so `auto` degenerates to
+     * `hidden`. WPT's `painting/inner-outer-svg-overflow-auto` asserts
+     * exactly that, on both the inner and the outer viewport.
      */
     private static function viewportClips(Element $element): bool
     {
-        $overflow = $element->overflowValue();
-        if ($overflow === null) {
-            return true;
-        }
-        return $overflow !== 'visible' && $overflow !== 'auto';
+        return $element->overflowValue() !== 'visible';
     }
 
     /**

@@ -121,6 +121,20 @@ final class SymbolViewportTest extends TestCase
         self::assertStringContainsString("0 0 1 1 re\nW", $ops);
     }
 
+    public function testOverflowAutoClips(): void
+    {
+        // w3c/svgwg#1072 — SVG 1.1 defined `auto` as "not clipped", but
+        // there is nothing to scroll in an SVG viewport, so it now
+        // means what CSS means and degenerates to `hidden`. WPT's
+        // painting/inner-outer-svg-overflow-auto asserts this on both
+        // the inner and the outer viewport.
+        $ops = $this->paint(
+            '<svg width="1" height="1" overflow="auto">'
+            . '<rect width="100" height="100" fill="green"/></svg>',
+        );
+        self::assertStringContainsString("0 0 1 1 re\nW", $ops);
+    }
+
     public function testOverflowHiddenIsStillHonouredWhenSpelledOut(): void
     {
         $ops = $this->paint(

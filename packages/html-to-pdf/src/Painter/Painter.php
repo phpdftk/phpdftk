@@ -3310,6 +3310,14 @@ final class Painter
         // painter before the img-src lookup.
         $foreignKind = \Phpdftk\HtmlToPdf\Box\BoxGenerator::foreignContentKind($element);
         if ($foreignKind === 'svg') {
+            // Only the OUTERMOST `<svg>` is painted from here: an inner
+            // one is a nested viewport the SVG pipeline already drew
+            // while painting its ancestor (SVG 2 §7.5). Painting it
+            // again emitted a second, unclipped copy at the HTML
+            // pipeline's scale.
+            if (!\Phpdftk\HtmlToPdf\Box\BoxGenerator::isOutermostSvg($element)) {
+                return;
+            }
             $this->paintInlineSvg($element, $box, $stream);
             return;
         }

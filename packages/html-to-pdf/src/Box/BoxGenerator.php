@@ -3534,6 +3534,16 @@ final class BoxGenerator
      * is an inner viewport sized by the SVG pipeline, not a replaced
      * box in the HTML flow.
      */
+    /**
+     * Whether `$element` is an `<svg>` with no `<svg>` ancestor — the
+     * only one the HTML pipeline owns. Public because the painter has
+     * to make the same call before dispatching to `paintInlineSvg`.
+     */
+    public static function isOutermostSvg(Element $element): bool
+    {
+        return self::foreignContentKind($element) === 'svg' && !self::hasSvgAncestor($element);
+    }
+
     private static function hasSvgAncestor(Element $element): bool
     {
         for ($n = $element->parentNode; $n !== null; $n = $n->parentNode) {
@@ -3556,7 +3566,17 @@ final class BoxGenerator
      */
     private function isForeignContentRoot(Element $element): bool
     {
-        return self::foreignContentKind($element) !== null;
+        if (self::foreignContentKind($element) === null) {
+            return false;
+        }
+        // ROOT means outermost. SVG 2 §7.5 — an inner `<svg>` is a
+        // nested VIEWPORT that the SVG pipeline draws while painting
+        // its ancestor, not a second replaced box in the HTML flow.
+        // Treating it as a root gave it its own atomic-inline box and
+        // the painter ran it through `paintInlineSvg` a SECOND time, at
+        // the HTML pipeline's own scale and outside the inner
+        // viewport's clip.
+        return !self::hasSvgAncestor($element);
     }
 
     /**
