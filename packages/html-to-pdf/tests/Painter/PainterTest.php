@@ -4110,25 +4110,148 @@ final class PainterTest extends TestCase
         self::assertNotContains('rg', $opcodes, 'no rule fill colour is set either');
     }
 
-    public function testGridRowRuleSkippedForNonDefaultVisibilityItems(): void
+    public function testGridRowRuleVisibilityItemsAroundPaintsAFullGrid(): void
     {
-        // CSS Gaps 1 §3.3 — the naive grid painter only strokes a
-        // continuous full-track rule, which is correct for the default
-        // `spanning-item` break with `visibility-items: all`. A non-default
-        // `row-rule-visibility-items` (`around`) segments the rule per item,
-        // which we do not model — so the row rule is skipped (painting a
-        // wrong continuous rule is worse than none). Only a row rule is set
-        // here, so nothing strokes.
-        $doc = $this->html->parseDocument(
-            '<html><body><div class="g">'
-            . '<div></div><div></div><div></div><div></div>'
-            . '</div></body></html>',
+        // CSS Gaps 1 §3.3 — `visibility-items: around` keeps a band when an
+        // item borders EITHER side of the gap. Every cell of this 2x2 grid
+        // is filled, so the row rule paints across both bands exactly as
+        // `all` would. (Replaces a guard that asserted the rule was skipped
+        // back when the segmented forms were unmodelled.)
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             row-rule: 4px solid green; row-rule-visibility-items: around;',
         );
+        self::assertCount(1, $rects, 'one continuous row rule across the single row gap');
+        self::assertEqualsWithDelta(90.0, $rects[0]['w'], 0.01, 'spans both column tracks and the gap');
+    }
+
+    public function testGridRowRuleVisibilityItemsBetweenDropsBandsWithAMissingItem(): void
+    {
+        // CSS Gaps 1 §3.3 — `between` needs an item on BOTH sides of the
+        // gap. Leaving the bottom-right cell empty drops the row rule over
+        // that column, so the single continuous rule becomes one shorter
+        // segment covering only the first column track.
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             row-rule: 4px solid green; row-rule-visibility-items: between;',
+        );
+        self::assertCount(1, $rects, 'only the band with items above and below survives');
+        self::assertEqualsWithDelta(0.0, $rects[0]['x'], 0.01);
+        self::assertEqualsWithDelta(40.0, $rects[0]['w'], 0.01, 'covers the first column track only');
+    }
+
+    public function testGridColumnRuleBreakIntersectionSplitsAtEveryRowGap(): void
+    {
+        // CSS Gaps 1 §3.2 — `intersection` bridges nothing, so the column
+        // rule becomes one segment per row track instead of one full-height
+        // line.
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule: 4px solid blue; column-rule-break: intersection;',
+        );
+        self::assertCount(2, $rects, 'one segment per row track');
+        foreach ($rects as $rect) {
+            self::assertEqualsWithDelta(40.0, $rect['h'], 0.01, 'each segment is exactly one row track tall');
+        }
+    }
+
+    public function testGridColumnRuleNormalBreakIsCutByASpanningItem(): void
+    {
+        // CSS Gaps 1 §3.2 — the initial `normal` break bridges the row gaps
+        // but is cut by an item SPANNING the column gap the rule sits in.
+        // The item covers row 0, so the rule survives only over row 1.
+        $rects = $this->gapRuleRects(
+            '<div style="grid-column: 1 / 3"></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule: 4px solid blue;',
+        );
+        self::assertCount(1, $rects, 'the spanning item cuts the rule in two, leaving one live segment');
+        self::assertEqualsWithDelta(50.0, $rects[0]['y'], 0.01, 'segment starts at the second row track');
+        self::assertEqualsWithDelta(40.0, $rects[0]['h'], 0.01);
+    }
+
+    public function testGridColumnRuleBreakNoneDrawsThroughASpanningItem(): void
+    {
+        // CSS Gaps 1 §3.2 — `none` is never broken: the same spanning item
+        // that cuts a `normal` rule is drawn straight through, giving one
+        // full-height segment.
+        $rects = $this->gapRuleRects(
+            '<div style="grid-column: 1 / 3"></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule: 4px solid blue; column-rule-break: none;',
+        );
+        self::assertCount(1, $rects);
+        self::assertEqualsWithDelta(0.0, $rects[0]['y'], 0.01);
+        self::assertEqualsWithDelta(90.0, $rects[0]['h'], 0.01, 'spans both row tracks and the gap');
+    }
+
+    public function testGridGapRuleInsetPullsBothEndpointsBack(): void
+    {
+        // CSS Gaps 1 §4 — a cap inset shortens the rule at the outer ends.
+        // 5px off each end of a 90px run leaves 80px starting at y=5.
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule: 4px solid blue; column-rule-inset: 5px;',
+        );
+        self::assertCount(1, $rects);
+        self::assertEqualsWithDelta(5.0, $rects[0]['y'], 0.01);
+        self::assertEqualsWithDelta(80.0, $rects[0]['h'], 0.01);
+    }
+
+    public function testGridGapRuleSkippedForOverlapJoinInset(): void
+    {
+        // Negative: `overlap-join` makes a junction endpoint reach across
+        // the intersection only when the crossing rule is present on the far
+        // side. That conditional geometry is unmodelled, so the rule is
+        // skipped rather than drawn flush and wrong.
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule: 4px solid blue; column-rule-inset: overlap-join;',
+        );
+        self::assertSame([], $rects, 'unmodelled inset keyword paints nothing');
+    }
+
+    public function testGridGapRuleSkippedForMultiValueRuleList(): void
+    {
+        // Negative: a comma-separated per-gap rule list (CSS Gaps 1 §3.1) is
+        // not resolved per gap yet; painting the first value everywhere would
+        // be wrong, so the grid paints no rules.
+        $rects = $this->gapRuleRects(
+            '<div></div><div></div><div></div><div></div>',
+            'grid-template-columns: 40px 40px; grid-template-rows: 40px 40px;
+             column-gap: 10px; row-gap: 10px;
+             column-rule-style: solid; column-rule-color: blue;
+             column-rule-width: 2px, 8px;',
+        );
+        self::assertSame([], $rects, 'multi-value rule lists paint nothing');
+    }
+
+    /**
+     * Lay out a grid with the given items + container declarations, paint it,
+     * and return every gap-rule rectangle in top-down layout coordinates
+     * (`x`, `y`, `w`, `h`). The grid sits at the document origin, so layout
+     * and CSS coordinates coincide.
+     *
+     * @return list<array{x: float, y: float, w: float, h: float}>
+     */
+    private function gapRuleRects(string $items, string $containerCss): array
+    {
+        $doc = $this->html->parseDocument('<html><body><div class="g">' . $items . '</div></body></html>');
         $sheet = $this->css->parseStylesheet(
-            'html, body { display: block; }
-             .g { display: grid; grid-template-columns: 40px 40px;
-                  grid-template-rows: 40px 40px; column-gap: 10px; row-gap: 10px;
-                  row-rule: 4px solid green; row-rule-visibility-items: around; }',
+            'html, body, div { display: block; margin: 0; }
+             .g { display: grid; ' . $containerCss . ' }',
             Origin::UserAgent,
         );
         $root = $this->generator->generate($doc, [$sheet]);
@@ -4140,8 +4263,24 @@ final class PainterTest extends TestCase
         $stream = $writer->addContentStream($page);
         (new Painter(792.0))->paint($root, $stream);
 
-        $opcodes = $this->operatorTokens($stream->getOperators());
-        self::assertNotContains('S', $opcodes, 'non-default row-rule-visibility-items → row rule skipped');
+        $out = [];
+        foreach ($stream->getOperators() as $op) {
+            if (!str_ends_with(rtrim($op), ' re')) {
+                continue;
+            }
+            $parts = preg_split('/\s+/', trim($op)) ?: [];
+            if (count($parts) !== 5) {
+                continue;
+            }
+            [$x, $bottom, $w, $h] = [(float) $parts[0], (float) $parts[1], (float) $parts[2], (float) $parts[3]];
+            // Only the 4px-thick rule rectangles, not item backgrounds.
+            if (abs($w - 4.0) > 0.01 && abs($h - 4.0) > 0.01) {
+                continue;
+            }
+            $out[] = ['x' => $x, 'y' => 792.0 - $bottom - $h, 'w' => $w, 'h' => $h];
+        }
+
+        return $out;
     }
 
     public function testGridRowRuleFromShorthandPaintsWhenContinuous(): void

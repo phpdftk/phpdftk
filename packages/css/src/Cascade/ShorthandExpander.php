@@ -95,6 +95,20 @@ final class ShorthandExpander
             'columns' => $this->expandColumns($value),
             'column-rule' => $this->expandColumnRule($value),
             'row-rule' => $this->expandRowRule($value),
+            // CSS Gaps 1 §3 — the axis-agnostic `rule*` shorthands set the
+            // matching `column-rule-*` AND `row-rule-*` longhands at once.
+            'rule' => $this->expandBothAxisRule($value),
+            'rule-width', 'rule-style', 'rule-color',
+            'rule-break', 'rule-visibility-items'
+                => $this->expandBothAxisRuleLonghand($name, $value),
+            // CSS Gaps 1 §4 — the `*-rule-inset*` shorthand family.
+            'rule-inset', 'rule-inset-cap', 'rule-inset-junction',
+            'rule-inset-start', 'rule-inset-end',
+            'column-rule-inset', 'column-rule-inset-cap', 'column-rule-inset-junction',
+            'column-rule-inset-start', 'column-rule-inset-end',
+            'row-rule-inset', 'row-rule-inset-cap', 'row-rule-inset-junction',
+            'row-rule-inset-start', 'row-rule-inset-end'
+                => $this->expandRuleInset($name, $value),
             'gap' => $this->expandGap($value),
             'inset' => $this->expandInset($value),
             // CSS Logical Properties 1 §5 / §6 — axis pair
@@ -221,6 +235,14 @@ final class ShorthandExpander
             'border-inline-start', 'border-inline-end',
             'border', 'outline', 'font', 'text-decoration', 'background',
             'list-style', 'columns', 'column-rule', 'row-rule', 'gap', 'inset',
+            'rule', 'rule-width', 'rule-style', 'rule-color',
+            'rule-break', 'rule-visibility-items',
+            'rule-inset', 'rule-inset-cap', 'rule-inset-junction',
+            'rule-inset-start', 'rule-inset-end',
+            'column-rule-inset', 'column-rule-inset-cap', 'column-rule-inset-junction',
+            'column-rule-inset-start', 'column-rule-inset-end',
+            'row-rule-inset', 'row-rule-inset-cap', 'row-rule-inset-junction',
+            'row-rule-inset-start', 'row-rule-inset-end',
             'inset-block', 'inset-inline',
             'margin-block', 'margin-inline', 'padding-block', 'padding-inline',
             'overflow', 'flex', 'flex-flow',
@@ -1428,6 +1450,99 @@ final class ShorthandExpander
     private function expandColumnRule(Value $value): array
     {
         return $this->expandRuleShorthand($value, 'column-rule');
+    }
+
+    /**
+     * CSS Gaps 1 §3 — `rule: <width> || <style> || <color>` sets the
+     * `column-rule-*` AND `row-rule-*` longhands at once, so authors can
+     * decorate both axes with one declaration.
+     *
+     * @return array<string, Value>
+     */
+    private function expandBothAxisRule(Value $value): array
+    {
+        return $this->expandRuleShorthand($value, 'column-rule')
+            + $this->expandRuleShorthand($value, 'row-rule');
+    }
+
+    /**
+     * CSS Gaps 1 §3 — the axis-agnostic single-longhand shorthands
+     * (`rule-width`, `rule-style`, `rule-color`, `rule-break`,
+     * `rule-visibility-items`): copy the declared value onto the
+     * `column-rule-` and `row-rule-` longhand of the same suffix.
+     *
+     * @return array<string, Value>
+     */
+    private function expandBothAxisRuleLonghand(string $name, Value $value): array
+    {
+        $suffix = substr(strtolower($name), strlen('rule-'));
+
+        return [
+            'column-rule-' . $suffix => $value,
+            'row-rule-' . $suffix => $value,
+        ];
+    }
+
+    /**
+     * CSS Gaps 1 §4 — the `*-rule-inset*` shorthand family. Every form
+     * resolves onto the four per-axis longhands
+     * `{cap,junction}-{start,end}`:
+     *
+     *   `-inset`           all four          (1 value = all, 2 = start/end)
+     *   `-inset-cap`       cap-start/-end
+     *   `-inset-junction`  junction-start/-end
+     *   `-inset-start`     cap-start + junction-start
+     *   `-inset-end`       cap-end + junction-end
+     *
+     * A `rule-` (axis-agnostic) prefix writes both axes; `column-rule-` /
+     * `row-rule-` write only their own.
+     *
+     * @return array<string, Value>
+     */
+    private function expandRuleInset(string $name, Value $value): array
+    {
+        $lower = strtolower($name);
+        if (str_starts_with($lower, 'column-rule-inset')) {
+            $axes = ['column-rule'];
+            $form = substr($lower, strlen('column-rule-inset'));
+        } elseif (str_starts_with($lower, 'row-rule-inset')) {
+            $axes = ['row-rule'];
+            $form = substr($lower, strlen('row-rule-inset'));
+        } else {
+            $axes = ['column-rule', 'row-rule'];
+            $form = substr($lower, strlen('rule-inset'));
+        }
+
+        $components = $this->toComponents($value);
+        if ($components === []) {
+            return [];
+        }
+        $first = $components[0];
+        $second = $components[1] ?? $first;
+
+        // Which longhand suffixes this form writes, and with which of the
+        // (up to two) declared values.
+        $targets = match ($form) {
+            '-cap' => ['inset-cap-start' => $first, 'inset-cap-end' => $second],
+            '-junction' => ['inset-junction-start' => $first, 'inset-junction-end' => $second],
+            '-start' => ['inset-cap-start' => $first, 'inset-junction-start' => $first],
+            '-end' => ['inset-cap-end' => $first, 'inset-junction-end' => $first],
+            default => [
+                'inset-cap-start' => $first,
+                'inset-junction-start' => $first,
+                'inset-cap-end' => $second,
+                'inset-junction-end' => $second,
+            ],
+        };
+
+        $out = [];
+        foreach ($axes as $axis) {
+            foreach ($targets as $suffix => $component) {
+                $out[$axis . '-' . $suffix] = $component;
+            }
+        }
+
+        return $out;
     }
 
     /**

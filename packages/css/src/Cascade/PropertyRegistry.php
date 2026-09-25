@@ -975,6 +975,23 @@ final class PropertyRegistry
         // painting a wrong continuous rule).
         $r->register($initial('column-rule-visibility-items', new Keyword('all')));
         $r->register($initial('row-rule-visibility-items', new Keyword('all')));
+        // CSS Gaps 1 §4 — `*-rule-inset-*` insets a gap decoration's
+        // endpoints ALONG the rule's own axis. Four longhands per axis:
+        // the two CAP endpoints (the outer ends of the whole rule) and
+        // the two JUNCTION endpoints (the ends created wherever the rule
+        // breaks). Initial `0px` — an endpoint sits flush with the
+        // adjacent track edge; a negative inset extends past it.
+        foreach (['column-rule', 'row-rule'] as $rulePrefix) {
+            foreach ([
+                'inset-cap-start', 'inset-cap-end',
+                'inset-junction-start', 'inset-junction-end',
+            ] as $insetSuffix) {
+                $r->register($initial(
+                    $rulePrefix . '-' . $insetSuffix,
+                    new Length(0.0, LengthUnit::Px),
+                ));
+            }
+        }
         $r->register($initial('column-fill', new Keyword('balance')));
         $r->register($initial('column-span', new Keyword('none')));
         // CSS Multi-column 2 §3 — `column-height` (the fragmentainer height a

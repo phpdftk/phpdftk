@@ -6823,34 +6823,22 @@ final class BlockLayout
         $colOffsets = $this->gridTrackOffsets($columnTracks, $columnGapUsed);
         $rowOffsets = $this->gridTrackOffsets($rowTracks, $rowGapUsed);
 
-        // CSS Gaps 1 — record the gap centre-lines and grid track-area
-        // bounds so the painter can draw `column-rule` / `row-rule`
-        // decorations in the gaps. The gap between track i and i+1 is
-        // centred at `offset[i] + trackSize[i] + gap/2`; the track area
-        // spans from the first offset to the last (total extent).
-        //
-        // Only the simple, physically-full-span case is drawn. Gap
-        // decorations that need segmentation (items spanning a gap →
-        // `*-rule-break`), logical-axis mapping (non-horizontal-tb
-        // writing modes), per-gap multi-value rule lists, subgrid, or
-        // fragmentation are skipped (leaving no rules) rather than drawn
-        // wrong — a partial implementation of those regresses more than
-        // it fixes. See CSS Gaps 1 §2–§4.
+        // CSS Gaps 1 §2–§4 — resolve the `column-rule` / `row-rule` gap
+        // decorations into painted segments (break points, per-item
+        // visibility and endpoint insets all included).
         if ($this->gridGapRulesAreSimple($box, $placements)) {
-            $colCount = count($columnTracks);
-            $rowCount = count($rowTracks);
-            $box->columnGapCenters = [];
-            for ($i = 0; $i < $colCount - 1; $i++) {
-                $box->columnGapCenters[] = $contentX + $colOffsets[$i] + $columnTracks[$i] + $columnGapUsed / 2.0;
-            }
-            $box->rowGapCenters = [];
-            for ($i = 0; $i < $rowCount - 1; $i++) {
-                $box->rowGapCenters[] = $contentY + $rowOffsets[$i] + $rowTracks[$i] + $rowGapUsed / 2.0;
-            }
-            $box->gridContentLeft = $contentX + $colOffsets[0];
-            $box->gridContentRight = $contentX + $colOffsets[$colCount];
-            $box->gridContentTop = $contentY + $rowOffsets[0];
-            $box->gridContentBottom = $contentY + $rowOffsets[$rowCount];
+            $this->computeGridGapRuleSegments(
+                $box,
+                $placements,
+                $columnTracks,
+                $rowTracks,
+                $colOffsets,
+                $rowOffsets,
+                $columnGapUsed,
+                $rowGapUsed,
+                $contentX,
+                $contentY,
+            );
         }
 
         // CSS Box Alignment 3 §9 — grid items with `align-self: baseline`
@@ -10294,11 +10282,10 @@ final class BlockLayout
      */
     /**
      * CSS Gaps 1 — true when a grid's gap decorations can be drawn as
-     * simple full-span physical lines (no segmentation / logical-axis /
-     * per-gap-list handling). Guards out the cases a naive painter would
-     * get wrong: non-`horizontal-tb` writing modes, `subgrid`, items
-     * spanning a gap (need `*-rule-break` segmentation), and multi-value
-     * rule lists. Those keep no rules rather than wrong rules.
+     * physical (horizontal-tb) lines. Guards out the cases the segment
+     * builder does not model: non-`horizontal-tb` writing modes,
+     * `subgrid`, multi-value rule lists, and the `overlap-join` inset
+     * keyword. Those keep no rules rather than wrong rules.
      *
      * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
      */
@@ -10320,11 +10307,6 @@ final class BlockLayout
                 }
             }
         }
-        foreach ($placements as $p) {
-            if ($p['colSpan'] > 1 || $p['rowSpan'] > 1) {
-                return false;
-            }
-        }
         foreach ([
             'column-rule-color', 'column-rule-style', 'column-rule-width',
             'row-rule-color', 'row-rule-style', 'row-rule-width',
@@ -10333,7 +10315,367 @@ final class BlockLayout
                 return false;
             }
         }
+        // CSS Gaps 1 §4 — `overlap-join` makes a junction endpoint reach
+        // across the intersection only when the crossing rule is present
+        // on the far side. That conditional geometry is not modelled yet,
+        // so the axis is skipped rather than drawn flush.
+        foreach ([
+            'column-rule-inset-cap-start', 'column-rule-inset-cap-end',
+            'column-rule-inset-junction-start', 'column-rule-inset-junction-end',
+            'row-rule-inset-cap-start', 'row-rule-inset-cap-end',
+            'row-rule-inset-junction-start', 'row-rule-inset-junction-end',
+        ] as $prop) {
+            $inset = $box->style->get($prop);
+            if ($inset instanceof Keyword) {
+                return false;
+            }
+        }
         return true;
+    }
+
+    /**
+     * CSS Gaps 1 §2–§4 — build the `column-rule` / `row-rule` gap
+     * decoration segments for a grid container and cache them on the
+     * {@see GridBox} for the painter.
+     *
+     * A rule lives in one gap of its own axis and RUNS along the other
+     * axis, so the geometry is symmetric: for each column gap we emit
+     * vertical segments, for each row gap horizontal ones. The run is
+     * assembled from the perpendicular track bands and the gaps between
+     * them, then trimmed:
+     *
+     *  - §3.2 `*-rule-break` decides which gaps the run bridges.
+     *    `none` bridges everything (one unbroken rule); `normal` (a.k.a.
+     *    `spanning-item`, the initial value) bridges the perpendicular
+     *    gaps but is cut by any item that SPANS the rule's own gap;
+     *    `intersection` bridges nothing, leaving one segment per band.
+     *  - §3.3 `*-rule-visibility-items` drops the bands that are not
+     *    bordered by items: `between` needs an item on both sides of the
+     *    gap, `around` needs one on either side, `all` (initial) keeps
+     *    every band.
+     *  - §4 `*-rule-inset-*` then pulls each endpoint back along the run.
+     *    The outermost two endpoints of a rule are its CAPS, every
+     *    endpoint created by a break is a JUNCTION.
+     *
+     * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
+     * @param list<float> $columnTracks
+     * @param list<float> $rowTracks
+     * @param list<float> $colOffsets
+     * @param list<float> $rowOffsets
+     */
+    private function computeGridGapRuleSegments(
+        \Phpdftk\HtmlToPdf\Box\GridBox $box,
+        array $placements,
+        array $columnTracks,
+        array $rowTracks,
+        array $colOffsets,
+        array $rowOffsets,
+        float $columnGapUsed,
+        float $rowGapUsed,
+        float $contentX,
+        float $contentY,
+    ): void {
+        $box->gapRuleSegments = [];
+        $colCount = count($columnTracks);
+        $rowCount = count($rowTracks);
+        if ($colCount === 0 || $rowCount === 0) {
+            return;
+        }
+
+        // Absolute start/end edge of every track in each axis.
+        $colEdges = [];
+        for ($i = 0; $i < $colCount; $i++) {
+            $colEdges[$i] = [$contentX + $colOffsets[$i], $contentX + $colOffsets[$i] + $columnTracks[$i]];
+        }
+        $rowEdges = [];
+        for ($i = 0; $i < $rowCount; $i++) {
+            $rowEdges[$i] = [$contentY + $rowOffsets[$i], $contentY + $rowOffsets[$i] + $rowTracks[$i]];
+        }
+
+        // Cell occupancy — `$occupied[row][col]`. Drives §3.3 visibility
+        // and the §3.2 `normal` break (an item occupying the cells on
+        // both sides of a gap is spanning it).
+        /** @var array<int, array<int, bool>> $occupied */
+        $occupied = [];
+        foreach ($placements as $placement) {
+            if ($placement['row'] < 0 || $placement['col'] < 0) {
+                continue;
+            }
+            if ($this->isOutOfFlow($placement['box'])) {
+                continue;
+            }
+            $rowEnd = min($rowCount, $placement['row'] + max(1, $placement['rowSpan']));
+            $colEnd = min($colCount, $placement['col'] + max(1, $placement['colSpan']));
+            for ($r = $placement['row']; $r < $rowEnd; $r++) {
+                for ($c = $placement['col']; $c < $colEnd; $c++) {
+                    $occupied[$r][$c] = true;
+                }
+            }
+        }
+
+        $segments = [];
+        // Column rules: one per column gap, running down the block axis.
+        foreach ($this->gridGapRuleRuns(
+            $box,
+            'column-rule',
+            $colEdges,
+            $rowEdges,
+            $columnGapUsed,
+            $occupied,
+            $placements,
+            gapAxisIsColumn: true,
+        ) as [$fixed, $start, $end]) {
+            $segments[] = ['prefix' => 'column-rule', 'x1' => $fixed, 'y1' => $start, 'x2' => $fixed, 'y2' => $end];
+        }
+        // Row rules: one per row gap, running along the inline axis.
+        // Appended last so they paint over the column rules where the two
+        // cross, which is what the WPT references draw.
+        foreach ($this->gridGapRuleRuns(
+            $box,
+            'row-rule',
+            $rowEdges,
+            $colEdges,
+            $rowGapUsed,
+            $occupied,
+            $placements,
+            gapAxisIsColumn: false,
+        ) as [$fixed, $start, $end]) {
+            $segments[] = ['prefix' => 'row-rule', 'x1' => $start, 'y1' => $fixed, 'x2' => $end, 'y2' => $fixed];
+        }
+
+        $box->gapRuleSegments = $segments;
+    }
+
+    /**
+     * CSS Gaps 1 §3–§4 — the per-axis half of
+     * {@see computeGridGapRuleSegments()}. Returns
+     * `[fixedCoordinate, runStart, runEnd]` triples: one entry per painted
+     * segment of every gap on `$gapEdges`' axis.
+     *
+     * @param list<array{0: float, 1: float}> $gapEdges  tracks of the axis the rule sits BETWEEN
+     * @param list<array{0: float, 1: float}> $runEdges  tracks of the axis the rule RUNS along
+     * @param array<int, array<int, bool>>    $occupied  `[row][col]` cell occupancy
+     * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
+     * @return list<array{0: float, 1: float, 2: float}>
+     */
+    private function gridGapRuleRuns(
+        \Phpdftk\HtmlToPdf\Box\GridBox $box,
+        string $prefix,
+        array $gapEdges,
+        array $runEdges,
+        float $gapSize,
+        array $occupied,
+        array $placements,
+        bool $gapAxisIsColumn,
+    ): array {
+        $gapTrackCount = count($gapEdges);
+        $runTrackCount = count($runEdges);
+        if ($gapTrackCount < 2 || $runTrackCount === 0) {
+            return [];
+        }
+        $style = $box->style;
+        $break = $this->gridGapRuleBreak($style, $prefix);
+        $visibility = $this->gridGapRuleVisibility($style, $prefix);
+        // The rule's full extent: the first run-track's start edge to the
+        // last one's end edge. Endpoints landing here are CAPS.
+        $runStart = $runEdges[0][0];
+        $runEnd = $runEdges[$runTrackCount - 1][1];
+
+        $out = [];
+        for ($g = 0; $g < $gapTrackCount - 1; $g++) {
+            $fixed = $gapEdges[$g][1] + $gapSize / 2.0;
+
+            // §3.2 — bands an item SPANNING this gap blocks. `none` is
+            // never broken, so it ignores them entirely.
+            $blocked = $break === 'none'
+                ? []
+                : $this->gridGapSpannedBands($placements, $g, $runTrackCount, $gapAxisIsColumn);
+
+            // §3.3 — which run-bands this gap's rule covers.
+            $bands = [];
+            for ($b = 0; $b < $runTrackCount; $b++) {
+                if (isset($blocked[$b])) {
+                    continue;
+                }
+                if (!$this->gridGapBandIsVisible($occupied, $visibility, $gapAxisIsColumn, $g, $b)) {
+                    continue;
+                }
+                $bands[$b] = [$runEdges[$b][0], $runEdges[$b][1]];
+            }
+            if ($bands === []) {
+                continue;
+            }
+
+            // §3.2 — `none` and `normal` bridge the gaps between kept
+            // bands into one run; `intersection` leaves them separate. A
+            // dropped band takes the gaps on either side of it with it, so
+            // the rule resumes flush with the next band's edge rather than
+            // dangling into the gap.
+            $runs = $break === 'intersection'
+                ? array_values($bands)
+                : $this->gridGapRuleBridgeBands($bands, $runEdges);
+
+            foreach ($runs as [$from, $to]) {
+                // §4 — cap insets at the rule's outer ends, junction
+                // insets at every end a break created.
+                $from += $this->gridGapRuleInset(
+                    $style,
+                    $prefix,
+                    abs($from - $runStart) < 0.01 ? 'cap-start' : 'junction-start',
+                );
+                $to -= $this->gridGapRuleInset(
+                    $style,
+                    $prefix,
+                    abs($to - $runEnd) < 0.01 ? 'cap-end' : 'junction-end',
+                );
+                if ($to <= $from) {
+                    continue;
+                }
+                $out[] = [$fixed, $from, $to];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Merge run-bands that are adjacent in track order into one interval,
+     * bridging the gap between them. Bands separated by a band that §3.3
+     * visibility dropped stay separate.
+     *
+     * @param array<int, array{0: float, 1: float}> $bands    kept bands, keyed by track index
+     * @param list<array{0: float, 1: float}>       $runEdges all track edges on the run axis
+     * @return list<array{0: float, 1: float}>
+     */
+    private function gridGapRuleBridgeBands(array $bands, array $runEdges): array
+    {
+        $out = [];
+        $current = null;
+        for ($b = 0, $n = count($runEdges); $b < $n; $b++) {
+            if (!isset($bands[$b])) {
+                if ($current !== null) {
+                    $out[] = $current;
+                    $current = null;
+                }
+                continue;
+            }
+            if ($current === null) {
+                $current = $bands[$b];
+            } else {
+                $current[1] = $bands[$b][1];
+            }
+        }
+        if ($current !== null) {
+            $out[] = $current;
+        }
+
+        return $out;
+    }
+
+    /**
+     * CSS Gaps 1 §3.3 — whether the rule in gap `$g` paints across run-band
+     * `$b`. `between` needs an item in the cells on BOTH sides of the gap,
+     * `around` needs one on either side, `all` always paints.
+     *
+     * @param array<int, array<int, bool>> $occupied
+     */
+    private function gridGapBandIsVisible(
+        array $occupied,
+        string $visibility,
+        bool $gapAxisIsColumn,
+        int $g,
+        int $b,
+    ): bool {
+        if ($visibility === 'all') {
+            return true;
+        }
+        $before = $gapAxisIsColumn ? ($occupied[$b][$g] ?? false) : ($occupied[$g][$b] ?? false);
+        $after = $gapAxisIsColumn ? ($occupied[$b][$g + 1] ?? false) : ($occupied[$g + 1][$b] ?? false);
+
+        return $visibility === 'between' ? ($before && $after) : ($before || $after);
+    }
+
+    /**
+     * CSS Gaps 1 §3.2 — normalised `*-rule-break` keyword. `spanning-item`
+     * is the older spelling of `normal`, the initial value.
+     */
+    private function gridGapRuleBreak(CascadedValues $style, string $prefix): string
+    {
+        $value = $style->get("$prefix-break");
+        $name = $value instanceof Keyword ? strtolower($value->name) : 'normal';
+
+        return match ($name) {
+            'intersection' => 'intersection',
+            'none' => 'none',
+            default => 'normal',
+        };
+    }
+
+    /**
+     * CSS Gaps 1 §3.3 — normalised `*-rule-visibility-items` keyword.
+     */
+    private function gridGapRuleVisibility(CascadedValues $style, string $prefix): string
+    {
+        $value = $style->get("$prefix-visibility-items");
+        $name = $value instanceof Keyword ? strtolower($value->name) : 'all';
+
+        return match ($name) {
+            'between' => 'between',
+            'around' => 'around',
+            default => 'all',
+        };
+    }
+
+    /**
+     * CSS Gaps 1 §4 — resolve one `*-rule-inset-<which>` longhand to px.
+     * Percentages are not resolvable against a gap-relative basis here and
+     * fall back to `0`, which is also the initial value.
+     */
+    private function gridGapRuleInset(CascadedValues $style, string $prefix, string $which): float
+    {
+        $value = $style->get("$prefix-inset-$which");
+
+        return $value instanceof Length ? $value->value : 0.0;
+    }
+
+    /**
+     * CSS Gaps 1 §3.2 — the run-axis bands blocked by items that SPAN gap
+     * `$g`. An item spans the gap when its placement covers the tracks on
+     * both of its sides; the bands it blocks are the ones it occupies on
+     * the run axis. Returned as a `[band => true]` set so the caller can
+     * drop those bands before bridging — which is what makes the rule
+     * resume flush with the next band rather than dangling into the gap
+     * beside the item.
+     *
+     * @param list<array{box: Box, row: int, rowSpan: int, col: int, colSpan: int, autoRow: bool, autoCol: bool}> $placements
+     * @return array<int, bool>
+     */
+    private function gridGapSpannedBands(
+        array $placements,
+        int $g,
+        int $runTrackCount,
+        bool $gapAxisIsColumn,
+    ): array {
+        $blocked = [];
+        foreach ($placements as $placement) {
+            if ($placement['row'] < 0 || $placement['col'] < 0) {
+                continue;
+            }
+            $spanStart = $gapAxisIsColumn ? $placement['col'] : $placement['row'];
+            $spanCount = max(1, $gapAxisIsColumn ? $placement['colSpan'] : $placement['rowSpan']);
+            // The gap sits between track `$g` and `$g + 1`; the item spans
+            // it only when it covers both.
+            if ($spanStart > $g || $spanStart + $spanCount < $g + 2) {
+                continue;
+            }
+            $acrossStart = $gapAxisIsColumn ? $placement['row'] : $placement['col'];
+            $acrossCount = max(1, $gapAxisIsColumn ? $placement['rowSpan'] : $placement['colSpan']);
+            for ($b = max(0, $acrossStart); $b < min($runTrackCount, $acrossStart + $acrossCount); $b++) {
+                $blocked[$b] = true;
+            }
+        }
+
+        return $blocked;
     }
 
     /**

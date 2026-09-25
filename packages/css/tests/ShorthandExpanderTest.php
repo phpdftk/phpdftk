@@ -1264,4 +1264,90 @@ final class ShorthandExpanderTest extends TestCase
         self::assertInstanceOf(Keyword::class, $out['border-image-repeat']);
         self::assertSame('stretch', $out['border-image-repeat']->name);
     }
+
+    public function testAxisAgnosticRuleShorthandSetsBothAxes(): void
+    {
+        // CSS Gaps 1 §3 — `rule: <width> || <style> || <color>` is the
+        // axis-agnostic form: it writes the `column-rule-*` AND `row-rule-*`
+        // longhands in one declaration.
+        $out = $this->expander->expand('rule', $this->value('6px solid red'));
+        foreach (['column-rule', 'row-rule'] as $prefix) {
+            self::assertInstanceOf(Length::class, $out["$prefix-width"]);
+            self::assertSame(6.0, $out["$prefix-width"]->value);
+            self::assertInstanceOf(Keyword::class, $out["$prefix-style"]);
+            self::assertSame('solid', $out["$prefix-style"]->name);
+            self::assertInstanceOf(Color::class, $out["$prefix-color"]);
+        }
+    }
+
+    public function testAxisAgnosticRuleLonghandShorthandsSetBothAxes(): void
+    {
+        // CSS Gaps 1 §3 — `rule-break` / `rule-visibility-items` (and the
+        // `rule-width` / `-style` / `-color` singles) copy onto both axes.
+        $out = $this->expander->expand('rule-break', $this->value('intersection'));
+        self::assertSame('intersection', $out['column-rule-break']->toCss());
+        self::assertSame('intersection', $out['row-rule-break']->toCss());
+
+        $out = $this->expander->expand('rule-visibility-items', $this->value('between'));
+        self::assertSame('between', $out['column-rule-visibility-items']->toCss());
+        self::assertSame('between', $out['row-rule-visibility-items']->toCss());
+    }
+
+    public function testRuleInsetOneValueSetsAllFourEndpointsOnBothAxes(): void
+    {
+        // CSS Gaps 1 §4 — `rule-inset: <lp>` writes cap-start/-end and
+        // junction-start/-end on both axes.
+        $out = $this->expander->expand('rule-inset', $this->value('0px'));
+        self::assertCount(8, $out);
+        foreach (['column-rule', 'row-rule'] as $prefix) {
+            foreach (['cap-start', 'cap-end', 'junction-start', 'junction-end'] as $end) {
+                self::assertInstanceOf(Length::class, $out["$prefix-inset-$end"]);
+                self::assertSame(0.0, $out["$prefix-inset-$end"]->value);
+            }
+        }
+    }
+
+    public function testRuleInsetTwoValuesSplitStartAndEnd(): void
+    {
+        // Two values map first → the START endpoints, second → the END
+        // endpoints (both caps and junctions).
+        $out = $this->expander->expand('column-rule-inset', $this->value('2px 8px'));
+        self::assertSame(2.0, $out['column-rule-inset-cap-start']->value);
+        self::assertSame(2.0, $out['column-rule-inset-junction-start']->value);
+        self::assertSame(8.0, $out['column-rule-inset-cap-end']->value);
+        self::assertSame(8.0, $out['column-rule-inset-junction-end']->value);
+        self::assertArrayNotHasKey('row-rule-inset-cap-start', $out, 'axis-specific form leaves the other axis alone');
+    }
+
+    public function testRuleInsetCapAndJunctionFormsTargetOnlyTheirEndpoints(): void
+    {
+        // Negative: `-inset-cap` must not touch the junction endpoints, and
+        // `-inset-junction` must not touch the caps.
+        $out = $this->expander->expand('row-rule-inset-cap', $this->value('5px'));
+        self::assertSame(['row-rule-inset-cap-start', 'row-rule-inset-cap-end'], array_keys($out));
+
+        $out = $this->expander->expand('row-rule-inset-junction', $this->value('5px'));
+        self::assertSame(['row-rule-inset-junction-start', 'row-rule-inset-junction-end'], array_keys($out));
+    }
+
+    public function testRuleInsetStartAndEndFormsCoverBothCapAndJunction(): void
+    {
+        // `-inset-start` is the cross-cut: it sets the START endpoint of
+        // both the cap and the junction, and nothing on the end side.
+        $out = $this->expander->expand('rule-inset-start', $this->value('10px'));
+        self::assertSame(10.0, $out['column-rule-inset-cap-start']->value);
+        self::assertSame(10.0, $out['column-rule-inset-junction-start']->value);
+        self::assertArrayNotHasKey('column-rule-inset-cap-end', $out);
+        self::assertArrayNotHasKey('column-rule-inset-junction-end', $out);
+    }
+
+    public function testRuleInsetKeywordIsPreservedForTheLayoutGuard(): void
+    {
+        // Negative: `overlap-join` is a keyword, not a length. The expander
+        // must pass it through unchanged so layout can recognise the form it
+        // does not model yet and skip the rule rather than draw it flush.
+        $out = $this->expander->expand('rule-inset', $this->value('overlap-join'));
+        self::assertInstanceOf(Keyword::class, $out['column-rule-inset-cap-start']);
+        self::assertSame('overlap-join', $out['column-rule-inset-cap-start']->name);
+    }
 }

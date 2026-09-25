@@ -10639,39 +10639,20 @@ final class Painter
     }
 
     /**
-     * CSS Gaps 1 — paint `column-rule` (vertical) and `row-rule`
-     * (horizontal) decorations in the gaps of a grid container. Each
-     * rule is centred in its gap and spans the full track area on the
-     * cross axis. Reuses the multicol rule-stroking convention (solid /
-     * dashed / dotted; other styles approximate to solid).
+     * CSS Gaps 1 — paint the `column-rule` / `row-rule` decorations in a
+     * grid container's gaps. The segments — already carrying their break
+     * points, per-item visibility and endpoint insets — were resolved
+     * during layout by
+     * {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout::computeGridGapRuleSegments()};
+     * here they are Y-flipped into PDF space and handed to the shared
+     * {@see strokeGapRule()} helper.
      */
-    /**
-     * CSS Gaps 1 — true when a grid gap rule on the given axis is a plain
-     * continuous line, i.e. the default `spanning-item` break with no
-     * per-item visibility restriction. The grid painter only strokes the
-     * full-track span, which matches the reference only in this case; the
-     * segmented forms (`intersection`/`none` break, `around`/`between`
-     * visibility) are not yet modelled, so callers skip that axis instead
-     * of painting a wrong continuous rule.
-     */
-    private function gapRuleIsContinuous(Box $box, string $prefix): bool
-    {
-        $breakV = $box->style->get("$prefix-break");
-        $break = $breakV instanceof Keyword ? strtolower($breakV->name) : 'spanning-item';
-        if ($break !== 'spanning-item') {
-            return false;
-        }
-        $visV = $box->style->get("$prefix-visibility-items");
-        $vis = $visV instanceof Keyword ? strtolower($visV->name) : 'all';
-        return $vis === 'all';
-    }
-
     private function paintGridGapRules(Box $box, ContentStream $stream): void
     {
         if (!$box instanceof \Phpdftk\HtmlToPdf\Box\GridBox) {
             return;
         }
-        if ($box->columnGapCenters === [] && $box->rowGapCenters === []) {
+        if ($box->gapRuleSegments === []) {
             return;
         }
         $stream->saveGraphicsState();
@@ -10692,35 +10673,16 @@ final class Painter
             $stream->clip();
             $stream->endPath();
         }
-        // Column rules: vertical lines, spanning the grid's row-track area.
-        if ($box->columnGapCenters !== [] && $box->gridContentBottom > $box->gridContentTop) {
-            $pdfTop = $this->pageHeight - $box->gridContentTop;
-            $pdfBottom = $this->pageHeight - $box->gridContentBottom;
-            foreach ($box->columnGapCenters as $cx) {
-                $this->strokeGapRule($box, $stream, 'column-rule', $cx, $pdfBottom, $cx, $pdfTop);
-            }
-        }
-        // Row rules: horizontal lines, spanning the grid's column-track area.
-        // The naive full-span stroke below is only correct for a continuous
-        // rule: the default `spanning-item` break with no per-item visibility
-        // restriction. When the author opts into segmentation we do not yet
-        // model (`*-rule-break: intersection`/`none`, or a non-default
-        // `*-rule-visibility-items`), painting a continuous rule is worse
-        // than painting none — skip that axis rather than draw a wrong rule.
-        if ($box->rowGapCenters !== [] && $box->gridContentRight > $box->gridContentLeft
-            && $this->gapRuleIsContinuous($box, 'row-rule')) {
-            foreach ($box->rowGapCenters as $cy) {
-                $pdfY = $this->pageHeight - $cy;
-                $this->strokeGapRule(
-                    $box,
-                    $stream,
-                    'row-rule',
-                    $box->gridContentLeft,
-                    $pdfY,
-                    $box->gridContentRight,
-                    $pdfY,
-                );
-            }
+        foreach ($box->gapRuleSegments as $seg) {
+            $this->strokeGapRule(
+                $box,
+                $stream,
+                $seg['prefix'],
+                $seg['x1'],
+                $this->pageHeight - $seg['y1'],
+                $seg['x2'],
+                $this->pageHeight - $seg['y2'],
+            );
         }
         $stream->restoreGraphicsState();
     }

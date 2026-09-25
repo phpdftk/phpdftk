@@ -48,22 +48,19 @@ final class GridBox extends Box
     public bool $lanesTrackReverse = false;
 
     /**
-     * CSS Gaps 1 — absolute layout-space centre coordinates of each
-     * column gap (for vertical `column-rule` decorations) and row gap
-     * (for horizontal `row-rule` decorations). Populated by
-     * {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout::layoutGridBox()} and
-     * consumed by the painter. Empty when there are no gaps.
+     * CSS Gaps 1 §2–§4 — resolved `column-rule` / `row-rule` gap-decoration
+     * segments in top-down layout coordinates. Each entry carries the rule
+     * prefix (`'column-rule'` or `'row-rule'`, which selects the `-width` /
+     * `-style` / `-color` longhands) and the two endpoints of the
+     * centre-line to stroke. Breaks (`*-rule-break`), per-item visibility
+     * (`*-rule-visibility-items`) and endpoint insets (`*-rule-inset-*`)
+     * are already applied. Populated by
+     * {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout::computeGridGapRuleSegments()}
+     * and consumed by
+     * {@see \Phpdftk\HtmlToPdf\Painter\Painter::paintGridGapRules()}.
+     * Empty when the grid paints no gap decorations.
      *
-     * @var list<float>
+     * @var list<array{prefix: string, x1: float, y1: float, x2: float, y2: float}>
      */
-    public array $columnGapCenters = [];
-
-    /** @var list<float> */
-    public array $rowGapCenters = [];
-
-    /** Grid track area bounds in layout space — the rule span extents. */
-    public float $gridContentLeft = 0.0;
-    public float $gridContentRight = 0.0;
-    public float $gridContentTop = 0.0;
-    public float $gridContentBottom = 0.0;
+    public array $gapRuleSegments = [];
 }
