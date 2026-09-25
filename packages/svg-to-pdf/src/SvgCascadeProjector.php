@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Phpdftk\SvgToPdf;
 
 use Phpdftk\Css\Cascade\CascadedValues;
+use Phpdftk\Css\Value\Calc;
+use Phpdftk\Css\Value\Length;
+use Phpdftk\Css\Value\Percentage;
 use Phpdftk\Svg\Css\CssBridge;
 use Phpdftk\Svg\Element;
 use Phpdftk\Svg\GenericElement;
@@ -404,6 +407,37 @@ final class SvgCascadeProjector
             $document,
             $parentValues,
         );
+
+        // CSS Variables 1 §3 — `var()` is substituted at computed-value
+        // time, which only the cascade can do. A presentation attribute
+        // is an ordinary CSS declaration (SVG 2 §6.7), so
+        // `width="var(--length)"` is legal — but the painter reads
+        // geometry straight off the attribute, where the raw `var(...)`
+        // text parses as nothing and the shape collapsed to zero. Write
+        // the substituted value back over the attribute so the painter
+        // sees a length.
+        foreach (self::PROJECTED_GEOMETRY as $property) {
+            $own = $element->getAttribute($property);
+            if ($own === null || !str_contains(strtolower($own), 'var(')) {
+                continue;
+            }
+            // A substituted value still has to BE a valid value for
+            // the property, or the declaration is invalid at
+            // computed-value time and falls back to the initial —
+            // `auto`, which the painter reads as "no geometry".
+            // `--length: 100` is the case that matters: a presentation
+            // attribute may be a unitless number, but the CSS `width`
+            // property may not, and WPT pins the shape not rendering.
+            $substituted = $values->get($property);
+            $element->setAttribute(
+                $property,
+                $substituted instanceof Length
+                || $substituted instanceof Percentage
+                || $substituted instanceof Calc
+                    ? $substituted->toCss()
+                    : 'auto',
+            );
+        }
 
         $declarations = [];
         foreach ([...self::PROJECTED_GEOMETRY, ...self::PROJECTED_TRANSFORM] as $property) {

@@ -62,6 +62,14 @@ final class CssBridge
         'marker', 'marker-start', 'marker-mid', 'marker-end',
         // SVG 2 §13.6 — `vector-effect`.
         'vector-effect',
+        // SVG 2 §10.1 geometry properties. Present so the cascade can
+        // do what only the cascade can: substitute `var()` out of a
+        // presentation attribute (§6.7 makes one an ordinary CSS
+        // declaration at specificity 0). The PAINTER still reads these
+        // off the attribute — see SvgCascadeProjector, which writes the
+        // substituted value back — so adding them here does not change
+        // which value wins for anything that has no `var()` in it.
+        'x', 'y', 'width', 'height', 'cx', 'cy', 'r', 'rx', 'ry',
     ];
 
     /**
