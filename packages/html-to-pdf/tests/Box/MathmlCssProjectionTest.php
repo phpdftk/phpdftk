@@ -199,6 +199,26 @@ final class MathmlCssProjectionTest extends TestCase
         self::assertNull($mo->getAttribute('style'));
     }
 
+    public function testDeclaredDirectionReachesAMathmlElement(): void
+    {
+        $mrow = $this->project(self::MATH, 'mrow { direction: rtl; }', 'mrow');
+        self::assertNotNull($mrow);
+        self::assertSame('direction: rtl', $mrow->getAttribute('style'));
+    }
+
+    /**
+     * Negative guard: `direction` IS inherited, so stamping it
+     * wherever it merely inherits would pin every descendant to the
+     * document default and defeat `dir` / `direction` set on an
+     * ancestor — the painter resolves that by walking up the tree.
+     */
+    public function testInheritedDirectionIsNotStampedOnDescendants(): void
+    {
+        $mo = $this->project(self::MATH, 'mrow { direction: rtl; }', 'mo');
+        self::assertNotNull($mo);
+        self::assertNull($mo->getAttribute('style'));
+    }
+
     /**
      * MathML Core §2.1.1 makes `mathcolor` a presentational hint,
      * which loses to any author declaration.

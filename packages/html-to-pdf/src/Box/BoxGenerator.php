@@ -3437,6 +3437,10 @@ final class BoxGenerator
         // `display: none` or out-of-flow positioning removed.
         'display',
         'position',
+        // §3.1.5.4 — the `dir` attribute is a presentational hint
+        // that maps onto this property, so a document rule naming
+        // `direction` outranks it and has to reach the painter.
+        'direction',
     ];
 
     /**

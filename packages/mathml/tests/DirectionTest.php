@@ -86,6 +86,81 @@ final class DirectionTest extends TestCase
         self::assertSame('ltr', $doc->dir());
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core §3.1.5.4 — `dir` is a presentational hint mapping
+    // onto the CSS `direction` property, so the property is the
+    // authority. direction-010 renders `dir="rtl"` and matches a
+    // reference written as `style="direction: rtl"`.
+    // ---------------------------------------------------------------
+
+    public function testCssDirectionOnTheRootIsRecognised(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" style="direction: rtl">'
+                . '<mi>x</mi></math>',
+        );
+        self::assertSame('rtl', $doc->dir());
+    }
+
+    public function testCssDirectionOnAnInnerElementIsRecognised(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mrow style="direction: rtl"><mi>x</mi></mrow></math>',
+        );
+        self::assertSame('rtl', $this->firstElement($doc->children)->dir());
+    }
+
+    public function testCssDirectionOutranksTheAttributeHint(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML"'
+                . ' dir="ltr" style="direction: rtl"><mi>x</mi></math>',
+        );
+        self::assertSame('rtl', $doc->dir());
+    }
+
+    public function testCssDirectionIsCaseFoldedAndTrimmed(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" style="direction:  RTL  ">'
+                . '<mi>x</mi></math>',
+        );
+        self::assertSame('rtl', $doc->dir());
+    }
+
+    /**
+     * Negative guard: an unrelated declaration must not be read as a
+     * direction, and the attribute must still work when the style
+     * carries other properties.
+     */
+    public function testAnUnrelatedStyleDeclarationDoesNotSetDirection(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" style="color: red">'
+                . '<mi>x</mi></math>',
+        );
+        self::assertNull($doc->dir());
+    }
+
+    public function testTheAttributeStillAppliesAlongsideOtherStyleDeclarations(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML"'
+                . ' dir="rtl" style="color: red"><mi>x</mi></math>',
+        );
+        self::assertSame('rtl', $doc->dir());
+    }
+
+    public function testAnInvalidCssDirectionFallsBackToNull(): void
+    {
+        $doc = $this->parser->parse(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML" style="direction: sideways">'
+                . '<mi>x</mi></math>',
+        );
+        self::assertNull($doc->dir());
+    }
+
     /**
      * @param list<\Phpdftk\Mathml\Node> $nodes
      */

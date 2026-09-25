@@ -328,15 +328,28 @@ abstract class Element extends Node
     }
 
     /**
-     * `dir` per MathML Core §3.1.5.4 — `ltr` or `rtl`. Sets the
-     * layout direction for this element's children. Inherits from
-     * the nearest ancestor with `dir` set when absent. Returns null
-     * when no explicit value is provided so the painter can walk up
-     * the tree (or fall back to LTR).
+     * Layout direction — `ltr` or `rtl`. Sets the direction for this
+     * element's children. Returns null when neither form is present,
+     * so the painter can walk up the tree (or fall back to LTR).
+     *
+     * MathML Core §3.1.5.4 makes the `dir` ATTRIBUTE a presentational
+     * hint that maps onto the CSS `direction` property, so the CSS
+     * property is the authority and wins when both are present.
+     * `direction-010` pins that equivalence directly: it renders
+     * `dir="rtl"` on `<math>` / `<mrow>` / `<mstyle>` and matches a
+     * reference that writes `style="direction: rtl"` on the same
+     * elements. Reading only the attribute left the reference side
+     * laid out left-to-right.
+     *
+     * The CSS value arrives either as an author's own inline style or
+     * through the cascade `HtmlToPdf\Box\BoxGenerator` projects onto
+     * the MathML subtree.
      */
     public function dir(): ?string
     {
-        $raw = $this->attributes['dir'] ?? null;
+        $raw = $this->extractStyleProperty('direction')
+            ?? $this->attributes['dir']
+            ?? null;
         if ($raw === null) {
             return null;
         }
