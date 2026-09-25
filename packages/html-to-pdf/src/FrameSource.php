@@ -66,10 +66,22 @@ final readonly class FrameSource
             return '';
         }
         if (!str_starts_with(strtolower($src), 'data:')) {
-            // A relative / root-relative path. The loader confines it to
-            // the configured sandbox and refuses stream wrappers, so a
-            // frame cannot read outside the document tree it came from.
-            return $this->loader?->load($src);
+            // A relative / root-relative path. Disk paths carry no
+            // transport MIME, so the extension is the only signal for
+            // whether the target is markup — and getting that wrong is
+            // not harmless: `<iframe src="green.png">` handed a PNG's
+            // bytes to the HTML parser renders a frame full of
+            // `\x89PNG IHDR…IDAT` mojibake, which is a worse answer than
+            // an empty frame. A non-markup resource is an *image / plugin
+            // document*, which this does not model yet.
+            $path = self::pathOf($src);
+            if ($path === null || !self::hasMarkupExtension($path)) {
+                return null;
+            }
+            // The loader confines the path to the configured sandbox and
+            // refuses stream wrappers, so a frame cannot read outside the
+            // document tree it came from.
+            return $this->loader?->load($path);
         }
         // `data:text/html,…`. The MIME allowlist matters: a frame whose
         // `src` is `data:image/png;base64,…` embeds an image document we
@@ -77,6 +89,44 @@ final readonly class FrameSource
         // parser would produce a page of mojibake rather than nothing.
         // A bare `data:,…` has no MIME at all and defaults to text/plain
         // per rfc2397, so it is not markup either.
-        return $this->loader?->load($src, ['text/html', 'application/xhtml+xml']);
+        return $this->loader?->load($src, ['text/html']);
+    }
+
+    /**
+     * The file-path part of `$src`, with query string and fragment
+     * removed, or null when nothing is left.
+     *
+     * Both have to go before the path reaches the filesystem: there is no
+     * server here to interpret `?v=2`, so `support/x.html?v=2` names the
+     * file `support/x.html` and leaving the query attached simply fails
+     * the read.
+     */
+    private static function pathOf(string $src): ?string
+    {
+        // `strcspn` rather than `strtok`, which SKIPS leading delimiters
+        // and would turn the same-document reference `#frag` into the
+        // path `frag`.
+        $path = substr($src, 0, strcspn($src, '?#'));
+        return $path === '' ? null : $path;
+    }
+
+    /**
+     * Does `$path` name a markup resource?
+     *
+     * An extensionless path is accepted — a server path like
+     * `/common/blank` names a document, not a file type we can rule out.
+     */
+    private static function hasMarkupExtension(string $path): bool
+    {
+        $dot = strrpos($path, '.');
+        $slash = strrpos($path, '/');
+        if ($dot === false || ($slash !== false && $dot < $slash)) {
+            return true;
+        }
+        return in_array(
+            strtolower(substr($path, $dot + 1)),
+            ['html', 'htm', 'xhtml', 'xht'],
+            true,
+        );
     }
 }
