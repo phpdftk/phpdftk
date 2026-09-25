@@ -946,7 +946,7 @@ final class RendererTest extends TestCase
         self::assertStringContainsString('%%EOF', $bytes);
     }
 
-    public function testOutlineEmitsStrokedRect(): void
+    public function testOutlineEmitsFilledBandOutsideTheBorderBox(): void
     {
         $writer = new PdfWriter(compressStreams: false);
         (new Renderer())->renderInto(
@@ -954,10 +954,15 @@ final class RendererTest extends TestCase
             '<html><body><div style="outline: 2px solid red; width: 100px; height: 50px;"></div></body></html>',
         );
         $bytes = $writer->toBytes();
-        // Outline = stroked rect with line width 2 + red stroke colour.
-        self::assertStringContainsString('1 0 0 RG', $bytes, 'red stroke colour');
-        self::assertMatchesRegularExpression('~2(?:\.0+)? w~', $bytes, 'line width 2');
-        self::assertMatchesRegularExpression('~re\s+S~', $bytes, 'stroked rect');
+        // CSS UI 3 §4 — a solid outline is an even-odd filled band lying
+        // entirely OUTSIDE the border box, not a stroke centred on the border
+        // edge (which would bleed 1px of the 2px outline inside the box).
+        self::assertStringContainsString('1 0 0 rg', $bytes, 'red fill colour');
+        self::assertMatchesRegularExpression(
+            '~-2 740 104 54 re\s+0 742 100 50 re\s+f\*~',
+            $bytes,
+            'outer rect minus border-box rect, filled even-odd',
+        );
     }
 
     public function testOutlineDashedEmitsDashPattern(): void

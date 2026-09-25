@@ -10332,23 +10332,26 @@ final class Painter
         if ($styleName === 'double' && $width >= 3.0) {
             $third = $width / 3.0;
             $stream->setLineWidth($third);
-            // Outer ring: path centred between the outline's outer
-            // edge and (outer edge + third). The stroke straddles the
-            // path by ±third/2, so the outer face sits on the outline
-            // outer edge.
+            // `$outerX`/`$outerWidth` describe the path for a CENTRED stroke
+            // of the FULL width, so that rect sits half the outline width in
+            // from the outline's outer edge — it is not the outer edge itself.
+            // Each ring is `$third` thick, so its path is `($width - $third)/2`
+            // out from (outer ring) or in from (inner ring) that centre rect.
+            $ring = ($width - $third) / 2.0;
+            // Outer ring: outer face flush with the outline's outer edge.
             $stream->rectangle(
-                $outerX + $third / 2,
-                $pdfY + $third / 2,
-                $outerWidth - $third,
-                $outerHeight - $third,
+                $outerX - $ring,
+                $pdfY - $ring,
+                $outerWidth + 2.0 * $ring,
+                $outerHeight + 2.0 * $ring,
             );
             $stream->stroke();
-            // Inner ring: path centred two-thirds in from the outer.
+            // Inner ring: inner face flush with the border box (+ offset).
             $stream->rectangle(
-                $outerX + 2.5 * $third,
-                $pdfY + 2.5 * $third,
-                $outerWidth - 5 * $third,
-                $outerHeight - 5 * $third,
+                $outerX + $ring,
+                $pdfY + $ring,
+                $outerWidth - 2.0 * $ring,
+                $outerHeight - 2.0 * $ring,
             );
             $stream->stroke();
             $stream->restoreGraphicsState();

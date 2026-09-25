@@ -1018,8 +1018,9 @@ final class PainterTest extends TestCase
 
     public function testDoubleOutlineTooThinFallsBackToSolid(): void
     {
-        // 2px is < 3 — outline double can't split into thirds, fall
-        // back to single solid stroke.
+        // 2px is < 3 — outline double can't split into thirds, so it
+        // falls back to `solid`, which paints an even-odd filled band
+        // (outer rect minus inner rect) rather than a centred stroke.
         $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
         $sheet = $this->css->parseStylesheet(
             'html, body, div { display: block; }
@@ -1037,7 +1038,57 @@ final class PainterTest extends TestCase
 
         $opcodes = $this->operatorTokens($stream->getOperators());
         $strokeCount = count(array_filter($opcodes, static fn($n) => $n === 'S'));
-        self::assertSame(1, $strokeCount, 'hairline double outline falls back to one stroked rect');
+        $fillCount = count(array_filter($opcodes, static fn($n) => $n === 'f*'));
+        self::assertSame(0, $strokeCount, 'the solid fallback fills, it does not stroke');
+        self::assertSame(1, $fillCount, 'hairline double outline falls back to one filled band');
+        self::assertSame(
+            2,
+            count(array_filter($opcodes, static fn($n) => $n === 're')),
+            'the band is an outer rect minus an inner rect',
+        );
+    }
+
+    public function testDoubleOutlineRingsSitOutsideTheBorderBox(): void
+    {
+        // CSS UI 3 §4 — the whole outline is drawn OUTSIDE the border box.
+        // A `6px double` outline is three 2px thirds: the outer ring's outer
+        // face is flush with the outline's outer edge (6px out) and the inner
+        // ring's inner face is flush with the border box. Regression guard:
+        // both rings were previously derived from the full-width centred
+        // stroke path, which shifted them 3px inwards and drew the inner ring
+        // INSIDE the border box.
+        $doc = $this->html->parseDocument('<html><body><div></div></body></html>');
+        $sheet = $this->css->parseStylesheet(
+            'html, body, div { display: block; margin: 0; }
+             div { width: 100px; height: 50px; outline: 6px double red; }',
+            Origin::UserAgent,
+        );
+        $root = $this->generator->generate($doc, [$sheet]);
+        $this->layout->layout($root, new LayoutContext(600, 800, 0, 0, new LengthContext()));
+
+        $writer = new PdfWriter(compressStreams: false);
+        $page = $writer->addPage(612, 792);
+        $stream = $writer->addContentStream($page);
+        $painter = new Painter(792.0);
+        $painter->paint($root, $stream);
+
+        preg_match_all(
+            '~(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) re~',
+            implode("\n", $stream->getOperators()),
+            $rects,
+            PREG_SET_ORDER,
+        );
+        // Drop the page clip rect; the outline contributes the last two.
+        $rings = array_slice($rects, -2);
+        self::assertCount(2, $rings, 'two concentric rings');
+        [$outer, $inner] = $rings;
+        // Border box is 100x50 at x=0. Stroke width is 2 (a third of 6), so
+        // the outer ring's path runs 5px out (covering 6px..4px out) and the
+        // inner ring's path 1px out (covering 2px..0px out).
+        self::assertEqualsWithDelta(-5.0, (float) $outer[1], 0.01, 'outer ring path x');
+        self::assertEqualsWithDelta(110.0, (float) $outer[3], 0.01, 'outer ring path width');
+        self::assertEqualsWithDelta(-1.0, (float) $inner[1], 0.01, 'inner ring path x');
+        self::assertEqualsWithDelta(102.0, (float) $inner[3], 0.01, 'inner ring path width');
     }
 
     public function testInsetBoxShadowEmitsEvenOddFill(): void
