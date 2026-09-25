@@ -319,4 +319,140 @@ final class CounterStyleRegistryTest extends TestCase
     {
         self::assertSame($expected, $this->registry->representation($value, $style));
     }
+
+    // -----------------------------------------------------------------
+    // §7.1 East Asian styles. Every expectation below is transcribed from
+    // the CSS test suite's own reference files, which spell the marker out
+    // as literal text.
+    // -----------------------------------------------------------------
+
+    /** @return iterable<string, array{0: string, 1: int, 2: string}> */
+    public static function cjkProvider(): iterable
+    {
+        // Informal Japanese drops the leading 1 before EVERY place marker
+        // and never inserts a zero filler.
+        yield 'ja-informal 0' => ['japanese-informal', 0, "\u{3007}"];
+        yield 'ja-informal 10' => ['japanese-informal', 10, "\u{5341}"];
+        yield 'ja-informal 11' => ['japanese-informal', 11, "\u{5341}\u{4E00}"];
+        yield 'ja-informal 100' => ['japanese-informal', 100, "\u{767E}"];
+        yield 'ja-informal 101' => ['japanese-informal', 101, "\u{767E}\u{4E00}"];
+        yield 'ja-informal 1000' => ['japanese-informal', 1000, "\u{5343}"];
+        yield 'ja-informal 1005' => ['japanese-informal', 1005, "\u{5343}\u{4E94}"];
+        yield 'ja-informal 1060' => ['japanese-informal', 1060, "\u{5343}\u{516D}\u{5341}"];
+        yield 'ja-informal 9999' => [
+            'japanese-informal', 9999,
+            "\u{4E5D}\u{5343}\u{4E5D}\u{767E}\u{4E5D}\u{5341}\u{4E5D}",
+        ];
+        // Formal Japanese keeps the 1 and uses the formal digits.
+        yield 'ja-formal 10' => ['japanese-formal', 10, "\u{58F1}\u{62FE}"];
+        yield 'ja-formal 100' => ['japanese-formal', 100, "\u{58F1}\u{767E}"];
+        yield 'ja-formal 1000' => ['japanese-formal', 1000, "\u{58F1}\u{9621}"];
+        yield 'ja-formal 1005' => ['japanese-formal', 1005, "\u{58F1}\u{9621}\u{4F0D}"];
+        yield 'ja-formal 540' => ['japanese-formal', 540, "\u{4F0D}\u{767E}\u{56DB}\u{62FE}"];
+
+        // Chinese inserts the zero filler for skipped interior places —
+        // the behaviour a plain additive system cannot express.
+        yield 'simp-informal 101' => [
+            'simp-chinese-informal', 101, "\u{4E00}\u{767E}\u{96F6}\u{4E00}",
+        ];
+        yield 'simp-informal 1005' => [
+            'simp-chinese-informal', 1005, "\u{4E00}\u{5343}\u{96F6}\u{4E94}",
+        ];
+        yield 'simp-informal 1060' => [
+            'simp-chinese-informal', 1060, "\u{4E00}\u{5343}\u{96F6}\u{516D}\u{5341}",
+        ];
+        // ... but not for TRAILING ones: 1800 is 一千八百, not 一千八百零零.
+        yield 'simp-informal 1800' => [
+            'simp-chinese-informal', 1800, "\u{4E00}\u{5343}\u{516B}\u{767E}",
+        ];
+        // Informal Chinese drops the 1 only in a LEADING tens place.
+        yield 'simp-informal 10' => ['simp-chinese-informal', 10, "\u{5341}"];
+        yield 'simp-informal 100' => ['simp-chinese-informal', 100, "\u{4E00}\u{767E}"];
+        yield 'simp-informal 1000' => ['simp-chinese-informal', 1000, "\u{4E00}\u{5343}"];
+        yield 'trad-informal 101' => [
+            'trad-chinese-informal', 101, "\u{4E00}\u{767E}\u{96F6}\u{4E00}",
+        ];
+        yield 'simp-formal 101' => [
+            'simp-chinese-formal', 101, "\u{58F9}\u{4F70}\u{96F6}\u{58F9}",
+        ];
+        yield 'trad-formal 1065' => [
+            'trad-chinese-formal', 1065,
+            "\u{58F9}\u{4EDF}\u{96F6}\u{9678}\u{62FE}\u{4F0D}",
+        ];
+
+        // Korean: no zero filler, formal keeps the 1, hanja-informal drops it.
+        yield 'ko-hangul 1005' => [
+            'korean-hangul-formal', 1005, "\u{C77C}\u{CC9C}\u{C624}",
+        ];
+        yield 'ko-hangul 10' => ['korean-hangul-formal', 10, "\u{C77C}\u{C2ED}"];
+        yield 'ko-hanja-informal 1005' => [
+            'korean-hanja-informal', 1005, "\u{5343}\u{4E94}",
+        ];
+        yield 'ko-hanja-formal 1005' => [
+            'korean-hanja-formal', 1005, "\u{58F9}\u{4EDF}\u{4E94}",
+        ];
+    }
+
+    #[DataProvider('cjkProvider')]
+    public function testEastAsianStyle(string $style, int $value, string $expected): void
+    {
+        self::assertSame($expected, $this->registry->representation($value, $style));
+    }
+
+    /** @return iterable<string, array{0: string, 1: string}> */
+    public static function cjkNegativeProvider(): iterable
+    {
+        yield 'japanese-informal' => ['japanese-informal', "\u{30DE}\u{30A4}\u{30CA}\u{30B9}"];
+        yield 'japanese-formal' => ['japanese-formal', "\u{30DE}\u{30A4}\u{30CA}\u{30B9}"];
+        yield 'simp-chinese-informal' => ['simp-chinese-informal', "\u{8D1F}"];
+        yield 'trad-chinese-informal' => ['trad-chinese-informal', "\u{8CA0}"];
+        yield 'korean-hangul-formal' => [
+            'korean-hangul-formal', "\u{B9C8}\u{C774}\u{B108}\u{C2A4} ",
+        ];
+    }
+
+    #[DataProvider('cjkNegativeProvider')]
+    public function testEastAsianNegativePrefix(string $style, string $prefix): void
+    {
+        self::assertSame(
+            $prefix . $this->registry->representation(10, $style),
+            $this->registry->representation(-10, $style),
+            'a negative value is the prefix plus the representation of its magnitude',
+        );
+    }
+
+    /** @return iterable<string, array{0: string, 1: string}> */
+    public static function cjkOutOfRangeProvider(): iterable
+    {
+        // §7.1 declares `range: -9999 9999`. The optional extended range
+        // (万 / 億 / 兆) is deliberately NOT implemented, so 10000 takes the
+        // fallback — cjk-decimal for Chinese and Japanese, decimal for
+        // Korean, which declares none.
+        yield 'japanese-informal' => [
+            'japanese-informal', "\u{4E00}\u{3007}\u{3007}\u{3007}\u{3007}",
+        ];
+        yield 'simp-chinese-formal' => [
+            'simp-chinese-formal', "\u{4E00}\u{3007}\u{3007}\u{3007}\u{3007}",
+        ];
+        yield 'korean-hangul-formal' => ['korean-hangul-formal', '10000'];
+        yield 'korean-hanja-informal' => ['korean-hanja-informal', '10000'];
+    }
+
+    #[DataProvider('cjkOutOfRangeProvider')]
+    public function testEastAsianOutOfRangeFallback(string $style, string $expected): void
+    {
+        self::assertSame($expected, $this->registry->representation(10000, $style));
+    }
+
+    public function testEastAsianMarkerKeepsItsOwnSuffixThroughAFallback(): void
+    {
+        // The reference file for css3-counter-styles-054 shows `10000, ` —
+        // the fallback supplies the SYMBOLS, the original style still
+        // supplies the affixes.
+        self::assertSame('10000, ', $this->registry->marker(10000, 'korean-hangul-formal'));
+        self::assertSame(
+            "\u{4E00}\u{3007}\u{3007}\u{3007}\u{3007}\u{3001}",
+            $this->registry->marker(10000, 'japanese-informal'),
+        );
+    }
 }

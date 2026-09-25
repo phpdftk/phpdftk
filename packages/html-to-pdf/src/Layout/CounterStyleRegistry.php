@@ -79,12 +79,6 @@ final class CounterStyleRegistry
         return $def->prefix . $this->representation($value, $key) . $def->suffix;
     }
 
-    /** The `suffix` descriptor of `$name`, or the initial `". "`. */
-    public function suffix(string $name): string
-    {
-        return $this->styles[strtolower($name)]?->suffix ?? '. ';
-    }
-
     /**
      * CSS Counter Styles 3 §2 — generate a counter representation, or null
      * when neither this style nor its fallback chain can represent `$value`.
@@ -194,6 +188,9 @@ final class CounterStyleRegistry
 
             case CounterStyleDefinition::ADDITIVE:
                 return self::additive($def->additiveSymbols, $value);
+
+            case CounterStyleDefinition::CJK_IDEOGRAPHIC:
+                return self::cjkIdeographic($def, $value);
         }
         return null;
     }
@@ -231,6 +228,70 @@ final class CounterStyleRegistry
             }
         }
         return null;
+    }
+
+    /**
+     * CSS Counter Styles 3 §7.1 — the East Asian "longhand" numerals, for
+     * values 0-9999 (the range every one of these styles declares).
+     *
+     * Walks the four decimal places from thousands down, emitting
+     * `digit + place marker`, with two per-family adjustments:
+     *
+     *  - a leading `1` before a place marker is dropped by the informal
+     *    styles (十 rather than 壹拾), never by the formal ones;
+     *  - Chinese inserts the zero digit wherever an interior place was
+     *    skipped (一千零五), which is the reason this cannot be the
+     *    `additive` system the spec presents it as.
+     *
+     * Trailing zero places emit nothing at all: 1800 is 一千八百.
+     */
+    private static function cjkIdeographic(CounterStyleDefinition $def, int $value): ?string
+    {
+        $digits = $def->symbols;
+        $multipliers = $def->cjkMultipliers;
+        if (count($digits) < 10 || count($multipliers) < 3 || $value < 0 || $value > 9999) {
+            return null;
+        }
+        if ($value === 0) {
+            return $digits[0];
+        }
+        $out = '';
+        $emitted = false;
+        $skipped = false;
+        for ($place = 3; $place >= 0; $place--) {
+            $digit = intdiv($value, 10 ** $place) % 10;
+            if ($digit === 0) {
+                // Only an INTERIOR zero can call for a filler; a run of
+                // leading zeros is not part of the number at all, and a
+                // trailing one is simply absent.
+                $skipped = $emitted;
+                continue;
+            }
+            if ($skipped && $def->cjkZeroFiller) {
+                $out .= $digits[0];
+            }
+            $skipped = false;
+            if ($place === 0 || $digit !== 1 || !self::elidesLeadingOne($def, $place, $emitted)) {
+                $out .= $digits[$digit];
+            }
+            if ($place > 0) {
+                $out .= $multipliers[$place - 1];
+            }
+            $emitted = true;
+        }
+        return $out;
+    }
+
+    private static function elidesLeadingOne(
+        CounterStyleDefinition $def,
+        int $place,
+        bool $emitted,
+    ): bool {
+        return match ($def->cjkElideOne) {
+            CounterStyleDefinition::ELIDE_ALL => true,
+            CounterStyleDefinition::ELIDE_LEADING_TENS => $place === 1 && !$emitted,
+            default => false,
+        };
     }
 
     // -----------------------------------------------------------------
@@ -323,7 +384,7 @@ final class CounterStyleRegistry
         $s['lower-roman'] = new CounterStyleDefinition(
             system: CounterStyleDefinition::ADDITIVE,
             additiveSymbols: array_map(
-                static fn (array $t): array => [$t[0], strtolower($t[1])],
+                static fn(array $t): array => [$t[0], strtolower($t[1])],
                 $roman,
             ),
             rangeMin: 1,
@@ -340,7 +401,7 @@ final class CounterStyleRegistry
         $s['lower-armenian'] = new CounterStyleDefinition(
             system: CounterStyleDefinition::ADDITIVE,
             additiveSymbols: array_map(
-                static fn (array $t): array => [$t[0], mb_strtolower($t[1], 'UTF-8')],
+                static fn(array $t): array => [$t[0], mb_strtolower($t[1], 'UTF-8')],
                 $armenian,
             ),
             rangeMin: 1,
@@ -433,6 +494,77 @@ final class CounterStyleRegistry
             suffix: "\u{3001}",
         );
 
+        // §7.1 East Asian. Every one declares `range: -9999 9999` and
+        // `fallback: cjk-decimal`, so 10000 renders as 一〇〇〇〇 rather
+        // than reaching for the 万 the optional extended range would use.
+        $ja = "\u{30DE}\u{30A4}\u{30CA}\u{30B9}";        // マイナス
+        $ko = "\u{B9C8}\u{C774}\u{B108}\u{C2A4}\u{0020}"; // 마이너스␣
+        $ideographicComma = "\u{3001}";
+        foreach ([
+            'japanese-informal' => [
+                "\u{3007}\u{4E00}\u{4E8C}\u{4E09}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{5341}\u{767E}\u{5343}",
+                CounterStyleDefinition::ELIDE_ALL, false, $ideographicComma, $ja,
+            ],
+            'japanese-formal' => [
+                "\u{96F6}\u{58F1}\u{5F10}\u{53C2}\u{56DB}\u{4F0D}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{62FE}\u{767E}\u{9621}",
+                CounterStyleDefinition::ELIDE_NONE, false, $ideographicComma, $ja,
+            ],
+            'simp-chinese-informal' => [
+                "\u{96F6}\u{4E00}\u{4E8C}\u{4E09}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{5341}\u{767E}\u{5343}",
+                CounterStyleDefinition::ELIDE_LEADING_TENS, true, $ideographicComma, "\u{8D1F}",
+            ],
+            'simp-chinese-formal' => [
+                "\u{96F6}\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}\u{9646}\u{67D2}\u{634C}\u{7396}",
+                "\u{62FE}\u{4F70}\u{4EDF}",
+                CounterStyleDefinition::ELIDE_NONE, true, $ideographicComma, "\u{8D1F}",
+            ],
+            'trad-chinese-informal' => [
+                "\u{96F6}\u{4E00}\u{4E8C}\u{4E09}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{5341}\u{767E}\u{5343}",
+                CounterStyleDefinition::ELIDE_LEADING_TENS, true, $ideographicComma, "\u{8CA0}",
+            ],
+            'trad-chinese-formal' => [
+                "\u{96F6}\u{58F9}\u{8CB3}\u{53C3}\u{8086}\u{4F0D}\u{9678}\u{67D2}\u{634C}\u{7396}",
+                "\u{62FE}\u{4F70}\u{4EDF}",
+                CounterStyleDefinition::ELIDE_NONE, true, $ideographicComma, "\u{8CA0}",
+            ],
+            'korean-hangul-formal' => [
+                "\u{C601}\u{C77C}\u{C774}\u{C0BC}\u{C0AC}\u{C624}\u{C721}\u{CE60}\u{D314}\u{AD6C}",
+                "\u{C2ED}\u{BC31}\u{CC9C}",
+                CounterStyleDefinition::ELIDE_NONE, false, ', ', $ko,
+            ],
+            'korean-hanja-informal' => [
+                "\u{96F6}\u{4E00}\u{4E8C}\u{4E09}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{5341}\u{767E}\u{5343}",
+                CounterStyleDefinition::ELIDE_ALL, false, ', ', $ko,
+            ],
+            'korean-hanja-formal' => [
+                "\u{96F6}\u{58F9}\u{8CB3}\u{53C3}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}\u{4E5D}",
+                "\u{62FE}\u{767E}\u{4EDF}",
+                CounterStyleDefinition::ELIDE_NONE, false, ', ', $ko,
+            ],
+        ] as $name => [$digitRun, $multiplierRun, $elide, $zeroFiller, $styleSuffix, $negative]) {
+            $s[$name] = new CounterStyleDefinition(
+                system: CounterStyleDefinition::CJK_IDEOGRAPHIC,
+                symbols: mb_str_split($digitRun, 1, 'UTF-8'),
+                negativePrefix: $negative,
+                suffix: $styleSuffix,
+                rangeMin: -9999,
+                rangeMax: 9999,
+                // The Chinese and Japanese styles fall back to cjk-decimal;
+                // the Korean ones declare no fallback and so take the
+                // initial `decimal` — 10000 is 一〇〇〇〇 for the former and
+                // plain `10000` for the latter.
+                fallback: str_starts_with($name, 'korean-') ? 'decimal' : 'cjk-decimal',
+                cjkMultipliers: mb_str_split($multiplierRun, 1, 'UTF-8'),
+                cjkElideOne: $elide,
+                cjkZeroFiller: $zeroFiller,
+            );
+        }
+
         self::$predefinedCache = $s;
         return $s;
     }
@@ -466,7 +598,7 @@ final class CounterStyleRegistry
                 $out[] = [$scale * $i, $list[$i - 1]];
             }
         }
-        usort($out, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
+        usort($out, static fn(array $a, array $b): int => $b[0] <=> $a[0]);
         return $out;
     }
 
@@ -483,7 +615,7 @@ final class CounterStyleRegistry
                 $out[] = [$scale * $i, $list[$i - 1]];
             }
         }
-        usort($out, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
+        usort($out, static fn(array $a, array $b): int => $b[0] <=> $a[0]);
         return $out;
     }
 
