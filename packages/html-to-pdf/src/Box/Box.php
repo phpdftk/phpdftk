@@ -77,6 +77,26 @@ abstract class Box
     public bool $wasInlineLevel = false;
 
     /**
+     * The HTML "ordinal value" this box's `::marker` counts with, when the
+     * box is a `display: list-item` one. Null on every other box.
+     *
+     * Assigned by {@see BoxGenerator} during the generation walk rather
+     * than derived from the DOM on demand, because the answer depends on
+     * facts only box generation knows: HTML's "list owner" is the nearest
+     * ancestor `ol` / `ul` / `menu` THAT GENERATES BOXES, and an item that
+     * generates no boxes consumes no ordinal. A DOM-only walk can see
+     * neither, and cannot see that a `display: list-item` `<span>` is an
+     * item at all.
+     *
+     * Both marker paths read it, which is what keeps an `inside` marker
+     * (materialised as inline content by BoxGenerator) and an `outside`
+     * one (painted beside the box by
+     * {@see \Phpdftk\HtmlToPdf\Painter\Painter}) numbering the same list
+     * identically.
+     */
+    public ?int $listItemOrdinal = null;
+
+    /**
      * Set by {@see \Phpdftk\HtmlToPdf\Layout\BlockLayout} on an
      * out-of-flow box that CSS Anchor Positioning 1 §10
      * (`position-visibility`) makes *strongly hidden*. A strongly hidden

@@ -5190,19 +5190,20 @@ final class Painter
     }
 
     /**
-     * Compute the ordinal `$box`'s `::marker` counts with. Returns 0 when
-     * `$box` isn't bound to a DOM element (e.g. anonymous), which the
-     * caller reads as "no marker". The `<ol start>` / `<ol reversed>` /
-     * `<li value>` arithmetic itself lives in {@see ListItemOrdinal} so
-     * the `inside` marker BoxGenerator materialises as inline content
-     * numbers identically to the `outside` marker painted here.
+     * The ordinal `$box`'s `::marker` counts with. Returns 0 when the box
+     * is not a numbered list item, which the caller reads as "no marker".
+     *
+     * The number itself is decided during box generation and parked on
+     * {@see Box::$listItemOrdinal} — HTML's "list owner" is the nearest
+     * ancestor `ol` / `ul` / `menu` THAT GENERATES BOXES, and an item that
+     * generates no boxes consumes no ordinal, so the answer is not
+     * recoverable from the DOM at paint time. Reading the same field the
+     * `inside` marker was built from is also what keeps the two marker
+     * positions numbering a list identically.
      */
     private function listItemIndex(Box $box): int
     {
-        if ($box->element === null) {
-            return 0;
-        }
-        return \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($box->element);
+        return $box->listItemOrdinal ?? 0;
     }
 
     /**

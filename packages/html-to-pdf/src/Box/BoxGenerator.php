@@ -48,6 +48,37 @@ final class BoxGenerator
     private array $counters = [];
 
     /**
+     * Open list-item counter scopes — one per HTML "list owner"
+     * (`ol` / `ul` / `menu`) currently on the generation walk's stack.
+     * Innermost last. Each entry is the running count plus the step to
+     * apply to the next item (`-1` inside an `<ol reversed>`).
+     *
+     * Kept here rather than derived from the DOM per item because the
+     * spec's answer depends on box generation: an owner that generates no
+     * boxes (`display: contents`) is not an owner, an item that generates
+     * no boxes consumes no ordinal, and an item need not be an `<li>` —
+     * any `display: list-item` box counts.
+     *
+     * @var list<array{count: int, step: int}>
+     */
+    private array $listScopes = [];
+
+    /**
+     * Running counts for list items with NO `ol` / `ul` / `menu` ancestor,
+     * keyed by the owning element's object id.
+     *
+     * HTML's list-owner rule has a second limb most implementations skip:
+     * with no list ancestor, the owner is the item's PARENT element. So
+     * two sibling wrappers each full of `<li>`s number independently, and
+     * a `<li>` in a `<div>` inside a run of bare `<li>`s restarts at 1
+     * rather than continuing them.
+     *
+     * @var array<int, int>
+     */
+    private array $looseListCounts = [];
+
+
+    /**
      * CSS Generated Content for Paged Media 3 §5 — named-string
      * store populated as `string-set` declarations flow through
      * the document. Keyed by the string name (the first arg of
@@ -115,6 +146,8 @@ final class BoxGenerator
             return null;
         }
         $this->counters = [];
+        $this->listScopes = [];
+        $this->looseListCounts = [];
         $this->namedStrings = [];
         $this->runningElements = [];
         $this->hasFirstLetterRules = null;
@@ -664,6 +697,17 @@ final class BoxGenerator
             $box->lanesTrackReverse = $lanesTrackReverse;
         }
 
+        // HTML "ordinal value" — the item takes its number from the
+        // innermost open list owner BEFORE its own subtree is walked, so
+        // document order and nesting fall out of the walk itself. Note the
+        // two orderings that matter: an item is numbered in the ENCLOSING
+        // list, and only then does an `<ol>` / `<ul>` / `<menu>` open a
+        // scope of its own for its descendants.
+        if ($display === 'list-item') {
+            $box->listItemOrdinal = $this->nextListItemOrdinal($element, $values);
+        }
+        $openedListScope = $this->pushListScope($element, $sheets, $values);
+
         // Walk children, building child boxes. Text nodes become TextBoxes.
         // `::before` is generated content prepended to the element's own
         // children; `::after` is appended. Both are inline boxes carrying a
@@ -678,7 +722,7 @@ final class BoxGenerator
         // the painter-only `outside` path can never do — gives an empty
         // `<li></li>` a line box, so a list of empty items still steps
         // down one line-height per item instead of collapsing to zero.
-        $insideMarker = $this->insideListMarker($element, $values);
+        $insideMarker = $this->insideListMarker($element, $values, $box->listItemOrdinal);
         if ($insideMarker !== null) {
             $rawChildren[] = $insideMarker;
         }
@@ -792,6 +836,13 @@ final class BoxGenerator
         $after = $this->makePseudoBox($element, $sheets, $values, 'after');
         if ($after !== null) {
             $rawChildren[] = $after;
+        }
+        // Every descendant has been walked, so this element's list scope
+        // (if it opened one) is closed. Popping here rather than at the
+        // returns below keeps it to one site: the box-fixup tail that
+        // follows generates no further list items.
+        if ($openedListScope) {
+            array_pop($this->listScopes);
         }
 
         // CSS 2.1 §5.12.2 / CSS Pseudo 4 §4.1 — `::first-letter`. Runs on
@@ -2147,6 +2198,165 @@ final class BoxGenerator
     }
 
     /**
+     * The next ordinal for a `display: list-item` element, consuming its
+     * list owner's count.
+     *
+     * Two things move the count other than "add one". `<li value="N">`
+     * sets it outright, and the items after it carry on from N. And the
+     * step is scaled by the element's own `counter-increment` for
+     * `list-item`, which is how a `<summary>` — a list item by UA rule,
+     * carrying `counter-increment: list-item 0` — takes a marker without
+     * consuming a number from the list it sits in.
+     *
+     * With no `ol` / `ul` / `menu` ancestor the owner is the item's own
+     * parent, per the second limb of HTML's list-owner rule.
+     */
+    private function nextListItemOrdinal(Element $element, CascadedValues $values): int
+    {
+        $explicit = null;
+        if (strtolower($element->localName) === 'li') {
+            $explicit = $this->integerAttribute($element, 'value');
+        }
+        $step = $this->listItemIncrement($values);
+        $depth = count($this->listScopes) - 1;
+        if ($depth >= 0) {
+            $scope = $this->listScopes[$depth];
+            $next = $explicit ?? $scope['count'] + $scope['step'] * $step;
+            $this->listScopes[$depth]['count'] = $next;
+            return $next;
+        }
+        // No list ancestor: the owner is the parent element.
+        $parent = $element->parentNode;
+        $key = $parent instanceof Element ? spl_object_id($parent) : 0;
+        $next = $explicit ?? ($this->looseListCounts[$key] ?? 0) + $step;
+        $this->looseListCounts[$key] = $next;
+        return $next;
+    }
+
+    /**
+     * The `counter-increment` delta this element declares for the
+     * `list-item` counter, or 1 when it declares none — CSS Lists 3 §4
+     * makes `display: list-item` imply an increment of 1.
+     */
+    private function listItemIncrement(CascadedValues $values): int
+    {
+        $delta = 1;
+        $this->forEachCounterPair(
+            $values->get('counter-increment'),
+            function (string $name, int $value) use (&$delta): void {
+                if (strtolower($name) === 'list-item') {
+                    $delta = $value;
+                }
+            },
+            defaultValue: 1,
+        );
+        return $delta;
+    }
+
+    /**
+     * Open a list-item counter scope if `$element` is an HTML list owner.
+     * Returns whether one was pushed, so the caller knows to pop it once
+     * the element's subtree is done.
+     *
+     * Only `ol`, `ul` and `menu` own a list. `<dir>` notably does not,
+     * despite being a legacy list element — items inside one keep counting
+     * in the list further out. This is only reached for elements that
+     * generate a box, so a `display: contents` list is skipped as an owner
+     * without needing a check here.
+     *
+     * @param list<\Phpdftk\Css\Sheet\Stylesheet> $sheets
+     */
+    private function pushListScope(Element $element, array $sheets, CascadedValues $values): bool
+    {
+        if (!in_array(strtolower($element->localName), ['ol', 'ul', 'menu'], true)) {
+            return false;
+        }
+        $start = null;
+        $reversed = false;
+        if (strtolower($element->localName) === 'ol') {
+            $start = $this->integerAttribute($element, 'start');
+            $reversed = $element->getAttribute('reversed') !== null;
+        }
+        if ($reversed) {
+            // `<ol reversed>` counts DOWN from the number of items the
+            // list owns — which is a count of generated boxes, not of
+            // `<li>` children: items nested in wrappers count, items the
+            // cascade hid do not, and items belonging to a nested list
+            // are somebody else's.
+            $first = $start ?? $this->countOwnedListItems($element, $sheets, $values);
+            $this->listScopes[] = ['count' => $first + 1, 'step' => -1];
+            return true;
+        }
+        $this->listScopes[] = ['count' => ($start ?? 1) - 1, 'step' => 1];
+        return true;
+    }
+
+    /**
+     * How many `display: list-item` boxes `$owner` will own, for the
+     * `<ol reversed>` starting count. Descends through anything that is
+     * not itself a box-generating list owner, and stops at elements the
+     * cascade removes.
+     *
+     * This re-runs the cascade over the subtree, which is why it is called
+     * ONLY for a reversed list without an explicit `start` — the one case
+     * that cannot be answered by counting forwards as the walk goes.
+     *
+     * @param list<\Phpdftk\Css\Sheet\Stylesheet> $sheets
+     */
+    private function countOwnedListItems(Element $owner, array $sheets, CascadedValues $ownerValues): int
+    {
+        $count = 0;
+        for ($n = $owner->firstChild; $n !== null; $n = $n->nextSibling) {
+            if ($n instanceof Element) {
+                $count += $this->countOwnedListItemsIn($n, $sheets, $ownerValues);
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * @param list<\Phpdftk\Css\Sheet\Stylesheet> $sheets
+     */
+    private function countOwnedListItemsIn(Element $element, array $sheets, CascadedValues $parentValues): int
+    {
+        $values = $this->cascade->computeFor($sheets, $element, $parentValues);
+        $this->applyPresentationalAttributes($element, $values);
+        $display = $this->displayKeyword($values);
+        if ($display === 'none') {
+            return 0;
+        }
+        $count = $display === 'list-item' ? $this->listItemIncrement($values) : 0;
+        $count = max(0, $count);
+        // A nested list that generates a box owns its own items, so stop
+        // descending. A `display: contents` one does not, so keep going.
+        if ($display !== 'contents'
+            && in_array(strtolower($element->localName), ['ol', 'ul', 'menu'], true)
+        ) {
+            return $count;
+        }
+        for ($n = $element->firstChild; $n !== null; $n = $n->nextSibling) {
+            if ($n instanceof Element) {
+                $count += $this->countOwnedListItemsIn($n, $sheets, $values);
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * Parse an HTML integer-valued attribute (`start`, `value`), or null
+     * when absent or not a valid integer.
+     */
+    private function integerAttribute(Element $element, string $name): ?int
+    {
+        $raw = $element->getAttribute($name);
+        if ($raw === null) {
+            return null;
+        }
+        $raw = trim($raw);
+        return preg_match('/^-?\d+$/', $raw) === 1 ? (int) $raw : null;
+    }
+
+    /**
      * Build the inline `::marker` text child for a `display: list-item`
      * box whose `list-style-position` is `inside`, or null when the box
      * isn't a list item, the marker is `outside` (the initial value —
@@ -2159,7 +2369,7 @@ final class BoxGenerator
      * separates it from the item's content; being collapsible, it
      * disappears again when the item is empty.
      */
-    private function insideListMarker(Element $element, CascadedValues $values): ?TextBox
+    private function insideListMarker(Element $element, CascadedValues $values, ?int $ordinal): ?TextBox
     {
         if ($this->displayKeyword($values) !== 'list-item') {
             return null;
@@ -2177,8 +2387,13 @@ final class BoxGenerator
         // representation + `suffix`, and `suffix` is per-style: `". "` for
         // most, `"、"` for the CJK families, a bare space for the bullets.
         // Stitching a full stop on by hand got every CJK list wrong.
+        //
+        // The ordinal comes from the box-generation walk, not from the DOM:
+        // wrappers, `display: contents`, `hidden` items and `contain: style`
+        // boundaries all change which items a list owns, and none of that is
+        // recoverable by counting `<li>` siblings of a parent node.
         return new TextBox($element, $values, \Phpdftk\HtmlToPdf\Layout\CounterFormat::marker(
-            \Phpdftk\HtmlToPdf\Layout\ListItemOrdinal::of($element),
+            $ordinal ?? 1,
             $type,
         ));
     }

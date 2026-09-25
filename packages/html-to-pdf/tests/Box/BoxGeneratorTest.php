@@ -731,7 +731,7 @@ final class BoxGeneratorTest extends TestCase
     public function testInsideMarkerHonoursLiValueAndOlStart(): void
     {
         // HTML 5 §4.4.5.2/.3 — the inline marker must number identically
-        // to the painted `outside` one; both go through ListItemOrdinal.
+        // to the painted `outside` one; both read Box::$listItemOrdinal.
         $sheet = $this->css->parseStylesheet(<<<CSS
             html, body, ol { display: block; }
             li { display: list-item; list-style-position: inside;
