@@ -24,9 +24,7 @@ declare(strict_types=1);
 
 use Phpdftk\HtmlToPdf\Renderer;
 use Phpdftk\HtmlToPdf\RendererOptions;
-use Phpdftk\Pdf\Writer\PdfWriter;
-use Phpdftk\Svg\Parser as SvgParser;
-use Phpdftk\SvgToPdf\SvgRenderer;
+use Phpdftk\WptHarness\HarnessRunner;
 use Phpdftk\WptHarness\Rasteriser;
 
 
@@ -117,11 +115,13 @@ if (preg_match('#^(.*/vendor-data/wpt)(/|$)#', $abs, $m) === 1) {
 $ext = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
 
 if ($ext === 'svg') {
-    $writer = new PdfWriter();
-    $page = $writer->addPage();
-    $svgDoc = (new SvgParser())->parse($source);
-    (new SvgRenderer($page, $writer))->draw($svgDoc, x: 0, y: 0);
-    $pdfBytes = $writer->toBytes();
+    // Delegate to the gate's own SVG path rather than re-deriving it:
+    // a standalone outermost `<svg>` with no width/height (SVG 2 §8.2 —
+    // `auto` → `100%` of the window) needs the page passed as its
+    // viewport, and a hand-rolled `draw($svg, 0, 0)` here collapsed
+    // every such fixture to blank. Blank-vs-blank then reads as a
+    // passing diff for something the gate scores as a failure.
+    $pdfBytes = HarnessRunner::renderSvgToPdf($abs);
 } else {
     // Mirror HarnessRunner::renderHtmlToPdf option-for-option.
     $options = (new RendererOptions())

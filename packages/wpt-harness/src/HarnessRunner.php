@@ -836,7 +836,7 @@ final class HarnessRunner
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $pdfBytes = $ext === 'svg'
-            ? $this->renderSvgToPdf($path)
+            ? self::renderSvgToPdf($path)
             : $this->renderHtmlToPdf($path);
         $pdfPath = tempnam(sys_get_temp_dir(), 'wpt_pdf_') . '.pdf';
         file_put_contents($pdfPath, $pdfBytes);
@@ -890,7 +890,7 @@ final class HarnessRunner
         return $result->writer->toBytes();
     }
 
-    private function renderSvgToPdf(string $path): string
+    public static function renderSvgToPdf(string $path): string
     {
         if (!class_exists('Phpdftk\\SvgToPdf\\SvgRenderer')
             || !class_exists('Phpdftk\\Svg\\Parser')
@@ -955,7 +955,7 @@ final class HarnessRunner
      *
      * @return array{0: float, 1: float}
      */
-    private static function svgRootViewport(
+    public static function svgRootViewport(
         \Phpdftk\Svg\SvgDocument $svg,
         float $pageWidth,
         float $pageHeight,
