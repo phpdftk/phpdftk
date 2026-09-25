@@ -107,12 +107,34 @@ final class GradientPainter
     }
 
     /**
+     * SVG 2 §13.4 — whether `$gradientId` names a gradient that
+     * resolves but defines NO colour stops.
+     *
+     * "If no stops are defined, then painting shall occur as if
+     * 'none' were specified as the paint style." That is a DIFFERENT
+     * outcome from an unresolvable reference: the paint server exists
+     * and says "paint nothing", so the `<paint>` fallback must NOT
+     * kick in and overpaint whatever the document stacked underneath.
+     */
+    public function paintsAsNone(string $gradientId): bool
+    {
+        $gradient = $this->document->findByFragment($gradientId);
+        if (!$gradient instanceof Gradient || !$gradient->isInRenderTree()) {
+            return false;
+        }
+        return $this->resolveStops($gradient) === [];
+    }
+
+    /**
      * @param array{float, float, float, float, float, float} $currentMatrix
      */
     private function registerForElement(string $gradientId, Element $element, array $currentMatrix): ?ShadingPattern
     {
         $gradient = $this->document->findByFragment($gradientId);
-        if (!$gradient instanceof Gradient) {
+        // SVG 2 §13.4 — a paint server outside the render tree (defined
+        // inside a `<text>`, say) does not resolve at all, and the
+        // reference falls back.
+        if (!$gradient instanceof Gradient || !$gradient->isInRenderTree()) {
             return null;
         }
         // CSS Transforms 1 §11 — a non-invertible `gradientTransform`

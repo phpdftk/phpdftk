@@ -212,6 +212,51 @@ abstract class Element extends Node
         return strtolower(trim($raw));
     }
 
+    /**
+     * Whether this element sits in the document's RENDER TREE — that
+     * is, whether every ancestor is an element that may contain it.
+     *
+     * SVG 2 §13.4 (and the "stop notes" it links) — a paint server
+     * defined somewhere it is not allowed, such as a
+     * `<linearGradient>` inside a `<text>`, is not part of the render
+     * tree, and a reference to it does not resolve. The referencing
+     * element then behaves as if the server were missing, which for
+     * `<paint>` means its fallback applies.
+     *
+     * Implemented as a DENYLIST of ancestors that cannot hold
+     * definitions — the shapes, the text-content elements,
+     * `<foreignObject>`, `<image>`, `<use>` and any foreign-namespace
+     * element. An allowlist would have to be revisited every time the
+     * object model grows a new container, and would silently start
+     * rejecting valid documents when it wasn't.
+     */
+    public function isInRenderTree(): bool
+    {
+        for ($node = $this->parent; $node !== null; $node = $node->parent) {
+            if (self::cannotHoldDefinitions($node)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static function cannotHoldDefinitions(Element $element): bool
+    {
+        return $element instanceof Shape\Rect
+            || $element instanceof Shape\Circle
+            || $element instanceof Shape\Ellipse
+            || $element instanceof Shape\Line
+            || $element instanceof Shape\Polyline
+            || $element instanceof Shape\Polygon
+            || $element instanceof Path
+            || $element instanceof Text\TextElement
+            || $element instanceof Text\Tspan
+            || $element instanceof ForeignObject
+            || $element instanceof ForeignElement
+            || $element instanceof Image
+            || $element instanceof Use_;
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');

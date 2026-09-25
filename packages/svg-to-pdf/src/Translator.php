@@ -3710,7 +3710,9 @@ final class Translator
             return null;
         }
         $target = $this->document->findByFragment($paint->id);
-        if (!$target instanceof Pattern) {
+        // SVG 2 §13.4 — a paint server outside the render tree does not
+        // resolve; the caller falls through to the `<paint>` fallback.
+        if (!$target instanceof Pattern || !$target->isInRenderTree()) {
             return null;
         }
         $resolved = $this->resolvePatternTemplate($target);
@@ -3719,6 +3721,13 @@ final class Translator
         // ordinary paint path and lands on the `<paint>` fallback.
         $transform = $resolved->patternTransform();
         if ($transform !== null && !$transform->isInvertible()) {
+            return null;
+        }
+        // SVG 2 §13.3 — a `<pattern>` with no content is not a usable
+        // paint server either. Unlike a stop-less gradient it has no
+        // "paint as none" rule of its own, so §13.2's invalid-reference
+        // handling applies and the fallback is used.
+        if (!self::hasElementChildren($resolved)) {
             return null;
         }
         return $resolved;
@@ -3767,7 +3776,7 @@ final class Translator
                 break;
             }
             $next = $this->document->findByFragment(substr($href, 1));
-            if (!$next instanceof Pattern) {
+            if (!$next instanceof Pattern || !$next->isInRenderTree()) {
                 break;
             }
             $current = $next;
@@ -3950,6 +3959,13 @@ final class Translator
             if ($this->gradientPainter?->applyAsFill($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
                 return true;
             }
+            // SVG 2 §13.4 — a gradient that resolves but defines no
+            // stops paints as `none`. The server EXISTS and says
+            // "paint nothing", so this is not a failed reference and
+            // the fallback must not overpaint what's underneath.
+            if ($this->gradientPainter?->paintsAsNone($paint->id) ?? false) {
+                return false;
+            }
             // SVG 2 §13.2 — the reference didn't resolve to a usable
             // paint server, so the fallback paint applies. With NO
             // fallback the element is in error and is simply not
@@ -4009,6 +4025,11 @@ final class Translator
         if ($paint instanceof Url) {
             if ($this->gradientPainter?->applyAsStroke($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
                 return true;
+            }
+            // SVG 2 §13.4, as in applyFillPaint(): a stop-less gradient
+            // paints as `none`, which is not a failed reference.
+            if ($this->gradientPainter?->paintsAsNone($paint->id) ?? false) {
+                return false;
             }
             // SVG 2 §13.2, as in applyFillPaint(): fallback, or don't
             // stroke at all.

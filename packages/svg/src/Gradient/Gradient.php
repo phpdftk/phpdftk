@@ -132,7 +132,11 @@ abstract class Gradient extends Element
             return [];
         }
         $referent = $doc->findByFragment($href);
-        if (!$referent instanceof self) {
+        // SVG 2 §13.4 — a template that isn't in the render tree (a
+        // gradient smuggled inside a `<text>`, say) does not resolve,
+        // so the referencing gradient inherits nothing and ends up
+        // with no stops at all.
+        if (!$referent instanceof self || !$referent->isInRenderTree()) {
             return [];
         }
 
