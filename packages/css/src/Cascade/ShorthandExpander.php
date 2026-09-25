@@ -577,7 +577,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = self::asBorderWidth($c);
+                $width = self::asZeroLength($c);
                 continue;
             }
             if ($color === null && $this->isColorComponent($c)) {
@@ -627,7 +627,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = self::asBorderWidth($c);
+                $width = self::asZeroLength($c);
                 continue;
             }
             if ($color === null && $this->looksLikeColor($c)) {
@@ -707,11 +707,11 @@ final class ShorthandExpander
     }
 
     /**
-     * Normalise a matched width to a Length. Downstream consumers almost all
-     * gate on `instanceof Length`, so emitting a bare Integer would trade a
-     * dropped declaration for one that is parsed and then ignored.
+     * Normalise a matched unitless zero to a Length. Downstream consumers
+     * almost all gate on `instanceof Length`, so emitting a bare Integer
+     * would trade a dropped declaration for one parsed and then ignored.
      */
-    private static function asBorderWidth(Value $v): Value
+    private static function asZeroLength(Value $v): Value
     {
         return self::isZeroNumber($v)
             ? new \Phpdftk\Css\Value\Length(0.0, \Phpdftk\Css\Value\LengthUnit::Px)
@@ -803,7 +803,7 @@ final class ShorthandExpander
                     continue;
                 }
                 if ($this->looksLikeFontSize($item)) {
-                    $size = $item;
+                    $size = self::asZeroLength($item);
                     continue;
                 }
                 continue;
@@ -1577,7 +1577,7 @@ final class ShorthandExpander
                 continue;
             }
             if ($width === null && $this->looksLikeBorderWidth($c)) {
-                $width = self::asBorderWidth($c);
+                $width = self::asZeroLength($c);
                 continue;
             }
             if ($color === null && $this->looksLikeColor($c)) {
@@ -2417,6 +2417,12 @@ final class ShorthandExpander
     private function looksLikeFontSize(Value $v): bool
     {
         if ($v instanceof Length || $v instanceof Percentage) {
+            return true;
+        }
+        // CSS Values 4 §5.2 — a unitless zero is a <length>, so `font: 0 Ahem`
+        // (and the `font: 0/0 a` idiom) carries a real font-size. Rejecting it
+        // left the shorthand unclassifiable and dropped the declaration whole.
+        if (self::isZeroNumber($v)) {
             return true;
         }
         if ($v instanceof Keyword) {

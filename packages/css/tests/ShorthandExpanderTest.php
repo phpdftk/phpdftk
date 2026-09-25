@@ -88,6 +88,28 @@ final class ShorthandExpanderTest extends TestCase
         }
     }
 
+    public function testBareZeroIsAValidFontSizeInTheFontShorthand(): void
+    {
+        // CSS Values 4 §5.2 — `font: 0 Ahem` carries a real font-size, and the
+        // `font: 0/0 a` idiom likewise. The size predicate accepted only
+        // Length/Percentage/keywords, so the bare zero matched nothing and the
+        // whole shorthand was dropped — font-family included.
+        foreach (['0 Ahem', '0/0 a'] as $css) {
+            $out = $this->expander->expand('font', $this->value($css));
+            self::assertArrayHasKey('font-size', $out, "font: $css must not be discarded");
+            self::assertInstanceOf(Length::class, $out['font-size']);
+            self::assertSame(0.0, $out['font-size']->value);
+        }
+    }
+
+    public function testBareZeroFontShorthandStillCarriesTheFamily(): void
+    {
+        // The regression was not a wrong size but a lost declaration: with the
+        // size unmatched the classifier bailed, taking font-family with it.
+        $out = $this->expander->expand('font', $this->value('0 Ahem'));
+        self::assertArrayHasKey('font-family', $out);
+    }
+
     public function testNonZeroBareNumberIsStillNotABorderWidth(): void
     {
         // Only ZERO is unitless. `border: 5` is invalid and must stay
