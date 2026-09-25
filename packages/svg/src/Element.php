@@ -164,6 +164,21 @@ abstract class Element extends Node
         return $this->presentationOrStyle($property);
     }
 
+    /**
+     * The `color` property (CSS Color 4 §3.1), raw. Inherited, so the
+     * cascade projection is what normally puts it here; SVG uses it
+     * only as the referent of `currentColor`. Null when nothing
+     * declared it, which the caller reads as the initial black.
+     */
+    public function colorValue(): ?string
+    {
+        $raw = $this->presentationOrStyle('color');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return trim($raw);
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');

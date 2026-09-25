@@ -3681,15 +3681,53 @@ final class Translator
             return false;
         }
         if ($paint instanceof Url) {
-            return $this->gradientPainter?->applyAsFill($paint->id, $element, $stream, $this->currentMatrix()) ?? false;
+            if ($this->gradientPainter?->applyAsFill($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
+                return true;
+            }
+            // SVG 2 §13.2 — the reference didn't resolve to a usable
+            // paint server, so the fallback paint applies. With NO
+            // fallback the element is in error and is simply not
+            // rendered: several WPT fixtures stack a correct shape
+            // underneath and rely on the broken one staying invisible,
+            // so falling through to the black default here would paint
+            // over them.
+            if ($paint->fallback === null) {
+                return false;
+            }
+            return $this->applyFillPaint($paint->fallback, $element, $stream);
         }
         if ($paint instanceof SolidColor) {
             $this->setFillColor($stream, $paint->color);
             return true;
         }
-        // null or CurrentColor → SVG 2 §13.2.1 default of black.
+        if ($paint instanceof CurrentColor) {
+            $this->setFillColor($stream, $this->currentColorOf($element));
+            return true;
+        }
+        // null → SVG 2 §13.2.1 default of black.
         $stream->setFillColorRGB(0.0, 0.0, 0.0);
         return true;
+    }
+
+    /**
+     * CSS Color 4 §3.2 — the used value of `currentColor` is the
+     * computed value of the element's own `color` property, whose
+     * initial value is black.
+     *
+     * `color` inherits, and the cascade projection is what carries an
+     * ancestor's declaration down to the element, so this reads the
+     * element's own resolved value rather than walking parents here.
+     */
+    private function currentColorOf(Element $element): ColorInterface
+    {
+        $raw = $element->colorValue();
+        if ($raw !== null) {
+            $color = SvgColor::parse($raw);
+            if ($color !== null) {
+                return $color;
+            }
+        }
+        return new RgbColor(0, 0, 0);
     }
 
     /**
@@ -3703,14 +3741,21 @@ final class Translator
             return false;
         }
         if ($paint instanceof Url) {
-            return $this->gradientPainter?->applyAsStroke($paint->id, $element, $stream, $this->currentMatrix()) ?? false;
+            if ($this->gradientPainter?->applyAsStroke($paint->id, $element, $stream, $this->currentMatrix()) ?? false) {
+                return true;
+            }
+            // SVG 2 §13.2, as in applyFillPaint(): fallback, or don't
+            // stroke at all.
+            if ($paint->fallback === null) {
+                return false;
+            }
+            return $this->applyStrokePaint($paint->fallback, $element, $stream);
         }
         if ($paint instanceof SolidColor) {
             $this->setStrokeColor($stream, $paint->color);
             return true;
         }
-        // CurrentColor → black at 3K.
-        $stream->setStrokeColorRGB(0.0, 0.0, 0.0);
+        $this->setStrokeColor($stream, $this->currentColorOf($element));
         return true;
     }
 

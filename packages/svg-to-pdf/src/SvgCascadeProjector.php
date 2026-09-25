@@ -49,6 +49,11 @@ final class SvgCascadeProjector
     private const array PROJECTED = [
         'fill',
         'stroke',
+        // Inherited, and the referent of `currentColor`. Projected on
+        // the loose `has()` test precisely BECAUSE it inherits: the
+        // declaration usually sits on an ancestor, so `wasDeclared()`
+        // on this element would be false.
+        'color',
         'fill-rule',
         'stroke-width',
         'stroke-linecap',
