@@ -81,12 +81,156 @@ final class BasicShapePath
         $right = self::lengthPercent($ins[$n >= 2 ? 1 : 0], $w);
         $bottom = self::lengthPercent($ins[$n >= 3 ? 2 : 0], $h);
         $left = self::lengthPercent($ins[$n >= 4 ? 3 : ($n >= 2 ? 1 : 0)], $w);
-        return self::rectangle(
-            $x + $left,
-            $y + $top,
-            max(0.0, $w - $left - $right),
-            max(0.0, $h - $top - $bottom),
+        $insetX = $x + $left;
+        $insetY = $y + $top;
+        $insetW = max(0.0, $w - $left - $right);
+        $insetH = max(0.0, $h - $top - $bottom);
+        // `round <border-radius>` rounds the corners of the inset
+        // rectangle. Percentages in the radius resolve against the
+        // REFERENCE BOX, not the inset rectangle — WPT's
+        // css-masking/clip-path-shape-inset-001 pins that: on a 200x200
+        // box `inset(10% round 10%)` is a radius of 20, not of 16.
+        $radii = self::cornerRadii(
+            $shape->borderRadius,
+            $shape->borderRadiusVertical,
+            $w,
+            $h,
+            $insetW,
+            $insetH,
         );
+        if ($radii === null) {
+            return self::rectangle($insetX, $insetY, $insetW, $insetH);
+        }
+        return self::roundedRectangle($insetX, $insetY, $insetW, $insetH, $radii);
+    }
+
+    /**
+     * The four corner radii of an `inset()`'s `round` clause, as
+     * `[[rx, ry], …]` in TL, TR, BR, BL order — or null when the shape
+     * has no `round` clause or every radius is zero, so the caller can
+     * keep emitting a plain rectangle.
+     *
+     * Values expand like the `border-radius` shorthand (1-4 values,
+     * TL / TR / BR / BL with the usual mirroring). `$vertical` is the
+     * second half of the `a / b` two-axis form; when it is null each
+     * horizontal value is used for both axes.
+     *
+     * CSS Backgrounds 3 §5.5 — when the radii of a side overrun it,
+     * ALL radii scale by the same factor so the corners just touch.
+     * Without that the corner curves cross over and the clip region
+     * turns inside out.
+     *
+     * @param ?list<Value> $borderRadius
+     * @param ?list<Value> $vertical
+     * @return list<array{float, float}>|null
+     */
+    private static function cornerRadii(
+        ?array $borderRadius,
+        ?array $vertical,
+        float $boxW,
+        float $boxH,
+        float $insetW,
+        float $insetH,
+    ): ?array {
+        if ($borderRadius === null || $borderRadius === []) {
+            return null;
+        }
+        $horizontal = self::expandCorners($borderRadius);
+        $verticalValues = $vertical === null || $vertical === []
+            ? $horizontal
+            : self::expandCorners($vertical);
+        $radii = [];
+        foreach ($horizontal as $corner => $value) {
+            $radii[] = [
+                max(0.0, self::lengthPercent($value, $boxW)),
+                max(0.0, self::lengthPercent($verticalValues[$corner], $boxH)),
+            ];
+        }
+        $maxRadius = 0.0;
+        foreach ($radii as [$rx, $ry]) {
+            $maxRadius = max($maxRadius, $rx, $ry);
+        }
+        if ($maxRadius <= 0.0) {
+            return null;
+        }
+        $scale = 1.0;
+        foreach (
+            [
+                [$insetW, $radii[0][0] + $radii[1][0]],
+                [$insetW, $radii[3][0] + $radii[2][0]],
+                [$insetH, $radii[0][1] + $radii[3][1]],
+                [$insetH, $radii[1][1] + $radii[2][1]],
+            ] as [$side, $sum]
+        ) {
+            if ($sum > 0.0) {
+                $scale = min($scale, $side / $sum);
+            }
+        }
+        if ($scale < 1.0) {
+            foreach ($radii as $i => [$rx, $ry]) {
+                $radii[$i] = [$rx * $scale, $ry * $scale];
+            }
+        }
+        return $radii;
+    }
+
+    /**
+     * Expand a 1-4 value `border-radius` group to the four corners in
+     * TL, TR, BR, BL order, with the shorthand's usual mirroring.
+     *
+     * @param list<Value> $values
+     * @return list<Value>
+     */
+    private static function expandCorners(array $values): array
+    {
+        $n = count($values);
+        $order = match (true) {
+            $n === 1 => [0, 0, 0, 0],
+            $n === 2 => [0, 1, 0, 1],
+            $n === 3 => [0, 1, 2, 1],
+            default => [0, 1, 2, 3],
+        };
+        $out = [];
+        foreach ($order as $index) {
+            $out[] = $values[$index] ?? $values[0];
+        }
+        return $out;
+    }
+
+    /**
+     * A rectangle with per-corner elliptical rounding, as a path.
+     * Corner arcs use the same `KAPPA` cubic approximation the
+     * ellipse outline uses.
+     *
+     * @param list<array{float, float}> $radii TL, TR, BR, BL
+     * @return array{fillRule: 'nonzero'|'evenodd', commands: list<list<string|float>>}
+     */
+    private static function roundedRectangle(
+        float $x,
+        float $y,
+        float $w,
+        float $h,
+        array $radii,
+    ): array {
+        [[$tlx, $tly], [$trx, $try], [$brx, $bry], [$blx, $bly]] = $radii;
+        $right = $x + $w;
+        $bottom = $y + $h;
+        $k = self::KAPPA;
+        return [
+            'fillRule' => 'nonzero',
+            'commands' => [
+                ['M', $x + $tlx, $y],
+                ['L', $right - $trx, $y],
+                ['C', $right - $trx + $trx * $k, $y, $right, $y + $try - $try * $k, $right, $y + $try],
+                ['L', $right, $bottom - $bry],
+                ['C', $right, $bottom - $bry + $bry * $k, $right - $brx + $brx * $k, $bottom, $right - $brx, $bottom],
+                ['L', $x + $blx, $bottom],
+                ['C', $x + $blx - $blx * $k, $bottom, $x, $bottom - $bly + $bly * $k, $x, $bottom - $bly],
+                ['L', $x, $y + $tly],
+                ['C', $x, $y + $tly - $tly * $k, $x + $tlx - $tlx * $k, $y, $x + $tlx, $y],
+                ['Z'],
+            ],
+        ];
     }
 
     /**

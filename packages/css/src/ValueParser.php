@@ -3218,17 +3218,37 @@ final class ValueParser
             $insets[] = $value;
         }
         $radius = null;
+        $verticalRadius = null;
         if ($roundTokens !== []) {
-            $roundGroups = self::splitParenAwareSpaceForm(self::trimWhitespace($roundTokens));
-            $radius = [];
-            foreach ($roundGroups as $group) {
-                $radius[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
-            }
-            if ($radius === []) {
-                $radius = null;
-            }
+            // CSS Backgrounds 3 §5.5 — a `/` splits the radii into a
+            // HORIZONTAL group and a VERTICAL one, each 1-4 values.
+            // Flattening the two together loses where the split was,
+            // and each side is independently 1-4 long, so the halves
+            // have to stay separate.
+            $axes = self::splitOnSlash($roundTokens);
+            $radius = $this->parseRadiusGroup($axes[0] ?? []);
+            $verticalRadius = isset($axes[1])
+                ? $this->parseRadiusGroup($axes[1])
+                : null;
         }
-        return new InsetShape($insets, $radius);
+        return new InsetShape($insets, $radius, $verticalRadius);
+    }
+
+    /**
+     * Parse one side of a `<border-radius>` into its value list, or
+     * null when there is nothing there.
+     *
+     * @param list<Token> $tokens
+     * @return list<Value>|null
+     */
+    private function parseRadiusGroup(array $tokens): ?array
+    {
+        $groups = self::splitParenAwareSpaceForm(self::trimWhitespace($tokens));
+        $out = [];
+        foreach ($groups as $group) {
+            $out[] = $this->parseFromString(self::serializeTokens(self::trimWhitespace($group)));
+        }
+        return $out === [] ? null : $out;
     }
 
     /** @param list<Token> $tokens */
