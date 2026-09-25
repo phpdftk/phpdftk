@@ -332,6 +332,33 @@ switch ($subcommand) {
             $agg['pass'] > 0 ? $agg['blankPass'] / $agg['pass'] * 100 : 0.0,
         );
 
+        // `--show-blank[=N]` lists the blank passes by name. The count
+        // alone says how much of the pass column rests on no rendered
+        // evidence; auditing whether a fixture SHOULD draw nothing needs
+        // the identities, so surface them behind an explicit flag.
+        if (!empty($parsed['opts']['show-blank'])) {
+            $blanks = array_filter(
+                $results,
+                static fn($r) => $r->status === TestStatus::Pass && $r->bothRendersSolid,
+            );
+            usort($blanks, static fn($a, $b) => strcmp($a->testId, $b->testId));
+            $blankLimit = is_string($parsed['opts']['show-blank'] ?? null)
+                ? (int) $parsed['opts']['show-blank']
+                : 25;
+            printf(
+                "\n  %d of %d blank passes (both renders a single solid colour):\n",
+                min($blankLimit, count($blanks)),
+                count($blanks),
+            );
+            $b = 0;
+            foreach ($blanks as $blank) {
+                printf("    %s\n", $blank->testId);
+                if (++$b >= $blankLimit) {
+                    break;
+                }
+            }
+        }
+
         if (!empty($parsed['opts']['show-fails'])) {
             $fails = array_filter(
                 $results,
@@ -987,7 +1014,9 @@ Usage: wpt <subcommand> [options]
 
 Subcommands:
   run [--root=<path>] [--filter=<glob>]   Classify the corpus + print summary
-      [--json[=<path>]] [--show-fails[=N]] `--json` prints the JSON summary to
+      [--json[=<path>]] [--show-fails[=N]] [--show-blank[=N]]
+      `--show-blank` lists passes with no rendered evidence.
+      `--json` prints the JSON summary to
                                            stdout (and exits); `--json=<path>`
                                            writes it and keeps the human summary
   classify <test-id>                       Show verdict for one ID
