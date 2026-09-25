@@ -2223,40 +2223,60 @@ final class BoxGenerator
         if (strtolower($element->localName) === 'li') {
             $explicit = $this->integerAttribute($element, 'value');
         }
-        $step = $this->listItemIncrement($values);
+        $consumes = $this->consumesOrdinal($values);
         $depth = count($this->listScopes) - 1;
         if ($depth >= 0) {
             $scope = $this->listScopes[$depth];
-            $next = $explicit ?? $scope['count'] + $scope['step'] * $step;
+            $next = $explicit ?? ($consumes ? $scope['count'] + $scope['step'] : $scope['count']);
             $this->listScopes[$depth]['count'] = $next;
             return $next;
         }
         // No list ancestor: the owner is the parent element.
         $parent = $element->parentNode;
         $key = $parent instanceof Element ? spl_object_id($parent) : 0;
-        $next = $explicit ?? ($this->looseListCounts[$key] ?? 0) + $step;
+        $current = $this->looseListCounts[$key] ?? 0;
+        $next = $explicit ?? ($consumes ? $current + 1 : $current);
         $this->looseListCounts[$key] = $next;
         return $next;
     }
 
     /**
-     * The `counter-increment` delta this element declares for the
-     * `list-item` counter, or 1 when it declares none — CSS Lists 3 §4
-     * makes `display: list-item` imply an increment of 1.
+     * Whether this list item takes a number of its own from the list, or
+     * sits on the one before it.
+     *
+     * CSS Lists 3 §4 makes `display: list-item` imply
+     * `counter-increment: list-item 1`, and an explicit
+     * `counter-increment: list-item 0` is the documented way to opt out —
+     * which is what the UA sheet uses on `details > summary` so a
+     * disclosure marker inside an `<ol>` does not steal a number from the
+     * `<li>`s around it.
+     *
+     * Only the opt-out is honoured, deliberately. Treating a declared
+     * delta as a STEP MULTIPLIER looks like the natural generalisation and
+     * is wrong: CSS's counter algebra runs `counter-reset`, then
+     * `counter-increment`, then `counter-set` against a real counter, and
+     * for a reversed list it also decides the implied initial value from
+     * which elements increment at all. Applying one third of that — the
+     * increment — on top of HTML's ordinal walk produces numbering that
+     * matches neither model (it is what broke css-lists'
+     * li-value-reversed-012, where `counter-increment: list-item -2` on
+     * the first `<li>` of an `<ol reversed>` must still leave it at 3).
+     * Non-zero deltas are left to a future genuine counter
+     * implementation rather than half-applied here.
      */
-    private function listItemIncrement(CascadedValues $values): int
+    private function consumesOrdinal(CascadedValues $values): bool
     {
-        $delta = 1;
+        $consumes = true;
         $this->forEachCounterPair(
             $values->get('counter-increment'),
-            function (string $name, int $value) use (&$delta): void {
+            function (string $name, int $value) use (&$consumes): void {
                 if (strtolower($name) === 'list-item') {
-                    $delta = $value;
+                    $consumes = $value !== 0;
                 }
             },
             defaultValue: 1,
         );
-        return $delta;
+        return $consumes;
     }
 
     /**
@@ -2331,8 +2351,7 @@ final class BoxGenerator
         if ($display === 'none') {
             return 0;
         }
-        $count = $display === 'list-item' ? $this->listItemIncrement($values) : 0;
-        $count = max(0, $count);
+        $count = $display === 'list-item' && $this->consumesOrdinal($values) ? 1 : 0;
         // A nested list that generates a box owns its own items, so stop
         // descending. A `display: contents` one does not, so keep going.
         if ($display !== 'contents'

@@ -386,6 +386,36 @@ final class ListItemOrdinalTest extends TestCase
         self::assertSame(3, $got['C']);
     }
 
+    public function testANonZeroCounterIncrementDoesNotScaleTheOrdinalStep(): void
+    {
+        // Only `counter-increment: list-item 0` is honoured, as an opt-out.
+        // A declared delta is NOT a step multiplier: css-lists'
+        // li-value-reversed-012 puts `counter-increment: list-item -2` on
+        // the first `<li>` of an `<ol reversed>` and still expects 3, 2, 1.
+        // Half-applying CSS's counter algebra on top of HTML's ordinal walk
+        // matches neither model.
+        $got = $this->ordinals(<<<'HTML'
+            <ol reversed>
+              <li data-label=A style="counter-increment: list-item -2">Three</li>
+              <li data-label=B>Two</li>
+              <li data-label=C>One</li>
+            </ol>
+        HTML);
+        self::assertSame(['A' => 3, 'B' => 2, 'C' => 1], $got);
+    }
+
+    public function testANonZeroCounterIncrementIsAlsoIgnoredGoingForwards(): void
+    {
+        $got = $this->ordinals(<<<'HTML'
+            <ol>
+              <li data-label=A>A</li>
+              <li data-label=B style="counter-increment: list-item 5">B</li>
+              <li data-label=C>C</li>
+            </ol>
+        HTML);
+        self::assertSame(['A' => 1, 'B' => 2, 'C' => 3], $got);
+    }
+
     public function testReversedIgnoresZeroIncrementItemsInItsStartingCount(): void
     {
         $got = $this->ordinals(
