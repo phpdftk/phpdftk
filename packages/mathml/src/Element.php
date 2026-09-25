@@ -302,6 +302,32 @@ abstract class Element extends Node
     }
 
     /**
+     * Whether this element generates an IN-FLOW box.
+     *
+     * MathML Core §3.1.3 — a MathML layout algorithm only considers
+     * its in-flow children: a child with `display: none` generates no
+     * box at all, and an absolutely-positioned one is taken out of
+     * flow, so neither occupies a slot in a construct like
+     * `<mfrac>`'s numerator/denominator or `<munder>`'s base/script.
+     *
+     * The values arrive through the inline `style` attribute, which
+     * `BoxGenerator` projects the cascade onto (the MathML subtree
+     * generates no boxes of its own to carry a computed style).
+     */
+    public function generatesInFlowBox(): bool
+    {
+        $display = $this->extractStyleProperty('display');
+        if ($display !== null && strtolower(trim($display)) === 'none') {
+            return false;
+        }
+        $position = $this->extractStyleProperty('position');
+        if ($position === null) {
+            return true;
+        }
+        return !in_array(strtolower(trim($position)), ['absolute', 'fixed'], true);
+    }
+
+    /**
      * `dir` per MathML Core §3.1.5.4 — `ltr` or `rtl`. Sets the
      * layout direction for this element's children. Inherits from
      * the nearest ancestor with `dir` set when absent. Returns null

@@ -312,6 +312,54 @@ final class MovableLimitsTest extends TestCase
     }
 
     /**
+     * Core §3.1.3 — a construct reads its slots from IN-FLOW children
+     * only, so out-of-flow ones must not be mistaken for the base or
+     * the script. `<munder>` whose first two children are an
+     * absolutely-positioned and a `display: none` `<mo>` took those
+     * as base and script, dropped the real ones, and rendered
+     * nothing (mo-movablelimits-from-in-flow).
+     */
+    public function testOutOfFlowChildrenDoNotOccupyConstructSlots(): void
+    {
+        $bytes = $this->render(
+            '<munder>'
+                . '<mo style="position: absolute"></mo>'
+                . '<mo style="display: none"></mo>'
+                . '<mo movablelimits="true">+</mo>'
+                . '<mn>1</mn>'
+                . '</munder>',
+            false,
+        );
+        self::assertMatchesRegularExpression('/\(\+\)\s+Tj/', $bytes);
+        self::assertMatchesRegularExpression('/\(1\)\s+Tj/', $bytes);
+    }
+
+    /**
+     * Negative guard: the filter must not drop in-flow children, so
+     * the same construct without the out-of-flow noise renders
+     * identically.
+     */
+    public function testFilteringOutOfFlowChildrenLeavesTheRestUntouched(): void
+    {
+        $withNoise = $this->render(
+            '<munder>'
+                . '<mo style="position: fixed"></mo>'
+                . '<mo movablelimits="true">+</mo>'
+                . '<mn>1</mn>'
+                . '</munder>',
+            false,
+        );
+        $clean = $this->render(
+            '<munder><mo movablelimits="true">+</mo><mn>1</mn></munder>',
+            false,
+        );
+        self::assertSame(
+            $this->extractTds($clean),
+            $this->extractTds($withNoise),
+        );
+    }
+
+    /**
      * Absolute x the operator glyph is painted at.
      *
      * The operator leads the row, so nothing has advanced the pen

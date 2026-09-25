@@ -3473,7 +3473,13 @@ final class Translator
     {
         return array_values(array_filter(
             $parent->children,
-            static fn($c) => $c instanceof Element,
+            // MathML Core §3.1.3 — layout considers IN-FLOW children
+            // only. A `display: none` or absolutely-positioned child
+            // generates no in-flow box, so it must not occupy a slot:
+            // `<munder>` whose first two children are out-of-flow
+            // `<mo>`s took those as its base and script and dropped
+            // the real ones, rendering nothing at all.
+            static fn($c) => $c instanceof Element && $c->generatesInFlowBox(),
         ));
     }
 

@@ -167,6 +167,38 @@ final class MathmlCssProjectionTest extends TestCase
         self::assertSame('color: #0000ff; color: blue', $mo->getAttribute('style'));
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core §3.1.3 — MathML layout considers IN-FLOW children
+    // only, so `display` and `position` have to cross the boundary
+    // for the painter to know which children dropped out.
+    // ---------------------------------------------------------------
+
+    public function testDisplayNoneReachesATokenElement(): void
+    {
+        $mo = $this->project(self::MATH, 'mo { display: none; }', 'mo');
+        self::assertNotNull($mo);
+        self::assertSame('display: none', $mo->getAttribute('style'));
+    }
+
+    public function testOutOfFlowPositionReachesATokenElement(): void
+    {
+        $mo = $this->project(self::MATH, 'mo { position: absolute; }', 'mo');
+        self::assertNotNull($mo);
+        self::assertSame('position: absolute', $mo->getAttribute('style'));
+    }
+
+    /**
+     * Negative guard: `display` and `position` are NOT inherited, so
+     * an undeclared element must stay clean — otherwise every MathML
+     * element would carry `display: inline` and `position: static`.
+     */
+    public function testUndeclaredDisplayAndPositionAreNotStamped(): void
+    {
+        $mo = $this->project(self::MATH, 'mrow { position: relative; }', 'mo');
+        self::assertNotNull($mo);
+        self::assertNull($mo->getAttribute('style'));
+    }
+
     /**
      * MathML Core §2.1.1 makes `mathcolor` a presentational hint,
      * which loses to any author declaration.

@@ -938,9 +938,32 @@ final class BoxGenerator
         // The original element's cascade rides on the
         // AnonymousBlockBox so `position: relative` on the inline
         // still affects the block half per spec.
+        // CSS 2.1 §9.2.1.1 splits an inline around an IN-FLOW
+        // block-level box. An absolutely positioned child is out of
+        // flow and generates no box in the inline's own formatting
+        // context, so it must not trigger the split — for either
+        // flavour of inline. Splitting on it destroyed the atomic
+        // inline that foreign content depends on: a `<math>` with a
+        // `position: absolute` descendant was promoted to an
+        // anonymous block, which is not routed to `paintInlineMath`,
+        // so the entire formula vanished.
         $splitsAroundBlock = $box instanceof AtomicInlineBox
             ? $this->containsInFlowBlockLevel($rawChildren)
             : $this->containsBlockLevel($rawChildren);
+        // A foreign-content root (`<math>` / `<svg>`) is REPLACED: its
+        // rendering comes from outside the CSS box tree, and the
+        // painter reaches it only through the atomic-inline box. The
+        // descendant boxes generated under it are scaffolding for
+        // measurement, not participants in the parent's inline
+        // formatting context, so a block-level one among them must
+        // not break the root apart. Promoting it to an anonymous
+        // block dropped the routing to `paintInlineSvg` /
+        // `paintInlineMath` and the whole graphic or formula
+        // vanished — which is what a `position: absolute` descendant
+        // did to every `*-rendering-from-in-flow` fixture.
+        if (self::foreignContentKind($element) !== null) {
+            $splitsAroundBlock = false;
+        }
         if (($box instanceof InlineBox || $box instanceof AtomicInlineBox)
             && $splitsAroundBlock
         ) {
@@ -3409,6 +3432,11 @@ final class BoxGenerator
      */
     private const array MATHML_PROJECTED = [
         'color',
+        // MathML Core §3.1.3 — MathML layout considers in-flow
+        // children only, so the painter has to know which children
+        // `display: none` or out-of-flow positioning removed.
+        'display',
+        'position',
     ];
 
     /**
