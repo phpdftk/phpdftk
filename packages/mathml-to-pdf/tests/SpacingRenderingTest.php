@@ -121,7 +121,7 @@ final class SpacingRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\(y\)\s+Tj/', $bytes);
         // Two extra Tds at minimum: one inside mpadded for lspace,
         // one to advance past x. Confirms lspace was honoured.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
@@ -161,7 +161,7 @@ final class SpacingRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\(x\)\s+Tj/', $bytes);
         // Td count should include the voffset shift + the restore
         // counter-shift around the children.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
@@ -180,8 +180,8 @@ final class SpacingRenderingTest extends TestCase
                 . '</math>',
         );
         self::assertSame(
-            preg_match_all('/\s+Td\b/', $without),
-            preg_match_all('/\s+Td\b/', $voffsetZero),
+            preg_match_all('/\s(?:Td|Tm)\b/', $without),
+            preg_match_all('/\s(?:Td|Tm)\b/', $voffsetZero),
         );
     }
 
@@ -198,12 +198,37 @@ final class SpacingRenderingTest extends TestCase
                 . '<mpadded voffset="0.5em"><mi>x</mi></mpadded>'
                 . '</math>',
         );
-        preg_match_all('/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b/', $negative, $m1);
-        preg_match_all('/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b/', $positive, $m2);
+        $baselineY = static function (string $bytes): array {
+            // The painter positions with Tm (absolute), so read the
+            // translate components rather than a Td delta.
+            preg_match_all(
+                '/(?:-?\d+(?:\.\d+)?\s+){5}(-?\d+(?:\.\d+)?)\s+Tm\b/',
+                $bytes,
+                $m,
+            );
+            return array_map('floatval', $m[1]);
+        };
+        $negativeYs = $baselineY($negative);
+        $positiveYs = $baselineY($positive);
+        self::assertNotEmpty($negativeYs, 'voffset must reposition the baseline');
         self::assertNotSame(
-            $m1[2],
-            $m2[2],
-            'Sign-flipped voffset should produce opposite Y deltas',
+            $negativeYs,
+            $positiveYs,
+            'Sign-flipped voffset should produce opposite baseline shifts',
+        );
+        // ... and opposite, not merely different: the two shifted
+        // baselines straddle the unshifted one symmetrically.
+        $unshiftedYs = $baselineY($this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mpadded><mi>x</mi></mpadded>'
+                . '</math>',
+        ));
+        self::assertNotEmpty($unshiftedYs);
+        self::assertEqualsWithDelta(
+            $unshiftedYs[0],
+            ($negativeYs[0] + $positiveYs[0]) / 2.0,
+            0.001,
+            'shifts are symmetric about the unshifted baseline',
         );
     }
 

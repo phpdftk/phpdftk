@@ -121,7 +121,7 @@ final class ScriptsRenderingTest extends TestCase
                 . '<msubsup><mi>x</mi><mn>0</mn><mn>2</mn></msubsup>'
                 . '</math>',
         );
-        self::assertGreaterThanOrEqual(4, preg_match_all('/\s+Td\b/', $bytes));
+        self::assertGreaterThanOrEqual(4, preg_match_all('/\s(?:Td|Tm)\b/', $bytes));
     }
 
     // -----------------------------------------------------------------

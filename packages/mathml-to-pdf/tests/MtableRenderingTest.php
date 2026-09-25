@@ -71,7 +71,7 @@ final class MtableRenderingTest extends TestCase
                 . '</mtable>'
                 . '</math>',
         );
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(8, $tdCount);
     }
 

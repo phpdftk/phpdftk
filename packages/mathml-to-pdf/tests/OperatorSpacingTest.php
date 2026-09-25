@@ -43,7 +43,7 @@ final class OperatorSpacingTest extends TestCase
         self::assertMatchesRegularExpression('/\(y\)\s+Tj/', $bytes);
         // Two Td calls (lspace + rspace) for the operator at minimum,
         // beyond whatever the surrounding paint already emits.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
@@ -71,7 +71,7 @@ final class OperatorSpacingTest extends TestCase
         // for rspace around the operator (both 4/18 em > 0). A
         // dictionary entry without spacing wouldn't.
         self::assertMatchesRegularExpression('/\(-\)\s+Tj/', $bytes);
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
@@ -90,7 +90,7 @@ final class OperatorSpacingTest extends TestCase
         // `=` has thick spacing (5/18 em) - emits Tds either side.
         $bytes = $this->render('<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>');
         self::assertMatchesRegularExpression('/\(=\)\s+Tj/', $bytes);
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(2, $tdCount);
     }
 
@@ -117,8 +117,8 @@ final class OperatorSpacingTest extends TestCase
         self::assertMatchesRegularExpression('/\(\+\)\s+Tj/', $default);
         // Custom has at least as many Tds as default (the wider
         // lspace value gets emitted in some form).
-        $tdCustom = preg_match_all('/\s+Td\b/', $custom);
-        $tdDefault = preg_match_all('/\s+Td\b/', $default);
+        $tdCustom = preg_match_all('/\s(?:Td|Tm)\b/', $custom);
+        $tdDefault = preg_match_all('/\s(?:Td|Tm)\b/', $default);
         self::assertGreaterThanOrEqual($tdDefault, $tdCustom);
     }
 
@@ -133,8 +133,8 @@ final class OperatorSpacingTest extends TestCase
         $default = $this->render('<mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow>');
         // Same number of Tds either way.
         self::assertSame(
-            preg_match_all('/\s+Td\b/', $px),
-            preg_match_all('/\s+Td\b/', $default),
+            preg_match_all('/\s(?:Td|Tm)\b/', $px),
+            preg_match_all('/\s(?:Td|Tm)\b/', $default),
         );
     }
 

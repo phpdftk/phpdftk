@@ -124,7 +124,7 @@ final class DirectionRenderingTest extends TestCase
         );
         self::assertMatchesRegularExpression('/\(\+\)\s+Tj/', $bytes);
         // Td repositionings for both glyph flow AND operator spacing.
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(3, $tdCount);
     }
 

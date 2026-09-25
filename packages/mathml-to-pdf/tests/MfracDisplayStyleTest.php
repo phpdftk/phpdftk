@@ -112,12 +112,29 @@ final class MfracDisplayStyleTest extends TestCase
      */
     private function extractTds(string $bytes): array
     {
-        if (!preg_match_all('/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b/', $bytes, $matches)) {
+        // Td states a delta from the text LINE matrix; Tm states the
+        // matrix outright. The painter emits Tm so a reposition can't
+        // be skewed by the glyph advances since the last one
+        // (Translator::moveTextTo), so both forms are collected here:
+        // what these comparisons care about is that the positioning
+        // stream differs between the two renders, not which operator
+        // carried it.
+        $number = '-?\d+(?:\.\d+)?';
+        $matched = preg_match_all(
+            '/(' . $number . ')\s+(' . $number . ')\s+Td\b'
+            . '|(?:' . $number . '\s+){4}(' . $number . ')\s+(' . $number . ')\s+Tm\b/',
+            $bytes,
+            $matches,
+            PREG_SET_ORDER,
+        );
+        if ($matched === false || $matched === 0) {
             return [];
         }
         $out = [];
-        foreach ($matches[1] as $i => $dx) {
-            $out[] = [(float) $dx, (float) $matches[2][$i]];
+        foreach ($matches as $m) {
+            $out[] = str_ends_with($m[0], 'Tm')
+                ? [(float) $m[3], (float) $m[4]]
+                : [(float) $m[1], (float) $m[2]];
         }
         return $out;
     }

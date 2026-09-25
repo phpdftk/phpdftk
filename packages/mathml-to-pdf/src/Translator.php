@@ -213,18 +213,16 @@ final class Translator
 
         // Numerator: shift line origin into centred-on-raised position
         // and switch to the scaled child font.
-        $ctx->stream->moveTextPosition($numLead, $raise);
+        $this->moveTextTo($ctx, $fracLeftX + $numLead, $ctx->baselineY + $raise);
         if ($childCtx->fontSize !== $ctx->fontSize) {
             $ctx->stream->setFont($this->activeFont($ctx), $childCtx->fontSize);
         }
         $childCtx->cursorX = $fracLeftX + $numLead;
         $this->paint($numerator, $childCtx);
 
-        // Denominator: shift from current line origin to centred-on-
-        // lowered position. moveTextPosition (Td) is relative to
-        // current line matrix; resets pen to the new origin so we
-        // don't have to compensate for the numerator's Tj advance.
-        $ctx->stream->moveTextPosition($denLead - $numLead, -$drop - $raise);
+        // Denominator: centred on the lowered baseline, stated
+        // absolutely so the numerator's glyph advances can't leak in.
+        $this->moveTextTo($ctx, $fracLeftX + $denLead, $ctx->baselineY - $drop);
         $childCtx->cursorX = $fracLeftX + $denLead;
         $this->paint($denominator, $childCtx);
 
@@ -234,8 +232,8 @@ final class Translator
         if ($childCtx->fontSize !== $ctx->fontSize) {
             $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         }
-        $ctx->stream->moveTextPosition($fracWidth - $denLead, $drop);
         $ctx->cursorX = $fracLeftX + $fracWidth;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
 
         // Bar thickness: author's `linethickness` wins; otherwise
         // the font's fractionRuleThickness (in em, scaled by current
@@ -357,7 +355,7 @@ final class Translator
 
         if ($indexWidth >= 0.001) {
             $ctx->stream->setFont($this->activeFont($ctx), $indexFontSize);
-            $ctx->stream->moveTextPosition(0, $indexRaise);
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY + $indexRaise);
             // mroot's index renders at scriptscript level per
             // Core §3.1.6 - use levelDelta=2 instead of 1.
             $indexCtx = $this->childContextForScript(
@@ -369,9 +367,9 @@ final class Translator
             );
             $this->paint($index, $indexCtx);
             // Drop back to base baseline + restore main font size.
-            $ctx->stream->moveTextPosition(0, -$indexRaise);
-            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             $ctx->cursorX += $indexWidth;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         }
 
         // Radical sign (between the index and the base when a math
@@ -507,9 +505,12 @@ final class Translator
         // supAttachX. Back up horizontally to the sub attach point
         // (unshifted by italic correction), then drop to the
         // subscript baseline.
-        $backup = $subAttachX - $ctx->cursorX;
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
-        $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
+        $this->moveTextTo(
+            $ctx,
+            $subAttachX,
+            $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
+        );
         $subCtx = $this->childContextForScript(
             $ctx,
             $scriptFontSize,
@@ -523,12 +524,9 @@ final class Translator
         $supRightEdge = $supAttachX + $supWidth;
         $subRightEdge = $subAttachX + $subWidth;
         $rightEdge = max($supRightEdge, $subRightEdge);
-        $ctx->stream->moveTextPosition(
-            $rightEdge - $subCtx->cursorX,
-            $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
-        );
-        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         $ctx->cursorX = $rightEdge;
+        $this->moveTextTo($ctx, $rightEdge, $ctx->baselineY);
+        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
     }
 
     /**
@@ -547,7 +545,7 @@ final class Translator
     ): void {
         $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
-        $ctx->stream->moveTextPosition(0.0, $yOffset);
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY + $yOffset);
         $scriptCtx = $this->childContextForScript(
             $ctx,
             $scriptFontSize,
@@ -556,7 +554,7 @@ final class Translator
         );
         $this->paint($script, $scriptCtx);
         $ctx->cursorX = $scriptCtx->cursorX;
-        $ctx->stream->moveTextPosition(0.0, -$yOffset);
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
     }
 
@@ -723,9 +721,12 @@ final class Translator
 
         if ($hasSub && $subWidth > 0.0) {
             // Back up to attachX, drop to sub baseline.
-            $backup = $attachX - $ctx->cursorX;
             $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
-            $ctx->stream->moveTextPosition($backup, -$ctx->fontSize * $ctx->metrics->subscriptShiftDownEm());
+            $this->moveTextTo(
+                $ctx,
+                $attachX,
+                $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
+            );
             $subCtx = $this->childContextForScript(
                 $ctx,
                 $scriptFontSize,
@@ -734,23 +735,17 @@ final class Translator
             );
             $this->paint($sub, $subCtx);
             // End at the pair's right edge on the original baseline.
-            $ctx->stream->moveTextPosition(
-                $attachX + $pairWidth - $subCtx->cursorX,
-                $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
-            );
-            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             $ctx->cursorX = $attachX + $pairWidth;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             return;
         }
 
         // Sup-only with sup narrower than pairWidth would leave the
         // cursor short; pad to the pair's right edge.
         if ($ctx->cursorX < $attachX + $pairWidth) {
-            $ctx->stream->moveTextPosition(
-                $attachX + $pairWidth - $ctx->cursorX,
-                0.0,
-            );
             $ctx->cursorX = $attachX + $pairWidth;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
     }
 
@@ -956,8 +951,11 @@ final class Translator
                     $tableColAlign,
                 );
 
-                $deltaX = $cellLeadX - $ctx->cursorX;
-                $ctx->stream->moveTextPosition($deltaX, $rowBaselineOffset);
+                $this->moveTextTo(
+                    $ctx,
+                    $cellLeadX,
+                    $ctx->baselineY + $rowBaselineOffset,
+                );
                 $cellCtx = new MathmlPaintContext(
                     stream: $ctx->stream,
                     upright: $ctx->upright,
@@ -967,8 +965,8 @@ final class Translator
                     baselineY: $ctx->baselineY + $rowBaselineOffset,
                 );
                 $this->paint($cell, $cellCtx);
-                $ctx->stream->moveTextPosition(0.0, -$rowBaselineOffset);
                 $ctx->cursorX = $cellCtx->cursorX;
+                $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
 
                 $colX += $colWidths[$col];
                 if ($col < $colCount - 1) {
@@ -981,8 +979,8 @@ final class Translator
         // siblings flow correctly.
         $tableRightX = $tableLeftX + $tableWidth;
         if ($ctx->cursorX < $tableRightX) {
-            $ctx->stream->moveTextPosition($tableRightX - $ctx->cursorX, 0.0);
             $ctx->cursorX = $tableRightX;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
     }
 
@@ -1130,9 +1128,8 @@ final class Translator
         if ($under !== null && $subWidth > 0.0) {
             // Back up to attachX, then drop to the sub baseline -
             // same pattern as paintMsubsup.
-            $backup = $attachX - $ctx->cursorX;
             $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
-            $ctx->stream->moveTextPosition($backup, -$subShift);
+            $this->moveTextTo($ctx, $attachX, $ctx->baselineY - $subShift);
             $subCtx = $this->childContextForScript(
                 $ctx,
                 $scriptFontSize,
@@ -1141,20 +1138,14 @@ final class Translator
             );
             $this->paint($under, $subCtx);
             $rightEdge = $attachX + max($subWidth, $supWidth);
-            $ctx->stream->moveTextPosition(
-                $rightEdge - $subCtx->cursorX,
-                $subShift,
-            );
-            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
             $ctx->cursorX = $rightEdge;
+            $this->moveTextTo($ctx, $rightEdge, $ctx->baselineY);
+            $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         } else {
             $rightEdge = $attachX + $supWidth;
             if ($ctx->cursorX < $rightEdge) {
-                $ctx->stream->moveTextPosition(
-                    $rightEdge - $ctx->cursorX,
-                    0.0,
-                );
                 $ctx->cursorX = $rightEdge;
+                $this->moveTextTo($ctx, $rightEdge, $ctx->baselineY);
             }
         }
     }
@@ -1194,8 +1185,8 @@ final class Translator
         // the widest child.
         $baseOffset = ($constructWidth - $baseWidth) / 2.0;
         if ($baseOffset > 0.0) {
-            $ctx->stream->moveTextPosition($baseOffset, 0.0);
             $ctx->cursorX += $baseOffset;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
         $baseLeftX = $ctx->cursorX;
 
@@ -1235,11 +1226,8 @@ final class Translator
         // Ensure the cursor advances past the construct even if both
         // scripts were absent / zero-width (rare malformed inputs).
         if ($ctx->cursorX < $constructLeftX + $constructWidth) {
-            $ctx->stream->moveTextPosition(
-                $constructLeftX + $constructWidth - $ctx->cursorX,
-                0.0,
-            );
             $ctx->cursorX = $constructLeftX + $constructWidth;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
     }
 
@@ -1273,10 +1261,8 @@ final class Translator
         } else {
             $scriptStartX = $constructLeftX + ($constructWidth - $scriptWidth) / 2.0;
         }
-        $deltaX = $scriptStartX - $ctx->cursorX;
-
         $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
-        $ctx->stream->moveTextPosition($deltaX, $yOffset);
+        $this->moveTextTo($ctx, $scriptStartX, $ctx->baselineY + $yOffset);
         $scriptCtx = $this->childContextForScript(
             $ctx,
             $scriptFontSize,
@@ -1288,12 +1274,9 @@ final class Translator
         // Restore: end at the construct's right edge on the original
         // baseline so subsequent siblings flow correctly.
         $constructRightX = $constructLeftX + $constructWidth;
-        $ctx->stream->moveTextPosition(
-            $constructRightX - $scriptCtx->cursorX,
-            -$yOffset,
-        );
-        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
         $ctx->cursorX = $constructRightX;
+        $this->moveTextTo($ctx, $constructRightX, $ctx->baselineY);
+        $ctx->stream->setFont($this->activeFont($ctx), $ctx->fontSize);
     }
 
     // -----------------------------------------------------------------
@@ -1321,8 +1304,8 @@ final class Translator
         if ($widthPt === 0.0) {
             return;
         }
-        $ctx->stream->moveTextPosition($widthPt, 0.0);
         $ctx->cursorX += $widthPt;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
     }
 
     /**
@@ -1347,8 +1330,8 @@ final class Translator
         $startX = $ctx->cursorX;
         $lspacePt = $mpadded->lspacePt($ctx->fontSize) ?? 0.0;
         if ($lspacePt !== 0.0) {
-            $ctx->stream->moveTextPosition($lspacePt, 0.0);
             $ctx->cursorX += $lspacePt;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         // voffset raises (positive) or lowers (negative) the
@@ -1360,24 +1343,23 @@ final class Translator
         // land at the right Y.
         $voffsetPt = $mpadded->voffsetPt($ctx->fontSize) ?? 0.0;
         if ($voffsetPt !== 0.0) {
-            $ctx->stream->moveTextPosition(0.0, $voffsetPt);
             $ctx->baselineY += $voffsetPt;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         $this->walkChildren($mpadded, $ctx);
 
         if ($voffsetPt !== 0.0) {
-            $ctx->stream->moveTextPosition(0.0, -$voffsetPt);
             $ctx->baselineY -= $voffsetPt;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         $widthPt = $mpadded->widthPt($ctx->fontSize);
         if ($widthPt !== null) {
             $targetX = $startX + $widthPt;
-            $delta = $targetX - $ctx->cursorX;
-            if ($delta !== 0.0) {
-                $ctx->stream->moveTextPosition($delta, 0.0);
+            if ($targetX !== $ctx->cursorX) {
                 $ctx->cursorX = $targetX;
+                $this->moveTextTo($ctx, $targetX, $ctx->baselineY);
             }
         }
     }
@@ -1401,8 +1383,8 @@ final class Translator
         if ($width === 0.0) {
             return;
         }
-        $ctx->stream->moveTextPosition($width, 0.0);
         $ctx->cursorX += $width;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
     }
 
     // -----------------------------------------------------------------
@@ -1516,16 +1498,16 @@ final class Translator
         // Shift content right by pad before paint so glyphs sit
         // inside the frame.
         if ($padPt > 0.0) {
-            $ctx->stream->moveTextPosition($padPt, 0.0);
             $ctx->cursorX += $padPt;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         $this->walkChildren($menclose, $ctx);
 
         // Pad on the right side too.
         if ($padPt > 0.0) {
-            $ctx->stream->moveTextPosition($padPt, 0.0);
             $ctx->cursorX += $padPt;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         $left = $startX;
@@ -1882,9 +1864,8 @@ final class Translator
         );
 
         if ($lspaceEm > 0.0) {
-            $shift = $lspaceEm * $ctx->fontSize;
-            $ctx->stream->moveTextPosition($shift, 0.0);
-            $ctx->cursorX += $shift;
+            $ctx->cursorX += $lspaceEm * $ctx->fontSize;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
 
         // `largeop="true"` (typical for ∑, ∏, ∫ when authors want
@@ -1911,9 +1892,8 @@ final class Translator
         }
 
         if ($rspaceEm > 0.0) {
-            $shift = $rspaceEm * $ctx->fontSize;
-            $ctx->stream->moveTextPosition($shift, 0.0);
-            $ctx->cursorX += $shift;
+            $ctx->cursorX += $rspaceEm * $ctx->fontSize;
+            $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         }
         $this->restoreMathsize($parentCtx, $ctx);
     }
@@ -2180,19 +2160,22 @@ final class Translator
             // the topmost glyph to land at axisHeight + totalH/2.
             - $toPt($sequence[0]['part']['fullAdvance']);
 
-        // Glyph width helper - drives the X back-up between Tj's.
+        // Glyph width helper - drives the assembly's inline extent.
         $glyphWidthPt = function (int $gid) use ($ctx, $unitsPerEm): float {
             $w = $ctx->mathFont?->glyphWidths[$gid] ?? 500;
             return $w / (float) $unitsPerEm * $ctx->fontSize;
         };
 
-        // Move text cursor to the topmost part's origin.
-        $ctx->stream->moveTextPosition(0.0, $topY);
-
-        $cumulativeY = $topY;
+        // Every part is drawn from the SAME inline origin, stacked
+        // downward: each one's own glyph advance must not carry into
+        // the next, so each part states its absolute origin rather
+        // than backing up by the width just drawn.
+        $partLeftX = $ctx->cursorX;
+        $partY = $ctx->baselineY + $topY;
         $assemblyGlyphWidth = 0.0;
         foreach ($sequence as $i => $entry) {
             $gid = $entry['gid'];
+            $this->moveTextTo($ctx, $partLeftX, $partY);
             $ctx->stream->showTextHex(sprintf('%04X', $gid));
             $gw = $glyphWidthPt($gid);
             // Track assembly's horizontal extent as max of part widths.
@@ -2201,24 +2184,14 @@ final class Translator
             }
             if ($i < $partsCount - 1) {
                 $advance = $toPt($entry['part']['fullAdvance']);
-                $deltaY = -($advance - $toPt($minOverlap));
-                // Back up X by the glyph we just advanced through;
-                // drop Y to the next part's origin.
-                $ctx->stream->moveTextPosition(-$gw, $deltaY);
-                $cumulativeY += $deltaY;
+                $partY -= $advance - $toPt($minOverlap);
             }
         }
 
-        // After the last part, the text cursor sits at
-        // (cursor_at_top + lastGlyphWidth, cumulativeY). Restore
-        // back to (startX + assembly_width, baselineY) so the next
-        // sibling flows correctly.
-        $netY = -$cumulativeY;
-        $netX = $assemblyGlyphWidth - $glyphWidthPt(
-            $sequence[$partsCount - 1]['gid'],
-        );
-        $ctx->stream->moveTextPosition($netX, $netY);
-        $ctx->cursorX += $assemblyGlyphWidth;
+        // Leave the pen at the assembly's inline end on the original
+        // baseline so the next sibling flows correctly.
+        $ctx->cursorX = $partLeftX + $assemblyGlyphWidth;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
         return true;
     }
 
@@ -2795,9 +2768,8 @@ final class Translator
         if ($kernEm === 0.0) {
             return;
         }
-        $shift = $kernEm * $ctx->fontSize;
-        $ctx->stream->moveTextPosition($shift, 0.0);
-        $ctx->cursorX += $shift;
+        $ctx->cursorX += $kernEm * $ctx->fontSize;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
     }
 
     /** @var array<string, ?\Phpdftk\FontParser\MathKernInfo> Lazy MathKernInfo cache keyed by font path hash. */
@@ -2854,10 +2826,9 @@ final class Translator
         if ($correctionFunits === 0) {
             return;
         }
-        $shiftPt = $correctionFunits / (float) $ctx->mathFont->unitsPerEm
+        $ctx->cursorX += $correctionFunits / (float) $ctx->mathFont->unitsPerEm
             * $ctx->fontSize;
-        $ctx->stream->moveTextPosition($shiftPt, 0.0);
-        $ctx->cursorX += $shiftPt;
+        $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
     }
 
     /**
@@ -3037,6 +3008,32 @@ final class Translator
     private function reverseUtf8(string $utf8): string
     {
         return implode('', array_reverse(mb_str_split($utf8, 1, 'UTF-8')));
+    }
+
+    /**
+     * Move the PDF text pen to an ABSOLUTE user-space position.
+     *
+     * ISO 32000-2 §9.4.2: `Td` translates the TEXT LINE MATRIX `Tlm`,
+     * and a show-text operator advances only the text matrix `Tm` — the
+     * line matrix stays where the last positioning operator put it. A
+     * reposition written as a delta from the painter's own cursor is
+     * therefore short by every glyph advance emitted since then, which
+     * is how `<mspace>`, operator `lspace` / `rspace`, script
+     * attachment and centred over/underscripts all ended up drawing at
+     * the construct's line origin instead of the cursor.
+     *
+     * `Tm` has no such coupling: it sets both matrices outright. Every
+     * reposition in this painter therefore states the absolute
+     * coordinate it wants, taken from the cursor the painter already
+     * tracks (`MathmlPaintContext::$cursorX` / `$baselineY`), which is
+     * also the space the path operators (fraction bars, vinculums,
+     * `mathbackground` rects) have always used. Consecutive tokens
+     * inside one run still emit no positioning operator at all and ride
+     * the font's own advances.
+     */
+    private function moveTextTo(MathmlPaintContext $ctx, float $x, float $y): void
+    {
+        $ctx->stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $x, $y);
     }
 
     /**

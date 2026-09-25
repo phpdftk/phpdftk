@@ -56,7 +56,7 @@ final class MfracRenderingTest extends TestCase
                 . '<mfrac><mn>1</mn><mn>2</mn></mfrac>'
                 . '</math>',
         );
-        $tdCount = preg_match_all('/\s+Td\b/', $bytes);
+        $tdCount = preg_match_all('/\s(?:Td|Tm)\b/', $bytes);
         self::assertGreaterThanOrEqual(
             3,
             $tdCount,

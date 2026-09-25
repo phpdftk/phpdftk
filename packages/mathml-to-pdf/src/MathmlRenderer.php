@@ -149,7 +149,10 @@ final class MathmlRenderer
         // through the right glyph table; otherwise stay with upright
         // Times-Roman for backwards compatibility.
         $stream->setFont($mathFont?->font ?? $upright, $fontSize);
-        $stream->moveTextPosition($x, $baselineY);
+        // Tm, not Td: the painter states every pen position absolutely
+        // (see Translator::moveTextTo) so a reposition can never be
+        // skewed by the glyph advances emitted since the last one.
+        $stream->setTextMatrix(1.0, 0.0, 0.0, 1.0, $x, $baselineY);
 
         // Initial direction from <math dir>. Token elements deeper in
         // the tree can introduce their own boundaries via their `dir`

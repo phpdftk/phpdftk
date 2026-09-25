@@ -90,7 +90,11 @@ final class TextPenPositionTest extends TestCase
 
     public function testCentredOverscriptLandsInsideTheConstruct(): void
     {
-        $glyphs = $this->glyphs($this->render('<mover><mtext>abcdef</mtext><mo>+</mo></mover>'));
+        // <mtext>, not <mo>: an operator carries dictionary lspace that
+        // shifts it inside its own slot, which would confound the
+        // centring this case is about. Operator spacing has its own
+        // test above.
+        $glyphs = $this->glyphs($this->render('<mover><mtext>abcdef</mtext><mtext>+</mtext></mover>'));
         self::assertCount(2, $glyphs, 'base + overscript');
         $baseWidth = MathmlGlyphMetrics::measure('abcdef', self::FONT_SIZE);
         $overWidth = MathmlGlyphMetrics::measure('+', self::FONT_SIZE * 0.7);
