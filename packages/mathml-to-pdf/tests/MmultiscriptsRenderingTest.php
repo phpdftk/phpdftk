@@ -254,6 +254,119 @@ final class MmultiscriptsRenderingTest extends TestCase
         self::assertMatchesRegularExpression('/\(Y\)\s+Tj/', $bytes);
     }
 
+    // ---------------------------------------------------------------
+    // MathML Core §3.4.7 — each script column is
+    // max(subWidth, supWidth) wide; POSTscripts align on its
+    // inline-start edge, PREscripts on its inline-end edge, so both
+    // hug the base (mmultiscript-003).
+    // ---------------------------------------------------------------
+
+    /**
+     * A narrow script paired with a wide one, so the column has slack
+     * to distribute. `<mi>W</mi>` is wider than `<mi>i</mi>` in
+     * Times.
+     */
+    private const string NARROW_OVER_WIDE = '<mi>i</mi><mi>W</mi>';
+
+    public function testPostscriptsAlignOnTheColumnsInlineStartEdge(): void
+    {
+        $bytes = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mmultiscripts><mi>X</mi>' . self::NARROW_OVER_WIDE
+                . '</mmultiscripts></math>',
+        );
+        // Both scripts start at the same x: the column's left edge.
+        self::assertEqualsWithDelta(
+            $this->glyphX($bytes, 'i'),
+            $this->glyphX($bytes, 'W'),
+            0.01,
+        );
+    }
+
+    public function testPrescriptsAlignOnTheColumnsInlineEndEdge(): void
+    {
+        $bytes = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mmultiscripts><mi>X</mi><mprescripts/>'
+                . self::NARROW_OVER_WIDE
+                . '</mmultiscripts></math>',
+        );
+        // The narrow script is pushed right by the column slack, so
+        // it starts LATER than the wide one — and both END together.
+        self::assertGreaterThan(
+            $this->glyphX($bytes, 'W'),
+            $this->glyphX($bytes, 'i'),
+            'the narrow prescript must be pushed toward the base',
+        );
+    }
+
+    /**
+     * Negative guard: when the two scripts are the SAME width there
+     * is no column slack, so the inline-end alignment must be a
+     * no-op — sub and sup still share an x in both modes. An
+     * alignment that shifted equal-width columns would show here.
+     */
+    public function testEqualWidthScriptsAreUnaffectedByTheAlignment(): void
+    {
+        foreach (['<mi>W</mi><mi>W</mi>', '<mprescripts/><mi>W</mi><mi>W</mi>'] as $scripts) {
+            $bytes = $this->render(
+                '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                    . '<mmultiscripts><mi>X</mi>' . $scripts
+                    . '</mmultiscripts></math>',
+            );
+            $positions = $this->glyphXs($bytes, 'W');
+            self::assertCount(2, $positions);
+            self::assertEqualsWithDelta($positions[0], $positions[1], 0.01);
+        }
+    }
+
+    /**
+     * Prescripts must still leave the cursor at the column's right
+     * edge, so the base lands after the full column width whichever
+     * script is the wide one.
+     */
+    public function testPrescriptColumnStillAdvancesByTheFullColumnWidth(): void
+    {
+        $wideSub = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mmultiscripts><mi>X</mi><mprescripts/><mi>W</mi><mi>i</mi>'
+                . '</mmultiscripts></math>',
+        );
+        $wideSup = $this->render(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML">'
+                . '<mmultiscripts><mi>X</mi><mprescripts/><mi>i</mi><mi>W</mi>'
+                . '</mmultiscripts></math>',
+        );
+        self::assertEqualsWithDelta(
+            $this->glyphX($wideSub, 'X'),
+            $this->glyphX($wideSup, 'X'),
+            0.01,
+            'the base must sit after one full column either way',
+        );
+    }
+
+    private function glyphX(string $bytes, string $glyph): float
+    {
+        $pattern = '/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm\s*(?:\/F\d+ [\d.]+ Tf\s*)*\('
+            . preg_quote($glyph, '/') . '\)\s+Tj/';
+        self::assertMatchesRegularExpression($pattern, $bytes);
+        preg_match($pattern, $bytes, $m);
+        return (float) $m[1];
+    }
+
+    /**
+     * Every x at which `$glyph` is shown, in stream order.
+     *
+     * @return list<float>
+     */
+    private function glyphXs(string $bytes, string $glyph): array
+    {
+        $pattern = '/1 0 0 1 (-?[\d.]+) -?[\d.]+ Tm\s*(?:\/F\d+ [\d.]+ Tf\s*)*\('
+            . preg_quote($glyph, '/') . '\)\s+Tj/';
+        preg_match_all($pattern, $bytes, $matches);
+        return array_map(static fn(string $x): float => (float) $x, $matches[1]);
+    }
+
     private function render(string $mathmlXml): string
     {
         $writer = new PdfWriter(compressStreams: false);

@@ -639,7 +639,9 @@ final class Translator
             // outermost (leftmost) prescript visually, so paint it
             // first as we sweep left-to-right toward the base.
             foreach (array_reverse($prePairs) as $pair) {
-                $this->paintScriptPair($pair, $ctx);
+                // Core §3.4.7 — prescripts align on the column's
+                // inline-END edge so they hug the base.
+                $this->paintScriptPair($pair, $ctx, alignInlineEnd: true);
             }
         }
 
@@ -695,10 +697,21 @@ final class Translator
      * (so adjacent pairs align with the pair-grid, not just the
      * rendered content).
      *
+     * `$alignInlineEnd` right-aligns the narrower of the two scripts
+     * within the pair's column instead of left-aligning it. MathML
+     * Core §3.4.7 aligns POSTscripts on the column's inline-start
+     * edge and PREscripts on its inline-end edge, so the scripts
+     * always hug the base. Left-aligning both put a 50px prescript
+     * at the far side of its 100px column, one full column-width
+     * away from where it belongs (mmultiscript-003).
+     *
      * @param array{0: Element, 1: Element} $pair
      */
-    private function paintScriptPair(array $pair, MathmlPaintContext $ctx): void
-    {
+    private function paintScriptPair(
+        array $pair,
+        MathmlPaintContext $ctx,
+        bool $alignInlineEnd = false,
+    ): void {
         [$sub, $sup] = $pair;
         $scriptFontSize = $this->scriptFontSizeFor($ctx);
         $hasSub = !$sub instanceof NoneElement;
@@ -713,24 +726,30 @@ final class Translator
             return;
         }
         $attachX = $ctx->cursorX;
+        $subX = $attachX + ($alignInlineEnd ? $pairWidth - $subWidth : 0.0);
+        $supX = $attachX + ($alignInlineEnd ? $pairWidth - $supWidth : 0.0);
 
         if ($hasSup && $supWidth > 0.0) {
+            if ($supX > $ctx->cursorX) {
+                $ctx->cursorX = $supX;
+                $this->moveTextTo($ctx, $ctx->cursorX, $ctx->baselineY);
+            }
             $this->paintScript($sup, $ctx, $ctx->fontSize * $ctx->metrics->superscriptShiftUpEm());
-            // Cursor now at attachX + supWidth on original baseline.
+            // Cursor now at supX + supWidth on original baseline.
         }
 
         if ($hasSub && $subWidth > 0.0) {
-            // Back up to attachX, drop to sub baseline.
+            // Back up to the sub's own column offset, drop to sub baseline.
             $ctx->stream->setFont($this->activeFont($ctx), $scriptFontSize);
             $this->moveTextTo(
                 $ctx,
-                $attachX,
+                $subX,
                 $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
             $subCtx = $this->childContextForScript(
                 $ctx,
                 $scriptFontSize,
-                $attachX,
+                $subX,
                 $ctx->baselineY - $ctx->fontSize * $ctx->metrics->subscriptShiftDownEm(),
             );
             $this->paint($sub, $subCtx);
