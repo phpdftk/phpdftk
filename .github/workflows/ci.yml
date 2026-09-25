@@ -606,6 +606,11 @@ jobs:
           php-version: '8.4'
           extensions: simplexml
 
+      # merge-wpt-gallery-shards.php goes through LocalFilesystem, so it
+      # needs the autoloader; this job used to run it without one.
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
       - name: Download gallery shards
         uses: actions/download-artifact@v8
         with:

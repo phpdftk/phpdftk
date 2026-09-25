@@ -4,8 +4,10 @@ ARG PDFBOX_VERSION=2.0.36
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates \
     && mkdir -p /opt/lib \
-    && wget -q "https://dlcdn.apache.org/pdfbox/${PDFBOX_VERSION}/preflight-app-${PDFBOX_VERSION}.jar" \
-       -O /opt/preflight-app.jar \
+    && ( wget -q "https://dlcdn.apache.org/pdfbox/${PDFBOX_VERSION}/preflight-app-${PDFBOX_VERSION}.jar" \
+           -O /opt/preflight-app.jar \
+         || wget -q "https://archive.apache.org/dist/pdfbox/${PDFBOX_VERSION}/preflight-app-${PDFBOX_VERSION}.jar" \
+           -O /opt/preflight-app.jar ) \
     && wget -q "https://repo1.maven.org/maven2/javax/activation/activation/1.1.1/activation-1.1.1.jar" \
        -O /opt/lib/activation.jar \
     && wget -q "https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar" \
