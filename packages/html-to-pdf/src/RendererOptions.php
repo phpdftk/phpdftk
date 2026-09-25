@@ -454,6 +454,14 @@ final readonly class RendererOptions
                 display: inline;
             }
             img, button, input, select, textarea, svg, math { display: inline-block; }
+            /* HTML §15.3.3 (Replaced elements) — an `<iframe>` hosts a
+               NESTED BROWSING CONTEXT: it is a replaced element whose
+               "image" is another document, laid out in the iframe's own
+               content box and clipped to it. The UA border is the
+               familiar 2px inset frame, and `overflow: clip` is what
+               makes the embedded document stop at the frame edge instead
+               of spilling into the host page. */
+            iframe { display: inline-block; border: 2px inset; overflow: clip; }
             /* SVG 2 §8.2 / CSS Overflow 3 — the SVG viewport establishes a
                clipping region: content outside the `width`×`height` box is
                clipped by default. Modelled as `overflow: clip` so authored

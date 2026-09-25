@@ -15404,7 +15404,13 @@ final class BlockLayout
      */
     private function inlineAtomicNeedsContentLayout(AtomicInlineBox $box): bool
     {
-        if ($box->children === [] || $this->isReplacedElement($box)) {
+        // A frame's children ARE its rendering (HTML §7.3): the embedded
+        // document's box tree hangs off the frame box, so the replaced-
+        // element skip below must not swallow it. Every other replaced
+        // element's children are fallback content its resource replaced.
+        if ($box->children === []
+            || ($this->isReplacedElement($box) && !$box->hostsChildNavigable)
+        ) {
             return false;
         }
         // Scoped to `inline-block` for now. `inline-table` / `inline-grid`

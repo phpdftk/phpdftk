@@ -115,6 +115,16 @@ final class BoxGenerator
      */
     private array $runningElements = [];
 
+    /**
+     * HTML §15.3.3 — the element that hosts this document's NESTED
+     * BROWSING CONTEXT (the `<iframe>` / `<frame>` it is embedded in), or
+     * null for a top-level document. The `<body>` margin presentational
+     * hints fall back to the container's `marginwidth` / `marginheight`
+     * when the body carries none of its own, so box generation of a
+     * child navigable has to know who framed it.
+     */
+    private ?Element $frameOwner = null;
+
     public function __construct(
         private readonly Cascade $cascade = new Cascade(),
         /**
@@ -138,13 +148,17 @@ final class BoxGenerator
      * stylesheets in their cascade-origin order.
      *
      * @param list<Stylesheet> $sheets
+     * @param Element|null $frameOwner The `<iframe>` / `<frame>` hosting
+     *     this document, when it is a nested browsing context. Supplies the
+     *     HTML §15.3.3 fallback for the `<body>` margin hints.
      */
-    public function generate(Document $document, array $sheets): ?Box
+    public function generate(Document $document, array $sheets, ?Element $frameOwner = null): ?Box
     {
         $root = $document->documentElement;
         if ($root === null) {
             return null;
         }
+        $this->frameOwner = $frameOwner;
         $this->counters = [];
         $this->listScopes = [];
         $this->looseListCounts = [];
@@ -4353,6 +4367,56 @@ final class BoxGenerator
                 }
             }
         }
+        // HTML §15.3.3 (The page) — the legacy `<body>` margin
+        // attributes. The mapping is NOT one attribute per side: a
+        // single attribute sets BOTH sides of its axis, and the two
+        // "far side" spellings map to nothing at all.
+        //
+        //   margin-left  + margin-right  <- marginwidth,  else leftmargin
+        //   margin-top   + margin-bottom <- marginheight, else topmargin
+        //
+        // `rightmargin` / `bottommargin` are deliberately absent: they
+        // are parsed by nobody, which is what `body-margin-3a` asserts
+        // (a body carrying only those two keeps its UA margins). Writing
+        // them into the per-side properties instead would have made
+        // `<body leftmargin=100>` a one-sided margin and mismatched the
+        // `margin-left + margin-right` reference every such test uses.
+        //
+        // When the body declares neither attribute of an axis, the
+        // CONTAINER of the nested browsing context supplies the value:
+        // `<iframe marginwidth=100>` sets the embedded body's inline
+        // margins. Body attributes win over the container's, so the
+        // fallback is only consulted once both body spellings are out.
+        if ($tag === 'body') {
+            foreach ([
+                ['marginwidth', 'leftmargin', ['margin-left', 'margin-right']],
+                ['marginheight', 'topmargin', ['margin-top', 'margin-bottom']],
+            ] as [$axisAttr, $sideAttr, $properties]) {
+                $raw = $element->getAttribute($axisAttr)
+                    ?? $element->getAttribute($sideAttr)
+                    ?? $this->frameOwner?->getAttribute($axisAttr);
+                if ($raw === null) {
+                    continue;
+                }
+                // "Rules for parsing non-negative integers" — the same
+                // lenient scan `<img border>` uses, so `marginwidth="10px"`
+                // and `marginwidth="10 "` both give 10 and a garbage value
+                // maps to nothing rather than to zero.
+                $px = $this->parseHtmlNonNegativeInteger($raw);
+                if ($px === null) {
+                    continue;
+                }
+                foreach ($properties as $property) {
+                    if ($values->has($property)) {
+                        continue;
+                    }
+                    $values->set($property, new \Phpdftk\Css\Value\Length(
+                        (float) $px,
+                        \Phpdftk\Css\Value\LengthUnit::Px,
+                    ));
+                }
+            }
+        }
         // HTML §15.3.4 — `hspace` / `vspace` on embedded content map to
         // the horizontal / vertical margins, and `border` to a solid
         // border of that pixel width on all four sides. All three are
@@ -4439,6 +4503,24 @@ final class BoxGenerator
                 $px = $this->parseHtmlLength($raw);
                 if ($px !== null) {
                     $values->set($attr, new \Phpdftk\Css\Value\Length($px, \Phpdftk\Css\Value\LengthUnit::Px));
+                }
+            }
+            // HTML §15.3.3 (Replaced elements) — an `<iframe>` has no
+            // intrinsic size of its own: the embedded document is laid
+            // out INTO the frame, it does not size it. CSS Images 3 §5.3
+            // therefore falls back to the default object size, 300x150
+            // CSS pixels, on each axis independently. Without this the
+            // frame laid out at zero and the nested document had nowhere
+            // to go, so an `<iframe>` painted nothing at all.
+            if ($tag === 'iframe') {
+                foreach (['width' => 300.0, 'height' => 150.0] as $axis => $default) {
+                    if ($values->has($axis) || $element->getAttribute($axis) !== null) {
+                        continue;
+                    }
+                    $values->set(
+                        $axis,
+                        new \Phpdftk\Css\Value\Length($default, \Phpdftk\Css\Value\LengthUnit::Px),
+                    );
                 }
             }
             // Intrinsic-dimension fallback for `<img src="data:image/...">`

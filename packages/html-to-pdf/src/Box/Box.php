@@ -135,6 +135,20 @@ abstract class Box
      */
     public ?string $pseudoElement = null;
 
+    /**
+     * True when this box is an `<iframe>` / `<frame>` whose children are
+     * the box tree of the document it EMBEDS (HTML §7.3, a child
+     * navigable), rather than fallback content.
+     *
+     * The distinction matters because a frame is a replaced element, and
+     * layout otherwise skips a replaced box's children on the (correct,
+     * for `<img>` / `<video>` / `<object>`) grounds that they are fallback
+     * content the resource replaced. A frame is the one replaced element
+     * whose "resource" IS a box tree, so its children are exactly what
+     * has to be laid out and painted.
+     */
+    public bool $hostsChildNavigable = false;
+
     public function __construct(
         public readonly ?Element $element,
         public readonly CascadedValues $style,

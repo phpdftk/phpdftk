@@ -227,6 +227,24 @@ final class Renderer
         // colour. Only the root box's used style changes; computed
         // values stay as-cascaded so descendants keep inheriting
         // from the original chain.
+        // HTML §4.8.5 / §7.3 — an `<iframe>` hosts a CHILD NAVIGABLE: a
+        // second document laid out inside the frame's content box. Expand
+        // those now, between box generation and layout, so the embedded
+        // trees are ordinary children of the frame box by the time layout
+        // and paint walk the tree — the frame's definite 300x150 content
+        // box is the nested viewport, and its UA `overflow: clip` is what
+        // crops the embedded page to the frame.
+        // Markup of every embedded document, accumulated so the font
+        // subset below can see its codepoints. The subset is built from
+        // `strip_tags()` of the SOURCE, and an iframe's document lives in
+        // an attribute value that `strip_tags` deletes wholesale — so
+        // without this the embedded text's characters are absent from the
+        // subset, and an absent codepoint paints whatever glyph occupies
+        // that slot rather than notdef. That is how `left/right` came out
+        // as `left;` in one document and `leftA` in another.
+        /** @var list<string> $embeddedMarkup */
+        $embeddedMarkup = [];
+        $this->expandChildNavigables($root, 0, $embeddedMarkup);
         $this->propagateBodyWritingModeToRoot($root);
         $this->layout->layout($root, $layoutCtx);
 
@@ -328,7 +346,9 @@ final class Renderer
             $page = $pages[$i];
             $stream = $writer->addContentStream($page);
 
-            $codepoints = $this->collectCodepoints($html);
+            $codepoints = $this->collectCodepoints(
+                $embeddedMarkup === [] ? $html : $html . "\n" . implode("\n", $embeddedMarkup),
+            );
             $registeredFont = null;
             /** @var array<string, \Phpdftk\Pdf\Core\Font\RegisteredFont> $registeredMap */
             $registeredMap = [];
@@ -514,6 +534,88 @@ final class Renderer
             }
         }
         return false;
+    }
+
+    /**
+     * Maximum nesting of child navigables. A frame whose `srcdoc`
+     * embeds itself, or two frames that embed each other's file, would
+     * otherwise recurse until the stack gives out — and unlike a real
+     * browser there is no navigation budget to stop it. Four levels is
+     * past anything a printable document does deliberately.
+     */
+    private const int MAX_FRAME_DEPTH = 4;
+
+    /**
+     * Walk `$box`'s subtree and give every `<iframe>` / `<frame>` box the
+     * box tree of the document it embeds, as its own child.
+     *
+     * Attaching the embedded root as an ORDINARY CHILD is the whole
+     * trick: the frame box already has a definite content box (the
+     * §15.3.3 default object size, 300x150, unless width/height say
+     * otherwise), so block layout lays the embedded `<html>` out against
+     * exactly the viewport a nested browsing context is supposed to
+     * have, and the frame's UA `overflow: clip` crops it. No second
+     * layout pass, no parallel paint path.
+     *
+     * Each embedded document gets a FRESH {@see BoxGenerator}: counters,
+     * list scopes and named strings are per-document state, and a
+     * document that shares its counters with the page that framed it
+     * would number its own lists off the host's `<ol>`.
+     *
+     * @param list<string> $markupOut Collects each embedded document's
+     *     markup for the font-subset scan.
+     */
+    private function expandChildNavigables(
+        \Phpdftk\HtmlToPdf\Box\Box $box,
+        int $depth,
+        array &$markupOut,
+    ): void {
+        if ($depth >= self::MAX_FRAME_DEPTH) {
+            return;
+        }
+        $element = $box->element;
+        $tag = $element === null ? '' : strtolower($element->localName);
+        if (($tag === 'iframe' || $tag === 'frame') && $box->children === []) {
+            $markup = (new \Phpdftk\HtmlToPdf\FrameSource($this->resourceLoader()))
+                ->markupFor($element);
+            if ($markup !== null) {
+                $embedded = $this->generateEmbeddedDocument($markup, $element);
+                if ($embedded !== null) {
+                    $markupOut[] = $markup;
+                    $box->hostsChildNavigable = true;
+                    $box->addChild($embedded);
+                    $this->expandChildNavigables($embedded, $depth + 1, $markupOut);
+                }
+            }
+            return;
+        }
+        foreach ($box->children as $child) {
+            $this->expandChildNavigables($child, $depth, $markupOut);
+        }
+    }
+
+    /**
+     * Parse `$markup` as a standalone document and build its box tree,
+     * with `$frameOwner` recorded so the embedded `<body>` can inherit
+     * the frame's `marginwidth` / `marginheight` (HTML §15.3.3).
+     */
+    private function generateEmbeddedDocument(
+        string $markup,
+        \Phpdftk\Html\Dom\Element $frameOwner,
+    ): ?\Phpdftk\HtmlToPdf\Box\Box {
+        $document = $this->htmlParser->parseDocument($markup);
+        $this->applyBaseHref($document);
+        // The embedded document's OWN stylesheets — UA rules plus
+        // whatever it carries inline. The framing page's author CSS is
+        // deliberately absent: styles do not cross a navigable boundary,
+        // so a host `p { color: red }` must not reach into the frame.
+        $sheets = $this->collectStylesheets(null, $document);
+        $generator = new BoxGenerator(
+            $this->cascade,
+            $this->options->baseDir,
+            $this->options->sandboxRoot,
+        );
+        return $generator->generate($document, $sheets, $frameOwner);
     }
 
     private function propagateBodyWritingModeToRoot(\Phpdftk\HtmlToPdf\Box\Box $root): void
