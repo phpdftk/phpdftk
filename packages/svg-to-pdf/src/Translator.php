@@ -12,6 +12,9 @@ use Phpdftk\Css\Shape\BasicShapePath;
 use Phpdftk\Css\Value\BasicShape;
 use Phpdftk\Css\Value\Keyword as CssKeyword;
 use Phpdftk\Css\Value\ValueList;
+use Phpdftk\Css\Cascade\CalcEvaluator;
+use Phpdftk\Css\Cascade\LengthContext;
+use Phpdftk\Css\Value\Calc;
 use Phpdftk\Css\ValueParser;
 use Phpdftk\Filesystem\LocalFilesystem;
 use Phpdftk\ImageMetadata\ImageParser;
@@ -1526,6 +1529,40 @@ final class Translator
      * `<image>` box it was given, which is exactly what makes `50vw`
      * inside an `<image href="…svg">` mean half that box.
      */
+    /**
+     * Evaluate a CSS math function (`calc()`, `min()`, `max()`,
+     * `clamp()`, …) that appeared in a geometry attribute, in CSS px.
+     *
+     * Percentages resolve against `$basis`, which is the SAME per-axis
+     * basis the plain-length path uses — the viewport width for `x` /
+     * `width`, its height for `y` / `height`, and the normalized
+     * diagonal for a circle's `r` (§10.1). `em` resolves against the
+     * element's own computed `font-size`, which the cascade projection
+     * has already put in reach.
+     *
+     * Returns null when the expression can't be reduced to a number —
+     * an unsupported function, or a percentage with no basis. That
+     * reads as an invalid declaration, so the caller falls back to the
+     * property's initial value rather than to a half-evaluated one.
+     */
+    private function evaluateMathFunction(string $raw, Element $element, float $basis): ?float
+    {
+        $parsed = (new ValueParser())->parseFromString($raw);
+        if (!$parsed instanceof Calc) {
+            return null;
+        }
+        $root = $this->rootViewport ?? $this->currentViewport();
+        $fontSize = $element->fontSize() ?? 16.0;
+        $pixels = CalcEvaluator::evaluate($parsed, new LengthContext(
+            parentFontSize: $fontSize,
+            currentFontSize: $fontSize,
+            viewportWidth: $root['w'],
+            viewportHeight: $root['h'],
+            percentageBasis: $basis,
+        ));
+        return is_nan($pixels) || is_infinite($pixels) ? null : $pixels;
+    }
+
     private function relativeLengthBasis(string $unit, float $percentBasis): float
     {
         if ($unit === '%') {
@@ -1671,6 +1708,13 @@ final class Translator
         $raw = $element->geometryValue($property);
         if ($raw === null || trim($raw) === '') {
             return null;
+        }
+        // SVG 2 §6.7 — a geometry presentation attribute is parsed as a
+        // CSS value, so the CSS math functions are legal in it. They
+        // can't match the numeric fast path below (they don't start
+        // with a digit), so route them through the CSS evaluator first.
+        if (preg_match('/^\s*(?:calc|min|max|clamp|abs|sign|hypot)\s*\(/i', $raw) === 1) {
+            return $this->evaluateMathFunction($raw, $element, $basis);
         }
         // Prefix match, not anchored: mirrors the leniency the shape
         // accessors have always had for trailing junk (`"10 20"`).
