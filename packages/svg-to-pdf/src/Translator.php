@@ -682,6 +682,13 @@ final class Translator
 
     private function paintElement(Element $element, ContentStream $stream): void
     {
+        // SVG 2 §8.9 — `display: none` removes the element AND its
+        // descendants from the rendering tree. Unlike `visibility`, a
+        // descendant cannot opt back in, so this is a hard return
+        // rather than a paint-time flag.
+        if ($element->displayValue() === 'none') {
+            return;
+        }
         // SVG 2 §5.8 — conditional processing gates EVERY direct
         // rendering element, not only `<switch>` branches. An element
         // whose conditions evaluate false is not rendered, and neither
@@ -2347,6 +2354,13 @@ final class Translator
      */
     private function paintUseReferent(Element $referent, ContentStream $stream): void
     {
+        // SVG 2 §8.9 — `display: none` on the referenced element
+        // suppresses the instance too. The `<symbol>` branch below
+        // bypasses `paintElement()`, so the check cannot live there
+        // alone.
+        if ($referent->displayValue() === 'none') {
+            return;
+        }
         if ($referent instanceof Symbol) {
             // SVG 2 §5.5 / §5.6.2 — the instance a `<use>` generates for
             // a `<symbol>` behaves as an `<svg>`: it establishes a

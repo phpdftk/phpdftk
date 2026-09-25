@@ -133,6 +133,11 @@ final class SvgCascadeProjector
         // hence the strict `wasDeclared()` test, same as the geometry
         // properties.
         'overflow',
+        // SVG 2 §8.9 — `display: none` removes an element from the
+        // rendering tree. Declared-only for the same reason: `display`
+        // has a non-empty registered initial, and the painter only
+        // cares whether a declaration said `none`.
+        'display',
     ];
 
     /**

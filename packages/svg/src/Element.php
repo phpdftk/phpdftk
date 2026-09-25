@@ -257,6 +257,23 @@ abstract class Element extends Node
             || $element instanceof Use_;
     }
 
+    /**
+     * The `display` property, lowercased, or null when nothing
+     * declared it.
+     *
+     * SVG 2 §8.9 — `display: none` removes the element AND its
+     * descendants from the rendering tree. Every other value renders,
+     * so callers only ever need the `none` test.
+     */
+    public function displayValue(): ?string
+    {
+        $raw = $this->presentationOrStyle('display');
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        return strtolower(trim($raw));
+    }
+
     public function clipPathValue(): ?string
     {
         return $this->presentationOrStyle('clip-path');
