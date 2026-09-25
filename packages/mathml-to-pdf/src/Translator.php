@@ -1300,6 +1300,7 @@ final class Translator
         $entry = OperatorDictionary::lookup(
             $mo->textContent(),
             $mo->form() ?? $form,
+            formWasInferred: $mo->form() === null,
         );
 
         return $entry['horizontal'] && $this->isStretchy($mo, $entry);
@@ -1936,7 +1937,11 @@ final class Translator
         // dictionary's default. They are CSS lengths but the v1
         // painter only honours em / unitless; everything else falls
         // back to the dictionary value.
-        $entry = OperatorDictionary::lookup($text, $effectiveForm);
+        $entry = OperatorDictionary::lookup(
+            $text,
+            $effectiveForm,
+            formWasInferred: $mo->form() === null,
+        );
         $lspaceEm = $this->resolveOperatorSpacing(
             $mo->attributes['lspace'] ?? null,
             $entry['lspace'],
@@ -2499,7 +2504,11 @@ final class Translator
             return false;
         }
         $form = $formHint ?? $child->form() ?? 'infix';
-        $entry = OperatorDictionary::lookup($child->textContent(), $form);
+        $entry = OperatorDictionary::lookup(
+            $child->textContent(),
+            $form,
+            formWasInferred: $child->form() === null,
+        );
         return $this->isStretchy($child, $entry);
     }
 

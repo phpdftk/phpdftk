@@ -283,6 +283,71 @@ final class OperatorDictionaryTest extends TestCase
         self::assertFalse(OperatorDictionary::DEFAULT_ENTRY['movablelimits']);
     }
 
+    // ---------------------------------------------------------------
+    // Core §3.2.4.2 — an INFERRED form that misses falls back to the
+    // character's other tabulated forms; an author-supplied `form`
+    // attribute that misses does not.
+    // ---------------------------------------------------------------
+
+    /**
+     * U+1EEF0 (Arabic mathematical operator meem with hah) is
+     * tabulated postfix-only with zero spacing.
+     */
+    private const string ARABIC_POSTFIX_ONLY = "\u{1EEF0}";
+
+    /** U+2207 NABLA is tabulated prefix-only. */
+    private const string NABLA_PREFIX_ONLY = "\u{2207}";
+
+    public function testAuthorSuppliedFormThatMissesFallsThroughToTheDefault(): void
+    {
+        // mo-form's reference pins this: `<mo form="infix">∇</mo>`
+        // renders with the default 5/18 em, NOT nabla's prefix entry.
+        $entry = OperatorDictionary::lookup(self::NABLA_PREFIX_ONLY, 'infix');
+        self::assertEqualsWithDelta(5.0 / 18.0, $entry['lspace'], 0.0001);
+        self::assertEqualsWithDelta(5.0 / 18.0, $entry['rspace'], 0.0001);
+    }
+
+    public function testAuthorSuppliedFormThatMissesIsNotRescuedForArabicEither(): void
+    {
+        $entry = OperatorDictionary::lookup(self::ARABIC_POSTFIX_ONLY, 'infix');
+        self::assertEqualsWithDelta(5.0 / 18.0, $entry['lspace'], 0.0001);
+    }
+
+    public function testUnlistedCharacterStillGetsTheDefaultEvenWhenInferred(): void
+    {
+        // The fallback must not invent an entry for a character the
+        // dictionary does not list at all.
+        $entry = OperatorDictionary::lookup("\u{1F600}", 'infix', formWasInferred: true);
+        self::assertSame(OperatorDictionary::DEFAULT_ENTRY, $entry);
+    }
+
+    public function testInferredFormFallsBackToTheCharactersTabulatedForm(): void
+    {
+        // operator-dictionary-arabic-001: the `<mo>` is the middle of
+        // three children, so its form is INFERRED infix, and it must
+        // still pick up the postfix entry's zero spacing.
+        $entry = OperatorDictionary::lookup(
+            self::ARABIC_POSTFIX_ONLY,
+            'infix',
+            formWasInferred: true,
+        );
+        self::assertSame(0.0, $entry['lspace']);
+        self::assertSame(0.0, $entry['rspace']);
+        self::assertTrue($entry['stretchy']);
+        self::assertTrue($entry['horizontal']);
+    }
+
+    public function testAnExactFormMatchIsUnaffectedByTheInferredFlag(): void
+    {
+        $explicit = OperatorDictionary::lookup(self::ARABIC_POSTFIX_ONLY, 'postfix');
+        $inferred = OperatorDictionary::lookup(
+            self::ARABIC_POSTFIX_ONLY,
+            'postfix',
+            formWasInferred: true,
+        );
+        self::assertSame($explicit, $inferred);
+    }
+
     public function testDefaultEntryStructure(): void
     {
         // Per Core §3.4.2 / Appendix A.2, an unrecognised operator

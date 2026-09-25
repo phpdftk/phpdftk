@@ -80,6 +80,11 @@ final class OperatorDictionary
      * Returns {@see DEFAULT_ENTRY} when no match is found so the
      * caller never sees null.
      *
+     * `$formWasInferred` says the form came from the operator's
+     * position among its siblings rather than from a `form`
+     * attribute; only then does a miss consult the character's other
+     * tabulated forms (Core §3.2.4.2).
+     *
      * @return array{
      *     lspace: float,
      *     rspace: float,
@@ -90,9 +95,42 @@ final class OperatorDictionary
      *     movablelimits: bool,
      * }
      */
-    public static function lookup(string $text, string $form): array
-    {
+    public static function lookup(
+        string $text,
+        string $form,
+        bool $formWasInferred = false,
+    ): array {
         $packed = OperatorDictionaryTable::TABLE[$text][$form] ?? null;
+        // Core §3.2.4.2 — when the dictionary lists the character but
+        // not under the form we are looking up, the character's OTHER
+        // forms are consulted before the default entry, in the order
+        // infix, postfix, prefix.
+        //
+        // This applies ONLY to an INFERRED form. An author-supplied
+        // `form` attribute is an assertion about which entry to use,
+        // and a miss against it falls straight through to the default
+        // — `mo-form`'s reference pins all nine combinations of
+        // {∇ (prefix-only), ⋉ (infix-only), ” (postfix-only)} ×
+        // {infix, prefix, postfix} and every mismatched pair there
+        // resolves to the default 5/18 em rather than to the
+        // character's one tabulated form.
+        //
+        // With an inferred form the fallback is what makes
+        // `operator-dictionary-arabic-001` correct: U+1EEF0 is
+        // tabulated postfix-only, and as the middle child of an
+        // `<mrow>` (inferred infix) it must still pick up that
+        // entry's zero spacing rather than a 5/18 em gap per side.
+        if ($packed === null
+            && $formWasInferred
+            && isset(OperatorDictionaryTable::TABLE[$text])
+        ) {
+            foreach (self::FORM_FALLBACK_ORDER as $candidate) {
+                $packed = OperatorDictionaryTable::TABLE[$text][$candidate] ?? null;
+                if ($packed !== null) {
+                    break;
+                }
+            }
+        }
         if ($packed === null) {
             return self::DEFAULT_ENTRY;
         }
@@ -109,6 +147,14 @@ final class OperatorDictionary
             'movablelimits' => ($flags & self::FLAG_MOVABLELIMITS) !== 0,
         ];
     }
+
+    /**
+     * Order the other forms of a listed character are tried in when
+     * the computed form has no entry (Core §3.2.4.3).
+     *
+     * @var list<string>
+     */
+    private const array FORM_FALLBACK_ORDER = ['infix', 'postfix', 'prefix'];
 
     /**
      * Whether the dictionary lists `$text` under ANY form.
